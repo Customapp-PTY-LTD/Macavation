@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Management System - Administration</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --customapp-bg: #5CBDB4;
+            --customapp-text: #4A4A4A;
+            --customapp-light: #7FD4CC;
+            --customapp-dark: #4A9A93;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: var(--customapp-text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        .navbar {
+            background-color: var(--customapp-bg) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: black !important;
+        }
+        
+        .btn-customapp {
+            background-color: var(--customapp-bg);
+            color: white;
+            border: none;
+        }
+        
+        .btn-customapp:hover {
+            background-color: var(--customapp-dark);
+            color: white;
+        }
+        
+        .farm-card {
+            border-left: 4px solid var(--customapp-bg);
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+        
+        .farm-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateX(4px);
+        }
+        
+        .user-row {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .user-row:last-child {
+            border-bottom: none;
+        }
+        
+        .permission-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 0.25rem;
+            display: inline-block;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .resource-allocation {
+            padding: 0.75rem;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="01-dashboard.html">
+                <i class="bi bi-grid-fill me-2"></i>Farm Management System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="01-dashboard.html"><i class="bi bi-house-fill me-1"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="bi bi-gear-fill me-1"></i>Admin</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>Heila Ungerer (Super Admin)
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#">Profile</a></li>
+                            <li><a class="dropdown-item" href="#">Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2 class="fw-bold">System Administration</h2>
+                <p class="text-muted">Farms, Users, Resources & Permissions</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-customapp me-2" data-bs-toggle="modal" data-bs-target="#addFarmModal">
+                    <i class="bi bi-plus-lg me-1"></i>Add Farm
+                </button>
+                <button class="btn btn-outline-secondary">
+                    <i class="bi bi-download me-1"></i>Export System Report
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="bi bi-house-fill fs-1 mb-2" style="color: var(--customapp-bg);"></i>
+                    <h6 class="text-muted mb-1">Active Farms</h6>
+                    <h3 class="fw-bold mb-0">5</h3>
+                    <small>across 3 regions</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="bi bi-people-fill fs-1 mb-2 text-success"></i>
+                    <h6 class="text-muted mb-1">Total Users</h6>
+                    <h3 class="fw-bold mb-0">24</h3>
+                    <small>12 admin, 12 field users</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="bi bi-diagram-3-fill fs-1 mb-2 text-warning"></i>
+                    <h6 class="text-muted mb-1">Shared Resources</h6>
+                    <h3 class="fw-bold mb-0">287</h3>
+                    <small>labour, assets, equipment</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="bi bi-calendar-check fs-1 mb-2 text-info"></i>
+                    <h6 class="text-muted mb-1">Crop Types</h6>
+                    <h3 class="fw-bold mb-0">8</h3>
+                    <small>managed across all farms</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4" id="adminTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="farms-tab" data-bs-toggle="tab" data-bs-target="#farms" type="button">
+                    <i class="bi bi-house-fill me-2"></i>Farms
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
+                    <i class="bi bi-people-fill me-2"></i>Users & Permissions
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="resources-tab" data-bs-toggle="tab" data-bs-target="#resources" type="button">
+                    <i class="bi bi-diagram-3-fill me-2"></i>Shared Resources
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="crops-tab" data-bs-toggle="tab" data-bs-target="#crops" type="button">
+                    <i class="bi bi-flower1 me-2"></i>Crop Types
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="logistics-tab" data-bs-toggle="tab" data-bs-target="#logistics" type="button">
+                    <i class="bi bi-truck me-2"></i>Logistics
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="adminTabContent">
+            <!-- Farms Tab -->
+            <div class="tab-pane fade show active" id="farms" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0 fw-bold">Farm Portfolio</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="farm-card card">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="fw-bold mb-2">Quinn Farms - Paarl</h6>
+                                                <p class="mb-2">
+                                                    <i class="bi bi-geo-alt-fill me-2"></i>Paarl, Western Cape<br>
+                                                    <i class="bi bi-rulers me-2"></i>125 hectares<br>
+                                                    <i class="bi bi-apple me-2"></i>Apples (Granny Smith, Pink Lady, Golden Delicious)
+                                                </p>
+                                                <span class="badge bg-success">Active</span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Labour Allocated:</small>
+                                                    <br><strong>147 workers</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Assets:</small>
+                                                    <br><strong>12 vehicles, 45 equipment items</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Manager:</small>
+                                                    <br><strong>Rich van der Merwe</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button class="btn btn-sm btn-outline-primary me-2">
+                                                <i class="bi bi-eye"></i> View Dashboard
+                                            </button>
+                                            <button class="btn btn-sm btn-customapp">
+                                                <i class="bi bi-pencil"></i> Edit Farm
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="farm-card card">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="fw-bold mb-2">Kinmount Estate</h6>
+                                                <p class="mb-2">
+                                                    <i class="bi bi-geo-alt-fill me-2"></i>Grabouw, Western Cape<br>
+                                                    <i class="bi bi-rulers me-2"></i>85 hectares<br>
+                                                    <i class="bi bi-apple me-2"></i>Apples (Royal Gala, Fuji)
+                                                </p>
+                                                <span class="badge bg-success">Active</span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Labour Allocated:</small>
+                                                    <br><strong>92 workers</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Assets:</small>
+                                                    <br><strong>8 vehicles, 32 equipment items</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Manager:</small>
+                                                    <br><strong>Johannes Botha</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button class="btn btn-sm btn-outline-primary me-2">
+                                                <i class="bi bi-eye"></i> View Dashboard
+                                            </button>
+                                            <button class="btn btn-sm btn-customapp">
+                                                <i class="bi bi-pencil"></i> Edit Farm
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="farm-card card">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="fw-bold mb-2">Riverside Citrus</h6>
+                                                <p class="mb-2">
+                                                    <i class="bi bi-geo-alt-fill me-2"></i>Citrusdal, Western Cape<br>
+                                                    <i class="bi bi-rulers me-2"></i>210 hectares<br>
+                                                    <i class="bi bi-circle me-2"></i>Oranges (Navel, Valencia), Lemons
+                                                </p>
+                                                <span class="badge bg-success">Active</span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Labour Allocated:</small>
+                                                    <br><strong>215 workers</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Assets:</small>
+                                                    <br><strong>18 vehicles, 67 equipment items</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Manager:</small>
+                                                    <br><strong>Maria Santos</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button class="btn btn-sm btn-outline-primary me-2">
+                                                <i class="bi bi-eye"></i> View Dashboard
+                                            </button>
+                                            <button class="btn btn-sm btn-customapp">
+                                                <i class="bi bi-pencil"></i> Edit Farm
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="farm-card card">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="fw-bold mb-2">Bay Kiwi Orchards</h6>
+                                                <p class="mb-2">
+                                                    <i class="bi bi-geo-alt-fill me-2"></i>Plettenberg Bay, Western Cape<br>
+                                                    <i class="bi bi-rulers me-2"></i>45 hectares<br>
+                                                    <i class="bi bi-egg me-2"></i>Kiwis (Hayward, Gold)
+                                                </p>
+                                                <span class="badge bg-success">Active</span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Labour Allocated:</small>
+                                                    <br><strong>38 workers</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Assets:</small>
+                                                    <br><strong>5 vehicles, 18 equipment items</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Manager:</small>
+                                                    <br><strong>Pieter van Zyl</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button class="btn btn-sm btn-outline-primary me-2">
+                                                <i class="bi bi-eye"></i> View Dashboard
+                                            </button>
+                                            <button class="btn btn-sm btn-customapp">
+                                                <i class="bi bi-pencil"></i> Edit Farm
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="farm-card card">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="fw-bold mb-2">Stellendale Vineyards</h6>
+                                                <p class="mb-2">
+                                                    <i class="bi bi-geo-alt-fill me-2"></i>Stellenbosch, Western Cape<br>
+                                                    <i class="bi bi-rulers me-2"></i>68 hectares<br>
+                                                    <i class="bi bi-circle-fill me-2"></i>Grapes (Cabernet, Shiraz, Chenin Blanc)
+                                                </p>
+                                                <span class="badge bg-success">Active</span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Labour Allocated:</small>
+                                                    <br><strong>55 workers</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Assets:</small>
+                                                    <br><strong>7 vehicles, 28 equipment items</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Manager:</small>
+                                                    <br><strong>François Dubois</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button class="btn btn-sm btn-outline-primary me-2">
+                                                <i class="bi bi-eye"></i> View Dashboard
+                                            </button>
+                                            <button class="btn btn-sm btn-customapp">
+                                                <i class="bi bi-pencil"></i> Edit Farm
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Portfolio Summary</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Total Hectares:</small>
+                                        <strong>533 ha</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Total Workers:</small>
+                                        <strong>547</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Total Vehicles:</small>
+                                        <strong>50</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Equipment Items:</small>
+                                        <strong>190</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Crop Distribution</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <small>Apples (3 farms):</small>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" style="width: 39%; background-color: var(--customapp-bg);">210 ha</div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <small>Citrus (1 farm):</small>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-warning" style="width: 39%;">210 ha</div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <small>Grapes (1 farm):</small>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-danger" style="width: 13%;">68 ha</div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <small>Kiwis (1 farm):</small>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" style="width: 9%;">45 ha</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users & Permissions Tab -->
+            <div class="tab-pane fade" id="users" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0 fw-bold">System Users</h5>
+                                    <div>
+                                        <select class="form-select form-select-sm d-inline-block me-2" style="width: auto;">
+                                            <option>All Users</option>
+                                            <option>Super Admin</option>
+                                            <option>Farm Admin</option>
+                                            <option>Farm Manager</option>
+                                            <option>Field User</option>
+                                        </select>
+                                        <button class="btn btn-sm btn-customapp">
+                                            <i class="bi bi-plus-lg me-1"></i>Add User
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="user-row">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="fw-bold mb-1">Heila Ungerer</h6>
+                                            <small class="text-muted">heila@quinsix.co.za</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <span class="badge bg-danger">Super Admin</span>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">All Farms</small>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Permissions:</small><br>
+                                            <span class="permission-badge bg-light">All Modules</span>
+                                            <span class="permission-badge bg-light">User Management</span>
+                                            <span class="permission-badge bg-light">System Config</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="user-row">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="fw-bold mb-1">Rich van der Merwe</h6>
+                                            <small class="text-muted">rich@quinnfarms.co.za</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <span class="badge bg-primary">Farm Manager</span>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Quinn Farms</small>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Permissions:</small><br>
+                                            <span class="permission-badge bg-light">Labour</span>
+                                            <span class="permission-badge bg-light">Compliance</span>
+                                            <span class="permission-badge bg-light">Chemicals</span>
+                                            <span class="permission-badge bg-light">Crops</span>
+                                            <span class="permission-badge bg-light">Assets</span>
+                                            <span class="permission-badge bg-light">Water</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="user-row">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="fw-bold mb-1">Johannes Botha</h6>
+                                            <small class="text-muted">johannes@kinmount.co.za</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <span class="badge bg-primary">Farm Manager</span>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Kinmount Estate</small>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Permissions:</small><br>
+                                            <span class="permission-badge bg-light">Labour</span>
+                                            <span class="permission-badge bg-light">Chemicals</span>
+                                            <span class="permission-badge bg-light">Crops</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="user-row">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="fw-bold mb-1">Maria Santos</h6>
+                                            <small class="text-muted">maria@riverside-citrus.co.za</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <span class="badge bg-primary">Farm Manager</span>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Riverside Citrus</small>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Permissions:</small><br>
+                                            <span class="permission-badge bg-light">Labour</span>
+                                            <span class="permission-badge bg-light">Compliance</span>
+                                            <span class="permission-badge bg-light">Post-Harvest</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="user-row">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="fw-bold mb-1">Tam Chen</h6>
+                                            <small class="text-muted">tam@quinsix.co.za</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <span class="badge bg-info">Admin</span>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">All Farms</small>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Permissions:</small><br>
+                                            <span class="permission-badge bg-light">Labour</span>
+                                            <span class="permission-badge bg-light">Compliance</span>
+                                            <span class="permission-badge bg-light">Reports</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Role Definitions</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <h6 class="fw-bold">Super Admin</h6>
+                                    <small class="text-muted">Full system access, user management, all farms</small>
+                                </div>
+                                <div class="mb-3">
+                                    <h6 class="fw-bold">Farm Admin</h6>
+                                    <small class="text-muted">Multi-farm access, reporting, resource allocation</small>
+                                </div>
+                                <div class="mb-3">
+                                    <h6 class="fw-bold">Farm Manager</h6>
+                                    <small class="text-muted">Single farm access, operational modules</small>
+                                </div>
+                                <div class="mb-3">
+                                    <h6 class="fw-bold">Field User</h6>
+                                    <small class="text-muted">Limited mobile access, data capture only</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">User Statistics</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Super Admin:</small>
+                                        <strong>1</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Farm Admin:</small>
+                                        <strong>2</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Farm Managers:</small>
+                                        <strong>9</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Field Users:</small>
+                                        <strong>12</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shared Resources Tab -->
+            <div class="tab-pane fade" id="resources" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card mb-4">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0 fw-bold">Labour Pool (Shared Workers)</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-3">
+                                    <strong>Current Allocation:</strong> 547 total workers across 5 farms
+                                </p>
+                                <div class="resource-allocation">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <strong>Quinn Farms</strong>
+                                        </div>
+                                        <div class="col-md-7">
+                                            <div class="progress" style="height: 25px;">
+                                                <div class="progress-bar" style="width: 27%; background-color: var(--customapp-bg);">
+                                                    <strong>147 workers</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <small class="text-muted">27%</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="resource-allocation">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <strong>Riverside Citrus</strong>
+                                        </div>
+                                        <div class="col-md-7">
+                                            <div class="progress" style="height: 25px;">
+                                                <div class="progress-bar bg-warning" style="width: 39%;">
+                                                    <strong>215 workers</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <small class="text-muted">39%</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="resource-allocation">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <strong>Kinmount Estate</strong>
+                                        </div>
+                                        <div class="col-md-7">
+                                            <div class="progress" style="height: 25px;">
+                                                <div class="progress-bar bg-info" style="width: 17%;">
+                                                    <strong>92 workers</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <small class="text-muted">17%</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="resource-allocation">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <strong>Stellendale Vineyards</strong>
+                                        </div>
+                                        <div class="col-md-7">
+                                            <div class="progress" style="height: 25px;">
+                                                <div class="progress-bar bg-danger" style="width: 10%;">
+                                                    <strong>55 workers</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <small class="text-muted">10%</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="resource-allocation">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <strong>Bay Kiwi Orchards</strong>
+                                        </div>
+                                        <div class="col-md-7">
+                                            <div class="progress" style="height: 25px;">
+                                                <div class="progress-bar bg-success" style="width: 7%;">
+                                                    <strong>38 workers</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <small class="text-muted">7%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0 fw-bold">Shared Assets & Equipment</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Asset</th>
+                                                <th>Type</th>
+                                                <th>Home Farm</th>
+                                                <th>Current Location</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Toyota Hilux - CA 123 456</strong></td>
+                                                <td>Vehicle</td>
+                                                <td>Quinn Farms</td>
+                                                <td>Quinn Farms</td>
+                                                <td><span class="badge bg-success">Available</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-arrow-left-right"></i> Transfer
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Spray Rig #3</strong></td>
+                                                <td>Equipment</td>
+                                                <td>Kinmount</td>
+                                                <td>Riverside Citrus</td>
+                                                <td><span class="badge bg-warning">In Use</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-arrow-left-right"></i> Transfer
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Forklift - FL-002</strong></td>
+                                                <td>Equipment</td>
+                                                <td>Quinn Farms</td>
+                                                <td>Stellendale</td>
+                                                <td><span class="badge bg-warning">In Use</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-arrow-left-right"></i> Transfer
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Resource Summary</h6>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="fw-bold mb-2">Total Shared Resources</h6>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Labour Pool:</small>
+                                        <strong>547 workers</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Vehicles:</small>
+                                        <strong>50</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Equipment:</small>
+                                        <strong>190 items</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Specialized Tools:</small>
+                                        <strong>47 items</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Cross-Farm Transfers</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="small mb-2"><strong>This Week:</strong></p>
+                                <div class="alert alert-info mb-2">
+                                    <small>
+                                        <strong>12 workers</strong> moved from Kinmount to Quinn Farms for pruning season
+                                    </small>
+                                </div>
+                                <div class="alert alert-warning mb-0">
+                                    <small>
+                                        <strong>Spray Rig #3</strong> transferred to Riverside Citrus for 2 weeks
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crop Types Tab -->
+            <div class="tab-pane fade" id="crops" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold">Crop Type Configuration</h5>
+                            <button class="btn btn-sm btn-customapp">
+                                <i class="bi bi-plus-lg me-1"></i>Add Crop Type
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Crop Type</th>
+                                        <th>Varieties</th>
+                                        <th>Farms</th>
+                                        <th>Total Hectares</th>
+                                        <th>Compliance Standards</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <i class="bi bi-apple me-2"></i>
+                                            <strong>Apples</strong>
+                                        </td>
+                                        <td>Granny Smith, Pink Lady, Golden Delicious, Royal Gala, Fuji</td>
+                                        <td>Quinn Farms, Kinmount</td>
+                                        <td>210 ha</td>
+                                        <td>
+                                            <span class="badge bg-success">Global GAP</span>
+                                            <span class="badge bg-info">FSSC 22000</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <i class="bi bi-circle me-2 text-warning"></i>
+                                            <strong>Citrus</strong>
+                                        </td>
+                                        <td>Navel Oranges, Valencia Oranges, Lemons</td>
+                                        <td>Riverside Citrus</td>
+                                        <td>210 ha</td>
+                                        <td>
+                                            <span class="badge bg-success">Global GAP</span>
+                                            <span class="badge bg-warning">CGA</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <i class="bi bi-circle-fill me-2 text-danger"></i>
+                                            <strong>Grapes</strong>
+                                        </td>
+                                        <td>Cabernet Sauvignon, Shiraz, Chenin Blanc</td>
+                                        <td>Stellendale</td>
+                                        <td>68 ha</td>
+                                        <td>
+                                            <span class="badge bg-success">Global GAP</span>
+                                            <span class="badge bg-danger">WIETA</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <i class="bi bi-egg me-2 text-success"></i>
+                                            <strong>Kiwis</strong>
+                                        </td>
+                                        <td>Hayward, Gold Kiwi</td>
+                                        <td>Bay Kiwi Orchards</td>
+                                        <td>45 ha</td>
+                                        <td>
+                                            <span class="badge bg-success">Global GAP</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logistics Tab -->
+            <div class="tab-pane fade" id="logistics" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0 fw-bold">Active Resource Transfers</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Transfer ID</th>
+                                                <th>Resource</th>
+                                                <th>From</th>
+                                                <th>To</th>
+                                                <th>Start Date</th>
+                                                <th>Return Date</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>TRF-001245</strong></td>
+                                                <td>12 Pruning Workers</td>
+                                                <td>Kinmount</td>
+                                                <td>Quinn Farms</td>
+                                                <td>09 Dec 2025</td>
+                                                <td>23 Dec 2025</td>
+                                                <td><span class="badge bg-success">Active</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>TRF-001246</strong></td>
+                                                <td>Spray Rig #3</td>
+                                                <td>Kinmount</td>
+                                                <td>Riverside</td>
+                                                <td>10 Dec 2025</td>
+                                                <td>24 Dec 2025</td>
+                                                <td><span class="badge bg-success">Active</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>TRF-001244</strong></td>
+                                                <td>Forklift FL-002</td>
+                                                <td>Quinn Farms</td>
+                                                <td>Stellendale</td>
+                                                <td>01 Dec 2025</td>
+                                                <td>15 Dec 2025</td>
+                                                <td><span class="badge bg-warning">Returning Soon</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Create Transfer</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Resource Type</label>
+                                    <select class="form-select">
+                                        <option>Labour</option>
+                                        <option>Vehicle</option>
+                                        <option>Equipment</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">From Farm</label>
+                                    <select class="form-select">
+                                        <option>Quinn Farms</option>
+                                        <option>Kinmount</option>
+                                        <option>Riverside Citrus</option>
+                                        <option>Bay Kiwi</option>
+                                        <option>Stellendale</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">To Farm</label>
+                                    <select class="form-select">
+                                        <option>Quinn Farms</option>
+                                        <option>Kinmount</option>
+                                        <option>Riverside Citrus</option>
+                                        <option>Bay Kiwi</option>
+                                        <option>Stellendale</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-customapp w-100">
+                                    <i class="bi bi-plus-lg me-1"></i>Create Transfer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Farm Modal -->
+    <div class="modal fade" id="addFarmModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: var(--customapp-bg); color: white;">
+                    <h5 class="modal-title">Add New Farm</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Farm Name</label>
+                            <input type="text" class="form-control" placeholder="e.g., Sunset Orchards">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Location</label>
+                            <input type="text" class="form-control" placeholder="e.g., Stellenbosch, Western Cape">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Total Hectares</label>
+                            <input type="number" class="form-control" placeholder="e.g., 125">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Primary Crop</label>
+                            <select class="form-select">
+                                <option>Apples</option>
+                                <option>Citrus</option>
+                                <option>Grapes</option>
+                                <option>Kiwis</option>
+                                <option>Stone Fruit</option>
+                                <option>Berries</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Farm Manager</label>
+                            <select class="form-select">
+                                <option>Select User...</option>
+                                <option>Rich van der Merwe</option>
+                                <option>Johannes Botha</option>
+                                <option>Create New User...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Status</label>
+                            <select class="form-select">
+                                <option>Active</option>
+                                <option>Planning</option>
+                                <option>Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Notes</label>
+                            <textarea class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-customapp">Add Farm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+# FruitLive Development Rules
+
+## Project Overview
+FruitLive is a farm management system using vanilla JavaScript frontend with a Supabase backend accessed through a Lambda proxy.
+
+## Technology Stack
+- **Frontend**: Vanilla JavaScript, Bootstrap 5, jQuery
+- **Backend**: Supabase (PostgreSQL)
+- **API Layer**: AWS Lambda proxy at `https://snrbpnca2tdilbbypivmxx57qa0xiaea.lambda-url.af-south-1.on.aws/`
+- **Database**: Supabase project `iwxmuemrfopajwvqdiae`
+
+---
+
+## RBAC (Role-Based Access Control) Implementation
+
+### 1. Database Tables Structure
+
+```sql
+-- Roles table
+CREATE TABLE public.roles (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_name varchar NOT NULL UNIQUE,
+    description text,
+    is_active boolean DEFAULT true,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+-- Role permissions table (controls access to database functions)
+CREATE TABLE public.role_permissions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_id uuid NOT NULL REFERENCES public.roles(id) ON DELETE CASCADE,
+    object_type varchar NOT NULL,      -- 'function', 'table'
+    object_name varchar NOT NULL,      -- function name or table name
+    operation varchar NOT NULL,        -- 'EXECUTE', 'SELECT', 'INSERT', 'UPDATE', 'DELETE'
+    allowed boolean DEFAULT false,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+-- Users table with role assignment
+CREATE TABLE public.users (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    email text NOT NULL UNIQUE,
+    username text UNIQUE,
+    role_id uuid REFERENCES public.roles(id),
+    role text,  -- denormalized role name for quick access
+    is_active boolean DEFAULT true,
+    -- ... other fields
+);
+```
+
+### 2. Adding RBAC Permissions for New Functions
+
+When creating a new database function, add permissions for each role:
+
+```sql
+-- Add permission for a role to execute a function
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+VALUES 
+    ('role-uuid-here', 'function', 'function_name', 'EXECUTE', true);
+```
+
+**Permission Levels Example:**
+- `super_user`: Full access to all functions
+- `admin`: Can view/create/update but not delete
+- `user`: Read-only access
+
+### 3. Lambda RBAC Check
+The Lambda proxy automatically checks permissions before executing any function. It:
+1. Extracts user info from JWT token
+2. Looks up user's role_id
+3. Checks role_permissions table for allowed operations
+4. Returns 403 Forbidden if not authorized
+
+---
+
+## Data Functions Implementation
+
+### 1. Creating Database Functions (Supabase)
+
+Use this naming convention:
+- `get_[entity]s` - List all records
+- `get_[entity]_by_id` - Get single record
+- `create_[entity]_simple` - Create new record
+- `update_[entity]_simple` - Update existing record
+- `delete_[entity]_hard` - Permanently delete record
+- `deactivate_[entity]` - Soft delete (set is_active = false)
+
+**Function Template:**
+
+```sql
+-- GET ALL
+CREATE OR REPLACE FUNCTION get_items()
+RETURNS TABLE (
+    id uuid,
+    name text,
+    -- other columns
+    created_at timestamptz
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT i.id, i.name, i.created_at
+    FROM public.items i
+    WHERE i.is_active = true
+    ORDER BY i.created_at DESC;
+END;
+$$;
+
+-- CREATE
+CREATE OR REPLACE FUNCTION create_item_simple(
+    p_name text,
+    p_description text DEFAULT NULL
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_id uuid;
+BEGIN
+    INSERT INTO public.items (name, description)
+    VALUES (p_name, p_description)
+    RETURNING id INTO v_id;
+    
+    RETURN json_build_object(
+        'success', true,
+        'id', v_id,
+        'message', 'Item created successfully'
+    );
+END;
+$$;
+```
+
+### 2. Frontend Data Functions (js/data-functions.js)
+
+Add methods to the `_dataFunctions` object:
+
+```javascript
+// In js/data-functions.js
+
+// GET ALL
+getItems: async function (token = null) {
+    return await this.callFunction('get_items', {}, token);
+},
+
+// GET BY ID
+getItemById: async function (itemId, token = null) {
+    return await this.callFunction('get_item_by_id', { p_id: itemId }, token);
+},
+
+// CREATE
+createItem: async function (itemData, token = null) {
+    const params = {
+        p_name: itemData.name,
+        p_description: itemData.description || null
+    };
+    return await this.callFunction('create_item_simple', params, token);
+},
+
+// UPDATE
+updateItem: async function (itemId, itemData, token = null) {
+    const params = {
+        p_item_id: itemId,
+        p_name: itemData.name || null,
+        p_description: itemData.description || null,
+        p_is_active: itemData.is_active !== undefined ? itemData.is_active : null
+    };
+    return await this.callFunction('update_item_simple', params, token);
+},
+
+// DELETE
+deleteItem: async function (itemId, token = null) {
+    return await this.callFunction('delete_item_hard', { p_item_id: itemId }, token);
+},
+```
+
+### 3. Parameter Naming Convention
+
+- Database function parameters use `p_` prefix: `p_name`, `p_id`, `p_user_id`
+- Frontend passes parameters with `p_` prefix to match
+- Use `null` for optional parameters not provided
+
+---
+
+## Adding a New Module Checklist
+
+### Step 1: Create Database Objects
+1. Create table with standard fields (id, created_at, updated_at, is_active)
+2. Create CRUD functions (get_all, get_by_id, create, update, delete)
+3. Add RBAC permissions for each role
+
+### Step 2: Add Frontend Data Functions
+1. Add methods to `js/data-functions.js`
+2. Use `callFunction()` with correct parameter mapping
+
+### Step 3: Create Module Files
+```
+modules/
+  your-module/
+    html/
+      your-module_grid.html
+    js/
+      your-module_grid.js
+    css/
+      your-module_grid.css
+```
+
+### Step 4: Add Route Configuration
+In `js/appRouteConfig.json`:
+```json
+"your-module-grid": {
+    "description": "Your Module Management",
+    "path": "your-module",
+    "html": "html/your-module_grid.html",
+    "js": ["js/your-module_grid.js"],
+    "css": ["css/your-module_grid.css"]
+}
+```
+
+### Step 5: Add Navigation
+In `index.html` sidebar, add nav link with `route="your-module-grid"`
+
+### Step 6: Add Module Initializer
+In `js/appRouter.js` `moduleInitializers` object:
+```javascript
+'your-module-grid': () => {
+    if (typeof initializeYourModuleGrid === 'function') {
+        initializeYourModuleGrid();
+    }
+}
+```
+
+---
+
+## Quick Reference
+
+### Lambda Proxy Endpoints
+- `/auth/login` - Authentication (Google OAuth or email/password)
+- `/proxy/function` - Execute database functions
+- `/proxy/select` - Direct table queries
+- `/proxy/insert` - Insert records
+- `/proxy/update` - Update records
+- `/proxy/delete` - Delete records
+
+### Calling Database Functions
+```javascript
+// From anywhere in frontend
+const result = await dataFunctions.callFunction('function_name', {
+    p_param1: value1,
+    p_param2: value2
+});
+```
+
+### Checking User Permissions (Frontend)
+```javascript
+// Check if user has admin role
+if (dataFunctions.hasAdminRole()) {
+    // Show admin features
+}
+
+// Check user management access
+if (dataFunctions.canAccessUserManagement()) {
+    // Show user management
+}
+```
+
+---
+
+## Current Roles
+- `super_user` (ID: f8c7989a-cdf4-4804-952a-47565acd9c4c) - Full system access
+- `admin` (ID: 9c69485d-0116-4cf6-b7e6-2ff6c025478e) - Limited admin access
+

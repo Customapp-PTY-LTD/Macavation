@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quinn Farms - Crop Monitoring</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --customapp-bg: #5CBDB4;
+            --customapp-text: #4A4A4A;
+            --customapp-light: #7FD4CC;
+            --customapp-dark: #4A9A93;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: var(--customapp-text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        .navbar {
+            background-color: var(--customapp-bg) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: black !important;
+        }
+        
+        .btn-customapp {
+            background-color: var(--customapp-bg);
+            color: white;
+            border: none;
+        }
+        
+        .btn-customapp:hover {
+            background-color: var(--customapp-dark);
+            color: white;
+        }
+        
+        .growth-chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, var(--customapp-bg), var(--customapp-light));
+            color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .variety-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 500;
+            margin: 0.25rem;
+        }
+        
+        .block-card {
+            border-left: 4px solid var(--customapp-bg);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .block-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateX(4px);
+        }
+        
+        .sampling-record {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .sampling-record:last-child {
+            border-bottom: none;
+        }
+        
+        .projection-badge {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .projection-high {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .projection-medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .projection-low {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="01-dashboard.html">
+                <i class="bi bi-grid-fill me-2"></i>Quinn Farms Management
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="01-dashboard.html"><i class="bi bi-house-fill me-1"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="02-labour-allocation.html"><i class="bi bi-people-fill me-1"></i>Labour</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="03-compliance.html"><i class="bi bi-clipboard-check me-1"></i>Compliance</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="04-chemicals.html"><i class="bi bi-droplet-fill me-1"></i>Chemicals</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="bi bi-graph-up me-1"></i>Crops</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2 class="fw-bold">Crop Monitoring & Projections</h2>
+                <p class="text-muted">Growth tracking, quality analysis & yield forecasting</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-customapp me-2" data-bs-toggle="modal" data-bs-target="#recordSamplingModal">
+                    <i class="bi bi-plus-lg me-1"></i>Record Sampling
+                </button>
+                <button class="btn btn-outline-secondary">
+                    <i class="bi bi-download me-1"></i>Export Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="bi bi-calendar-check fs-1 mb-2"></i>
+                    <h6 class="mb-1">Days from Full Bloom</h6>
+                    <h2 class="fw-bold mb-0">42</h2>
+                    <small>Average across blocks</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="bi bi-moisture fs-1 mb-2"></i>
+                    <h6 class="mb-1">Average Fruit Size</h6>
+                    <h2 class="fw-bold mb-0">68mm</h2>
+                    <small>+2mm vs last year</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="bi bi-box-seam fs-1 mb-2"></i>
+                    <h6 class="mb-1">Projected Yield</h6>
+                    <h2 class="fw-bold mb-0">2,450</h2>
+                    <small>cartons (est.)</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="bi bi-award fs-1 mb-2"></i>
+                    <h6 class="mb-1">Quality Score</h6>
+                    <h2 class="fw-bold mb-0">92%</h2>
+                    <small>Class 1 grade</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4" id="cropTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="growth-tab" data-bs-toggle="tab" data-bs-target="#growth" type="button">
+                    <i class="bi bi-graph-up-arrow me-2"></i>Growth Curves
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="projections-tab" data-bs-toggle="tab" data-bs-target="#projections" type="button">
+                    <i class="bi bi-calculator me-2"></i>Yield Projections
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="quality-tab" data-bs-toggle="tab" data-bs-target="#quality" type="button">
+                    <i class="bi bi-award me-2"></i>Quality Analysis
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="nematode-tab" data-bs-toggle="tab" data-bs-target="#nematode" type="button">
+                    <i class="bi bi-bug me-2"></i>Nematode Monitoring
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="cropTabContent">
+            <!-- Growth Curves Tab -->
+            <div class="tab-pane fade show active" id="growth" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="growth-chart-container mb-4">
+                            <h5 class="fw-bold mb-3">Fruit Growth Curves - Block A3 (Granny Smith)</h5>
+                            <div class="mb-3">
+                                <span class="variety-badge" style="background-color: #5CBDB4; color: white;">2025 Season</span>
+                                <span class="variety-badge" style="background-color: #e9ecef; color: #4A4A4A;">2024 Season</span>
+                                <span class="variety-badge" style="background-color: #f8f9fa; color: #6c757d;">2023 Season</span>
+                            </div>
+                            <!-- Chart Placeholder -->
+                            <div class="text-center py-5" style="background-color: #f8f9fa; border-radius: 8px;">
+                                <canvas id="growthChart" width="700" height="400"></canvas>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Chart shows fruit diameter (mm) vs days from full bloom. Data updated from field sampling records.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Block Comparison</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="block-card card mb-2">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-4">
+                                                <h6 class="fw-bold mb-0">Block A3</h6>
+                                                <small class="text-muted">Granny Smith</small>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted d-block">Full Bloom</small>
+                                                <strong>01 Dec 2025</strong>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted d-block">Avg Size</small>
+                                                <strong>68mm</strong>
+                                            </div>
+                                            <div class="col-md-2 text-end">
+                                                <span class="badge" style="background-color: var(--customapp-bg);">On Track</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="block-card card mb-2">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-4">
+                                                <h6 class="fw-bold mb-0">Block B1</h6>
+                                                <small class="text-muted">Golden Delicious</small>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted d-block">Full Bloom</small>
+                                                <strong>28 Nov 2025</strong>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted d-block">Avg Size</small>
+                                                <strong>72mm</strong>
+                                            </div>
+                                            <div class="col-md-2 text-end">
+                                                <span class="badge bg-success">Ahead</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="block-card card" style="border-left-color: #ffc107;">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-4">
+                                                <h6 class="fw-bold mb-0">Block C2</h6>
+                                                <small class="text-muted">Fuji</small>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted d-block">Full Bloom</small>
+                                                <strong>05 Dec 2025</strong>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <small class="text-muted d-block">Avg Size</small>
+                                                <strong>61mm</strong>
+                                            </div>
+                                            <div class="col-md-2 text-end">
+                                                <span class="badge bg-warning">Behind</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Latest Measurements</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="sampling-record">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <strong>Block A3</strong>
+                                        <small class="text-muted">12 Dec 2025</small>
+                                    </div>
+                                    <div class="row g-2 small">
+                                        <div class="col-6">Diameter: 68mm</div>
+                                        <div class="col-6">Length: 72mm</div>
+                                        <div class="col-6">Weight: 185g</div>
+                                        <div class="col-6">Dry Matter: 12.4%</div>
+                                    </div>
+                                </div>
+
+                                <div class="sampling-record">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <strong>Block B1</strong>
+                                        <small class="text-muted">11 Dec 2025</small>
+                                    </div>
+                                    <div class="row g-2 small">
+                                        <div class="col-6">Diameter: 72mm</div>
+                                        <div class="col-6">Length: 75mm</div>
+                                        <div class="col-6">Weight: 198g</div>
+                                        <div class="col-6">Dry Matter: 13.1%</div>
+                                    </div>
+                                </div>
+
+                                <div class="sampling-record">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <strong>Block C2</strong>
+                                        <small class="text-muted">10 Dec 2025</small>
+                                    </div>
+                                    <div class="row g-2 small">
+                                        <div class="col-6">Diameter: 61mm</div>
+                                        <div class="col-6">Length: 64mm</div>
+                                        <div class="col-6">Weight: 162g</div>
+                                        <div class="col-6">Dry Matter: 11.8%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Sampling Schedule</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled mb-0">
+                                    <li class="mb-2">
+                                        <i class="bi bi-calendar-check text-success me-2"></i>
+                                        <strong>Next sampling:</strong><br>
+                                        <small class="text-muted ms-4">19 Dec 2025 (All blocks)</small>
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="bi bi-clock-history me-2" style="color: var(--customapp-bg);"></i>
+                                        <strong>Frequency:</strong><br>
+                                        <small class="text-muted ms-4">Weekly until harvest</small>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Yield Projections Tab -->
+            <div class="tab-pane fade" id="projections" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card mb-4">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0 fw-bold">Estimated Yield by Block</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Block</th>
+                                                <th>Variety</th>
+                                                <th>Hectares</th>
+                                                <th>Est. Cartons</th>
+                                                <th>Size Profile</th>
+                                                <th>Confidence</th>
+                                                <th>Harvest Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-bold">A3</td>
+                                                <td>Granny Smith</td>
+                                                <td>4.2</td>
+                                                <td class="fw-bold">950</td>
+                                                <td>
+                                                    <small>70mm: 40%<br>75mm: 35%<br>80mm: 25%</small>
+                                                </td>
+                                                <td><span class="projection-badge projection-high">High</span></td>
+                                                <td>Mid-Feb 2026</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-bold">B1</td>
+                                                <td>Golden Delicious</td>
+                                                <td>3.8</td>
+                                                <td class="fw-bold">850</td>
+                                                <td>
+                                                    <small>70mm: 35%<br>75mm: 40%<br>80mm: 25%</small>
+                                                </td>
+                                                <td><span class="projection-badge projection-high">High</span></td>
+                                                <td>Late Jan 2026</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-bold">C2</td>
+                                                <td>Fuji</td>
+                                                <td>3.2</td>
+                                                <td class="fw-bold">650</td>
+                                                <td>
+                                                    <small>65mm: 45%<br>70mm: 35%<br>75mm: 20%</small>
+                                                </td>
+                                                <td><span class="projection-badge projection-medium">Medium</span></td>
+                                                <td>Early Mar 2026</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <td colspan="3" class="fw-bold">Total</td>
+                                                <td class="fw-bold">2,450</td>
+                                                <td colspan="3"></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Pack Shed Notification</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-3">Latest projections sent to pack sheds:</p>
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                    <strong>Last Update:</strong> 12 Dec 2025 at 14:30<br>
+                                    <small>Recipients: Paarl Pack House, Export Coordinator</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Historical Accuracy</h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="display-4" style="color: var(--customapp-bg);">±8%</div>
+                                <p class="text-muted">Average variance (2024 season)</p>
+                                <hr>
+                                <p class="small mb-0">
+                                    Our projections have improved 15% in accuracy compared to 2023, thanks to weekly sampling and growth curve analysis.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Market Insights</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="small mb-2">
+                                    <strong>Premium Sizing (75-80mm):</strong><br>
+                                    Expected 60% of crop. High demand in Middle East markets.
+                                </p>
+                                <p class="small mb-0">
+                                    <strong>Export Window:</strong><br>
+                                    Jan-Mar optimal for air freight to maximize returns.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quality Analysis Tab -->
+            <div class="tab-pane fade" id="quality" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0 fw-bold">Pre-Harvest Quality Assessment</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="fw-bold mb-3">Block A3 - Granny Smith</h6>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Color Development</label>
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar" style="width: 85%; background-color: var(--customapp-bg);">85%</div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Firmness</label>
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar bg-success" style="width: 92%;">92%</div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Brix Level</label>
+                                    <p class="mb-1"><strong>12.4°</strong> <small class="text-muted">(Target: 12-14°)</small></p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Dry Matter</label>
+                                    <p class="mb-1"><strong>12.4%</strong> <small class="text-success">(Excellent)</small></p>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <h6 class="fw-bold mb-3">Block B1 - Golden Delicious</h6>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Color Development</label>
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar bg-warning" style="width: 78%;">78%</div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Firmness</label>
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar bg-success" style="width: 88%;">88%</div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Brix Level</label>
+                                    <p class="mb-1"><strong>13.1°</strong> <small class="text-muted">(Target: 12-14°)</small></p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Dry Matter</label>
+                                    <p class="mb-1"><strong>13.1%</strong> <small class="text-success">(Excellent)</small></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <strong>Quality Recommendation:</strong> Both blocks are on track for Class 1 grade. Continue current management practices.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nematode Monitoring Tab -->
+            <div class="tab-pane fade" id="nematode" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold">Nematode Analysis Results</h5>
+                            <button class="btn btn-sm btn-customapp">
+                                <i class="bi bi-plus-lg me-1"></i>Upload Lab Report
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Block</th>
+                                        <th>Sample Date</th>
+                                        <th>Lab</th>
+                                        <th>Nematode Count</th>
+                                        <th>Species Detected</th>
+                                        <th>Risk Level</th>
+                                        <th>Action Required</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="fw-bold">A3</td>
+                                        <td>05 Nov 2025</td>
+                                        <td>AgriLab SA</td>
+                                        <td>420 per 100g soil</td>
+                                        <td>Root-knot</td>
+                                        <td><span class="badge bg-warning">Moderate</span></td>
+                                        <td>Monitor closely</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">B1</td>
+                                        <td>05 Nov 2025</td>
+                                        <td>AgriLab SA</td>
+                                        <td>180 per 100g soil</td>
+                                        <td>Lesion</td>
+                                        <td><span class="badge bg-success">Low</span></td>
+                                        <td>None</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">C2</td>
+                                        <td>05 Nov 2025</td>
+                                        <td>AgriLab SA</td>
+                                        <td>680 per 100g soil</td>
+                                        <td>Root-knot, Lesion</td>
+                                        <td><span class="badge bg-danger">High</span></td>
+                                        <td>Treatment needed</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4">
+                            <h6 class="fw-bold">Treatment Recommendations - Block C2</h6>
+                            <ul class="mb-0">
+                                <li>Apply nematicide in early spring before bud break</li>
+                                <li>Improve soil drainage to reduce nematode activity</li>
+                                <li>Consider resistant rootstock for future plantings</li>
+                                <li>Re-sample in 6 months to monitor population levels</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Sampling Modal -->
+    <div class="modal fade" id="recordSamplingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: var(--customapp-bg); color: white;">
+                    <h5 class="modal-title">Record Fruit Sampling</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Date</label>
+                            <input type="date" class="form-control" value="2025-12-13">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Sampled By</label>
+                            <select class="form-select">
+                                <option>Rich</option>
+                                <option>Heila</option>
+                                <option>Johannes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Block</label>
+                            <select class="form-select">
+                                <option>Block A3</option>
+                                <option>Block B1</option>
+                                <option>Block C2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Variety</label>
+                            <select class="form-select">
+                                <option>Granny Smith</option>
+                                <option>Golden Delicious</option>
+                                <option>Fuji</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Sample Size</label>
+                            <input type="number" class="form-control" placeholder="Number of fruit">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Avg Diameter (mm)</label>
+                            <input type="number" step="0.1" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Avg Length (mm)</label>
+                            <input type="number" step="0.1" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Avg Weight (g)</label>
+                            <input type="number" step="0.1" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Brix (°)</label>
+                            <input type="number" step="0.1" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Dry Matter (%)</label>
+                            <input type="number" step="0.1" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Firmness</label>
+                            <select class="form-select">
+                                <option>Excellent</option>
+                                <option>Good</option>
+                                <option>Fair</option>
+                                <option>Poor</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Notes</label>
+                            <textarea class="form-control" rows="2" placeholder="Additional observations..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-customapp">Save Record</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Sample growth curve chart
+        const ctx = document.getElementById('growthChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['0', '7', '14', '21', '28', '35', '42', '49', '56'],
+                    datasets: [{
+                        label: '2025 Season',
+                        data: [12, 18, 28, 38, 48, 56, 62, 68, 73],
+                        borderColor: '#5CBDB4',
+                        backgroundColor: 'rgba(92, 189, 180, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 3
+                    }, {
+                        label: '2024 Season',
+                        data: [12, 16, 26, 36, 45, 53, 60, 66, 71],
+                        borderColor: '#e9ecef',
+                        backgroundColor: 'rgba(233, 236, 239, 0.1)',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        borderWidth: 2
+                    }, {
+                        label: '2023 Season',
+                        data: [12, 17, 25, 34, 43, 51, 58, 64, 69],
+                        borderColor: '#f8f9fa',
+                        backgroundColor: 'rgba(248, 249, 250, 0.1)',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Days from Full Bloom'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Fruit Diameter (mm)'
+                            },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

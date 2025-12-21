@@ -1,0 +1,179 @@
+{
+    "basePath": "modules",
+    "defaultRoute": "dashboard",
+    "contentContainer": "#content-area",
+    "environmentSettings": {
+        "default": {
+            "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+        },
+        "dev": {
+            "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+        },
+        "uat": {
+            "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+        },
+        "demo": {
+            "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+        },
+        "prod": {
+            "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+        }
+    },
+    "appRoutes": {
+        "dashboard": {
+            "description": "Dashboard",
+            "path": "dashboard",
+            "html": "html/dashboard.html",
+            "js": [
+                "js/dashboard.js"
+            ],
+            "css": [
+                "css/dashboard.css"
+            ]
+        },
+        "labour-grid": {
+            "description": "Labour Allocation",
+            "path": "labour",
+            "html": "html/labour_grid.html",
+            "js": [
+                "../../js/farm-selector-utils.js",
+                "js/labour_grid.js"
+            ],
+            "css": [
+                "css/labour_grid.css"
+            ]
+        },
+        "users-grid": {
+            "description": "User Management",
+            "path": "users",
+            "html": "html/users_grid.html",
+            "js": [
+                "js/users_grid.js"
+            ],
+            "css": [
+                "css/users_grid.css"
+            ]
+        },
+        "roles-grid": {
+            "description": "Role Management",
+            "path": "roles",
+            "html": "html/roles_grid.html",
+            "js": [
+                "js/roles_grid.js"
+            ],
+            "css": [
+                "css/roles_grid.css"
+            ]
+        },
+        "role-permissions-grid": {
+            "description": "Database Role Permissions Management",
+            "path": "role-permissions",
+            "html": "html/role-permissions_grid.html",
+            "js": [
+                "js/role-permissions_grid.js"
+            ],
+            "css": [
+                "css/role-permissions_grid.css"
+            ]
+        },
+        "role-features-grid": {
+            "description": "Role Features Management",
+            "path": "role-features",
+            "html": "html/role-features_grid.html",
+            "js": [
+                "js/role-features_grid.js"
+            ],
+            "css": [
+                "css/role-features_grid.css"
+            ]
+        },
+        "compliance-grid": {
+            "description": "Compliance & Audits",
+            "path": "compliance",
+            "html": "html/compliance_grid.html",
+            "js": [
+                "../../js/farm-selector-utils.js",
+                "js/compliance_grid.js"
+            ],
+            "css": [
+                "css/compliance_grid.css"
+            ]
+        },
+        "chemicals-grid": {
+            "description": "Chemical Management",
+            "path": "chemicals",
+            "html": "html/chemicals_grid.html",
+            "js": [
+                "../../js/farm-selector-utils.js",
+                "js/chemicals_grid.js"
+            ],
+            "css": [
+                "css/chemicals_grid.css"
+            ]
+        },
+        "crops-grid": {
+            "description": "Crop Monitoring",
+            "path": "crops",
+            "html": "html/crops_grid.html",
+            "js": [
+                "../../js/farm-selector-utils.js",
+                "js/crops_grid.js"
+            ],
+            "css": [
+                "css/crops_grid.css"
+            ]
+        },
+        "assets-grid": {
+            "description": "Asset Management",
+            "path": "assets",
+            "html": "html/assets_grid.html",
+            "js": [
+                "../../js/farm-selector-utils.js",
+                "js/assets_grid.js"
+            ],
+            "css": [
+                "css/assets_grid.css"
+            ]
+        },
+        "postharvest-grid": {
+            "description": "Post-Harvest Management",
+            "path": "postharvest",
+            "html": "html/postharvest_grid.html",
+            "js": [
+                "../../js/farm-selector-utils.js",
+                "js/postharvest_grid.js"
+            ],
+            "css": [
+                "css/postharvest_grid.css"
+            ]
+        },
+        "water-grid": {
+            "description": "Water & Irrigation",
+            "path": "water",
+            "html": "html/water_grid.html",
+            "js": [
+                "../../js/farm-selector-utils.js",
+                "js/water_grid.js"
+            ],
+            "css": [
+                "css/water_grid.css"
+            ]
+        },
+        "admin-grid": {
+            "description": "System Administration",
+            "path": "admin",
+            "html": "html/admin_grid.html",
+            "js": [
+                "js/admin_grid.js"
+            ],
+            "css": [
+                "css/admin_grid.css"
+            ]
+        }
+    }
+}

@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quinn Farms - Asset Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --customapp-bg: #5CBDB4;
+            --customapp-text: #4A4A4A;
+            --customapp-light: #7FD4CC;
+            --customapp-dark: #4A9A93;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: var(--customapp-text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        .navbar {
+            background-color: var(--customapp-bg) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: black !important;
+        }
+        
+        .btn-customapp {
+            background-color: var(--customapp-bg);
+            color: white;
+            border: none;
+        }
+        
+        .btn-customapp:hover {
+            background-color: var(--customapp-dark);
+            color: white;
+        }
+        
+        .asset-card {
+            border-left: 4px solid var(--customapp-bg);
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+        
+        .asset-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateX(4px);
+        }
+        
+        .asset-service-due {
+            border-left-color: #dc3545;
+        }
+        
+        .asset-service-soon {
+            border-left-color: #ffc107;
+        }
+        
+        .metric-box {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .fuel-transaction {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .fuel-transaction:last-child {
+            border-bottom: none;
+        }
+        
+        .inventory-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .inventory-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-service {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .mileage-allocation {
+            padding: 0.75rem;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="01-dashboard.html">
+                <i class="bi bi-grid-fill me-2"></i>Quinn Farms Management
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="01-dashboard.html"><i class="bi bi-house-fill me-1"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="02-labour-allocation.html"><i class="bi bi-people-fill me-1"></i>Labour</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="03-compliance.html"><i class="bi bi-clipboard-check me-1"></i>Compliance</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="04-chemicals.html"><i class="bi bi-droplet-fill me-1"></i>Chemicals</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="05-crop-monitoring.html"><i class="bi bi-graph-up me-1"></i>Crops</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="bi bi-truck me-1"></i>Assets</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2 class="fw-bold">Asset Management</h2>
+                <p class="text-muted">Vehicles, Fuel, Equipment & Inventory</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-customapp me-2" data-bs-toggle="modal" data-bs-target="#addAssetModal">
+                    <i class="bi bi-plus-lg me-1"></i>Add Asset
+                </button>
+                <button class="btn btn-outline-secondary">
+                    <i class="bi bi-printer me-1"></i>Export Report
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="metric-box">
+                    <i class="bi bi-truck fs-1 mb-2" style="color: var(--customapp-bg);"></i>
+                    <h6 class="text-muted mb-1">Total Vehicles</h6>
+                    <h3 class="fw-bold mb-0">12</h3>
+                    <small>8 active, 1 in service</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-box">
+                    <i class="bi bi-fuel-pump fs-1 mb-2 text-warning"></i>
+                    <h6 class="text-muted mb-1">Fuel (This Month)</h6>
+                    <h3 class="fw-bold mb-0">R48,250</h3>
+                    <small>2,845 litres consumed</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-box">
+                    <i class="bi bi-exclamation-triangle fs-1 mb-2 text-danger"></i>
+                    <h6 class="text-muted mb-1">Service Due</h6>
+                    <h3 class="fw-bold mb-0 text-danger">3</h3>
+                    <small>vehicles need attention</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-box">
+                    <i class="bi bi-tools fs-1 mb-2 text-success"></i>
+                    <h6 class="text-muted mb-1">Equipment Value</h6>
+                    <h3 class="fw-bold mb-0">R285,400</h3>
+                    <small>total inventory</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4" id="assetTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="vehicles-tab" data-bs-toggle="tab" data-bs-target="#vehicles" type="button">
+                    <i class="bi bi-truck me-2"></i>Vehicles
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="fuel-tab" data-bs-toggle="tab" data-bs-target="#fuel" type="button">
+                    <i class="bi bi-fuel-pump me-2"></i>Fuel Management
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="equipment-tab" data-bs-toggle="tab" data-bs-target="#equipment" type="button">
+                    <i class="bi bi-tools me-2"></i>Equipment
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance" type="button">
+                    <i class="bi bi-wrench me-2"></i>Maintenance
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="assetTabContent">
+            <!-- Vehicles Tab -->
+            <div class="tab-pane fade show active" id="vehicles" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0 fw-bold">Vehicle Fleet</h5>
+                                    <select class="form-select form-select-sm" style="width: auto;">
+                                        <option>All Vehicles</option>
+                                        <option>Active</option>
+                                        <option>In Service</option>
+                                        <option>Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="asset-card card asset-service-due">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-6">
+                                                <h6 class="fw-bold mb-1">Toyota Hilux - CA 123 456</h6>
+                                                <p class="mb-2">
+                                                    <i class="bi bi-speedometer2 me-2"></i>145,280 km<br>
+                                                    <i class="bi bi-calendar-check me-2"></i>Last service: 15 Nov 2025<br>
+                                                    <i class="bi bi-wrench me-2"></i>Next service: <span class="text-danger fw-bold">155,000 km (9,720 km away)</span>
+                                                </p>
+                                                <span class="status-badge status-service">Service Due Soon</span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Current Assignment:</small>
+                                                    <br><strong>Block A3 - Pruning Operations</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">This Month:</small>
+                                                    <br><strong>850 km | R3,420 fuel</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#vehicleDetailsModal">
+                                                <i class="bi bi-eye"></i> View Details
+                                            </button>
+                                            <button class="btn btn-sm btn-customapp">
+                                                <i class="bi bi-plus-circle"></i> Record Trip
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="asset-card card">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-6">
+                                                <h6 class="fw-bold mb-1">John Deere Tractor - CA 789 012</h6>
+                                                <p class="mb-2">
+                                                    <i class="bi bi-speedometer2 me-2"></i>2,847 hours<br>
+                                                    <i class="bi bi-calendar-check me-2"></i>Last service: 01 Dec 2025<br>
+                                                    <i class="bi bi-wrench me-2"></i>Next service: 3,000 hours
+                                                </p>
+                                                <span class="status-badge status-active">Active</span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Current Assignment:</small>
+                                                    <br><strong>Block B1 - Spray Operations</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">This Month:</small>
+                                                    <br><strong>52 hours | R6,240 diesel</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button class="btn btn-sm btn-outline-primary me-2">
+                                                <i class="bi bi-eye"></i> View Details
+                                            </button>
+                                            <button class="btn btn-sm btn-customapp">
+                                                <i class="bi bi-plus-circle"></i> Record Usage
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="asset-card card">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-6">
+                                                <h6 class="fw-bold mb-1">Ford Ranger - CA 345 678</h6>
+                                                <p class="mb-2">
+                                                    <i class="bi bi-speedometer2 me-2"></i>98,450 km<br>
+                                                    <i class="bi bi-calendar-check me-2"></i>Last service: 20 Oct 2025<br>
+                                                    <i class="bi bi-wrench me-2"></i>Next service: 110,000 km
+                                                </p>
+                                                <span class="status-badge status-active">Active</span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Current Assignment:</small>
+                                                    <br><strong>Kinmount Farm - General Use</strong>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">This Month:</small>
+                                                    <br><strong>620 km | R2,480 fuel</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button class="btn btn-sm btn-outline-primary me-2">
+                                                <i class="bi bi-eye"></i> View Details
+                                            </button>
+                                            <button class="btn btn-sm btn-customapp">
+                                                <i class="bi bi-plus-circle"></i> Record Trip
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Service Alerts</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-danger mb-2">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                    <strong>CA 123 456</strong> - Service due in 9,720 km
+                                </div>
+                                <div class="alert alert-warning mb-2">
+                                    <i class="bi bi-wrench me-2"></i>
+                                    <strong>CA 456 789</strong> - Annual inspection due 02 Jan 2026
+                                </div>
+                                <div class="alert alert-warning mb-0">
+                                    <i class="bi bi-droplet-fill me-2"></i>
+                                    <strong>CA 234 567</strong> - Tyre replacement recommended
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Fleet Summary</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Total Distance (Month)</small>
+                                        <strong>4,250 km</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Avg Fuel Efficiency</small>
+                                        <strong>14.2 L/100km</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Maintenance Cost (YTD)</small>
+                                        <strong>R125,400</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fuel Management Tab -->
+            <div class="tab-pane fade" id="fuel" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card mb-4">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0 fw-bold">Recent Fuel Transactions</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="fuel-transaction">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <strong>13 Dec 2025</strong>
+                                            <br><small class="text-muted">08:45</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>CA 123 456</strong>
+                                            <br><small class="text-muted">Toyota Hilux</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <strong>45 L</strong>
+                                            <br><small class="text-muted">Diesel</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <strong>R900</strong>
+                                            <br><small class="text-muted">R20/L</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <span class="badge" style="background-color: var(--customapp-bg);">Bowser</span>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <div class="mileage-allocation">
+                                                <small class="text-muted d-block mb-1">Cost Allocation:</small>
+                                                <div class="row">
+                                                    <div class="col-6"><small>Block A3 (70%): <strong>R630</strong></small></div>
+                                                    <div class="col-6"><small>Block B1 (30%): <strong>R270</strong></small></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="fuel-transaction">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <strong>12 Dec 2025</strong>
+                                            <br><small class="text-muted">14:20</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>CA 789 012</strong>
+                                            <br><small class="text-muted">John Deere Tractor</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <strong>120 L</strong>
+                                            <br><small class="text-muted">Diesel</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <strong>R2,400</strong>
+                                            <br><small class="text-muted">R20/L</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <span class="badge" style="background-color: var(--customapp-bg);">Bowser</span>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <div class="mileage-allocation">
+                                                <small class="text-muted d-block mb-1">Cost Allocation:</small>
+                                                <div class="row">
+                                                    <div class="col-12"><small>Block B1 - Spray Ops (100%): <strong>R2,400</strong></small></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="fuel-transaction">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <strong>11 Dec 2025</strong>
+                                            <br><small class="text-muted">07:15</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>CA 345 678</strong>
+                                            <br><small class="text-muted">Ford Ranger</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <strong>55 L</strong>
+                                            <br><small class="text-muted">Diesel</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <strong>R1,155</strong>
+                                            <br><small class="text-muted">R21/L</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <span class="badge bg-secondary">Commercial</span>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <div class="mileage-allocation">
+                                                <small class="text-muted d-block mb-1">Cost Allocation:</small>
+                                                <div class="row">
+                                                    <div class="col-12"><small>Kinmount Farm - General (100%): <strong>R1,155</strong></small></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Bowser Inventory</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h6 class="fw-bold">Main Farm Bowser</h6>
+                                                <div class="progress mb-2" style="height: 25px;">
+                                                    <div class="progress-bar" style="width: 65%; background-color: var(--customapp-bg);">
+                                                        <strong>1,625 L</strong>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted">Capacity: 2,500 L | Last refill: 08 Dec</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h6 class="fw-bold">Kinmount Bowser</h6>
+                                                <div class="progress mb-2" style="height: 25px;">
+                                                    <div class="progress-bar bg-warning" style="width: 28%;">
+                                                        <strong>420 L</strong>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted">Capacity: 1,500 L | <span class="text-danger">Refill needed</span></small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Monthly Fuel Summary</h6>
+                            </div>
+                            <div class="card-body">
+                                <h3 class="fw-bold mb-1" style="color: var(--customapp-bg);">R48,250</h3>
+                                <small class="text-muted">December 2025</small>
+                                <hr>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Total Litres:</small>
+                                        <strong>2,845 L</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Bowser Draws:</small>
+                                        <strong>R38,400 (80%)</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Commercial:</small>
+                                        <strong>R9,850 (20%)</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Cost Allocation</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="small mb-2"><strong>By Block (This Month):</strong></p>
+                                <div class="mb-2">
+                                    <small>Block A3:</small>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" style="width: 35%; background-color: var(--customapp-bg);">R16,887</div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <small>Block B1:</small>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" style="width: 40%; background-color: var(--customapp-light);">R19,300</div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <small>Block C2:</small>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" style="width: 15%; background-color: var(--customapp-dark);">R7,237</div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <small>General/Admin:</small>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-secondary" style="width: 10%;">R4,826</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment Tab -->
+            <div class="tab-pane fade" id="equipment" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0 fw-bold">Equipment Inventory</h5>
+                                    <button class="btn btn-sm btn-customapp">
+                                        <i class="bi bi-plus-lg me-1"></i>Add Item
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="inventory-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="fw-bold mb-1">Secateurs (Felco #2)</h6>
+                                            <small class="text-muted">Pruning Equipment</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">Unit Cost</small>
+                                            <strong>R1,700</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">In Stock</small>
+                                            <strong class="text-success">145</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">Assigned</small>
+                                            <strong>142</strong>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> Track
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Total Value: <strong>R246,500</strong> | Lost this season: 8 units (R13,600)</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="inventory-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="fw-bold mb-1">Spray Nozzles</h6>
+                                            <small class="text-muted">Spray Equipment</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">Unit Cost</small>
+                                            <strong>R350</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">In Stock</small>
+                                            <strong class="text-warning">12</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">Assigned</small>
+                                            <strong>48</strong>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> Track
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Total Value: R21,000 | <span class="text-warning">Reorder recommended</span></small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="inventory-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="fw-bold mb-1">Picking Bags</h6>
+                                            <small class="text-muted">Harvest Equipment</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">Unit Cost</small>
+                                            <strong>R285</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">In Stock</small>
+                                            <strong class="text-success">220</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">Assigned</small>
+                                            <strong>0</strong>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> Track
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Total Value: R62,700 | Season starts: Jan 2026</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="inventory-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="fw-bold mb-1">Ladders (Aluminum)</h6>
+                                            <small class="text-muted">Orchard Equipment</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">Unit Cost</small>
+                                            <strong>R2,400</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">In Stock</small>
+                                            <strong class="text-success">45</strong>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <small class="text-muted d-block">Assigned</small>
+                                            <strong>42</strong>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> Track
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Total Value: R108,000 | Condition: Good</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Inventory Summary</h6>
+                            </div>
+                            <div class="card-body">
+                                <h3 class="fw-bold mb-1" style="color: var(--customapp-bg);">R285,400</h3>
+                                <small class="text-muted">Total Equipment Value</small>
+                                <hr>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Total Items:</small>
+                                        <strong>422</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Currently Assigned:</small>
+                                        <strong>232 (55%)</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small>In Storage:</small>
+                                        <strong>190 (45%)</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Loss & Damage</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="small mb-2"><strong>This Season:</strong></p>
+                                <div class="alert alert-warning mb-2">
+                                    <strong>Secateurs:</strong> 8 units lost<br>
+                                    <small>Value: R13,600</small>
+                                </div>
+                                <div class="alert alert-info mb-0">
+                                    <strong>Prevention:</strong> Implement daily equipment return checks and accountability system
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maintenance Tab -->
+            <div class="tab-pane fade" id="maintenance" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold">Maintenance Schedule & History</h5>
+                            <button class="btn btn-sm btn-customapp">
+                                <i class="bi bi-plus-lg me-1"></i>Record Maintenance
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Vehicle</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th>Odometer/Hours</th>
+                                        <th>Cost</th>
+                                        <th>Next Service</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>01 Dec 2025</td>
+                                        <td class="fw-bold">CA 789 012</td>
+                                        <td>Scheduled Service</td>
+                                        <td>Oil change, filter replacement</td>
+                                        <td>2,800 hrs</td>
+                                        <td>R3,200</td>
+                                        <td>3,000 hrs</td>
+                                        <td><span class="badge bg-success">Complete</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>15 Nov 2025</td>
+                                        <td class="fw-bold">CA 123 456</td>
+                                        <td>Scheduled Service</td>
+                                        <td>15,000 km service</td>
+                                        <td>145,280 km</td>
+                                        <td>R4,850</td>
+                                        <td>155,000 km</td>
+                                        <td><span class="badge bg-warning">Due Soon</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>28 Oct 2025</td>
+                                        <td class="fw-bold">CA 234 567</td>
+                                        <td>Repair</td>
+                                        <td>Brake pad replacement</td>
+                                        <td>112,450 km</td>
+                                        <td>R2,650</td>
+                                        <td>-</td>
+                                        <td><span class="badge bg-success">Complete</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>20 Oct 2025</td>
+                                        <td class="fw-bold">CA 345 678</td>
+                                        <td>Scheduled Service</td>
+                                        <td>Major service</td>
+                                        <td>90,000 km</td>
+                                        <td>R6,200</td>
+                                        <td>110,000 km</td>
+                                        <td><span class="badge bg-success">Complete</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="fw-bold mb-3">Maintenance Cost Summary</h6>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>This Month:</span>
+                                            <strong>R8,050</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Year to Date:</span>
+                                            <strong>R125,400</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Average/Vehicle:</span>
+                                            <strong>R10,450</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="fw-bold mb-3">SARS Compliance</h6>
+                                        <div class="alert alert-success mb-0">
+                                            <i class="bi bi-check-circle-fill me-2"></i>
+                                            All maintenance records digitized and ready for SARS audit. Logbook mileage automatically calculated and allocated.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicle Details Modal -->
+    <div class="modal fade" id="vehicleDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: var(--customapp-bg); color: white;">
+                    <h5 class="modal-title">Vehicle Details - CA 123 456</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Vehicle Information</h6>
+                            <p class="mb-1"><strong>Make/Model:</strong> Toyota Hilux 2.8 GD-6</p>
+                            <p class="mb-1"><strong>Registration:</strong> CA 123 456 GP</p>
+                            <p class="mb-1"><strong>Year:</strong> 2022</p>
+                            <p class="mb-1"><strong>VIN:</strong> AHTGR48G6N4012345</p>
+                            <p class="mb-1"><strong>Fuel Type:</strong> Diesel</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Current Status</h6>
+                            <p class="mb-1"><strong>Odometer:</strong> 145,280 km</p>
+                            <p class="mb-1"><strong>Last Service:</strong> 15 Nov 2025</p>
+                            <p class="mb-1"><strong>Next Service:</strong> 155,000 km</p>
+                            <p class="mb-1"><strong>License Expiry:</strong> 15 Aug 2026</p>
+                            <p class="mb-1"><strong>Insurance Expiry:</strong> 22 Mar 2026</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="fw-bold mb-3">Recent Trips</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>From</th>
+                                    <th>To</th>
+                                    <th>Distance</th>
+                                    <th>Allocation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>13 Dec 2025</td>
+                                    <td>Main Shed</td>
+                                    <td>Block A3</td>
+                                    <td>12 km</td>
+                                    <td>Block A3 Ops</td>
+                                </tr>
+                                <tr>
+                                    <td>12 Dec 2025</td>
+                                    <td>Block A3</td>
+                                    <td>Paarl Town</td>
+                                    <td>35 km</td>
+                                    <td>Admin (supplies)</td>
+                                </tr>
+                                <tr>
+                                    <td>11 Dec 2025</td>
+                                    <td>Main Shed</td>
+                                    <td>Block B1</td>
+                                    <td>18 km</td>
+                                    <td>Block B1 Ops</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-customapp">Schedule Service</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Asset Modal -->
+    <div class="modal fade" id="addAssetModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: var(--customapp-bg); color: white;">
+                    <h5 class="modal-title">Add New Asset</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Asset Type</label>
+                        <select class="form-select">
+                            <option>Vehicle</option>
+                            <option>Tractor</option>
+                            <option>Equipment</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <input type="text" class="form-control" placeholder="e.g., Toyota Hilux">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Registration/ID</label>
+                        <input type="text" class="form-control" placeholder="e.g., CA 123 456">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Purchase Date</label>
+                        <input type="date" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Purchase Value</label>
+                        <input type="number" class="form-control" placeholder="ZAR">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-customapp">Add Asset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

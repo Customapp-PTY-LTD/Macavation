@@ -1,0 +1,24 @@
+# IDE and editor files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Debug logs
+.cursor/
+debug.log
+
+# Node modules (if added later)
+node_modules/
+
+# Environment files
+.env
+.env.local
+
+# Build artifacts
+dist/
+build/
+*.log
+

@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quinn Farms - Compliance & Audits</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --customapp-bg: #5CBDB4;
+            --customapp-text: #4A4A4A;
+            --customapp-light: #7FD4CC;
+            --customapp-dark: #4A9A93;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: var(--customapp-text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        .navbar {
+            background-color: var(--customapp-bg) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: black !important;
+        }
+        
+        .btn-customapp {
+            background-color: var(--customapp-bg);
+            color: white;
+            border: none;
+        }
+        
+        .btn-customapp:hover {
+            background-color: var(--customapp-dark);
+            color: white;
+        }
+        
+        .compliance-card {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .compliance-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .progress-custom {
+            height: 25px;
+            border-radius: 12px;
+        }
+        
+        .folder-item {
+            border-left: 4px solid var(--customapp-bg);
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .folder-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateX(4px);
+        }
+        
+        .cert-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .cert-valid {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .cert-expiring {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .cert-expired {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .document-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .document-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="01-dashboard.html">
+                <i class="bi bi-grid-fill me-2"></i>Quinn Farms Management
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="01-dashboard.html"><i class="bi bi-house-fill me-1"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="02-labour-allocation.html"><i class="bi bi-people-fill me-1"></i>Labour</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="bi bi-clipboard-check me-1"></i>Compliance</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="04-chemicals.html"><i class="bi bi-droplet-fill me-1"></i>Chemicals</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="05-crop-monitoring.html"><i class="bi bi-graph-up me-1"></i>Crops</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2 class="fw-bold">Compliance & Audit Management</h2>
+                <p class="text-muted">Global GAP, Caesar Audits & Training Certification</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-customapp me-2">
+                    <i class="bi bi-download me-1"></i>Generate Audit Report
+                </button>
+                <button class="btn btn-outline-secondary">
+                    <i class="bi bi-calendar-event me-1"></i>Schedule Audit
+                </button>
+            </div>
+        </div>
+
+        <!-- Overall Compliance Score -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card compliance-card">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h4 class="mb-3">Overall Compliance Score</h4>
+                                <div class="progress progress-custom">
+                                    <div class="progress-bar" style="width: 94%; background-color: var(--customapp-bg);" role="progressbar">
+                                        <span class="fw-bold">94%</span>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <small class="text-muted">Next audit: Global GAP - 15 January 2026</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <div class="display-3" style="color: var(--customapp-bg);">94%</div>
+                                <p class="text-muted mb-0">Audit Ready</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card compliance-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-file-earmark-check-fill fs-1 mb-2" style="color: var(--customapp-bg);"></i>
+                        <h5 class="fw-bold">Documents Complete</h5>
+                        <div class="display-6">31/33</div>
+                        <small class="text-muted">Global GAP folders</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card compliance-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-award-fill fs-1 mb-2 text-warning"></i>
+                        <h5 class="fw-bold">Certificates Expiring</h5>
+                        <div class="display-6 text-warning">3</div>
+                        <small class="text-muted">Within 7 days</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card compliance-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-person-badge-fill fs-1 mb-2 text-success"></i>
+                        <h5 class="fw-bold">Certified Staff</h5>
+                        <div class="display-6 text-success">168/182</div>
+                        <small class="text-muted">Currently valid</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4" id="complianceTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="globalgap-tab" data-bs-toggle="tab" data-bs-target="#globalgap" type="button">
+                    <i class="bi bi-folder-fill me-2"></i>Global GAP
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="training-tab" data-bs-toggle="tab" data-bs-target="#training" type="button">
+                    <i class="bi bi-award me-2"></i>Training & Certificates
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="caesar-tab" data-bs-toggle="tab" data-bs-target="#caesar" type="button">
+                    <i class="bi bi-people me-2"></i>Caesar Audits
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="policies-tab" data-bs-toggle="tab" data-bs-target="#policies" type="button">
+                    <i class="bi bi-file-text me-2"></i>Policies & Procedures
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="complianceTabContent">
+            <!-- Global GAP Tab -->
+            <div class="tab-pane fade show active" id="globalgap" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0 fw-bold">33 Required Folders</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="folder-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-folder-fill me-2" style="color: var(--customapp-bg);"></i>
+                                            <strong>1. Site History & Farm Plan</strong>
+                                        </div>
+                                        <span class="badge bg-success">Complete</span>
+                                    </div>
+                                </div>
+                                <div class="folder-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-folder-fill me-2" style="color: var(--customapp-bg);"></i>
+                                            <strong>2. Traceability & Record Keeping</strong>
+                                        </div>
+                                        <span class="badge bg-success">Complete</span>
+                                    </div>
+                                </div>
+                                <div class="folder-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-folder-fill me-2" style="color: var(--customapp-bg);"></i>
+                                            <strong>3. Soil & Substrate Management</strong>
+                                        </div>
+                                        <span class="badge bg-success">Complete</span>
+                                    </div>
+                                </div>
+                                <div class="folder-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-folder-fill me-2" style="color: var(--customapp-bg);"></i>
+                                            <strong>4. Fertilizer Usage</strong>
+                                        </div>
+                                        <span class="badge bg-success">Complete</span>
+                                    </div>
+                                </div>
+                                <div class="folder-item" style="border-left-color: #ffc107;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-folder-fill me-2 text-warning"></i>
+                                            <strong>5. Irrigation & Water Management</strong>
+                                        </div>
+                                        <span class="badge bg-warning">In Progress</span>
+                                    </div>
+                                    <small class="text-muted ms-4">Missing: Pump meter readings for November</small>
+                                </div>
+                                <div class="folder-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-folder-fill me-2" style="color: var(--customapp-bg);"></i>
+                                            <strong>6. Integrated Pest Management</strong>
+                                        </div>
+                                        <span class="badge bg-success">Complete</span>
+                                    </div>
+                                </div>
+                                <div class="folder-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-folder-fill me-2" style="color: var(--customapp-bg);"></i>
+                                            <strong>7. Plant Protection Products</strong>
+                                        </div>
+                                        <span class="badge bg-success">Complete</span>
+                                    </div>
+                                </div>
+                                <div class="folder-item" style="border-left-color: #dc3545;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-folder-fill me-2 text-danger"></i>
+                                            <strong>8. Harvest & Post-Harvest</strong>
+                                        </div>
+                                        <span class="badge bg-danger">Incomplete</span>
+                                    </div>
+                                    <small class="text-muted ms-4">Missing: Pack shed temperature logs</small>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <button class="btn btn-outline-secondary btn-sm">View All 33 Folders</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Audit Preparation</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Documentation</small>
+                                        <small class="fw-bold">31/33</small>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar" style="width: 94%; background-color: var(--customapp-bg);"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Staff Certification</small>
+                                        <small class="fw-bold">168/182</small>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-warning" style="width: 92%;"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Equipment Records</small>
+                                        <small class="fw-bold">100%</small>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-success" style="width: 100%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Action Items</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled mb-0">
+                                    <li class="mb-2">
+                                        <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
+                                        <small>Upload pump readings</small>
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
+                                        <small>Pack shed temp logs</small>
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="bi bi-exclamation-circle-fill text-warning me-2"></i>
+                                        <small>Renew 3 certificates</small>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Training & Certificates Tab -->
+            <div class="tab-pane fade" id="training" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold">Staff Training Matrix</h5>
+                            <button class="btn btn-sm btn-customapp">
+                                <i class="bi bi-plus-lg me-1"></i>Add Certificate
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Staff Member</th>
+                                        <th>Certificate Type</th>
+                                        <th>Issue Date</th>
+                                        <th>Expiry Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="fw-bold">Johannes Dlamini</td>
+                                        <td>Chemical Handling</td>
+                                        <td>15 Jan 2025</td>
+                                        <td>15 Jan 2026</td>
+                                        <td><span class="cert-badge cert-valid">Valid</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Sipho Mthembu</td>
+                                        <td>First Aid Level 1</td>
+                                        <td>10 Dec 2024</td>
+                                        <td>18 Dec 2025</td>
+                                        <td><span class="cert-badge cert-expiring">Expiring Soon</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-warning">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Mandla Shabalala</td>
+                                        <td>Forklift Driver</td>
+                                        <td>22 Nov 2024</td>
+                                        <td>22 Nov 2025</td>
+                                        <td><span class="cert-badge cert-expired">Expired</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-arrow-clockwise"></i> Renew
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Thandi Ngubane</td>
+                                        <td>Health & Safety</td>
+                                        <td>05 Feb 2025</td>
+                                        <td>05 Feb 2026</td>
+                                        <td><span class="cert-badge cert-valid">Valid</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Caesar Audits Tab -->
+            <div class="tab-pane fade" id="caesar" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0 fw-bold">Caesar Labour Audit Requirements</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="accordion" id="caesarAccordion">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#housing">
+                                                Housing Standards <span class="badge bg-success ms-2">Compliant</span>
+                                            </button>
+                                        </h2>
+                                        <div id="housing" class="accordion-collapse collapse show" data-bs-parent="#caesarAccordion">
+                                            <div class="accordion-body">
+                                                <ul>
+                                                    <li>Adequate heating facilities ✓</li>
+                                                    <li>Clean water access ✓</li>
+                                                    <li>Proper sanitation ✓</li>
+                                                    <li>Structural integrity verified ✓</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#contracts">
+                                                Employment Contracts <span class="badge bg-warning ms-2">Review Required</span>
+                                            </button>
+                                        </h2>
+                                        <div id="contracts" class="accordion-collapse collapse" data-bs-parent="#caesarAccordion">
+                                            <div class="accordion-body">
+                                                <ul>
+                                                    <li>Written contracts for all permanent staff ✓</li>
+                                                    <li>Seasonal worker agreements - 14 missing signatures</li>
+                                                    <li>Terms and conditions clearly stated ✓</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h6 class="mb-0 fw-bold">Audit History</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <strong>Last Audit</strong>
+                                    <p class="text-muted mb-0">March 2025</p>
+                                    <span class="badge bg-success">Passed</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Next Audit</strong>
+                                    <p class="text-muted mb-0">Scheduled: March 2026</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Policies & Procedures Tab -->
+            <div class="tab-pane fade" id="policies" role="tabpanel">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold">Policies & Procedures</h5>
+                            <button class="btn btn-sm btn-customapp">
+                                <i class="bi bi-plus-lg me-1"></i>New Policy
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="document-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-file-earmark-text-fill me-2" style="color: var(--customapp-bg);"></i>
+                                    <strong>Fire Safety Policy</strong>
+                                    <br><small class="text-muted ms-4">Updated: 10 Dec 2025 by Heila Ungerer</small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-success me-2">Signed</span>
+                                    <button class="btn btn-sm btn-outline-primary">View</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="document-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-file-earmark-text-fill me-2" style="color: var(--customapp-bg);"></i>
+                                    <strong>Chemical Storage Procedure</strong>
+                                    <br><small class="text-muted ms-4">Updated: 05 Nov 2025 by Rich</small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-success me-2">Signed</span>
+                                    <button class="btn btn-sm btn-outline-primary">View</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="document-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-file-earmark-text-fill me-2 text-warning"></i>
+                                    <strong>Emergency Response Plan</strong>
+                                    <br><small class="text-muted ms-4">Draft - Not yet signed</small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-warning me-2">Pending</span>
+                                    <button class="btn btn-sm btn-outline-warning">Sign</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

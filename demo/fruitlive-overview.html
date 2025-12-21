@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FruitLive - Complete Farm Management Solution</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --fruitlive-primary: #5CBDB4;
+            --fruitlive-secondary: #4A4A4A;
+            --fruitlive-light: #7FD4CC;
+            --fruitlive-dark: #4A9A93;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--fruitlive-secondary);
+            line-height: 1.6;
+        }
+        
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--fruitlive-primary), var(--fruitlive-dark));
+            color: white;
+            padding: 5rem 0;
+            margin-bottom: 3rem;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .hero .lead {
+            font-size: 1.5rem;
+            opacity: 0.95;
+        }
+        
+        /* Section Styling */
+        section {
+            padding: 3rem 0;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: var(--fruitlive-primary);
+        }
+        
+        .section-subtitle {
+            font-size: 1.25rem;
+            color: #6c757d;
+            margin-bottom: 3rem;
+        }
+        
+        /* Module Cards */
+        .module-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .module-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(92, 189, 180, 0.3);
+        }
+        
+        .module-card .card-header {
+            background: linear-gradient(135deg, var(--fruitlive-primary), var(--fruitlive-light));
+            color: white;
+            border: none;
+            padding: 1.5rem;
+        }
+        
+        .module-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Benefit Boxes */
+        .benefit-box {
+            background: white;
+            border-left: 4px solid var(--fruitlive-primary);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        
+        .benefit-box:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 16px rgba(92, 189, 180, 0.2);
+        }
+        
+        .benefit-icon {
+            font-size: 2.5rem;
+            color: var(--fruitlive-primary);
+            margin-right: 1rem;
+        }
+        
+        /* Feature List */
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .feature-list li i {
+            color: var(--fruitlive-primary);
+            margin-right: 0.75rem;
+        }
+        
+        /* Workflow Diagram */
+        .workflow-container {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+        
+        .workflow-step {
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .workflow-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--fruitlive-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            box-shadow: 0 4px 8px rgba(92, 189, 180, 0.3);
+        }
+        
+        .workflow-arrow {
+            font-size: 2rem;
+            color: var(--fruitlive-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Stats */
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--fruitlive-primary);
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            color: #6c757d;
+            margin-top: 0.5rem;
+        }
+        
+        /* Navigation */
+        .nav-pills .nav-link {
+            color: var(--fruitlive-secondary);
+            border-radius: 8px;
+        }
+        
+        .nav-pills .nav-link.active {
+            background-color: var(--fruitlive-primary);
+        }
+        
+        /* Accordion */
+        .accordion-button:not(.collapsed) {
+            background-color: var(--fruitlive-light);
+            color: var(--fruitlive-secondary);
+        }
+        
+        .accordion-button:focus {
+            border-color: var(--fruitlive-primary);
+            box-shadow: 0 0 0 0.25rem rgba(92, 189, 180, 0.25);
+        }
+        
+        /* SVG Diagrams */
+        .diagram-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+        }
+        
+        /* Interactive Elements */
+        .interactive-card {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .interactive-card:hover .card-body {
+            background-color: rgba(92, 189, 180, 0.05);
+        }
+        
+        /* Value Proposition */
+        .value-prop {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 3rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+        
+        /* Table of Contents */
+        .toc {
+            position: sticky;
+            top: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .toc a {
+            color: var(--fruitlive-secondary);
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem 0;
+            border-left: 3px solid transparent;
+            padding-left: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .toc a:hover, .toc a.active {
+            color: var(--fruitlive-primary);
+            border-left-color: var(--fruitlive-primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1><i class="bi bi-apple me-3"></i>FruitLive</h1>
+                    <p class="lead">The Complete Multi-Farm Management Platform for Modern Fruit Production</p>
+                    <p class="mb-4">From orchards to markets, from labour to compliance – manage your entire fruit farming enterprise with one intelligent, integrated system.</p>
+                    <a href="#overview" class="btn btn-light btn-lg me-3"><i class="bi bi-play-circle me-2"></i>Explore Solution</a>
+                    <a href="#modules" class="btn btn-outline-light btn-lg">View Modules</a>
+                </div>
+                <div class="col-lg-4 text-center">
+                    <div class="stat-card" style="background: rgba(255,255,255,0.95);">
+                        <div class="stat-number">9</div>
+                        <div class="stat-label">Integrated Modules</div>
+                    </div>
+                    <div class="stat-card" style="background: rgba(255,255,255,0.95);">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Digital Compliance</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <div class="row">
+            <!-- Table of Contents -->
+            <div class="col-lg-3 d-none d-lg-block">
+                <div class="toc">
+                    <h5 class="fw-bold mb-3">Contents</h5>
+                    <a href="#overview" class="toc-link">Platform Overview</a>
+                    <a href="#architecture" class="toc-link">System Architecture</a>
+                    <a href="#modules" class="toc-link">Module Breakdown</a>
+                    <a href="#workflows" class="toc-link">Key Workflows</a>
+                    <a href="#benefits" class="toc-link">Business Benefits</a>
+                    <a href="#use-cases" class="toc-link">Use Cases</a>
+                    <a href="#roi" class="toc-link">Value Proposition</a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-lg-9">
+                <!-- Platform Overview -->
+                <section id="overview">
+                    <h2 class="section-title">Platform Overview</h2>
+                    <p class="section-subtitle">A single platform for managing multiple farms, diverse crops, and shared resources</p>
+                    
+                    <div class="value-prop">
+                        <h3 class="fw-bold mb-4">What is FruitLive?</h3>
+                        <p class="lead">FruitLive is a comprehensive farm management platform designed specifically for fruit production enterprises operating multiple farms with diverse crop types.</p>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <i class="bi bi-cloud-check benefit-icon"></i>
+                                    <h5 class="fw-bold">Cloud-Based</h5>
+                                    <p>Access from anywhere, automatic updates, always secure</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <i class="bi bi-diagram-3 benefit-icon"></i>
+                                    <h5 class="fw-bold">Multi-Tenant</h5>
+                                    <p>Manage multiple farms, crops, and teams from one system</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <i class="bi bi-shield-check benefit-icon"></i>
+                                    <h5 class="fw-bold">Compliance-First</h5>
+                                    <p>Built for Global GAP, FSSC 22000, and audit readiness</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="mt-5 mb-3 fw-bold">Core Capabilities</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="benefit-box">
+                                <div class="d-flex">
+                                    <i class="bi bi-house-fill benefit-icon"></i>
+                                    <div>
+                                        <h5 class="fw-bold">Multi-Farm Management</h5>
+                                        <p class="mb-0">Manage unlimited farms across different regions, each with unique crop types, from apples to kiwis to citrus.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="benefit-box">
+                                <div class="d-flex">
+                                    <i class="bi bi-people-fill benefit-icon"></i>
+                                    <div>
+                                        <h5 class="fw-bold">Shared Resource Pool</h5>
+                                        <p class="mb-0">Allocate labour, vehicles, and equipment across farms dynamically based on seasonal demands.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="benefit-box">
+                                <div class="d-flex">
+                                    <i class="bi bi-clipboard-check benefit-icon"></i>
+                                    <div>
+                                        <h5 class="fw-bold">Audit-Ready Compliance</h5>
+                                        <p class="mb-0">Every action tracked, every certificate monitored, every record digital and exportable.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="benefit-box">
+                                <div class="d-flex">
+                                    <i class="bi bi-graph-up benefit-icon"></i>
+                                    <div>
+                                        <h5 class="fw-bold">Data-Driven Decisions</h5>
+                                        <p class="mb-0">Real-time analytics on costs, yields, and efficiency across your entire portfolio.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- System Architecture -->
+                <section id="architecture">
+                    <h2 class="section-title">System Architecture</h2>
+                    <p class="section-subtitle">Understanding how FruitLive's intelligent architecture creates value</p>
+                    
+                    <div class="diagram-container">
+                        <h4 class="text-center mb-4 fw-bold">The FruitLive Ecosystem</h4>
+                        <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Central Brain -->
+                            <circle cx="400" cy="300" r="80" fill="#5CBDB4" opacity="0.2"/>
+                            <circle cx="400" cy="300" r="60" fill="#5CBDB4"/>
+                            <text x="400" y="295" text-anchor="middle" fill="white" font-size="16" font-weight="bold">FruitLive</text>
+                            <text x="400" y="315" text-anchor="middle" fill="white" font-size="14">Central Brain</text>
+                            
+                            <!-- Farms Layer -->
+                            <g id="farms">
+                                <!-- Quinn Farms -->
+                                <rect x="50" y="50" width="140" height="80" rx="8" fill="#7FD4CC" opacity="0.9"/>
+                                <text x="120" y="80" text-anchor="middle" fill="white" font-weight="bold">Quinn Farms</text>
+                                <text x="120" y="100" text-anchor="middle" fill="white" font-size="12">125 ha | Apples</text>
+                                <line x1="190" y1="90" x2="340" y2="260" stroke="#5CBDB4" stroke-width="2" stroke-dasharray="5,5"/>
+                                
+                                <!-- Riverside Citrus -->
+                                <rect x="610" y="50" width="140" height="80" rx="8" fill="#ffc107" opacity="0.9"/>
+                                <text x="680" y="80" text-anchor="middle" fill="white" font-weight="bold">Riverside Citrus</text>
+                                <text x="680" y="100" text-anchor="middle" fill="white" font-size="12">210 ha | Citrus</text>
+                                <line x1="610" y1="90" x2="460" y2="260" stroke="#5CBDB4" stroke-width="2" stroke-dasharray="5,5"/>
+                                
+                                <!-- Kinmount -->
+                                <rect x="50" y="470" width="140" height="80" rx="8" fill="#7FD4CC" opacity="0.9"/>
+                                <text x="120" y="500" text-anchor="middle" fill="white" font-weight="bold">Kinmount Estate</text>
+                                <text x="120" y="520" text-anchor="middle" fill="white" font-size="12">85 ha | Apples</text>
+                                <line x1="190" y1="510" x2="340" y2="340" stroke="#5CBDB4" stroke-width="2" stroke-dasharray="5,5"/>
+                                
+                                <!-- Bay Kiwi -->
+                                <rect x="330" y="470" width="140" height="80" rx="8" fill="#28a745" opacity="0.9"/>
+                                <text x="400" y="500" text-anchor="middle" fill="white" font-weight="bold">Bay Kiwi</text>
+                                <text x="400" y="520" text-anchor="middle" fill="white" font-size="12">45 ha | Kiwis</text>
+                                <line x1="400" y1="470" x2="400" y2="360" stroke="#5CBDB4" stroke-width="2" stroke-dasharray="5,5"/>
+                                
+                                <!-- Stellendale -->
+                                <rect x="610" y="470" width="140" height="80" rx="8" fill="#dc3545" opacity="0.9"/>
+                                <text x="680" y="500" text-anchor="middle" fill="white" font-weight="bold">Stellendale</text>
+                                <text x="680" y="520" text-anchor="middle" fill="white" font-size="12">68 ha | Grapes</text>
+                                <line x1="610" y1="510" x2="460" y2="340" stroke="#5CBDB4" stroke-width="2" stroke-dasharray="5,5"/>
+                            </g>
+                            
+                            <!-- Shared Resources -->
+                            <g id="resources">
+                                <rect x="240" y="140" width="120" height="50" rx="5" fill="#4A9A93"/>
+                                <text x="300" y="160" text-anchor="middle" fill="white" font-size="12">547 Workers</text>
+                                <text x="300" y="175" text-anchor="middle" fill="white" font-size="10">Shared Pool</text>
+                                
+                                <rect x="440" y="140" width="120" height="50" rx="5" fill="#4A9A93"/>
+                                <text x="500" y="160" text-anchor="middle" fill="white" font-size="12">50 Vehicles</text>
+                                <text x="500" y="175" text-anchor="middle" fill="white" font-size="10">Fleet</text>
+                                
+                                <rect x="240" y="410" width="120" height="50" rx="5" fill="#4A9A93"/>
+                                <text x="300" y="430" text-anchor="middle" fill="white" font-size="12">190 Equipment</text>
+                                <text x="300" y="445" text-anchor="middle" fill="white" font-size="10">Items</text>
+                                
+                                <rect x="440" y="410" width="120" height="50" rx="5" fill="#4A9A93"/>
+                                <text x="500" y="430" text-anchor="middle" fill="white" font-size="12">24 Users</text>
+                                <text x="500" y="445" text-anchor="middle" fill="white" font-size="10">Active</text>
+                            </g>
+                            
+                            <!-- Arrows to central brain -->
+                            <line x1="300" y1="190" x2="360" y2="260" stroke="#4A9A93" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <line x1="500" y1="190" x2="440" y2="260" stroke="#4A9A93" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <line x1="300" y1="410" x2="360" y2="340" stroke="#4A9A93" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <line x1="500" y1="410" x2="440" y2="340" stroke="#4A9A93" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                    <polygon points="0 0, 10 3, 0 6" fill="#4A9A93" />
+                                </marker>
+                            </defs>
+                        </svg>
+                        
+                        <p class="text-center mt-4 text-muted">
+                            <strong>The Brain coordinates all farms and shared resources</strong> – ensuring optimal allocation, 
+                            compliance tracking, and data-driven decision making across your entire portfolio.
+                        </p>
+                    </div>
+
+                    <h4 class="mt-5 mb-3 fw-bold">Key Architectural Principles</h4>
+                    <div class="accordion" id="architectureAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#principle1">
+                                    <i class="bi bi-database me-2"></i> Single Source of Truth
+                                </button>
+                            </h2>
+                            <div id="principle1" class="accordion-collapse collapse show" data-bs-parent="#architectureAccordion">
+                                <div class="accordion-body">
+                                    Every piece of data exists in one place. When a worker's details are updated, it reflects instantly across all farms. 
+                                    When a vehicle is transferred, both the origin and destination farm see the change in real-time. No duplicate records, no confusion.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#principle2">
+                                    <i class="bi bi-link-45deg me-2"></i> Interconnected Modules
+                                </button>
+                            </h2>
+                            <div id="principle2" class="accordion-collapse collapse" data-bs-parent="#architectureAccordion">
+                                <div class="accordion-body">
+                                    Modules talk to each other. Labour costs feed into crop profitability. Chemical applications link to compliance records. 
+                                    Water usage connects to block allocation. This integration eliminates data silos and manual re-entry.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#principle3">
+                                    <i class="bi bi-shield-lock me-2"></i> Role-Based Security
+                                </button>
+                            </h2>
+                            <div id="principle3" class="accordion-collapse collapse" data-bs-parent="#architectureAccordion">
+                                <div class="accordion-body">
+                                    Each user sees exactly what they need – nothing more, nothing less. Farm managers access only their farm's data. 
+                                    Field workers capture data through simplified mobile interfaces. Super admins control the entire portfolio.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#principle4">
+                                    <i class="bi bi-graph-up-arrow me-2"></i> Real-Time Analytics
+                                </button>
+                            </h2>
+                            <div id="principle4" class="accordion-collapse collapse" data-bs-parent="#architectureAccordion">
+                                <div class="accordion-body">
+                                    Data becomes actionable intelligence instantly. See labour costs by block updated hourly. Monitor water usage against 
+                                    license limits in real-time. Track compliance scores as documents are uploaded. Make decisions based on current reality.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Module Breakdown -->
+                <section id="modules">
+                    <h2 class="section-title">Module Breakdown</h2>
+                    <p class="section-subtitle">Nine integrated modules working together as one intelligent system</p>
+
+                    <div class="row g-4">
+                        <!-- Dashboard -->
+                        <div class="col-md-6">
+                            <div class="card module-card">
+                                <div class="card-header">
+                                    <div class="text-center">
+                                        <i class="bi bi-house-fill module-icon"></i>
+                                        <h4 class="mb-0">Dashboard</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">Command Center</h6>
+                                    <p>Real-time overview of all operations across all farms. Switch between farms instantly, view critical alerts, and access any module with one click.</p>
+                                    <ul class="feature-list">
+                                        <li><i class="bi bi-check-circle-fill"></i> Multi-farm selector</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Critical alerts dashboard</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> KPI widgets (labour, compliance, crops)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Shared resource notifications</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Recent activity feed</li>
+                                    </ul>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <strong>Value:</strong> Complete visibility in seconds. Know what's happening across your entire portfolio at a glance.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Labour Management -->
+                        <div class="col-md-6">
+                            <div class="card module-card">
+                                <div class="card-header">
+                                    <div class="text-center">
+                                        <i class="bi bi-people-fill module-icon"></i>
+                                        <h4 class="mb-0">Labour Management</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">Workforce Optimization</h6>
+                                    <p>Eliminate manual timesheets. Track every worker, every task, every hour. Move labour between farms seamlessly based on demand.</p>
+                                    <ul class="feature-list">
+                                        <li><i class="bi bi-check-circle-fill"></i> Daily digital allocation (block, task, variety)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Attendance tracking</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Cross-farm labour transfers</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Cost tracking per block/task</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Productivity analytics</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Employee records & contracts</li>
+                                    </ul>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <strong>ROI Impact:</strong> Tam saves 15+ hours/week on manual time tracking. Rich eliminates duplicate diary entries.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Compliance -->
+                        <div class="col-md-6">
+                            <div class="card module-card">
+                                <div class="card-header">
+                                    <div class="text-center">
+                                        <i class="bi bi-clipboard-check module-icon"></i>
+                                        <h4 class="mb-0">Compliance & Audits</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">Audit-Ready, Always</h6>
+                                    <p>Never scramble before an audit again. Every Global GAP requirement tracked digitally. Certificates, policies, training – all in one place.</p>
+                                    <ul class="feature-list">
+                                        <li><i class="bi bi-check-circle-fill"></i> Global GAP digital template (33 folders)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Certificate expiry tracking & alerts</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Staff training matrix</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Policy & procedure management</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Caesar (labour) audit prep</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Document version control</li>
+                                    </ul>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <strong>Value:</strong> "Massive assistance" – Tam. Transform audit season from panic to confidence.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chemical Management -->
+                        <div class="col-md-6">
+                            <div class="card module-card">
+                                <div class="card-header">
+                                    <div class="text-center">
+                                        <i class="bi bi-droplet-fill module-icon"></i>
+                                        <h4 class="mb-0">Chemical Management</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">Spray Program Intelligence</h6>
+                                    <p>Link spray programs to biological events (full bloom), auto-calculate PHI periods, track inventory, ensure storage compliance.</p>
+                                    <ul class="feature-list">
+                                        <li><i class="bi bi-check-circle-fill"></i> Season spray programs (auto-adjust dates)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Detailed spray records (weather, PHI, operator)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Chemical inventory & stock control</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Infield scouting records (justification)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Storage compliance tracking</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Cost allocation per block</li>
+                                    </ul>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <strong>Compliance:</strong> Full audit trail from scouting → application → disposal. Auditors' dream.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Crop Monitoring -->
+                        <div class="col-md-6">
+                            <div class="card module-card">
+                                <div class="card-header">
+                                    <div class="text-center">
+                                        <i class="bi bi-graph-up module-icon"></i>
+                                        <h4 class="mb-0">Crop Monitoring</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">Growth Curve Intelligence</h6>
+                                    <p>Replace guesswork with data. Track fruit size weekly, compare to past seasons, project yield and sizing to pack sheds accurately.</p>
+                                    <ul class="feature-list">
+                                        <li><i class="bi bi-check-circle-fill"></i> Fruit size tracking (circumference, length)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Growth curves by variety/block/farm</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Year-on-year comparison</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Yield & sizing projections</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Quality sampling records</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Nematode monitoring</li>
+                                    </ul>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <strong>Impact:</strong> Pack sheds get accurate forecasts instead of hopeful guesses. Better planning = better prices.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Asset Management -->
+                        <div class="col-md-6">
+                            <div class="card module-card">
+                                <div class="card-header">
+                                    <div class="text-center">
+                                        <i class="bi bi-truck module-icon"></i>
+                                        <h4 class="mb-0">Asset Management</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">Fleet & Equipment Control</h6>
+                                    <p>Track vehicles, fuel, equipment across farms. Automate service reminders. Allocate costs to work sites for SARS compliance.</p>
+                                    <ul class="feature-list">
+                                        <li><i class="bi bi-check-circle-fill"></i> Vehicle fleet management</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Automated fuel tracking (bowser + commercial)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Kilometre allocation to blocks</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Service schedules & reminders</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Equipment inventory (secateurs tracking!)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Cross-farm asset transfers</li>
+                                    </ul>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <strong>Value:</strong> No more manual logbooks. SARS-ready mileage reports generated automatically.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Post-Harvest -->
+                        <div class="col-md-6">
+                            <div class="card module-card">
+                                <div class="card-header">
+                                    <div class="text-center">
+                                        <i class="bi bi-box-seam module-icon"></i>
+                                        <h4 class="mb-0">Post-Harvest</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">Farm to Fork Traceability</h6>
+                                    <p>Track every carton from orchard to market. Full traceability for recalls. Analyze market performance to optimize future seasons.</p>
+                                    <ul class="feature-list">
+                                        <li><i class="bi bi-check-circle-fill"></i> Consignment tracking (pallet → carton)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Full traceability (block → pack → delivery)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Mock recall capability</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Market performance analysis</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Size distribution tracking</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Return projections</li>
+                                    </ul>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <strong>Compliance:</strong> Locate contaminated batch in hours, not weeks. Protect your brand.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Water & Irrigation -->
+                        <div class="col-md-6">
+                            <div class="card module-card">
+                                <div class="card-header">
+                                    <div class="text-center">
+                                        <i class="bi bi-water module-icon"></i>
+                                        <h4 class="mb-0">Water & Irrigation</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">Water License Compliance</h6>
+                                    <p>Daily pump meter readings, irrigation schedules, usage tracking. Prove responsible water use for Global GAP and license compliance.</p>
+                                    <ul class="feature-list">
+                                        <li><i class="bi bi-check-circle-fill"></i> Pump meter reading capture</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Usage by block (m³/hectare)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> License allocation tracking</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Irrigation scheduling</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Efficiency analytics</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Global GAP water records</li>
+                                    </ul>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <strong>Value:</strong> Never exceed license limits. Digital proof of responsible water use for audits.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Administration -->
+                        <div class="col-md-6">
+                            <div class="card module-card" style="border: 3px solid var(--fruitlive-primary);">
+                                <div class="card-header">
+                                    <div class="text-center">
+                                        <i class="bi bi-gear-fill module-icon"></i>
+                                        <h4 class="mb-0">Administration</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">The Control Center</h6>
+                                    <p><strong>This is where the magic happens.</strong> Manage all farms, users, shared resources, and logistics from one powerful interface.</p>
+                                    <ul class="feature-list">
+                                        <li><i class="bi bi-check-circle-fill"></i> Multi-farm portfolio management</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> User roles & permissions</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Shared resource allocation (547 workers!)</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Crop type configuration</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Cross-farm transfers & logistics</li>
+                                        <li><i class="bi bi-check-circle-fill"></i> Portfolio analytics</li>
+                                    </ul>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <strong>Game-Changer:</strong> This module transforms FruitLive from a single-farm tool to an enterprise platform.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Key Workflows -->
+                <section id="workflows">
+                    <h2 class="section-title">Key Workflows</h2>
+                    <p class="section-subtitle">See how FruitLive streamlines complex processes</p>
+
+                    <!-- Workflow 1: Daily Labour Allocation -->
+                    <div class="workflow-container mb-5">
+                        <h4 class="fw-bold mb-4"><i class="bi bi-people-fill me-2" style="color: var(--fruitlive-primary);"></i>Workflow 1: Daily Labour Allocation</h4>
+                        <div class="row">
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">1</div>
+                                <h6 class="fw-bold">Farm Manager Reviews</h6>
+                                <small>Check yesterday's allocations</small>
+                            </div>
+                            <div class="col-md-1 workflow-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">2</div>
+                                <h6 class="fw-bold">Bulk Allocate</h6>
+                                <small>Assign teams to blocks & tasks</small>
+                            </div>
+                            <div class="col-md-1 workflow-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">3</div>
+                                <h6 class="fw-bold">Indunas Confirm</h6>
+                                <small>Field supervisors adjust on tablets</small>
+                            </div>
+                            <div class="col-md-1 workflow-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">4</div>
+                                <h6 class="fw-bold">Auto-Calculate</h6>
+                                <small>Costs flow to blocks automatically</small>
+                            </div>
+                        </div>
+                        <div class="alert alert-success mt-4">
+                            <strong><i class="bi bi-clock-history me-2"></i>Time Saved:</strong> 
+                            What took 2+ hours with diary + manual timesheet now takes 15 minutes.
+                        </div>
+                    </div>
+
+                    <!-- Workflow 2: Spray Application -->
+                    <div class="workflow-container mb-5">
+                        <h4 class="fw-bold mb-4"><i class="bi bi-droplet-fill me-2" style="color: var(--fruitlive-primary);"></i>Workflow 2: Chemical Application & Compliance</h4>
+                        <div class="row">
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">1</div>
+                                <h6 class="fw-bold">Scouting</h6>
+                                <small>Problem identified, logged digitally</small>
+                            </div>
+                            <div class="col-md-1 workflow-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">2</div>
+                                <h6 class="fw-bold">Program Check</h6>
+                                <small>System shows scheduled spray</small>
+                            </div>
+                            <div class="col-md-1 workflow-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">3</div>
+                                <h6 class="fw-bold">Application</h6>
+                                <small>Operator records: block, chemical, weather</small>
+                            </div>
+                            <div class="col-md-1 workflow-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">4</div>
+                                <h6 class="fw-bold">Audit Trail</h6>
+                                <small>Linked: scout → spray → disposal certificate</small>
+                            </div>
+                        </div>
+                        <div class="alert alert-info mt-4">
+                            <strong><i class="bi bi-shield-check me-2"></i>Compliance Value:</strong> 
+                            Auditors can trace every application from problem identification to empty container disposal.
+                        </div>
+                    </div>
+
+                    <!-- Workflow 3: Cross-Farm Resource Transfer -->
+                    <div class="workflow-container">
+                        <h4 class="fw-bold mb-4"><i class="bi bi-diagram-3 me-2" style="color: var(--fruitlive-primary);"></i>Workflow 3: Cross-Farm Resource Transfer</h4>
+                        <div class="row">
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">1</div>
+                                <h6 class="fw-bold">Need Identified</h6>
+                                <small>Quinn Farms needs pruning team</small>
+                            </div>
+                            <div class="col-md-1 workflow-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">2</div>
+                                <h6 class="fw-bold">Check Pool</h6>
+                                <small>Admin sees Kinmount has capacity</small>
+                            </div>
+                            <div class="col-md-1 workflow-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">3</div>
+                                <h6 class="fw-bold">Create Transfer</h6>
+                                <small>12 workers, dates, approval</small>
+                            </div>
+                            <div class="col-md-1 workflow-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                            <div class="col-md-2 workflow-step">
+                                <div class="workflow-circle">4</div>
+                                <h6 class="fw-bold">Auto-Update</h6>
+                                <small>Both farms see new allocations</small>
+                            </div>
+                        </div>
+                        <div class="alert alert-success mt-4">
+                            <strong><i class="bi bi-cash-stack me-2"></i>Financial Impact:</strong> 
+                            Costs automatically allocated to Quinn Farms. No manual invoicing between farms needed.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Business Benefits -->
+                <section id="benefits">
+                    <h2 class="section-title">Business Benefits</h2>
+                    <p class="section-subtitle">Tangible outcomes that impact your bottom line</p>
+
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <i class="bi bi-clock-history" style="font-size: 3rem; color: var(--fruitlive-primary);"></i>
+                                <div class="stat-number">15-20</div>
+                                <div class="stat-label">Hours Saved Per Week</div>
+                                <p class="mt-3 text-muted small">On manual data entry, timesheet processing, and report compilation</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <i class="bi bi-graph-up" style="font-size: 3rem; color: var(--fruitlive-primary);"></i>
+                                <div class="stat-number">100%</div>
+                                <div class="stat-label">Audit Readiness</div>
+                                <p class="mt-3 text-muted small">Every document digital, every record timestamped, every requirement tracked</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <i class="bi bi-people-fill" style="font-size: 3rem; color: var(--fruitlive-primary);"></i>
+                                <div class="stat-number">30%</div>
+                                <div class="stat-label">Labour Efficiency Gain</div>
+                                <p class="mt-3 text-muted small">From data-driven allocation and cross-farm resource optimization</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="mt-5 mb-4 fw-bold">Quantified Value Across Stakeholders</h4>
+                    
+                    <div class="benefit-box">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center">
+                                <i class="bi bi-person-badge benefit-icon"></i>
+                                <strong>Farm Manager</strong>
+                            </div>
+                            <div class="col-md-10">
+                                <ul class="mb-0">
+                                    <li>Eliminate duplicate data entry (diary → FruitLive, done)</li>
+                                    <li>Real-time visibility: Know exactly where every worker is, what they're doing</li>
+                                    <li>Make decisions with data: Which blocks are profitable? Which varieties cost too much to maintain?</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="benefit-box">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center">
+                                <i class="bi bi-person-check benefit-icon"></i>
+                                <strong>Admin/Owner</strong>
+                            </div>
+                            <div class="col-md-10">
+                                <ul class="mb-0">
+                                    <li>Portfolio view: See all 5 farms at once, compare performance</li>
+                                    <li>Compliance confidence: Walk into audits knowing everything is ready</li>
+                                    <li>Strategic insight: Understand which crops, markets, and farms are most profitable</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="benefit-box">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center">
+                                <i class="bi bi-cash-coin benefit-icon"></i>
+                                <strong>Finance</strong>
+                            </div>
+                            <div class="col-md-10">
+                                <ul class="mb-0">
+                                    <li>Accurate cost allocation: Labour, fuel, chemicals tracked to block level</li>
+                                    <li>SARS compliance: Logbook mileage calculated automatically</li>
+                                    <li>Profitability by variety: Know exactly where money is made and lost</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="benefit-box">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center">
+                                <i class="bi bi-clipboard-check benefit-icon"></i>
+                                <strong>Compliance Officer</strong>
+                            </div>
+                            <div class="col-md-10">
+                                <ul class="mb-0">
+                                    <li>No more scrambling: Everything documented, timestamped, exportable</li>
+                                    <li>Certificate tracking: Alerts 30 days before expiry</li>
+                                    <li>Mock recalls: Execute in hours instead of weeks</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Use Cases -->
+                <section id="use-cases">
+                    <h2 class="section-title">Real-World Use Cases</h2>
+                    <p class="section-subtitle">How FruitLive solves actual farming challenges</p>
+
+                    <div class="accordion" id="useCasesAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#usecase1">
+                                    <strong>Scenario 1: Pruning Season Resource Crunch</strong>
+                                </button>
+                            </h2>
+                            <div id="usecase1" class="accordion-collapse collapse show" data-bs-parent="#useCasesAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Challenge:</strong> Quinn Farms enters pruning season. Rich needs 160 workers but only has 147 permanent staff. 
+                                    Kinmount Estate's harvest is done – they have capacity.</p>
+                                    
+                                    <p><strong>FruitLive Solution:</strong></p>
+                                    <ol>
+                                        <li>Tam logs into Admin → Shared Resources</li>
+                                        <li>Sees Kinmount has 25 available workers</li>
+                                        <li>Creates transfer: 12 workers, Kinmount → Quinn Farms, 09 Dec - 23 Dec</li>
+                                        <li>Both Rich and Johannes get notifications</li>
+                                        <li>Workers show up in Rich's daily allocation automatically</li>
+                                        <li>Costs allocated to Quinn Farms, no manual invoicing needed</li>
+                                    </ol>
+                                    
+                                    <p><strong>Result:</strong> Resource gap filled in 5 minutes. No phone calls, no spreadsheets, no billing confusion.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#usecase2">
+                                    <strong>Scenario 2: Global GAP Audit Next Week</strong>
+                                </button>
+                            </h2>
+                            <div id="usecase2" class="accordion-collapse collapse" data-bs-parent="#useCasesAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Challenge:</strong> Global GAP audit scheduled for 15 Jan 2026. Auditor will ask for spray records, 
+                                    training certificates, water usage logs, chemical storage certificates, and more.</p>
+                                    
+                                    <p><strong>FruitLive Solution:</strong></p>
+                                    <ol>
+                                        <li>Compliance module shows 94% readiness score</li>
+                                        <li>3 training certificates flagged as expiring – renew immediately</li>
+                                        <li>Export spray records for all blocks (includes: chemical, PHI, operator, weather)</li>
+                                        <li>Water module shows full irrigation records, license compliance</li>
+                                        <li>Chemical module links every application to disposal certificates</li>
+                                        <li>Generate complete digital audit pack in 2 hours</li>
+                                    </ol>
+                                    
+                                    <p><strong>Result:</strong> Auditor impressed. Zero findings. Certificate renewed with confidence.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#usecase3">
+                                    <strong>Scenario 3: Quality Issue in Export Market</strong>
+                                </button>
+                            </h2>
+                            <div id="usecase3" class="accordion-collapse collapse" data-bs-parent="#useCasesAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Challenge:</strong> Middle East importer finds bruised apples in consignment CONS-2025-042. 
+                                    Needs full traceability within 24 hours or risks losing contract.</p>
+                                    
+                                    <p><strong>FruitLive Solution:</strong></p>
+                                    <ol>
+                                        <li>Post-Harvest → Traceability tab</li>
+                                        <li>Search consignment: CONS-2025-042</li>
+                                        <li>System shows: Block A3, Rows 12-15, picked 05 Feb by Team 3 (Johannes - Induna)</li>
+                                        <li>Last spray: 15 Jan (Captan 80 WP, PHI 14 days – compliant)</li>
+                                        <li>Packed: 06 Feb, Line 2, Pallet PLT-2025-0284</li>
+                                        <li>Cold chain: 0.5°C maintained throughout, no breaks</li>
+                                        <li>Generate PDF report with complete chain in 10 minutes</li>
+                                    </ol>
+                                    
+                                    <p><strong>Result:</strong> Issue traced to rough handling at pack house (unrelated to farm). 
+                                    Contract saved. Annual mock recall exercise proven invaluable.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#usecase4">
+                                    <strong>Scenario 4: Profitability Analysis</strong>
+                                </button>
+                            </h2>
+                            <div id="usecase4" class="accordion-collapse collapse" data-bs-parent="#useCasesAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Challenge:</strong> Tam wants to know: Are we spending too much on pruning low-value varieties? 
+                                    Which blocks should we expand vs. phase out?</p>
+                                    
+                                    <p><strong>FruitLive Solution:</strong></p>
+                                    <ol>
+                                        <li>Labour module shows: Golden Delicious blocks consume 70% of pruning hours</li>
+                                        <li>Post-Harvest module shows: Golden Delicious only generates 30% of revenue</li>
+                                        <li>Crop Monitoring shows: Granny Smith has better sizing consistency year-on-year</li>
+                                        <li>Chemical costs by block reveal: Pink Lady blocks require 40% more spray applications</li>
+                                        <li>Generate profitability report per variety across all farms</li>
+                                    </ol>
+                                    
+                                    <p><strong>Result:</strong> Strategic decision: Phase out underperforming Golden Delicious blocks, 
+                                    expand Granny Smith. Data-backed, not gut feel.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ROI & Value Proposition -->
+                <section id="roi">
+                    <h2 class="section-title">Value Proposition</h2>
+                    <p class="section-subtitle">Understanding the return on investment</p>
+
+                    <div class="value-prop">
+                        <h3 class="fw-bold mb-4">The Cost of NOT Using FruitLive</h3>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5 class="fw-bold mb-3">Time Lost (Weekly)</h5>
+                                <ul>
+                                    <li>Manual timesheet processing: <strong>8 hours</strong></li>
+                                    <li>Duplicate data entry (diary → spreadsheets): <strong>6 hours</strong></li>
+                                    <li>Compiling compliance documents: <strong>4 hours</strong></li>
+                                    <li>Chasing down spray records: <strong>3 hours</strong></li>
+                                    <li>Manual fuel tracking & allocation: <strong>2 hours</strong></li>
+                                </ul>
+                                <p class="fw-bold">Total: <span class="text-danger">23 hours/week = R18,400/month</span> (at R200/hour)</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="fw-bold mb-3">Risk Exposure</h5>
+                                <ul>
+                                    <li><strong>Audit failures:</strong> R50,000+ in lost contracts</li>
+                                    <li><strong>Labour disputes:</strong> No digital proof of work allocation</li>
+                                    <li><strong>Compliance fines:</strong> Chemical/water license violations</li>
+                                    <li><strong>Market access:</strong> Lost export opportunities without traceability</li>
+                                    <li><strong>Inefficiency:</strong> 10-15% labour cost waste from poor allocation</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="mt-5 mb-4 fw-bold">ROI Calculation (500 hectare operation)</h4>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead style="background-color: var(--fruitlive-light);">
+                                <tr>
+                                    <th>Benefit Category</th>
+                                    <th>Annual Savings (Conservative)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Administrative time savings (23 hrs/week × 48 weeks)</td>
+                                    <td class="text-end"><strong>R220,800</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Labour efficiency improvement (3% on R2M labour budget)</td>
+                                    <td class="text-end"><strong>R60,000</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Fuel tracking & allocation accuracy</td>
+                                    <td class="text-end"><strong>R45,000</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Equipment loss reduction (secateurs, tools)</td>
+                                    <td class="text-end"><strong>R25,000</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Avoided compliance fines/audit failures</td>
+                                    <td class="text-end"><strong>R150,000</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Better market pricing (accurate projections to pack sheds)</td>
+                                    <td class="text-end"><strong>R100,000</strong></td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Total Annual Value</strong></td>
+                                    <td class="text-end"><strong>R600,800</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-success mt-4">
+                        <h5 class="fw-bold"><i class="bi bi-calculator me-2"></i>Payback Period: 4-6 months</h5>
+                        <p class="mb-0">Even at conservative estimates, FruitLive pays for itself within the first growing season through time savings and efficiency gains alone – before accounting for risk reduction and better decision-making.</p>
+                    </div>
+                </section>
+
+                <!-- Final CTA -->
+                <section class="mt-5 pt-5 border-top">
+                    <div class="text-center">
+                        <h2 class="fw-bold mb-3" style="color: var(--fruitlive-primary);">Ready to Transform Your Farm Operations?</h2>
+                        <p class="lead mb-4">FruitLive is not just software – it's a complete digital transformation of fruit farming.</p>
+                        <div class="row justify-content-center">
+                            <div class="col-md-8">
+                                <div class="card" style="border: 3px solid var(--fruitlive-primary);">
+                                    <div class="card-body p-4">
+                                        <h5 class="fw-bold mb-3">What You Get:</h5>
+                                        <div class="row">
+                                            <div class="col-md-6 text-start">
+                                                <ul class="feature-list">
+                                                    <li><i class="bi bi-check-circle-fill"></i> 9 integrated modules</li>
+                                                    <li><i class="bi bi-check-circle-fill"></i> Multi-farm support</li>
+                                                    <li><i class="bi bi-check-circle-fill"></i> Unlimited users</li>
+                                                    <li><i class="bi bi-check-circle-fill"></i> Mobile access</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6 text-start">
+                                                <ul class="feature-list">
+                                                    <li><i class="bi bi-check-circle-fill"></i> Audit-ready compliance</li>
+                                                    <li><i class="bi bi-check-circle-fill"></i> Real-time analytics</li>
+                                                    <li><i class="bi bi-check-circle-fill"></i> Training & support</li>
+                                                    <li><i class="bi bi-check-circle-fill"></i> Regular updates</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div class="mt-4">
+                                            <button class="btn btn-lg" style="background-color: var(--fruitlive-primary); color: white;">
+                                                <i class="bi bi-calendar-check me-2"></i>Schedule a Demo
+                                            </button>
+                                            <button class="btn btn-lg btn-outline-secondary ms-2">
+                                                <i class="bi bi-download me-2"></i>Download Brochure
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-5 py-4" style="background-color: #f8f9fa;">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="fw-bold" style="color: var(--fruitlive-primary);">
+                        <i class="bi bi-apple me-2"></i>FruitLive
+                    </h5>
+                    <p class="text-muted">The Complete Multi-Farm Management Platform</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="text-muted mb-0">Built for fruit producers who demand excellence</p>
+                    <p class="text-muted small">© 2025 FruitLive. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Smooth scrolling for TOC
+        document.querySelectorAll('.toc a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Update active state
+                document.querySelectorAll('.toc a').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Intersection Observer for TOC
+        const sections = document.querySelectorAll('section[id]');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    document.querySelectorAll('.toc a').forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.5 });
+
+        sections.forEach(section => observer.observe(section));
+    </script>
+</body>
+</html>

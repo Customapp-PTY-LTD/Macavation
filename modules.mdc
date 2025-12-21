@@ -1,0 +1,224 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# WebPortals Application Cursor Rules
+
+## Datafunctions formatting
+- All data function calls should be called in this manner as outlined in this example:
+
+ getMemberDetails: ({
+            IDNumberOrPolicyNumber,
+            EntityGUID,
+            AuthToken,
+            APIReferenceDataGUID
+        }) => {
+            const isValid = _c360Api.validateTokenExpires();
+            if (!isValid) {
+                return {
+                    Success: false,
+                    LastErrorDescription: 'Session Expired',
+                    Data: []
+                };
+            }
+
+            return new Promise((resolve) => {
+
+                _OASIS.callService({
+                    webserviceURL: _OASIS.customAppServicesURL,
+                    ApiRegisterServiceKey: 'C360API_GetMemberDetails',
+                    InputParams: {
+                        IDNumber: IDNumberOrPolicyNumber,
+                        prmEntityGUID: EntityGUID || '00000000-0000-0000-0000-000000000000',
+                        AuthToken: AuthToken,
+                        APIReferenceDataGUID: APIReferenceDataGUID
+                    },
+                    async: true,
+                    callback: resolve
+                })
+            })
+        }
+
+
+
+## Project Structure
+- Modules located in: `WebPortals/modules/{module_name}/`
+- Each module has: `html/`, `js/`, `css/` subdirectories
+- Naming convention: `{module_name}_{type}.{ext}` (e.g., `employees_grid.html`)
+
+## Module Types Required
+- Grid view: `{module}_grid.html`, `{module}_grid.js`, `{module}_grid.css`
+- Form view: `{module}_form.html`, `{module}_form.js`, `{module}_form.css`
+
+## Database Schema Conventions
+- All tables have: `ID`, `UniqueGUID`, `CreatedDate`, `UpdatedDate`, `CreatedBy`, `UpdatedBy`
+- Employee table fields: `EmployeeName`, `EmployeeSurname`, `EmployeeIDNumber`, `EmployeeDateOfBirth`, `EmployeeGender`, `EmployeeMaritalStatus`, `EmployeeMobileNumber`, `EmployeeEmailAddress`, `EmployeePhysicalAddress`, `EmployeePostalAddress`, `EmployeeEmploymentStatus`, `EmployeeOccupation`, `EmployeeNextOfKin`, `EmployeeNextOfKinContact`, `EmployeePreferredLanguage`, `EmployerGUID`
+- Employer table fields: `EmployerName`, `EmployerMobileNumber`, `EmployerEmailAddress`, `EmployerPhysicalAddress`, `EmployerPostalAddress`
+- Employment status options: `Active`, `Inactive`, `Terminated`, `Resigned`
+- Gender options: `Male`, `Female`, `Other`
+- Marital status options: `Single`, `Married`, `Divorced`, `Widowed`
+- South African languages: `English`, `Afrikaans`, `Zulu`, `Xhosa`, `Sotho`, `Tswana`, `Pedi`, `Venda`, `Tsonga`, `Swati`, `Ndebele`
+
+## JavaScript Patterns
+- Grid object: `var _{module}Grid = function () { return { init, initRoutes, initHandlers, initFields, loadGrid, get{Module}s, load{Module}sGrid, delete{Module} }}`
+- Form object: `var _{module}Form = function () { return { init, initRoutes, initHandlers, initFields, validateForm, save{Module}, load{Module}Data }}`
+- Use Promise-based DataFunctions service calls
+- Always include breadcrumb navigation: `_appRouter.loadBreadCrumbs('#breadcrumb-container')`
+- Error handling with `_common.showToastMessage()`
+- Must include `_{module}Grid.init();` or `_{module}Form.init();` at bottom of JS files
+- Route parameter access: Use stored GUID approach instead of `_appRouter.routeParams` for reliability
+
+## Standalone Module Pattern (Alternative)
+- Object literal pattern: `var {module}Grid = { init: async function(), initHandlers: function(), ... }`
+- Async init with route config loading: `await _appRouter.loadRouteConfig_byRoutePath('../../../js/appRouteConfig.json')`
+- Direct OASIS service calls without DataFunctions wrapper
+- Self-contained modules that can operate independently
+- Use `$(document).ready(function() { {module}Grid.init(); });` for initialization
+
+## Edit Mode Detection Pattern
+- Store GUID in scope: `scope.current{Module}GUID` in form init
+- Use stored GUID for edit detection: `const isEdit = scope.current{Module}GUID && scope.current{Module}GUID !== '';`
+- Support both global variable and route parameter approaches
+- Global variable pattern: `window._selected{Module}Data = { {module}GUID, {module}Data }`
+
+## South African Specific Features
+- ID Number validation: 13 digits, auto-extract date of birth and gender
+- ID Number format: YYMMDD + 4 digits + gender digit + citizenship + checksum
+- Gender from ID: digits 7-10 >= 5000 = Male, < 5000 = Female
+- Mobile number validation: `^(\+27|0)[0-9]{9}$` format
+- Date of birth auto-population from ID number with century logic (>50 = 1900s, <=50 = 2000s)
+
+## Service Call Patterns
+- CRUD operations: `sp_{Module}_Create`, `sp_{Module}_ReadByGUID`, `sp_{Module}_ReadAll`, `sp_{Module}_UpdateByGUID`, `sp_{Module}_DeleteByGUID`
+- **Create operations**: Use clean parameter names (no `prm` prefix) + `CreatedBy` field
+- **Update operations**: Use clean parameter names (no `prm` prefix) + `UpdatedBy` field
+- **Read operations**: Use `UniqueGUID` parameter for single record reads
+- **Delete operations**: Use `UniqueGUID` parameter
+- Service calls in `WebPortals/js/datafunctions.js`
+- Employee service calls: `sp_Employee_Create`, `sp_Employee_ReadByGUID`, `sp_Employee_ReadAll`, `sp_Employee_UpdateByGUID`, `sp_Employee_DeleteByGUID`
+- Employer service calls: `sp_Employer_Create`, `sp_Employer_ReadByGUID`, `sp_Employer_ReadAll`, `sp_Employer_UpdateByGUID`, `sp_Employer_DeleteByGUID`
+
+## Direct OASIS Service Call Pattern (Standalone Modules)
+- Use `_OASIS.callService()` directly for standalone modules
+- Pattern: `ServiceCall: 'StoredProcedureName'` instead of `ApiRegisterServiceKey`
+- Async/await pattern with Promise wrapper: `return new Promise((resolve) => { _OASIS.callService({ callback: resolve }) })`
+- Reference data calls: `ServiceCall: 'ReferenceData_search'` with `prmContext` and `prmDescription` parameters
+
+## Dual Data Structure Pattern
+- **Create operations**: Use clean parameter names matching stored procedure exactly
+- **Update operations**: Use clean parameter names matching stored procedure exactly
+- **Employee Create**: Uses `EmployeeFullName` (combined name + surname), no `EmployerGUID`
+- **Employee Update**: Uses separate `EmployeeName`, `EmployeeSurname`, includes `EmployerGUID`
+- **Employer Create/Update**: Uses same field structure with appropriate audit fields
+
+## HTML Structure Patterns
+- Grid: Header with title + "Add {Module}" button, filters accordion, search box, responsive table, pagination
+- Form: Breadcrumb container, form sections with headers, required fields marked with *, Cancel/Save buttons
+- Use Bootstrap classes: `btn-kinmount-primary`, `form-control`, `table-responsive`
+- Icons: Feather icons (`data-feather="icon-name"`)
+- Form sections: Personal Information, Employment Information, Address Information, Next of Kin Information
+- Status badges: `badge-phoenix-success` (Active), `badge-phoenix-secondary` (Inactive), `badge-phoenix-danger` (Terminated), `badge-phoenix-warning` (Resigned)
+
+## Form Field Patterns
+- Employee fields:
+  - Personal: `txtEmployeeName`, `txtEmployeeSurname`, `txtEmployeeIDNumber`, `txtEmployeeDateOfBirth`, `cboEmployeeGender`, `cboEmployeeMaritalStatus`, `txtEmployeeMobileNumber`, `txtEmployeeEmailAddress`, `cboEmployeePreferredLanguage`
+  - Employment: `cboEmployer`, `txtEmployeeOccupation`, `cboEmployeeEmploymentStatus`
+  - Address: `txtEmployeePhysicalAddress`, `txtEmployeePostalAddress`
+  - Next of Kin: `txtEmployeeNextOfKin`, `txtEmployeeNextOfKinContact`
+- Employer fields: `txtEmployerName`, `txtEmployerMobileNumber`, `txtEmployerEmailAddress`, `txtEmployerPhysicalAddress`, `txtEmployerPostalAddress`
+
+## Route Configuration
+- Add to `WebPortals/js/appRouteConfig.json` in `appRoutes` section
+- Pattern: `{module}-grid` and `{module}-form` route names
+- Path points to module directory, HTML/JS/CSS arrays
+
+## Navigation Integration
+- Add nav item in `WebPortals/index.html` with `id="nav{Module}Management"`
+- Add visibility control in `WebPortals/js/index.js` setNavAccess() and hideAllNavAccess()
+- Always show navigation: `$('#nav{Module}Management').removeClass('d-none')`
+- Use appropriate Feather icon for navigation
+
+## CSS Standards
+- Responsive design with Bootstrap grid system
+- Consistent button styling and form layouts
+- Table hover effects and action button styling
+- Mobile-first responsive breakpoints
+
+## Validation Patterns
+- Required fields: visual indicators (*) and validation with `.is-invalid` class
+- Email validation using `_common.isValidEmail()`
+- South African ID number validation (13 digits)
+- South African mobile number validation
+- Form state management with loading spinners
+- Error handling with field highlighting and toast messages
+
+## Choices.js Integration
+- Use Choices.js for all select dropdowns
+- Employer dropdown with search enabled
+- Status dropdowns without search
+- Language dropdown with search enabled
+- Pattern: `scope.cbo{FieldName} = new Choices('#cbo{FieldName}', options)`
+
+## Reference Data Integration
+- Use `GetReferenceDataByContext` service for dynamic dropdowns
+- Context names: `Gender`, `Language`, `EmployeeStatus`, `MaritalStatus`
+- Use `Description` field for both display and value (lowercase for value)
+- Implement fallback options if reference data fails to load
+
+## MQBusinessRules Reference Data Pattern
+- Use `ReferenceData_search` service for MQ Product dropdowns
+- Parameters: `prmContext: 'MultiquoteDefualtProductGUID'`, `prmDescription: ''`
+- Response format: `{ Success: true, Data: [{ Value: "key", Description: "display text" }] }`
+- Display `Description` in dropdown, use `Value` for filtering
+- Load on page init with loading state: `$('#dropdown').html('<option value="">Loading...</option>')`
+- Error handling with SweetAlert2: `Swal.fire({ icon: 'error', title: 'Error loading data' })`
+
+## Click-to-Read Functionality
+- Implement click handlers on first column (name field) in grids
+- Use global variable pattern: `window._selected{Module}Data`
+- Show loading state during data fetch
+- Navigate to form with parameters and pre-loaded data
+- Handle errors gracefully with toast messages
+
+## Delete Functionality
+- Use SweetAlert2 for confirmation dialogs
+- Pattern: `Swal.fire({ title, text, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6' })`
+- Parameter: `UniqueGUID` for all delete operations
+- Show success/error toast messages
+- Refresh grid after successful deletion
+
+## Error Handling Standards
+- Use `_common.showToastMessage()` for user notifications
+- Console logging for debugging (with meaningful messages)
+- Graceful fallbacks for failed operations
+- Loading states for async operations
+- Field-level validation with visual feedback
+
+## When creating a module:
+1. Generate all required files following naming conventions
+2. Implement full CRUD functionality with proper field names
+3. Add routing and navigation automatically
+4. Include proper error handling and validation
+5. Use established service call patterns with correct parameter names
+6. Include South African specific features (ID validation, language options)
+7. Follow responsive design principles
+8. Add proper form sections and field organization
+9. Include auto-initialization calls at bottom of JS files
+10. Implement click-to-read functionality in grids
+11. Use stored GUID approach for reliable edit mode detection
+12. Include reference data integration for dynamic dropdowns
+13. Implement SweetAlert2 confirmation dialogs for delete operations
+14. Follow dual data structure pattern for create vs update operations
+15. Add comprehensive debugging and error handling
+16. Ensure proper audit trail with CreatedBy/UpdatedBy fields
+
+## MQBusinessRules Module Specific Patterns
+- Use object literal pattern for standalone operation: `var mqBusinessRulesGrid = { ... }`
+- Async init function: `init: async function() { await _appRouter.loadRouteConfig_byRoutePath('../../../js/appRouteConfig.json'); }`
+- Load reference data in initFields: `this.loadMQProductDropdown();`
+- Async dropdown loading: `loadMQProductDropdown: async function() { const result = await self.getMultiquoteProductGUIDs(); }`
+- Direct OASIS calls: `getMultiquoteProductGUIDs: function() { return new Promise((resolve) => { _OASIS.callService({ ServiceCall: 'ReferenceData_search', ... }) }); }`
+- Flexible filtering: Support both Value and Description matching for MQ Product filters
+- Error handling with SweetAlert2: Use for service call failures and user feedback
+- Initialization: Use `$(document).ready(function() { mqBusinessRulesGrid.init(); });` 

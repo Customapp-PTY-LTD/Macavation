@@ -1,0 +1,241 @@
+/* FruitLive - Sign In Page Styles */
+
+/* Auth Container - Full height centering */
+.auth-container {
+    min-height: 100vh;
+    background: #314d91;
+    position: relative;
+}
+
+/* Auth Card Styling */
+.auth-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.auth-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+/* Social Login Buttons */
+.social-btn {
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.social-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.social-btn:hover::before {
+    left: 100%;
+}
+
+.google-btn {
+    background: #4285f4;
+    color: white;
+}
+
+.google-btn:hover {
+    background: #3367d6;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.facebook-btn {
+    background: #1877f2;
+    color: white;
+}
+
+.facebook-btn:hover {
+    background: #166fe5;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Form Styling */
+.form-control {
+    border-radius: 0.5rem;
+    border: 1px solid #e1e5e9;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.form-control:focus {
+    border-color: #314d91;
+    box-shadow: 0 0 0 0.2rem rgba(49, 77, 145, 0.25);
+    background: white;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+/* Primary Button */
+.btn-primary {
+    background: #314d91;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: #5a7dc6;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(49, 77, 145, 0.3);
+}
+
+/* Checkbox Styling */
+.form-check-input:checked {
+    background-color: #314d91;
+    border-color: #314d91;
+}
+
+.form-check-input:focus {
+    border-color: #314d91;
+    box-shadow: 0 0 0 0.2rem rgba(49, 77, 145, 0.25);
+}
+
+/* Links */
+.text-decoration-none {
+    color: #314d91;
+    transition: color 0.3s ease;
+}
+
+.text-decoration-none:hover {
+    color: #5a7dc6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .auth-container {
+        padding: 1rem;
+    }
+
+    .auth-card {
+        margin: 1rem 0;
+    }
+
+    .social-btn {
+        padding: 0.875rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .auth-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .social-btn {
+        padding: 1rem;
+        font-size: 0.95rem;
+    }
+}
+
+/* Dark Theme Support */
+[data-bs-theme="dark"] .auth-container {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+}
+
+[data-bs-theme="dark"] .auth-card {
+    background: rgba(44, 62, 80, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .form-control {
+    background: rgba(52, 73, 94, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #ecf0f1;
+}
+
+[data-bs-theme="dark"] .form-control:focus {
+    background: rgba(52, 73, 94, 0.9);
+    color: #ecf0f1;
+}
+
+[data-bs-theme="dark"] .form-label {
+    color: #bdc3c7;
+}
+
+[data-bs-theme="dark"] .text-muted {
+    color: #95a5a6 !important;
+}
+
+/* Loading Animation */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.3em;
+}
+
+/* Logo Animation */
+.fa-gem {
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+
+    0%,
+    100% {
+        transform: scale(1) rotate(0deg);
+        filter: hue-rotate(0deg);
+    }
+
+    50% {
+        transform: scale(1.1) rotate(180deg);
+        filter: hue-rotate(60deg);
+    }
+}
+
+/* Additional Enhancements */
+.auth-card .text-center h3 {
+    color: #314d91;
+    font-weight: 700;
+}
+
+/* Divider Styling */
+.text-center .text-muted {
+    position: relative;
+    padding: 0 1rem;
+}
+
+.text-center .text-muted::before,
+.text-center .text-muted::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 2rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #dee2e6, transparent);
+}
+
+.text-center .text-muted::before {
+    left: -2.5rem;
+}
+
+.text-center .text-muted::after {
+    right: -2.5rem;
+}

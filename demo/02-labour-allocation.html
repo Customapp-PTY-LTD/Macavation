@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quinn Farms - Labour Allocation</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --customapp-bg: #5CBDB4;
+            --customapp-text: #4A4A4A;
+            --customapp-light: #7FD4CC;
+            --customapp-dark: #4A9A93;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: var(--customapp-text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        .navbar {
+            background-color: var(--customapp-bg) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: black !important;
+        }
+        
+        .btn-customapp {
+            background-color: var(--customapp-bg);
+            color: white;
+            border: none;
+        }
+        
+        .btn-customapp:hover {
+            background-color: var(--customapp-dark);
+            color: white;
+        }
+        
+        .worker-card {
+            border-left: 4px solid var(--customapp-bg);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .worker-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateX(2px);
+        }
+        
+        .badge-present {
+            background-color: #28a745;
+        }
+        
+        .badge-absent {
+            background-color: #dc3545;
+        }
+        
+        .badge-late {
+            background-color: #ffc107;
+        }
+        
+        .allocation-summary {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(92, 189, 180, 0.1);
+        }
+        
+        .quick-action {
+            background: linear-gradient(135deg, var(--customapp-bg), var(--customapp-light));
+            color: white;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .quick-action:hover {
+            transform: scale(1.05);
+        }
+        
+        .form-select:focus, .form-control:focus {
+            border-color: var(--customapp-bg);
+            box-shadow: 0 0 0 0.25rem rgba(92, 189, 180, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="01-dashboard.html">
+                <i class="bi bi-grid-fill me-2"></i>Farm Management System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle fw-bold" href="#" role="button" data-bs-toggle="dropdown" style="border-left: 2px solid rgba(255,255,255,0.3); padding-left: 15px;">
+                            <i class="bi bi-house-door me-1"></i>Quinn Farms - Paarl
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header">My Farms</h6></li>
+                            <li><a class="dropdown-item active" href="#"><i class="bi bi-apple me-2"></i>Quinn Farms - Paarl</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-apple me-2"></i>Kinmount Estate</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-circle me-2"></i>Riverside Citrus</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-egg me-2"></i>Bay Kiwi Orchards</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-circle-fill me-2"></i>Stellendale Vineyards</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-grid-3x3 me-2"></i><strong>All Farms View</strong></a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="01-dashboard.html"><i class="bi bi-house-fill me-1"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="bi bi-people-fill me-1"></i>Labour</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="03-compliance.html"><i class="bi bi-clipboard-check me-1"></i>Compliance</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="04-chemicals.html"><i class="bi bi-droplet-fill me-1"></i>Chemicals</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="05-crop-monitoring.html"><i class="bi bi-graph-up me-1"></i>Crops</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="09-admin.html"><i class="bi bi-gear-fill me-1"></i>Admin</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2 class="fw-bold">Labour Allocation - Quinn Farms</h2>
+                <p class="text-muted">Friday, 13 December 2025 | <span class="badge bg-secondary">Apples</span></p>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#sharedWorkersModal">
+                    <i class="bi bi-diagram-3 me-1"></i>Shared Workers
+                </button>
+                <button class="btn btn-customapp me-2" data-bs-toggle="modal" data-bs-target="#bulkAllocationModal">
+                    <i class="bi bi-lightning-fill me-1"></i>Bulk Allocation
+                </button>
+                <button class="btn btn-outline-secondary">
+                    <i class="bi bi-printer me-1"></i>Print Summary
+                </button>
+            </div>
+        </div>
+
+        <!-- Shared Workers Alert -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert" style="background-color: #e8f4f3; border-left: 4px solid var(--customapp-bg);" role="alert">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong><i class="bi bi-people-fill me-2"></i>12 Shared Workers from Kinmount Estate</strong>
+                            <p class="mb-0 mt-1 small">
+                                Transfer active until 23 Dec 2025 | Allocated to: Block A3 Pruning Team | 
+                                <a href="#" class="alert-link">View transfer details</a>
+                            </p>
+                        </div>
+                        <a href="09-admin.html#logistics" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-gear me-1"></i>Manage Transfer
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="allocation-summary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Total Staff</h6>
+                            <h3 class="fw-bold mb-0">182</h3>
+                            <small class="text-muted">147 permanent + 12 shared + 23 seasonal</small>
+                        </div>
+                        <i class="bi bi-people-fill fs-1" style="color: var(--customapp-bg);"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="allocation-summary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Present</h6>
+                            <h3 class="fw-bold mb-0 text-success">147</h3>
+                        </div>
+                        <i class="bi bi-check-circle-fill fs-1 text-success"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="allocation-summary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Absent</h6>
+                            <h3 class="fw-bold mb-0 text-danger">35</h3>
+                        </div>
+                        <i class="bi bi-x-circle-fill fs-1 text-danger"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="allocation-summary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Not Allocated</h6>
+                            <h3 class="fw-bold mb-0 text-warning">12</h3>
+                        </div>
+                        <i class="bi bi-exclamation-triangle-fill fs-1 text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h5 class="fw-bold mb-3">Quick Actions (Indunas)</h5>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-action" onclick="openInduna('pruning')">
+                    <i class="bi bi-scissors fs-3 mb-2"></i>
+                    <h6 class="mb-1">Pruning Team</h6>
+                    <small>45 workers</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-action" onclick="openInduna('mowing')">
+                    <i class="bi bi-gear-fill fs-3 mb-2"></i>
+                    <h6 class="mb-1">Mowing Team</h6>
+                    <small>22 workers</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-action" onclick="openInduna('weeding')">
+                    <i class="bi bi-flower1 fs-3 mb-2"></i>
+                    <h6 class="mb-1">Weeding Team</h6>
+                    <small>38 workers</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="quick-action" onclick="openInduna('general')">
+                    <i class="bi bi-tools fs-3 mb-2"></i>
+                    <h6 class="mb-1">General Labour</h6>
+                    <small>42 workers</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Farm</label>
+                        <select class="form-select" id="farmFilter">
+                            <option selected>All Farms</option>
+                            <option>Quinn Farms Main</option>
+                            <option>Kinmount</option>
+                            <option>Riverside Block</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Block</label>
+                        <select class="form-select" id="blockFilter">
+                            <option selected>All Blocks</option>
+                            <option>Block A</option>
+                            <option>Block B</option>
+                            <option>Block C</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Task Type</label>
+                        <select class="form-select" id="taskFilter">
+                            <option selected>All Tasks</option>
+                            <option>Pruning</option>
+                            <option>Mowing</option>
+                            <option>Weeding</option>
+                            <option>Harvesting</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Status</label>
+                        <select class="form-select" id="statusFilter">
+                            <option selected>All Status</option>
+                            <option>Present</option>
+                            <option>Absent</option>
+                            <option>Not Allocated</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Worker List -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-list-task me-2"></i>Worker Allocations</h5>
+                    <div class="input-group" style="max-width: 300px;">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" placeholder="Search workers..." id="workerSearch">
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Worker</th>
+                                <th>ID Number</th>
+                                <th>Status</th>
+                                <th>Farm</th>
+                                <th>Block</th>
+                                <th>Variety</th>
+                                <th>Task</th>
+                                <th>Rows</th>
+                                <th>Induna</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold">Sipho Mthembu</td>
+                                <td>9201054321083</td>
+                                <td><span class="badge badge-present">Present</span></td>
+                                <td>Quinn Main</td>
+                                <td>Block A3</td>
+                                <td>Granny Smith</td>
+                                <td>Pruning</td>
+                                <td>12-15</td>
+                                <td>Johannes</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editAllocationModal">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Thandi Ngubane</td>
+                                <td>8907123456789</td>
+                                <td><span class="badge badge-present">Present</span></td>
+                                <td>Kinmount</td>
+                                <td>Block B1</td>
+                                <td>Golden Delicious</td>
+                                <td>Weeding</td>
+                                <td>8-11</td>
+                                <td>Mandla</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Johannes Dlamini</td>
+                                <td>7503289012345</td>
+                                <td><span class="badge badge-present">Present</span></td>
+                                <td>Quinn Main</td>
+                                <td>Block A3</td>
+                                <td>Granny Smith</td>
+                                <td>Pruning</td>
+                                <td>16-19</td>
+                                <td>Johannes</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Nomsa Zulu</td>
+                                <td>9108176543210</td>
+                                <td><span class="badge badge-absent">Absent</span></td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Bongani Khumalo</td>
+                                <td>8612094567890</td>
+                                <td><span class="badge badge-present">Present</span></td>
+                                <td>Riverside</td>
+                                <td>Block C2</td>
+                                <td>Fuji</td>
+                                <td>Mowing</td>
+                                <td>All</td>
+                                <td>Sipho</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Zanele Madlala</td>
+                                <td>9405082109876</td>
+                                <td><span class="badge badge-present">Present</span></td>
+                                <td>Quinn Main</td>
+                                <td>Block A1</td>
+                                <td>Pink Lady</td>
+                                <td>Pruning</td>
+                                <td>1-4</td>
+                                <td>Johannes</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Lucky Nkosi</td>
+                                <td>7806153456789</td>
+                                <td><span class="badge badge-late bg-warning">Late</span></td>
+                                <td>Kinmount</td>
+                                <td>Block B3</td>
+                                <td>Braeburn</td>
+                                <td>Weeding</td>
+                                <td>15-18</td>
+                                <td>Mandla</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-muted">Showing 7 of 182 workers</div>
+                    <nav>
+                        <ul class="pagination mb-0">
+                            <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Allocation Modal -->
+    <div class="modal fade" id="editAllocationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: var(--customapp-bg); color: white;">
+                    <h5 class="modal-title">Edit Worker Allocation</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Worker</label>
+                        <input type="text" class="form-control" value="Sipho Mthembu" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Farm</label>
+                        <select class="form-select">
+                            <option selected>Quinn Main</option>
+                            <option>Kinmount</option>
+                            <option>Riverside Block</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Block</label>
+                        <select class="form-select">
+                            <option>Block A1</option>
+                            <option>Block A2</option>
+                            <option selected>Block A3</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Variety</label>
+                        <select class="form-select">
+                            <option selected>Granny Smith</option>
+                            <option>Golden Delicious</option>
+                            <option>Pink Lady</option>
+                            <option>Fuji</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Task</label>
+                        <select class="form-select">
+                            <option selected>Pruning</option>
+                            <option>Mowing</option>
+                            <option>Weeding</option>
+                            <option>Harvesting</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Row Start</label>
+                            <input type="number" class="form-control" value="12">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Row End</label>
+                            <input type="number" class="form-control" value="15">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-customapp">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Allocation Modal -->
+    <div class="modal fade" id="bulkAllocationModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: var(--customapp-bg); color: white;">
+                    <h5 class="modal-title"><i class="bi bi-lightning-fill me-2"></i>Bulk Allocation</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Allocate multiple workers to the same location and task</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select Workers</label>
+                        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="worker1">
+                                <label class="form-check-label" for="worker1">Sipho Mthembu</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="worker2">
+                                <label class="form-check-label" for="worker2">Thandi Ngubane</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="worker3">
+                                <label class="form-check-label" for="worker3">Johannes Dlamini</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Farm</label>
+                            <select class="form-select">
+                                <option>Quinn Main</option>
+                                <option>Kinmount</option>
+                                <option>Riverside Block</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Block</label>
+                            <select class="form-select">
+                                <option>Block A1</option>
+                                <option>Block A2</option>
+                                <option>Block A3</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Variety</label>
+                            <select class="form-select">
+                                <option>Granny Smith</option>
+                                <option>Golden Delicious</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Task</label>
+                            <select class="form-select">
+                                <option>Pruning</option>
+                                <option>Mowing</option>
+                                <option>Weeding</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-customapp">Allocate Workers</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function openInduna(team) {
+            alert('Opening Induna iPad view for ' + team + ' team');
+        }
+    </script>
+</body>
+</html>

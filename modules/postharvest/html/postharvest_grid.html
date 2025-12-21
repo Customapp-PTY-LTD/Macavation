@@ -1,0 +1,197 @@
+<!-- Post-Harvest Management Module -->
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2 class="fw-bold">Post-Harvest Management</h2>
+            <p class="text-muted">Pack Season Data, Traceability & Market Analysis</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editConsignmentModal" onclick="document.getElementById('editConsignmentId').value = ''">
+                <i class="bi bi-plus-lg me-1"></i>Record Consignment
+            </button>
+            <button class="btn btn-outline-secondary">
+                <i class="bi bi-download me-1"></i>Export Season Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Farm</label>
+                    <select class="form-select" id="farmFilter">
+                        <option value="all">All Farms</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Block</label>
+                    <select class="form-select" id="blockFilter">
+                        <option value="">All Blocks</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Variety</label>
+                    <select class="form-select" id="varietyFilter">
+                        <option value="">All Varieties</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-box-seam fs-1 mb-2 text-primary"></i>
+                    <h6 class="text-muted mb-1">Total Cartons (Season)</h6>
+                    <h3 class="fw-bold mb-0">2,347</h3>
+                    <small>across 48 consignments</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-truck fs-1 mb-2 text-success"></i>
+                    <h6 class="text-muted mb-1">Consignments</h6>
+                    <h3 class="fw-bold mb-0">48</h3>
+                    <small>12 in transit</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-currency-dollar fs-1 mb-2 text-warning"></i>
+                    <h6 class="text-muted mb-1">Est. Returns</h6>
+                    <h3 class="fw-bold mb-0" id="estimatedReturns">R0</h3>
+                    <small>based on market prices</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-globe fs-1 mb-2 text-info"></i>
+                    <h6 class="text-muted mb-1">Export Markets</h6>
+                    <h3 class="fw-bold mb-0">7</h3>
+                    <small>active destinations</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#consignments"><i class="bi bi-box-seam me-2"></i>Consignments</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#market"><i class="bi bi-graph-up me-2"></i>Market Analysis</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#traceability"><i class="bi bi-search me-2"></i>Traceability</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#sizing"><i class="bi bi-pie-chart me-2"></i>Size Distribution</a>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="consignments">
+            <div class="card">
+                <div class="card-body">
+                    <div id="consignmentsList">
+                        <p class="text-muted">Loading consignments...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="market">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-muted">Market analysis coming soon...</p>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="traceability">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-muted">Traceability tracking coming soon...</p>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="sizing">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-muted">Size distribution analysis coming soon...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Consignment Modal -->
+    <div class="modal fade" id="editConsignmentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add/Edit Consignment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editConsignmentId" value="">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Consignment Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editConsignmentNumber" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Harvest Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="editHarvestDate" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Block</label>
+                            <select class="form-select" id="editConsignmentBlock">
+                                <option value="">Select block</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Variety</label>
+                            <select class="form-select" id="editConsignmentVariety">
+                                <option value="">Select variety</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pack Date</label>
+                            <input type="date" class="form-control" id="editPackDate">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Market Destination</label>
+                            <input type="text" class="form-control" id="editMarketDestination">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Total Pallets</label>
+                            <input type="number" class="form-control" id="editTotalPallets" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Total Cartons</label>
+                            <input type="number" class="form-control" id="editTotalCartons" min="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveConsignment()">Save Consignment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+

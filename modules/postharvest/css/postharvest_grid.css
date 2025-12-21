@@ -1,0 +1,50 @@
+/* Post-Harvest Module Styles - Theme Integrated */
+.consignment-card {
+    border-left: 4px solid var(--phoenix-primary);
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+    background-color: var(--phoenix-card-bg);
+}
+
+.consignment-card:hover {
+    box-shadow: var(--phoenix-box-shadow);
+    transform: translateX(4px);
+}
+
+/* Action Buttons - Enhanced Visibility */
+.btn-sm {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 6px;
+    font-weight: 600;
+    min-width: 36px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary,
+.btn-outline-info,
+.btn-outline-secondary {
+    border-width: 2px;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary {
+    border-color: var(--phoenix-primary);
+    color: var(--phoenix-primary);
+    background-color: rgba(var(--phoenix-primary-rgb), 0.1);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--phoenix-primary);
+    border-color: var(--phoenix-primary);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(var(--phoenix-primary-rgb), 0.3);
+}
+
+.btn-sm i {
+    font-size: 1rem;
+    line-height: 1;
+}

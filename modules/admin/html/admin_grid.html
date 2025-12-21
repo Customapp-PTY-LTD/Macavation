@@ -1,0 +1,666 @@
+<!-- System Administration Module -->
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2 class="fw-bold">System Administration</h2>
+            <p class="text-muted">Multi-Farm Portfolio, Users, Resources & Configuration</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addFarmModal">
+                <i class="bi bi-plus-lg me-1"></i>Add Farm
+            </button>
+            <button class="btn btn-outline-secondary">
+                <i class="bi bi-download me-1"></i>Export Portfolio Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-house-fill fs-1 mb-2 text-primary"></i>
+                    <h6 class="text-muted mb-1">Active Farms</h6>
+                    <h3 class="fw-bold mb-0" id="totalFarms">5</h3>
+                    <small>across 3 regions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-people-fill fs-1 mb-2 text-success"></i>
+                    <h6 class="text-muted mb-1">Total Users</h6>
+                    <h3 class="fw-bold mb-0" id="totalUsers">24</h3>
+                    <small>12 admin, 12 field users</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-diagram-3-fill fs-1 mb-2 text-warning"></i>
+                    <h6 class="text-muted mb-1">Shared Workers</h6>
+                    <h3 class="fw-bold mb-0" id="totalWorkers">547</h3>
+                    <small>labour pool across farms</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-geo-alt-fill fs-1 mb-2 text-info"></i>
+                    <h6 class="text-muted mb-1">Total Hectares</h6>
+                    <h3 class="fw-bold mb-0" id="totalHectares">533</h3>
+                    <small>managed across portfolio</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="adminTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="farms-tab" data-bs-toggle="tab" data-bs-target="#farms" type="button">
+                <i class="bi bi-house-fill me-2"></i>Farm Portfolio
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
+                <i class="bi bi-people-fill me-2"></i>Users & Permissions
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="resources-tab" data-bs-toggle="tab" data-bs-target="#resources" type="button">
+                <i class="bi bi-diagram-3-fill me-2"></i>Shared Resources
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="crops-tab" data-bs-toggle="tab" data-bs-target="#crops" type="button">
+                <i class="bi bi-flower1 me-2"></i>Crop Configuration
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button">
+                <i class="bi bi-graph-up me-2"></i>Portfolio Analytics
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="adminTabContent">
+        <!-- Farm Portfolio Tab -->
+        <div class="tab-pane fade show active" id="farms" role="tabpanel">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold">Farm Portfolio</h5>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addFarmModal">
+                                <i class="bi bi-plus-lg me-1"></i>Add Farm
+                            </button>
+                        </div>
+                        <div class="card-body" id="farmsListContainer">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="text-muted mt-2">Loading farms...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0 fw-bold">Portfolio Summary</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Total Hectares:</small>
+                                    <strong id="summaryHectares">533 ha</strong>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Total Workers:</small>
+                                    <strong id="summaryWorkers">547</strong>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Total Vehicles:</small>
+                                    <strong id="summaryVehicles">50</strong>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Equipment Items:</small>
+                                    <strong id="summaryEquipment">190</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0 fw-bold">Crop Distribution</h6>
+                        </div>
+                        <div class="card-body" id="cropDistributionContainer">
+                            <p class="text-muted small">Loading crop data...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users & Permissions Tab -->
+        <div class="tab-pane fade" id="users" role="tabpanel">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0 fw-bold">System Users</h5>
+                            </div>
+                            <div>
+                                <select class="form-select form-select-sm d-inline-block me-2" style="width: auto;" id="userRoleFilter">
+                                    <option value="">All Roles</option>
+                                    <option value="super_admin">Super Admin</option>
+                                    <option value="farm_admin">Farm Admin</option>
+                                    <option value="farm_manager">Farm Manager</option>
+                                    <option value="field_user">Field User</option>
+                                </select>
+                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                    <i class="bi bi-plus-lg me-1"></i>Add User
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Role</th>
+                                            <th>Farm Access</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usersTableBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0 fw-bold">Role Definitions</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-danger me-2">Super Admin</span>
+                                </div>
+                                <small class="text-muted">Full system access, all farms, user management</small>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-primary me-2">Farm Admin</span>
+                                </div>
+                                <small class="text-muted">Multi-farm access, reporting, resource allocation</small>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-info me-2">Farm Manager</span>
+                                </div>
+                                <small class="text-muted">Single farm access, operational modules</small>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-secondary me-2">Field User</span>
+                                </div>
+                                <small class="text-muted">Limited mobile access, data capture only</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0 fw-bold">User Statistics</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Super Admin:</small>
+                                    <strong id="statSuperAdmin">1</strong>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Farm Admin:</small>
+                                    <strong id="statFarmAdmin">2</strong>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Farm Managers:</small>
+                                    <strong id="statFarmManager">9</strong>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Field Users:</small>
+                                    <strong id="statFieldUser">12</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shared Resources Tab -->
+        <div class="tab-pane fade" id="resources" role="tabpanel">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0 fw-bold">Labour Pool Distribution</h5>
+                        </div>
+                        <div class="card-body" id="labourPoolContainer">
+                            <p class="text-muted">Loading labour allocation...</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0 fw-bold">Active Resource Transfers</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Transfer ID</th>
+                                            <th>Resource</th>
+                                            <th>From Farm</th>
+                                            <th>To Farm</th>
+                                            <th>Start Date</th>
+                                            <th>Return Date</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transfersTableBody">
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4">
+                                                <p class="text-muted mb-0">No active transfers</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0 fw-bold">Create Transfer</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="createTransferForm">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Resource Type</label>
+                                    <select class="form-select" id="transferResourceType">
+                                        <option value="">Select type...</option>
+                                        <option value="labour">Labour</option>
+                                        <option value="vehicle">Vehicle</option>
+                                        <option value="equipment">Equipment</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">From Farm</label>
+                                    <select class="form-select" id="transferFromFarm">
+                                        <option value="">Select farm...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">To Farm</label>
+                                    <select class="form-select" id="transferToFarm">
+                                        <option value="">Select farm...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Return Date</label>
+                                    <input type="date" class="form-control" id="transferReturnDate">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-plus-lg me-1"></i>Create Transfer
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0 fw-bold">Resource Summary</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Labour Pool:</small>
+                                    <strong id="resourceWorkers">547</strong>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Vehicles:</small>
+                                    <strong id="resourceVehicles">50</strong>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <small>Equipment:</small>
+                                    <strong id="resourceEquipment">190</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Crop Configuration Tab -->
+        <div class="tab-pane fade" id="crops" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">Crop Type Configuration</h5>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCropTypeModal">
+                        <i class="bi bi-plus-lg me-1"></i>Add Crop Type
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Crop Type</th>
+                                    <th>Category</th>
+                                    <th>Varieties</th>
+                                    <th>Farms</th>
+                                    <th>Total Hectares</th>
+                                    <th>Compliance Standards</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cropTypesTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Analytics Tab -->
+        <div class="tab-pane fade" id="analytics" role="tabpanel">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0 fw-bold">Portfolio Overview</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 border rounded">
+                                        <h3 class="fw-bold text-primary mb-1" id="analyticsFarms">5</h3>
+                                        <small class="text-muted">Active Farms</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 border rounded">
+                                        <h3 class="fw-bold text-success mb-1" id="analyticsHectares">533</h3>
+                                        <small class="text-muted">Total Hectares</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 border rounded">
+                                        <h3 class="fw-bold text-warning mb-1" id="analyticsWorkers">547</h3>
+                                        <small class="text-muted">Labour Force</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 border rounded">
+                                        <h3 class="fw-bold text-info mb-1" id="analyticsCrops">4</h3>
+                                        <small class="text-muted">Crop Types</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0 fw-bold">Hectares by Crop Type</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cropDistributionChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0 fw-bold">Labour Distribution by Farm</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="labourDistributionChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Farm Modal -->
+<div class="modal fade" id="addFarmModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Farm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addFarmForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Farm Name *</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Location *</label>
+                            <input type="text" class="form-control" name="location" placeholder="e.g., Paarl, Western Cape" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Region</label>
+                            <input type="text" class="form-control" name="region">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Total Hectares *</label>
+                            <input type="number" step="0.01" class="form-control" name="hectares" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Primary Crop Type *</label>
+                            <select class="form-select" name="crop_type" required>
+                                <option value="">Select...</option>
+                                <option value="apples">Apples</option>
+                                <option value="citrus">Citrus</option>
+                                <option value="grapes">Grapes</option>
+                                <option value="kiwis">Kiwis</option>
+                                <option value="stone_fruit">Stone Fruit</option>
+                                <option value="berries">Berries</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Farm Manager</label>
+                            <select class="form-select" name="manager_id" id="farmManagerSelect">
+                                <option value="">Select user...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Status</label>
+                            <select class="form-select" name="status">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="planning">Planning</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Notes</label>
+                            <textarea class="form-control" name="notes" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitFarmForm()">
+                    <i class="bi bi-check-lg me-1"></i>Create Farm
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">First Name *</label>
+                            <input type="text" class="form-control" name="first_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Last Name *</label>
+                            <input type="text" class="form-control" name="last_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Email *</label>
+                            <input type="email" class="form-control" name="email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Role *</label>
+                            <select class="form-select" name="role" required>
+                                <option value="">Select role...</option>
+                                <option value="super_admin">Super Admin</option>
+                                <option value="farm_admin">Farm Admin</option>
+                                <option value="farm_manager">Farm Manager</option>
+                                <option value="field_user">Field User</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Farm Access</label>
+                            <select class="form-select" name="farm_access" multiple size="5" id="userFarmAccessSelect">
+                                <option value="">Loading farms...</option>
+                            </select>
+                            <small class="text-muted">Hold Ctrl/Cmd to select multiple farms</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitUserForm()">
+                    <i class="bi bi-check-lg me-1"></i>Create User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Crop Type Modal -->
+<div class="modal fade" id="addCropTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Crop Type</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCropTypeForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Crop Name *</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Category *</label>
+                        <select class="form-select" name="category" required>
+                            <option value="">Select...</option>
+                            <option value="fruit">Fruit</option>
+                            <option value="citrus">Citrus</option>
+                            <option value="stone_fruit">Stone Fruit</option>
+                            <option value="berries">Berries</option>
+                            <option value="nuts">Nuts</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Compliance Standards</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="standards" value="GlobalGAP" id="stdGlobalGAP">
+                            <label class="form-check-label" for="stdGlobalGAP">Global GAP</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="standards" value="FSSC22000" id="stdFSSC">
+                            <label class="form-check-label" for="stdFSSC">FSSC 22000</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="standards" value="BRC" id="stdBRC">
+                            <label class="form-check-label" for="stdBRC">BRC</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitCropTypeForm()">
+                    <i class="bi bi-check-lg me-1"></i>Add Crop Type
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
