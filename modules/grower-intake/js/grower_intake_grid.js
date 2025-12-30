@@ -22,10 +22,13 @@ var _growerIntakeGrid = function () {
             });
         },
 
-        loadSamples: async function () {
+        loadSamples: async function (forceRefresh = false) {
             try {
-                // TODO: Implement get_sample_submissions function in data-functions.js
-                const samples = await dataFunctions.callFunction('get_sample_submissions', {});
+                const startTime = performance.now();
+                const samples = await dataFunctions.getSampleSubmissions(null, forceRefresh);
+                const loadTime = performance.now() - startTime;
+                console.log(`[Performance] Sample submissions loaded in ${loadTime.toFixed(2)}ms`);
+                
                 this.samples = samples || [];
                 this.filteredSamples = this.samples;
                 this.renderSamples();

@@ -12,16 +12,20 @@ var _amandaDashboard = function () {
         setupEventListeners: function () {
             const scope = this;
             $('#refreshBtn').on('click', function () {
-                scope.loadData();
+                scope.loadData(true); // Force refresh
             });
         },
-        loadData: async function () {
+        loadData: async function (forceRefresh = false) {
             try {
-                // Load batches and alerts
+                const startTime = performance.now();
+                // Load batches and alerts in parallel (both use cache)
                 const [batches, alerts] = await Promise.all([
-                    dataFunctions.callFunction('get_production_batches', {}).catch(() => []),
-                    dataFunctions.callFunction('get_dashboard_alerts', {}).catch(() => [])
+                    dataFunctions.getProductionBatches(null, forceRefresh).catch(() => []),
+                    dataFunctions.getDashboardAlerts(null, forceRefresh).catch(() => [])
                 ]);
+                const loadTime = performance.now() - startTime;
+                console.log(`[Performance] Dashboard data loaded in ${loadTime.toFixed(2)}ms`);
+                
                 this.batches = batches || [];
                 this.alerts = alerts || [];
                 this.renderDashboard();

@@ -44,7 +44,12 @@ async function initializeDashboard() {
             // Continue with fallback data
         }
         
-        // Load components (async)
+        // Load Process-Driven Design components (Exception-First)
+        await loadExceptions();
+        await loadMetrics();
+        loadQuickActions();
+        
+        // Load legacy components (for backward compatibility)
         loadAlerts();
         loadStats();
         loadModules();
@@ -171,6 +176,213 @@ async function loadFarmsAndSetupSelector() {
 /**
  * Load dashboard data from API
  */
+/**
+ * Load exceptions (Exception-First Design)
+ */
+async function loadExceptions() {
+    const container = document.getElementById('exceptionsContainer');
+    if (!container) return;
+    
+    try {
+        if (typeof anomalyDetection === 'undefined' || !anomalyDetection.getActiveAnomalies) {
+            console.error('anomalyDetection.getActiveAnomalies is not available');
+            container.innerHTML = '<div class="alert alert-info">Exception detection not available.</div>';
+            return;
+        }
+        
+        const exceptions = await anomalyDetection.getActiveAnomalies();
+        
+        if (typeof exceptionUI !== 'undefined' && exceptionUI.renderExceptionPanel) {
+            exceptionUI.renderExceptionPanel(exceptions, 'exceptionsContainer');
+        } else {
+            // Fallback rendering
+            if (exceptions && exceptions.length > 0) {
+                container.innerHTML = exceptions.map(e => `
+                    <div class="alert alert-${e.severity === 'critical' ? 'danger' : e.severity === 'warning' ? 'warning' : 'info'}">
+                        <strong>${e.title}:</strong> ${e.description}
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="alert alert-success">No exceptions at this time. All systems operating normally.</div>';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading exceptions:', error);
+        container.innerHTML = '<div class="alert alert-warning">Unable to load exceptions. Please try again later.</div>';
+    }
+}
+
+/**
+ * Load context-aware metrics
+ */
+async function loadMetrics() {
+    const container = document.getElementById('metricsContainer');
+    if (!container) return;
+    
+    try {
+        // Get KPIs and calculate metrics with context
+        const kpis = await dataFunctions.getExecutiveKPIs().catch(() => ({}));
+        const batches = await dataFunctions.getProductionBatches().catch(() => []);
+        const stockItems = await dataFunctions.getStockItems().catch(() => []);
+        
+        // Calculate metrics with context
+        const metrics = [
+            {
+                title: 'Active Batches',
+                value: kpis.active_batches || 0,
+                unit: 'batches',
+                target: 10, // Example target
+                current: kpis.active_batches || 0,
+                trend: 5, // Example trend
+                trendPeriod: 'vs. last week',
+                icon: 'bi-box-seam',
+                color: 'primary'
+            },
+            {
+                title: 'Quality Pass Rate',
+                value: kpis.quality_pass_rate || 0,
+                unit: '%',
+                target: 95,
+                current: kpis.quality_pass_rate || 0,
+                trend: -2, // Example trend
+                trendPeriod: 'vs. last month',
+                icon: 'bi-check-circle',
+                color: kpis.quality_pass_rate >= 95 ? 'success' : kpis.quality_pass_rate >= 80 ? 'warning' : 'danger'
+            },
+            {
+                title: 'Total Production',
+                value: kpis.total_production_kg || 0,
+                unit: 'kg',
+                target: 50000,
+                current: kpis.total_production_kg || 0,
+                trend: 10,
+                trendPeriod: 'vs. last month',
+                icon: 'bi-graph-up',
+                color: 'info'
+            },
+            {
+                title: 'Total Sales',
+                value: kpis.total_sales || 0,
+                unit: 'ZAR',
+                target: 1000000,
+                current: kpis.total_sales || 0,
+                trend: 8,
+                trendPeriod: 'vs. last month',
+                icon: 'bi-currency-dollar',
+                color: 'success'
+            }
+        ];
+        
+        if (typeof metricUI !== 'undefined' && metricUI.renderMetricPanel) {
+            metricUI.renderMetricPanel(metrics, 'metricsContainer');
+        } else {
+            // Fallback rendering
+            container.innerHTML = `
+                <div class="row g-3">
+                    ${metrics.map(m => `
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h3>${m.value} ${m.unit}</h3>
+                                    <p class="text-muted mb-0">${m.title}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading metrics:', error);
+        container.innerHTML = '<div class="alert alert-warning">Unable to load metrics. Please try again later.</div>';
+    }
+}
+
+/**
+ * Load quick actions
+ */
+function loadQuickActions() {
+    const container = document.getElementById('quickActionsContainer');
+    if (!container) return;
+    
+    const quickActions = [
+        {
+            icon: 'bi-person-plus',
+            label: 'Add Contact',
+            route: 'crm-grid',
+            action: 'add',
+            color: 'primary'
+        },
+        {
+            icon: 'bi-clipboard-check',
+            label: 'Submit Sample',
+            route: 'grower-intake-grid',
+            action: 'add',
+            color: 'success'
+        },
+        {
+            icon: 'bi-box-seam',
+            label: 'New Batch',
+            route: 'kernel-production-grid',
+            action: 'add',
+            color: 'info'
+        },
+        {
+            icon: 'bi-clipboard-data',
+            label: 'Quality Test',
+            route: 'quality-assurance-grid',
+            action: 'add',
+            color: 'warning'
+        },
+        {
+            icon: 'bi-arrow-left-right',
+            label: 'Stock Movement',
+            route: 'stock-management-grid',
+            action: 'add',
+            color: 'secondary'
+        },
+        {
+            icon: 'bi-file-earmark-text',
+            label: 'Upload Document',
+            route: 'document-management-grid',
+            action: 'add',
+            color: 'dark'
+        }
+    ];
+    
+    container.innerHTML = quickActions.map(action => `
+        <div class="col-md-4 col-lg-2">
+            <button class="btn btn-${action.color} w-100 quick-action-btn" 
+                    onclick="handleQuickAction('${action.route}', '${action.action}')"
+                    style="height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+                <i class="bi ${action.icon} fs-3"></i>
+                <span>${action.label}</span>
+            </button>
+        </div>
+    `).join('');
+}
+
+/**
+ * Handle quick action
+ */
+function handleQuickAction(route, action) {
+    if (typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+        _appRouter.loadContent(route);
+        // Trigger action after route loads
+        setTimeout(() => {
+            if (action === 'add') {
+                // Trigger add button click if available
+                const addBtn = document.getElementById('addContactBtn') || 
+                              document.getElementById('addBtn') ||
+                              document.querySelector('[id$="Btn"][class*="btn-primary"]');
+                if (addBtn) {
+                    addBtn.click();
+                }
+            }
+        }, 500);
+    }
+}
+
 async function loadDashboardData() {
     try {
         // Get selected farm ID from localStorage or selector

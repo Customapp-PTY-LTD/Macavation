@@ -21,7 +21,7 @@ var _crmGrid = function () {
         setupEventListeners: function () {
             const scope = this;
 
-            // Search functionality
+            // Search functionality with debouncing (300ms)
             $('#searchInput').on('input', function () {
                 clearTimeout(scope.searchTimeout);
                 scope.searchTimeout = setTimeout(() => {
@@ -80,11 +80,14 @@ var _crmGrid = function () {
             });
         },
 
-        loadContacts: async function () {
+        loadContacts: async function (forceRefresh = false) {
             try {
                 this.showLoading();
-                // TODO: Implement getContacts function in data-functions.js
-                const contacts = await dataFunctions.callFunction('get_contacts', {});
+                const startTime = performance.now();
+                const contacts = await dataFunctions.getContacts(null, forceRefresh);
+                const loadTime = performance.now() - startTime;
+                console.log(`[Performance] Contacts loaded in ${loadTime.toFixed(2)}ms`);
+                
                 this.contacts = contacts || [];
                 this.filteredContacts = this.contacts;
                 this.renderContacts();
@@ -420,7 +423,7 @@ var _crmGrid = function () {
         },
 
         refreshContacts: function () {
-            this.loadContacts();
+            this.loadContacts(true); // Force refresh bypasses cache
         },
 
         exportContacts: function () {

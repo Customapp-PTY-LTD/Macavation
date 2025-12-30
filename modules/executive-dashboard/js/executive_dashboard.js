@@ -14,9 +14,13 @@ var _executiveDashboard = function () {
                 Swal.fire('Info', 'Report generation coming soon', 'info');
             });
         },
-        loadKPIs: async function () {
+        loadKPIs: async function (forceRefresh = false) {
             try {
-                const kpis = await dataFunctions.callFunction('get_executive_kpis', {}).catch(() => ({}));
+                const startTime = performance.now();
+                const kpis = await dataFunctions.getExecutiveKPIs(null, forceRefresh).catch(() => ({}));
+                const loadTime = performance.now() - startTime;
+                console.log(`[Performance] Executive KPIs loaded in ${loadTime.toFixed(2)}ms`);
+                
                 this.kpis = kpis || {};
                 this.renderKPIs();
             } catch (error) {

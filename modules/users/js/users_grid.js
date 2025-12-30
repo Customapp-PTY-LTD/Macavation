@@ -78,10 +78,14 @@ var _usersGrid = function () {
             });
         },
 
-        loadUsers: async function () {
+        loadUsers: async function (forceRefresh = false) {
             try {
                 this.showLoading();
-                const users = await dataFunctions.getUsers();
+                const startTime = performance.now();
+                const users = await dataFunctions.getUsers(null, forceRefresh);
+                const loadTime = performance.now() - startTime;
+                console.log(`[Performance] Users loaded in ${loadTime.toFixed(2)}ms`);
+                
                 this.users = users;
                 this.filteredUsers = users;
                 this.renderUsers();
@@ -98,7 +102,7 @@ var _usersGrid = function () {
             try {
                 console.log('=== loadRolesForDropdown START (Users) ===');
 
-                const response = await dataFunctions.getRoles();
+                const response = await dataFunctions.getRoles(); // Uses cache automatically
                 console.log('API Response received:', response);
 
                 // Direct approach - use the response as-is since we know it's an array
@@ -457,6 +461,14 @@ var _usersGrid = function () {
             // This method is called from the delete confirmation modal
             // The actual delete logic is handled by the deleteUser method
             console.log('Delete confirmation - this should be handled by deleteUser method');
+        },
+
+        refreshUsers: function () {
+            this.loadUsers(true); // Force refresh bypasses cache
+        },
+
+        exportUsers: function () {
+            Swal.fire('Info', 'Export feature coming soon', 'info');
         }
     }
 }();

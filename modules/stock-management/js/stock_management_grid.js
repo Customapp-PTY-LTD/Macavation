@@ -17,9 +17,13 @@ var _stockManagementGrid = function () {
                 Swal.fire('Info', 'Stock take feature coming soon', 'info');
             });
         },
-        loadStockItems: async function () {
+        loadStockItems: async function (forceRefresh = false) {
             try {
-                const items = await dataFunctions.callFunction('get_stock_items', {});
+                const startTime = performance.now();
+                const items = await dataFunctions.getStockItems(null, forceRefresh);
+                const loadTime = performance.now() - startTime;
+                console.log(`[Performance] Stock items loaded in ${loadTime.toFixed(2)}ms`);
+                
                 this.stockItems = items || [];
                 this.renderStockItems();
             } catch (error) {

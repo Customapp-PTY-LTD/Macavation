@@ -14,9 +14,13 @@ var _qualityAssuranceGrid = function () {
                 Swal.fire('Info', 'New quality test form coming soon', 'info');
             });
         },
-        loadTests: async function () {
+        loadTests: async function (forceRefresh = false) {
             try {
-                const tests = await dataFunctions.callFunction('get_quality_tests', {});
+                const startTime = performance.now();
+                const tests = await dataFunctions.getQualityTests(null, forceRefresh);
+                const loadTime = performance.now() - startTime;
+                console.log(`[Performance] Quality tests loaded in ${loadTime.toFixed(2)}ms`);
+                
                 this.tests = tests || [];
                 this.renderTests();
             } catch (error) {

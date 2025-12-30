@@ -22,13 +22,62 @@
         </div>
     </div>
 
-    <!-- Critical Alerts -->
-    <div class="row mb-4" id="alertsContainer">
+    <!-- Exceptions Panel (Exception-First Design) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Exceptions Requiring Attention
+                    </h5>
+                </div>
+                <div class="card-body" id="exceptionsContainer">
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-hourglass-split fs-3"></i>
+                        <p class="mb-0 mt-2">Loading exceptions...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics (Context-Aware) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="fw-bold mb-3">Operational Metrics</h4>
+        </div>
+        <div id="metricsContainer" class="col-12">
+            <!-- Metrics will be dynamically loaded -->
+        </div>
+    </div>
+
+    <!-- Quick Actions (High-Frequency Tasks) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-lightning-fill me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3" id="quickActionsContainer">
+                        <!-- Quick actions will be dynamically loaded -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legacy Alerts (for backward compatibility) -->
+    <div class="row mb-4" id="alertsContainer" style="display: none;">
         <!-- Alerts will be dynamically loaded -->
     </div>
 
-    <!-- Key Stats -->
-    <div class="row g-3 mb-4" id="statsContainer">
+    <!-- Legacy Stats (for backward compatibility) -->
+    <div class="row g-3 mb-4" id="statsContainer" style="display: none;">
         <!-- Stats cards will be dynamically loaded -->
     </div>
 

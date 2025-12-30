@@ -8,7 +8,116 @@ var _dataFunctions = function () {
     return {
         proxyUrl: 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function',
 
+        // Cache configuration
+        cache: {
+            // Cache storage
+            data: new Map(),
+            // Cache TTL in milliseconds (default: 5 minutes for static data, 1 minute for dynamic)
+            ttl: {
+                static: 5 * 60 * 1000,      // 5 minutes - users, roles, contacts list
+                dynamic: 1 * 60 * 1000,    // 1 minute - batches, stock, alerts
+                dashboard: 30 * 1000       // 30 seconds - dashboard data
+            },
+            // Pending requests to prevent duplicate calls
+            pendingRequests: new Map()
+        },
+
         init: function () {
+            // Clear expired cache entries periodically
+            setInterval(() => {
+                this.clearExpiredCache();
+            }, 60000); // Check every minute
+        },
+
+        /**
+         * Get cached data if valid, otherwise return null
+         */
+        getCached: function (key) {
+            const cached = this.cache.data.get(key);
+            if (!cached) return null;
+
+            const now = Date.now();
+            if (now > cached.expiresAt) {
+                this.cache.data.delete(key);
+                return null;
+            }
+
+            return cached.data;
+        },
+
+        /**
+         * Set cache with TTL
+         */
+        setCache: function (key, data, ttl = null) {
+            const defaultTtl = ttl || this.cache.ttl.dynamic;
+            const expiresAt = Date.now() + defaultTtl;
+
+            this.cache.data.set(key, {
+                data: data,
+                expiresAt: expiresAt,
+                cachedAt: Date.now()
+            });
+        },
+
+        /**
+         * Clear specific cache entry
+         */
+        clearCache: function (key) {
+            this.cache.data.delete(key);
+        },
+
+        /**
+         * Clear all cache entries matching a pattern
+         */
+        clearCachePattern: function (pattern) {
+            for (const key of this.cache.data.keys()) {
+                if (key.includes(pattern)) {
+                    this.cache.data.delete(key);
+                }
+            }
+        },
+
+        /**
+         * Clear all expired cache entries
+         */
+        clearExpiredCache: function () {
+            const now = Date.now();
+            for (const [key, cached] of this.cache.data.entries()) {
+                if (now > cached.expiresAt) {
+                    this.cache.data.delete(key);
+                }
+            }
+        },
+
+        /**
+         * Clear all cache
+         */
+        clearAllCache: function () {
+            this.cache.data.clear();
+        },
+
+        /**
+         * Get cache statistics
+         */
+        getCacheStats: function () {
+            const now = Date.now();
+            let valid = 0;
+            let expired = 0;
+
+            for (const cached of this.cache.data.values()) {
+                if (now > cached.expiresAt) {
+                    expired++;
+                } else {
+                    valid++;
+                }
+            }
+
+            return {
+                total: this.cache.data.size,
+                valid: valid,
+                expired: expired,
+                pendingRequests: this.cache.pendingRequests.size
+            };
         },
 
         /**
@@ -102,86 +211,131 @@ var _dataFunctions = function () {
         },
 
         /**
-         * Generic function call to Lambda proxy
+         * Generic function call to Lambda proxy with caching and request deduplication
          */
-        callFunction: async function (functionName, params = {}, token = null) {
+        callFunction: async function (functionName, params = {}, token = null, options = {}) {
             const authToken = token || this.getToken();
 
             if (!authToken) {
                 throw new Error('No authentication token available. Please sign in again.');
             }
 
-            try {
-                const response = await fetch(this.proxyUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        function: functionName,
-                        params: params
-                    })
-                });
+            // Check if caching is enabled and if we have cached data
+            const cacheKey = options.cacheKey || `${functionName}_${JSON.stringify(params)}`;
+            const useCache = options.useCache !== false; // Default to true
+            const cacheTtl = options.cacheTtl || this.cache.ttl.dynamic;
+            const forceRefresh = options.forceRefresh === true;
 
-                if (!response.ok) {
-                    let errorMessage = `HTTP error! status: ${response.status}`;
-                    let errorData = null;
-                    try {
-                        const responseText = await response.text();
-                        try {
-                            errorData = JSON.parse(responseText);
-                            errorMessage = errorData.message || errorData.error || errorMessage;
-                        } catch (e) {
-                            // If response isn't JSON, use the text
-                            errorMessage = responseText || response.statusText || errorMessage;
-                        }
-                    } catch (e) {
-                        // If response isn't JSON, use status text
-                        errorMessage = response.statusText || errorMessage;
-                    }
-                    
-                    // Handle 401 Unauthorized - token expired or invalid
-                    if (response.status === 401) {
-                        const finalMessage = errorMessage || 'Invalid or expired token';
-                        throw new Error(finalMessage);
-                    }
-                    
-                    throw new Error(errorMessage);
+            // Return cached data if available and not forcing refresh
+            if (useCache && !forceRefresh) {
+                const cached = this.getCached(cacheKey);
+                if (cached !== null) {
+                    console.log(`[Cache Hit] ${functionName}`);
+                    return cached;
                 }
-
-                const responseText = await response.text();
-                let data;
-                try {
-                    data = JSON.parse(responseText);
-                } catch (e) {
-                    throw new Error(`Invalid JSON response from server: ${responseText.substring(0, 200)}`);
-                }
-                return data;
-
-            } catch (error) {
-                throw error;
             }
+
+            // Check for pending request to prevent duplicate calls
+            const requestKey = `${functionName}_${JSON.stringify(params)}`;
+            if (this.cache.pendingRequests.has(requestKey)) {
+                console.log(`[Dedupe] Waiting for pending request: ${functionName}`);
+                return await this.cache.pendingRequests.get(requestKey);
+            }
+
+            // Create promise for this request
+            const requestPromise = (async () => {
+                try {
+                    const response = await fetch(this.proxyUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({
+                            function: functionName,
+                            params: params
+                        })
+                    });
+
+                    if (!response.ok) {
+                        let errorMessage = `HTTP error! status: ${response.status}`;
+                        let errorData = null;
+                        try {
+                            const responseText = await response.text();
+                            try {
+                                errorData = JSON.parse(responseText);
+                                errorMessage = errorData.message || errorData.error || errorMessage;
+                            } catch (e) {
+                                errorMessage = responseText || response.statusText || errorMessage;
+                            }
+                        } catch (e) {
+                            errorMessage = response.statusText || errorMessage;
+                        }
+                        
+                        if (response.status === 401) {
+                            const finalMessage = errorMessage || 'Invalid or expired token';
+                            throw new Error(finalMessage);
+                        }
+                        
+                        throw new Error(errorMessage);
+                    }
+
+                    const responseText = await response.text();
+                    let data;
+                    try {
+                        data = JSON.parse(responseText);
+                    } catch (e) {
+                        throw new Error(`Invalid JSON response from server: ${responseText.substring(0, 200)}`);
+                    }
+
+                    // Cache successful responses
+                    if (useCache && data && !data.error) {
+                        this.setCache(cacheKey, data, cacheTtl);
+                        console.log(`[Cache Set] ${functionName} (TTL: ${cacheTtl}ms)`);
+                    }
+
+                    return data;
+                } catch (error) {
+                    throw error;
+                } finally {
+                    // Remove from pending requests
+                    this.cache.pendingRequests.delete(requestKey);
+                }
+            })();
+
+            // Store pending request
+            this.cache.pendingRequests.set(requestKey, requestPromise);
+            return requestPromise;
         },
 
         // ===== USER MANAGEMENT FUNCTIONS =====
 
         /**
-         * Get all users
+         * Get all users (cached for 5 minutes)
          */
-        getUsers: async function (token = null) {
-            return await this.callFunction('get_users', {}, token);
+        getUsers: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_users', {}, token, {
+                cacheKey: 'users_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.static,
+                forceRefresh: forceRefresh
+            });
         },
 
         /**
-         * Get user by ID
+         * Get user by ID (cached for 5 minutes)
          */
-        getUserById: async function (userId, token = null) {
-            return await this.callFunction('get_user_by_id', { p_id: userId }, token);
+        getUserById: async function (userId, token = null, forceRefresh = false) {
+            return await this.callFunction('get_user_by_id', { p_id: userId }, token, {
+                cacheKey: `user_${userId}`,
+                useCache: true,
+                cacheTtl: this.cache.ttl.static,
+                forceRefresh: forceRefresh
+            });
         },
 
         /**
-         * Create user
+         * Create user (invalidates users cache)
          */
         createUser: async function (userData, token = null) {
             const params = {
@@ -190,11 +344,14 @@ var _dataFunctions = function () {
                 p_role_id: userData.role_id || null,
                 p_password: userData.password || null
             };
-            return await this.callFunction('create_user_simple', params, token);
+            const result = await this.callFunction('create_user_simple', params, token, { useCache: false });
+            // Invalidate users cache
+            this.clearCachePattern('users');
+            return result;
         },
 
         /**
-         * Update user
+         * Update user (invalidates user cache)
          */
         updateUser: async function (userId, userData, token = null) {
             const params = {
@@ -206,30 +363,45 @@ var _dataFunctions = function () {
                 p_password: userData.password || null
             };
 
-            return await this.callFunction('update_user_simple', params, token);
+            const result = await this.callFunction('update_user_simple', params, token, { useCache: false });
+            // Invalidate user caches
+            this.clearCache(`user_${userId}`);
+            this.clearCachePattern('users');
+            return result;
         },
 
         /**
-         * Delete user (hard delete)
+         * Delete user (hard delete, invalidates cache)
          */
         deleteUser: async function (userId, token = null) {
-            return await this.callFunction('delete_user_hard', { p_user_id: userId }, token);
+            const result = await this.callFunction('delete_user_hard', { p_user_id: userId }, token, { useCache: false });
+            this.clearCache(`user_${userId}`);
+            this.clearCachePattern('users');
+            return result;
         },
 
         /**
-         * Deactivate user (soft delete)
+         * Deactivate user (soft delete, invalidates cache)
          */
         deactivateUser: async function (userId, token = null) {
-            return await this.callFunction('deactivate_user', { p_user_id: userId }, token);
+            const result = await this.callFunction('deactivate_user', { p_user_id: userId }, token, { useCache: false });
+            this.clearCache(`user_${userId}`);
+            this.clearCachePattern('users');
+            return result;
         },
 
         // ===== ROLE MANAGEMENT FUNCTIONS =====
 
         /**
-         * Get all roles
+         * Get all roles (cached for 5 minutes)
          */
-        getRoles: async function (token = null) {
-            return await this.callFunction('get_roles', {}, token);
+        getRoles: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_roles', {}, token, {
+                cacheKey: 'roles_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.static,
+                forceRefresh: forceRefresh
+            });
         },
 
         /**
@@ -240,7 +412,7 @@ var _dataFunctions = function () {
         },
 
         /**
-         * Create role
+         * Create role (invalidates roles cache)
          */
         createRole: async function (roleData, token = null) {
             const params = {
@@ -248,11 +420,13 @@ var _dataFunctions = function () {
                 p_description: roleData.description || null,
                 p_is_active: roleData.is_active !== undefined ? roleData.is_active : true
             };
-            return await this.callFunction('create_role_simple', params, token);
+            const result = await this.callFunction('create_role_simple', params, token, { useCache: false });
+            this.clearCachePattern('roles');
+            return result;
         },
 
         /**
-         * Update role
+         * Update role (invalidates roles cache)
          */
         updateRole: async function (roleId, roleData, token = null) {
             const params = {
@@ -261,14 +435,18 @@ var _dataFunctions = function () {
                 p_description: roleData.description || null,
                 p_is_active: roleData.is_active !== undefined ? roleData.is_active : null
             };
-            return await this.callFunction('update_role_simple', params, token);
+            const result = await this.callFunction('update_role_simple', params, token, { useCache: false });
+            this.clearCachePattern('roles');
+            return result;
         },
 
         /**
-         * Deactivate role (soft delete)
+         * Deactivate role (soft delete, invalidates cache)
          */
         deactivateRole: async function (roleId, token = null) {
-            return await this.callFunction('deactivate_role', { p_id: roleId }, token);
+            const result = await this.callFunction('deactivate_role', { p_id: roleId }, token, { useCache: false });
+            this.clearCachePattern('roles');
+            return result;
         },
 
         // ===== ROLE PERMISSIONS FUNCTIONS =====
@@ -1466,16 +1644,26 @@ var _dataFunctions = function () {
         },
 
         // CRM Functions
-        getContacts: async function (token = null) {
-            return await this.callFunction('get_contacts', {}, token);
+        getContacts: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_contacts', {}, token, {
+                cacheKey: 'contacts_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.static,
+                forceRefresh: forceRefresh
+            });
         },
 
-        getContactById: async function (contactId, token = null) {
-            return await this.callFunction('get_contact_by_id', { p_id: contactId }, token);
+        getContactById: async function (contactId, token = null, forceRefresh = false) {
+            return await this.callFunction('get_contact_by_id', { p_id: contactId }, token, {
+                cacheKey: `contact_${contactId}`,
+                useCache: true,
+                cacheTtl: this.cache.ttl.static,
+                forceRefresh: forceRefresh
+            });
         },
 
         createContact: async function (contactData, token = null) {
-            return await this.callFunction('create_contact_simple', {
+            const result = await this.callFunction('create_contact_simple', {
                 p_contact_type: contactData.contact_type,
                 p_company_name: contactData.company_name,
                 p_trading_name: contactData.trading_name || null,
@@ -1485,11 +1673,14 @@ var _dataFunctions = function () {
                 p_account_manager_id: contactData.account_manager_id || null,
                 p_status: contactData.status || 'active',
                 p_key_account: contactData.key_account || false
-            }, token);
+            }, token, { useCache: false });
+            // Invalidate contacts cache
+            this.clearCachePattern('contacts');
+            return result;
         },
 
         updateContact: async function (contactId, contactData, token = null) {
-            return await this.callFunction('update_contact_simple', {
+            const result = await this.callFunction('update_contact_simple', {
                 p_contact_id: contactId,
                 p_contact_type: contactData.contact_type || null,
                 p_company_name: contactData.company_name || null,
@@ -1500,39 +1691,76 @@ var _dataFunctions = function () {
                 p_account_manager_id: contactData.account_manager_id || null,
                 p_status: contactData.status || null,
                 p_key_account: contactData.key_account !== undefined ? contactData.key_account : null
-            }, token);
+            }, token, { useCache: false });
+            // Invalidate contact caches
+            this.clearCache(`contact_${contactId}`);
+            this.clearCachePattern('contacts');
+            return result;
         },
 
         deleteContact: async function (contactId, token = null) {
-            return await this.callFunction('deactivate_contact', { p_contact_id: contactId }, token);
+            const result = await this.callFunction('deactivate_contact', { p_contact_id: contactId }, token, { useCache: false });
+            this.clearCache(`contact_${contactId}`);
+            this.clearCachePattern('contacts');
+            return result;
         },
 
-        // Production Functions
-        getProductionBatches: async function (token = null) {
-            return await this.callFunction('get_production_batches', {}, token);
+        // Production Functions (cached for 1 minute - dynamic data)
+        getProductionBatches: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_production_batches', {}, token, {
+                cacheKey: 'production_batches_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
         },
 
-        getSampleSubmissions: async function (token = null) {
-            return await this.callFunction('get_sample_submissions', {}, token);
+        getSampleSubmissions: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_sample_submissions', {}, token, {
+                cacheKey: 'sample_submissions_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
         },
 
-        // Quality Assurance Functions
-        getQualityTests: async function (token = null) {
-            return await this.callFunction('get_quality_tests', {}, token);
+        // Quality Assurance Functions (cached for 1 minute)
+        getQualityTests: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_quality_tests', {}, token, {
+                cacheKey: 'quality_tests_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
         },
 
-        // Stock Management Functions
-        getStockItems: async function (token = null) {
-            return await this.callFunction('get_stock_items', {}, token);
+        // Stock Management Functions (cached for 1 minute)
+        getStockItems: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_stock_items', {}, token, {
+                cacheKey: 'stock_items_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
         },
 
-        // Dashboard Functions
-        getDashboardAlerts: async function (token = null) {
-            return await this.callFunction('get_dashboard_alerts', {}, token);
+        // Dashboard Functions (cached for 30 seconds - near real-time)
+        getDashboardAlerts: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_dashboard_alerts', {}, token, {
+                cacheKey: 'dashboard_alerts_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dashboard,
+                forceRefresh: forceRefresh
+            });
         },
 
-        getExecutiveKPIs: async function (token = null) {
-            return await this.callFunction('get_executive_kpis', {}, token);
+        getExecutiveKPIs: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_executive_kpis', {}, token, {
+                cacheKey: 'executive_kpis',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dashboard,
+                forceRefresh: forceRefresh
+            });
         },
 
         // Sales Forecasting Functions (placeholder)

@@ -1,0 +1,159 @@
+/**
+ * Exception UI Styles
+ * Implements Process-Driven Design: Exception-First Design
+ */
+
+/* Exception Card */
+.exception-card {
+    border: 1px solid;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s;
+}
+
+.exception-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.exception-card.exception-critical {
+    border-color: #dc3545;
+    background: #fff5f5;
+}
+
+.exception-card.exception-warning {
+    border-color: #ffc107;
+    background: #fffbf0;
+}
+
+.exception-card.exception-info {
+    border-color: #0dcaf0;
+    background: #f0f9ff;
+}
+
+/* Exception Header */
+.exception-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.exception-icon {
+    font-size: 1.5rem;
+}
+
+.exception-card.exception-critical .exception-icon {
+    color: #dc3545;
+}
+
+.exception-card.exception-warning .exception-icon {
+    color: #ffc107;
+}
+
+.exception-card.exception-info .exception-icon {
+    color: #0dcaf0;
+}
+
+.exception-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.exception-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* Exception Body */
+.exception-body {
+    margin-bottom: 1rem;
+}
+
+.exception-description {
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.exception-impact {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.exception-metrics {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: 0.9rem;
+}
+
+.exception-metrics span {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.exception-metrics strong {
+    color: #6c757d;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+/* Exception Actions */
+.exception-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Exception Section */
+.exception-section {
+    margin-bottom: 2rem;
+}
+
+.exception-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid;
+}
+
+.exception-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .exception-metrics {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .exception-actions {
+        flex-direction: column;
+    }
+    
+    .exception-actions .btn {
+        width: 100%;
+    }
+}
+

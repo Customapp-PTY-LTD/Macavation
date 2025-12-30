@@ -15,9 +15,13 @@ var _kernelProductionGrid = function () {
                 Swal.fire('Info', 'New batch creation coming soon', 'info');
             });
         },
-        loadBatches: async function () {
+        loadBatches: async function (forceRefresh = false) {
             try {
-                const batches = await dataFunctions.callFunction('get_production_batches', {});
+                const startTime = performance.now();
+                const batches = await dataFunctions.getProductionBatches(null, forceRefresh);
+                const loadTime = performance.now() - startTime;
+                console.log(`[Performance] Production batches loaded in ${loadTime.toFixed(2)}ms`);
+                
                 this.batches = batches || [];
                 this.renderBatches();
             } catch (error) {
