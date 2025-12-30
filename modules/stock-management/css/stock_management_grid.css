@@ -1,0 +1,4 @@
+/* Stock Management Grid Module Styles */
+.module-content { min-height: 400px; }
+#stockTable th { border-top: none; font-weight: 600; }
+

@@ -36,18 +36,6 @@
                 "css/dashboard.css"
             ]
         },
-        "labour-grid": {
-            "description": "Labour Allocation",
-            "path": "labour",
-            "html": "html/labour_grid.html",
-            "js": [
-                "../../js/farm-selector-utils.js",
-                "js/labour_grid.js"
-            ],
-            "css": [
-                "css/labour_grid.css"
-            ]
-        },
         "users-grid": {
             "description": "User Management",
             "path": "users",
@@ -92,78 +80,6 @@
                 "css/role-features_grid.css"
             ]
         },
-        "compliance-grid": {
-            "description": "Compliance & Audits",
-            "path": "compliance",
-            "html": "html/compliance_grid.html",
-            "js": [
-                "../../js/farm-selector-utils.js",
-                "js/compliance_grid.js"
-            ],
-            "css": [
-                "css/compliance_grid.css"
-            ]
-        },
-        "chemicals-grid": {
-            "description": "Chemical Management",
-            "path": "chemicals",
-            "html": "html/chemicals_grid.html",
-            "js": [
-                "../../js/farm-selector-utils.js",
-                "js/chemicals_grid.js"
-            ],
-            "css": [
-                "css/chemicals_grid.css"
-            ]
-        },
-        "crops-grid": {
-            "description": "Crop Monitoring",
-            "path": "crops",
-            "html": "html/crops_grid.html",
-            "js": [
-                "../../js/farm-selector-utils.js",
-                "js/crops_grid.js"
-            ],
-            "css": [
-                "css/crops_grid.css"
-            ]
-        },
-        "assets-grid": {
-            "description": "Asset Management",
-            "path": "assets",
-            "html": "html/assets_grid.html",
-            "js": [
-                "../../js/farm-selector-utils.js",
-                "js/assets_grid.js"
-            ],
-            "css": [
-                "css/assets_grid.css"
-            ]
-        },
-        "postharvest-grid": {
-            "description": "Post-Harvest Management",
-            "path": "postharvest",
-            "html": "html/postharvest_grid.html",
-            "js": [
-                "../../js/farm-selector-utils.js",
-                "js/postharvest_grid.js"
-            ],
-            "css": [
-                "css/postharvest_grid.css"
-            ]
-        },
-        "water-grid": {
-            "description": "Water & Irrigation",
-            "path": "water",
-            "html": "html/water_grid.html",
-            "js": [
-                "../../js/farm-selector-utils.js",
-                "js/water_grid.js"
-            ],
-            "css": [
-                "css/water_grid.css"
-            ]
-        },
         "admin-grid": {
             "description": "System Administration",
             "path": "admin",
@@ -173,6 +89,138 @@
             ],
             "css": [
                 "css/admin_grid.css"
+            ]
+        },
+        "crm-grid": {
+            "description": "Customer Relationship Management",
+            "path": "crm",
+            "html": "html/crm_grid.html",
+            "js": [
+                "js/crm_grid.js"
+            ],
+            "css": [
+                "css/crm_grid.css"
+            ]
+        },
+        "grower-intake-grid": {
+            "description": "Grower Intake Management",
+            "path": "grower-intake",
+            "html": "html/grower_intake_grid.html",
+            "js": [
+                "js/grower_intake_grid.js"
+            ],
+            "css": [
+                "css/grower_intake_grid.css"
+            ]
+        },
+        "kernel-production-grid": {
+            "description": "Kernel Production Workflow",
+            "path": "kernel-production",
+            "html": "html/kernel_production_grid.html",
+            "js": [
+                "js/kernel_production_grid.js"
+            ],
+            "css": [
+                "css/kernel_production_grid.css"
+            ]
+        },
+        "quality-assurance-grid": {
+            "description": "Quality Assurance & Food Safety",
+            "path": "quality-assurance",
+            "html": "html/quality_assurance_grid.html",
+            "js": [
+                "js/quality_assurance_grid.js"
+            ],
+            "css": [
+                "css/quality_assurance_grid.css"
+            ]
+        },
+        "stock-management-grid": {
+            "description": "Stock Management",
+            "path": "stock-management",
+            "html": "html/stock_management_grid.html",
+            "js": [
+                "js/stock_management_grid.js"
+            ],
+            "css": [
+                "css/stock_management_grid.css"
+            ]
+        },
+        "sales-forecasting-grid": {
+            "description": "Sales Forecasting",
+            "path": "sales-forecasting",
+            "html": "html/sales_forecasting_grid.html",
+            "js": [
+                "js/sales_forecasting_grid.js"
+            ],
+            "css": [
+                "css/sales_forecasting_grid.css"
+            ]
+        },
+        "oil-production-grid": {
+            "description": "Oil Production Workflow",
+            "path": "oil-production",
+            "html": "html/oil_production_grid.html",
+            "js": [
+                "js/oil_production_grid.js"
+            ],
+            "css": [
+                "css/oil_production_grid.css"
+            ]
+        },
+        "financial-management-grid": {
+            "description": "Financial Management",
+            "path": "financial-management",
+            "html": "html/financial_management_grid.html",
+            "js": [
+                "js/financial_management_grid.js"
+            ],
+            "css": [
+                "css/financial_management_grid.css"
+            ]
+        },
+        "amanda-dashboard": {
+            "description": "Amanda Dashboard - Material Journey",
+            "path": "amanda-dashboard",
+            "html": "html/amanda_dashboard.html",
+            "js": [
+                "js/amanda_dashboard.js"
+            ],
+            "css": [
+                "css/amanda_dashboard.css"
+            ]
+        },
+        "executive-dashboard": {
+            "description": "Executive Dashboard & Reporting",
+            "path": "executive-dashboard",
+            "html": "html/executive_dashboard.html",
+            "js": [
+                "js/executive_dashboard.js"
+            ],
+            "css": [
+                "css/executive_dashboard.css"
+            ]
+        },
+        "document-management-grid": {
+            "description": "Document Management",
+            "path": "document-management",
+            "html": "html/document_management_grid.html",
+            "js": [
+                "js/document_management_grid.js"
+            ],
+            "css": [
+                "css/document_management_grid.css"
+            ]
+        },
+        "palladium-integration-grid": {
+            "description": "Palladium ERP Integration",
+            "path": "palladium-integration",
+            "html": "html/palladium_integration_grid.html",
+            "js": [
+                "js/palladium_integration_grid.js"
+            ],
+            "css": [
+                "css/palladium_integration_grid.css"
             ]
         }
     }

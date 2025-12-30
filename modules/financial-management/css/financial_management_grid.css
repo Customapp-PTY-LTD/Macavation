@@ -1,0 +1,4 @@
+/* Financial Management Grid Module Styles */
+.module-content { min-height: 400px; }
+#financialTable th { border-top: none; font-weight: 600; }
+

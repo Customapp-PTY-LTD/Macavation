@@ -1,0 +1,35 @@
+<!-- Palladium ERP Integration Grid Module -->
+<div class="module-content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Palladium ERP Integration</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-primary" id="syncBtn">
+                <i class="fas fa-sync-alt me-1"></i>Sync Now
+            </button>
+        </div>
+    </div>
+
+    <!-- Sync Status -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Sync Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="syncTable">
+                    <thead>
+                        <tr>
+                            <th>Entity Type</th>
+                            <th>Last Sync</th>
+                            <th>Status</th>
+                            <th>Records Synced</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="syncTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+

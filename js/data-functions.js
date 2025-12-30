@@ -1463,6 +1463,109 @@ var _dataFunctions = function () {
 
         deleteFarm: async function (farmId, token = null) {
             return await this.callFunction('deactivate_farm', { p_farm_id: farmId }, token);
+        },
+
+        // CRM Functions
+        getContacts: async function (token = null) {
+            return await this.callFunction('get_contacts', {}, token);
+        },
+
+        getContactById: async function (contactId, token = null) {
+            return await this.callFunction('get_contact_by_id', { p_id: contactId }, token);
+        },
+
+        createContact: async function (contactData, token = null) {
+            return await this.callFunction('create_contact_simple', {
+                p_contact_type: contactData.contact_type,
+                p_company_name: contactData.company_name,
+                p_trading_name: contactData.trading_name || null,
+                p_primary_contact_name: contactData.primary_contact_name || null,
+                p_primary_contact_email: contactData.primary_contact_email || null,
+                p_primary_contact_phone: contactData.primary_contact_phone || null,
+                p_account_manager_id: contactData.account_manager_id || null,
+                p_status: contactData.status || 'active',
+                p_key_account: contactData.key_account || false
+            }, token);
+        },
+
+        updateContact: async function (contactId, contactData, token = null) {
+            return await this.callFunction('update_contact_simple', {
+                p_contact_id: contactId,
+                p_contact_type: contactData.contact_type || null,
+                p_company_name: contactData.company_name || null,
+                p_trading_name: contactData.trading_name || null,
+                p_primary_contact_name: contactData.primary_contact_name || null,
+                p_primary_contact_email: contactData.primary_contact_email || null,
+                p_primary_contact_phone: contactData.primary_contact_phone || null,
+                p_account_manager_id: contactData.account_manager_id || null,
+                p_status: contactData.status || null,
+                p_key_account: contactData.key_account !== undefined ? contactData.key_account : null
+            }, token);
+        },
+
+        deleteContact: async function (contactId, token = null) {
+            return await this.callFunction('deactivate_contact', { p_contact_id: contactId }, token);
+        },
+
+        // Production Functions
+        getProductionBatches: async function (token = null) {
+            return await this.callFunction('get_production_batches', {}, token);
+        },
+
+        getSampleSubmissions: async function (token = null) {
+            return await this.callFunction('get_sample_submissions', {}, token);
+        },
+
+        // Quality Assurance Functions
+        getQualityTests: async function (token = null) {
+            return await this.callFunction('get_quality_tests', {}, token);
+        },
+
+        // Stock Management Functions
+        getStockItems: async function (token = null) {
+            return await this.callFunction('get_stock_items', {}, token);
+        },
+
+        // Dashboard Functions
+        getDashboardAlerts: async function (token = null) {
+            return await this.callFunction('get_dashboard_alerts', {}, token);
+        },
+
+        getExecutiveKPIs: async function (token = null) {
+            return await this.callFunction('get_executive_kpis', {}, token);
+        },
+
+        // Sales Forecasting Functions (placeholder)
+        getSalesForecasts: async function (token = null) {
+            return await this.callFunction('get_sales_forecasts', {}, token).catch(() => []);
+        },
+
+        // Oil Production Functions (placeholder)
+        getOilProductionBatches: async function (token = null) {
+            return await this.callFunction('get_oil_production_batches', {}, token).catch(() => []);
+        },
+
+        // Financial Management Functions (placeholder)
+        getFinancialTransactions: async function (token = null) {
+            return await this.callFunction('get_financial_transactions', {}, token).catch(() => []);
+        },
+
+        // Document Management Functions (placeholder)
+        getDocuments: async function (token = null) {
+            return await this.callFunction('get_documents', {}, token).catch(() => []);
+        },
+
+        // Palladium Integration Functions (placeholder)
+        getPalladiumSyncStatus: async function (token = null) {
+            return await this.callFunction('get_palladium_sync_status', {}, token).catch(() => []);
+        },
+
+        syncPalladium: async function (token = null) {
+            return await this.callFunction('sync_palladium', {}, token).catch(() => ({ success: false }));
+        },
+
+        syncPalladiumEntity: async function (entityType, token = null) {
+            return await this.callFunction('sync_palladium_entity', { p_entity_type: entityType }, token).catch(() => ({ success: false }));
         }
     }
 }();

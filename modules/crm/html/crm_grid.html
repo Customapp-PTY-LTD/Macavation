@@ -1,0 +1,359 @@
+<!-- CRM Grid Module -->
+<div class="module-content">
+    <!-- Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Customer Relationship Management</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-primary" id="addContactBtn">
+                <i class="fas fa-plus me-1"></i>Add Contact
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse">
+                    <i class="fas fa-filter me-1"></i>Filters
+                </button>
+            </h5>
+        </div>
+        <div class="collapse" id="filtersCollapse">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="filterType" class="form-label">Contact Type</label>
+                        <select id="filterType" class="form-select">
+                            <option value="">All Types</option>
+                            <option value="customer">Customers</option>
+                            <option value="supplier">Suppliers</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filterStatus" class="form-label">Status</label>
+                        <select id="filterStatus" class="form-select">
+                            <option value="">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="prospect">Prospect</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filterAccountManager" class="form-label">Account Manager</label>
+                        <select id="filterAccountManager" class="form-select">
+                            <option value="">All Managers</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" id="filterKeyAccounts">
+                            <label class="form-check-label" for="filterKeyAccounts">
+                                Key Accounts Only
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-primary me-2" id="applyFiltersBtn">
+                            <i class="fas fa-search me-1"></i>Apply Filters
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="clearFiltersBtn">
+                            <i class="fas fa-times me-1"></i>Clear Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-container">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search company name, contact person, email...">
+                    <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="crmGrid.exportContacts()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="crmGrid.refreshContacts()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contacts Table -->
+    <div class="card">
+        <div class="card-body">
+            <!-- Loading State -->
+            <div id="contactsLoading" class="text-center py-4" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading contacts...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="contactsEmpty" class="text-center py-5" style="display: none;">
+                <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No contacts found</h5>
+                <p class="text-muted">Try adjusting your search or filter criteria.</p>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover" id="contactsTable">
+                    <thead>
+                        <tr>
+                            <th>Company Name</th>
+                            <th>Type</th>
+                            <th>Primary Contact</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Account Manager</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contactsTableBody">
+                        <!-- Contacts will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Contacts pagination" class="mt-3">
+        <ul class="pagination justify-content-center" id="pagination">
+            <!-- Pagination will be generated here -->
+        </ul>
+    </nav>
+</div>
+
+<!-- Add/Edit Contact Modal -->
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactModalLabel">Add New Contact</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="contactTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">
+                            Details
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="communications-tab" data-bs-toggle="tab" data-bs-target="#communications" type="button" role="tab">
+                            Communications
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="quotes-tab" data-bs-toggle="tab" data-bs-target="#quotes" type="button" role="tab">
+                            Quotes
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab">
+                            Orders
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="contactTabContent">
+                    <div class="tab-pane fade show active" id="details" role="tabpanel">
+                        <form id="contactForm" class="mt-3">
+                            <input type="hidden" id="contactId">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-section">
+                                        <h5>Basic Information</h5>
+                                        <div class="mb-3">
+                                            <label for="contactType" class="form-label required">Contact Type</label>
+                                            <select class="form-select" id="contactType" required>
+                                                <option value="">Select Type</option>
+                                                <option value="customer">Customer</option>
+                                                <option value="supplier">Supplier</option>
+                                                <option value="both">Both</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="companyName" class="form-label required">Company Name</label>
+                                            <input type="text" class="form-control" id="companyName" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="tradingName" class="form-label">Trading Name</label>
+                                            <input type="text" class="form-control" id="tradingName">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="status" class="form-label required">Status</label>
+                                            <select class="form-select" id="status" required>
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                                <option value="prospect">Prospect</option>
+                                                <option value="suspended">Suspended</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="keyAccount">
+                                                <label class="form-check-label" for="keyAccount">
+                                                    Key Account
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-section">
+                                        <h5>Primary Contact Person</h5>
+                                        <div class="mb-3">
+                                            <label for="primaryContactName" class="form-label">Full Name</label>
+                                            <input type="text" class="form-control" id="primaryContactName">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="primaryContactTitle" class="form-label">Title</label>
+                                            <input type="text" class="form-control" id="primaryContactTitle">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="primaryContactEmail" class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="primaryContactEmail">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="primaryContactPhone" class="form-label">Phone</label>
+                                            <input type="tel" class="form-control" id="primaryContactPhone">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="primaryContactMobile" class="form-label">Mobile</label>
+                                            <input type="tel" class="form-control" id="primaryContactMobile">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-section">
+                                        <h5>Business Information</h5>
+                                        <div class="mb-3">
+                                            <label for="registrationNumber" class="form-label">Registration Number</label>
+                                            <input type="text" class="form-control" id="registrationNumber">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="vatNumber" class="form-label">VAT Number</label>
+                                            <input type="text" class="form-control" id="vatNumber">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="accountManagerId" class="form-label">Account Manager</label>
+                                            <select class="form-select" id="accountManagerId">
+                                                <option value="">Select Account Manager</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="creditLimit" class="form-label">Credit Limit (ZAR)</label>
+                                            <input type="number" class="form-control" id="creditLimit" step="0.01">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="paymentTerms" class="form-label">Payment Terms (Days)</label>
+                                            <input type="number" class="form-control" id="paymentTerms" value="30">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-section">
+                                        <h5>Physical Address</h5>
+                                        <div class="mb-3">
+                                            <label for="physicalAddressLine1" class="form-label">Address Line 1</label>
+                                            <input type="text" class="form-control" id="physicalAddressLine1">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="physicalAddressLine2" class="form-label">Address Line 2</label>
+                                            <input type="text" class="form-control" id="physicalAddressLine2">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="physicalCity" class="form-label">City</label>
+                                            <input type="text" class="form-control" id="physicalCity">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="physicalProvince" class="form-label">Province</label>
+                                            <select class="form-select" id="physicalProvince">
+                                                <option value="">Select Province</option>
+                                                <option value="Eastern Cape">Eastern Cape</option>
+                                                <option value="Free State">Free State</option>
+                                                <option value="Gauteng">Gauteng</option>
+                                                <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                                <option value="Limpopo">Limpopo</option>
+                                                <option value="Mpumalanga">Mpumalanga</option>
+                                                <option value="Northern Cape">Northern Cape</option>
+                                                <option value="North West">North West</option>
+                                                <option value="Western Cape">Western Cape</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="physicalPostalCode" class="form-label">Postal Code</label>
+                                            <input type="text" class="form-control" id="physicalPostalCode">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="mb-3">
+                                        <label for="notes" class="form-label">Notes</label>
+                                        <textarea class="form-control" id="notes" rows="4"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="tab-pane fade" id="communications" role="tabpanel">
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-primary mb-3" onclick="crmGrid.addCommunication()">
+                                <i class="fas fa-plus me-1"></i>Log Communication
+                            </button>
+                            <div id="communicationsList">
+                                <!-- Communications will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="quotes" role="tabpanel">
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-primary mb-3" onclick="crmGrid.createQuote()">
+                                <i class="fas fa-plus me-1"></i>Create Quote
+                            </button>
+                            <div id="quotesList">
+                                <!-- Quotes will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="orders" role="tabpanel">
+                        <div class="mt-3">
+                            <div id="ordersList">
+                                <!-- Orders will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveContactBtn">
+                    <i class="fas fa-save me-1"></i>Save Contact
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+

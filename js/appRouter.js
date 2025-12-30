@@ -246,11 +246,6 @@ var _appRouter = function () {
                         initializeDashboard();
                     }
                 },
-                'labour-grid': () => {
-                    if (typeof initializeLabourGrid === 'function') {
-                        initializeLabourGrid();
-                    }
-                },
                 'users-grid': () => {
                     if (typeof initializeUsersGrid === 'function') {
                         initializeUsersGrid();
@@ -266,36 +261,6 @@ var _appRouter = function () {
                         initializeRolePermissionsGrid();
                     }
                 },
-                'compliance-grid': () => {
-                    if (typeof initializeComplianceGrid === 'function') {
-                        initializeComplianceGrid();
-                    }
-                },
-                'chemicals-grid': () => {
-                    if (typeof initializeChemicalsGrid === 'function') {
-                        initializeChemicalsGrid();
-                    }
-                },
-                'crops-grid': () => {
-                    if (typeof initializeCropsGrid === 'function') {
-                        initializeCropsGrid();
-                    }
-                },
-                'assets-grid': () => {
-                    if (typeof initializeAssetsGrid === 'function') {
-                        initializeAssetsGrid();
-                    }
-                },
-                'postharvest-grid': () => {
-                    if (typeof initializePostharvestGrid === 'function') {
-                        initializePostharvestGrid();
-                    }
-                },
-                'water-grid': () => {
-                    if (typeof initializeWaterGrid === 'function') {
-                        initializeWaterGrid();
-                    }
-                },
                 'admin-grid': () => {
                     if (typeof initializeAdminGrid === 'function') {
                         initializeAdminGrid();
@@ -306,29 +271,64 @@ var _appRouter = function () {
                         initializeRoleFeaturesGrid();
                     }
                 },
-                'companies-grid': () => {
-                    if (typeof initializeCompaniesGrid === 'function') {
-                        initializeCompaniesGrid();
+                'crm-grid': () => {
+                    if (typeof initializeCrmGrid === 'function') {
+                        initializeCrmGrid();
                     }
                 },
-                'drivers-grid': () => {
-                    if (typeof initializeDriversGrid === 'function') {
-                        initializeDriversGrid();
+                'grower-intake-grid': () => {
+                    if (typeof initializeGrowerIntakeGrid === 'function') {
+                        initializeGrowerIntakeGrid();
                     }
                 },
-                'vehicles-grid': () => {
-                    if (typeof initializeVehiclesGrid === 'function') {
-                        initializeVehiclesGrid();
+                'kernel-production-grid': () => {
+                    if (typeof initializeKernelProductionGrid === 'function') {
+                        initializeKernelProductionGrid();
                     }
                 },
-                'inspections-grid': () => {
-                    if (typeof initializeInspectionsGrid === 'function') {
-                        initializeInspectionsGrid();
+                'quality-assurance-grid': () => {
+                    if (typeof initializeQualityAssuranceGrid === 'function') {
+                        initializeQualityAssuranceGrid();
                     }
                 },
-                'inspection-form': () => {
-                    if (typeof initializeInspectionForm === 'function') {
-                        initializeInspectionForm();
+                'stock-management-grid': () => {
+                    if (typeof initializeStockManagementGrid === 'function') {
+                        initializeStockManagementGrid();
+                    }
+                },
+                'sales-forecasting-grid': () => {
+                    if (typeof initializeSalesForecastingGrid === 'function') {
+                        initializeSalesForecastingGrid();
+                    }
+                },
+                'oil-production-grid': () => {
+                    if (typeof initializeOilProductionGrid === 'function') {
+                        initializeOilProductionGrid();
+                    }
+                },
+                'financial-management-grid': () => {
+                    if (typeof initializeFinancialManagementGrid === 'function') {
+                        initializeFinancialManagementGrid();
+                    }
+                },
+                'amanda-dashboard': () => {
+                    if (typeof initializeAmandaDashboard === 'function') {
+                        initializeAmandaDashboard();
+                    }
+                },
+                'executive-dashboard': () => {
+                    if (typeof initializeExecutiveDashboard === 'function') {
+                        initializeExecutiveDashboard();
+                    }
+                },
+                'document-management-grid': () => {
+                    if (typeof initializeDocumentManagementGrid === 'function') {
+                        initializeDocumentManagementGrid();
+                    }
+                },
+                'palladium-integration-grid': () => {
+                    if (typeof initializePalladiumIntegrationGrid === 'function') {
+                        initializePalladiumIntegrationGrid();
                     }
                 }
             };

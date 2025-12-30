@@ -1,0 +1,37 @@
+<!-- Stock Management Grid Module -->
+<div class="module-content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Stock Management</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-primary" id="addStockBtn">
+                <i class="fas fa-plus me-1"></i>New Stock Item
+            </button>
+            <button type="button" class="btn btn-secondary" id="stockTakeBtn">
+                <i class="fas fa-clipboard-check me-1"></i>Stock Take
+            </button>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="stockTable">
+                    <thead>
+                        <tr>
+                            <th>Stock Number</th>
+                            <th>Product Type</th>
+                            <th>Style</th>
+                            <th>Batch Number</th>
+                            <th>Quantity (kg)</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+

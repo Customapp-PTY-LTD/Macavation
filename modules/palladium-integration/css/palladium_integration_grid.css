@@ -1,0 +1,4 @@
+/* Palladium Integration Grid Module Styles */
+.module-content { min-height: 400px; }
+#syncTable th { border-top: none; font-weight: 600; }
+

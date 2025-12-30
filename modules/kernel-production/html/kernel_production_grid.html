@@ -1,0 +1,32 @@
+<!-- Kernel Production Grid Module -->
+<div class="module-content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Kernel Production Workflow</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-primary" id="addBatchBtn">
+                <i class="fas fa-plus me-1"></i>New Production Batch
+            </button>
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="batchesTable">
+                    <thead>
+                        <tr>
+                            <th>Batch Number</th>
+                            <th>Supplier</th>
+                            <th>Received Date</th>
+                            <th>Wet NIS (kg)</th>
+                            <th>Current Step</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batchesTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+

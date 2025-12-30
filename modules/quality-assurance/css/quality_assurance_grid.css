@@ -1,0 +1,4 @@
+/* Quality Assurance Grid Module Styles */
+.module-content { min-height: 400px; }
+#testsTable th { border-top: none; font-weight: 600; }
+
