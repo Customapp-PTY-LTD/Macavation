@@ -1,0 +1,984 @@
+# UnderRight Database Setup Instructions
+
+## Overview
+This document provides step-by-step instructions for creating a new Supabase project with the required tables and CRUD functions for the UnderRight application.
+
+## Prerequisites
+- Supabase account with appropriate permissions
+- Access to Supabase CLI (optional but recommended)
+- Basic understanding of PostgreSQL and Supabase
+
+## Project Setup
+
+### Step 1: Create New Supabase Project
+1. Log into your Supabase dashboard
+2. Click "New Project"
+3. Choose your organization
+4. Enter project name: `UnderRight-New` (or your preferred name)
+5. Set a strong database password
+6. Choose your preferred region
+7. Click "Create new project"
+8. Wait for project initialization (2-3 minutes)
+
+### Step 2: Get Project Credentials
+1. Go to Project Settings → API
+2. Copy the following:
+   - Project URL
+   - Anon (public) key
+   - Service role key (keep secure)
+
+## Database Schema Setup
+
+### Table 1: Features
+```sql
+-- Create Features table
+CREATE TABLE "Features" (
+    id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    "Key" VARCHAR(255) NOT NULL UNIQUE,
+    "Name" VARCHAR(255) NOT NULL,
+    "Value" TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    description TEXT
+);
+
+-- Add indexes
+CREATE INDEX idx_features_key ON "Features"("Key");
+CREATE INDEX idx_features_active ON "Features"(is_active);
+
+-- Add comments
+COMMENT ON TABLE "Features" IS 'System features and configuration settings';
+COMMENT ON COLUMN "Features"."Key" IS 'Unique key identifier for the feature';
+COMMENT ON COLUMN "Features"."Name" IS 'Human-readable name of the feature';
+COMMENT ON COLUMN "Features"."Value" IS 'Feature value or configuration data';
+```
+
+### Table 2: IdentityProviders
+```sql
+-- Create IdentityProviders table
+CREATE TABLE "IdentityProviders" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    provider_name TEXT NOT NULL UNIQUE,
+    config_data JSONB NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    description TEXT
+);
+
+-- Add indexes
+CREATE INDEX idx_identity_providers_name ON "IdentityProviders"(provider_name);
+CREATE INDEX idx_identity_providers_active ON "IdentityProviders"(is_active);
+
+-- Add comments
+COMMENT ON TABLE "IdentityProviders" IS 'Authentication and identity provider configurations';
+COMMENT ON COLUMN "IdentityProviders".provider_name IS 'Name of the identity provider (google, microsoft, etc.)';
+COMMENT ON COLUMN "IdentityProviders".config_data IS 'Provider-specific configuration data in JSON format';
+```
+
+### Table 3: UserRoles
+```sql
+-- Create UserRoles table
+CREATE TABLE "UserRoles" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    permissions JSONB DEFAULT '{}',
+    level INTEGER DEFAULT 0
+);
+
+-- Add indexes
+CREATE INDEX idx_user_roles_name ON "UserRoles"(role_name);
+CREATE INDEX idx_user_roles_active ON "UserRoles"(is_active);
+CREATE INDEX idx_user_roles_level ON "UserRoles"(level);
+
+-- Add comments
+COMMENT ON TABLE "UserRoles" IS 'User roles and their configurations';
+COMMENT ON COLUMN "UserRoles".role_name IS 'Unique name of the role';
+COMMENT ON COLUMN "UserRoles".permissions IS 'JSON object containing role permissions';
+COMMENT ON COLUMN "UserRoles".level IS 'Hierarchical level of the role (higher number = more privileges)';
+```
+
+### Table 4: UserRoleFeatures
+```sql
+-- Create UserRoleFeatures table
+CREATE TABLE "UserRoleFeatures" (
+    id BIGSERIAL PRIMARY KEY,
+    role_id UUID NOT NULL REFERENCES "UserRoles"(id) ON DELETE CASCADE,
+    feature_id BIGINT NOT NULL REFERENCES "Features"(id) ON DELETE CASCADE,
+    value TEXT NOT NULL DEFAULT 'False',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(role_id, feature_id)
+);
+
+-- Add indexes
+CREATE INDEX idx_user_role_features_role ON "UserRoleFeatures"(role_id);
+CREATE INDEX idx_user_role_features_feature ON "UserRoleFeatures"(feature_id);
+CREATE INDEX idx_user_role_features_value ON "UserRoleFeatures"(value);
+
+-- Add comments
+COMMENT ON TABLE "UserRoleFeatures" IS 'Many-to-many relationship between user roles and features';
+COMMENT ON COLUMN "UserRoleFeatures".value IS 'Feature value for this specific role';
+```
+
+### Table 5: UserRolePermissions
+```sql
+-- Create UserRolePermissions table
+CREATE TABLE "UserRolePermissions" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_id UUID NOT NULL REFERENCES "UserRoles"(id) ON DELETE CASCADE,
+    object_type VARCHAR(255) NOT NULL,
+    object_name VARCHAR(255) NOT NULL,
+    operation VARCHAR(255) NOT NULL,
+    allowed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(role_id, object_type, object_name, operation)
+);
+
+-- Add indexes
+CREATE INDEX idx_user_role_permissions_role ON "UserRolePermissions"(role_id);
+CREATE INDEX idx_user_role_permissions_object ON "UserRolePermissions"(object_type, object_name);
+CREATE INDEX idx_user_role_permissions_operation ON "UserRolePermissions"(operation);
+CREATE INDEX idx_user_role_permissions_allowed ON "UserRolePermissions"(allowed);
+
+-- Add comments
+COMMENT ON TABLE "UserRolePermissions" IS 'Granular permissions for user roles';
+COMMENT ON COLUMN "UserRolePermissions".object_type IS 'Type of object (table, function, etc.)';
+COMMENT ON COLUMN "UserRolePermissions".object_name IS 'Name of the specific object';
+COMMENT ON COLUMN "UserRolePermissions".operation IS 'Operation type (read, write, delete, etc.)';
+```
+
+### Table 6: Users
+```sql
+-- Create Users table
+CREATE TABLE "Users" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) NOT NULL UNIQUE,
+    full_name VARCHAR(255),
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
+    avatar_url TEXT,
+    google_id VARCHAR(255) UNIQUE,
+    provider VARCHAR(255) DEFAULT 'google',
+    email_verified BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    role_id UUID REFERENCES "UserRoles"(id),
+    password_hash VARCHAR(255),
+    phone VARCHAR(20),
+    timezone VARCHAR(50) DEFAULT 'UTC',
+    preferences JSONB DEFAULT '{}'
+);
+
+-- Add indexes
+CREATE INDEX idx_users_email ON "Users"(email);
+CREATE INDEX idx_users_google_id ON "Users"(google_id);
+CREATE INDEX idx_users_role ON "Users"(role_id);
+CREATE INDEX idx_users_active ON "Users"(is_active);
+CREATE INDEX idx_users_provider ON "Users"(provider);
+
+-- Add comments
+COMMENT ON TABLE "Users" IS 'User accounts and authentication information';
+COMMENT ON COLUMN "Users".email IS 'User email address (unique)';
+COMMENT ON COLUMN "Users".google_id IS 'Google user ID (unique)';
+COMMENT ON COLUMN "Users".provider IS 'Authentication provider (google, email, etc.)';
+COMMENT ON COLUMN "Users".preferences IS 'User preferences stored as JSON';
+```
+
+## CRUD Functions
+
+### Features CRUD Functions
+
+```sql
+-- Create Feature
+CREATE OR REPLACE FUNCTION create_feature(
+    p_key VARCHAR(255),
+    p_name VARCHAR(255),
+    p_value TEXT DEFAULT NULL,
+    p_description TEXT DEFAULT NULL
+) RETURNS "Features" AS $$
+DECLARE
+    result "Features";
+BEGIN
+    INSERT INTO "Features" ("Key", "Name", "Value", description)
+    VALUES (p_key, p_name, p_value, p_description)
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Read Feature
+CREATE OR REPLACE FUNCTION get_feature(p_key VARCHAR(255))
+RETURNS "Features" AS $$
+BEGIN
+    RETURN (SELECT * FROM "Features" WHERE "Key" = p_key AND is_active = TRUE);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Update Feature
+CREATE OR REPLACE FUNCTION update_feature(
+    p_key VARCHAR(255),
+    p_name VARCHAR(255) DEFAULT NULL,
+    p_value TEXT DEFAULT NULL,
+    p_description TEXT DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT NULL
+) RETURNS "Features" AS $$
+DECLARE
+    result "Features";
+BEGIN
+    UPDATE "Features" 
+    SET 
+        "Name" = COALESCE(p_name, "Name"),
+        "Value" = COALESCE(p_value, "Value"),
+        description = COALESCE(p_description, description),
+        is_active = COALESCE(p_is_active, is_active),
+        updated_at = NOW()
+    WHERE "Key" = p_key
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Delete Feature (Soft Delete)
+CREATE OR REPLACE FUNCTION delete_feature(p_key VARCHAR(255))
+RETURNS BOOLEAN AS $$
+BEGIN
+    UPDATE "Features" 
+    SET is_active = FALSE, updated_at = NOW()
+    WHERE "Key" = p_key;
+    
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- List Features
+CREATE OR REPLACE FUNCTION list_features(p_active_only BOOLEAN DEFAULT TRUE)
+RETURNS SETOF "Features" AS $$
+BEGIN
+    IF p_active_only THEN
+        RETURN QUERY SELECT * FROM "Features" WHERE is_active = TRUE ORDER BY "Name";
+    ELSE
+        RETURN QUERY SELECT * FROM "Features" ORDER BY "Name";
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### IdentityProviders CRUD Functions
+
+```sql
+-- Create Identity Provider
+CREATE OR REPLACE FUNCTION create_identity_provider(
+    p_provider_name TEXT,
+    p_config_data JSONB,
+    p_description TEXT DEFAULT NULL
+) RETURNS "IdentityProviders" AS $$
+DECLARE
+    result "IdentityProviders";
+BEGIN
+    INSERT INTO "IdentityProviders" (provider_name, config_data, description)
+    VALUES (p_provider_name, p_config_data, p_description)
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Read Identity Provider
+CREATE OR REPLACE FUNCTION get_identity_provider(p_provider_name TEXT)
+RETURNS "IdentityProviders" AS $$
+BEGIN
+    RETURN (SELECT * FROM "IdentityProviders" WHERE provider_name = p_provider_name AND is_active = TRUE);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Update Identity Provider
+CREATE OR REPLACE FUNCTION update_identity_provider(
+    p_provider_name TEXT,
+    p_config_data JSONB DEFAULT NULL,
+    p_description TEXT DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT NULL
+) RETURNS "IdentityProviders" AS $$
+DECLARE
+    result "IdentityProviders";
+BEGIN
+    UPDATE "IdentityProviders" 
+    SET 
+        config_data = COALESCE(p_config_data, config_data),
+        description = COALESCE(p_description, description),
+        is_active = COALESCE(p_is_active, is_active),
+        updated_at = NOW()
+    WHERE provider_name = p_provider_name
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Delete Identity Provider (Soft Delete)
+CREATE OR REPLACE FUNCTION delete_identity_provider(p_provider_name TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    UPDATE "IdentityProviders" 
+    SET is_active = FALSE, updated_at = NOW()
+    WHERE provider_name = p_provider_name;
+    
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- List Identity Providers
+CREATE OR REPLACE FUNCTION list_identity_providers(p_active_only BOOLEAN DEFAULT TRUE)
+RETURNS SETOF "IdentityProviders" AS $$
+BEGIN
+    IF p_active_only THEN
+        RETURN QUERY SELECT * FROM "IdentityProviders" WHERE is_active = TRUE ORDER BY provider_name;
+    ELSE
+        RETURN QUERY SELECT * FROM "IdentityProviders" ORDER BY provider_name;
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### UserRoles CRUD Functions
+
+```sql
+-- Create User Role
+CREATE OR REPLACE FUNCTION create_user_role(
+    p_role_name VARCHAR(255),
+    p_description TEXT DEFAULT NULL,
+    p_permissions JSONB DEFAULT '{}',
+    p_level INTEGER DEFAULT 0
+) RETURNS "UserRoles" AS $$
+DECLARE
+    result "UserRoles";
+BEGIN
+    INSERT INTO "UserRoles" (role_name, description, permissions, level)
+    VALUES (p_role_name, p_description, p_permissions, p_level)
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Read User Role
+CREATE OR REPLACE FUNCTION get_user_role(p_role_name VARCHAR(255))
+RETURNS "UserRoles" AS $$
+BEGIN
+    RETURN (SELECT * FROM "UserRoles" WHERE role_name = p_role_name AND is_active = TRUE);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Update User Role
+CREATE OR REPLACE FUNCTION update_user_role(
+    p_role_name VARCHAR(255),
+    p_description TEXT DEFAULT NULL,
+    p_permissions JSONB DEFAULT NULL,
+    p_level INTEGER DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT NULL
+) RETURNS "UserRoles" AS $$
+DECLARE
+    result "UserRoles";
+BEGIN
+    UPDATE "UserRoles" 
+    SET 
+        description = COALESCE(p_description, description),
+        permissions = COALESCE(p_permissions, permissions),
+        level = COALESCE(p_level, level),
+        is_active = COALESCE(p_is_active, is_active),
+        updated_at = NOW()
+    WHERE role_name = p_role_name
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Delete User Role (Soft Delete)
+CREATE OR REPLACE FUNCTION delete_user_role(p_role_name VARCHAR(255))
+RETURNS BOOLEAN AS $$
+BEGIN
+    UPDATE "UserRoles" 
+    SET is_active = FALSE, updated_at = NOW()
+    WHERE role_name = p_role_name;
+    
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- List User Roles
+CREATE OR REPLACE FUNCTION list_user_roles(p_active_only BOOLEAN DEFAULT TRUE)
+RETURNS SETOF "UserRoles" AS $$
+BEGIN
+    IF p_active_only THEN
+        RETURN QUERY SELECT * FROM "UserRoles" WHERE is_active = TRUE ORDER BY level DESC, role_name;
+    ELSE
+        RETURN QUERY SELECT * FROM "UserRoles" ORDER BY level DESC, role_name;
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### UserRoleFeatures CRUD Functions
+
+```sql
+-- Create User Role Feature
+CREATE OR REPLACE FUNCTION create_user_role_feature(
+    p_role_id UUID,
+    p_feature_id BIGINT,
+    p_value TEXT DEFAULT 'False'
+) RETURNS "UserRoleFeatures" AS $$
+DECLARE
+    result "UserRoleFeatures";
+BEGIN
+    INSERT INTO "UserRoleFeatures" (role_id, feature_id, value)
+    VALUES (p_role_id, p_feature_id, p_value)
+    ON CONFLICT (role_id, feature_id) 
+    DO UPDATE SET 
+        value = EXCLUDED.value,
+        updated_at = NOW()
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Read User Role Features
+CREATE OR REPLACE FUNCTION get_user_role_features(p_role_id UUID)
+RETURNS TABLE(
+    id BIGINT,
+    role_id UUID,
+    feature_id BIGINT,
+    value TEXT,
+    feature_key VARCHAR(255),
+    feature_name VARCHAR(255),
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        urf.id,
+        urf.role_id,
+        urf.feature_id,
+        urf.value,
+        f."Key" as feature_key,
+        f."Name" as feature_name,
+        urf.created_at,
+        urf.updated_at
+    FROM "UserRoleFeatures" urf
+    JOIN "Features" f ON urf.feature_id = f.id
+    WHERE urf.role_id = p_role_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Update User Role Feature
+CREATE OR REPLACE FUNCTION update_user_role_feature(
+    p_role_id UUID,
+    p_feature_id BIGINT,
+    p_value TEXT
+) RETURNS "UserRoleFeatures" AS $$
+DECLARE
+    result "UserRoleFeatures";
+BEGIN
+    UPDATE "UserRoleFeatures" 
+    SET 
+        value = p_value,
+        updated_at = NOW()
+    WHERE role_id = p_role_id AND feature_id = p_feature_id
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Delete User Role Feature
+CREATE OR REPLACE FUNCTION delete_user_role_feature(
+    p_role_id UUID,
+    p_feature_id BIGINT
+) RETURNS BOOLEAN AS $$
+BEGIN
+    DELETE FROM "UserRoleFeatures" 
+    WHERE role_id = p_role_id AND feature_id = p_feature_id;
+    
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### UserRolePermissions CRUD Functions
+
+```sql
+-- Create User Role Permission
+CREATE OR REPLACE FUNCTION create_user_role_permission(
+    p_role_id UUID,
+    p_object_type VARCHAR(255),
+    p_object_name VARCHAR(255),
+    p_operation VARCHAR(255),
+    p_allowed BOOLEAN DEFAULT FALSE
+) RETURNS "UserRolePermissions" AS $$
+DECLARE
+    result "UserRolePermissions";
+BEGIN
+    INSERT INTO "UserRolePermissions" (role_id, object_type, object_name, operation, allowed)
+    VALUES (p_role_id, p_object_type, p_object_name, p_operation, p_allowed)
+    ON CONFLICT (role_id, object_type, object_name, operation) 
+    DO UPDATE SET 
+        allowed = EXCLUDED.allowed,
+        updated_at = NOW()
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Read User Role Permissions
+CREATE OR REPLACE FUNCTION get_user_role_permissions(p_role_id UUID)
+RETURNS SETOF "UserRolePermissions" AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM "UserRolePermissions" 
+    WHERE role_id = p_role_id
+    ORDER BY object_type, object_name, operation;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Update User Role Permission
+CREATE OR REPLACE FUNCTION update_user_role_permission(
+    p_role_id UUID,
+    p_object_type VARCHAR(255),
+    p_object_name VARCHAR(255),
+    p_operation VARCHAR(255),
+    p_allowed BOOLEAN
+) RETURNS "UserRolePermissions" AS $$
+DECLARE
+    result "UserRolePermissions";
+BEGIN
+    UPDATE "UserRolePermissions" 
+    SET 
+        allowed = p_allowed,
+        updated_at = NOW()
+    WHERE role_id = p_role_id 
+        AND object_type = p_object_type 
+        AND object_name = p_object_name 
+        AND operation = p_operation
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Delete User Role Permission
+CREATE OR REPLACE FUNCTION delete_user_role_permission(
+    p_role_id UUID,
+    p_object_type VARCHAR(255),
+    p_object_name VARCHAR(255),
+    p_operation VARCHAR(255)
+) RETURNS BOOLEAN AS $$
+BEGIN
+    DELETE FROM "UserRolePermissions" 
+    WHERE role_id = p_role_id 
+        AND object_type = p_object_type 
+        AND object_name = p_object_name 
+        AND operation = p_operation;
+    
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Check Permission
+CREATE OR REPLACE FUNCTION check_user_permission(
+    p_user_id UUID,
+    p_object_type VARCHAR(255),
+    p_object_name VARCHAR(255),
+    p_operation VARCHAR(255)
+) RETURNS BOOLEAN AS $$
+DECLARE
+    has_permission BOOLEAN := FALSE;
+BEGIN
+    SELECT COALESCE(urp.allowed, FALSE) INTO has_permission
+    FROM "Users" u
+    JOIN "UserRoles" ur ON u.role_id = ur.id
+    JOIN "UserRolePermissions" urp ON ur.id = urp.role_id
+    WHERE u.id = p_user_id
+        AND urp.object_type = p_object_type
+        AND urp.object_name = p_object_name
+        AND urp.operation = p_operation
+        AND u.is_active = TRUE
+        AND ur.is_active = TRUE;
+    
+    RETURN COALESCE(has_permission, FALSE);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### Users CRUD Functions
+
+```sql
+-- Create User
+CREATE OR REPLACE FUNCTION create_user(
+    p_email VARCHAR(255),
+    p_full_name VARCHAR(255) DEFAULT NULL,
+    p_first_name VARCHAR(255) DEFAULT NULL,
+    p_last_name VARCHAR(255) DEFAULT NULL,
+    p_avatar_url TEXT DEFAULT NULL,
+    p_google_id VARCHAR(255) DEFAULT NULL,
+    p_provider VARCHAR(255) DEFAULT 'google',
+    p_role_id UUID DEFAULT NULL,
+    p_phone VARCHAR(20) DEFAULT NULL,
+    p_timezone VARCHAR(50) DEFAULT 'UTC',
+    p_preferences JSONB DEFAULT '{}'
+) RETURNS "Users" AS $$
+DECLARE
+    result "Users";
+BEGIN
+    INSERT INTO "Users" (
+        email, full_name, first_name, last_name, avatar_url, 
+        google_id, provider, role_id, phone, timezone, preferences
+    )
+    VALUES (
+        p_email, p_full_name, p_first_name, p_last_name, p_avatar_url,
+        p_google_id, p_provider, p_role_id, p_phone, p_timezone, p_preferences
+    )
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Read User
+CREATE OR REPLACE FUNCTION get_user(p_email VARCHAR(255))
+RETURNS "Users" AS $$
+BEGIN
+    RETURN (SELECT * FROM "Users" WHERE email = p_email AND is_active = TRUE);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Read User by ID
+CREATE OR REPLACE FUNCTION get_user_by_id(p_id UUID)
+RETURNS "Users" AS $$
+BEGIN
+    RETURN (SELECT * FROM "Users" WHERE id = p_id AND is_active = TRUE);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Update User
+CREATE OR REPLACE FUNCTION update_user(
+    p_email VARCHAR(255),
+    p_full_name VARCHAR(255) DEFAULT NULL,
+    p_first_name VARCHAR(255) DEFAULT NULL,
+    p_last_name VARCHAR(255) DEFAULT NULL,
+    p_avatar_url TEXT DEFAULT NULL,
+    p_role_id UUID DEFAULT NULL,
+    p_phone VARCHAR(20) DEFAULT NULL,
+    p_timezone VARCHAR(50) DEFAULT NULL,
+    p_preferences JSONB DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT NULL
+) RETURNS "Users" AS $$
+DECLARE
+    result "Users";
+BEGIN
+    UPDATE "Users" 
+    SET 
+        full_name = COALESCE(p_full_name, full_name),
+        first_name = COALESCE(p_first_name, first_name),
+        last_name = COALESCE(p_last_name, last_name),
+        avatar_url = COALESCE(p_avatar_url, avatar_url),
+        role_id = COALESCE(p_role_id, role_id),
+        phone = COALESCE(p_phone, phone),
+        timezone = COALESCE(p_timezone, timezone),
+        preferences = COALESCE(p_preferences, preferences),
+        is_active = COALESCE(p_is_active, is_active),
+        updated_at = NOW()
+    WHERE email = p_email
+    RETURNING * INTO result;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Delete User (Soft Delete)
+CREATE OR REPLACE FUNCTION delete_user(p_email VARCHAR(255))
+RETURNS BOOLEAN AS $$
+BEGIN
+    UPDATE "Users" 
+    SET is_active = FALSE, updated_at = NOW()
+    WHERE email = p_email;
+    
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- List Users
+CREATE OR REPLACE FUNCTION list_users(
+    p_active_only BOOLEAN DEFAULT TRUE,
+    p_limit INTEGER DEFAULT 50,
+    p_offset INTEGER DEFAULT 0
+) RETURNS TABLE(
+    id UUID,
+    email VARCHAR(255),
+    full_name VARCHAR(255),
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
+    role_name VARCHAR(255),
+    is_active BOOLEAN,
+    last_login_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ
+) AS $$
+BEGIN
+    IF p_active_only THEN
+        RETURN QUERY
+        SELECT 
+            u.id,
+            u.email,
+            u.full_name,
+            u.first_name,
+            u.last_name,
+            ur.role_name,
+            u.is_active,
+            u.last_login_at,
+            u.created_at
+        FROM "Users" u
+        LEFT JOIN "UserRoles" ur ON u.role_id = ur.id
+        WHERE u.is_active = TRUE
+        ORDER BY u.created_at DESC
+        LIMIT p_limit OFFSET p_offset;
+    ELSE
+        RETURN QUERY
+        SELECT 
+            u.id,
+            u.email,
+            u.full_name,
+            u.first_name,
+            u.last_name,
+            ur.role_name,
+            u.is_active,
+            u.last_login_at,
+            u.created_at
+        FROM "Users" u
+        LEFT JOIN "UserRoles" ur ON u.role_id = ur.id
+        ORDER BY u.created_at DESC
+        LIMIT p_limit OFFSET p_offset;
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Update Last Login
+CREATE OR REPLACE FUNCTION update_user_last_login(p_email VARCHAR(255))
+RETURNS BOOLEAN AS $$
+BEGIN
+    UPDATE "Users" 
+    SET last_login_at = NOW(), updated_at = NOW()
+    WHERE email = p_email;
+    
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+## Utility Functions
+
+### Get User with Role and Permissions
+```sql
+CREATE OR REPLACE FUNCTION get_user_with_permissions(p_user_id UUID)
+RETURNS TABLE(
+    user_id UUID,
+    email VARCHAR(255),
+    full_name VARCHAR(255),
+    role_id UUID,
+    role_name VARCHAR(255),
+    permissions JSONB
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        u.id as user_id,
+        u.email,
+        u.full_name,
+        ur.id as role_id,
+        ur.role_name,
+        COALESCE(
+            jsonb_object_agg(
+                urp.object_type || '.' || urp.object_name || '.' || urp.operation,
+                urp.allowed
+            ) FILTER (WHERE urp.id IS NOT NULL),
+            '{}'::jsonb
+        ) as permissions
+    FROM "Users" u
+    LEFT JOIN "UserRoles" ur ON u.role_id = ur.id
+    LEFT JOIN "UserRolePermissions" urp ON ur.id = urp.role_id
+    WHERE u.id = p_user_id AND u.is_active = TRUE
+    GROUP BY u.id, u.email, u.full_name, ur.id, ur.role_name;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### Get User Features
+```sql
+CREATE OR REPLACE FUNCTION get_user_features(p_user_id UUID)
+RETURNS TABLE(
+    feature_key VARCHAR(255),
+    feature_name VARCHAR(255),
+    feature_value TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        f."Key" as feature_key,
+        f."Name" as feature_name,
+        urf.value as feature_value
+    FROM "Users" u
+    JOIN "UserRoles" ur ON u.role_id = ur.id
+    JOIN "UserRoleFeatures" urf ON ur.id = urf.role_id
+    JOIN "Features" f ON urf.feature_id = f.id
+    WHERE u.id = p_user_id 
+        AND u.is_active = TRUE 
+        AND ur.is_active = TRUE
+        AND f.is_active = TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+## Row Level Security (RLS) Setup
+
+```sql
+-- Enable RLS on all tables
+ALTER TABLE "Features" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "IdentityProviders" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "UserRoles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "UserRoleFeatures" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "UserRolePermissions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Users" ENABLE ROW LEVEL SECURITY;
+
+-- Basic RLS policies (adjust based on your security requirements)
+-- Features - Read access for authenticated users
+CREATE POLICY "Features read access" ON "Features"
+    FOR SELECT USING (auth.role() = 'authenticated');
+
+-- IdentityProviders - Admin only
+CREATE POLICY "IdentityProviders admin access" ON "IdentityProviders"
+    FOR ALL USING (auth.role() = 'service_role');
+
+-- UserRoles - Read access for authenticated users
+CREATE POLICY "UserRoles read access" ON "UserRoles"
+    FOR SELECT USING (auth.role() = 'authenticated');
+
+-- UserRoleFeatures - Read access for authenticated users
+CREATE POLICY "UserRoleFeatures read access" ON "UserRoleFeatures"
+    FOR SELECT USING (auth.role() = 'authenticated');
+
+-- UserRolePermissions - Read access for authenticated users
+CREATE POLICY "UserRolePermissions read access" ON "UserRolePermissions"
+    FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Users - Users can read their own data
+CREATE POLICY "Users own data access" ON "Users"
+    FOR SELECT USING (auth.uid() = id);
+
+-- Users - Users can update their own data
+CREATE POLICY "Users own data update" ON "Users"
+    FOR UPDATE USING (auth.uid() = id);
+```
+
+## Initial Data Setup
+
+### Default Features
+```sql
+-- Insert default features
+INSERT INTO "Features" ("Key", "Name", "Value", description) VALUES
+('dashboard.access', 'Dashboard Access', 'true', 'Allow access to main dashboard'),
+('users.manage', 'User Management', 'false', 'Allow user management operations'),
+('roles.manage', 'Role Management', 'false', 'Allow role management operations'),
+('reports.view', 'View Reports', 'true', 'Allow viewing of reports'),
+('settings.manage', 'Settings Management', 'false', 'Allow system settings management');
+```
+
+### Default Roles
+```sql
+-- Insert default roles
+INSERT INTO "UserRoles" (role_name, description, level) VALUES
+('Super Admin', 'Full system access', 100),
+('Admin', 'Administrative access', 80),
+('Manager', 'Management level access', 60),
+('User', 'Standard user access', 40),
+('Guest', 'Limited guest access', 20);
+```
+
+### Default Identity Providers
+```sql
+-- Insert default identity providers
+INSERT INTO "IdentityProviders" (provider_name, config_data, description) VALUES
+('google', '{"client_id": "your-google-client-id", "client_secret": "your-google-client-secret"}', 'Google OAuth provider'),
+('email', '{"smtp_host": "smtp.gmail.com", "smtp_port": 587}', 'Email authentication provider');
+```
+
+## Migration Execution Steps
+
+### Step 1: Execute Table Creation
+1. Open Supabase SQL Editor
+2. Copy and paste the table creation SQL
+3. Execute the script
+4. Verify tables are created successfully
+
+### Step 2: Execute Function Creation
+1. Copy and paste all CRUD functions
+2. Execute each function group separately
+3. Verify functions are created without errors
+
+### Step 3: Execute RLS Setup
+1. Copy and paste RLS policies
+2. Execute the RLS setup script
+3. Test policies with different user roles
+
+### Step 4: Insert Initial Data
+1. Execute the initial data scripts
+2. Verify data is inserted correctly
+3. Test the system with sample data
+
+### Step 5: Testing
+1. Test all CRUD functions with sample data
+2. Verify RLS policies work correctly
+3. Test user authentication flow
+4. Verify role-based access control
+
+## Security Considerations
+
+1. **API Keys**: Store service role key securely
+2. **RLS Policies**: Review and customize based on your requirements
+3. **Function Security**: All functions use SECURITY DEFINER for controlled access
+4. **Data Validation**: Add input validation as needed
+5. **Audit Logging**: Consider adding audit trails for sensitive operations
+
+## Maintenance
+
+1. **Regular Backups**: Set up automated database backups
+2. **Monitoring**: Monitor function performance and usage
+3. **Updates**: Keep Supabase and dependencies updated
+4. **Security Reviews**: Regularly review RLS policies and permissions
+
+## Troubleshooting
+
+### Common Issues:
+1. **Permission Errors**: Check RLS policies and function permissions
+2. **Function Errors**: Verify function syntax and dependencies
+3. **Data Issues**: Check foreign key constraints and data types
+4. **Performance**: Add indexes for frequently queried columns
+
+### Support Resources:
+- Supabase Documentation
+- PostgreSQL Documentation
+- Community Forums
+
+---
+
+**Note**: This setup provides a comprehensive foundation for user management, role-based access control, and feature management. Customize the RLS policies, functions, and initial data based on your specific application requirements.
