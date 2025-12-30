@@ -36,6 +36,17 @@
                 "css/dashboard.css"
             ]
         },
+        "my-day": {
+            "description": "My Day - Role-Based Workflow",
+            "path": "my-day",
+            "html": "html/my_day.html",
+            "js": [
+                "js/my_day.js"
+            ],
+            "css": [
+                "css/my_day.css"
+            ]
+        },
         "users-grid": {
             "description": "User Management",
             "path": "users",

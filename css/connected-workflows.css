@@ -1,0 +1,120 @@
+/**
+ * Connected Workflows Styles
+ * Implements Process-Driven Design: Connected Workflows
+ */
+
+.impact-panel,
+.linked-records-panel {
+    margin-top: 1rem;
+}
+
+.impact-list,
+.linked-records-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.impact-item {
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+}
+
+.impact-item.impact-critical {
+    border-left: 4px solid #dc3545;
+    background: #fff5f5;
+}
+
+.impact-item.impact-warning {
+    border-left: 4px solid #ffc107;
+    background: #fffbf0;
+}
+
+.impact-item.impact-info {
+    border-left: 4px solid #0dcaf0;
+    background: #f0f9ff;
+}
+
+.impact-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.impact-icon {
+    font-size: 1.25rem;
+    color: #6c757d;
+}
+
+.impact-title {
+    flex: 1;
+    font-weight: 600;
+}
+
+.impact-body {
+    margin-bottom: 0.75rem;
+}
+
+.impact-description {
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.impact-action-required {
+    padding: 0.75rem;
+    background: rgba(255, 193, 7, 0.1);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.impact-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Linked Records */
+.linked-record-item {
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    margin-bottom: 0.5rem;
+}
+
+/* Conflict Warnings */
+.conflict-warnings {
+    margin-top: 1rem;
+}
+
+.conflict-warnings .alert {
+    border-left: 4px solid #ffc107;
+}
+
+.conflict-warnings ul {
+    margin-top: 0.5rem;
+}
+
+.conflict-warnings li {
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .impact-header {
+        flex-wrap: wrap;
+    }
+    
+    .impact-actions {
+        flex-direction: column;
+    }
+    
+    .impact-actions .btn {
+        width: 100%;
+    }
+}
+

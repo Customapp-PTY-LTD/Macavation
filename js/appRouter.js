@@ -246,6 +246,11 @@ var _appRouter = function () {
                         initializeDashboard();
                     }
                 },
+                'my-day': () => {
+                    if (typeof initializeMyDay === 'function') {
+                        initializeMyDay();
+                    }
+                },
                 'users-grid': () => {
                     if (typeof initializeUsersGrid === 'function') {
                         initializeUsersGrid();
