@@ -296,7 +296,7 @@ var _common = {
     // Wait for dataFunctions to be available
     waitForDataFunctions: async function (maxRetries = 50, delay = 100) {
         for (let i = 0; i < maxRetries; i++) {
-            if (typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getFarms === 'function') {
+            if (typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getContacts === 'function') {
                 return dataFunctions;
             }
             await new Promise(resolve => setTimeout(resolve, delay));
@@ -312,7 +312,7 @@ const common = _common;
 // Also add waitForDataFunctions as a standalone global function for convenience
 window.waitForDataFunctions = async function (maxRetries = 50, delay = 100) {
     for (let i = 0; i < maxRetries; i++) {
-        if (typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getFarms === 'function') {
+        if (typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getContacts === 'function') {
             return dataFunctions;
         }
         await new Promise(resolve => setTimeout(resolve, delay));

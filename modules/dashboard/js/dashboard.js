@@ -28,15 +28,7 @@ async function initializeDashboard() {
         // Set current date
         setCurrentDate();
         
-        // Load farms and set up farm selector first (await to ensure it's ready)
-        try {
-            await loadFarmsAndSetupSelector();
-        } catch (error) {
-            console.error('Error loading farms:', error);
-            // Continue anyway - dashboard can still work without farm selector
-        }
-        
-        // Load dashboard data (will use selected farm from selector)
+        // Load dashboard data
         try {
             await loadDashboardData();
         } catch (error) {
@@ -86,92 +78,6 @@ function setCurrentDate() {
     }
 }
 
-/**
- * Load farms and set up farm selector dropdown
- */
-async function loadFarmsAndSetupSelector() {
-    const farmSelector = document.getElementById('farmSelector');
-    if (!farmSelector) return;
-    
-    try {
-        // Check if dataFunctions is available
-        if (typeof dataFunctions === 'undefined' || !dataFunctions.getFarms) {
-            console.error('dataFunctions.getFarms is not available');
-            farmSelector.innerHTML = '<option value="">Data functions not available</option>';
-            return;
-        }
-        
-        const farmsResponse = await dataFunctions.getFarms();
-        
-        // Handle different response structures
-        let farms = farmsResponse;
-        if (farmsResponse && !Array.isArray(farmsResponse)) {
-            if (farmsResponse.farms && Array.isArray(farmsResponse.farms)) {
-                farms = farmsResponse.farms;
-            } else if (farmsResponse.data && Array.isArray(farmsResponse.data)) {
-                farms = farmsResponse.data;
-            } else if (farmsResponse.result && Array.isArray(farmsResponse.result)) {
-                farms = farmsResponse.result;
-            } else {
-                console.warn('Dashboard - Farms response is not in expected format:', farmsResponse);
-                farms = [];
-            }
-        }
-        
-        if (farms && farms.length > 0) {
-            // Clear loading message
-            farmSelector.innerHTML = '';
-            
-            // Add "All Farms" option first
-            const allFarmsOption = document.createElement('option');
-            allFarmsOption.value = 'all';
-            allFarmsOption.textContent = 'All Farms';
-            farmSelector.appendChild(allFarmsOption);
-            
-            // Populate dropdown with individual farms
-            farms.forEach(farm => {
-                const option = document.createElement('option');
-                option.value = farm.id;
-                option.textContent = farm.name;
-                farmSelector.appendChild(option);
-            });
-            
-            // Get previously selected farm from localStorage, or use "All Farms"
-            const savedFarmId = localStorage.getItem('selectedFarmId');
-            let farmToSelect = 'all'; // Default to "All Farms"
-            
-            if (savedFarmId) {
-                if (savedFarmId === 'all') {
-                    farmToSelect = 'all';
-                } else if (farms.find(f => f.id === savedFarmId)) {
-                    farmToSelect = savedFarmId;
-                }
-            }
-            
-            farmSelector.value = farmToSelect;
-            
-            // Store selected farm
-            localStorage.setItem('selectedFarmId', farmToSelect);
-            
-            // Add change event listener
-            farmSelector.addEventListener('change', function() {
-                const selectedValue = this.value;
-                localStorage.setItem('selectedFarmId', selectedValue);
-                // Reload dashboard data with new selection
-                loadDashboardData().then(() => {
-                    loadAlerts();
-                    loadStats();
-                    loadRecentActivity();
-                });
-            });
-        } else {
-            farmSelector.innerHTML = '<option value="">No farms available</option>';
-        }
-    } catch (error) {
-        console.error('Error loading farms:', error);
-        farmSelector.innerHTML = '<option value="">Error loading farms</option>';
-    }
-}
 
 /**
  * Load dashboard data from API
@@ -385,109 +291,20 @@ function handleQuickAction(route, action) {
 
 async function loadDashboardData() {
     try {
-        // Get selected farm ID from localStorage or selector
-        const farmSelector = document.getElementById('farmSelector');
-        const selectedValue = farmSelector?.value || localStorage.getItem('selectedFarmId') || 'all';
-        
-        // Check if "All Farms" is selected
-        if (selectedValue === 'all') {
-            // For "All Farms" view, show aggregated information
-            const farms = await dataFunctions.getFarms();
-            
-            if (farms && farms.length > 0) {
-                // Calculate totals across all farms
-                const totalHectares = farms.reduce((sum, farm) => sum + (parseFloat(farm.hectares) || 0), 0);
-                const farmCount = farms.length;
-                
-                dashboardData = {
-                    farm: {
-                        id: null,
-                        name: 'All Farms',
-                        location: `${farmCount} farm${farmCount > 1 ? 's' : ''}`,
-                        size: `${totalHectares.toLocaleString('en-ZA', {maximumFractionDigits: 0})} hectares total`,
-                        cropType: 'Portfolio View'
-                    }
-                };
-            } else {
-                dashboardData = {
-                    farm: {
-                        id: null,
-                        name: 'All Farms',
-                        location: 'No farms available',
-                        size: '0 hectares',
-                        cropType: 'Portfolio View'
-                    }
-                };
+        // Dashboard data for Macadamia Management System
+        dashboardData = {
+            company: {
+                name: 'Macavation',
+                description: 'Premium Macadamia Management System'
             }
-            
-            // Update farm selector if it exists
-            if (farmSelector) {
-                farmSelector.value = 'all';
-            }
-            
-            // Store selected value
-            localStorage.setItem('selectedFarmId', 'all');
-        } else {
-            // Single farm view
-            const farms = await dataFunctions.getFarms();
-            let selectedFarm = null;
-            
-            if (farms && farms.length > 0) {
-                selectedFarm = farms.find(f => f.id === selectedValue) || farms[0];
-            }
-            
-            if (selectedFarm) {
-                dashboardData = {
-                    farm: {
-                        id: selectedFarm.id,
-                        name: selectedFarm.name,
-                        location: selectedFarm.location || 'Location not set',
-                        size: selectedFarm.hectares ? `${selectedFarm.hectares} hectares` : 'Size not set',
-                        cropType: selectedFarm.crop_type || 'Not specified'
-                    }
-                };
-                
-                // Update farm selector if it exists
-                if (farmSelector) {
-                    farmSelector.value = selectedFarm.id;
-                }
-                
-                // Store selected farm
-                localStorage.setItem('selectedFarmId', selectedFarm.id);
-            } else {
-                // No farms available - use empty state
-                dashboardData = {
-                    farm: {
-                        name: 'No Farm Selected',
-                        location: 'Select a farm to view details',
-                        size: 'N/A',
-                        cropType: 'N/A'
-                    }
-                };
-            }
-        }
-        
-        // Update farm info display
-        const locationElement = document.getElementById('farmLocation');
-        const sizeElement = document.getElementById('farmSize');
-        
-        if (locationElement) {
-            locationElement.textContent = dashboardData.farm.location;
-        }
-        if (sizeElement) {
-            sizeElement.textContent = dashboardData.farm.size;
-        }
-        
+        };
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         showErrorMessage('Failed to load dashboard data');
-        // Use empty state on error
         dashboardData = {
-            farm: {
-                name: 'Error Loading Data',
-                location: 'Unable to load farm information',
-                size: 'N/A',
-                cropType: 'Apples & Citrus'
+            company: {
+                name: 'Macavation',
+                description: 'Premium Macadamia Management System'
             }
         };
     }
@@ -507,9 +324,7 @@ async function loadAlerts() {
             return;
         }
         
-        // Pass null for "All Farms" view, otherwise pass the farm ID
-        const farmId = dashboardData?.farm?.id || null;
-        const alerts = await dataFunctions.getDashboardAlerts(farmId);
+        const alerts = await dataFunctions.getDashboardAlerts(null);
         
         if (alerts && alerts.length > 0) {
             container.innerHTML = alerts.map(alert => {
@@ -549,9 +364,7 @@ async function loadStats() {
             return;
         }
         
-        // Pass null for "All Farms" view, otherwise pass the farm ID
-        const farmId = dashboardData?.farm?.id || null;
-        const statsData = await dataFunctions.getDashboardStats(farmId);
+        const statsData = await dataFunctions.getDashboardStats(null);
         
         const stats = [
             {
@@ -686,9 +499,7 @@ async function loadRecentActivity() {
             return;
         }
         
-        // Pass null for "All Farms" view, otherwise pass the farm ID
-        const farmId = dashboardData?.farm?.id || null;
-        const activities = await dataFunctions.getRecentActivity(farmId, 10);
+        const activities = await dataFunctions.getRecentActivity(null, 10);
         
         if (activities && activities.length > 0) {
             const iconMap = {

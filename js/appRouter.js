@@ -2,7 +2,7 @@ var _appRouter = function () {
     return {
         version: '2.01',
         routeConfigPath: './js/appRouteConfig.json',
-        baseScripts: ['js/data-functions.js', 'js/farm-selector-utils.js'],
+        baseScripts: ['js/data-functions.js'],
         //--Set in the appRouteConfig.json
         SupabaseUrl: "",
         LambdaProxyUrl: "",
