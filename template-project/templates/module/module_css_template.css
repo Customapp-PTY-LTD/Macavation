@@ -1,0 +1,87 @@
+/* 
+    [MODULE_NAME_DISPLAY] Grid Module Styles
+    File location: modules/[MODULE_NAME]/css/[MODULE_NAME]_grid.css
+*/
+
+/* Module-specific styles */
+[MODULE_NAME]-grid-container {
+    padding: 1.5rem 0;
+}
+
+/* Table styles */
+#table[MODULE_NAME] {
+    font-size: 0.9rem;
+}
+
+#table[MODULE_NAME] thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 0.75rem;
+}
+
+#table[MODULE_NAME] tbody td {
+    vertical-align: middle;
+    padding: 0.75rem;
+}
+
+#table[MODULE_NAME] tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Action buttons */
+.btn-edit-[MODULE_NAME],
+.btn-delete-[MODULE_NAME] {
+    margin: 0 0.25rem;
+}
+
+/* Filter section */
+.filter-section {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Modal styles */
+#modal[MODULE_NAME]Form .modal-body {
+    padding: 1.5rem;
+}
+
+/* Form validation */
+#form[MODULE_NAME] .was-validated .form-control:invalid {
+    border-color: #dc3545;
+}
+
+#form[MODULE_NAME] .was-validated .form-control:valid {
+    border-color: #198754;
+}
+
+/* Loading state */
+[MODULE_NAME]-loading {
+    text-align: center;
+    padding: 2rem;
+}
+
+/* Empty state */
+[MODULE_NAME]-empty {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #table[MODULE_NAME] {
+        font-size: 0.85rem;
+    }
+    
+    #table[MODULE_NAME] thead th,
+    #table[MODULE_NAME] tbody td {
+        padding: 0.5rem;
+    }
+}
+
