@@ -52,15 +52,6 @@
     background-color: transparent;
 }
 
-/* Farm Cards */
-.farm-card {
-    border-left: 4px solid var(--phoenix-primary);
-    transition: border-color 0.3s ease;
-}
-
-.farm-card:hover {
-    border-left-color: var(--theme-sidebar-active);
-}
 
 /* Progress Bars */
 .progress {
@@ -282,24 +273,6 @@
     transition: color 0.3s ease;
 }
 
-/* Labour Pool Distribution */
-#labourPoolContainer .progress {
-    margin-bottom: 0.5rem;
-}
-
-#labourPoolContainer .progress-bar {
-    background-color: var(--phoenix-success);
-    font-weight: 600;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Crop Distribution */
-#cropDistributionContainer .progress-bar {
-    background-color: var(--phoenix-primary);
-}
 
 /* Loading States */
 .spinner-border {
@@ -338,11 +311,6 @@
     }
 }
 
-/* Chart Containers */
-#cropDistributionChart,
-#labourDistributionChart {
-    max-height: 250px;
-}
 
 /* Analytics Cards */
 #analytics .text-center {
@@ -365,16 +333,6 @@
     box-shadow: 0 4px 12px rgba(var(--phoenix-primary-rgb), 0.1);
 }
 
-/* Farm Portfolio Cards */
-#farmsListContainer .card {
-    border-left: 4px solid var(--phoenix-primary);
-    transition: all 0.3s ease;
-}
-
-#farmsListContainer .card:hover {
-    border-left-width: 6px;
-    transform: translateX(2px);
-}
 
 /* Role Definitions Section */
 .card-body .badge {
