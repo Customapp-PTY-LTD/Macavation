@@ -46,7 +46,12 @@ async function initializeDashboard() {
         loadStats();
         loadModules();
         loadRecentActivity();
-        await loadUpcomingTasks();
+        
+        // Load upcoming tasks if container exists
+        const upcomingTasksContainer = document.getElementById('upcomingTasksList');
+        if (upcomingTasksContainer) {
+            await loadUpcomingTasks();
+        }
     } catch (error) {
         console.error('Error initializing Dashboard:', error);
         // Show user-friendly error message
@@ -499,7 +504,19 @@ async function loadRecentActivity() {
             return;
         }
         
-        const activities = await dataFunctions.getRecentActivity(null, 10);
+        // Try to get recent activity, but handle authentication errors gracefully
+        let activities = [];
+        try {
+            activities = await dataFunctions.getRecentActivity(10);
+        } catch (error) {
+            // If authentication error, show empty state instead of error
+            if (error.message && error.message.includes('token')) {
+                console.warn('Authentication required for recent activity');
+                container.innerHTML = '<div class="text-center text-muted py-4"><p>Please log in to view recent activity</p></div>';
+                return;
+            }
+            throw error; // Re-throw if it's a different error
+        }
         
         if (activities && activities.length > 0) {
             const iconMap = {
@@ -558,42 +575,43 @@ function formatTimeAgo(timestamp) {
 }
 
 /**
- * Load and display upcoming tasks
+ * Load and display upcoming tasks (using workflow tasks from Process-Driven Design)
  */
 async function loadUpcomingTasks() {
     const container = document.getElementById('upcomingTasksList');
     if (!container) return;
     
     try {
-        if (typeof dataFunctions === 'undefined' || !dataFunctions.getUpcomingTasks) {
-            console.error('dataFunctions.getUpcomingTasks is not available');
-            container.innerHTML = '<li class="text-center text-muted py-4"><p>Unable to load tasks</p></li>';
-            return;
-        }
-        
-        // Pass null for "All Farms" view, otherwise pass the farm ID
-        const farmId = dashboardData?.farm?.id || null;
-        const tasks = await dataFunctions.getUpcomingTasks(farmId, 5);
-        
-        if (tasks && tasks.length > 0) {
-            container.innerHTML = tasks.map(task => {
-                const priority = task.priority || 'medium';
-                const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No due date';
-                
-                return `
-                    <li class="task-item">
-                        <span class="task-priority-dot priority-${priority}"></span>
-                        <strong>${task.title || 'Task'}</strong>
-                        <br><small class="text-muted">Due: ${dueDate}</small>
-                    </li>
-                `;
-            }).join('');
+        // Use workflow tasks from Process-Driven Design if available
+        if (typeof workflowViews !== 'undefined' && workflowViews.getTasksForRole) {
+            // Get current user's role (you may need to get this from auth service)
+            const userRole = 'user'; // TODO: Get from auth service
+            const tasks = await workflowViews.getTasksForRole(userRole);
+            
+            if (tasks && tasks.length > 0) {
+                const upcomingTasks = tasks.slice(0, 5); // Limit to 5
+                container.innerHTML = upcomingTasks.map(task => {
+                    const dueDate = task.scheduled_date 
+                        ? new Date(task.scheduled_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : 'No due date';
+                    
+                    return `
+                        <li class="task-item">
+                            <span class="task-priority-dot priority-medium"></span>
+                            <strong>${task.title || 'Task'}</strong>
+                            <br><small class="text-muted">Due: ${dueDate}</small>
+                        </li>
+                    `;
+                }).join('');
+            } else {
+                container.innerHTML = '<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>';
+            }
         } else {
             container.innerHTML = '<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>';
         }
     } catch (error) {
         console.error('Error loading upcoming tasks:', error);
-        container.innerHTML = '<li class="text-center text-muted py-4"><p>Unable to load tasks</p></li>';
+        container.innerHTML = '<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>';
     }
 }
 

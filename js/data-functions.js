@@ -274,7 +274,10 @@ var _dataFunctions = function () {
                         
                         if (response.status === 401) {
                             const finalMessage = errorMessage || 'Invalid or expired token';
-                            throw new Error(finalMessage);
+                            // Don't throw for 401 - let caller handle gracefully
+                            const error = new Error(finalMessage);
+                            error.status = 401;
+                            throw error;
                         }
                         
                         throw new Error(errorMessage);
