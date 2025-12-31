@@ -520,11 +520,15 @@ async function loadRecentActivity() {
         
         if (activities && activities.length > 0) {
             const iconMap = {
-                'labour': { icon: 'bi-people-fill', class: 'success' },
-                'compliance': { icon: 'bi-shield-check', class: 'info' },
-                'chemicals': { icon: 'bi-droplet-fill', class: 'warning' },
-                'crops': { icon: 'bi-graph-up', class: 'primary' },
-                'assets': { icon: 'bi-truck', class: 'secondary' }
+                'crm': { icon: 'bi-person-fill', class: 'primary' },
+                'production': { icon: 'bi-gear-fill', class: 'info' },
+                'quality': { icon: 'bi-shield-check', class: 'success' },
+                'stock': { icon: 'bi-box-seam', class: 'warning' },
+                'sales': { icon: 'bi-graph-up', class: 'primary' },
+                'financial': { icon: 'bi-cash-stack', class: 'success' },
+                'document': { icon: 'bi-file-earmark', class: 'secondary' },
+                'grower': { icon: 'bi-truck', class: 'info' },
+                'oil': { icon: 'bi-droplet-fill', class: 'warning' }
             };
             
             container.innerHTML = activities.map(activity => {
