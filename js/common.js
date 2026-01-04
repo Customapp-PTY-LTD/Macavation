@@ -302,6 +302,27 @@ var _common = {
             await new Promise(resolve => setTimeout(resolve, delay));
         }
         throw new Error('dataFunctions not available after waiting');
+    },
+
+    /**
+     * Safely call a dataFunctions method with authentication error handling
+     * @param {Function} dataFunction - The dataFunctions method to call
+     * @param {*} defaultValue - Default value to return on authentication error
+     * @param {string} authMessage - Message to show on authentication error
+     * @returns {Promise<*>} The result or defaultValue on auth error
+     */
+    safeDataCall: async function (dataFunction, defaultValue = null, authMessage = 'Please log in to access this data') {
+        try {
+            return await dataFunction();
+        } catch (error) {
+            // Handle authentication errors gracefully
+            if (error.message && (error.message.includes('token') || error.message.includes('Unauthorized') || error.status === 401)) {
+                console.warn('Authentication required:', authMessage);
+                return defaultValue;
+            }
+            // Re-throw other errors
+            throw error;
+        }
     }
 };
 
