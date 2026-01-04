@@ -258,17 +258,12 @@ var _roleMenuConfig = function () {
 
         /**
          * Check if user has access to a specific route
-         * Currently configured to allow all authenticated users access to all features
          */
         hasAccess: function (route) {
             // Check if user is authenticated (has user_info)
             const userInfo = localStorage.getItem('user_info');
             if (!userInfo) return false;
 
-            // Allow all authenticated users access to all features
-            return true;
-
-            /* Original role-based access logic (disabled):
             const roleName = this.getUserRole();
             if (!roleName) return false;
 
@@ -286,22 +281,16 @@ var _roleMenuConfig = function () {
             }
 
             return false;
-            */
         },
 
         /**
          * Get accessible menus for current user
-         * Currently configured to allow all authenticated users access to all menus
          */
         getAccessibleMenus: function () {
             // Check if user is authenticated (has user_info)
             const userInfo = localStorage.getItem('user_info');
             if (!userInfo) return [];
 
-            // Allow all authenticated users access to all menus
-            return Object.keys(this.menuStructure);
-
-            /* Original role-based access logic (disabled):
             const roleName = this.getUserRole();
             if (!roleName) return [];
 
@@ -319,7 +308,6 @@ var _roleMenuConfig = function () {
             }
 
             return [];
-            */
         },
 
         /**

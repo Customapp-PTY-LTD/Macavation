@@ -98,7 +98,18 @@ async function loadSummary() {
                     document.getElementById('totalUsers').textContent = activeUsers.length;
                     }
                 } catch (error) {
-                    console.warn('Could not load users count:', error);
+                    // Handle permission errors gracefully - don't show error, just set to 0
+                    const errorMessage = error.message || error.toString() || '';
+                    const isPermissionError = error.status === 403 || 
+                                              errorMessage.includes('Access denied') ||
+                                              errorMessage.includes('operation EXECUTE is not allowed') ||
+                                              errorMessage.includes('permission');
+                    if (!isPermissionError) {
+                        console.warn('Could not load users count:', error);
+                    }
+                    // Set to 0 if permission error or other error
+                    const totalUsersEl = document.getElementById('totalUsers');
+                    if (totalUsersEl) totalUsersEl.textContent = '0';
                 }
             }
             
@@ -110,7 +121,18 @@ async function loadSummary() {
                     document.getElementById('totalRoles').textContent = roles.length;
                 }
             } catch (error) {
-                console.warn('Could not load roles count:', error);
+                // Handle permission errors gracefully - don't show error, just set to 0
+                const errorMessage = error.message || error.toString() || '';
+                const isPermissionError = error.status === 403 || 
+                                          errorMessage.includes('Access denied') ||
+                                          errorMessage.includes('operation EXECUTE is not allowed') ||
+                                          errorMessage.includes('permission');
+                if (!isPermissionError) {
+                    console.warn('Could not load roles count:', error);
+                }
+                // Set to 0 if permission error or other error
+                const totalRolesEl = document.getElementById('totalRoles');
+                if (totalRolesEl) totalRolesEl.textContent = '0';
             }
         }
         
@@ -159,7 +181,26 @@ async function loadUsers() {
         
     } catch (error) {
         console.error('Error loading users:', error);
-        showNotification('Failed to load users', 'error');
+        
+        // Check if it's a permission error
+        const errorMessage = error.message || error.toString() || '';
+        const isPermissionError = error.status === 403 || 
+                                  errorMessage.includes('Access denied') ||
+                                  errorMessage.includes('operation EXECUTE is not allowed') ||
+                                  errorMessage.includes('permission');
+        
+        if (isPermissionError) {
+            // Show user-friendly permission error message
+            showNotification('You do not have permission to view users. Please contact your administrator.', 'warning');
+            // Set empty users array and render empty state
+            adminData.users = [];
+            renderUsersTable(adminData.users);
+            updateUserStats(adminData.users);
+            updateRoleFilter();
+        } else {
+            // Show generic error for other issues
+            showNotification('Failed to load users. Please try again later.', 'error');
+        }
     }
 }
 
@@ -315,7 +356,26 @@ async function loadRoles() {
         
     } catch (error) {
         console.error('Error loading roles:', error);
-        showNotification('Failed to load roles', 'error');
+        
+        // Check if it's a permission error
+        const errorMessage = error.message || error.toString() || '';
+        const isPermissionError = error.status === 403 || 
+                                  errorMessage.includes('Access denied') ||
+                                  errorMessage.includes('operation EXECUTE is not allowed') ||
+                                  errorMessage.includes('permission');
+        
+        if (isPermissionError) {
+            // Show user-friendly permission error message
+            showNotification('You do not have permission to view roles. Please contact your administrator.', 'warning');
+            // Set empty roles array and render empty state
+            adminData.roles = [];
+            renderRolesTable(adminData.roles);
+            renderRoleDefinitions(adminData.roles);
+            updateRoleSelects(adminData.roles);
+        } else {
+            // Show generic error for other issues
+            showNotification('Failed to load roles. Please try again later.', 'error');
+        }
     }
 }
 

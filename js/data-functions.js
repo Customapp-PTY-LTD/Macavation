@@ -348,7 +348,10 @@ var _dataFunctions = function () {
                             throw error;
                         }
                         
-                        throw new Error(errorMessage);
+                        // Create error with status code for proper error handling
+                        const error = new Error(errorMessage);
+                        error.status = response.status;
+                        throw error;
                     }
 
                     const responseText = await response.text();

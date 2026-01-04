@@ -452,6 +452,11 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="#" route="my-day">
+                                    <i class="fas fa-calendar-day me-2"></i>My Day
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="#" route="amanda-dashboard">
                                     <i class="fas fa-chart-line me-2"></i>Material Journey Dashboard
                                 </a>
@@ -460,38 +465,6 @@
                                 <a class="nav-link" href="#" route="executive-dashboard">
                                     <i class="fas fa-chart-bar me-2"></i>Executive Dashboard
                                 </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link active" href="#" data-bs-toggle="collapse"
-                                    data-bs-target="#userManagementCollapse" aria-expanded="false"
-                                    aria-controls="userManagementCollapse">
-                                    <i class="fas fa-users me-2"></i>User Management
-                                    <i class="fas fa-chevron-right ms-auto"></i>
-                                </a>
-                                <div class="collapse" id="userManagementCollapse">
-                                    <ul class="nav flex-column ms-3">
-                                        <li class="nav-item">
-                                            <a class="nav-link" href="#" route="users-grid">
-                                                <i class="fas fa-user me-2"></i>Users
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" href="#" route="roles-grid">
-                                                <i class="fas fa-user-tag me-2"></i>Roles
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" href="#" route="role-permissions-grid">
-                                                <i class="fas fa-key me-2"></i>Database Role Permissions
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" href="#" route="role-features-grid">
-                                                <i class="fas fa-cog me-2"></i>Role Features
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
@@ -595,6 +568,38 @@
                                 <a class="nav-link" href="#" route="admin-grid">
                                     <i class="fas fa-cog me-2"></i>System Administration
                                 </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-bs-toggle="collapse"
+                                    data-bs-target="#userManagementCollapse" aria-expanded="false"
+                                    aria-controls="userManagementCollapse">
+                                    <i class="fas fa-users me-2"></i>User Management
+                                    <i class="fas fa-chevron-right ms-auto"></i>
+                                </a>
+                                <div class="collapse" id="userManagementCollapse">
+                                    <ul class="nav flex-column ms-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="users-grid">
+                                                <i class="fas fa-user me-2"></i>Users
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="roles-grid">
+                                                <i class="fas fa-user-tag me-2"></i>Roles
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="role-permissions-grid">
+                                                <i class="fas fa-key me-2"></i>Database Role Permissions
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="role-features-grid">
+                                                <i class="fas fa-cog me-2"></i>Role Features
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </li>
                         </ul>
                     </div>
@@ -842,8 +847,26 @@
                 // Update role display
                 const roleDisplay = document.getElementById('userRoleDisplay');
                 if (roleDisplay) {
-                    const roleName = user.role_name || user.role || 'User';
-                    roleDisplay.textContent = roleName;
+                    // Get role name from user object - check multiple possible fields
+                    let roleName = user.role_name || user.role || 'User';
+                    
+                    // If role is an object, extract the name
+                    if (typeof roleName === 'object' && roleName !== null) {
+                        roleName = roleName.role_name || roleName.name || 'User';
+                    }
+                    
+                    // Format role name for display (remove "PWA " prefix for cleaner display)
+                    const displayRole = roleName.startsWith('PWA ') ? roleName : roleName;
+                    roleDisplay.textContent = displayRole;
+                    
+                    // Add a badge or styling for PWA users
+                    if (roleName.startsWith('PWA ')) {
+                        roleDisplay.className = 'text-muted badge bg-info';
+                    } else if (roleName === 'admin' || roleName === 'super_user') {
+                        roleDisplay.className = 'text-muted badge bg-primary';
+                    } else {
+                        roleDisplay.className = 'text-muted';
+                    }
                 }
             } catch (error) {
                 console.error('Error loading user info:', error);

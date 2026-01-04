@@ -36,32 +36,26 @@ var _menuFilter = function () {
             console.log('[Menu Filter] Is PWA User:', isPWAUser);
             console.log('[Menu Filter] Is Admin:', isAdmin);
 
-            // Allow all authenticated users access to all menus
-            // Show all menu items (no filtering)
-            this.showAllMenus();
-
-            // Handle parent collapse menus
-            this.updateParentMenus();
-
-            // Note: Admin sections are now visible to all users
-            // To restore role-based filtering, uncomment the code below:
-            /*
-            // Hide all menu items first
-            this.hideAllMenus();
-
-            // Show accessible menus
-            accessibleMenus.forEach(route => {
-                this.showMenu(route);
-            });
-
-            // Handle parent collapse menus
-            this.updateParentMenus();
-
-            // If PWA user, hide admin-only sections
+            // If PWA user, apply role-based filtering
             if (isPWAUser) {
+                // Hide all menu items first
+                this.hideAllMenus();
+
+                // Show accessible menus
+                accessibleMenus.forEach(route => {
+                    this.showMenu(route);
+                });
+
+                // Handle parent collapse menus
+                this.updateParentMenus();
+
+                // Hide admin-only sections
                 this.hideAdminSections();
+            } else {
+                // Admin and super_user see all menus
+                this.showAllMenus();
+                this.updateParentMenus();
             }
-            */
         },
 
         /**
