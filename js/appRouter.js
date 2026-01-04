@@ -146,6 +146,30 @@ var _appRouter = function () {
                     return { success: false, errors: ['Authentication required'] };
                 }
 
+                // Check role-based menu access
+                if (typeof roleMenuConfig !== 'undefined') {
+                    const hasAccess = roleMenuConfig.hasAccess(routeName);
+                    if (!hasAccess) {
+                        console.log(`[App Router] Access denied for route: ${routeName}`);
+                        // Show permission error
+                        const contentArea = document.getElementById('content-area');
+                        if (contentArea) {
+                            contentArea.innerHTML = `
+                                <div class="alert alert-warning" role="alert">
+                                    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Access Denied</h4>
+                                    <p>You do not have permission to access this module.</p>
+                                    <hr>
+                                    <p class="mb-0">Redirecting to dashboard...</p>
+                                </div>
+                            `;
+                            setTimeout(() => {
+                                _appRouter.routeTo('dashboard');
+                            }, 3000);
+                        }
+                        return { success: false, errors: ['Insufficient permissions'] };
+                    }
+                }
+
                 // Check if this is a user management module
                 const userManagementModules = ['users-grid', 'roles-grid', 'role-permissions-grid', 'role-features-grid'];
 
@@ -161,11 +185,11 @@ var _appRouter = function () {
                                     <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Access Denied</h4>
                                     <p>You need admin or manager role to access user management.</p>
                                     <hr>
-                                    <p class="mb-0">Redirecting to users grid...</p>
+                                    <p class="mb-0">Redirecting to dashboard...</p>
                                 </div>
                             `;
                             setTimeout(() => {
-                                _appRouter.routeTo('users-grid');
+                                _appRouter.routeTo('dashboard');
                             }, 3000);
                         }
                         return { success: false, errors: ['Insufficient permissions'] };

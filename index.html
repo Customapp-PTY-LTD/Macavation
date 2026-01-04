@@ -729,6 +729,10 @@
     <script src="js/data-validation.js"></script>
     <script src="js/offline-helpers.js"></script>
     
+    <!-- Role-Based Menu Scripts -->
+    <script src="js/role-menu-config.js"></script>
+    <script src="js/menu-filter.js"></script>
+    
     <script src="js/appRouter.js"></script>
     <script src="js/app.js"></script>
 
@@ -795,6 +799,14 @@
 
             // Load and display user information
             updateUserDisplay();
+
+            // Initialize role-based menu filtering
+            if (typeof menuFilter !== 'undefined') {
+                // Wait a bit for DOM to be ready
+                setTimeout(() => {
+                    menuFilter.init();
+                }, 500);
+            }
         });
 
         /**
