@@ -1,5 +1,5 @@
 /**
- * Amanda Dashboard Module - Material Journey Tracking
+ * Material Journey Dashboard Module - Material Journey Tracking
  */
 var _amandaDashboard = function () {
     return {

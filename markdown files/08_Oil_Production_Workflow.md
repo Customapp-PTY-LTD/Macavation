@@ -402,7 +402,7 @@ CREATE TABLE oil_gmp_checklists (
 - Tank inventory management
 - Batch genealogy (kernel to oil traceability)
 - GMP checklist compliance
-- Amanda Dashboard integration for material journey
+- Material Journey Dashboard integration for material journey
 
 ## Testing Checklist
 

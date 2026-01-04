@@ -146,7 +146,9 @@ var _appRouter = function () {
                     return { success: false, errors: ['Authentication required'] };
                 }
 
-                // Check role-based menu access
+                // Role-based menu access check (currently disabled - all users have access)
+                // To re-enable role-based access, uncomment the code below:
+                /*
                 if (typeof roleMenuConfig !== 'undefined') {
                     const hasAccess = roleMenuConfig.hasAccess(routeName);
                     if (!hasAccess) {
@@ -169,6 +171,7 @@ var _appRouter = function () {
                         return { success: false, errors: ['Insufficient permissions'] };
                     }
                 }
+                */
 
                 // Check if this is a user management module
                 const userManagementModules = ['users-grid', 'roles-grid', 'role-permissions-grid', 'role-features-grid'];

@@ -48,7 +48,7 @@ The following modules have routes configured but need HTML/JS/CSS files:
    - Route: `financial-management-grid`
    - Needs: HTML, JS, CSS files
 
-9. **Amanda Dashboard Module** (`modules/amanda-dashboard/`)
+9. **Material Journey Dashboard Module** (`modules/amanda-dashboard/`)
    - Route: `amanda-dashboard`
    - Needs: HTML, JS, CSS files (Note: This is a dashboard, not a grid)
 

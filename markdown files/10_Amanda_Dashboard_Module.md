@@ -1,11 +1,11 @@
-# Amanda Dashboard Module (Material Journey Tracking)
+# Material Journey Dashboard Module
 
 ## Overview
-Real-time tracking dashboard showing the complete journey of material from grower intake through production to final dispatch. Named "Amanda" after the key stakeholder managing intake and stock.
+Real-time tracking dashboard showing the complete journey of material from grower intake through production to final dispatch.
 
 ## Purpose
 
-The Amanda Dashboard provides:
+The Material Journey Dashboard provides:
 - **Real-time visibility** of all batches in the system
 - **Material journey tracking** from NIS receipt to finished goods dispatch
 - **Status at every production step** for both kernel and oil production
@@ -96,17 +96,17 @@ CREATE INDEX idx_dashboard_alerts_batch ON dashboard_alerts(batch_number);
 
 ## Frontend Implementation
 
-### Amanda Dashboard HTML
+### Material Journey Dashboard HTML
 ```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amanda Dashboard - Material Journey</title>
+    <title>Material Journey Dashboard</title>
     <style>
         /* Dashboard specific styles */
-        .amanda-dashboard {
+        .material-journey-dashboard {
             background: #f5f7fa;
             min-height: 100vh;
             padding: 20px;
@@ -317,10 +317,10 @@ CREATE INDEX idx_dashboard_alerts_batch ON dashboard_alerts(batch_number);
     </style>
 </head>
 <body>
-    <div class="amanda-dashboard">
+    <div class="material-journey-dashboard">
         <!-- Dashboard Header -->
         <div class="dashboard-header">
-            <h1 class="dashboard-title">Amanda Dashboard</h1>
+            <h1 class="dashboard-title">Material Journey Dashboard</h1>
             <p class="dashboard-subtitle">Real-Time Material Journey Tracking</p>
             <p class="dashboard-subtitle">Last updated: <span id="lastUpdate">Loading...</span></p>
         </div>
@@ -601,7 +601,7 @@ class AmandaDashboard {
     }
 }
 
-// Initialize Amanda Dashboard
+// Initialize Material Journey Dashboard
 const amandaDashboard = new AmandaDashboard();
 ```
 
