@@ -11,6 +11,46 @@
             </button>
         </div>
     </div>
+    
+    <!-- Search and Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="searchBatchesInput" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="searchBatchesInput" placeholder="Search by batch number, grower, or status...">
+                </div>
+                <div class="col-md-3">
+                    <label for="filterBatchStatus" class="form-label">Status</label>
+                    <select class="form-select" id="filterBatchStatus">
+                        <option value="">All Statuses</option>
+                        <option value="receiving">Receiving</option>
+                        <option value="cracking">Cracking</option>
+                        <option value="drying">Drying</option>
+                        <option value="sorting_dry">Sorting Dry</option>
+                        <option value="packing">Packing</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filterBatchStep" class="form-label">Current Step</label>
+                    <select class="form-select" id="filterBatchStep">
+                        <option value="">All Steps</option>
+                        <option value="1-5">Steps 1-5</option>
+                        <option value="6-10">Steps 6-10</option>
+                        <option value="11-15">Steps 11-15</option>
+                        <option value="16-17">Steps 16-17</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" id="clearBatchFiltersBtn">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="card mb-4">
         <div class="card-body">
             <div class="table-responsive">

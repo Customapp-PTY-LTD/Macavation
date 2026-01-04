@@ -4,6 +4,8 @@
 var _stockManagementGrid = function () {
     return {
         stockItems: [],
+        filteredStockItems: [],
+        searchTimeout: null,
         init: function () {
             this.setupEventListeners();
             this.loadStockItems();
@@ -16,6 +18,55 @@ var _stockManagementGrid = function () {
             $('#stockTakeBtn').on('click', function () {
                 Swal.fire('Info', 'Stock take feature coming soon', 'info');
             });
+            
+            // Search with debouncing
+            $('#searchStockInput').on('input', function () {
+                clearTimeout(scope.searchTimeout);
+                scope.searchTimeout = setTimeout(() => {
+                    scope.filterStockItems();
+                }, 300);
+            });
+            
+            // Filters
+            $('#filterStockStatus, #filterStockProduct, #filterStockLocation').on('change', function () {
+                scope.filterStockItems();
+            });
+            
+            // Clear filters
+            $('#clearStockFiltersBtn').on('click', function () {
+                $('#searchStockInput').val('');
+                $('#filterStockStatus').val('');
+                $('#filterStockProduct').val('');
+                $('#filterStockLocation').val('');
+                scope.filterStockItems();
+            });
+        },
+        filterStockItems: function () {
+            const searchTerm = $('#searchStockInput').val().toLowerCase();
+            const statusFilter = $('#filterStockStatus').val();
+            const productFilter = $('#filterStockProduct').val();
+            const locationFilter = $('#filterStockLocation').val();
+            
+            this.filteredStockItems = this.stockItems.filter(item => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    (item.stock_number && item.stock_number.toLowerCase().includes(searchTerm)) ||
+                    (item.batch_number && item.batch_number.toLowerCase().includes(searchTerm)) ||
+                    (item.location && item.location.toLowerCase().includes(searchTerm));
+                
+                // Status filter
+                const matchesStatus = !statusFilter || item.status === statusFilter;
+                
+                // Product filter
+                const matchesProduct = !productFilter || item.product_type === productFilter;
+                
+                // Location filter
+                const matchesLocation = !locationFilter || item.location === locationFilter;
+                
+                return matchesSearch && matchesStatus && matchesProduct && matchesLocation;
+            });
+            
+            this.renderStockItems();
         },
         loadStockItems: async function (forceRefresh = false) {
             try {
@@ -25,6 +76,7 @@ var _stockManagementGrid = function () {
                 console.log(`[Performance] Stock items loaded in ${loadTime.toFixed(2)}ms`);
                 
                 this.stockItems = items || [];
+                this.filteredStockItems = this.stockItems;
                 this.renderStockItems();
             } catch (error) {
                 console.error('Error loading stock items:', error);
@@ -33,11 +85,15 @@ var _stockManagementGrid = function () {
         renderStockItems: function () {
             const tbody = $('#stockTableBody');
             tbody.empty();
-            if (this.stockItems.length === 0) {
-                tbody.html('<tr><td colspan="8" class="text-center text-muted">No stock items found</td></tr>');
+            if (this.filteredStockItems.length === 0) {
+                if (this.stockItems.length === 0) {
+                    tbody.html('<tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No stock items found. Click "New Stock Item" to create one.</td></tr>');
+                } else {
+                    tbody.html('<tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No stock items match your search criteria. Try adjusting your filters.</td></tr>');
+                }
                 return;
             }
-            this.stockItems.forEach(item => {
+            this.filteredStockItems.forEach(item => {
                 const statusClass = item.status === 'available' ? 'bg-success' : 
                                   item.status === 'reserved' ? 'bg-warning' : 'bg-secondary';
                 const row = `<tr>

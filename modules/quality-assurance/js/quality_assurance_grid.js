@@ -4,6 +4,8 @@
 var _qualityAssuranceGrid = function () {
     return {
         tests: [],
+        filteredTests: [],
+        searchTimeout: null,
         init: function () {
             this.setupEventListeners();
             this.loadTests();
@@ -13,6 +15,50 @@ var _qualityAssuranceGrid = function () {
             $('#addTestBtn').on('click', function () {
                 Swal.fire('Info', 'New quality test form coming soon', 'info');
             });
+            
+            // Search with debouncing
+            $('#searchTestsInput').on('input', function () {
+                clearTimeout(scope.searchTimeout);
+                scope.searchTimeout = setTimeout(() => {
+                    scope.filterTests();
+                }, 300);
+            });
+            
+            // Filters
+            $('#filterTestType, #filterTestResult').on('change', function () {
+                scope.filterTests();
+            });
+            
+            // Clear filters
+            $('#clearTestFiltersBtn').on('click', function () {
+                $('#searchTestsInput').val('');
+                $('#filterTestType').val('');
+                $('#filterTestResult').val('');
+                scope.filterTests();
+            });
+        },
+        filterTests: function () {
+            const searchTerm = $('#searchTestsInput').val().toLowerCase();
+            const typeFilter = $('#filterTestType').val();
+            const resultFilter = $('#filterTestResult').val();
+            
+            this.filteredTests = this.tests.filter(test => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    (test.test_number && test.test_number.toLowerCase().includes(searchTerm)) ||
+                    (test.batch_number && test.batch_number.toLowerCase().includes(searchTerm)) ||
+                    (test.overall_result && test.overall_result.toLowerCase().includes(searchTerm));
+                
+                // Type filter
+                const matchesType = !typeFilter || test.test_type === typeFilter;
+                
+                // Result filter
+                const matchesResult = !resultFilter || test.overall_result === resultFilter;
+                
+                return matchesSearch && matchesType && matchesResult;
+            });
+            
+            this.renderTests();
         },
         loadTests: async function (forceRefresh = false) {
             try {
@@ -22,6 +68,7 @@ var _qualityAssuranceGrid = function () {
                 console.log(`[Performance] Quality tests loaded in ${loadTime.toFixed(2)}ms`);
                 
                 this.tests = tests || [];
+                this.filteredTests = this.tests;
                 this.renderTests();
             } catch (error) {
                 console.error('Error loading tests:', error);
@@ -30,11 +77,15 @@ var _qualityAssuranceGrid = function () {
         renderTests: function () {
             const tbody = $('#testsTableBody');
             tbody.empty();
-            if (this.tests.length === 0) {
-                tbody.html('<tr><td colspan="7" class="text-center text-muted">No quality tests found</td></tr>');
+            if (this.filteredTests.length === 0) {
+                if (this.tests.length === 0) {
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No quality tests found. Click "New Quality Test" to create one.</td></tr>');
+                } else {
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No tests match your search criteria. Try adjusting your filters.</td></tr>');
+                }
                 return;
             }
-            this.tests.forEach(test => {
+            this.filteredTests.forEach(test => {
                 const badgeClass = test.overall_result === 'pass' ? 'bg-success' : 
                                  test.overall_result === 'fail' ? 'bg-danger' : 'bg-warning';
                 const row = `<tr>

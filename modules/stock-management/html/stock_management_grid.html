@@ -14,6 +14,51 @@
             </button>
         </div>
     </div>
+    
+    <!-- Search and Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="searchStockInput" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="searchStockInput" placeholder="Search by stock number, batch, or location...">
+                </div>
+                <div class="col-md-2">
+                    <label for="filterStockStatus" class="form-label">Status</label>
+                    <select class="form-select" id="filterStockStatus">
+                        <option value="">All Statuses</option>
+                        <option value="available">Available</option>
+                        <option value="reserved">Reserved</option>
+                        <option value="hold">Hold</option>
+                        <option value="dispatched">Dispatched</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="filterStockProduct" class="form-label">Product Type</label>
+                    <select class="form-select" id="filterStockProduct">
+                        <option value="">All Types</option>
+                        <option value="kernel">Kernel</option>
+                        <option value="oil">Oil</option>
+                        <option value="nis">NIS</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="filterStockLocation" class="form-label">Location</label>
+                    <select class="form-select" id="filterStockLocation">
+                        <option value="">All Locations</option>
+                        <option value="Warehouse A">Warehouse A</option>
+                        <option value="Warehouse B">Warehouse B</option>
+                        <option value="Warehouse C">Warehouse C</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" id="clearStockFiltersBtn">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="card mb-4">
         <div class="card-body">

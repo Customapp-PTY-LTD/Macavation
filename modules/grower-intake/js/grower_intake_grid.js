@@ -9,6 +9,7 @@ var _growerIntakeGrid = function () {
         filteredSamples: [],
         currentPage: 1,
         itemsPerPage: 20,
+        searchTimeout: null,
 
         init: function () {
             this.setupEventListeners();
@@ -20,6 +21,61 @@ var _growerIntakeGrid = function () {
             $('#addSampleBtn').on('click', function () {
                 scope.showAddSampleModal();
             });
+            
+            // Search with debouncing
+            $('#searchSamplesInput').on('input', function () {
+                clearTimeout(scope.searchTimeout);
+                scope.searchTimeout = setTimeout(() => {
+                    scope.filterSamples();
+                }, 300);
+            });
+            
+            // Filters
+            $('#filterSampleStatus, #filterSampleDate').on('change', function () {
+                scope.filterSamples();
+            });
+            
+            // Clear filters
+            $('#clearSampleFiltersBtn').on('click', function () {
+                $('#searchSamplesInput').val('');
+                $('#filterSampleStatus').val('');
+                $('#filterSampleDate').val('');
+                scope.filterSamples();
+            });
+        },
+        filterSamples: function () {
+            const searchTerm = $('#searchSamplesInput').val().toLowerCase();
+            const statusFilter = $('#filterSampleStatus').val();
+            const dateFilter = $('#filterSampleDate').val();
+            
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            this.filteredSamples = this.samples.filter(sample => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    (sample.submission_number && sample.submission_number.toLowerCase().includes(searchTerm)) ||
+                    (sample.grower_name && sample.grower_name.toLowerCase().includes(searchTerm)) ||
+                    (sample.status && sample.status.toLowerCase().includes(searchTerm));
+                
+                // Status filter
+                const matchesStatus = !statusFilter || sample.status === statusFilter;
+                
+                // Date filter
+                let matchesDate = true;
+                if (dateFilter && sample.delivery_date) {
+                    const deliveryDate = new Date(sample.delivery_date);
+                    if (dateFilter === 'today') matchesDate = deliveryDate >= today;
+                    else if (dateFilter === 'week') matchesDate = deliveryDate >= weekAgo;
+                    else if (dateFilter === 'month') matchesDate = deliveryDate >= monthAgo;
+                }
+                
+                return matchesSearch && matchesStatus && matchesDate;
+            });
+            
+            this.renderSamples();
         },
 
         loadSamples: async function (forceRefresh = false) {
@@ -43,7 +99,11 @@ var _growerIntakeGrid = function () {
             tbody.empty();
 
             if (this.filteredSamples.length === 0) {
-                tbody.html('<tr><td colspan="7" class="text-center text-muted">No sample submissions found</td></tr>');
+                if (this.samples.length === 0) {
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No sample submissions found. Click "New Sample Submission" to create one.</td></tr>');
+                } else {
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No samples match your search criteria. Try adjusting your filters.</td></tr>');
+                }
                 return;
             }
 

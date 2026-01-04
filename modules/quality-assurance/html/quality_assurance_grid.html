@@ -11,6 +11,42 @@
             </button>
         </div>
     </div>
+    
+    <!-- Search and Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="searchTestsInput" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="searchTestsInput" placeholder="Search by test number, batch, or result...">
+                </div>
+                <div class="col-md-3">
+                    <label for="filterTestType" class="form-label">Test Type</label>
+                    <select class="form-select" id="filterTestType">
+                        <option value="">All Types</option>
+                        <option value="sample">Sample</option>
+                        <option value="batch">Batch</option>
+                        <option value="final_product">Final Product</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filterTestResult" class="form-label">Result</label>
+                    <select class="form-select" id="filterTestResult">
+                        <option value="">All Results</option>
+                        <option value="pass">Pass</option>
+                        <option value="conditional_pass">Conditional Pass</option>
+                        <option value="fail">Fail</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" id="clearTestFiltersBtn">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="card mb-4">
         <div class="card-body">
