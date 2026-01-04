@@ -269,6 +269,15 @@ var _roleFeaturesGrid = function () {
             const endIndex = startIndex + this.itemsPerPage;
             const featuresToShow = this.filteredFeatures.slice(startIndex, endIndex);
 
+            if (featuresToShow.length === 0) {
+                const emptyMessage = this.filteredFeatures.length === 0 && this.features.length === 0
+                    ? '<tr><td colspan="6" class="text-center py-4"><div class="text-muted"><i class="fas fa-info-circle me-2"></i>No role features found. Role features functionality is not yet implemented. Please use role_permissions for access control.</div></td></tr>'
+                    : '<tr><td colspan="6" class="text-center py-4"><div class="text-muted">No features match your search criteria.</div></td></tr>';
+                $('#featuresTableBody').html(emptyMessage);
+                $('#pagination').empty();
+                return;
+            }
+
             const featuresHtml = featuresToShow.map(feature => `
                 <tr>
                     <td>
