@@ -16,18 +16,19 @@ var _oilProductionGrid = function () {
         },
         loadBatches: async function () {
             try {
-                const batches = await dataFunctions.callFunction('get_oil_production_batches', {});
+                const batches = await dataFunctions.getOilProductionBatches().catch(() => []);
                 this.batches = batches || [];
                 this.renderBatches();
             } catch (error) {
                 console.error('Error loading oil batches:', error);
+                this.showError('Unable to load oil production batches. Please try again later.');
             }
         },
         renderBatches: function () {
             const tbody = $('#oilBatchesTableBody');
             tbody.empty();
             if (this.batches.length === 0) {
-                tbody.html('<tr><td colspan="6" class="text-center text-muted">No oil production batches found</td></tr>');
+                tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No oil production batches found. Click "New Oil Production Batch" to create one.</td></tr>');
                 return;
             }
             this.batches.forEach(batch => {
@@ -43,7 +44,30 @@ var _oilProductionGrid = function () {
             });
         },
         viewBatch: function (batchId) {
-            Swal.fire('Info', 'Oil batch details coming soon', 'info');
+            Swal.fire('Info', 'Oil batch details view is under development', 'info');
+        },
+        showError: function (message) {
+            Swal.fire({ icon: 'error', title: 'Error', text: message });
+        },
+        exportBatches: function () {
+            if (!this.batches || this.batches.length === 0) {
+                Swal.fire('Info', 'No batches to export', 'info');
+                return;
+            }
+            
+            const columns = [
+                { key: 'batch_number', label: 'Batch Number' },
+                { key: 'input_material', label: 'Input Material' },
+                { key: 'input_quantity_kg', label: 'Input Quantity (kg)' },
+                { key: 'oil_produced_l', label: 'Oil Produced (L)' },
+                { key: 'status', label: 'Status' }
+            ];
+            
+            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                exportUtils.exportToCSV(this.batches, 'oil_production_batches', columns);
+            } else {
+                Swal.fire('Error', 'Export utility not available', 'error');
+            }
         }
     };
 }();

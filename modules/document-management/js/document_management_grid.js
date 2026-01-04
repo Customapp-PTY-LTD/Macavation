@@ -16,18 +16,19 @@ var _documentManagementGrid = function () {
         },
         loadDocuments: async function () {
             try {
-                const documents = await dataFunctions.callFunction('get_documents', {});
+                const documents = await dataFunctions.getDocuments().catch(() => []);
                 this.documents = documents || [];
                 this.renderDocuments();
             } catch (error) {
                 console.error('Error loading documents:', error);
+                this.showError('Unable to load documents. Please try again later.');
             }
         },
         renderDocuments: function () {
             const tbody = $('#documentsTableBody');
             tbody.empty();
             if (this.documents.length === 0) {
-                tbody.html('<tr><td colspan="6" class="text-center text-muted">No documents found</td></tr>');
+                tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No documents found. Click "Upload Document" to add one.</td></tr>');
                 return;
             }
             this.documents.forEach(doc => {
@@ -49,7 +50,10 @@ var _documentManagementGrid = function () {
             Swal.fire('Info', 'Document viewer coming soon', 'info');
         },
         downloadDocument: function (docId) {
-            Swal.fire('Info', 'Document download coming soon', 'info');
+            Swal.fire('Info', 'Document download is under development', 'info');
+        },
+        showError: function (message) {
+            Swal.fire({ icon: 'error', title: 'Error', text: message });
         }
     };
 }();
