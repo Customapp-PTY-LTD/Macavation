@@ -84,7 +84,30 @@ var _crmGrid = function () {
             try {
                 this.showLoading();
                 const startTime = performance.now();
-                const contacts = await dataFunctions.getContacts(null, forceRefresh);
+                let contacts = [];
+                
+                try {
+                    contacts = await dataFunctions.getContacts(null, forceRefresh);
+                } catch (error) {
+                    // Handle authentication errors gracefully
+                    if (error.message && error.message.includes('token')) {
+                        console.warn('Authentication required for contacts');
+                        this.contacts = [];
+                        this.filteredContacts = [];
+                        this.renderContacts();
+                        this.hideLoading();
+                        // Show user-friendly message
+                        // Show user-friendly message (use showError if showInfo doesn't exist)
+                        if (typeof this.showInfo === 'function') {
+                            this.showInfo('Please log in to view contacts');
+                        } else {
+                            console.info('Please log in to view contacts');
+                        }
+                        return;
+                    }
+                    throw error; // Re-throw if it's a different error
+                }
+                
                 const loadTime = performance.now() - startTime;
                 console.log(`[Performance] Contacts loaded in ${loadTime.toFixed(2)}ms`);
                 
@@ -101,7 +124,24 @@ var _crmGrid = function () {
 
         loadAccountManagers: async function () {
             try {
-                const users = await dataFunctions.getUsers();
+                let users = [];
+                
+                try {
+                    users = await dataFunctions.getUsers();
+                } catch (error) {
+                    // Handle authentication errors gracefully
+                    if (error.message && error.message.includes('token')) {
+                        console.warn('Authentication required for account managers');
+                        // Set empty options
+                        const select = $('#accountManagerId');
+                        const filterSelect = $('#filterAccountManager');
+                        select.html('<option value="">Please log in</option>');
+                        filterSelect.html('<option value="">All Managers</option>');
+                        return;
+                    }
+                    throw error; // Re-throw if it's a different error
+                }
+                
                 const select = $('#accountManagerId');
                 const filterSelect = $('#filterAccountManager');
                 
@@ -120,6 +160,11 @@ var _crmGrid = function () {
                 filterSelect.html(filterHtml);
             } catch (error) {
                 console.error('Error loading account managers:', error);
+                // Set empty options on error
+                const select = $('#accountManagerId');
+                const filterSelect = $('#filterAccountManager');
+                select.html('<option value="">Error loading managers</option>');
+                filterSelect.html('<option value="">All Managers</option>');
             }
         },
 
