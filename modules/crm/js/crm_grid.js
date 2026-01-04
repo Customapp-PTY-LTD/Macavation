@@ -97,12 +97,8 @@ var _crmGrid = function () {
                         this.renderContacts();
                         this.hideLoading();
                         // Show user-friendly message
-                        // Show user-friendly message (use showError if showInfo doesn't exist)
-                        if (typeof this.showInfo === 'function') {
-                            this.showInfo('Please log in to view contacts');
-                        } else {
-                            console.info('Please log in to view contacts');
-                        }
+                        // Show user-friendly message
+                        this.showInfo('Please log in to view contacts');
                         return;
                     }
                     throw error; // Re-throw if it's a different error
@@ -464,6 +460,18 @@ var _crmGrid = function () {
                 icon: 'error',
                 title: 'Error',
                 text: message
+            });
+        },
+
+        showInfo: function (message) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Information',
+                text: message,
+                timer: 3000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
             });
         },
 
