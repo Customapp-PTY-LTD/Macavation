@@ -274,6 +274,14 @@ var _dataFunctions = function () {
                         
                         if (response.status === 401) {
                             const finalMessage = errorMessage || 'Invalid or expired token';
+                            // Clear authentication data
+                            localStorage.removeItem('lambda_token');
+                            localStorage.removeItem('user_info');
+                            localStorage.removeItem('client_guid');
+                            // Redirect to login page after a short delay to show message
+                            setTimeout(() => {
+                                window.location.href = 'signin.html';
+                            }, 1000);
                             // Don't throw for 401 - let caller handle gracefully
                             const error = new Error(finalMessage);
                             error.status = 401;

@@ -136,7 +136,7 @@ async function loadMetrics() {
         const batches = await dataFunctions.getProductionBatches().catch(() => []);
         const stockItems = await dataFunctions.getStockItems().catch(() => []);
         
-        // Calculate metrics with context
+        // Calculate metrics with context - make them clickable
         const metrics = [
             {
                 title: 'Active Batches',
@@ -147,7 +147,8 @@ async function loadMetrics() {
                 trend: 5, // Example trend
                 trendPeriod: 'vs. last week',
                 icon: 'bi-box-seam',
-                color: 'primary'
+                color: 'primary',
+                actionUrl: 'kernel-production-grid' // Click to view production batches
             },
             {
                 title: 'Quality Pass Rate',
@@ -158,7 +159,8 @@ async function loadMetrics() {
                 trend: -2, // Example trend
                 trendPeriod: 'vs. last month',
                 icon: 'bi-check-circle',
-                color: kpis.quality_pass_rate >= 95 ? 'success' : kpis.quality_pass_rate >= 80 ? 'warning' : 'danger'
+                color: kpis.quality_pass_rate >= 95 ? 'success' : kpis.quality_pass_rate >= 80 ? 'warning' : 'danger',
+                actionUrl: 'quality-assurance-grid' // Click to view quality tests
             },
             {
                 title: 'Total Production',
@@ -169,7 +171,8 @@ async function loadMetrics() {
                 trend: 10,
                 trendPeriod: 'vs. last month',
                 icon: 'bi-graph-up',
-                color: 'info'
+                color: 'info',
+                actionUrl: 'kernel-production-grid' // Click to view production batches
             },
             {
                 title: 'Total Sales',
@@ -180,7 +183,8 @@ async function loadMetrics() {
                 trend: 8,
                 trendPeriod: 'vs. last month',
                 icon: 'bi-currency-dollar',
-                color: 'success'
+                color: 'success',
+                actionUrl: 'financial-management-grid' // Click to view financial transactions
             }
         ];
         

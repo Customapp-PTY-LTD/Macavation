@@ -480,8 +480,28 @@ var _crmGrid = function () {
         },
 
         exportContacts: function () {
-            // TODO: Implement export functionality
-            Swal.fire('Info', 'Export feature coming soon', 'info');
+            if (!this.contacts || this.contacts.length === 0) {
+                Swal.fire('Info', 'No contacts to export', 'info');
+                return;
+            }
+            
+            const columns = [
+                { key: 'company_name', label: 'Company Name' },
+                { key: 'trading_name', label: 'Trading Name' },
+                { key: 'contact_type', label: 'Contact Type' },
+                { key: 'primary_contact_name', label: 'Primary Contact' },
+                { key: 'primary_contact_email', label: 'Email' },
+                { key: 'primary_contact_phone', label: 'Phone' },
+                { key: 'account_manager_name', label: 'Account Manager' },
+                { key: 'status', label: 'Status' },
+                { key: 'key_account', label: 'Key Account' }
+            ];
+            
+            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                exportUtils.exportToCSV(this.contacts, 'contacts', columns);
+            } else {
+                Swal.fire('Error', 'Export utility not available', 'error');
+            }
         }
     };
 }();

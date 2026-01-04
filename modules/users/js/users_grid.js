@@ -468,7 +468,24 @@ var _usersGrid = function () {
         },
 
         exportUsers: function () {
-            Swal.fire('Info', 'Export feature coming soon', 'info');
+            if (!this.users || this.users.length === 0) {
+                Swal.fire('Info', 'No users to export', 'info');
+                return;
+            }
+            
+            const columns = [
+                { key: 'username', label: 'Username' },
+                { key: 'email', label: 'Email' },
+                { key: 'role', label: 'Role' },
+                { key: 'is_active', label: 'Active' },
+                { key: 'created_at', label: 'Created At' }
+            ];
+            
+            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                exportUtils.exportToCSV(this.users, 'users', columns);
+            } else {
+                Swal.fire('Error', 'Export utility not available', 'error');
+            }
         }
     }
 }();

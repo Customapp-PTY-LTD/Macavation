@@ -19,7 +19,8 @@ var _metricUI = function () {
                 trendPeriod = 'vs. last period',
                 exceptions = [],
                 icon = 'bi-graph-up',
-                color = 'primary'
+                color = 'primary',
+                actionUrl = null
             } = metric;
             
             // Calculate percentage if target exists
@@ -39,8 +40,13 @@ var _metricUI = function () {
                 ? (percentage >= 100 ? 'status-excellent' : percentage >= 80 ? 'status-good' : percentage >= 60 ? 'status-warning' : 'status-critical')
                 : '';
             
+            // Make metric clickable if actionUrl is provided
+            const clickableClass = actionUrl ? 'metric-card-clickable' : '';
+            const onClick = actionUrl ? `onclick="if(typeof _appRouter !== 'undefined') { _appRouter.routeTo('${actionUrl}'); } else { window.location.href='#${actionUrl}'; }"` : '';
+            const titleAttr = actionUrl ? 'title="Click to view details"' : '';
+            
             return `
-                <div class="metric-card ${statusClass}">
+                <div class="metric-card ${statusClass} ${clickableClass}" ${onClick} ${titleAttr}>
                     <div class="metric-header">
                         <span class="metric-icon">
                             <i class="bi ${icon}"></i>
@@ -70,10 +76,17 @@ var _metricUI = function () {
                     </div>
                     ${exceptions && exceptions.length > 0 ? `
                         <div class="metric-footer">
-                            <a href="#" onclick="metricUI.viewExceptions('${title}')" class="metric-exceptions-link">
+                            <a href="#" onclick="event.stopPropagation(); metricUI.viewExceptions('${title}')" class="metric-exceptions-link">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
                                 ${exceptions.length} item${exceptions.length !== 1 ? 's' : ''} need attention
                             </a>
+                        </div>
+                    ` : ''}
+                    ${actionUrl ? `
+                        <div class="metric-footer">
+                            <small class="text-muted">
+                                <i class="bi bi-arrow-right-circle me-1"></i>Click to view details
+                            </small>
                         </div>
                     ` : ''}
                 </div>

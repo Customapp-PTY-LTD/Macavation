@@ -163,6 +163,22 @@
     text-decoration: underline;
 }
 
+/* Clickable Metric Cards */
+.metric-card-clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.metric-card-clickable:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    border-color: #17a2b8;
+}
+
+.metric-card-clickable:active {
+    transform: translateY(-2px);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .metric-value {
