@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Macavation - Admin Portal</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2D4A3E">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Macavation">
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -32,6 +37,8 @@
     <link href="css/connected-workflows.css" rel="stylesheet">
     <!-- Mobile-First Styles -->
     <link href="css/mobile-first.css" rel="stylesheet">
+    <!-- PWA Offline Styles -->
+    <link href="css/pwa-offline.css" rel="stylesheet">
     <!-- Performance Utilities -->
     <script src="js/performance-utils.js"></script>
     <!-- Anomaly Detection -->
@@ -714,12 +721,56 @@
     <script src="js/auth-service.js"></script>
     <script src="js/common.js"></script>
     <script src="js/export-utils.js"></script>
+    
+    <!-- Offline PWA Scripts -->
+    <script src="js/offline-storage.js"></script>
+    <script src="js/offline-sync.js"></script>
+    <script src="js/offline-detector.js"></script>
+    <script src="js/data-validation.js"></script>
+    <script src="js/offline-helpers.js"></script>
+    
     <script src="js/appRouter.js"></script>
     <script src="js/app.js"></script>
 
     <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('[PWA] Service Worker registered:', registration.scope);
+                        
+                        // Check for updates
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New service worker available
+                                    if (confirm('A new version is available. Reload to update?')) {
+                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('[PWA] Service Worker registration failed:', error);
+                    });
+            });
+        }
+
         // Initialize application
         document.addEventListener('DOMContentLoaded', function () {
+            // Initialize offline services first
+            if (typeof offlineDetector !== 'undefined') {
+                offlineDetector.init();
+            }
+            
+            if (typeof offlineSync !== 'undefined') {
+                offlineSync.init();
+            }
+
             // Check authentication first
             const isAuthenticated = (typeof dataFunctions !== 'undefined' && dataFunctions.isAuthenticated()) ||
                 (typeof authService !== 'undefined' && authService.isAuthenticated());

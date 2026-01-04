@@ -50,6 +50,28 @@ var _kernelProductionGrid = function () {
         },
         viewBatch: function (batchId) {
             Swal.fire('Info', 'Batch details view coming soon', 'info');
+        },
+        
+        exportBatches: function () {
+            if (!this.batches || this.batches.length === 0) {
+                Swal.fire('Info', 'No batches to export', 'info');
+                return;
+            }
+            
+            const columns = [
+                { key: 'batch_number', label: 'Batch Number' },
+                { key: 'grower_name', label: 'Supplier' },
+                { key: 'received_date', label: 'Received Date' },
+                { key: 'wet_nis_received_kg', label: 'Wet NIS (kg)' },
+                { key: 'current_step', label: 'Current Step' },
+                { key: 'status', label: 'Status' }
+            ];
+            
+            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                exportUtils.exportToCSV(this.batches, 'production_batches', columns);
+            } else {
+                Swal.fire('Error', 'Export utility not available', 'error');
+            }
         }
     };
 }();

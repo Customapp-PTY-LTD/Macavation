@@ -51,6 +51,30 @@ var _qualityAssuranceGrid = function () {
         },
         viewTest: function (testId) {
             Swal.fire('Info', 'Test details view coming soon', 'info');
+        },
+        
+        exportTests: function () {
+            if (!this.tests || this.tests.length === 0) {
+                Swal.fire('Info', 'No tests to export', 'info');
+                return;
+            }
+            
+            const columns = [
+                { key: 'test_number', label: 'Test Number' },
+                { key: 'test_type', label: 'Test Type' },
+                { key: 'product_type', label: 'Product Type' },
+                { key: 'batch_number', label: 'Batch Number' },
+                { key: 'test_date', label: 'Test Date' },
+                { key: 'overall_result', label: 'Result' },
+                { key: 'moisture_percentage', label: 'Moisture %' },
+                { key: 'ffa_percentage', label: 'FFA %' }
+            ];
+            
+            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                exportUtils.exportToCSV(this.tests, 'quality_tests', columns);
+            } else {
+                Swal.fire('Error', 'Export utility not available', 'error');
+            }
         }
     };
 }();

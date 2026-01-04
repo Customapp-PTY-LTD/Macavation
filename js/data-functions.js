@@ -211,7 +211,7 @@ var _dataFunctions = function () {
         },
 
         /**
-         * Generic function call to Lambda proxy with caching and request deduplication
+         * Generic function call to Lambda proxy with caching, request deduplication, and offline support
          */
         callFunction: async function (functionName, params = {}, token = null, options = {}) {
             const authToken = token || this.getToken();
@@ -225,13 +225,73 @@ var _dataFunctions = function () {
             const useCache = options.useCache !== false; // Default to true
             const cacheTtl = options.cacheTtl || this.cache.ttl.dynamic;
             const forceRefresh = options.forceRefresh === true;
+            const isOfflineOperation = options.offlineOperation !== false; // Default to true - allow offline queuing
 
-            // Return cached data if available and not forcing refresh
-            if (useCache && !forceRefresh) {
+            // Check if we're offline
+            const isOffline = !navigator.onLine;
+
+            // Return cached data if available and not forcing refresh (for GET operations)
+            if (useCache && !forceRefresh && !isOffline) {
                 const cached = this.getCached(cacheKey);
                 if (cached !== null) {
                     console.log(`[Cache Hit] ${functionName}`);
                     return cached;
+                }
+            }
+
+            // If offline and this is a write operation (create/update/delete), queue it
+            if (isOffline && isOfflineOperation) {
+                const isWriteOperation = functionName.includes('create') || 
+                                       functionName.includes('update') || 
+                                       functionName.includes('delete') ||
+                                       functionName.includes('deactivate');
+
+                if (isWriteOperation) {
+                    console.log(`[Offline] Queuing request: ${functionName}`);
+                    
+                    // Queue the request for later sync
+                    if (typeof offlineStorage !== 'undefined') {
+                        try {
+                            await offlineStorage.queueRequest({
+                                functionName: functionName,
+                                params: params,
+                                module: options.module || this.detectModuleFromFunction(functionName)
+                            });
+
+                            // Return success response indicating it was queued
+                            return {
+                                success: true,
+                                offline: true,
+                                queued: true,
+                                message: 'Request queued for sync when online'
+                            };
+                        } catch (error) {
+                            console.error('[Offline] Failed to queue request:', error);
+                            // Fall through to try network anyway
+                        }
+                    } else {
+                        // Offline storage not available, return queued response
+                        return {
+                            success: true,
+                            offline: true,
+                            queued: true,
+                            message: 'Request queued for sync when online'
+                        };
+                    }
+                } else {
+                    // For read operations when offline, try to return cached data
+                    const cached = this.getCached(cacheKey);
+                    if (cached !== null) {
+                        console.log(`[Offline Cache Hit] ${functionName}`);
+                        return {
+                            ...cached,
+                            offline: true,
+                            cached: true
+                        };
+                    }
+                    
+                    // No cached data available
+                    throw new Error('No internet connection and no cached data available');
                 }
             }
 
@@ -307,6 +367,32 @@ var _dataFunctions = function () {
 
                     return data;
                 } catch (error) {
+                    // If network error and offline, try to queue if it's a write operation
+                    if (isOffline && isOfflineOperation && error.message.includes('Failed to fetch')) {
+                        const isWriteOperation = functionName.includes('create') || 
+                                               functionName.includes('update') || 
+                                               functionName.includes('delete') ||
+                                               functionName.includes('deactivate');
+
+                        if (isWriteOperation && typeof offlineStorage !== 'undefined') {
+                            try {
+                                await offlineStorage.queueRequest({
+                                    functionName: functionName,
+                                    params: params,
+                                    module: options.module || this.detectModuleFromFunction(functionName)
+                                });
+
+                                return {
+                                    success: true,
+                                    offline: true,
+                                    queued: true,
+                                    message: 'Request queued for sync when online'
+                                };
+                            } catch (queueError) {
+                                console.error('[Offline] Failed to queue request:', queueError);
+                            }
+                        }
+                    }
                     throw error;
                 } finally {
                     // Remove from pending requests
@@ -317,6 +403,24 @@ var _dataFunctions = function () {
             // Store pending request
             this.cache.pendingRequests.set(requestKey, requestPromise);
             return requestPromise;
+        },
+
+        /**
+         * Detect module name from function name
+         */
+        detectModuleFromFunction: function (functionName) {
+            if (functionName.includes('user')) return 'users';
+            if (functionName.includes('role')) return 'roles';
+            if (functionName.includes('contact')) return 'crm';
+            if (functionName.includes('sample') || functionName.includes('grower')) return 'grower-intake';
+            if (functionName.includes('production') || functionName.includes('batch')) return 'kernel-production';
+            if (functionName.includes('quality') || functionName.includes('test')) return 'quality-assurance';
+            if (functionName.includes('stock') || functionName.includes('item')) return 'stock-management';
+            if (functionName.includes('oil')) return 'oil-production';
+            if (functionName.includes('sales') || functionName.includes('forecast')) return 'sales-forecasting';
+            if (functionName.includes('financial') || functionName.includes('transaction')) return 'financial-management';
+            if (functionName.includes('document')) return 'document-management';
+            return 'unknown';
         },
 
         // ===== USER MANAGEMENT FUNCTIONS =====

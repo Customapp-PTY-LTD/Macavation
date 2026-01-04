@@ -77,6 +77,28 @@ var _growerIntakeGrid = function () {
 
         showError: function (message) {
             Swal.fire({ icon: 'error', title: 'Error', text: message });
+        },
+        
+        exportSamples: function () {
+            if (!this.samples || this.samples.length === 0) {
+                Swal.fire('Info', 'No samples to export', 'info');
+                return;
+            }
+            
+            const columns = [
+                { key: 'submission_number', label: 'Submission Number' },
+                { key: 'grower_name', label: 'Grower' },
+                { key: 'delivery_date', label: 'Delivery Date' },
+                { key: 'wet_nut_in_shell_kg', label: 'Wet NIS (kg)' },
+                { key: 'moisture_content_percentage', label: 'Moisture %' },
+                { key: 'status', label: 'Status' }
+            ];
+            
+            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                exportUtils.exportToCSV(this.samples, 'sample_submissions', columns);
+            } else {
+                Swal.fire('Error', 'Export utility not available', 'error');
+            }
         }
     };
 }();

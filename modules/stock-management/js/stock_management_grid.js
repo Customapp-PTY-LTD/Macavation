@@ -55,6 +55,30 @@ var _stockManagementGrid = function () {
         },
         viewItem: function (itemId) {
             Swal.fire('Info', 'Stock item details coming soon', 'info');
+        },
+        
+        exportStock: function () {
+            if (!this.stockItems || this.stockItems.length === 0) {
+                Swal.fire('Info', 'No stock items to export', 'info');
+                return;
+            }
+            
+            const columns = [
+                { key: 'stock_number', label: 'Stock Number' },
+                { key: 'product_type', label: 'Product Type' },
+                { key: 'style', label: 'Style' },
+                { key: 'batch_number', label: 'Batch Number' },
+                { key: 'quantity_kg', label: 'Quantity (kg)' },
+                { key: 'location', label: 'Location' },
+                { key: 'status', label: 'Status' },
+                { key: 'quality_status', label: 'Quality Status' }
+            ];
+            
+            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                exportUtils.exportToCSV(this.stockItems, 'stock_items', columns);
+            } else {
+                Swal.fire('Error', 'Export utility not available', 'error');
+            }
         }
     };
 }();
