@@ -391,7 +391,7 @@ CREATE INDEX idx_dashboard_alerts_batch ON dashboard_alerts(batch_number);
         </div>
     </div>
 
-    <script src="/js/amanda-dashboard.js"></script>
+    <script src="/js/material-journey-dashboard.js"></script>
 </body>
 </html>
 ```
@@ -602,7 +602,7 @@ class AmandaDashboard {
 }
 
 // Initialize Material Journey Dashboard
-const amandaDashboard = new AmandaDashboard();
+const materialJourneyDashboard = new MaterialJourneyDashboard();
 ```
 
 ## Key Features
