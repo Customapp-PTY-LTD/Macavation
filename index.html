@@ -812,6 +812,18 @@
                     menuFilter.init();
                 }, 500);
             }
+
+            // Ensure User Management menu is collapsed by default
+            const userManagementCollapse = document.getElementById('userManagementCollapse');
+            if (userManagementCollapse) {
+                // Remove 'show' class if it exists (ensures collapsed state)
+                userManagementCollapse.classList.remove('show');
+                // Ensure aria-expanded is false
+                const userManagementToggle = document.querySelector('[data-bs-target="#userManagementCollapse"]');
+                if (userManagementToggle) {
+                    userManagementToggle.setAttribute('aria-expanded', 'false');
+                }
+            }
         });
 
         /**
