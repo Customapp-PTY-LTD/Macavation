@@ -835,10 +835,9 @@
                 // Verify order - User Management should come before System Administration
                 const userManagementNextSibling = userManagementItem.nextElementSibling;
                 if (userManagementNextSibling !== systemAdminItem) {
-                    // If order is wrong, fix it
-                    userManagementItem.insertAdjacentElement('beforebegin', systemAdminItem);
-                    systemAdminItem.insertAdjacentElement('afterend', userManagementItem);
-                    console.log('[Sidebar] Fixed User Management menu position - should be before System Administration');
+                    // If order is wrong, move User Management to be directly before System Administration
+                    systemAdminItem.insertAdjacentElement('beforebegin', userManagementItem);
+                    console.log('[Sidebar] Fixed User Management menu position - now before System Administration');
                 }
             }
         });
