@@ -60,7 +60,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Nunito+Sans:wght@300;400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
 
     <style>
@@ -90,7 +90,7 @@
         }
 
         .navbar-brand span {
-            font-family: 'Cormorant Garamond', serif;
+            font-family: 'Tahoma', sans-serif;
             font-size: 1.5rem;
             letter-spacing: 1px;
         }
@@ -168,7 +168,7 @@
         h4,
         h5,
         h6 {
-            font-family: 'Cormorant Garamond', serif;
+            font-family: 'Tahoma', sans-serif;
             color: var(--macadamia-dark);
         }
 
@@ -267,7 +267,7 @@
         }
 
         .swal2-title {
-            font-family: 'Cormorant Garamond', serif !important;
+            font-family: 'Tahoma', sans-serif !important;
             color: var(--macadamia-dark) !important;
         }
 
@@ -859,6 +859,24 @@
                 // Update role display
                 const roleDisplay = document.getElementById('userRoleDisplay');
                 if (roleDisplay) {
+                    // Function to update role display
+                    const updateRoleDisplay = (roleName) => {
+                        if (!roleName) {
+                            roleName = 'User';
+                        }
+                        
+                        roleDisplay.textContent = roleName;
+                        
+                        // Add a badge or styling based on role type
+                        if (roleName.startsWith('PWA ')) {
+                            roleDisplay.className = 'text-muted badge bg-info';
+                        } else if (roleName === 'admin' || roleName === 'super_user') {
+                            roleDisplay.className = 'text-muted badge bg-primary';
+                        } else {
+                            roleDisplay.className = 'text-muted';
+                        }
+                    };
+                    
                     // Get role name from user object - check multiple possible fields
                     let roleName = null;
                     
@@ -874,54 +892,76 @@
                         else if (typeof user.role === 'object' && user.role !== null) {
                             roleName = user.role.role_name || user.role.name || null;
                         }
-                    } else if (user.role_id && typeof dataFunctions !== 'undefined') {
-                        // If we have role_id but no role_name, try to fetch it
-                        // This will be handled asynchronously if needed
-                        roleName = 'Loading...';
                     }
                     
-                    // Default to 'User' if no role found
-                    if (!roleName || roleName === 'Loading...') {
-                        roleName = 'User';
-                    }
-                    
-                    // Format role name for display
-                    const displayRole = roleName;
-                    roleDisplay.textContent = displayRole;
-                    
-                    // Add a badge or styling based on role type
-                    if (roleName.startsWith('PWA ')) {
-                        roleDisplay.className = 'text-muted badge bg-info';
-                    } else if (roleName === 'admin' || roleName === 'super_user') {
-                        roleDisplay.className = 'text-muted badge bg-primary';
+                    // If we found a role, display it immediately
+                    if (roleName) {
+                        updateRoleDisplay(roleName);
                     } else {
-                        roleDisplay.className = 'text-muted';
-                    }
-                    
-                    // If we have role_id but no role_name, try to fetch the role name
-                    if (user.role_id && !user.role_name && typeof dataFunctions !== 'undefined') {
-                        // Try to get role name from roles if available
-                        setTimeout(async () => {
-                            try {
-                                const roles = await dataFunctions.getRoles();
-                                if (roles && Array.isArray(roles)) {
-                                    const userRole = roles.find(r => r.id === user.role_id);
-                                    if (userRole && userRole.role_name) {
-                                        roleDisplay.textContent = userRole.role_name;
-                                        // Update styling based on role
-                                        if (userRole.role_name.startsWith('PWA ')) {
-                                            roleDisplay.className = 'text-muted badge bg-info';
-                                        } else if (userRole.role_name === 'admin' || userRole.role_name === 'super_user') {
-                                            roleDisplay.className = 'text-muted badge bg-primary';
-                                        } else {
-                                            roleDisplay.className = 'text-muted';
+                        // No role found in user object, try to fetch it
+                        updateRoleDisplay('Loading...');
+                        
+                        // Try to fetch role from database
+                        if (typeof dataFunctions !== 'undefined') {
+                            // First, try to get current user's full info
+                            const userId = user.id || user.user_id;
+                            if (userId) {
+                                setTimeout(async () => {
+                                    try {
+                                        // Try to get user by ID to get full role info
+                                        const userData = await dataFunctions.getUserById(userId);
+                                        if (userData && userData.role_name) {
+                                            // Update localStorage with role_name
+                                            user.role_name = userData.role_name;
+                                            localStorage.setItem('user_info', JSON.stringify(user));
+                                            updateRoleDisplay(userData.role_name);
+                                            return;
                                         }
+                                        
+                                        // If that doesn't work, try fetching from roles list
+                                        if (user.role_id) {
+                                            const roles = await dataFunctions.getRoles();
+                                            if (roles && Array.isArray(roles)) {
+                                                const userRole = roles.find(r => r.id === user.role_id);
+                                                if (userRole && userRole.role_name) {
+                                                    // Update localStorage with role_name
+                                                    user.role_name = userRole.role_name;
+                                                    localStorage.setItem('user_info', JSON.stringify(user));
+                                                    updateRoleDisplay(userRole.role_name);
+                                                    return;
+                                                }
+                                            }
+                                        }
+                                        
+                                        // If still no role found, check if user is in users list
+                                        const users = await dataFunctions.getUsers();
+                                        if (users && Array.isArray(users)) {
+                                            const currentUser = users.find(u => u.id === userId || u.email === user.email);
+                                            if (currentUser) {
+                                                const foundRole = currentUser.role_name || currentUser.role;
+                                                if (foundRole) {
+                                                    // Update localStorage with role_name
+                                                    user.role_name = foundRole;
+                                                    localStorage.setItem('user_info', JSON.stringify(user));
+                                                    updateRoleDisplay(foundRole);
+                                                    return;
+                                                }
+                                            }
+                                        }
+                                        
+                                        // If all else fails, show 'User'
+                                        updateRoleDisplay('User');
+                                    } catch (error) {
+                                        console.warn('Could not fetch role name:', error);
+                                        updateRoleDisplay('User');
                                     }
-                                }
-                            } catch (error) {
-                                console.warn('Could not fetch role name:', error);
+                                }, 200);
+                            } else {
+                                updateRoleDisplay('User');
                             }
-                        }, 100);
+                        } else {
+                            updateRoleDisplay('User');
+                        }
                     }
                 }
             } catch (error) {
