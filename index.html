@@ -826,6 +826,20 @@
                     userManagementToggle.setAttribute('aria-expanded', 'false');
                 }
             }
+
+            // Ensure User Management menu is positioned correctly after System Administration
+            // This ensures the order is maintained across all modules
+            const systemAdminItem = document.getElementById('systemAdminMenuItem');
+            const userManagementItem = document.getElementById('userManagementMenuItem');
+            if (systemAdminItem && userManagementItem) {
+                // Verify order - User Management should come after System Administration
+                const systemAdminNextSibling = systemAdminItem.nextElementSibling;
+                if (systemAdminNextSibling !== userManagementItem) {
+                    // If order is wrong, fix it
+                    systemAdminItem.insertAdjacentElement('afterend', userManagementItem);
+                    console.log('[Sidebar] Fixed User Management menu position');
+                }
+            }
         });
 
         /**
