@@ -10,7 +10,7 @@
 
 ### 2. ✅ Consistent Colors and Fonts
 - **Color Palette**: Macadamia theme with consistent CSS variables
-- **Typography**: Nunito Sans (body), Cormorant Garamond (headings)
+- **Typography**: Nunito Sans (body), Tahoma (headings)
 - **Readability**: High contrast, clear hierarchy, consistent spacing
 
 ### 3. ✅ Extensive Test Data

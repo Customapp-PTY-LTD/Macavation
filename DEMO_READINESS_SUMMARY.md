@@ -82,7 +82,7 @@
 - Info: Blue (#17a2b8)
 
 ### Typography
-- Headings: 'Cormorant Garamond', serif
+- Headings: 'Tahoma', sans-serif
 - Body: 'Nunito Sans', sans-serif
 - Consistent font sizes and weights across modules
 
