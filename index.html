@@ -564,12 +564,14 @@
                                     <i class="fas fa-sync-alt me-2"></i>Palladium Integration
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <!-- System Administration - Must be before User Management -->
+                            <li class="nav-item" id="systemAdminMenuItem">
                                 <a class="nav-link" href="#" route="admin-grid">
                                     <i class="fas fa-cog me-2"></i>System Administration
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <!-- User Management - Must be directly after System Administration -->
+                            <li class="nav-item" id="userManagementMenuItem">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#userManagementCollapse" aria-expanded="false"
                                     aria-controls="userManagementCollapse">
