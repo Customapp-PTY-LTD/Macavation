@@ -399,7 +399,7 @@ var _workflowViews = function () {
                                 <div class="flex-grow-1">
                                     <div class="activity-description">${activity.description || activity.title}</div>
                                     <div class="text-muted small">
-                                        ${activity.timestamp ? new Date(activity.timestamp).toLocaleString() : ''}
+                                        ${activity.activity_timestamp || activity.timestamp ? new Date(activity.activity_timestamp || activity.timestamp).toLocaleString() : ''}
                                     </div>
                                 </div>
                             </div>
