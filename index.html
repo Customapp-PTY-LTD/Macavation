@@ -869,9 +869,9 @@
                         
                         // Add a badge or styling based on role type
                         if (roleName.startsWith('PWA ')) {
-                            roleDisplay.className = 'text-muted badge bg-info';
+                            roleDisplay.className = 'badge bg-info text-white';
                         } else if (roleName === 'admin' || roleName === 'super_user') {
-                            roleDisplay.className = 'text-muted badge bg-primary';
+                            roleDisplay.className = 'badge bg-success text-white';
                         } else {
                             roleDisplay.className = 'text-muted';
                         }

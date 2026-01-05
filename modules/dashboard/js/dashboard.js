@@ -428,55 +428,79 @@ function loadModules() {
     const container = document.getElementById('modulesContainer');
     if (!container) return;
     
-    // Define available modules
+    // Define available Macavation modules
     const modules = [
         {
-            icon: 'bi-people-fill',
-            title: 'Labour Allocation',
-            description: 'Daily allocation, attendance, task tracking',
-            route: 'labour-grid'
-        },
-        {
-            icon: 'bi-clipboard-check',
-            title: 'Compliance & Audits',
-            description: 'Global GAP, Caesar audits, training certificates',
-            route: 'compliance-grid'
-        },
-        {
-            icon: 'bi-droplet-fill',
-            title: 'Chemicals',
-            description: 'Spray programs, inventory & compliance',
-            route: 'chemicals-grid'
-        },
-        {
-            icon: 'bi-graph-up',
-            title: 'Crop Monitoring',
-            description: 'Growth tracking, quality & yield forecasts',
-            route: 'crops-grid'
+            icon: 'bi-person-fill',
+            title: 'CRM',
+            description: 'Customer and supplier relationship management',
+            route: 'crm-grid'
         },
         {
             icon: 'bi-truck',
-            title: 'Asset Management',
-            description: 'Vehicles, fuel, equipment & inventory',
-            route: 'assets-grid'
+            title: 'Grower Intake',
+            description: 'Sample submissions and raw material intake',
+            route: 'grower-intake-grid'
         },
         {
             icon: 'bi-box-seam',
-            title: 'Post-Harvest',
-            description: 'Pack season data, traceability & markets',
-            route: 'postharvest-grid'
+            title: 'Kernel Production',
+            description: '17-step kernel production workflow',
+            route: 'kernel-production-grid'
         },
         {
-            icon: 'bi-water',
-            title: 'Water & Irrigation',
-            description: 'Water usage, pump meters & compliance',
-            route: 'water-grid'
+            icon: 'bi-clipboard-check',
+            title: 'Quality Assurance',
+            description: 'Quality testing and food safety',
+            route: 'quality-assurance-grid'
         },
         {
-            icon: 'bi-gear-fill',
-            title: 'System Administration',
-            description: 'Farms, users, resources & permissions',
-            route: 'admin-grid'
+            icon: 'bi-archive',
+            title: 'Stock Management',
+            description: 'Inventory tracking and stock movements',
+            route: 'stock-management-grid'
+        },
+        {
+            icon: 'bi-graph-up',
+            title: 'Sales Forecasting',
+            description: 'Sales pipeline and forecasting',
+            route: 'sales-forecasting-grid'
+        },
+        {
+            icon: 'bi-droplet-fill',
+            title: 'Oil Production',
+            description: '11-step oil production workflow',
+            route: 'oil-production-grid'
+        },
+        {
+            icon: 'bi-cash-stack',
+            title: 'Financial Management',
+            description: 'Financial transactions and accounting',
+            route: 'financial-management-grid'
+        },
+        {
+            icon: 'bi-file-earmark-text',
+            title: 'Document Management',
+            description: 'Document storage and organization',
+            route: 'document-management-grid'
+        },
+        {
+            icon: 'bi-speedometer2',
+            title: 'Amanda Dashboard',
+            description: 'Material journey tracking dashboard',
+            route: 'amanda-dashboard'
+        },
+        {
+            icon: 'bi-bar-chart',
+            title: 'Executive Dashboard',
+            description: 'Executive reporting and KPIs',
+            route: 'executive-dashboard'
+        },
+        {
+            icon: 'bi-box-arrow-right',
+            title: 'Palladium Integration',
+            description: 'ERP integration and synchronization',
+            route: 'palladium-integration-grid'
         }
     ];
     
