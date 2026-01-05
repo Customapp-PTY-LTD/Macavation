@@ -278,24 +278,84 @@ function loadQuickActions() {
 }
 
 /**
- * Handle quick action
+ * Map of routes to their add button IDs
+ */
+const routeAddButtonMap = {
+    'crm-grid': 'addContactBtn',
+    'grower-intake-grid': 'addSampleBtn',
+    'kernel-production-grid': 'addBatchBtn',
+    'quality-assurance-grid': 'addTestBtn',
+    'stock-management-grid': 'addStockBtn',
+    'document-management-grid': 'uploadDocBtn' // Document module uses uploadDocBtn
+};
+
+/**
+ * Handle quick action - Navigate to module and trigger add functionality
  */
 function handleQuickAction(route, action) {
-    if (typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
-        _appRouter.loadContent(route);
-        // Trigger action after route loads
-        setTimeout(() => {
-            if (action === 'add') {
-                // Trigger add button click if available
-                const addBtn = document.getElementById('addContactBtn') || 
-                              document.getElementById('addBtn') ||
-                              document.querySelector('[id$="Btn"][class*="btn-primary"]');
-                if (addBtn) {
-                    addBtn.click();
+    if (typeof _appRouter === 'undefined' || !_appRouter.loadContent && !_appRouter.routeTo) {
+        console.error('AppRouter not available');
+        if (typeof _common !== 'undefined' && _common.showErrorToast) {
+            _common.showErrorToast('Unable to navigate to module');
+        }
+        return;
+    }
+
+    // Navigate to the module
+    const navigatePromise = typeof _appRouter.routeTo === 'function' 
+        ? Promise.resolve(_appRouter.routeTo(route))
+        : _appRouter.loadContent(route);
+
+    navigatePromise.then(() => {
+        // Trigger add action after route loads
+        if (action === 'add') {
+            // Use route-specific button ID if available, otherwise try common patterns
+            const buttonId = routeAddButtonMap[route];
+            let addBtn = null;
+
+            if (buttonId) {
+                // Try the mapped button ID first
+                addBtn = document.getElementById(buttonId);
+            }
+
+            // Fallback to common button IDs if mapped ID not found
+            if (!addBtn) {
+                const commonIds = [
+                    'addContactBtn',
+                    'addSampleBtn',
+                    'addBatchBtn',
+                    'addTestBtn',
+                    'addStockBtn',
+                    'addDocumentBtn',
+                    'addBtn'
+                ];
+                for (const id of commonIds) {
+                    addBtn = document.getElementById(id);
+                    if (addBtn) break;
                 }
             }
-        }, 500);
-    }
+
+            // Last resort: try to find any button with "add" in the ID and primary class
+            if (!addBtn) {
+                addBtn = document.querySelector('[id*="add"][id*="Btn"][class*="btn-primary"]') ||
+                         document.querySelector('[id$="Btn"][class*="btn-primary"]');
+            }
+
+            if (addBtn) {
+                // Small delay to ensure module is fully initialized
+                setTimeout(() => {
+                    addBtn.click();
+                }, 300);
+            } else {
+                console.warn(`Could not find add button for route: ${route}`);
+            }
+        }
+    }).catch(error => {
+        console.error('Error navigating to module:', error);
+        if (typeof _common !== 'undefined' && _common.showErrorToast) {
+            _common.showErrorToast('Error navigating to module');
+        }
+    });
 }
 
 async function loadDashboardData() {

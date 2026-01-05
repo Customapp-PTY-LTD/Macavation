@@ -260,10 +260,22 @@ var _workflowViews = function () {
                             </div>
                             <div class="task-actions">
                                 ${task.action_url ? `
-                                    <button class="btn btn-sm btn-primary" onclick="workflowViews.executeTask('${task.id}', '${task.action_url}')">
+                                    <button class="btn btn-sm btn-primary me-1" onclick="workflowViews.executeTask('${task.id}', '${task.action_url}')">
                                         ${task.action_label || 'Action'}
                                     </button>
                                 ` : ''}
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                            onclick="workflowViews.snoozeTask('${task.id}')" 
+                                            title="Snooze for 1 hour">
+                                        <i class="bi bi-clock"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="workflowViews.dismissTask('${task.id}')" 
+                                            title="Dismiss task">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `).join('')}
@@ -284,7 +296,7 @@ var _workflowViews = function () {
                     ${items.map(item => `
                         <li class="due-item ${item.is_overdue ? 'overdue' : ''} mb-3">
                             <div class="d-flex justify-content-between align-items-start">
-                                <div>
+                                <div class="flex-grow-1">
                                     <strong>${item.title}</strong>
                                     <div class="text-muted small">${item.description || ''}</div>
                                     <div class="text-muted small">
@@ -292,11 +304,28 @@ var _workflowViews = function () {
                                         ${item.due_date ? new Date(item.due_date).toLocaleDateString() : 'No due date'}
                                     </div>
                                 </div>
-                                ${item.action_url ? `
-                                    <button class="btn btn-sm btn-outline-primary" onclick="workflowViews.handleDueItem('${item.id}', '${item.action_url}')">
-                                        View
+                                <div class="btn-group ms-2" role="group">
+                                    ${item.action_url ? `
+                                        <button class="btn btn-sm btn-outline-primary" onclick="workflowViews.handleDueItem('${item.id}', '${item.action_url}')">
+                                            View
+                                        </button>
+                                    ` : ''}
+                                    <button type="button" class="btn btn-sm btn-outline-success" 
+                                            onclick="workflowViews.completeDueItem('${item.id}')" 
+                                            title="Mark as complete">
+                                        <i class="bi bi-check"></i>
                                     </button>
-                                ` : ''}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                            onclick="workflowViews.snoozeDueItem('${item.id}')" 
+                                            title="Snooze for 1 day">
+                                        <i class="bi bi-clock"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="workflowViews.dismissDueItem('${item.id}')" 
+                                            title="Dismiss">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
                             </div>
                         </li>
                     `).join('')}
@@ -317,7 +346,7 @@ var _workflowViews = function () {
                     ${items.map(item => `
                         <li class="watching-item mb-3">
                             <div class="d-flex justify-content-between align-items-start">
-                                <div>
+                                <div class="flex-grow-1">
                                     <strong>${item.title}</strong>
                                     <div class="text-muted small">${item.insight || item.description}</div>
                                     ${item.trend ? `
@@ -327,11 +356,23 @@ var _workflowViews = function () {
                                         </div>
                                     ` : ''}
                                 </div>
-                                ${item.action_url ? `
-                                    <button class="btn btn-sm btn-outline-info" onclick="workflowViews.handleWatchingItem('${item.id}', '${item.action_url}')">
-                                        View
+                                <div class="btn-group ms-2" role="group">
+                                    ${item.action_url ? `
+                                        <button class="btn btn-sm btn-outline-info" onclick="workflowViews.handleWatchingItem('${item.id}', '${item.action_url}')">
+                                            View
+                                        </button>
+                                    ` : ''}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                            onclick="workflowViews.snoozeWatchingItem('${item.id}')" 
+                                            title="Snooze for 1 day">
+                                        <i class="bi bi-clock"></i>
                                     </button>
-                                ` : ''}
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="workflowViews.dismissWatchingItem('${item.id}')" 
+                                            title="Stop watching">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
                             </div>
                         </li>
                     `).join('')}
@@ -457,6 +498,326 @@ var _workflowViews = function () {
             if (actionUrl && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
                 const route = actionUrl.startsWith('#') ? actionUrl.substring(1) : actionUrl;
                 _appRouter.loadContent(route);
+            }
+        },
+
+        /**
+         * Snooze a task for 1 hour
+         */
+        snoozeTask: async function (taskId) {
+            try {
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
+                    // Calculate new scheduled time (1 hour from now)
+                    const now = new Date();
+                    const snoozeTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
+                    const timeString = snoozeTime.toTimeString().slice(0, 5); // HH:MM format
+                    
+                    await dataFunctions.callFunction('update_workflow_task', {
+                        p_task_id: taskId,
+                        p_status: 'pending',
+                        p_scheduled_time: timeString
+                    }, null, { useCache: false });
+                    
+                    // Refresh workflow view
+                    const data = await this.getMyDayData();
+                    this.renderMyDay(data, 'my-day-container');
+                    
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Task Snoozed',
+                            text: 'Task will reappear in 1 hour',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error snoozing task:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to snooze task: ' + error.message
+                    });
+                }
+            }
+        },
+
+        /**
+         * Dismiss a task (mark as dismissed)
+         */
+        dismissTask: async function (taskId) {
+            try {
+                if (typeof Swal !== 'undefined') {
+                    const result = await Swal.fire({
+                        title: 'Dismiss Task?',
+                        text: 'This task will be removed from your view. You can still access it from the main module.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, dismiss',
+                        cancelButtonText: 'Cancel'
+                    });
+
+                    if (!result.isConfirmed) return;
+                }
+
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
+                    await dataFunctions.callFunction('update_workflow_task', {
+                        p_task_id: taskId,
+                        p_status: 'dismissed'
+                    }, null, { useCache: false });
+                    
+                    // Refresh workflow view
+                    const data = await this.getMyDayData();
+                    this.renderMyDay(data, 'my-day-container');
+                    
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Task Dismissed',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error dismissing task:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to dismiss task: ' + error.message
+                    });
+                }
+            }
+        },
+
+        /**
+         * Complete a due item
+         */
+        completeDueItem: async function (itemId) {
+            try {
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
+                    await dataFunctions.callFunction('update_due_item', {
+                        p_item_id: itemId,
+                        p_status: 'completed'
+                    }, null, { useCache: false });
+                    
+                    // Refresh workflow view
+                    const data = await this.getMyDayData();
+                    this.renderMyDay(data, 'my-day-container');
+                    
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Item Completed',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error completing due item:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to complete item: ' + error.message
+                    });
+                }
+            }
+        },
+
+        /**
+         * Snooze a due item for 1 day
+         */
+        snoozeDueItem: async function (itemId) {
+            try {
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const dateString = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD
+                    
+                    await dataFunctions.callFunction('update_due_item', {
+                        p_item_id: itemId,
+                        p_due_date: dateString
+                    }, null, { useCache: false });
+                    
+                    // Refresh workflow view
+                    const data = await this.getMyDayData();
+                    this.renderMyDay(data, 'my-day-container');
+                    
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Item Snoozed',
+                            text: 'Item will reappear tomorrow',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error snoozing due item:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to snooze item: ' + error.message
+                    });
+                }
+            }
+        },
+
+        /**
+         * Dismiss a due item
+         */
+        dismissDueItem: async function (itemId) {
+            try {
+                if (typeof Swal !== 'undefined') {
+                    const result = await Swal.fire({
+                        title: 'Dismiss Item?',
+                        text: 'This item will be removed from your view.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, dismiss',
+                        cancelButtonText: 'Cancel'
+                    });
+
+                    if (!result.isConfirmed) return;
+                }
+
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
+                    await dataFunctions.callFunction('update_due_item', {
+                        p_item_id: itemId,
+                        p_status: 'dismissed'
+                    }, null, { useCache: false });
+                    
+                    // Refresh workflow view
+                    const data = await this.getMyDayData();
+                    this.renderMyDay(data, 'my-day-container');
+                    
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Item Dismissed',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error dismissing due item:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to dismiss item: ' + error.message
+                    });
+                }
+            }
+        },
+
+        /**
+         * Snooze a watching item for 1 day
+         */
+        snoozeWatchingItem: async function (itemId) {
+            try {
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
+                    // Temporarily deactivate the item (will be reactivated by system after period)
+                    // Note: The database function will handle snooze logic
+                    await dataFunctions.callFunction('update_watching_item', {
+                        p_item_id: itemId,
+                        p_is_active: false
+                    }, null, { useCache: false });
+                    
+                    // Refresh workflow view
+                    const data = await this.getMyDayData();
+                    this.renderMyDay(data, 'my-day-container');
+                    
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Item Snoozed',
+                            text: 'Item will reappear tomorrow',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error snoozing watching item:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to snooze item: ' + error.message
+                    });
+                }
+            }
+        },
+
+        /**
+         * Dismiss a watching item (stop watching)
+         */
+        dismissWatchingItem: async function (itemId) {
+            try {
+                if (typeof Swal !== 'undefined') {
+                    const result = await Swal.fire({
+                        title: 'Stop Watching?',
+                        text: 'This item will be removed from your watching list.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, stop watching',
+                        cancelButtonText: 'Cancel'
+                    });
+
+                    if (!result.isConfirmed) return;
+                }
+
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.callFunction) {
+                    await dataFunctions.callFunction('update_watching_item', {
+                        p_item_id: itemId,
+                        p_is_active: false
+                    }, null, { useCache: false });
+                    
+                    // Refresh workflow view
+                    const data = await this.getMyDayData();
+                    this.renderMyDay(data, 'my-day-container');
+                    
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Stopped Watching',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error dismissing watching item:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to stop watching: ' + error.message
+                    });
+                }
             }
         }
     };
