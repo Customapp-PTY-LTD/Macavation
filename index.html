@@ -860,24 +860,68 @@
                 const roleDisplay = document.getElementById('userRoleDisplay');
                 if (roleDisplay) {
                     // Get role name from user object - check multiple possible fields
-                    let roleName = user.role_name || user.role || 'User';
+                    let roleName = null;
                     
-                    // If role is an object, extract the name
-                    if (typeof roleName === 'object' && roleName !== null) {
-                        roleName = roleName.role_name || roleName.name || 'User';
+                    // Try different possible locations for role information
+                    if (user.role_name) {
+                        roleName = user.role_name;
+                    } else if (user.role) {
+                        // If role is a string, use it directly
+                        if (typeof user.role === 'string') {
+                            roleName = user.role;
+                        } 
+                        // If role is an object, extract the name
+                        else if (typeof user.role === 'object' && user.role !== null) {
+                            roleName = user.role.role_name || user.role.name || null;
+                        }
+                    } else if (user.role_id && typeof dataFunctions !== 'undefined') {
+                        // If we have role_id but no role_name, try to fetch it
+                        // This will be handled asynchronously if needed
+                        roleName = 'Loading...';
                     }
                     
-                    // Format role name for display (remove "PWA " prefix for cleaner display)
-                    const displayRole = roleName.startsWith('PWA ') ? roleName : roleName;
+                    // Default to 'User' if no role found
+                    if (!roleName || roleName === 'Loading...') {
+                        roleName = 'User';
+                    }
+                    
+                    // Format role name for display
+                    const displayRole = roleName;
                     roleDisplay.textContent = displayRole;
                     
-                    // Add a badge or styling for PWA users
+                    // Add a badge or styling based on role type
                     if (roleName.startsWith('PWA ')) {
                         roleDisplay.className = 'text-muted badge bg-info';
                     } else if (roleName === 'admin' || roleName === 'super_user') {
                         roleDisplay.className = 'text-muted badge bg-primary';
                     } else {
                         roleDisplay.className = 'text-muted';
+                    }
+                    
+                    // If we have role_id but no role_name, try to fetch the role name
+                    if (user.role_id && !user.role_name && typeof dataFunctions !== 'undefined') {
+                        // Try to get role name from roles if available
+                        setTimeout(async () => {
+                            try {
+                                const roles = await dataFunctions.getRoles();
+                                if (roles && Array.isArray(roles)) {
+                                    const userRole = roles.find(r => r.id === user.role_id);
+                                    if (userRole && userRole.role_name) {
+                                        roleDisplay.textContent = userRole.role_name;
+                                        // Update styling based on role
+                                        if (userRole.role_name.startsWith('PWA ')) {
+                                            roleDisplay.className = 'text-muted badge bg-info';
+                                        } else if (userRole.role_name === 'admin' || userRole.role_name === 'super_user') {
+                                            roleDisplay.className = 'text-muted badge bg-primary';
+                                        } else {
+                                            roleDisplay.className = 'text-muted';
+                                        }
+                                    }
+                                }
+                            } catch (error) {
+                                console.warn('Could not fetch role name:', error);
+                            }
+                        }, 100);
                     }
                 }
             } catch (error) {
