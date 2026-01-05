@@ -341,12 +341,14 @@ var _usersGrid = function () {
 
         saveUser: async function () {
             try {
+                const password = $('#password').val().trim();
+                const confirmPassword = $('#txtConfirmPassword').val().trim();
+                
                 const formData = {
                     username: $('#username').val().trim(),
                     email: $('#email').val().trim(),
                     first_name: $('#firstName').val().trim(),
                     last_name: $('#lastName').val().trim(),
-                    password: $('#password').val().trim(),
                     role_id: $('#cboRole').val(),
                     is_active: $('#isActive').is(':checked')
                 };
@@ -369,9 +371,28 @@ var _usersGrid = function () {
                     return;
                 }
 
-                if (!this.editingUser && !formData.password) {
-                    this.showError('Password is required for new users');
-                    return;
+                // Password validation
+                if (!this.editingUser) {
+                    // New user - password is required
+                    if (!password) {
+                        this.showError('Password is required for new users');
+                        return;
+                    }
+                    if (password !== confirmPassword) {
+                        this.showError('Passwords do not match');
+                        return;
+                    }
+                    formData.password = password;
+                } else {
+                    // Editing user - password is optional
+                    if (password) {
+                        if (password !== confirmPassword) {
+                            this.showError('Passwords do not match');
+                            return;
+                        }
+                        formData.password = password;
+                    }
+                    // If password is empty, don't include it in formData (will keep current password)
                 }
 
                 if (!formData.role_id) {
