@@ -564,13 +564,7 @@
                                     <i class="fas fa-sync-alt me-2"></i>Palladium Integration
                                 </a>
                             </li>
-                            <!-- System Administration - Must be before User Management -->
-                            <li class="nav-item" id="systemAdminMenuItem">
-                                <a class="nav-link" href="#" route="admin-grid">
-                                    <i class="fas fa-cog me-2"></i>System Administration
-                                </a>
-                            </li>
-                            <!-- User Management - Must be directly after System Administration -->
+                            <!-- User Management - Must be before System Administration -->
                             <li class="nav-item" id="userManagementMenuItem">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#userManagementCollapse" aria-expanded="false"
@@ -602,6 +596,12 @@
                                         </li>
                                     </ul>
                                 </div>
+                            </li>
+                            <!-- System Administration - Must be after User Management -->
+                            <li class="nav-item" id="systemAdminMenuItem">
+                                <a class="nav-link" href="#" route="admin-grid">
+                                    <i class="fas fa-cog me-2"></i>System Administration
+                                </a>
                             </li>
                         </ul>
                     </div>
@@ -827,17 +827,18 @@
                 }
             }
 
-            // Ensure User Management menu is positioned correctly after System Administration
+            // Ensure User Management menu is positioned correctly before System Administration
             // This ensures the order is maintained across all modules
             const systemAdminItem = document.getElementById('systemAdminMenuItem');
             const userManagementItem = document.getElementById('userManagementMenuItem');
             if (systemAdminItem && userManagementItem) {
-                // Verify order - User Management should come after System Administration
-                const systemAdminNextSibling = systemAdminItem.nextElementSibling;
-                if (systemAdminNextSibling !== userManagementItem) {
+                // Verify order - User Management should come before System Administration
+                const userManagementNextSibling = userManagementItem.nextElementSibling;
+                if (userManagementNextSibling !== systemAdminItem) {
                     // If order is wrong, fix it
+                    userManagementItem.insertAdjacentElement('beforebegin', systemAdminItem);
                     systemAdminItem.insertAdjacentElement('afterend', userManagementItem);
-                    console.log('[Sidebar] Fixed User Management menu position');
+                    console.log('[Sidebar] Fixed User Management menu position - should be before System Administration');
                 }
             }
         });
