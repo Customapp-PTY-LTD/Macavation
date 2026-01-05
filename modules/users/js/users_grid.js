@@ -260,6 +260,15 @@ var _usersGrid = function () {
             console.log('Reloading roles dropdown from database for add...');
             await this.loadRolesForDropdown();
 
+            // Show password fields and make them required for new users
+            $('#passwordSection').show();
+            $('#confirmPasswordSection').show();
+            $('#password').prop('required', true);
+            $('#txtConfirmPassword').prop('required', true);
+            $('#passwordLabel').addClass('required');
+            $('#confirmPasswordLabel').addClass('required');
+            $('#passwordHelp').text('Password is required for new users');
+
             $('#userModalLabel').text('Add User');
             $('#userModal').modal('show');
         },
@@ -286,6 +295,15 @@ var _usersGrid = function () {
                 setTimeout(() => {
                     this.populateForm(user);
                 }, 200);
+
+                // Hide password fields or make them optional for editing
+                $('#passwordSection').show();
+                $('#confirmPasswordSection').show();
+                $('#password').prop('required', false);
+                $('#txtConfirmPassword').prop('required', false);
+                $('#passwordLabel').removeClass('required');
+                $('#confirmPasswordLabel').removeClass('required');
+                $('#passwordHelp').text('Leave blank to keep current password');
 
                 $('#userModalLabel').text('Edit User');
                 $('#userModal').modal('show');
