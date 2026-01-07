@@ -3,8 +3,8 @@
  * Handles offline functionality, caching, and background sync
  */
 
-const CACHE_NAME = 'macavation-v1';
-const RUNTIME_CACHE = 'macavation-runtime-v1';
+const CACHE_NAME = 'macavation-v2'; // Updated to force cache refresh after removing Phoenix CSS
+const RUNTIME_CACHE = 'macavation-runtime-v2';
 const OFFLINE_PAGE = '/index.html';
 
 // Assets to cache on install
@@ -192,16 +192,39 @@ async function syncQueuedRequests() {
 self.addEventListener('message', (event) => {
     console.log('[Service Worker] Message received:', event.data);
     
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
+    // Always respond to messages to prevent "message channel closed" errors
+    const respond = () => {
+        if (event.ports && event.ports[0]) {
+            try {
+                event.ports[0].postMessage({ success: true });
+            } catch (e) {
+                // Ignore if port is already closed
+            }
+        }
+    };
     
-    if (event.data && event.data.type === 'CACHE_URLS') {
-        event.waitUntil(
-            caches.open(RUNTIME_CACHE).then((cache) => {
-                return cache.addAll(event.data.urls);
-            })
-        );
+    try {
+        if (event.data && event.data.type === 'SKIP_WAITING') {
+            self.skipWaiting();
+            respond();
+        } else if (event.data && event.data.type === 'CACHE_URLS') {
+            event.waitUntil(
+                caches.open(RUNTIME_CACHE).then((cache) => {
+                    return cache.addAll(event.data.urls);
+                }).then(() => {
+                    respond();
+                }).catch((error) => {
+                    console.error('[Service Worker] Error caching URLs:', error);
+                    respond();
+                })
+            );
+        } else {
+            // Respond to unknown message types
+            respond();
+        }
+    } catch (error) {
+        console.error('[Service Worker] Error handling message:', error);
+        respond();
     }
 });
 

@@ -1070,6 +1070,36 @@ var _dataFunctions = function () {
                 forceRefresh: forceRefresh
             });
         },
+        
+        /**
+         * Get quality test by ID
+         */
+        getQualityTestById: async function (testId, token = null) {
+            return await this.callFunction('get_quality_test_by_id', { p_id: testId }, token);
+        },
+        
+        /**
+         * Create quality test (invalidates quality tests cache)
+         */
+        createQualityTest: async function (testData, token = null) {
+            const result = await this.callFunction('create_quality_test_simple', testData, token, { useCache: false });
+            // Invalidate quality tests cache
+            this.clearCachePattern('quality_tests');
+            return result;
+        },
+        
+        /**
+         * Update quality test (invalidates quality tests cache)
+         */
+        updateQualityTest: async function (testId, testData, token = null) {
+            const result = await this.callFunction('update_quality_test_simple', {
+                p_test_id: testId,
+                ...testData
+            }, token, { useCache: false });
+            // Invalidate quality tests cache
+            this.clearCachePattern('quality_tests');
+            return result;
+        },
 
         // Stock Management Functions (cached for 1 minute)
         getStockItems: async function (token = null, forceRefresh = false) {
@@ -1105,9 +1135,69 @@ var _dataFunctions = function () {
             return await this.callFunction('get_sales_forecasts', {}, token).catch(() => []);
         },
 
-        // Oil Production Functions (placeholder)
+        // Oil Production Functions (cached for 1 minute)
+        getOilProductionSheets: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_oil_production_sheets', {}, token, {
+                cacheKey: 'oil_production_sheets_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+        },
+        
+        // Legacy function name for backward compatibility
         getOilProductionBatches: async function (token = null) {
-            return await this.callFunction('get_oil_production_batches', {}, token).catch(() => []);
+            return await this.getOilProductionSheets(token);
+        },
+        
+        // Kernel Production Job Card Functions
+        createKernelJobCard: async function (jobCardData, token = null) {
+            const result = await this.callFunction('create_kernel_job_card', jobCardData, token, { useCache: false });
+            // Invalidate stock cache
+            this.clearCachePattern('stock_items');
+            return result;
+        },
+        
+        // Stock Take Functions
+        createStockTake: async function (stockTakeData, token = null) {
+            return await this.callFunction('create_stock_take', stockTakeData, token, { useCache: false });
+        },
+        
+        getStockTakes: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_stock_takes', {}, token, {
+                cacheKey: 'stock_takes_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+        },
+        
+        // Oil Production Weekly Summary
+        getOilProductionWeeklySummary: async function (startDate, endDate, token = null) {
+            return await this.callFunction('get_oil_production_weekly_summary', {
+                p_start_date: startDate,
+                p_end_date: endDate
+            }, token, { useCache: false });
+        },
+        
+        // Receiving Checklist Functions (cached for 1 minute)
+        getReceivingChecklists: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_receiving_checklists', {}, token, {
+                cacheKey: 'receiving_checklists_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+        },
+        
+        // Raw Material Issued Functions (cached for 1 minute)
+        getRawMaterialIssued: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_raw_material_issued', {}, token, {
+                cacheKey: 'raw_material_issued_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
         },
 
         // Financial Management Functions (placeholder)

@@ -9,11 +9,22 @@ var _qualityAssuranceGrid = function () {
         init: function () {
             this.setupEventListeners();
             this.loadTests();
+            this.loadUsers();
         },
         setupEventListeners: function () {
             const scope = this;
             $('#addTestBtn').on('click', function () {
-                Swal.fire('Info', 'New quality test form coming soon', 'info');
+                scope.showAddTestModal();
+            });
+            
+            // Save test button
+            $('#saveTestBtn').on('click', function () {
+                scope.saveTest();
+            });
+            
+            // Modal events
+            $('#qualityTestModal').on('hidden.bs.modal', function () {
+                scope.clearForm();
             });
             
             // Search with debouncing
@@ -100,6 +111,142 @@ var _qualityAssuranceGrid = function () {
                 tbody.append(row);
             });
         },
+        loadUsers: async function () {
+            try {
+                const users = await dataFunctions.getUsers();
+                const select = $('#testedBy');
+                let html = '<option value="">Select Tester</option>';
+                
+                if (users && Array.isArray(users)) {
+                    users.forEach(user => {
+                        const name = user.email || user.username || 'Unknown';
+                        html += `<option value="${user.id}">${name}</option>`;
+                    });
+                }
+                
+                select.html(html);
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        },
+        
+        showAddTestModal: function () {
+            $('#qualityTestModalLabel').text('New Quality Test');
+            $('#testId').val('');
+            this.clearForm();
+            // Set default test date to today (after clearing form)
+            const today = new Date().toISOString().split('T')[0];
+            $('#testDate').val(today);
+            // Reset tabs to first tab
+            $('#basic-info-tab').tab('show');
+            // Use Bootstrap 5 modal API
+            const qualityModal = document.getElementById('qualityTestModal');
+            if (qualityModal) {
+                const modal = new bootstrap.Modal(qualityModal);
+                modal.show();
+            } else {
+                console.error('Quality test modal element not found!');
+            }
+        },
+        
+        clearForm: function () {
+            $('#qualityTestForm')[0].reset();
+            $('#testId').val('');
+            // Reset all checkboxes explicitly
+            $('#moisturePass, #ffaPass, #peroxidePass, #tasteTestPass, #smellTestPass, #appearanceTestPass').prop('checked', false);
+        },
+        
+        saveTest: async function () {
+            try {
+                const form = $('#qualityTestForm')[0];
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                
+                // Get current user ID if available
+                const userInfo = localStorage.getItem('user_info');
+                let testedBy = null;
+                if (userInfo) {
+                    const user = JSON.parse(userInfo);
+                    testedBy = user.id || $('#testedBy').val() || null;
+                } else {
+                    testedBy = $('#testedBy').val() || null;
+                }
+                
+                const testData = {
+                    p_test_number: $('#testNumber').val(),
+                    p_test_type: $('#testType').val(),
+                    p_product_type: $('#productType').val() || null,
+                    p_test_date: $('#testDate').val(),
+                    p_batch_number: $('#batchNumber').val() || null,
+                    p_sample_reference: $('#sampleReference').val() || null,
+                    p_style: $('#style').val() || null,
+                    p_moisture_percentage: $('#moisturePercentage').val() ? parseFloat($('#moisturePercentage').val()) : null,
+                    p_moisture_method: $('#moistureMethod').val() || null,
+                    p_moisture_pass: $('#moisturePass').is(':checked') || null,
+                    p_ffa_percentage: $('#ffaPercentage').val() ? parseFloat($('#ffaPercentage').val()) : null,
+                    p_ffa_method: $('#ffaMethod').val() || null,
+                    p_ffa_pass: $('#ffaPass').is(':checked') || null,
+                    p_peroxide_value: $('#peroxideValue').val() ? parseFloat($('#peroxideValue').val()) : null,
+                    p_peroxide_method: $('#peroxideMethod').val() || null,
+                    p_peroxide_pass: $('#peroxidePass').is(':checked') || null,
+                    p_taste_test_result: $('#tasteTestResult').val() || null,
+                    p_taste_test_notes: $('#tasteTestNotes').val() || null,
+                    p_taste_test_pass: $('#tasteTestPass').is(':checked') || null,
+                    p_smell_test_result: $('#smellTestResult').val() || null,
+                    p_smell_test_notes: $('#smellTestNotes').val() || null,
+                    p_smell_test_pass: $('#smellTestPass').is(':checked') || null,
+                    p_appearance_test_result: $('#appearanceTestResult').val() || null,
+                    p_appearance_test_notes: $('#appearanceTestNotes').val() || null,
+                    p_appearance_test_pass: $('#appearanceTestPass').is(':checked') || null,
+                    p_overall_result: $('#overallResult').val() || 'pending',
+                    p_overall_notes: $('#overallNotes').val() || null,
+                    p_tested_by: testedBy,
+                    p_status: $('#testStatus').val() || 'pending'
+                };
+                
+                const testId = $('#testId').val();
+                let result;
+                
+                if (testId) {
+                    // Update existing test
+                    result = await dataFunctions.callFunction('update_quality_test_simple', {
+                        p_test_id: testId,
+                        ...testData
+                    });
+                } else {
+                    // Create new test
+                    result = await dataFunctions.callFunction('create_quality_test_simple', testData);
+                }
+                
+                if (result && result.success !== false) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: testId ? 'Quality test updated successfully' : 'Quality test created successfully',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    const qualityModal = document.getElementById('qualityTestModal');
+                    if (qualityModal) {
+                        const modal = bootstrap.Modal.getInstance(qualityModal);
+                        if (modal) modal.hide();
+                    }
+                    this.loadTests(true); // Force refresh
+                } else {
+                    throw new Error(result?.error || result?.message || 'Failed to save quality test');
+                }
+            } catch (error) {
+                console.error('Error saving quality test:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to save quality test: ' + error.message
+                });
+            }
+        },
+        
         viewTest: function (testId) {
             Swal.fire('Info', 'Test details view coming soon', 'info');
         },

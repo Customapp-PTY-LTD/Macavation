@@ -314,6 +314,7 @@ var _crmGrid = function () {
             $('#primaryContactEmail').val(contact.primary_contact_email || '');
             $('#primaryContactPhone').val(contact.primary_contact_phone || '');
             $('#primaryContactMobile').val(contact.primary_contact_mobile || '');
+            $('#primaryContactBirthday').val(contact.primary_contact_birthday || '');
             $('#registrationNumber').val(contact.registration_number || '');
             $('#vatNumber').val(contact.vat_number || '');
             $('#accountManagerId').val(contact.account_manager_id || '');
@@ -346,6 +347,7 @@ var _crmGrid = function () {
                     primary_contact_email: $('#primaryContactEmail').val(),
                     primary_contact_phone: $('#primaryContactPhone').val(),
                     primary_contact_mobile: $('#primaryContactMobile').val(),
+                    primary_contact_birthday: $('#primaryContactBirthday').val() || null,
                     registration_number: $('#registrationNumber').val(),
                     vat_number: $('#vatNumber').val(),
                     account_manager_id: $('#accountManagerId').val() || null,
@@ -362,15 +364,30 @@ var _crmGrid = function () {
                 const contactId = $('#contactId').val();
                 let result;
 
+                // Map contactData to database function parameters with p_ prefix
+                const params = {
+                    p_contact_type: contactData.contact_type,
+                    p_company_name: contactData.company_name,
+                    p_trading_name: contactData.trading_name || null,
+                    p_primary_contact_name: contactData.primary_contact_name || null,
+                    p_primary_contact_email: contactData.primary_contact_email || null,
+                    p_primary_contact_phone: contactData.primary_contact_phone || null,
+                    p_primary_contact_mobile: contactData.primary_contact_mobile || null,
+                    p_primary_contact_birthday: contactData.primary_contact_birthday || null,
+                    p_account_manager_id: contactData.account_manager_id || null,
+                    p_status: contactData.status || 'active',
+                    p_key_account: contactData.key_account || false
+                };
+
                 if (contactId) {
                     // Update existing
                     result = await dataFunctions.callFunction('update_contact_simple', {
                         p_contact_id: contactId,
-                        ...contactData
+                        ...params
                     });
                 } else {
                     // Create new
-                    result = await dataFunctions.callFunction('create_contact_simple', contactData);
+                    result = await dataFunctions.callFunction('create_contact_simple', params);
                 }
 
                 if (result && result.success !== false) {

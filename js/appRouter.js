@@ -240,6 +240,11 @@ var _appRouter = function () {
 
             content = content.replace(/{basePath}/g, resoucePath);
 
+            // Safety: if a modal/backdrop got stuck on the previous screen, clear it before rendering new content
+            if (window._common && typeof window._common.forceCloseAllModals === 'function') {
+                window._common.forceCloseAllModals();
+            }
+
             $(elementSelector).html(content);
 
             //load js

@@ -323,12 +323,53 @@ var _common = {
             // Re-throw other errors
             throw error;
         }
+    },
+
+    /**
+     * Force-close any stuck Bootstrap modals/backdrops and restore page scroll.
+     * This is a safety hatch for cases where a modal fails to close cleanly and leaves the UI "dark".
+     */
+    forceCloseAllModals: function () {
+        try {
+            // Close via Bootstrap API if available
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                document.querySelectorAll('.modal').forEach((modalEl) => {
+                    const instance = bootstrap.Modal.getInstance(modalEl);
+                    if (instance) {
+                        try { instance.hide(); } catch (e) { /* ignore */ }
+                    }
+                });
+            }
+
+            // Hard cleanup: hide any visible modals
+            document.querySelectorAll('.modal.show').forEach((modalEl) => {
+                modalEl.classList.remove('show');
+                modalEl.style.display = 'none';
+                modalEl.setAttribute('aria-hidden', 'true');
+            });
+
+            // Remove backdrops
+            document.querySelectorAll('.modal-backdrop').forEach((bd) => bd.remove());
+
+            // Restore body state
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        } catch (e) {
+            console.warn('[Common] forceCloseAllModals failed:', e);
+        }
     }
 };
 
 // Make _common available globally
 window._common = _common;
 const common = _common;
+// Provide a simple global alias for emergency cleanup
+window.forceCloseAllModals = function () {
+    if (window._common && typeof window._common.forceCloseAllModals === 'function') {
+        window._common.forceCloseAllModals();
+    }
+};
 
 // Also add waitForDataFunctions as a standalone global function for convenience
 window.waitForDataFunctions = async function (maxRetries = 50, delay = 100) {
