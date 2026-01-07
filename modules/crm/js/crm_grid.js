@@ -16,9 +16,11 @@ var _crmGrid = function () {
         importWorkbook: null,
 
         init: function () {
+            console.log('[CRM] Initializing CRM Grid module...');
             this.setupEventListeners();
             this.loadContacts();
             this.loadAccountManagers();
+            console.log('[CRM] CRM Grid module initialized');
         },
 
         setupEventListeners: function () {
@@ -43,8 +45,18 @@ var _crmGrid = function () {
 
             // Process import
             $('#processImportBtn').on('click', function () {
+                console.log('[CRM Import] *** IMPORT BUTTON CLICKED ***');
                 scope.processImport();
             });
+            
+            // Also add native DOM listener as fallback
+            const processBtn = document.getElementById('processImportBtn');
+            if (processBtn) {
+                processBtn.addEventListener('click', function() {
+                    console.log('[CRM Import] *** IMPORT BUTTON CLICKED (native) ***');
+                    scope.processImport();
+                });
+            }
 
             // Import all sheets toggle
             $('#importAllSheets').on('change', function () {
@@ -800,12 +812,18 @@ var _crmGrid = function () {
         },
 
         processImport: async function () {
+            console.log('[CRM Import] ========== STARTING IMPORT ==========');
+            console.log('[CRM Import] importData?', !!this.importData, 'length:', this.importData?.length);
+            console.log('[CRM Import] importWorkbook?', !!this.importWorkbook);
+            
             if (!this.importData || this.importData.length < 2) {
-                Swal.fire('Error', 'No data to import', 'error');
+                console.error('[CRM Import] ERROR: No data to import');
+                Swal.fire('Error', 'No data to import. Please select a file first.', 'error');
                 return;
             }
 
             const importAll = $('#importAllSheets').is(':checked');
+            console.log('[CRM Import] Import all sheets?', importAll);
 
             try {
                 Swal.fire({
@@ -822,6 +840,7 @@ var _crmGrid = function () {
                 let importBatches = [];
                 if (importAll) {
                     if (!this.importWorkbook || !this.importWorkbook.SheetNames || this.importWorkbook.SheetNames.length === 0) {
+                        console.error('[CRM Import] ERROR: Workbook not loaded');
                         Swal.fire('Error', 'Workbook not loaded. Please re-select the file.', 'error');
                         return;
                     }
@@ -829,32 +848,52 @@ var _crmGrid = function () {
                     console.log('[CRM Import] Found sheets:', this.importWorkbook.SheetNames);
 
                     this.importWorkbook.SheetNames.forEach(sheetName => {
+                        console.log(`[CRM Import] --- Processing sheet: "${sheetName}" ---`);
                         const contactType = this.detectContactTypeForSheet(sheetName);
-                        console.log(`[CRM Import] Sheet "${sheetName}" → detected type: ${contactType}`);
-                        if (!contactType) return;
+                        console.log(`[CRM Import]   → Detected type: ${contactType}`);
+                        if (!contactType) {
+                            console.warn(`[CRM Import]   → SKIPPED (no matching type)`);
+                            return;
+                        }
                         
                         let data = this.sheetToRows(this.importWorkbook, sheetName);
-                        console.log(`[CRM Import] Sheet "${sheetName}" has ${data?.length || 0} rows`);
-                        if (!data || data.length < 2) return;
+                        console.log(`[CRM Import]   → Parsed ${data?.length || 0} rows`);
+                        if (data && data.length > 0) {
+                            console.log(`[CRM Import]   → Headers:`, data[0]);
+                            if (data.length > 1) {
+                                console.log(`[CRM Import]   → Sample row:`, data[1]);
+                            }
+                        }
+                        
+                        if (!data || data.length < 2) {
+                            console.warn(`[CRM Import]   → SKIPPED (not enough data)`);
+                            return;
+                        }
                         
                         // Special handling for Oil Processors: merge contact table with rates table
                         if (contactType === 'oil_processor') {
+                            console.log(`[CRM Import]   → Merging Oil Processor tables...`);
                             data = this.mergeOilProcessorTables(data);
+                            console.log(`[CRM Import]   → After merge: ${data?.length || 0} rows`);
                         }
                         
                         importBatches.push({ sheetName, contactType, importData: data });
+                        console.log(`[CRM Import]   → ✓ Added to import queue`);
                     });
 
-                    console.log('[CRM Import] Import batches:', importBatches.length);
+                    console.log(`[CRM Import] Total batches to import: ${importBatches.length}`);
 
                     if (!importBatches.length) {
                         const sheetList = this.importWorkbook.SheetNames.join(', ');
+                        console.error('[CRM Import] ERROR: No matching sheets found');
                         Swal.fire('Error', `No matching sheets found in: ${sheetList}<br><br>Expected names like "NIS Suppliers", "Oil Processors", "Kernel Customers".`, 'error');
                         return;
                     }
                 } else {
                     const contactType = $('#importContactType').val();
+                    console.log('[CRM Import] Single sheet import, type:', contactType);
                     if (!contactType) {
+                        console.error('[CRM Import] ERROR: No contact type selected');
                         Swal.fire('Error', 'Please select a contact type (or enable Import all sheets)', 'error');
                         return;
                     }
@@ -865,41 +904,61 @@ var _crmGrid = function () {
                 let successCount = 0;
                 let errorCount = 0;
                 const perSheet = [];
+                const errors = [];
+                
+                console.log(`[CRM Import] ========== IMPORTING ${importBatches.length} BATCH(ES) ==========`);
                 
                 for (const batch of importBatches) {
+                    console.log(`[CRM Import] ===== BATCH: ${batch.sheetName} (${batch.contactType}) =====`);
                     const mappedContacts = this.mapRowsToContacts(batch.contactType, batch.importData);
+                    console.log(`[CRM Import] Mapped ${mappedContacts.length} contacts`);
+                    
                     let ok = 0;
                     let fail = 0;
 
-                    for (const contactData of mappedContacts) {
+                    for (let i = 0; i < mappedContacts.length; i++) {
+                        const contactData = mappedContacts[i];
                         try {
-                            console.log('[CRM Import] Importing contact:', contactData.company_name, contactData);
+                            console.log(`[CRM Import] [${i+1}/${mappedContacts.length}] Importing: ${contactData.company_name}`);
+                            console.log(`[CRM Import]   Data:`, contactData);
                             const result = await dataFunctions.createContact(contactData);
-                            console.log('[CRM Import] Import result:', result);
+                            console.log(`[CRM Import]   ✓ SUCCESS:`, result);
                             successCount++;
                             ok++;
                         } catch (error) {
-                            console.error('[CRM Import] Error importing contact:', contactData.company_name, error);
+                            console.error(`[CRM Import]   ✗ FAILED: ${contactData.company_name}`);
+                            console.error(`[CRM Import]   Error:`, error.message);
+                            console.error(`[CRM Import]   Stack:`, error.stack);
                             errorCount++;
                             fail++;
+                            errors.push({ company: contactData.company_name, error: error.message });
                         }
                     }
 
                     perSheet.push({ sheetName: batch.sheetName, contactType: batch.contactType, ok, fail });
+                    console.log(`[CRM Import] Batch complete: ${ok} OK, ${fail} failed`);
+                }
+
+                console.log('[CRM Import] ========== IMPORT COMPLETE ==========');
+                console.log('[CRM Import] Success:', successCount, 'Errors:', errorCount);
+                if (errors.length > 0) {
+                    console.error('[CRM Import] Failed contacts:', errors);
                 }
 
                 Swal.fire({
-                    icon: 'success',
+                    icon: successCount > 0 ? 'success' : 'error',
                     title: 'Import Complete',
                     html: `${successCount} contacts imported successfully${errorCount > 0 ? `<br>${errorCount} contacts failed to import` : ''}` +
-                        (perSheet.length > 1 ? `<hr class="my-2"/>` + perSheet.map(s => `<div><strong>${s.sheetName}</strong> (${s.contactType}): ${s.ok} OK${s.fail ? `, ${s.fail} failed` : ''}</div>`).join('') : ''),
-                    timer: 3000
+                        (perSheet.length > 1 ? `<hr class="my-2"/>` + perSheet.map(s => `<div><strong>${s.sheetName}</strong> (${s.contactType}): ${s.ok} OK${s.fail ? `, ${s.fail} failed` : ''}</div>`).join('') : '') +
+                        (errors.length > 0 && errors.length <= 5 ? `<hr class="my-2"/><small>Errors: ${errors.map(e => `${e.company}: ${e.error}`).join('<br>')}</small>` : ''),
+                    timer: successCount > 0 ? 3000 : undefined
                 });
 
                 $('#importContactsModal').modal('hide');
                 this.loadContacts(true);
             } catch (error) {
-                console.error('Error processing import:', error);
+                console.error('[CRM Import] FATAL ERROR:', error);
+                console.error('[CRM Import] Stack:', error.stack);
                 Swal.fire('Error', 'Failed to import contacts: ' + error.message, 'error');
             }
         },
