@@ -240,7 +240,8 @@ var _crmGrid = function () {
                 const matchesSearch = !searchTerm ||
                     (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
                     (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
-                    (contact.physical_area && contact.physical_area.toLowerCase().includes(searchTerm));
+                    (contact.physical_area && contact.physical_area.toLowerCase().includes(searchTerm)) ||
+                    (contact.notes && contact.notes.toLowerCase().includes(searchTerm));
 
                 const matchesProvince = !provinceFilter || contact.physical_province === provinceFilter;
                 const matchesStatus = !statusFilter || contact.status === statusFilter;
@@ -258,7 +259,8 @@ var _crmGrid = function () {
             let filtered = this.oilProcessors.filter(contact => {
                 const matchesSearch = !searchTerm ||
                     (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
-                    (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm));
+                    (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
+                    (contact.notes && contact.notes.toLowerCase().includes(searchTerm));
                 
                 const matchesProvince = !provinceFilter || contact.physical_province === provinceFilter;
                 
@@ -275,7 +277,8 @@ var _crmGrid = function () {
             let filtered = this.kernelCustomers.filter(contact => {
                 const matchesSearch = !searchTerm ||
                     (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
-                    (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm));
+                    (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
+                    (contact.notes && contact.notes.toLowerCase().includes(searchTerm));
                 
                 const matchesProvince = !provinceFilter || contact.physical_province === provinceFilter;
                 
@@ -291,11 +294,13 @@ var _crmGrid = function () {
             tbody.empty();
 
             if (data.length === 0) {
-                tbody.html('<tr><td colspan="11" class="text-center py-4 text-muted">No NIS suppliers found</td></tr>');
+                tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No NIS suppliers found</td></tr>');
                 return;
             }
 
             data.forEach(contact => {
+                const notesText = contact.notes || '';
+                const notesDisplay = notesText.length > 50 ? notesText.substring(0, 50) + '...' : notesText;
                 const row = `
                     <tr>
                         <td><strong>${contact.company_name || 'N/A'}</strong></td>
@@ -308,13 +313,18 @@ var _crmGrid = function () {
                         <td>${contact.primary_contact_email || 'N/A'}</td>
                         <td>${contact.secondary_contact_email || 'N/A'}</td>
                         <td><span class="badge ${contact.status === 'active' ? 'bg-success' : 'bg-secondary'}">${contact.status || 'N/A'}</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${notesDisplay || 'N/A'}
+                        </td>
+                        <td class="text-nowrap">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -328,11 +338,18 @@ var _crmGrid = function () {
             tbody.empty();
 
             if (data.length === 0) {
-                tbody.html('<tr><td colspan="10" class="text-center py-4 text-muted">No oil processors found</td></tr>');
+                tbody.html('<tr><td colspan="16" class="text-center py-4 text-muted">No oil processors found</td></tr>');
                 return;
             }
 
             data.forEach(contact => {
+                const notesText = contact.notes || '';
+                const notesDisplay = notesText.length > 50 ? notesText.substring(0, 50) + '...' : notesText;
+                const formatRate = (rate) => {
+                    if (!rate && rate !== 0) return 'N/A';
+                    const num = typeof rate === 'string' ? parseFloat(rate.replace(/[R\s,]/g, '')) : rate;
+                    return isNaN(num) ? 'N/A' : `R ${num.toFixed(2)}`;
+                };
                 const row = `
                     <tr>
                         <td><strong>${contact.company_name || 'N/A'}</strong></td>
@@ -344,13 +361,23 @@ var _crmGrid = function () {
                         <td>${contact.secondary_contact_mobile || 'N/A'}</td>
                         <td>${contact.primary_contact_email || 'N/A'}</td>
                         <td>${contact.secondary_contact_email || 'N/A'}</td>
-                        <td>
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit">
-                                    <i class="fas fa-edit"></i>
+                        <td>${formatRate(contact.rate_crude_kernel)}</td>
+                        <td>${formatRate(contact.rate_food_kernel)}</td>
+                        <td>${formatRate(contact.rate_kernel_dust)}</td>
+                        <td>${formatRate(contact.rate_cracker_dust)}</td>
+                        <td>${formatRate(contact.rate_crush)}</td>
+                        <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${notesDisplay || 'N/A'}
+                        </td>
+                        <td class="text-nowrap">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
+                                    <i class="fas fa-edit"></i> Edit
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete">
-                                    <i class="fas fa-trash"></i>
+                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
+                                    <i class="fas fa-trash"></i> Delete
                                 </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -364,12 +391,14 @@ var _crmGrid = function () {
             tbody.empty();
 
             if (data.length === 0) {
-                tbody.html('<tr><td colspan="8" class="text-center py-4 text-muted">No kernel customers found</td></tr>');
+                tbody.html('<tr><td colspan="9" class="text-center py-4 text-muted">No kernel customers found</td></tr>');
                 return;
             }
 
             data.forEach(contact => {
                 const preferredStyles = contact.preferred_styles || 'N/A';
+                const notesText = contact.notes || '';
+                const notesDisplay = notesText.length > 50 ? notesText.substring(0, 50) + '...' : notesText;
                 
                 const row = `
                     <tr>
@@ -380,13 +409,18 @@ var _crmGrid = function () {
                         <td>${contact.primary_contact_mobile || 'N/A'}</td>
                         <td>${contact.primary_contact_email || 'N/A'}</td>
                         <td><small>${preferredStyles}</small></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${notesDisplay || 'N/A'}
+                        </td>
+                        <td class="text-nowrap">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -689,13 +723,16 @@ var _crmGrid = function () {
         detectContactTypeForSheet: function (sheetName) {
             const n = this.normalizeSheetName(sheetName);
             // Match common variations in your workbook tabs
-            if (n.includes('nis') || n.includes('supplier')) return 'nis_supplier';
+            // NIS Suppliers can be "Nut in Shell Suppliers - Current (Past 2 Years)" or "Nut in Shell Suppliers - Inactive"
+            if (n.includes('nut in shell') || n.includes('nis') || (n.includes('supplier') && !n.includes('oil'))) {
+                return 'nis_supplier';
+            }
             if (n.includes('oil') || n.includes('processor')) return 'oil_processor';
             if (n.includes('kernel') || n.includes('customer')) return 'kernel_customer';
             return null;
         },
 
-        mapRowsToContacts: function (contactType, importData) {
+        mapRowsToContacts: function (contactType, importData, isInactive) {
             const headers = importData[0] || [];
             const rows = importData.slice(1);
 
@@ -712,8 +749,9 @@ var _crmGrid = function () {
                     contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
                     contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
                     contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
-                    contact.notes = this.getColumnValue(row, headers, 'Note/s');
-                    contact.status = 'active';
+                    // Try both "Note/s" and "Notes" column names
+                    contact.notes = this.getColumnValue(row, headers, 'Note/s') || this.getColumnValue(row, headers, 'Notes');
+                    contact.status = isInactive ? 'inactive' : 'active';
                 } else if (contactType === 'oil_processor') {
                     // Oil Processors sheet has contact info in one table and rates in another
                     // We'll map from the "Oil Kernel Suppliers" table (contact info)
@@ -726,7 +764,8 @@ var _crmGrid = function () {
                     contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
                     contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
                     contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
-                    contact.notes = this.getColumnValue(row, headers, 'Note/s');
+                    // Try both "Note/s" and "Notes" column names
+                    contact.notes = this.getColumnValue(row, headers, 'Note/s') || this.getColumnValue(row, headers, 'Notes');
                     
                     // Try to get rates from same row (if rates table is merged) or from separate rates lookup
                     contact.rate_crude_kernel = this.parseRate(this.getColumnValue(row, headers, 'Crude Kernel Rate/kg'));
@@ -744,8 +783,8 @@ var _crmGrid = function () {
                     // Cell #1 and Email #1 might not exist in this sheet, so make them optional
                     contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1') || null;
                     contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1') || null;
-                    // Note/s column contains preferred styles (e.g., "Style SP", "Style 5 & 6 - Small")
-                    const notes = this.getColumnValue(row, headers, 'Note/s');
+                    // Note/s or Notes column contains preferred styles (e.g., "Style SP", "Style 5 & 6 - Small")
+                    const notes = this.getColumnValue(row, headers, 'Note/s') || this.getColumnValue(row, headers, 'Notes');
                     if (notes) {
                         // Extract preferred styles - usually everything before " - " or the whole note
                         const stylesMatch = notes.match(/^(Style\s+[^-\n]+|.*?)(?:\s*-\s*|$)/i);
@@ -870,6 +909,10 @@ var _crmGrid = function () {
                             return;
                         }
                         
+                        // Determine status based on sheet name for NIS Suppliers
+                        const sheetNameLower = sheetName.toLowerCase().trim();
+                        const isInactive = sheetNameLower.includes('inactive');
+                        
                         // Special handling for Oil Processors: merge contact table with rates table
                         if (contactType === 'oil_processor') {
                             console.log(`[CRM Import]   → Merging Oil Processor tables...`);
@@ -877,8 +920,8 @@ var _crmGrid = function () {
                             console.log(`[CRM Import]   → After merge: ${data?.length || 0} rows`);
                         }
                         
-                        importBatches.push({ sheetName, contactType, importData: data });
-                        console.log(`[CRM Import]   → ✓ Added to import queue`);
+                        importBatches.push({ sheetName, contactType, importData: data, isInactive });
+                        console.log(`[CRM Import]   → ✓ Added to import queue (status: ${isInactive ? 'inactive' : 'active'})`);
                     });
 
                     console.log(`[CRM Import] Total batches to import: ${importBatches.length}`);
@@ -910,7 +953,7 @@ var _crmGrid = function () {
                 
                 for (const batch of importBatches) {
                     console.log(`[CRM Import] ===== BATCH: ${batch.sheetName} (${batch.contactType}) =====`);
-                    const mappedContacts = this.mapRowsToContacts(batch.contactType, batch.importData);
+                    const mappedContacts = this.mapRowsToContacts(batch.contactType, batch.importData, batch.isInactive);
                     console.log(`[CRM Import] Mapped ${mappedContacts.length} contacts`);
                     
                     let ok = 0;
