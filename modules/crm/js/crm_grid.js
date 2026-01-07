@@ -581,46 +581,68 @@ var _crmGrid = function () {
 
                 // Map to database function parameters
                 const params = {
-                    p_contact_type: contactData.contact_type,
-                    p_company_name: contactData.company_name,
-                    p_trading_name: contactData.trading_name || null,
-                    p_primary_contact_name: contactData.primary_contact_name || null,
-                    p_primary_contact_email: contactData.primary_contact_email || null,
-                    p_primary_contact_phone: contactData.primary_contact_phone || null,
-                    p_primary_contact_mobile: contactData.primary_contact_mobile || null,
-                    p_secondary_contact_name: contactData.secondary_contact_name || null,
-                    p_secondary_contact_phone: contactData.secondary_contact_phone || null,
-                    p_secondary_contact_mobile: contactData.secondary_contact_mobile || null,
-                    p_secondary_contact_email: contactData.secondary_contact_email || null,
-                    p_preferred_styles: contactData.preferred_styles || null,
-                    p_physical_area: contactData.physical_area || null,
-                    p_physical_city: contactData.physical_city || null,
-                    p_physical_province: contactData.physical_province || null,
-                    p_physical_postal_code: contactData.physical_postal_code || null,
-                    p_account_manager_id: $('#accountManagerId').val() || null,
-                    p_status: contactData.status || 'active',
-                    p_key_account: contactData.key_account || false,
-                    p_notes: contactData.notes || null
+                    contact_type: contactData.contact_type,
+                    company_name: contactData.company_name,
+                    trading_name: contactData.trading_name || null,
+                    primary_contact_name: contactData.primary_contact_name || null,
+                    primary_contact_email: contactData.primary_contact_email || null,
+                    primary_contact_phone: contactData.primary_contact_phone || null,
+                    primary_contact_mobile: contactData.primary_contact_mobile || null,
+                    secondary_contact_name: contactData.secondary_contact_name || null,
+                    secondary_contact_phone: contactData.secondary_contact_phone || null,
+                    secondary_contact_mobile: contactData.secondary_contact_mobile || null,
+                    secondary_contact_email: contactData.secondary_contact_email || null,
+                    preferred_styles: contactData.preferred_styles || null,
+                    physical_area: contactData.physical_area || null,
+                    physical_city: contactData.physical_city || null,
+                    physical_province: contactData.physical_province || null,
+                    physical_postal_code: contactData.physical_postal_code || null,
+                    account_manager_id: $('#accountManagerId').val() || null,
+                    status: contactData.status || 'active',
+                    key_account: contactData.key_account || false,
+                    notes: contactData.notes || null
                 };
 
-                if (contactId) {
-                    result = await dataFunctions.updateContact(contactId, params);
-                } else {
-                    result = await dataFunctions.createContact(params);
+                // Add rates for oil processors
+                if (contactData.contact_type === 'oil_processor') {
+                    params.rate_crude_kernel = contactData.rate_crude_kernel || null;
+                    params.rate_food_kernel = contactData.rate_food_kernel || null;
+                    params.rate_kernel_dust = contactData.rate_kernel_dust || null;
+                    params.rate_cracker_dust = contactData.rate_cracker_dust || null;
+                    params.rate_crush = contactData.rate_crush || null;
                 }
 
-                if (result && result.success !== false) {
+                try {
+                    if (contactId) {
+                        result = await dataFunctions.updateContact(contactId, params);
+                    } else {
+                        console.log('[CRM] Creating contact with params:', params);
+                        result = await dataFunctions.createContact(params);
+                        console.log('[CRM] Create result:', result);
+                    }
+
+                    if (result && result.success !== false) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: contactId ? 'Contact updated successfully' : 'Contact created successfully',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#contactModal').modal('hide');
+                        this.loadContacts(true);
+                    } else {
+                        const errorMsg = result?.error || result?.message || 'Failed to save contact';
+                        console.error('[CRM] Save failed:', result);
+                        throw new Error(errorMsg);
+                    }
+                } catch (error) {
+                    console.error('[CRM] Error saving contact:', error);
                     Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: contactId ? 'Contact updated successfully' : 'Contact created successfully',
-                        timer: 2000,
-                        showConfirmButton: false
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to save contact: ' + (error.message || error)
                     });
-                    $('#contactModal').modal('hide');
-                    this.loadContacts(true);
-                } else {
-                    throw new Error(result?.message || 'Failed to save contact');
                 }
             } catch (error) {
                 console.error('Error saving contact:', error);

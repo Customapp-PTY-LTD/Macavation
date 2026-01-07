@@ -1000,37 +1000,64 @@ var _dataFunctions = function () {
         },
 
         createContact: async function (contactData, token = null) {
-            const params = {
-                p_contact_type: contactData.contact_type || contactData.p_contact_type,
-                p_company_name: contactData.company_name || contactData.p_company_name,
-                p_trading_name: contactData.trading_name || contactData.p_trading_name || null,
-                p_primary_contact_name: contactData.primary_contact_name || contactData.p_primary_contact_name || null,
-                p_primary_contact_email: contactData.primary_contact_email || contactData.p_primary_contact_email || null,
-                p_primary_contact_phone: contactData.primary_contact_phone || contactData.p_primary_contact_phone || null,
-                p_primary_contact_mobile: contactData.primary_contact_mobile || contactData.p_primary_contact_mobile || null,
-                p_secondary_contact_name: contactData.secondary_contact_name || contactData.p_secondary_contact_name || null,
-                p_secondary_contact_phone: contactData.secondary_contact_phone || contactData.p_secondary_contact_phone || null,
-                p_secondary_contact_mobile: contactData.secondary_contact_mobile || contactData.p_secondary_contact_mobile || null,
-                p_secondary_contact_email: contactData.secondary_contact_email || contactData.p_secondary_contact_email || null,
-                p_preferred_styles: contactData.preferred_styles || contactData.p_preferred_styles || null,
-                p_physical_area: contactData.physical_area || contactData.p_physical_area || null,
-                p_physical_city: contactData.physical_city || contactData.p_physical_city || null,
-                p_physical_province: contactData.physical_province || contactData.p_physical_province || null,
-                p_physical_postal_code: contactData.physical_postal_code || contactData.p_physical_postal_code || null,
-                p_account_manager_id: contactData.account_manager_id || contactData.p_account_manager_id || null,
-                p_status: contactData.status || contactData.p_status || 'active',
-                p_key_account: contactData.key_account || contactData.p_key_account || false,
-                p_notes: contactData.notes || contactData.p_notes || null,
-                p_rate_crude_kernel: contactData.rate_crude_kernel || contactData.p_rate_crude_kernel || null,
-                p_rate_food_kernel: contactData.rate_food_kernel || contactData.p_rate_food_kernel || null,
-                p_rate_kernel_dust: contactData.rate_kernel_dust || contactData.p_rate_kernel_dust || null,
-                p_rate_cracker_dust: contactData.rate_cracker_dust || contactData.p_rate_cracker_dust || null,
-                p_rate_crush: contactData.rate_crush || contactData.p_rate_crush || null
-            };
-            const result = await this.callFunction('create_contact_simple', params, token, { useCache: false });
-            // Invalidate contacts cache
-            this.clearCachePattern('contacts');
-            return result;
+            // Build params object - only include parameters that have values (let PostgreSQL use defaults for nulls)
+            // This avoids parameter order issues
+            const params = {};
+            
+            // Required parameters (must always be present)
+            params.p_contact_type = contactData.contact_type || contactData.p_contact_type;
+            params.p_company_name = contactData.company_name || contactData.p_company_name;
+            
+            // Optional parameters - only include if they have values
+            if (contactData.trading_name || contactData.p_trading_name) params.p_trading_name = contactData.trading_name || contactData.p_trading_name;
+            if (contactData.primary_contact_name || contactData.p_primary_contact_name) params.p_primary_contact_name = contactData.primary_contact_name || contactData.p_primary_contact_name;
+            if (contactData.primary_contact_email || contactData.p_primary_contact_email) params.p_primary_contact_email = contactData.primary_contact_email || contactData.p_primary_contact_email;
+            if (contactData.primary_contact_phone || contactData.p_primary_contact_phone) params.p_primary_contact_phone = contactData.primary_contact_phone || contactData.p_primary_contact_phone;
+            if (contactData.primary_contact_mobile || contactData.p_primary_contact_mobile) params.p_primary_contact_mobile = contactData.primary_contact_mobile || contactData.p_primary_contact_mobile;
+            if (contactData.secondary_contact_name || contactData.p_secondary_contact_name) params.p_secondary_contact_name = contactData.secondary_contact_name || contactData.p_secondary_contact_name;
+            if (contactData.secondary_contact_phone || contactData.p_secondary_contact_phone) params.p_secondary_contact_phone = contactData.secondary_contact_phone || contactData.p_secondary_contact_phone;
+            if (contactData.secondary_contact_mobile || contactData.p_secondary_contact_mobile) params.p_secondary_contact_mobile = contactData.secondary_contact_mobile || contactData.p_secondary_contact_mobile;
+            if (contactData.secondary_contact_email || contactData.p_secondary_contact_email) params.p_secondary_contact_email = contactData.secondary_contact_email || contactData.p_secondary_contact_email;
+            if (contactData.preferred_styles || contactData.p_preferred_styles) params.p_preferred_styles = contactData.preferred_styles || contactData.p_preferred_styles;
+            if (contactData.physical_area || contactData.p_physical_area) params.p_physical_area = contactData.physical_area || contactData.p_physical_area;
+            if (contactData.physical_city || contactData.p_physical_city) params.p_physical_city = contactData.physical_city || contactData.p_physical_city;
+            if (contactData.physical_province || contactData.p_physical_province) params.p_physical_province = contactData.physical_province || contactData.p_physical_province;
+            if (contactData.physical_postal_code || contactData.p_physical_postal_code) params.p_physical_postal_code = contactData.physical_postal_code || contactData.p_physical_postal_code;
+            if (contactData.account_manager_id || contactData.p_account_manager_id) params.p_account_manager_id = contactData.account_manager_id || contactData.p_account_manager_id;
+            if (contactData.status || contactData.p_status) params.p_status = contactData.status || contactData.p_status;
+            if (contactData.key_account !== undefined || contactData.p_key_account !== undefined) {
+                params.p_key_account = contactData.key_account !== undefined ? contactData.key_account : contactData.p_key_account;
+            }
+            if (contactData.notes || contactData.p_notes) params.p_notes = contactData.notes || contactData.p_notes;
+            if (contactData.rate_crude_kernel !== undefined || contactData.p_rate_crude_kernel !== undefined) {
+                params.p_rate_crude_kernel = contactData.rate_crude_kernel !== undefined ? contactData.rate_crude_kernel : contactData.p_rate_crude_kernel;
+            }
+            if (contactData.rate_food_kernel !== undefined || contactData.p_rate_food_kernel !== undefined) {
+                params.p_rate_food_kernel = contactData.rate_food_kernel !== undefined ? contactData.rate_food_kernel : contactData.p_rate_food_kernel;
+            }
+            if (contactData.rate_kernel_dust !== undefined || contactData.p_rate_kernel_dust !== undefined) {
+                params.p_rate_kernel_dust = contactData.rate_kernel_dust !== undefined ? contactData.rate_kernel_dust : contactData.p_rate_kernel_dust;
+            }
+            if (contactData.rate_cracker_dust !== undefined || contactData.p_rate_cracker_dust !== undefined) {
+                params.p_rate_cracker_dust = contactData.rate_cracker_dust !== undefined ? contactData.rate_cracker_dust : contactData.p_rate_cracker_dust;
+            }
+            if (contactData.rate_crush !== undefined || contactData.p_rate_crush !== undefined) {
+                params.p_rate_crush = contactData.rate_crush !== undefined ? contactData.rate_crush : contactData.p_rate_crush;
+            }
+            
+            console.log('[Data Functions] createContact called with params:', JSON.stringify(params, null, 2));
+            
+            try {
+                const result = await this.callFunction('create_contact_simple', params, token, { useCache: false });
+                console.log('[Data Functions] createContact result:', result);
+                // Invalidate contacts cache
+                this.clearCachePattern('contacts');
+                return result;
+            } catch (error) {
+                console.error('[Data Functions] createContact error:', error);
+                console.error('[Data Functions] Error details:', error.message, error.stack);
+                throw error;
+            }
         },
 
         updateContact: async function (contactId, contactData, token = null) {
