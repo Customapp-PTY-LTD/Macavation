@@ -158,11 +158,9 @@ var _stockManagementGrid = function () {
             const stockTakeModal = document.getElementById('stockTakeModal');
             if (stockTakeModal) {
                 // Cancel button in footer
-                const cancelBtn = stockTakeModal.querySelector('button[data-bs-dismiss="modal"]');
+                const cancelBtn = stockTakeModal.querySelector('.modal-footer button[data-bs-dismiss="modal"]');
                 if (cancelBtn) {
                     cancelBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
                         console.log('[Stock Management] Cancel button clicked');
                         scope.closeStockTakeModal();
                     });
@@ -172,8 +170,6 @@ var _stockManagementGrid = function () {
                 const closeBtn = stockTakeModal.querySelector('.btn-close');
                 if (closeBtn) {
                     closeBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
                         console.log('[Stock Management] Close button clicked');
                         scope.closeStockTakeModal();
                     });
@@ -1307,7 +1303,7 @@ var _stockManagementGrid = function () {
                 }
                 
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = new bootstrap.Modal(modalElement);
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
                     modal.show();
                     console.log('[Stock Management] Modal shown via Bootstrap 5');
                 } else if (typeof $ !== 'undefined' && $.fn.modal) {
@@ -1334,43 +1330,59 @@ var _stockManagementGrid = function () {
             try {
                 // Try Bootstrap 5 first
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = bootstrap.Modal.getInstance(modalElement);
-                    if (modal) {
-                        modal.hide();
-                        console.log('[Stock Management] Modal closed via Bootstrap 5');
-                        return;
-                    }
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modal.hide();
+                    console.log('[Stock Management] Modal closed via Bootstrap 5');
                 }
                 
                 // Try jQuery
                 if (typeof $ !== 'undefined' && $.fn.modal) {
                     $('#stockTakeModal').modal('hide');
                     console.log('[Stock Management] Modal closed via jQuery');
-                    return;
                 }
                 
-                // Fallback: manually hide modal
-                modalElement.style.display = 'none';
-                modalElement.classList.remove('show');
-                document.body.classList.remove('modal-open');
-                document.body.style.overflow = '';
-                const backdrop = document.getElementById('stockTakeModalBackdrop');
-                if (backdrop) {
-                    backdrop.remove();
-                }
-                // Also remove any Bootstrap backdrop
-                const bootstrapsBackdrop = document.querySelector('.modal-backdrop');
-                if (bootstrapsBackdrop) {
-                    bootstrapsBackdrop.remove();
-                }
-                console.log('[Stock Management] Modal closed via fallback');
+                // If the modal is still visible after Bootstrap/jQuery attempts, force close.
+                setTimeout(() => {
+                    const stillShown = modalElement.classList.contains('show') || modalElement.style.display === 'block';
+                    if (stillShown) {
+                        console.warn('[Stock Management] Modal still visible after hide(); forcing close');
+                        this.hardForceCloseStockTakeModal();
+                    }
+                }, 50);
             } catch (error) {
                 console.error('[Stock Management] Error closing modal:', error);
-                // Force close
-                modalElement.style.display = 'none';
+                this.hardForceCloseStockTakeModal();
+            }
+        },
+
+        hardForceCloseStockTakeModal: function () {
+            const modalElement = document.getElementById('stockTakeModal');
+            if (!modalElement) return;
+
+            try {
+                // Use global safety hatch if available
+                if (typeof window !== 'undefined' && typeof window.forceCloseAllModals === 'function') {
+                    window.forceCloseAllModals();
+                }
+
+                // Targeted cleanup (in case global is unavailable / insufficient)
                 modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                modalElement.setAttribute('aria-hidden', 'true');
+                modalElement.removeAttribute('aria-modal');
+                modalElement.removeAttribute('role');
+
+                // Remove all backdrops (sometimes multiple get stacked)
+                document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+
+                // Restore body scroll
                 document.body.classList.remove('modal-open');
                 document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+
+                console.log('[Stock Management] Modal force-closed');
+            } catch (e) {
+                console.warn('[Stock Management] hardForceCloseStockTakeModal failed:', e);
             }
         },
         

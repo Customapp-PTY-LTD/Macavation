@@ -2,3 +2,6 @@
 .module-content { min-height: 400px; }
 #stockTable th { border-top: none; font-weight: 600; }
 
+/* Oil stock tables */
+#oilLotsTable th { white-space: nowrap; }
+#oilLotsTable td { vertical-align: middle; }

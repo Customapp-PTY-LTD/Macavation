@@ -13,6 +13,7 @@ var _crmGrid = function () {
         editingContact: null,
         searchTimeout: null,
         importData: null,
+        importWorkbook: null,
 
         init: function () {
             this.setupEventListeners();
@@ -43,6 +44,13 @@ var _crmGrid = function () {
             // Process import
             $('#processImportBtn').on('click', function () {
                 scope.processImport();
+            });
+
+            // Import all sheets toggle
+            $('#importAllSheets').on('change', function () {
+                const checked = $(this).is(':checked');
+                // If importing all sheets, disable manual type selection
+                $('#importContactType').prop('disabled', checked);
             });
 
             // Contact type change - show/hide type-specific sections
@@ -221,7 +229,7 @@ var _crmGrid = function () {
                     (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
                     (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
                     (contact.physical_area && contact.physical_area.toLowerCase().includes(searchTerm));
-                
+
                 const matchesProvince = !provinceFilter || contact.physical_province === provinceFilter;
                 const matchesStatus = !statusFilter || contact.status === statusFilter;
                 
@@ -325,12 +333,12 @@ var _crmGrid = function () {
                         <td>${contact.primary_contact_email || 'N/A'}</td>
                         <td>${contact.secondary_contact_email || 'N/A'}</td>
                         <td>
-                            <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                         </td>
                     </tr>
                 `;
@@ -606,13 +614,22 @@ var _crmGrid = function () {
             $('#importExcelFile').val('');
             $('#importPreview').hide();
             $('#processImportBtn').prop('disabled', true);
+            this.importData = null;
+            this.importWorkbook = null;
+            $('#importAllSheets').prop('checked', false);
+            $('#importContactType').prop('disabled', false);
         },
 
         handleFileSelect: async function (file) {
             if (!file) return;
 
             try {
-                const data = await this.parseExcelFile(file);
+                // Parse workbook (for multi-sheet import) + keep first sheet as default preview
+                const workbook = await this.parseExcelWorkbook(file);
+                this.importWorkbook = workbook;
+
+                const firstSheetName = workbook?.SheetNames?.[0];
+                const data = firstSheetName ? this.sheetToRows(workbook, firstSheetName) : [];
                 this.importData = data;
                 
                 if (data && data.length > 0) {
@@ -625,6 +642,92 @@ var _crmGrid = function () {
                 console.error('Error parsing Excel:', error);
                 Swal.fire('Error', 'Failed to parse Excel file: ' + error.message, 'error');
             }
+        },
+
+        parseExcelWorkbook: function (file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        resolve(workbook);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        },
+
+        sheetToRows: function (workbook, sheetName) {
+            const sheet = workbook?.Sheets?.[sheetName];
+            if (!sheet) return [];
+            return XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false });
+        },
+
+        normalizeSheetName: function (name) {
+            return String(name || '').trim().toLowerCase();
+        },
+
+        detectContactTypeForSheet: function (sheetName) {
+            const n = this.normalizeSheetName(sheetName);
+            // Match common variations in your workbook tabs
+            if (n.includes('nis') || n.includes('supplier')) return 'nis_supplier';
+            if (n.includes('oil') || n.includes('processor')) return 'oil_processor';
+            if (n.includes('kernel') || n.includes('customer')) return 'kernel_customer';
+            return null;
+        },
+
+        mapRowsToContacts: function (contactType, importData) {
+            const headers = importData[0] || [];
+            const rows = importData.slice(1);
+
+            return rows.map(row => {
+                const contact = { contact_type: contactType };
+
+                if (contactType === 'nis_supplier') {
+                    contact.company_name = this.getColumnValue(row, headers, 'Supplier Name');
+                    contact.physical_province = this.getColumnValue(row, headers, 'Province');
+                    contact.physical_area = this.getColumnValue(row, headers, 'Area');
+                    contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
+                    contact.secondary_contact_name = this.getColumnValue(row, headers, 'Contact #2');
+                    contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
+                    contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
+                    contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
+                    contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
+                    contact.notes = this.getColumnValue(row, headers, 'Note/s');
+                    contact.status = 'active';
+                } else if (contactType === 'oil_processor') {
+                    contact.company_name = this.getColumnValue(row, headers, 'Supplier Name');
+                    contact.physical_province = this.getColumnValue(row, headers, 'Province');
+                    contact.physical_area = this.getColumnValue(row, headers, 'Area');
+                    contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
+                    contact.secondary_contact_name = this.getColumnValue(row, headers, 'Contact #2');
+                    contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
+                    contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
+                    contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
+                    contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
+                    contact.rate_crude_kernel = this.parseRate(this.getColumnValue(row, headers, 'Crude Kernel Rate/kg'));
+                    contact.rate_food_kernel = this.parseRate(this.getColumnValue(row, headers, 'Food Kernel Rate/kg'));
+                    contact.rate_kernel_dust = this.parseRate(this.getColumnValue(row, headers, 'Kernel Dust Rate/kg'));
+                    contact.rate_cracker_dust = this.parseRate(this.getColumnValue(row, headers, 'Cracker Dust Rate/kg'));
+                    contact.rate_crush = this.parseRate(this.getColumnValue(row, headers, 'Crush Rate/kg'));
+                    contact.status = 'active';
+                } else if (contactType === 'kernel_customer') {
+                    contact.company_name = this.getColumnValue(row, headers, 'Customer Name');
+                    contact.physical_province = this.getColumnValue(row, headers, 'Province');
+                    contact.physical_area = this.getColumnValue(row, headers, 'Area');
+                    contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
+                    contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
+                    contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
+                    contact.notes = this.getColumnValue(row, headers, 'Note/s');
+                    contact.status = 'active';
+                }
+
+                return contact;
+            }).filter(c => c.company_name);
         },
 
         parseExcelFile: function (file) {
@@ -684,11 +787,7 @@ var _crmGrid = function () {
                 return;
             }
 
-            const contactType = $('#importContactType').val();
-            if (!contactType) {
-                Swal.fire('Error', 'Please select a contact type', 'error');
-                return;
-            }
+            const importAll = $('#importAllSheets').is(':checked');
 
             try {
                 Swal.fire({
@@ -702,91 +801,71 @@ var _crmGrid = function () {
                     }
                 });
 
-                const headers = this.importData[0];
-                const rows = this.importData.slice(1);
-                
-                // Map Excel columns to database fields based on contact type
-                const mappedContacts = rows.map(row => {
-                    const contact = { contact_type: contactType };
-                    
-                    // Map based on contact type
-                    if (contactType === 'nis_supplier') {
-                        contact.company_name = this.getColumnValue(row, headers, 'Supplier Name');
-                        contact.physical_province = this.getColumnValue(row, headers, 'Province');
-                        contact.physical_area = this.getColumnValue(row, headers, 'Area');
-                        contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
-                        contact.secondary_contact_name = this.getColumnValue(row, headers, 'Contact #2');
-                        contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
-                        contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
-                        contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
-                        contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
-                        contact.notes = this.getColumnValue(row, headers, 'Note/s');
-                        contact.status = 'active';
-                    } else if (contactType === 'oil_processor') {
-                        contact.company_name = this.getColumnValue(row, headers, 'Supplier Name');
-                        contact.physical_province = this.getColumnValue(row, headers, 'Province');
-                        contact.physical_area = this.getColumnValue(row, headers, 'Area');
-                        contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
-                        contact.secondary_contact_name = this.getColumnValue(row, headers, 'Contact #2');
-                        contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
-                        contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
-                        contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
-                        contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
-                        contact.rate_crude_kernel = this.parseRate(this.getColumnValue(row, headers, 'Crude Kernel Rate/kg'));
-                        contact.rate_food_kernel = this.parseRate(this.getColumnValue(row, headers, 'Food Kernel Rate/kg'));
-                        contact.rate_kernel_dust = this.parseRate(this.getColumnValue(row, headers, 'Kernel Dust Rate/kg'));
-                        contact.rate_cracker_dust = this.parseRate(this.getColumnValue(row, headers, 'Cracker Dust Rate/kg'));
-                        contact.rate_crush = this.parseRate(this.getColumnValue(row, headers, 'Crush Rate/kg'));
-                    } else if (contactType === 'kernel_customer') {
-                        contact.company_name = this.getColumnValue(row, headers, 'Customer Name');
-                        contact.physical_province = this.getColumnValue(row, headers, 'Province');
-                        contact.physical_area = this.getColumnValue(row, headers, 'Area');
-                        contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
-                        contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
-                        contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
-                        contact.notes = this.getColumnValue(row, headers, 'Note/s');
-                        contact.status = 'active';
+                let importBatches = [];
+                if (importAll) {
+                    if (!this.importWorkbook || !this.importWorkbook.SheetNames || this.importWorkbook.SheetNames.length === 0) {
+                        Swal.fire('Error', 'Workbook not loaded. Please re-select the file.', 'error');
+                        return;
                     }
-                    
-                    return contact;
-                }).filter(c => c.company_name); // Filter out empty rows
+
+                    console.log('[CRM Import] Found sheets:', this.importWorkbook.SheetNames);
+
+                    this.importWorkbook.SheetNames.forEach(sheetName => {
+                        const contactType = this.detectContactTypeForSheet(sheetName);
+                        console.log(`[CRM Import] Sheet "${sheetName}" → detected type: ${contactType}`);
+                        if (!contactType) return;
+                        const data = this.sheetToRows(this.importWorkbook, sheetName);
+                        console.log(`[CRM Import] Sheet "${sheetName}" has ${data?.length || 0} rows`);
+                        if (!data || data.length < 2) return;
+                        importBatches.push({ sheetName, contactType, importData: data });
+                    });
+
+                    console.log('[CRM Import] Import batches:', importBatches.length);
+
+                    if (!importBatches.length) {
+                        const sheetList = this.importWorkbook.SheetNames.join(', ');
+                        Swal.fire('Error', `No matching sheets found in: ${sheetList}<br><br>Expected names like "NIS Suppliers", "Oil Processors", "Kernel Customers".`, 'error');
+                        return;
+                    }
+                } else {
+                    const contactType = $('#importContactType').val();
+                    if (!contactType) {
+                        Swal.fire('Error', 'Please select a contact type (or enable Import all sheets)', 'error');
+                        return;
+                    }
+                    importBatches = [{ sheetName: 'Selected Sheet', contactType, importData: this.importData }];
+                }
 
                 // Import contacts in batches
                 let successCount = 0;
                 let errorCount = 0;
+                const perSheet = [];
                 
-                for (const contactData of mappedContacts) {
-                    try {
-                        const params = {
-                            p_contact_type: contactData.contact_type,
-                            p_company_name: contactData.company_name,
-                            p_trading_name: contactData.trading_name || null,
-                            p_primary_contact_name: contactData.primary_contact_name || null,
-                            p_primary_contact_email: contactData.primary_contact_email || null,
-                            p_primary_contact_mobile: contactData.primary_contact_mobile || null,
-                            p_secondary_contact_name: contactData.secondary_contact_name || null,
-                            p_secondary_contact_phone: contactData.secondary_contact_phone || null,
-                            p_secondary_contact_mobile: contactData.secondary_contact_mobile || null,
-                            p_secondary_contact_email: contactData.secondary_contact_email || null,
-                            p_preferred_styles: contactData.preferred_styles || null,
-                            p_physical_area: contactData.physical_area || null,
-                            p_physical_province: contactData.physical_province || null,
-                            p_status: contactData.status || 'active',
-                            p_notes: contactData.notes || null
-                        };
-                        
-                        await dataFunctions.createContact(params);
-                        successCount++;
-                    } catch (error) {
-                        console.error('Error importing contact:', contactData.company_name, error);
-                        errorCount++;
+                for (const batch of importBatches) {
+                    const mappedContacts = this.mapRowsToContacts(batch.contactType, batch.importData);
+                    let ok = 0;
+                    let fail = 0;
+
+                    for (const contactData of mappedContacts) {
+                        try {
+                            await dataFunctions.createContact(contactData);
+                            successCount++;
+                            ok++;
+                        } catch (error) {
+                            console.error('Error importing contact:', contactData.company_name, error);
+                            errorCount++;
+                            fail++;
+                        }
                     }
+
+                    perSheet.push({ sheetName: batch.sheetName, contactType: batch.contactType, ok, fail });
                 }
 
                 Swal.fire({
                     icon: 'success',
                     title: 'Import Complete',
-                    html: `${successCount} contacts imported successfully${errorCount > 0 ? `<br>${errorCount} contacts failed to import` : ''}`,
+                    html: `${successCount} contacts imported successfully${errorCount > 0 ? `<br>${errorCount} contacts failed to import` : ''}` +
+                        (perSheet.length > 1 ? `<hr class="my-2"/>` + perSheet.map(s => `<div><strong>${s.sheetName}</strong> (${s.contactType}): ${s.ok} OK${s.fail ? `, ${s.fail} failed` : ''}</div>`).join('') : ''),
                     timer: 3000
                 });
 
