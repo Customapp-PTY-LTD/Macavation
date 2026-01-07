@@ -73,11 +73,7 @@ var _kernelProductionGrid = function () {
                     e.preventDefault();
                     e.stopPropagation();
                     console.log('[Kernel Production] New Batch button clicked (native)');
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire('Info', 'New batch creation coming soon', 'info');
-                    } else {
-                        alert('New batch creation coming soon');
-                    }
+                    scope.showNewBatchModal();
                 });
                 
                 // jQuery handler for compatibility
@@ -86,15 +82,27 @@ var _kernelProductionGrid = function () {
                         e.preventDefault();
                         e.stopPropagation();
                         console.log('[Kernel Production] New Batch button clicked (jQuery)');
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire('Info', 'New batch creation coming soon', 'info');
-                        } else {
-                            alert('New batch creation coming soon');
-                        }
+                        scope.showNewBatchModal();
                     });
                 }
             } else {
                 console.warn('[Kernel Production] addBatchBtn not found!');
+            }
+            
+            // Save Batch button
+            const saveBatchBtn = document.getElementById('saveBatchBtn');
+            if (saveBatchBtn) {
+                saveBatchBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    scope.saveNewBatch();
+                });
+            }
+            
+            if (typeof $ !== 'undefined') {
+                $('#saveBatchBtn').on('click', function(e) {
+                    e.preventDefault();
+                    scope.saveNewBatch();
+                });
             }
             
             // Export button
@@ -370,6 +378,165 @@ var _kernelProductionGrid = function () {
                 exportUtils.exportToCSV(this.batches, 'production_batches', columns);
             } else {
                 Swal.fire('Error', 'Export utility not available', 'error');
+            }
+        },
+        
+        showNewBatchModal: async function () {
+            try {
+                console.log('[Kernel Production] Opening new batch modal');
+                $('#newBatchModalLabel').text('New Production Batch');
+                $('#batchId').val('');
+                this.clearNewBatchForm();
+                
+                // Set default date to today
+                const today = new Date().toISOString().split('T')[0];
+                $('#batchReceivedDate').val(today);
+                
+                // Load suppliers
+                try {
+                    const contacts = await dataFunctions.getContacts();
+                    const select = $('#batchSupplier');
+                    let html = '<option value="">Select Supplier</option>';
+                    if (contacts && Array.isArray(contacts)) {
+                        contacts.forEach(contact => {
+                            const name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
+                            html += `<option value="${contact.id}">${name}</option>`;
+                        });
+                    }
+                    select.html(html);
+                } catch (error) {
+                    console.error('Error loading suppliers:', error);
+                }
+                
+                // Generate suggested batch number
+                const year = new Date().getFullYear();
+                const month = String(new Date().getMonth() + 1).padStart(2, '0');
+                const suggestedBatch = `BATCH-${year}-${month}-001`;
+                $('#batchNumber').val(suggestedBatch);
+                
+                // Use Bootstrap 5 modal API with fallback
+                const modalElement = document.getElementById('newBatchModal');
+                if (!modalElement) {
+                    console.error('[Kernel Production] New batch modal element not found!');
+                    Swal.fire('Error', 'Modal not found. Please refresh the page.', 'error');
+                    return;
+                }
+                
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = new bootstrap.Modal(modalElement);
+                    modal.show();
+                    console.log('[Kernel Production] New batch modal shown via Bootstrap 5');
+                } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                    $('#newBatchModal').modal('show');
+                    console.log('[Kernel Production] New batch modal shown via jQuery');
+                } else {
+                    console.error('[Kernel Production] Neither Bootstrap nor jQuery modal available!');
+                    Swal.fire('Error', 'Unable to open modal. Please ensure Bootstrap is loaded.', 'error');
+                }
+            } catch (error) {
+                console.error('[Kernel Production] Error showing new batch modal:', error);
+                Swal.fire('Error', 'Failed to open new batch form: ' + error.message, 'error');
+            }
+        },
+        
+        clearNewBatchForm: function () {
+            const form = document.getElementById('newBatchForm');
+            if (form) form.reset();
+            
+            const batchId = document.getElementById('batchId');
+            if (batchId) batchId.value = '';
+        },
+        
+        saveNewBatch: async function () {
+            try {
+                console.log('[Kernel Production] Saving new batch...');
+                const form = document.getElementById('newBatchForm');
+                if (!form) {
+                    Swal.fire('Error', 'Form not found', 'error');
+                    return;
+                }
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                
+                const getValue = (id) => {
+                    const el = document.getElementById(id);
+                    return el ? el.value : null;
+                };
+                
+                const getFloatValue = (id) => {
+                    const el = document.getElementById(id);
+                    return el && el.value ? parseFloat(el.value) : null;
+                };
+                
+                const batchData = {
+                    p_batch_number: getValue('batchNumber'),
+                    p_received_date: getValue('batchReceivedDate'),
+                    p_wet_nis_received_kg: getFloatValue('batchWetNIS'),
+                    p_supplier_id: getValue('batchSupplier') || null,
+                    p_grower_name: getValue('batchGrowerName') || null,
+                    p_receiving_moisture_percentage: getFloatValue('batchReceivingMoisture') || null,
+                    p_start_date: getValue('batchStartDate') || null,
+                    p_estimated_completion_date: getValue('batchEstimatedCompletion') || null,
+                    p_batch_type: 'kernel',
+                    p_status: 'receiving',
+                    p_current_step: 1
+                };
+                
+                console.log('[Kernel Production] Batch data:', batchData);
+                
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.createProductionBatch) {
+                    Swal.fire('Error', 'Batch creation function not available', 'error');
+                    return;
+                }
+                
+                const result = await dataFunctions.createProductionBatch(batchData);
+                console.log('[Kernel Production] Save result:', result);
+                
+                if (result && result.success !== false) {
+                    // Invalidate caches
+                    if (typeof dataFunctions !== 'undefined' && dataFunctions.clearCachePattern) {
+                        dataFunctions.clearCachePattern('production_batches');
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Production batch created successfully',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    
+                    // Close modal
+                    const modalElement = document.getElementById('newBatchModal');
+                    if (modalElement) {
+                        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                            const modal = bootstrap.Modal.getInstance(modalElement);
+                            if (modal) {
+                                modal.hide();
+                            } else {
+                                const newModal = new bootstrap.Modal(modalElement);
+                                newModal.hide();
+                            }
+                        } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                            $('#newBatchModal').modal('hide');
+                        }
+                    }
+                    
+                    this.loadBatches(true); // Force refresh
+                } else {
+                    const errorMsg = result?.error || result?.message || 'Failed to create batch';
+                    console.error('[Kernel Production] Save failed:', errorMsg);
+                    throw new Error(errorMsg);
+                }
+            } catch (error) {
+                console.error('[Kernel Production] Error saving new batch:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to create batch: ' + (error.message || error.toString())
+                });
             }
         },
         

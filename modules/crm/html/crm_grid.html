@@ -2,144 +2,306 @@
 <div class="module-content">
     <!-- Header -->
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Customer Relationship Management</h1>
+        <h1 class="h2">Contact Database Management</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-success me-2" id="importContactsBtn">
+                <i class="fas fa-file-excel me-1"></i>Import from Excel
+            </button>
             <button type="button" class="btn btn-primary" id="addContactBtn">
                 <i class="fas fa-plus me-1"></i>Add Contact
             </button>
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="card-title mb-0">
-                <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse">
-                    <i class="fas fa-filter me-1"></i>Filters
-                </button>
-            </h5>
-        </div>
-        <div class="collapse" id="filtersCollapse">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <label for="filterType" class="form-label">Contact Type</label>
-                        <select id="filterType" class="form-select">
-                            <option value="">All Types</option>
-                            <option value="customer">Customers</option>
-                            <option value="supplier">Suppliers</option>
-                            <option value="both">Both</option>
-                        </select>
+    <!-- Contact Type Tabs -->
+    <ul class="nav nav-tabs mb-4" id="contactTypeTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="nis-suppliers-tab" data-bs-toggle="tab" data-bs-target="#nis-suppliers" type="button" role="tab" data-contact-type="nis_supplier">
+                <i class="fas fa-seedling me-2"></i>NIS Suppliers
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="oil-processors-tab" data-bs-toggle="tab" data-bs-target="#oil-processors" type="button" role="tab" data-contact-type="oil_processor">
+                <i class="fas fa-oil-can me-2"></i>Oil Processors
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="kernel-customers-tab" data-bs-toggle="tab" data-bs-target="#kernel-customers" type="button" role="tab" data-contact-type="kernel_customer">
+                <i class="fas fa-shopping-cart me-2"></i>Kernel Customers
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="contactTypeTabContent">
+        <!-- NIS Suppliers Tab -->
+        <div class="tab-pane fade show active" id="nis-suppliers" role="tabpanel">
+            <div id="nisSuppliersContent">
+                            <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#nisFiltersCollapse">
+                                <i class="fas fa-filter me-1"></i>Filters
+                            </button>
+                        </h5>
                     </div>
-                    <div class="col-md-3">
-                        <label for="filterStatus" class="form-label">Status</label>
-                        <select id="filterStatus" class="form-select">
-                            <option value="">All Statuses</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="prospect">Prospect</option>
-                            <option value="suspended">Suspended</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="filterAccountManager" class="form-label">Account Manager</label>
-                        <select id="filterAccountManager" class="form-select">
-                            <option value="">All Managers</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-check mt-4">
-                            <input class="form-check-input" type="checkbox" id="filterKeyAccounts">
-                            <label class="form-check-label" for="filterKeyAccounts">
-                                Key Accounts Only
-                            </label>
+                    <div class="collapse" id="nisFiltersCollapse">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="nisFilterProvince" class="form-label">Province</label>
+                                    <select id="nisFilterProvince" class="form-select">
+                                        <option value="">All Provinces</option>
+                                        <option value="Mpumalanga">Mpumalanga</option>
+                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                        <option value="Limpopo">Limpopo</option>
+                                        <option value="Western Cape">Western Cape</option>
+                                        <option value="Eastern Cape">Eastern Cape</option>
+                                        <option value="Gauteng">Gauteng</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="nisFilterStatus" class="form-label">Status</label>
+                                    <select id="nisFilterStatus" class="form-select">
+                                        <option value="">All Statuses</option>
+                                        <option value="active">Active (Current)</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="nisSearchInput" class="form-label">Search</label>
+                                    <input type="text" id="nisSearchInput" class="form-control" placeholder="Search supplier name, contact, area...">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-primary me-2" id="nisApplyFiltersBtn">
+                                        <i class="fas fa-search me-1"></i>Apply Filters
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="nisClearFiltersBtn">
+                                        <i class="fas fa-times me-1"></i>Clear Filters
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <button type="button" class="btn btn-primary me-2" id="applyFiltersBtn">
-                            <i class="fas fa-search me-1"></i>Apply Filters
-                        </button>
-                        <button type="button" class="btn btn-secondary" id="clearFiltersBtn">
-                            <i class="fas fa-times me-1"></i>Clear Filters
-                        </button>
+
+                <!-- NIS Suppliers Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="nisSuppliersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Supplier Name</th>
+                                        <th>Province</th>
+                                        <th>Area</th>
+                                        <th>Contact #1</th>
+                                        <th>Contact #2</th>
+                                        <th>Cell #1</th>
+                                        <th>Cell #2</th>
+                                        <th>Email #1</th>
+                                        <th>Email #2</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="nisSuppliersTableBody">
+                                    <!-- NIS Suppliers will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Oil Processors Tab -->
+        <div class="tab-pane fade" id="oil-processors" role="tabpanel">
+            <div id="oilProcessorsContent">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#oilFiltersCollapse">
+                                <i class="fas fa-filter me-1"></i>Filters
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="oilFiltersCollapse">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="oilFilterProvince" class="form-label">Province</label>
+                                    <select id="oilFilterProvince" class="form-select">
+                                        <option value="">All Provinces</option>
+                                        <option value="Mpumalanga">Mpumalanga</option>
+                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                        <option value="Limpopo">Limpopo</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="oilSearchInput" class="form-label">Search</label>
+                                    <input type="text" id="oilSearchInput" class="form-control" placeholder="Search processor name, contact...">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-primary me-2" id="oilApplyFiltersBtn">
+                                        <i class="fas fa-search me-1"></i>Apply Filters
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="oilClearFiltersBtn">
+                                        <i class="fas fa-times me-1"></i>Clear Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Oil Processors Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="oilProcessorsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Processor Name</th>
+                                        <th>Province</th>
+                                        <th>Area</th>
+                                        <th>Contact #1</th>
+                                        <th>Contact #2</th>
+                                        <th>Cell #1</th>
+                                        <th>Cell #2</th>
+                                        <th>Email #1</th>
+                                        <th>Email #2</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="oilProcessorsTableBody">
+                                    <!-- Oil Processors will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kernel Customers Tab -->
+        <div class="tab-pane fade" id="kernel-customers" role="tabpanel">
+            <div id="kernelCustomersContent">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#customerFiltersCollapse">
+                                <i class="fas fa-filter me-1"></i>Filters
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="customerFiltersCollapse">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="customerFilterProvince" class="form-label">Province</label>
+                                    <select id="customerFilterProvince" class="form-select">
+                                        <option value="">All Provinces</option>
+                                        <option value="Western Cape">Western Cape</option>
+                                        <option value="Eastern Cape">Eastern Cape</option>
+                                        <option value="Gauteng">Gauteng</option>
+                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                        <option value="Mpumalanga">Mpumalanga</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="customerSearchInput" class="form-label">Search</label>
+                                    <input type="text" id="customerSearchInput" class="form-control" placeholder="Search customer name, contact...">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-primary me-2" id="customerApplyFiltersBtn">
+                                        <i class="fas fa-search me-1"></i>Apply Filters
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="customerClearFiltersBtn">
+                                        <i class="fas fa-times me-1"></i>Clear Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kernel Customers Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="kernelCustomersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Customer Name</th>
+                                        <th>Province</th>
+                                        <th>Area</th>
+                                        <th>Contact #1</th>
+                                        <th>Cell #1</th>
+                                        <th>Email #1</th>
+                                        <th>Preferred Styles</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kernelCustomersTableBody">
+                                    <!-- Kernel Customers will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Search -->
-    <div class="search-container">
-        <div class="row">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search company name, contact person, email...">
-                    <button class="btn btn-outline-secondary" type="button" id="searchBtn">
-                        <i class="fas fa-search"></i>
-                    </button>
+<!-- Import Contacts Modal -->
+<div class="modal fade" id="importContactsModal" tabindex="-1" aria-labelledby="importContactsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="importContactsModalLabel">Import Contacts from Excel</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="importContactType" class="form-label required">Contact Type</label>
+                    <select class="form-select" id="importContactType" required>
+                        <option value="">Select Type</option>
+                        <option value="nis_supplier">NIS Suppliers</option>
+                        <option value="oil_processor">Oil Processors</option>
+                        <option value="kernel_customer">Kernel Customers</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="importExcelFile" class="form-label required">Excel File</label>
+                    <input type="file" class="form-control" id="importExcelFile" accept=".xlsx,.xls" required>
+                    <small class="form-text text-muted">Upload your Excel spreadsheet matching the format from your database</small>
+                </div>
+                <div id="importPreview" class="mt-3" style="display: none;">
+                    <h6>Preview (first 5 rows):</h6>
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm table-bordered" id="importPreviewTable">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6 text-end">
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-outline-secondary" onclick="crmGrid.exportContacts()">
-                        <i class="fas fa-download me-1"></i>Export
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="crmGrid.refreshContacts()">
-                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                    </button>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="processImportBtn" disabled>
+                    <i class="fas fa-upload me-1"></i>Import Contacts
+                </button>
             </div>
         </div>
     </div>
-
-    <!-- Contacts Table -->
-    <div class="card">
-        <div class="card-body">
-            <!-- Loading State -->
-            <div id="contactsLoading" class="text-center py-4" style="display: none;">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2">Loading contacts...</p>
-            </div>
-
-            <!-- Empty State -->
-            <div id="contactsEmpty" class="text-center py-5" style="display: none;">
-                <i class="fas fa-building fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">No contacts found</h5>
-                <p class="text-muted">Try adjusting your search or filter criteria.</p>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table table-hover" id="contactsTable">
-                    <thead>
-                        <tr>
-                            <th>Company Name</th>
-                            <th>Type</th>
-                            <th>Primary Contact</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Account Manager</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="contactsTableBody">
-                        <!-- Contacts will be loaded here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Pagination -->
-    <nav aria-label="Contacts pagination" class="mt-3">
-        <ul class="pagination justify-content-center" id="pagination">
-            <!-- Pagination will be generated here -->
-        </ul>
-    </nav>
 </div>
 
 <!-- Add/Edit Contact Modal -->
@@ -185,9 +347,12 @@
                                             <label for="contactType" class="form-label required">Contact Type</label>
                                             <select class="form-select" id="contactType" required>
                                                 <option value="">Select Type</option>
-                                                <option value="customer">Customer</option>
-                                                <option value="supplier">Supplier</option>
-                                                <option value="both">Both</option>
+                                                <option value="nis_supplier">NIS Supplier</option>
+                                                <option value="oil_processor">Oil Processor</option>
+                                                <option value="kernel_customer">Kernel Customer</option>
+                                                <option value="customer">Customer (Legacy)</option>
+                                                <option value="supplier">Supplier (Legacy)</option>
+                                                <option value="both">Both (Legacy)</option>
                                             </select>
                                         </div>
                                         <div class="mb-3">
@@ -251,6 +416,54 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-section">
+                                        <h5>Secondary Contact Person (Contact #2)</h5>
+                                        <div class="mb-3">
+                                            <label for="secondaryContactName" class="form-label">Full Name</label>
+                                            <input type="text" class="form-control" id="secondaryContactName">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="secondaryContactPhone" class="form-label">Phone #2</label>
+                                            <input type="tel" class="form-control" id="secondaryContactPhone">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="secondaryContactMobile" class="form-label">Cell #2</label>
+                                            <input type="tel" class="form-control" id="secondaryContactMobile">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="secondaryContactEmail" class="form-label">Email #2</label>
+                                            <input type="email" class="form-control" id="secondaryContactEmail">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-section" id="oilProcessorRatesSection" style="display: none;">
+                                        <h5>Oil Processor Rates (R/kg)</h5>
+                                        <div class="mb-3">
+                                            <label for="rateCrudeKernel" class="form-label">Crude Kernel Rate</label>
+                                            <input type="number" class="form-control" id="rateCrudeKernel" step="0.01" placeholder="0.00">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rateFoodKernel" class="form-label">Food Kernel Rate</label>
+                                            <input type="number" class="form-control" id="rateFoodKernel" step="0.01" placeholder="0.00">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rateKernelDust" class="form-label">Kernel Dust Rate</label>
+                                            <input type="number" class="form-control" id="rateKernelDust" step="0.01" placeholder="0.00">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rateCrackerDust" class="form-label">Cracker Dust Rate</label>
+                                            <input type="number" class="form-control" id="rateCrackerDust" step="0.01" placeholder="0.00">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rateCrush" class="form-label">Crush Rate</label>
+                                            <input type="number" class="form-control" id="rateCrush" step="0.01" placeholder="0.00">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-section">
                                         <h5>Business Information</h5>
                                         <div class="mb-3">
                                             <label for="registrationNumber" class="form-label">Registration Number</label>
@@ -288,6 +501,10 @@
                                             <input type="text" class="form-control" id="physicalAddressLine2">
                                         </div>
                                         <div class="mb-3">
+                                            <label for="physicalArea" class="form-label">Area</label>
+                                            <input type="text" class="form-control" id="physicalArea" placeholder="e.g., White River, Port Edward">
+                                        </div>
+                                        <div class="mb-3">
                                             <label for="physicalCity" class="form-label">City</label>
                                             <input type="text" class="form-control" id="physicalCity">
                                         </div>
@@ -314,7 +531,17 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-12">
+                                <div class="col-md-6">
+                                    <div class="form-section" id="kernelCustomerPreferencesSection" style="display: none;">
+                                        <h5>Kernel Customer Preferences</h5>
+                                        <div class="mb-3">
+                                            <label for="preferredStyles" class="form-label">Preferred Styles</label>
+                                            <input type="text" class="form-control" id="preferredStyles" placeholder="e.g., Style A, Style B, Style C">
+                                            <small class="form-text text-muted">Enter preferred kernel styles separated by commas</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="notes" class="form-label">Notes</label>
                                         <textarea class="form-control" id="notes" rows="4"></textarea>

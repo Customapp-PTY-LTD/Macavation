@@ -1000,24 +1000,39 @@ var _dataFunctions = function () {
         },
 
         createContact: async function (contactData, token = null) {
-            const result = await this.callFunction('create_contact_simple', {
+            const params = {
                 p_contact_type: contactData.contact_type,
                 p_company_name: contactData.company_name,
                 p_trading_name: contactData.trading_name || null,
                 p_primary_contact_name: contactData.primary_contact_name || null,
                 p_primary_contact_email: contactData.primary_contact_email || null,
                 p_primary_contact_phone: contactData.primary_contact_phone || null,
+                p_primary_contact_mobile: contactData.primary_contact_mobile || null,
+                p_secondary_contact_name: contactData.secondary_contact_name || null,
+                p_secondary_contact_mobile: contactData.secondary_contact_mobile || null,
+                p_secondary_contact_email: contactData.secondary_contact_email || null,
+                p_physical_area: contactData.physical_area || null,
+                p_physical_city: contactData.physical_city || null,
+                p_physical_province: contactData.physical_province || null,
+                p_physical_postal_code: contactData.physical_postal_code || null,
                 p_account_manager_id: contactData.account_manager_id || null,
                 p_status: contactData.status || 'active',
-                p_key_account: contactData.key_account || false
-            }, token, { useCache: false });
+                p_key_account: contactData.key_account || false,
+                p_notes: contactData.notes || null,
+                p_rate_crude_kernel: contactData.rate_crude_kernel || null,
+                p_rate_food_kernel: contactData.rate_food_kernel || null,
+                p_rate_kernel_dust: contactData.rate_kernel_dust || null,
+                p_rate_cracker_dust: contactData.rate_cracker_dust || null,
+                p_rate_crush: contactData.rate_crush || null
+            };
+            const result = await this.callFunction('create_contact_simple', params, token, { useCache: false });
             // Invalidate contacts cache
             this.clearCachePattern('contacts');
             return result;
         },
 
         updateContact: async function (contactId, contactData, token = null) {
-            const result = await this.callFunction('update_contact_simple', {
+            const params = {
                 p_contact_id: contactId,
                 p_contact_type: contactData.contact_type || null,
                 p_company_name: contactData.company_name || null,
@@ -1025,10 +1040,25 @@ var _dataFunctions = function () {
                 p_primary_contact_name: contactData.primary_contact_name || null,
                 p_primary_contact_email: contactData.primary_contact_email || null,
                 p_primary_contact_phone: contactData.primary_contact_phone || null,
+                p_primary_contact_mobile: contactData.primary_contact_mobile || null,
+                p_secondary_contact_name: contactData.secondary_contact_name || null,
+                p_secondary_contact_mobile: contactData.secondary_contact_mobile || null,
+                p_secondary_contact_email: contactData.secondary_contact_email || null,
+                p_physical_area: contactData.physical_area || null,
+                p_physical_city: contactData.physical_city || null,
+                p_physical_province: contactData.physical_province || null,
+                p_physical_postal_code: contactData.physical_postal_code || null,
                 p_account_manager_id: contactData.account_manager_id || null,
                 p_status: contactData.status || null,
-                p_key_account: contactData.key_account !== undefined ? contactData.key_account : null
-            }, token, { useCache: false });
+                p_key_account: contactData.key_account !== undefined ? contactData.key_account : null,
+                p_notes: contactData.notes || null,
+                p_rate_crude_kernel: contactData.rate_crude_kernel !== undefined ? contactData.rate_crude_kernel : null,
+                p_rate_food_kernel: contactData.rate_food_kernel !== undefined ? contactData.rate_food_kernel : null,
+                p_rate_kernel_dust: contactData.rate_kernel_dust !== undefined ? contactData.rate_kernel_dust : null,
+                p_rate_cracker_dust: contactData.rate_cracker_dust !== undefined ? contactData.rate_cracker_dust : null,
+                p_rate_crush: contactData.rate_crush !== undefined ? contactData.rate_crush : null
+            };
+            const result = await this.callFunction('update_contact_simple', params, token, { useCache: false });
             // Invalidate contact caches
             this.clearCache(`contact_${contactId}`);
             this.clearCachePattern('contacts');
@@ -1050,6 +1080,16 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
+        },
+        
+        /**
+         * Create production batch (invalidates batches cache)
+         */
+        createProductionBatch: async function (batchData, token = null) {
+            const result = await this.callFunction('create_production_batch_simple', batchData, token, { useCache: false });
+            // Invalidate production batches cache
+            this.clearCachePattern('production_batches');
+            return result;
         },
 
         getSampleSubmissions: async function (token = null, forceRefresh = false) {
@@ -1225,7 +1265,13 @@ var _dataFunctions = function () {
     }
 }();
 
-// Extend dataFunctions with Data Import helpers
+// Create global instance
+const dataFunctions = _dataFunctions;
+
+// Make it available globally
+window.dataFunctions = dataFunctions;
+
+// Extend dataFunctions with Data Import helpers (after initialization)
 dataFunctions.getTableColumns = async function (tableName, token = null) {
     try {
         return await this.callFunction('get_table_columns', { p_table_name: tableName }, token);
@@ -1247,12 +1293,6 @@ dataFunctions.importTableRows = async function (tableName, rows, token = null) {
         return { success: false, message: e.message };
     }
 };
-
-// Create global instance
-const dataFunctions = _dataFunctions;
-
-// Make it available globally
-window.dataFunctions = dataFunctions;
 
 // Auto-initialize
 $(document).ready(function () {

@@ -1,16 +1,18 @@
 /**
  * CRM Grid Module
- * Handles customer and supplier relationship management
+ * Handles NIS Suppliers, Oil Processors, and Kernel Customers management
  */
 
 var _crmGrid = function () {
     return {
         contacts: [],
-        filteredContacts: [],
-        currentPage: 1,
-        itemsPerPage: 20,
+        nisSuppliers: [],
+        oilProcessors: [],
+        kernelCustomers: [],
+        currentContactType: 'nis_supplier',
         editingContact: null,
         searchTimeout: null,
+        importData: null,
 
         init: function () {
             this.setupEventListeners();
@@ -21,35 +23,99 @@ var _crmGrid = function () {
         setupEventListeners: function () {
             const scope = this;
 
-            // Search functionality with debouncing (300ms)
-            $('#searchInput').on('input', function () {
+            // Tab switching
+            $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                const contactType = $(e.target).data('contact-type');
+                scope.currentContactType = contactType;
+                scope.loadContactsByType(contactType);
+            });
+
+            // Import button
+            $('#importContactsBtn').on('click', function () {
+                scope.showImportModal();
+            });
+
+            // Import file change
+            $('#importExcelFile').on('change', function (e) {
+                scope.handleFileSelect(e.target.files[0]);
+            });
+
+            // Process import
+            $('#processImportBtn').on('click', function () {
+                scope.processImport();
+            });
+
+            // Contact type change - show/hide type-specific sections
+            $('#contactType').on('change', function () {
+                const type = $(this).val();
+                if (type === 'oil_processor') {
+                    $('#oilProcessorRatesSection').show();
+                    $('#kernelCustomerPreferencesSection').hide();
+                } else if (type === 'kernel_customer') {
+                    $('#oilProcessorRatesSection').hide();
+                    $('#kernelCustomerPreferencesSection').show();
+                } else {
+                    $('#oilProcessorRatesSection').hide();
+                    $('#kernelCustomerPreferencesSection').hide();
+                }
+            });
+
+            // NIS Suppliers filters
+            $('#nisSearchInput').on('input', function () {
                 clearTimeout(scope.searchTimeout);
                 scope.searchTimeout = setTimeout(() => {
-                    scope.filterContacts();
+                    scope.filterNISSuppliers();
                 }, 300);
             });
-
-            // Filter functionality
-            $('#filterType, #filterStatus, #filterAccountManager, #filterKeyAccounts').on('change', function () {
-                scope.filterContacts();
+            $('#nisFilterProvince, #nisFilterStatus').on('change', function () {
+                scope.filterNISSuppliers();
+            });
+            $('#nisApplyFiltersBtn').on('click', function () {
+                scope.filterNISSuppliers();
+            });
+            $('#nisClearFiltersBtn').on('click', function () {
+                $('#nisSearchInput').val('');
+                $('#nisFilterProvince').val('');
+                $('#nisFilterStatus').val('');
+                scope.filterNISSuppliers();
             });
 
-            $('#applyFiltersBtn').on('click', function () {
-                scope.filterContacts();
+            // Oil Processors filters
+            $('#oilSearchInput').on('input', function () {
+                clearTimeout(scope.searchTimeout);
+                scope.searchTimeout = setTimeout(() => {
+                    scope.filterOilProcessors();
+                }, 300);
+            });
+            $('#oilFilterProvince').on('change', function () {
+                scope.filterOilProcessors();
+            });
+            $('#oilApplyFiltersBtn').on('click', function () {
+                scope.filterOilProcessors();
+            });
+            $('#oilClearFiltersBtn').on('click', function () {
+                $('#oilSearchInput').val('');
+                $('#oilFilterProvince').val('');
+                scope.filterOilProcessors();
             });
 
-            $('#clearFiltersBtn').on('click', function () {
-                scope.clearFilters();
+            // Kernel Customers filters
+            $('#customerSearchInput').on('input', function () {
+                clearTimeout(scope.searchTimeout);
+                scope.searchTimeout = setTimeout(() => {
+                    scope.filterKernelCustomers();
+                }, 300);
             });
-
-            // Pagination
-            $(document).on('click', '.pagination .page-link', function (e) {
-                e.preventDefault();
-                const page = parseInt($(this).data('page'));
-                if (page && page !== scope.currentPage) {
-                    scope.currentPage = page;
-                    scope.renderContacts();
-                }
+            $('#customerFilterProvince').on('change', function () {
+                scope.filterKernelCustomers();
+            });
+            $('#customerApplyFiltersBtn').on('click', function () {
+                scope.filterKernelCustomers();
+            });
+            $('#customerClearFiltersBtn').on('click', function () {
+                $('#customerSearchInput').val('');
+                $('#customerFilterProvince').val('');
+                scope.filterKernelCustomers();
             });
 
             // Add contact button
@@ -82,40 +148,220 @@ var _crmGrid = function () {
 
         loadContacts: async function (forceRefresh = false) {
             try {
-                this.showLoading();
                 const startTime = performance.now();
                 let contacts = [];
                 
                 try {
                     contacts = await dataFunctions.getContacts(null, forceRefresh);
                 } catch (error) {
-                    // Handle authentication errors gracefully
                     if (error.message && error.message.includes('token')) {
                         console.warn('Authentication required for contacts');
                         this.contacts = [];
-                        this.filteredContacts = [];
-                        this.renderContacts();
-                        this.hideLoading();
-                        // Show user-friendly message
-                        // Show user-friendly message
-                        this.showInfo('Please log in to view contacts');
+                        this.separateContactsByType();
+                        this.renderCurrentTab();
                         return;
                     }
-                    throw error; // Re-throw if it's a different error
+                    throw error;
                 }
                 
                 const loadTime = performance.now() - startTime;
                 console.log(`[Performance] Contacts loaded in ${loadTime.toFixed(2)}ms`);
                 
                 this.contacts = contacts || [];
-                this.filteredContacts = this.contacts;
-                this.renderContacts();
-                this.hideLoading();
+                this.separateContactsByType();
+                this.renderCurrentTab();
             } catch (error) {
                 console.error('Error loading contacts:', error);
                 this.showError('Error loading contacts: ' + error.message);
-                this.hideLoading();
             }
+        },
+
+        separateContactsByType: function () {
+            this.nisSuppliers = this.contacts.filter(c => c.contact_type === 'nis_supplier');
+            this.oilProcessors = this.contacts.filter(c => c.contact_type === 'oil_processor');
+            this.kernelCustomers = this.contacts.filter(c => c.contact_type === 'kernel_customer');
+        },
+
+        loadContactsByType: function (contactType) {
+            this.currentContactType = contactType;
+            this.renderCurrentTab();
+        },
+
+        renderCurrentTab: function () {
+            switch (this.currentContactType) {
+                case 'nis_supplier':
+                    this.renderNISSuppliers();
+                    break;
+                case 'oil_processor':
+                    this.renderOilProcessors();
+                    break;
+                case 'kernel_customer':
+                    this.renderKernelCustomers();
+                    break;
+            }
+        },
+
+        filterNISSuppliers: function () {
+            const searchTerm = $('#nisSearchInput').val().toLowerCase();
+            const provinceFilter = $('#nisFilterProvince').val();
+            const statusFilter = $('#nisFilterStatus').val();
+
+            let filtered = this.nisSuppliers.filter(contact => {
+                const matchesSearch = !searchTerm ||
+                    (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
+                    (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
+                    (contact.physical_area && contact.physical_area.toLowerCase().includes(searchTerm));
+                
+                const matchesProvince = !provinceFilter || contact.physical_province === provinceFilter;
+                const matchesStatus = !statusFilter || contact.status === statusFilter;
+                
+                return matchesSearch && matchesProvince && matchesStatus;
+            });
+
+            this.renderNISSuppliers(filtered);
+        },
+
+        filterOilProcessors: function () {
+            const searchTerm = $('#oilSearchInput').val().toLowerCase();
+            const provinceFilter = $('#oilFilterProvince').val();
+
+            let filtered = this.oilProcessors.filter(contact => {
+                const matchesSearch = !searchTerm ||
+                    (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
+                    (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm));
+                
+                const matchesProvince = !provinceFilter || contact.physical_province === provinceFilter;
+                
+                return matchesSearch && matchesProvince;
+            });
+
+            this.renderOilProcessors(filtered);
+        },
+
+        filterKernelCustomers: function () {
+            const searchTerm = $('#customerSearchInput').val().toLowerCase();
+            const provinceFilter = $('#customerFilterProvince').val();
+
+            let filtered = this.kernelCustomers.filter(contact => {
+                const matchesSearch = !searchTerm ||
+                    (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
+                    (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm));
+                
+                const matchesProvince = !provinceFilter || contact.physical_province === provinceFilter;
+                
+                return matchesSearch && matchesProvince;
+            });
+
+            this.renderKernelCustomers(filtered);
+        },
+
+        renderNISSuppliers: function (suppliers = null) {
+            const data = suppliers || this.nisSuppliers;
+            const tbody = $('#nisSuppliersTableBody');
+            tbody.empty();
+
+            if (data.length === 0) {
+                tbody.html('<tr><td colspan="11" class="text-center py-4 text-muted">No NIS suppliers found</td></tr>');
+                return;
+            }
+
+            data.forEach(contact => {
+                const row = `
+                    <tr>
+                        <td><strong>${contact.company_name || 'N/A'}</strong></td>
+                        <td>${contact.physical_province || 'N/A'}</td>
+                        <td>${contact.physical_area || 'N/A'}</td>
+                        <td>${contact.primary_contact_name || 'N/A'}</td>
+                        <td>${contact.secondary_contact_name || 'N/A'}</td>
+                        <td>${contact.primary_contact_mobile || 'N/A'}</td>
+                        <td>${contact.secondary_contact_mobile || 'N/A'}</td>
+                        <td>${contact.primary_contact_email || 'N/A'}</td>
+                        <td>${contact.secondary_contact_email || 'N/A'}</td>
+                        <td><span class="badge ${contact.status === 'active' ? 'bg-success' : 'bg-secondary'}">${contact.status || 'N/A'}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        },
+
+        renderOilProcessors: function (processors = null) {
+            const data = processors || this.oilProcessors;
+            const tbody = $('#oilProcessorsTableBody');
+            tbody.empty();
+
+            if (data.length === 0) {
+                tbody.html('<tr><td colspan="10" class="text-center py-4 text-muted">No oil processors found</td></tr>');
+                return;
+            }
+
+            data.forEach(contact => {
+                const row = `
+                    <tr>
+                        <td><strong>${contact.company_name || 'N/A'}</strong></td>
+                        <td>${contact.physical_province || 'N/A'}</td>
+                        <td>${contact.physical_area || 'N/A'}</td>
+                        <td>${contact.primary_contact_name || 'N/A'}</td>
+                        <td>${contact.secondary_contact_name || 'N/A'}</td>
+                        <td>${contact.primary_contact_mobile || 'N/A'}</td>
+                        <td>${contact.secondary_contact_mobile || 'N/A'}</td>
+                        <td>${contact.primary_contact_email || 'N/A'}</td>
+                        <td>${contact.secondary_contact_email || 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        },
+
+        renderKernelCustomers: function (customers = null) {
+            const data = customers || this.kernelCustomers;
+            const tbody = $('#kernelCustomersTableBody');
+            tbody.empty();
+
+            if (data.length === 0) {
+                tbody.html('<tr><td colspan="8" class="text-center py-4 text-muted">No kernel customers found</td></tr>');
+                return;
+            }
+
+            data.forEach(contact => {
+                const preferredStyles = contact.preferred_styles || 'N/A';
+                
+                const row = `
+                    <tr>
+                        <td><strong>${contact.company_name || 'N/A'}</strong></td>
+                        <td>${contact.physical_province || 'N/A'}</td>
+                        <td>${contact.physical_area || 'N/A'}</td>
+                        <td>${contact.primary_contact_name || 'N/A'}</td>
+                        <td>${contact.primary_contact_mobile || 'N/A'}</td>
+                        <td>${contact.primary_contact_email || 'N/A'}</td>
+                        <td><small>${preferredStyles}</small></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
         },
 
         loadAccountManagers: async function () {
@@ -125,168 +371,53 @@ var _crmGrid = function () {
                 try {
                     users = await dataFunctions.getUsers();
                 } catch (error) {
-                    // Handle authentication errors gracefully
                     if (error.message && error.message.includes('token')) {
                         console.warn('Authentication required for account managers');
-                        // Set empty options
-                        const select = $('#accountManagerId');
-                        const filterSelect = $('#filterAccountManager');
-                        select.html('<option value="">Please log in</option>');
-                        filterSelect.html('<option value="">All Managers</option>');
                         return;
                     }
-                    throw error; // Re-throw if it's a different error
+                    throw error;
                 }
                 
                 const select = $('#accountManagerId');
-                const filterSelect = $('#filterAccountManager');
-                
                 let html = '<option value="">Select Account Manager</option>';
-                let filterHtml = '<option value="">All Managers</option>';
                 
                 if (users && Array.isArray(users)) {
                     users.forEach(user => {
                         const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email;
                         html += `<option value="${user.id}">${name}</option>`;
-                        filterHtml += `<option value="${user.id}">${name}</option>`;
                     });
                 }
                 
                 select.html(html);
-                filterSelect.html(filterHtml);
             } catch (error) {
                 console.error('Error loading account managers:', error);
-                // Set empty options on error
-                const select = $('#accountManagerId');
-                const filterSelect = $('#filterAccountManager');
-                select.html('<option value="">Error loading managers</option>');
-                filterSelect.html('<option value="">All Managers</option>');
             }
-        },
-
-        filterContacts: function () {
-            const searchTerm = $('#searchInput').val().toLowerCase();
-            const typeFilter = $('#filterType').val();
-            const statusFilter = $('#filterStatus').val();
-            const accountManagerFilter = $('#filterAccountManager').val();
-            const keyAccountsOnly = $('#filterKeyAccounts').is(':checked');
-
-            this.filteredContacts = this.contacts.filter(contact => {
-                const matchesSearch = !searchTerm ||
-                    (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
-                    (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
-                    (contact.primary_contact_email && contact.primary_contact_email.toLowerCase().includes(searchTerm));
-
-                const matchesType = !typeFilter || contact.contact_type === typeFilter;
-                const matchesStatus = !statusFilter || contact.status === statusFilter;
-                const matchesAccountManager = !accountManagerFilter || contact.account_manager_id === accountManagerFilter;
-                const matchesKeyAccount = !keyAccountsOnly || contact.key_account === true;
-
-                return matchesSearch && matchesType && matchesStatus && matchesAccountManager && matchesKeyAccount;
-            });
-
-            this.currentPage = 1;
-            this.renderContacts();
-        },
-
-        clearFilters: function () {
-            $('#searchInput').val('');
-            $('#filterType').val('');
-            $('#filterStatus').val('');
-            $('#filterAccountManager').val('');
-            $('#filterKeyAccounts').prop('checked', false);
-            this.filterContacts();
-        },
-
-        renderContacts: function () {
-            const tbody = $('#contactsTableBody');
-            tbody.empty();
-
-            if (this.filteredContacts.length === 0) {
-                $('#contactsEmpty').show();
-                $('#contactsTable').hide();
-                return;
-            }
-
-            $('#contactsEmpty').hide();
-            $('#contactsTable').show();
-
-            const start = (this.currentPage - 1) * this.itemsPerPage;
-            const end = start + this.itemsPerPage;
-            const pageContacts = this.filteredContacts.slice(start, end);
-
-            pageContacts.forEach(contact => {
-                const row = `
-                    <tr>
-                        <td>
-                            <strong>${contact.company_name || 'N/A'}</strong>
-                            ${contact.key_account ? '<span class="badge bg-warning ms-2">Key Account</span>' : ''}
-                        </td>
-                        <td><span class="badge bg-info">${contact.contact_type || 'N/A'}</span></td>
-                        <td>${contact.primary_contact_name || 'N/A'}</td>
-                        <td>${contact.primary_contact_email || 'N/A'}</td>
-                        <td>${contact.primary_contact_phone || 'N/A'}</td>
-                        <td>${contact.account_manager_name || 'N/A'}</td>
-                        <td><span class="badge ${this.getStatusBadgeClass(contact.status)}">${contact.status || 'N/A'}</span></td>
-                        <td>
-                            <div class="grid-actions">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                tbody.append(row);
-            });
-
-            this.renderPagination();
-        },
-
-        renderPagination: function () {
-            const totalPages = Math.ceil(this.filteredContacts.length / this.itemsPerPage);
-            const pagination = $('#pagination');
-            pagination.empty();
-
-            if (totalPages <= 1) return;
-
-            let html = '';
-            if (this.currentPage > 1) {
-                html += `<li class="page-item"><a class="page-link" href="#" data-page="${this.currentPage - 1}">Previous</a></li>`;
-            }
-
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
-                    html += `<li class="page-item ${i === this.currentPage ? 'active' : ''}">
-                        <a class="page-link" href="#" data-page="${i}">${i}</a>
-                    </li>`;
-                } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
-                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                }
-            }
-
-            if (this.currentPage < totalPages) {
-                html += `<li class="page-item"><a class="page-link" href="#" data-page="${this.currentPage + 1}">Next</a></li>`;
-            }
-
-            pagination.html(html);
         },
 
         showAddContactModal: function () {
             $('#contactModalLabel').text('Add New Contact');
             $('#contactId').val('');
             this.clearForm();
+            
+            // Set contact type based on current tab
+            $('#contactType').val(this.currentContactType);
+            if (this.currentContactType === 'oil_processor') {
+                $('#oilProcessorRatesSection').show();
+                $('#kernelCustomerPreferencesSection').hide();
+            } else if (this.currentContactType === 'kernel_customer') {
+                $('#oilProcessorRatesSection').hide();
+                $('#kernelCustomerPreferencesSection').show();
+            } else {
+                $('#oilProcessorRatesSection').hide();
+                $('#kernelCustomerPreferencesSection').hide();
+            }
+            
             $('#contactModal').modal('show');
         },
 
         editContact: async function (contactId) {
             try {
-                this.showLoading();
-                // TODO: Implement getContactById function
-                const contact = await dataFunctions.callFunction('get_contact_by_id', { p_id: contactId });
+                const contact = await dataFunctions.getContactById(contactId);
                 
                 if (contact) {
                     this.editingContact = contact;
@@ -294,11 +425,9 @@ var _crmGrid = function () {
                     $('#contactModalLabel').text('Edit Contact');
                     $('#contactModal').modal('show');
                 }
-                this.hideLoading();
             } catch (error) {
                 console.error('Error loading contact:', error);
                 this.showError('Error loading contact: ' + error.message);
-                this.hideLoading();
             }
         },
 
@@ -310,22 +439,38 @@ var _crmGrid = function () {
             $('#status').val(contact.status || 'active');
             $('#keyAccount').prop('checked', contact.key_account || false);
             $('#primaryContactName').val(contact.primary_contact_name || '');
-            $('#primaryContactTitle').val(contact.primary_contact_title || '');
             $('#primaryContactEmail').val(contact.primary_contact_email || '');
             $('#primaryContactPhone').val(contact.primary_contact_phone || '');
             $('#primaryContactMobile').val(contact.primary_contact_mobile || '');
-            $('#primaryContactBirthday').val(contact.primary_contact_birthday || '');
-            $('#registrationNumber').val(contact.registration_number || '');
-            $('#vatNumber').val(contact.vat_number || '');
-            $('#accountManagerId').val(contact.account_manager_id || '');
-            $('#creditLimit').val(contact.credit_limit || '');
-            $('#paymentTerms').val(contact.payment_terms || 30);
-            $('#physicalAddressLine1').val(contact.physical_address_line1 || '');
-            $('#physicalAddressLine2').val(contact.physical_address_line2 || '');
+            $('#secondaryContactName').val(contact.secondary_contact_name || '');
+            $('#secondaryContactPhone').val(contact.secondary_contact_phone || '');
+            $('#secondaryContactMobile').val(contact.secondary_contact_mobile || '');
+            $('#secondaryContactEmail').val(contact.secondary_contact_email || '');
+            $('#physicalArea').val(contact.physical_area || '');
             $('#physicalCity').val(contact.physical_city || '');
             $('#physicalProvince').val(contact.physical_province || '');
             $('#physicalPostalCode').val(contact.physical_postal_code || '');
+            $('#preferredStyles').val(contact.preferred_styles || '');
             $('#notes').val(contact.notes || '');
+            
+            // Oil processor rates
+            if (contact.contact_type === 'oil_processor') {
+                $('#oilProcessorRatesSection').show();
+                $('#rateCrudeKernel').val(contact.rate_crude_kernel || '');
+                $('#rateFoodKernel').val(contact.rate_food_kernel || '');
+                $('#rateKernelDust').val(contact.rate_kernel_dust || '');
+                $('#rateCrackerDust').val(contact.rate_cracker_dust || '');
+                $('#rateCrush').val(contact.rate_crush || '');
+            } else {
+                $('#oilProcessorRatesSection').hide();
+            }
+            
+            // Kernel customer preferences
+            if (contact.contact_type === 'kernel_customer') {
+                $('#kernelCustomerPreferencesSection').show();
+            } else {
+                $('#kernelCustomerPreferencesSection').hide();
+            }
         },
 
         saveContact: async function () {
@@ -343,28 +488,34 @@ var _crmGrid = function () {
                     status: $('#status').val(),
                     key_account: $('#keyAccount').is(':checked'),
                     primary_contact_name: $('#primaryContactName').val(),
-                    primary_contact_title: $('#primaryContactTitle').val(),
                     primary_contact_email: $('#primaryContactEmail').val(),
                     primary_contact_phone: $('#primaryContactPhone').val(),
                     primary_contact_mobile: $('#primaryContactMobile').val(),
-                    primary_contact_birthday: $('#primaryContactBirthday').val() || null,
-                    registration_number: $('#registrationNumber').val(),
-                    vat_number: $('#vatNumber').val(),
-                    account_manager_id: $('#accountManagerId').val() || null,
-                    credit_limit: $('#creditLimit').val() ? parseFloat($('#creditLimit').val()) : null,
-                    payment_terms: $('#paymentTerms').val() ? parseInt($('#paymentTerms').val()) : 30,
-                    physical_address_line1: $('#physicalAddressLine1').val(),
-                    physical_address_line2: $('#physicalAddressLine2').val(),
-                    physical_city: $('#physicalCity').val(),
-                    physical_province: $('#physicalProvince').val(),
-                    physical_postal_code: $('#physicalPostalCode').val(),
-                    notes: $('#notes').val()
+                    secondary_contact_name: $('#secondaryContactName').val() || null,
+                    secondary_contact_phone: $('#secondaryContactPhone').val() || null,
+                    secondary_contact_mobile: $('#secondaryContactMobile').val() || null,
+                    secondary_contact_email: $('#secondaryContactEmail').val() || null,
+                    preferred_styles: $('#preferredStyles').val() || null,
+                    physical_area: $('#physicalArea').val() || null,
+                    physical_city: $('#physicalCity').val() || null,
+                    physical_province: $('#physicalProvince').val() || null,
+                    physical_postal_code: $('#physicalPostalCode').val() || null,
+                    notes: $('#notes').val() || null
                 };
+
+                // Add rates for oil processors
+                if (contactData.contact_type === 'oil_processor') {
+                    contactData.rate_crude_kernel = $('#rateCrudeKernel').val() ? parseFloat($('#rateCrudeKernel').val()) : null;
+                    contactData.rate_food_kernel = $('#rateFoodKernel').val() ? parseFloat($('#rateFoodKernel').val()) : null;
+                    contactData.rate_kernel_dust = $('#rateKernelDust').val() ? parseFloat($('#rateKernelDust').val()) : null;
+                    contactData.rate_cracker_dust = $('#rateCrackerDust').val() ? parseFloat($('#rateCrackerDust').val()) : null;
+                    contactData.rate_crush = $('#rateCrush').val() ? parseFloat($('#rateCrush').val()) : null;
+                }
 
                 const contactId = $('#contactId').val();
                 let result;
 
-                // Map contactData to database function parameters with p_ prefix
+                // Map to database function parameters
                 const params = {
                     p_contact_type: contactData.contact_type,
                     p_company_name: contactData.company_name,
@@ -373,21 +524,25 @@ var _crmGrid = function () {
                     p_primary_contact_email: contactData.primary_contact_email || null,
                     p_primary_contact_phone: contactData.primary_contact_phone || null,
                     p_primary_contact_mobile: contactData.primary_contact_mobile || null,
-                    p_primary_contact_birthday: contactData.primary_contact_birthday || null,
-                    p_account_manager_id: contactData.account_manager_id || null,
+                    p_secondary_contact_name: contactData.secondary_contact_name || null,
+                    p_secondary_contact_phone: contactData.secondary_contact_phone || null,
+                    p_secondary_contact_mobile: contactData.secondary_contact_mobile || null,
+                    p_secondary_contact_email: contactData.secondary_contact_email || null,
+                    p_preferred_styles: contactData.preferred_styles || null,
+                    p_physical_area: contactData.physical_area || null,
+                    p_physical_city: contactData.physical_city || null,
+                    p_physical_province: contactData.physical_province || null,
+                    p_physical_postal_code: contactData.physical_postal_code || null,
+                    p_account_manager_id: $('#accountManagerId').val() || null,
                     p_status: contactData.status || 'active',
-                    p_key_account: contactData.key_account || false
+                    p_key_account: contactData.key_account || false,
+                    p_notes: contactData.notes || null
                 };
 
                 if (contactId) {
-                    // Update existing
-                    result = await dataFunctions.callFunction('update_contact_simple', {
-                        p_contact_id: contactId,
-                        ...params
-                    });
+                    result = await dataFunctions.updateContact(contactId, params);
                 } else {
-                    // Create new
-                    result = await dataFunctions.callFunction('create_contact_simple', params);
+                    result = await dataFunctions.createContact(params);
                 }
 
                 if (result && result.success !== false) {
@@ -399,7 +554,7 @@ var _crmGrid = function () {
                         showConfirmButton: false
                     });
                     $('#contactModal').modal('hide');
-                    this.loadContacts();
+                    this.loadContacts(true);
                 } else {
                     throw new Error(result?.message || 'Failed to save contact');
                 }
@@ -426,9 +581,9 @@ var _crmGrid = function () {
 
             if (result.isConfirmed) {
                 try {
-                    await dataFunctions.callFunction('deactivate_contact', { p_contact_id: contactId });
+                    await dataFunctions.deleteContact(contactId);
                     Swal.fire('Deactivated!', 'Contact has been deactivated.', 'success');
-                    this.loadContacts();
+                    this.loadContacts(true);
                 } catch (error) {
                     console.error('Error deleting contact:', error);
                     Swal.fire('Error!', 'Failed to deactivate contact: ' + error.message, 'error');
@@ -436,40 +591,222 @@ var _crmGrid = function () {
             }
         },
 
-        addCommunication: function () {
-            // TODO: Implement communication logging
-            Swal.fire('Info', 'Communication logging feature coming soon', 'info');
+        showImportModal: function () {
+            $('#importContactsModal').modal('show');
+            $('#importExcelFile').val('');
+            $('#importPreview').hide();
+            $('#processImportBtn').prop('disabled', true);
         },
 
-        createQuote: function () {
-            // TODO: Implement quote creation
-            Swal.fire('Info', 'Quote creation feature coming soon', 'info');
+        handleFileSelect: async function (file) {
+            if (!file) return;
+
+            try {
+                const data = await this.parseExcelFile(file);
+                this.importData = data;
+                
+                if (data && data.length > 0) {
+                    this.showImportPreview(data);
+                    $('#processImportBtn').prop('disabled', false);
+                } else {
+                    Swal.fire('Error', 'No data found in Excel file', 'error');
+                }
+            } catch (error) {
+                console.error('Error parsing Excel:', error);
+                Swal.fire('Error', 'Failed to parse Excel file: ' + error.message, 'error');
+            }
+        },
+
+        parseExcelFile: function (file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        },
+
+        showImportPreview: function (data) {
+            const preview = $('#importPreview');
+            const table = $('#importPreviewTable');
+            const thead = table.find('thead');
+            const tbody = table.find('tbody');
+            
+            thead.empty();
+            tbody.empty();
+            
+            if (data.length === 0) return;
+            
+            // Header row
+            const headers = data[0];
+            const headerRow = $('<tr></tr>');
+            headers.forEach(header => {
+                headerRow.append($('<th></th>').text(header || ''));
+            });
+            thead.append(headerRow);
+            
+            // Preview rows (max 5)
+            const previewRows = data.slice(1, 6);
+            previewRows.forEach(row => {
+                const tr = $('<tr></tr>');
+                headers.forEach((_, index) => {
+                    tr.append($('<td></td>').text(row[index] || ''));
+                });
+                tbody.append(tr);
+            });
+            
+            preview.show();
+        },
+
+        processImport: async function () {
+            if (!this.importData || this.importData.length < 2) {
+                Swal.fire('Error', 'No data to import', 'error');
+                return;
+            }
+
+            const contactType = $('#importContactType').val();
+            if (!contactType) {
+                Swal.fire('Error', 'Please select a contact type', 'error');
+                return;
+            }
+
+            try {
+                Swal.fire({
+                    title: 'Importing...',
+                    text: 'Please wait while contacts are imported',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const headers = this.importData[0];
+                const rows = this.importData.slice(1);
+                
+                // Map Excel columns to database fields based on contact type
+                const mappedContacts = rows.map(row => {
+                    const contact = { contact_type: contactType };
+                    
+                    // Map based on contact type
+                    if (contactType === 'nis_supplier') {
+                        contact.company_name = this.getColumnValue(row, headers, 'Supplier Name');
+                        contact.physical_province = this.getColumnValue(row, headers, 'Province');
+                        contact.physical_area = this.getColumnValue(row, headers, 'Area');
+                        contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
+                        contact.secondary_contact_name = this.getColumnValue(row, headers, 'Contact #2');
+                        contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
+                        contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
+                        contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
+                        contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
+                        contact.notes = this.getColumnValue(row, headers, 'Note/s');
+                        contact.status = 'active';
+                    } else if (contactType === 'oil_processor') {
+                        contact.company_name = this.getColumnValue(row, headers, 'Supplier Name');
+                        contact.physical_province = this.getColumnValue(row, headers, 'Province');
+                        contact.physical_area = this.getColumnValue(row, headers, 'Area');
+                        contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
+                        contact.secondary_contact_name = this.getColumnValue(row, headers, 'Contact #2');
+                        contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
+                        contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
+                        contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
+                        contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
+                        contact.rate_crude_kernel = this.parseRate(this.getColumnValue(row, headers, 'Crude Kernel Rate/kg'));
+                        contact.rate_food_kernel = this.parseRate(this.getColumnValue(row, headers, 'Food Kernel Rate/kg'));
+                        contact.rate_kernel_dust = this.parseRate(this.getColumnValue(row, headers, 'Kernel Dust Rate/kg'));
+                        contact.rate_cracker_dust = this.parseRate(this.getColumnValue(row, headers, 'Cracker Dust Rate/kg'));
+                        contact.rate_crush = this.parseRate(this.getColumnValue(row, headers, 'Crush Rate/kg'));
+                    } else if (contactType === 'kernel_customer') {
+                        contact.company_name = this.getColumnValue(row, headers, 'Customer Name');
+                        contact.physical_province = this.getColumnValue(row, headers, 'Province');
+                        contact.physical_area = this.getColumnValue(row, headers, 'Area');
+                        contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
+                        contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
+                        contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
+                        contact.notes = this.getColumnValue(row, headers, 'Note/s');
+                        contact.status = 'active';
+                    }
+                    
+                    return contact;
+                }).filter(c => c.company_name); // Filter out empty rows
+
+                // Import contacts in batches
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (const contactData of mappedContacts) {
+                    try {
+                        const params = {
+                            p_contact_type: contactData.contact_type,
+                            p_company_name: contactData.company_name,
+                            p_trading_name: contactData.trading_name || null,
+                            p_primary_contact_name: contactData.primary_contact_name || null,
+                            p_primary_contact_email: contactData.primary_contact_email || null,
+                            p_primary_contact_mobile: contactData.primary_contact_mobile || null,
+                            p_secondary_contact_name: contactData.secondary_contact_name || null,
+                            p_secondary_contact_phone: contactData.secondary_contact_phone || null,
+                            p_secondary_contact_mobile: contactData.secondary_contact_mobile || null,
+                            p_secondary_contact_email: contactData.secondary_contact_email || null,
+                            p_preferred_styles: contactData.preferred_styles || null,
+                            p_physical_area: contactData.physical_area || null,
+                            p_physical_province: contactData.physical_province || null,
+                            p_status: contactData.status || 'active',
+                            p_notes: contactData.notes || null
+                        };
+                        
+                        await dataFunctions.createContact(params);
+                        successCount++;
+                    } catch (error) {
+                        console.error('Error importing contact:', contactData.company_name, error);
+                        errorCount++;
+                    }
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Import Complete',
+                    html: `${successCount} contacts imported successfully${errorCount > 0 ? `<br>${errorCount} contacts failed to import` : ''}`,
+                    timer: 3000
+                });
+
+                $('#importContactsModal').modal('hide');
+                this.loadContacts(true);
+            } catch (error) {
+                console.error('Error processing import:', error);
+                Swal.fire('Error', 'Failed to import contacts: ' + error.message, 'error');
+            }
+        },
+
+        getColumnValue: function (row, headers, columnName) {
+            const index = headers.findIndex(h => h && h.toString().trim() === columnName);
+            return index >= 0 && row[index] ? String(row[index]).trim() : null;
+        },
+
+        parseRate: function (value) {
+            if (!value) return null;
+            // Remove R symbol and parse
+            const cleaned = String(value).replace(/[R\s,]/g, '');
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? null : parsed;
         },
 
         clearForm: function () {
             $('#contactForm')[0].reset();
             $('#contactId').val('');
             this.editingContact = null;
-        },
-
-        getStatusBadgeClass: function (status) {
-            const classes = {
-                'active': 'bg-success',
-                'inactive': 'bg-secondary',
-                'prospect': 'bg-info',
-                'suspended': 'bg-danger'
-            };
-            return classes[status] || 'bg-secondary';
-        },
-
-        showLoading: function () {
-            $('#contactsLoading').show();
-            $('#contactsTable').hide();
-            $('#contactsEmpty').hide();
-        },
-
-        hideLoading: function () {
-            $('#contactsLoading').hide();
+            $('#oilProcessorRatesSection').hide();
+            $('#kernelCustomerPreferencesSection').hide();
         },
 
         showError: function (message) {
@@ -478,47 +815,6 @@ var _crmGrid = function () {
                 title: 'Error',
                 text: message
             });
-        },
-
-        showInfo: function (message) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Information',
-                text: message,
-                timer: 3000,
-                showConfirmButton: false,
-                toast: true,
-                position: 'top-end'
-            });
-        },
-
-        refreshContacts: function () {
-            this.loadContacts(true); // Force refresh bypasses cache
-        },
-
-        exportContacts: function () {
-            if (!this.contacts || this.contacts.length === 0) {
-                Swal.fire('Info', 'No contacts to export', 'info');
-                return;
-            }
-            
-            const columns = [
-                { key: 'company_name', label: 'Company Name' },
-                { key: 'trading_name', label: 'Trading Name' },
-                { key: 'contact_type', label: 'Contact Type' },
-                { key: 'primary_contact_name', label: 'Primary Contact' },
-                { key: 'primary_contact_email', label: 'Email' },
-                { key: 'primary_contact_phone', label: 'Phone' },
-                { key: 'account_manager_name', label: 'Account Manager' },
-                { key: 'status', label: 'Status' },
-                { key: 'key_account', label: 'Key Account' }
-            ];
-            
-            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
-                exportUtils.exportToCSV(this.contacts, 'contacts', columns);
-            } else {
-                Swal.fire('Error', 'Export utility not available', 'error');
-            }
         }
     };
 }();
@@ -532,4 +828,3 @@ function initializeCrmGrid() {
         crmGrid.init();
     }
 }
-
