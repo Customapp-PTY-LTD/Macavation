@@ -1151,6 +1151,64 @@ var _dataFunctions = function () {
             });
         },
 
+        /**
+         * Oil Stock Lots / Ledger (cached for 1 minute)
+         */
+        getOilStockLots: async function (filters = {}, token = null, forceRefresh = false) {
+            const params = {
+                p_location_code: filters.location_code || null,
+                p_stock_category: filters.stock_category || null,
+                p_status: filters.status || null,
+                p_search: filters.search || null,
+                p_offset: filters.offset || 0,
+                p_limit: filters.limit || 200
+            };
+
+            return await this.callFunction('get_oil_stock_lots', params, token, {
+                cacheKey: `oil_stock_lots_${params.p_location_code || 'all'}_${params.p_stock_category || 'all'}_${params.p_status || 'all'}_${params.p_search || ''}_${params.p_offset}_${params.p_limit}`,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+        },
+
+        getOilStockSummary: async function (filters = {}, token = null, forceRefresh = false) {
+            const params = {
+                p_location_code: filters.location_code || null,
+                p_stock_category: filters.stock_category || null,
+                p_status: filters.status !== undefined ? filters.status : 'on_hand'
+            };
+
+            return await this.callFunction('get_oil_stock_summary', params, token, {
+                cacheKey: `oil_stock_summary_${params.p_location_code || 'all'}_${params.p_stock_category || 'all'}_${params.p_status || 'all'}`,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+        },
+
+        createOilStockLot: async function (lotData, token = null) {
+            const result = await this.callFunction('create_oil_stock_lot_simple', lotData, token, { useCache: false });
+            this.clearCachePattern('oil_stock_lots');
+            this.clearCachePattern('oil_stock_summary');
+            return result;
+        },
+
+        updateOilStockLot: async function (lotId, lotData, token = null) {
+            const params = { p_id: lotId, ...lotData };
+            const result = await this.callFunction('update_oil_stock_lot_simple', params, token, { useCache: false });
+            this.clearCachePattern('oil_stock_lots');
+            this.clearCachePattern('oil_stock_summary');
+            return result;
+        },
+
+        deactivateOilStockLot: async function (lotId, token = null) {
+            const result = await this.callFunction('deactivate_oil_stock_lot', { p_id: lotId }, token, { useCache: false });
+            this.clearCachePattern('oil_stock_lots');
+            this.clearCachePattern('oil_stock_summary');
+            return result;
+        },
+
         // Dashboard Functions (cached for 30 seconds - near real-time)
         getDashboardAlerts: async function (token = null, forceRefresh = false) {
             return await this.callFunction('get_dashboard_alerts', {}, token, {

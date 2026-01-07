@@ -56,6 +56,28 @@
     max-width: 1200px;
 }
 
+/* Ensure large CRM modal always scrolls on smaller screens / strict themes */
+#contactModal {
+    overflow-y: auto !important; /* Bootstrap default; enforce in case global CSS overrides */
+}
+
+#contactModal .modal-dialog {
+    max-height: calc(100vh - 2rem);
+}
+
+#contactModal .modal-content {
+    max-height: calc(100vh - 2rem);
+}
+
+#contactModal .modal-body {
+    /* Force internal scrolling even if theme CSS interferes */
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    /* Fallback height; JS will refine on open */
+    max-height: calc(100vh - 220px);
+}
+
 .nav-tabs .nav-link {
     color: var(--phoenix-text-color);
 }

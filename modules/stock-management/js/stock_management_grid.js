@@ -5,6 +5,11 @@ var _stockManagementGrid = function () {
     return {
         stockItems: [],
         filteredStockItems: [],
+        oilLots: [],
+        oilSummary: [],
+        oilSearchTimeout: null,
+        oilImportWorkbook: null,
+        oilImportPreviewRows: [],
         searchTimeout: null,
         init: function () {
             console.log('[Stock Management] Initializing grid...');
@@ -17,6 +22,10 @@ var _stockManagementGrid = function () {
                     console.log('[Stock Management] Buttons found, setting up event listeners');
                     scope.setupEventListeners();
                     scope.loadStockItems();
+                    // Oil stock ledger (only if section exists in DOM)
+                    if (document.getElementById('oilLotsTableBody')) {
+                        scope.loadOilLotsAndSummary();
+                    }
                 } else {
                     console.log('[Stock Management] Buttons not found yet, retrying...');
                     setTimeout(checkAndInit, 100);
@@ -286,6 +295,80 @@ var _stockManagementGrid = function () {
                 $('#filterStockLocation').val('');
                 scope.filterStockItems();
             });
+
+            // Oil stock ledger controls
+            const addOilLotBtn = document.getElementById('addOilLotBtn');
+            if (addOilLotBtn) {
+                addOilLotBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.showOilLotModal();
+                });
+            }
+            const importOilLotsBtn = document.getElementById('importOilLotsBtn');
+            if (importOilLotsBtn) {
+                importOilLotsBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.showImportOilLotsModal();
+                });
+            }
+            const saveOilLotBtn = document.getElementById('saveOilLotBtn');
+            if (saveOilLotBtn) {
+                saveOilLotBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.saveOilLot();
+                });
+            }
+
+            // Oil filters
+            const oilLocationFilter = document.getElementById('oilLocationFilter');
+            const oilCategoryFilter = document.getElementById('oilCategoryFilter');
+            const oilStatusFilter = document.getElementById('oilStatusFilter');
+            if (oilLocationFilter) oilLocationFilter.addEventListener('change', () => scope.loadOilLotsAndSummary());
+            if (oilCategoryFilter) oilCategoryFilter.addEventListener('change', () => scope.loadOilLotsAndSummary());
+            if (oilStatusFilter) oilStatusFilter.addEventListener('change', () => scope.loadOilLotsAndSummary());
+
+            const oilSearchInput = document.getElementById('oilSearchInput');
+            if (oilSearchInput) {
+                oilSearchInput.addEventListener('input', function () {
+                    clearTimeout(scope.oilSearchTimeout);
+                    scope.oilSearchTimeout = setTimeout(() => {
+                        scope.loadOilLotsAndSummary();
+                    }, 300);
+                });
+            }
+
+            // Delegated actions for oil lots (requires jQuery)
+            if (typeof $ !== 'undefined') {
+                $(document).on('click', '.edit-oil-lot-btn', function () {
+                    const id = $(this).data('oil-lot-id');
+                    scope.editOilLot(id);
+                });
+                $(document).on('click', '.delete-oil-lot-btn', function () {
+                    const id = $(this).data('oil-lot-id');
+                    scope.deleteOilLot(id);
+                });
+            }
+
+            // Import modal handlers (requires SheetJS)
+            const oilImportFile = document.getElementById('oilImportExcelFile');
+            if (oilImportFile) {
+                oilImportFile.addEventListener('change', function () {
+                    scope.handleOilImportFile(this.files && this.files[0] ? this.files[0] : null);
+                });
+            }
+            const oilImportSheet = document.getElementById('oilImportSheet');
+            if (oilImportSheet) {
+                oilImportSheet.addEventListener('change', function () {
+                    scope.renderOilImportPreview();
+                });
+            }
+            const performOilImportBtn = document.getElementById('performOilImportBtn');
+            if (performOilImportBtn) {
+                performOilImportBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.performOilImport();
+                });
+            }
         },
         filterStockItems: function () {
             const searchTerm = $('#searchStockInput').val().toLowerCase();
@@ -369,6 +452,523 @@ var _stockManagementGrid = function () {
         },
         viewItem: function (itemId) {
             Swal.fire('Info', 'Stock item details coming soon', 'info');
+        },
+
+        // -----------------------------
+        // Oil Stock Ledger (801/850/Sold)
+        // -----------------------------
+        getOilFilters: function () {
+            const el = (id) => document.getElementById(id);
+            return {
+                location_code: el('oilLocationFilter') ? el('oilLocationFilter').value || null : null,
+                stock_category: el('oilCategoryFilter') ? el('oilCategoryFilter').value || null : null,
+                status: el('oilStatusFilter') ? el('oilStatusFilter').value || null : null,
+                search: el('oilSearchInput') ? el('oilSearchInput').value || null : null,
+                limit: 500,
+                offset: 0
+            };
+        },
+
+        loadOilLotsAndSummary: async function (forceRefresh = false) {
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getOilStockLots !== 'function') {
+                    console.warn('[Stock Management] Oil stock functions not available yet');
+                    return;
+                }
+
+                const filters = this.getOilFilters();
+                const lots = await dataFunctions.getOilStockLots(filters, null, forceRefresh).catch((e) => {
+                    console.error('[Stock Management] getOilStockLots error:', e);
+                    return [];
+                });
+                this.oilLots = Array.isArray(lots) ? lots : (lots?.data || []);
+
+                // Summary defaults to on_hand if no explicit status filter is selected
+                const summaryFilters = {
+                    location_code: filters.location_code,
+                    stock_category: filters.stock_category,
+                    status: filters.status || 'on_hand'
+                };
+                const summary = await dataFunctions.getOilStockSummary(summaryFilters, null, forceRefresh).catch((e) => {
+                    console.error('[Stock Management] getOilStockSummary error:', e);
+                    return [];
+                });
+                this.oilSummary = Array.isArray(summary) ? summary : (summary?.data || []);
+
+                this.renderOilSummary();
+                this.renderOilLots();
+            } catch (e) {
+                console.error('[Stock Management] loadOilLotsAndSummary failed:', e);
+            }
+        },
+
+        renderOilSummary: function () {
+            const tbody = document.getElementById('oilSummaryTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const rows = this.oilSummary || [];
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">No summary data</td></tr>';
+                return;
+            }
+
+            rows.forEach(r => {
+                const avg = (r.avg_ffa !== null && r.avg_ffa !== undefined) ? Number(r.avg_ffa).toFixed(2) : '';
+                const sumKg = (r.sum_kilograms !== null && r.sum_kilograms !== undefined) ? Number(r.sum_kilograms).toFixed(2) : '0.00';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${r.label || 'Unspecified'}</td>
+                    <td class="text-end">${avg}</td>
+                    <td class="text-end">${sumKg}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        },
+
+        daysRemainingFromBbDate: function (bbDate) {
+            if (!bbDate) return '';
+            const d = new Date(bbDate);
+            if (isNaN(d.getTime())) return '';
+            const today = new Date();
+            const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const end = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
+            return diff;
+        },
+
+        renderOilLots: function () {
+            const tbody = document.getElementById('oilLotsTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const rows = this.oilLots || [];
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-4">No oil stock lots found</td></tr>';
+                return;
+            }
+
+            rows.forEach(l => {
+                const days = this.daysRemainingFromBbDate(l.bb_date);
+                const daysClass = (days !== '' && days < 0) ? 'text-danger fw-bold' : (days !== '' && days < 30) ? 'text-warning fw-bold' : '';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${l.location_code || ''}</td>
+                    <td>${l.stock_category || ''}</td>
+                    <td>${l.counterparty_name || ''}</td>
+                    <td>${l.po_reference || ''}</td>
+                    <td>${l.batch_number || ''}</td>
+                    <td>${l.product_description || l.product_code || ''}</td>
+                    <td>${l.grade || ''}</td>
+                    <td class="text-end">${l.ffa !== null && l.ffa !== undefined ? Number(l.ffa).toFixed(2) : ''}</td>
+                    <td class="text-end">${l.units !== null && l.units !== undefined ? l.units : ''}</td>
+                    <td class="text-end">${l.kilograms !== null && l.kilograms !== undefined ? Number(l.kilograms).toFixed(2) : ''}</td>
+                    <td>${l.manufacture_date || ''}</td>
+                    <td>${l.bb_date || ''}</td>
+                    <td class="text-end ${daysClass}">${days !== '' ? days : ''}</td>
+                    <td>${l.status || ''}</td>
+                    <td class="text-nowrap">
+                        <button class="btn btn-sm btn-outline-primary edit-oil-lot-btn" data-oil-lot-id="${l.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-danger delete-oil-lot-btn" data-oil-lot-id="${l.id}" title="Remove"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        },
+
+        showOilLotModal: function (lot = null) {
+            const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+            const getDefault = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+
+            setVal('oilLotId', lot ? lot.id : '');
+            setVal('oilLotLocation', lot ? lot.location_code : (getDefault('oilLocationFilter') || ''));
+            setVal('oilLotCategory', lot ? lot.stock_category : (getDefault('oilCategoryFilter') || ''));
+            setVal('oilLotStatus', lot ? lot.status : (getDefault('oilStatusFilter') || 'on_hand'));
+            setVal('oilLotCounterpartyType', lot ? lot.counterparty_type : '');
+            setVal('oilLotCounterpartyName', lot ? (lot.counterparty_name || '') : '');
+            setVal('oilLotPoRef', lot ? (lot.po_reference || '') : '');
+            setVal('oilLotBatchNumber', lot ? (lot.batch_number || '') : '');
+            setVal('oilLotProductCode', lot ? (lot.product_code || '') : '');
+            setVal('oilLotProductDescription', lot ? (lot.product_description || '') : '');
+            setVal('oilLotGrade', lot ? (lot.grade || '') : '');
+            setVal('oilLotFfa', lot ? (lot.ffa ?? '') : '');
+            setVal('oilLotUnits', lot ? (lot.units ?? '') : '');
+            setVal('oilLotKg', lot ? (lot.kilograms ?? '') : '');
+            setVal('oilLotVolume', lot ? (lot.volume ?? '') : '');
+            setVal('oilLotDeliveryDate', lot ? (lot.delivery_date || '') : '');
+            setVal('oilLotManufactureDate', lot ? (lot.manufacture_date || '') : '');
+            setVal('oilLotBbDate', lot ? (lot.bb_date || '') : '');
+            setVal('oilLotCoaStatus', lot ? (lot.coa_status || '') : '');
+            setVal('oilLotNotes', lot ? (lot.notes || '') : '');
+
+            const title = document.getElementById('oilLotModalLabel');
+            if (title) title.textContent = lot ? 'Edit Oil Stock Lot' : 'Add Oil Stock Lot';
+
+            const modalEl = document.getElementById('oilLotModal');
+            if (modalEl && window.bootstrap) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else if (typeof $ !== 'undefined') {
+                $('#oilLotModal').modal('show');
+            }
+        },
+
+        editOilLot: function (lotId) {
+            const lot = (this.oilLots || []).find(x => x.id === lotId);
+            if (!lot) {
+                Swal.fire('Error', 'Oil lot not found in current list. Try refreshing.', 'error');
+                return;
+            }
+            this.showOilLotModal(lot);
+        },
+
+        saveOilLot: async function () {
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions) return;
+
+                const val = (id) => {
+                    const el = document.getElementById(id);
+                    return el ? el.value : '';
+                };
+
+                const lotId = val('oilLotId') || null;
+                const location = val('oilLotLocation');
+                const category = val('oilLotCategory');
+                const kg = parseFloat(val('oilLotKg'));
+
+                if (!location || !category || !kg || kg <= 0) {
+                    Swal.fire('Validation', 'Location, Category, and Kilograms (> 0) are required.', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    p_location_code: location,
+                    p_stock_category: category,
+                    p_kilograms: kg,
+                    p_status: val('oilLotStatus') || 'on_hand',
+                    p_counterparty_type: val('oilLotCounterpartyType') || null,
+                    p_counterparty_name: val('oilLotCounterpartyName') || null,
+                    p_po_reference: val('oilLotPoRef') || null,
+                    p_batch_number: val('oilLotBatchNumber') || null,
+                    p_product_code: val('oilLotProductCode') || null,
+                    p_product_description: val('oilLotProductDescription') || null,
+                    p_grade: val('oilLotGrade') || null,
+                    p_ffa: val('oilLotFfa') ? parseFloat(val('oilLotFfa')) : null,
+                    p_coa_status: val('oilLotCoaStatus') || null,
+                    p_units: val('oilLotUnits') ? parseInt(val('oilLotUnits'), 10) : null,
+                    p_volume: val('oilLotVolume') ? parseFloat(val('oilLotVolume')) : null,
+                    p_delivery_date: val('oilLotDeliveryDate') || null,
+                    p_manufacture_date: val('oilLotManufactureDate') || null,
+                    p_bb_date: val('oilLotBbDate') || null,
+                    p_notes: val('oilLotNotes') || null
+                };
+
+                let result;
+                if (lotId) {
+                    result = await dataFunctions.updateOilStockLot(lotId, payload);
+                } else {
+                    result = await dataFunctions.createOilStockLot(payload);
+                }
+
+                if (result && result.success !== false) {
+                    Swal.fire('Success', lotId ? 'Oil lot updated' : 'Oil lot created', 'success');
+                    const modalEl = document.getElementById('oilLotModal');
+                    if (modalEl && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                    else if (typeof $ !== 'undefined') $('#oilLotModal').modal('hide');
+                    await this.loadOilLotsAndSummary(true);
+                } else {
+                    Swal.fire('Error', result?.error || result?.message || 'Failed to save oil lot', 'error');
+                }
+            } catch (e) {
+                console.error('[Stock Management] saveOilLot failed:', e);
+                Swal.fire('Error', e.message || 'Failed to save oil lot', 'error');
+            }
+        },
+
+        deleteOilLot: async function (lotId) {
+            try {
+                const confirm = await Swal.fire({
+                    title: 'Remove oil lot?',
+                    text: 'This will hide the lot from the ledger (soft delete).',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, remove',
+                    cancelButtonText: 'Cancel'
+                });
+                if (!confirm.isConfirmed) return;
+
+                const result = await dataFunctions.deactivateOilStockLot(lotId);
+                if (result && result.success !== false) {
+                    Swal.fire('Removed', 'Oil lot removed', 'success');
+                    await this.loadOilLotsAndSummary(true);
+                } else {
+                    Swal.fire('Error', result?.error || result?.message || 'Failed to remove oil lot', 'error');
+                }
+            } catch (e) {
+                console.error('[Stock Management] deleteOilLot failed:', e);
+                Swal.fire('Error', e.message || 'Failed to remove oil lot', 'error');
+            }
+        },
+
+        showImportOilLotsModal: function () {
+            // reset UI
+            this.oilImportWorkbook = null;
+            this.oilImportPreviewRows = [];
+            const sheetSel = document.getElementById('oilImportSheet');
+            if (sheetSel) {
+                sheetSel.innerHTML = '<option value="">Select sheet</option>';
+                sheetSel.disabled = true;
+            }
+            const preview = document.getElementById('oilImportPreview');
+            if (preview) preview.style.display = 'none';
+            const btn = document.getElementById('performOilImportBtn');
+            if (btn) btn.disabled = true;
+            const file = document.getElementById('oilImportExcelFile');
+            if (file) file.value = '';
+
+            const modalEl = document.getElementById('importOilLotsModal');
+            if (modalEl && window.bootstrap) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else if (typeof $ !== 'undefined') {
+                $('#importOilLotsModal').modal('show');
+            }
+        },
+
+        handleOilImportFile: async function (file) {
+            try {
+                if (!file) return;
+                if (typeof XLSX === 'undefined') {
+                    Swal.fire('Missing library', 'SheetJS (XLSX) is not loaded. Please refresh the page.', 'error');
+                    return;
+                }
+
+                const data = await file.arrayBuffer();
+                this.oilImportWorkbook = XLSX.read(data, { type: 'array' });
+
+                const sheetSel = document.getElementById('oilImportSheet');
+                if (!sheetSel) return;
+
+                sheetSel.innerHTML = '<option value="">Select sheet</option>';
+                (this.oilImportWorkbook.SheetNames || []).forEach(name => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    sheetSel.appendChild(opt);
+                });
+                sheetSel.disabled = false;
+
+                // auto-select first sheet
+                if (this.oilImportWorkbook.SheetNames && this.oilImportWorkbook.SheetNames.length) {
+                    sheetSel.value = this.oilImportWorkbook.SheetNames[0];
+                    this.renderOilImportPreview();
+                }
+            } catch (e) {
+                console.error('[Stock Management] handleOilImportFile failed:', e);
+                Swal.fire('Error', e.message || 'Failed to read Excel file', 'error');
+            }
+        },
+
+        normalizeHeader: function (h) {
+            return String(h || '').trim().toLowerCase();
+        },
+
+        parseExcelDate: function (v) {
+            if (!v && v !== 0) return null;
+            if (v instanceof Date) return v.toISOString().slice(0, 10);
+            if (typeof v === 'number' && typeof XLSX !== 'undefined' && XLSX.SSF && XLSX.SSF.parse_date_code) {
+                const d = XLSX.SSF.parse_date_code(v);
+                if (d && d.y && d.m && d.d) {
+                    const mm = String(d.m).padStart(2, '0');
+                    const dd = String(d.d).padStart(2, '0');
+                    return `${d.y}-${mm}-${dd}`;
+                }
+            }
+            const s = String(v).trim();
+            const dt = new Date(s);
+            if (!isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
+            return null;
+        },
+
+        inferDefaultsFromSheetName: function (sheetName) {
+            const name = (sheetName || '').toLowerCase();
+            const defaults = { location_code: null, stock_category: null };
+            if (name.includes('801')) defaults.location_code = '801';
+            if (name.includes('850')) defaults.location_code = '850';
+            if (name.includes('rm') || name.includes('raw')) defaults.stock_category = 'raw_material';
+            if (name.includes('fg') || name.includes('finished')) defaults.stock_category = 'finished_good';
+            if (name.includes('sold')) defaults.stock_category = 'sold';
+            return defaults;
+        },
+
+        findHeaderRowIndex: function (rows) {
+            const wanted = ['batch', 'product', 'grade', 'kilograms', 'ffa'];
+            for (let i = 0; i < Math.min(rows.length, 30); i++) {
+                const r = rows[i] || [];
+                const joined = r.map(x => this.normalizeHeader(x)).join(' | ');
+                if (wanted.some(w => joined.includes(w))) return i;
+            }
+            return 0;
+        },
+
+        renderOilImportPreview: function () {
+            try {
+                const wb = this.oilImportWorkbook;
+                const sheetName = document.getElementById('oilImportSheet')?.value;
+                if (!wb || !sheetName) return;
+
+                const ws = wb.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false });
+                if (!rows || !rows.length) return;
+
+                const headerIdx = this.findHeaderRowIndex(rows);
+                const headers = (rows[headerIdx] || []).map(h => String(h || '').trim());
+                const dataRows = rows.slice(headerIdx + 1).filter(r => (r || []).some(c => String(c || '').trim() !== ''));
+
+                // Build preview table
+                const thead = document.querySelector('#oilImportPreviewTable thead');
+                const tbody = document.querySelector('#oilImportPreviewTable tbody');
+                if (!thead || !tbody) return;
+
+                thead.innerHTML = `<tr>${headers.slice(0, 12).map(h => `<th>${h}</th>`).join('')}</tr>`;
+                tbody.innerHTML = '';
+                dataRows.slice(0, 10).forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = headers.slice(0, 12).map((_, idx) => `<td>${r[idx] ?? ''}</td>`).join('');
+                    tbody.appendChild(tr);
+                });
+
+                const preview = document.getElementById('oilImportPreview');
+                if (preview) preview.style.display = 'block';
+
+                // Store parsed rows for import mapping
+                this.oilImportPreviewRows = [{ headers, dataRows, sheetName }];
+
+                const btn = document.getElementById('performOilImportBtn');
+                if (btn) btn.disabled = dataRows.length === 0;
+            } catch (e) {
+                console.error('[Stock Management] renderOilImportPreview failed:', e);
+            }
+        },
+
+        buildOilImportRows: function () {
+            const parsed = this.oilImportPreviewRows && this.oilImportPreviewRows[0] ? this.oilImportPreviewRows[0] : null;
+            if (!parsed) return [];
+
+            const headers = parsed.headers || [];
+            const dataRows = parsed.dataRows || [];
+            const sheetName = parsed.sheetName || '';
+
+            const headerMap = headers.map(h => this.normalizeHeader(h));
+            const idxOf = (names) => {
+                const ns = Array.isArray(names) ? names : [names];
+                for (const n of ns) {
+                    const idx = headerMap.indexOf(this.normalizeHeader(n));
+                    if (idx >= 0) return idx;
+                }
+                return -1;
+            };
+
+            const idxDelivery = idxOf(['delivery date', 'date dispatched']);
+            const idxSupplier = idxOf(['supplier']);
+            const idxCustomer = idxOf(['customer']);
+            const idxPo = idxOf(['po reference', 'po ref']);
+            const idxBatch = idxOf(['batch #', 'batch']);
+            const idxProduct = idxOf(['product description', 'product']);
+            const idxGrade = idxOf(['grade']);
+            const idxFfa = idxOf(['ffa']);
+            const idxCoa = idxOf(['coa status', 'coa']);
+            const idxUnits = idxOf(['units']);
+            const idxVol = idxOf(['volume']);
+            const idxKg = idxOf(['kilograms', 'kilogram', 'kg']);
+            const idxMfg = idxOf(['manufacture date', 'mfg date']);
+            const idxBb = idxOf(['bb date', 'best before', 'best before date']);
+            const idxStatus = idxOf(['status']);
+
+            const uiDefaultLoc = document.getElementById('oilImportDefaultLocation')?.value || null;
+            const uiDefaultCat = document.getElementById('oilImportDefaultCategory')?.value || null;
+            const inferred = this.inferDefaultsFromSheetName(sheetName);
+
+            const location_code = uiDefaultLoc || inferred.location_code || (document.getElementById('oilLocationFilter')?.value || null) || '801';
+            const stock_category = uiDefaultCat || inferred.stock_category || (document.getElementById('oilCategoryFilter')?.value || null) || 'raw_material';
+
+            const rowsOut = [];
+            dataRows.forEach(r => {
+                const kgValRaw = idxKg >= 0 ? r[idxKg] : null;
+                const kgVal = kgValRaw !== null && kgValRaw !== undefined && kgValRaw !== '' ? parseFloat(String(kgValRaw).replace(/,/g, '')) : null;
+
+                const productDesc = idxProduct >= 0 ? (r[idxProduct] ?? null) : null;
+                const batch = idxBatch >= 0 ? (r[idxBatch] ?? null) : null;
+
+                if (!kgVal || kgVal <= 0) return; // skip non-rows
+                if (!productDesc && !batch) return;
+
+                const counterparty_name = idxSupplier >= 0 ? (r[idxSupplier] ?? null) : (idxCustomer >= 0 ? (r[idxCustomer] ?? null) : null);
+                const counterparty_type = idxSupplier >= 0 ? 'supplier' : (idxCustomer >= 0 ? 'customer' : null);
+
+                const pd = productDesc ? String(productDesc).trim() : null;
+                const code = pd && pd.includes('-') ? pd.split('-')[0].trim() : null;
+
+                rowsOut.push({
+                    location_code,
+                    stock_category,
+                    status: (idxStatus >= 0 && r[idxStatus]) ? String(r[idxStatus]).trim() : (stock_category === 'sold' ? 'sold' : 'on_hand'),
+                    counterparty_type,
+                    counterparty_name: counterparty_name ? String(counterparty_name).trim() : null,
+                    po_reference: idxPo >= 0 && r[idxPo] ? String(r[idxPo]).trim() : null,
+                    batch_number: batch ? String(batch).trim() : null,
+                    product_code: code,
+                    product_description: pd,
+                    grade: idxGrade >= 0 && r[idxGrade] ? String(r[idxGrade]).trim() : null,
+                    ffa: idxFfa >= 0 && r[idxFfa] !== null && r[idxFfa] !== undefined && r[idxFfa] !== '' ? parseFloat(String(r[idxFfa]).replace('%', '').trim()) : null,
+                    coa_status: idxCoa >= 0 && r[idxCoa] ? String(r[idxCoa]).trim() : null,
+                    units: idxUnits >= 0 && r[idxUnits] !== null && r[idxUnits] !== undefined && r[idxUnits] !== '' ? parseInt(String(r[idxUnits]).replace(/,/g, ''), 10) : null,
+                    volume: idxVol >= 0 && r[idxVol] !== null && r[idxVol] !== undefined && r[idxVol] !== '' ? parseFloat(String(r[idxVol]).replace(/,/g, '')) : null,
+                    kilograms: kgVal,
+                    delivery_date: idxDelivery >= 0 ? this.parseExcelDate(r[idxDelivery]) : null,
+                    manufacture_date: idxMfg >= 0 ? this.parseExcelDate(r[idxMfg]) : null,
+                    bb_date: idxBb >= 0 ? this.parseExcelDate(r[idxBb]) : null
+                });
+            });
+
+            return rowsOut;
+        },
+
+        performOilImport: async function () {
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.importTableRows !== 'function') {
+                    Swal.fire('Error', 'Import functions are not available.', 'error');
+                    return;
+                }
+
+                const rows = this.buildOilImportRows();
+                if (!rows.length) {
+                    Swal.fire('No data', 'No valid rows found to import (need Kilograms + Product/Batch).', 'info');
+                    return;
+                }
+
+                const confirm = await Swal.fire({
+                    title: `Import ${rows.length} rows?`,
+                    text: 'This will insert rows into Oil Stock Ledger. You can edit/remove them after import.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Import',
+                    cancelButtonText: 'Cancel'
+                });
+                if (!confirm.isConfirmed) return;
+
+                const result = await dataFunctions.importTableRows('oil_stock_lots', rows);
+                if (result && result.success !== false) {
+                    Swal.fire('Imported', result.message || 'Oil stock imported successfully', 'success');
+                    const modalEl = document.getElementById('importOilLotsModal');
+                    if (modalEl && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                    else if (typeof $ !== 'undefined') $('#importOilLotsModal').modal('hide');
+                    await this.loadOilLotsAndSummary(true);
+                } else {
+                    Swal.fire('Error', result?.error || result?.message || 'Import failed', 'error');
+                }
+            } catch (e) {
+                console.error('[Stock Management] performOilImport failed:', e);
+                Swal.fire('Error', e.message || 'Import failed', 'error');
+            }
         },
         
         showReceivingChecklistModal: async function () {

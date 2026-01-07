@@ -144,6 +144,16 @@ var _crmGrid = function () {
             $('#contactModal').on('hidden.bs.modal', function () {
                 scope.clearForm();
             });
+
+            // Ensure long modal content is scrollable (theme-safe)
+            $('#contactModal').on('shown.bs.modal', function () {
+                scope.ensureContactModalScrollable();
+            });
+            $(window).on('resize', function () {
+                if ($('#contactModal').hasClass('show')) {
+                    scope.ensureContactModalScrollable();
+                }
+            });
         },
 
         loadContacts: async function (forceRefresh = false) {
@@ -807,6 +817,25 @@ var _crmGrid = function () {
             this.editingContact = null;
             $('#oilProcessorRatesSection').hide();
             $('#kernelCustomerPreferencesSection').hide();
+        },
+
+        ensureContactModalScrollable: function () {
+            const modalEl = document.getElementById('contactModal');
+            if (!modalEl) return;
+
+            const bodyEl = modalEl.querySelector('.modal-body');
+            if (!bodyEl) return;
+
+            const headerEl = modalEl.querySelector('.modal-header');
+            const footerEl = modalEl.querySelector('.modal-footer');
+
+            const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
+            const footerH = footerEl ? footerEl.getBoundingClientRect().height : 0;
+            const verticalPadding = 32; // ~1rem top + 1rem bottom
+
+            const maxH = Math.max(200, window.innerHeight - headerH - footerH - verticalPadding);
+            bodyEl.style.overflowY = 'auto';
+            bodyEl.style.maxHeight = `${maxH}px`;
         },
 
         showError: function (message) {
