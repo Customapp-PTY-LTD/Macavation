@@ -323,6 +323,11 @@ var _appRouter = function () {
                         initializeKernelProductionGrid();
                     }
                 },
+                'data-import-grid': () => {
+                    if (typeof initializeDataImportGrid === 'function') {
+                        initializeDataImportGrid();
+                    }
+                },
                 'quality-assurance-grid': () => {
                     if (typeof initializeQualityAssuranceGrid === 'function') {
                         initializeQualityAssuranceGrid();

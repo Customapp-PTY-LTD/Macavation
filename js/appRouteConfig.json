@@ -233,6 +233,17 @@
             "css": [
                 "css/palladium_integration_grid.css"
             ]
+        },
+        "data-import-grid": {
+            "description": "Data Import (Excel)",
+            "path": "data-import",
+            "html": "html/data_import_grid.html",
+            "js": [
+                "js/data_import_grid.js"
+            ],
+            "css": [
+                "css/data_import_grid.css"
+            ]
         }
     }
 }
