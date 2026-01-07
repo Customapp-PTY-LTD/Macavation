@@ -624,13 +624,16 @@ var _crmGrid = function () {
             if (!file) return;
 
             try {
+                console.log('[CRM Import] Parsing file:', file.name);
                 // Parse workbook (for multi-sheet import) + keep first sheet as default preview
                 const workbook = await this.parseExcelWorkbook(file);
                 this.importWorkbook = workbook;
+                console.log('[CRM Import] Workbook loaded, sheets:', workbook?.SheetNames);
 
                 const firstSheetName = workbook?.SheetNames?.[0];
                 const data = firstSheetName ? this.sheetToRows(workbook, firstSheetName) : [];
                 this.importData = data;
+                console.log('[CRM Import] First sheet data rows:', data?.length);
                 
                 if (data && data.length > 0) {
                     this.showImportPreview(data);
@@ -639,7 +642,7 @@ var _crmGrid = function () {
                     Swal.fire('Error', 'No data found in Excel file', 'error');
                 }
             } catch (error) {
-                console.error('Error parsing Excel:', error);
+                console.error('[CRM Import] Error parsing Excel:', error);
                 Swal.fire('Error', 'Failed to parse Excel file: ' + error.message, 'error');
             }
         },
@@ -700,6 +703,8 @@ var _crmGrid = function () {
                     contact.notes = this.getColumnValue(row, headers, 'Note/s');
                     contact.status = 'active';
                 } else if (contactType === 'oil_processor') {
+                    // Oil Processors sheet has contact info in one table and rates in another
+                    // We'll map from the "Oil Kernel Suppliers" table (contact info)
                     contact.company_name = this.getColumnValue(row, headers, 'Supplier Name');
                     contact.physical_province = this.getColumnValue(row, headers, 'Province');
                     contact.physical_area = this.getColumnValue(row, headers, 'Area');
@@ -709,6 +714,9 @@ var _crmGrid = function () {
                     contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
                     contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
                     contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
+                    contact.notes = this.getColumnValue(row, headers, 'Note/s');
+                    
+                    // Try to get rates from same row (if rates table is merged) or from separate rates lookup
                     contact.rate_crude_kernel = this.parseRate(this.getColumnValue(row, headers, 'Crude Kernel Rate/kg'));
                     contact.rate_food_kernel = this.parseRate(this.getColumnValue(row, headers, 'Food Kernel Rate/kg'));
                     contact.rate_kernel_dust = this.parseRate(this.getColumnValue(row, headers, 'Kernel Dust Rate/kg'));
@@ -716,13 +724,23 @@ var _crmGrid = function () {
                     contact.rate_crush = this.parseRate(this.getColumnValue(row, headers, 'Crush Rate/kg'));
                     contact.status = 'active';
                 } else if (contactType === 'kernel_customer') {
+                    // Kernel Customers sheet: Customer Name, Province, Area, Contact #1, Note/s (preferred styles)
                     contact.company_name = this.getColumnValue(row, headers, 'Customer Name');
                     contact.physical_province = this.getColumnValue(row, headers, 'Province');
                     contact.physical_area = this.getColumnValue(row, headers, 'Area');
                     contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
-                    contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
-                    contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
-                    contact.notes = this.getColumnValue(row, headers, 'Note/s');
+                    // Cell #1 and Email #1 might not exist in this sheet, so make them optional
+                    contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1') || null;
+                    contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1') || null;
+                    // Note/s column contains preferred styles (e.g., "Style SP", "Style 5 & 6 - Small")
+                    const notes = this.getColumnValue(row, headers, 'Note/s');
+                    if (notes) {
+                        // Extract preferred styles - usually everything before " - " or the whole note
+                        const stylesMatch = notes.match(/^(Style\s+[^-\n]+|.*?)(?:\s*-\s*|$)/i);
+                        contact.preferred_styles = stylesMatch ? stylesMatch[1].trim() : notes.trim();
+                        // Keep full note for reference
+                        contact.notes = notes;
+                    }
                     contact.status = 'active';
                 }
 
@@ -814,9 +832,16 @@ var _crmGrid = function () {
                         const contactType = this.detectContactTypeForSheet(sheetName);
                         console.log(`[CRM Import] Sheet "${sheetName}" → detected type: ${contactType}`);
                         if (!contactType) return;
-                        const data = this.sheetToRows(this.importWorkbook, sheetName);
+                        
+                        let data = this.sheetToRows(this.importWorkbook, sheetName);
                         console.log(`[CRM Import] Sheet "${sheetName}" has ${data?.length || 0} rows`);
                         if (!data || data.length < 2) return;
+                        
+                        // Special handling for Oil Processors: merge contact table with rates table
+                        if (contactType === 'oil_processor') {
+                            data = this.mergeOilProcessorTables(data);
+                        }
+                        
                         importBatches.push({ sheetName, contactType, importData: data });
                     });
 
@@ -848,11 +873,13 @@ var _crmGrid = function () {
 
                     for (const contactData of mappedContacts) {
                         try {
-                            await dataFunctions.createContact(contactData);
+                            console.log('[CRM Import] Importing contact:', contactData.company_name, contactData);
+                            const result = await dataFunctions.createContact(contactData);
+                            console.log('[CRM Import] Import result:', result);
                             successCount++;
                             ok++;
                         } catch (error) {
-                            console.error('Error importing contact:', contactData.company_name, error);
+                            console.error('[CRM Import] Error importing contact:', contactData.company_name, error);
                             errorCount++;
                             fail++;
                         }
@@ -877,8 +904,135 @@ var _crmGrid = function () {
             }
         },
 
+        mergeOilProcessorTables: function (allRows) {
+            // Oil Processors sheet has two tables: "Oil Kernel Suppliers" and "Rates"
+            // Find where "Rates" table starts (look for "Rates" in first column or "Crude Kernel Rate/kg" header)
+            let ratesStartIndex = -1;
+            for (let i = 0; i < allRows.length; i++) {
+                const firstCell = allRows[i]?.[0]?.toString().toLowerCase().trim();
+                if (firstCell === 'rates' || firstCell?.includes('crude kernel rate')) {
+                    ratesStartIndex = i;
+                    break;
+                }
+            }
+            
+            if (ratesStartIndex < 0) {
+                // No rates table found, return contact data as-is
+                return allRows;
+            }
+            
+            // Split into contact table and rates table
+            const contactRows = allRows.slice(0, ratesStartIndex);
+            const ratesRows = allRows.slice(ratesStartIndex);
+            
+            // Find rates header row (look for "Supplier Name" and rate columns)
+            let ratesHeaderIndex = -1;
+            for (let i = 0; i < ratesRows.length; i++) {
+                const row = ratesRows[i] || [];
+                const hasSupplierName = row.some(cell => cell?.toString().toLowerCase().includes('supplier name'));
+                const hasRateColumn = row.some(cell => cell?.toString().toLowerCase().includes('crude kernel rate'));
+                if (hasSupplierName && hasRateColumn) {
+                    ratesHeaderIndex = i;
+                    break;
+                }
+            }
+            
+            if (ratesHeaderIndex < 0) {
+                return contactRows; // Can't find rates header, return contact data only
+            }
+            
+            // Build a map of supplier name -> rates
+            const ratesMap = {};
+            const ratesHeaders = ratesRows[ratesHeaderIndex] || [];
+            for (let i = ratesHeaderIndex + 1; i < ratesRows.length; i++) {
+                const row = ratesRows[i] || [];
+                const supplierName = this.getColumnValue(row, ratesHeaders, 'Supplier Name');
+                if (!supplierName) continue;
+                
+                // Store raw rate values (with R prefix if present) for merging
+                ratesMap[supplierName.toLowerCase().trim()] = {
+                    'rate_crude_kernel': this.getColumnValue(row, ratesHeaders, 'Crude Kernel Rate/kg') || '',
+                    'rate_food_kernel': this.getColumnValue(row, ratesHeaders, 'Food Kernel Rate/kg') || '',
+                    'rate_kernel_dust': this.getColumnValue(row, ratesHeaders, 'Kernel Dust Rate/kg') || '',
+                    'rate_cracker_dust': this.getColumnValue(row, ratesHeaders, 'Cracker Dust Rate/kg') || '',
+                    'rate_crush': this.getColumnValue(row, ratesHeaders, 'Crush Rate/kg') || ''
+                };
+            }
+            
+            // Merge rates into contact rows
+            const contactHeaders = contactRows[0] || [];
+            const mergedRows = [contactHeaders]; // Start with header row
+            
+            // Add rate columns to header if not present
+            const rateColumns = ['Crude Kernel Rate/kg', 'Food Kernel Rate/kg', 'Kernel Dust Rate/kg', 'Cracker Dust Rate/kg', 'Crush Rate/kg'];
+            rateColumns.forEach(col => {
+                if (!contactHeaders.some(h => h?.toString().trim() === col)) {
+                    contactHeaders.push(col);
+                }
+            });
+            
+            // Merge data rows
+            for (let i = 1; i < contactRows.length; i++) {
+                const row = contactRows[i] || [];
+                const supplierName = this.getColumnValue(row, contactHeaders, 'Supplier Name');
+                const rates = supplierName ? ratesMap[supplierName.toLowerCase().trim()] : null;
+                
+                const mergedRow = [...row];
+                // Add rate columns (pad with empty if not present)
+                rateColumns.forEach(col => {
+                    const colIndex = contactHeaders.indexOf(col);
+                    if (colIndex >= 0) {
+                        // Column exists in header, ensure row has value
+                        while (mergedRow.length <= colIndex) {
+                            mergedRow.push('');
+                        }
+                        if (rates) {
+                            // Map rate key: "Crude Kernel Rate/kg" -> "rate_crude_kernel"
+                            const rateKey = col.toLowerCase()
+                                .replace(/kernel/g, 'kernel')
+                                .replace(/rate\/kg/g, '')
+                                .replace(/\s+/g, '_')
+                                .replace(/^/, 'rate_');
+                            const rateValue = rates[rateKey] || '';
+                            mergedRow[colIndex] = rateValue ? (rateValue.toString().startsWith('R') ? rateValue : `R ${rateValue}`) : '';
+                        }
+                    } else {
+                        // Add new rate column at end
+                        if (rates) {
+                            const rateKey = col.toLowerCase()
+                                .replace(/kernel/g, 'kernel')
+                                .replace(/rate\/kg/g, '')
+                                .replace(/\s+/g, '_')
+                                .replace(/^/, 'rate_');
+                            const rateValue = rates[rateKey] || '';
+                            mergedRow.push(rateValue ? (rateValue.toString().startsWith('R') ? rateValue : `R ${rateValue}`) : '');
+                        } else {
+                            mergedRow.push('');
+                        }
+                    }
+                });
+                
+                mergedRows.push(mergedRow);
+            }
+            
+            return mergedRows;
+        },
+
         getColumnValue: function (row, headers, columnName) {
-            const index = headers.findIndex(h => h && h.toString().trim() === columnName);
+            // Try exact match first
+            let index = headers.findIndex(h => h && h.toString().trim() === columnName);
+            
+            // If not found, try case-insensitive match
+            if (index < 0) {
+                const normalizedName = columnName.toLowerCase().trim();
+                index = headers.findIndex(h => h && h.toString().toLowerCase().trim() === normalizedName);
+            }
+            
+            // Log if column not found (for debugging)
+            if (index < 0) {
+                console.warn(`[CRM Import] Column "${columnName}" not found in headers:`, headers);
+            }
+            
             return index >= 0 && row[index] ? String(row[index]).trim() : null;
         },
 
