@@ -1225,6 +1225,29 @@ var _dataFunctions = function () {
     }
 }();
 
+// Extend dataFunctions with Data Import helpers
+dataFunctions.getTableColumns = async function (tableName, token = null) {
+    try {
+        return await this.callFunction('get_table_columns', { p_table_name: tableName }, token);
+    } catch (e) {
+        console.error('[Data Import] getTableColumns error:', e);
+        return [];
+    }
+};
+
+dataFunctions.importTableRows = async function (tableName, rows, token = null) {
+    try {
+        const params = {
+            p_table_name: tableName,
+            p_rows: JSON.stringify(rows)
+        };
+        return await this.callFunction('import_table_rows', params, token, { useCache: false });
+    } catch (e) {
+        console.error('[Data Import] importTableRows error:', e);
+        return { success: false, message: e.message };
+    }
+};
+
 // Create global instance
 const dataFunctions = _dataFunctions;
 
