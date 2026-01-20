@@ -244,6 +244,28 @@
             "css": [
                 "css/data_import_grid.css"
             ]
+        },
+        "test-scenarios-grid": {
+            "description": "Test Scenarios Management",
+            "path": "test-scenarios",
+            "html": "html/test_scenarios_grid.html",
+            "js": [
+                "js/test_scenarios_grid.js"
+            ],
+            "css": [
+                "css/test_scenarios_grid.css"
+            ]
+        },
+        "test-data-grid": {
+            "description": "Test Data Management",
+            "path": "test-data",
+            "html": "html/test_data_grid.html",
+            "js": [
+                "js/test_data_grid.js"
+            ],
+            "css": [
+                "css/test_data_grid.css"
+            ]
         }
     }
 }

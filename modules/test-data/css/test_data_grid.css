@@ -1,0 +1,91 @@
+/* Test Data Grid Module Styles */
+
+.module-content {
+    padding: 1rem;
+}
+
+#dataSetsTable,
+#recordsTable {
+    font-size: 0.9rem;
+}
+
+#dataSetsTable th,
+#recordsTable th {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+#dataSetsTable td,
+#recordsTable td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+.form-label.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.font-monospace {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.875rem;
+}
+
+#recordModal .modal-xl {
+    max-width: 1200px;
+}
+
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+    border: none;
+    border-bottom: 2px solid transparent;
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom-color: #dee2e6;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+    font-weight: 600;
+}
+
+/* Loading and empty states */
+#dataSetsLoading,
+#dataSetsEmpty,
+#recordsLoading,
+#recordsEmpty {
+    min-height: 200px;
+}
+
+/* JSON preview in table */
+.json-preview {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #dataSetsTable,
+    #recordsTable {
+        font-size: 0.8rem;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "macavation-e2e",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Macavation farm management system",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "test:auth": "playwright test tests/auth/",
+    "test:users": "playwright test tests/user-management/",
+    "test:users:crud": "playwright test tests/user-management/user-crud.spec.ts",
+    "test:users:roles": "playwright test tests/user-management/roles-crud.spec.ts",
+    "test:users:access": "playwright test tests/user-management/role-screen-access.spec.ts",
+    "test:crm": "playwright test tests/crm/",
+    "test:grower": "playwright test tests/grower-intake/",
+    "test:kernel": "playwright test tests/kernel-production/",
+    "test:oil": "playwright test tests/oil-production/",
+    "test:quality": "playwright test tests/quality-assurance/",
+    "test:stock": "playwright test tests/stock-management/",
+    "test:finance": "playwright test tests/financial-management/",
+    "test:dashboard": "playwright test tests/dashboard/",
+    "test:critical": "playwright test --grep @critical",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:rbac": "playwright test --grep @rbac",
+    "test:edge": "playwright test --grep @edge-case",
+    "test:security": "playwright test --grep @security"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1"
+  },
+  "keywords": [
+    "playwright",
+    "e2e",
+    "testing",
+    "macavation"
+  ],
+  "author": "Macavation Team",
+  "license": "ISC"
+}

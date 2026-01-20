@@ -1,0 +1,85 @@
+/* Test Scenarios Grid Module Styles */
+
+.module-content {
+    padding: 1rem;
+}
+
+.scenario-code-link,
+.scenario-name-link {
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.scenario-code-link:hover,
+.scenario-name-link:hover {
+    text-decoration: underline;
+}
+
+#scenariosTable {
+    font-size: 0.9rem;
+}
+
+#scenariosTable th {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+#scenariosTable td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+.form-section {
+    margin-bottom: 1.5rem;
+}
+
+.form-section h5 {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+    color: #495057;
+}
+
+.form-label.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.font-monospace {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.875rem;
+}
+
+#scenarioModal .modal-xl {
+    max-width: 1200px;
+}
+
+#scenarioTabContent .tab-pane {
+    padding: 1rem 0;
+}
+
+.search-container {
+    margin-bottom: 1rem;
+}
+
+/* Loading and empty states */
+#scenariosLoading,
+#scenariosEmpty {
+    min-height: 200px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #scenariosTable {
+        font-size: 0.8rem;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}

@@ -198,6 +198,31 @@ var _appRouter = function () {
                         return { success: false, errors: ['Insufficient permissions'] };
                     }
                 }
+
+                // Check if this is a test management module (test scenarios and test data)
+                const testManagementModules = ['test-scenarios-grid', 'test-data-grid'];
+
+                if (testManagementModules.includes(routeName)) {
+                    if (!dataFunctions.canAccessTestManagement()) {
+                        console.log('Insufficient permissions for test management, redirecting to dashboard...');
+                        // Show permission error
+                        const contentArea = document.getElementById('content-area');
+                        if (contentArea) {
+                            contentArea.innerHTML = `
+                                <div class="alert alert-danger" role="alert">
+                                    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Access Denied</h4>
+                                    <p>You need Super Admin role to access test management modules.</p>
+                                    <hr>
+                                    <p class="mb-0">Redirecting to dashboard...</p>
+                                </div>
+                            `;
+                            setTimeout(() => {
+                                _appRouter.routeTo('dashboard');
+                            }, 3000);
+                        }
+                        return { success: false, errors: ['Insufficient permissions'] };
+                    }
+                }
             }
 
             //load content into elementSelector
@@ -293,6 +318,16 @@ var _appRouter = function () {
                         initializeRolesGrid();
                     }
                 },
+                'test-scenarios-grid': () => {
+                    if (typeof testScenariosGrid !== 'undefined' && typeof testScenariosGrid.init === 'function') {
+                        testScenariosGrid.init();
+                    }
+                },
+                'test-data-grid': () => {
+                    if (typeof testDataGrid !== 'undefined' && typeof testDataGrid.init === 'function') {
+                        testDataGrid.init();
+                    }
+                },
                 'role-permissions-grid': () => {
                     if (typeof initializeRolePermissionsGrid === 'function') {
                         initializeRolePermissionsGrid();
@@ -371,6 +406,11 @@ var _appRouter = function () {
                 'palladium-integration-grid': () => {
                     if (typeof initializePalladiumIntegrationGrid === 'function') {
                         initializePalladiumIntegrationGrid();
+                    }
+                },
+                'test-scenarios-grid': () => {
+                    if (typeof initializeTestScenariosGrid === 'function') {
+                        initializeTestScenariosGrid();
                     }
                 }
             };

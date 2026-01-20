@@ -605,6 +605,29 @@
                                     <i class="fas fa-cog me-2"></i>System Administration
                                 </a>
                             </li>
+                            <!-- Test Scenarios Management (Super Admin Only) -->
+                            <li class="nav-item" id="testScenariosMenuItem" style="display: none;">
+                                <a class="nav-link" href="#" data-bs-toggle="collapse"
+                                    data-bs-target="#testManagementCollapse" aria-expanded="false"
+                                    aria-controls="testManagementCollapse">
+                                    <i class="fas fa-clipboard-list me-2"></i>Test Management
+                                    <i class="fas fa-chevron-right ms-auto"></i>
+                                </a>
+                                <div class="collapse" id="testManagementCollapse">
+                                    <ul class="nav flex-column ms-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="test-scenarios-grid">
+                                                <i class="fas fa-clipboard-list me-2"></i>Test Scenarios
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="test-data-grid">
+                                                <i class="fas fa-database me-2"></i>Test Data
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
                         </ul>
                     </div>
                     <div class="sidebar-footer p-3 border-top border-secondary">
@@ -1233,6 +1256,38 @@
                 }
             });
         }
+
+        // Control menu visibility based on user permissions
+        function updateMenuVisibility() {
+            // Wait for dataFunctions to be available
+            if (typeof dataFunctions === 'undefined') {
+                setTimeout(updateMenuVisibility, 100);
+                return;
+            }
+
+            // Show/hide test management menu based on permissions
+            const testManagementMenuItem = document.getElementById('testScenariosMenuItem');
+            if (testManagementMenuItem) {
+                if (dataFunctions.canAccessTestManagement()) {
+                    testManagementMenuItem.style.display = '';
+                } else {
+                    testManagementMenuItem.style.display = 'none';
+                }
+            }
+        }
+
+        // Update menu visibility when page loads and when user info changes
+        document.addEventListener('DOMContentLoaded', function () {
+            updateMenuVisibility();
+            
+            // Also update when user info might change (e.g., after login)
+            const checkInterval = setInterval(function () {
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.isAuthenticated()) {
+                    updateMenuVisibility();
+                    clearInterval(checkInterval);
+                }
+            }, 500);
+        });
     </script>
 </body>
 

@@ -1,0 +1,2149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Generic Viewer - Macavation</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --forest-deep: #2D4A3E;
+            --forest-light: #4A7C59;
+            --macadamia-cream: #F5F0E8;
+            --macadamia-dark: #4A3728;
+        }
+
+        body {
+            font-family: 'Nunito Sans', sans-serif;
+            background-color: var(--macadamia-cream);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--forest-deep) 0%, var(--macadamia-dark) 100%);
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-card {
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-critical { background-color: #dc3545; }
+        .badge-high { background-color: #fd7e14; color: #000; }
+        .badge-medium { background-color: #0d6efd; }
+        .badge-low { background-color: #0dcaf0; color: #000; }
+        .badge-info { background-color: #6c757d; }
+
+        .scenario-code {
+            font-family: monospace;
+            font-weight: 600;
+            color: var(--forest-deep);
+        }
+
+        .scenario-code:hover {
+            color: var(--forest-light);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .module-badge {
+            background-color: var(--forest-light);
+            font-size: 0.75rem;
+        }
+
+        .test-type-badge {
+            font-size: 0.7rem;
+            padding: 0.25em 0.5em;
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: var(--forest-deep);
+            color: white;
+            border-color: var(--forest-deep);
+        }
+
+        .nav-tabs .nav-link {
+            color: var(--forest-deep);
+        }
+
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+
+        .test-step-row:nth-child(odd) {
+            background-color: #f8f9fa;
+        }
+
+        pre.json-display {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            max-height: 300px;
+            overflow: auto;
+        }
+
+        .filter-section {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #scenariosTable tbody tr {
+            cursor: pointer;
+        }
+
+        #scenariosTable tbody tr:hover {
+            background-color: rgba(45, 74, 62, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark py-3 mb-4">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-vial me-2"></i>QA Generic Viewer
+            </span>
+            <span class="text-light">
+                <small>Macavation QA</small>
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4">
+        <!-- Connection Status -->
+        <div id="connectionStatus" class="alert alert-info mb-3">
+            <i class="fas fa-spinner fa-spin me-2"></i>Connecting to database...
+        </div>
+
+        <!-- Stats Row -->
+        <div class="row mb-4" id="statsRow">
+            <div class="col-md-2 col-sm-4 col-6 mb-2">
+                <div class="card stat-card text-center h-100">
+                    <div class="card-body py-3">
+                        <h2 class="mb-0" id="totalCount">-</h2>
+                        <small class="text-muted">Total Scenarios</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-4 col-6 mb-2">
+                <div class="card stat-card text-center h-100 border-danger border-2">
+                    <div class="card-body py-3">
+                        <h2 class="mb-0 text-danger" id="criticalCount">-</h2>
+                        <small class="text-muted">Critical</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-4 col-6 mb-2">
+                <div class="card stat-card text-center h-100 border-warning border-2">
+                    <div class="card-body py-3">
+                        <h2 class="mb-0 text-warning" id="highCount">-</h2>
+                        <small class="text-muted">High</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-4 col-6 mb-2">
+                <div class="card stat-card text-center h-100 border-primary border-2">
+                    <div class="card-body py-3">
+                        <h2 class="mb-0 text-primary" id="mediumCount">-</h2>
+                        <small class="text-muted">Medium</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-4 col-6 mb-2">
+                <div class="card stat-card text-center h-100 border-success border-2">
+                    <div class="card-body py-3">
+                        <h2 class="mb-0 text-success" id="automatedCount">-</h2>
+                        <small class="text-muted">Automated</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-4 col-6 mb-2">
+                <div class="card stat-card text-center h-100">
+                    <div class="card-body py-3">
+                        <h2 class="mb-0 text-secondary" id="modulesCount">-</h2>
+                        <small class="text-muted">Modules</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Tabs -->
+        <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="scenarios-tab" data-bs-toggle="tab" data-bs-target="#scenarios" type="button">
+                    <i class="fas fa-list-check me-1"></i>Test Scenarios
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="testdata-tab" data-bs-toggle="tab" data-bs-target="#testdata" type="button">
+                    <i class="fas fa-database me-1"></i>Test Data Sets
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="testtypes-tab" data-bs-toggle="tab" data-bs-target="#testtypes" type="button">
+                    <i class="fas fa-tags me-1"></i>Test Types
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="userroles-tab" data-bs-toggle="tab" data-bs-target="#userroles" type="button">
+                    <i class="fas fa-users me-1"></i>User Roles
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="testinstances-tab" data-bs-toggle="tab" data-bs-target="#testinstances" type="button">
+                    <i class="fas fa-play-circle me-1"></i>Test Instances
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="runhistory-tab" data-bs-toggle="tab" data-bs-target="#runhistory" type="button">
+                    <i class="fas fa-history me-1"></i>Run History
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="testaudit-tab" data-bs-toggle="tab" data-bs-target="#testaudit" type="button">
+                    <i class="fas fa-clipboard-list me-1"></i>Test Audit
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Scenarios Tab -->
+            <div class="tab-pane fade show active" id="scenarios" role="tabpanel">
+                <!-- Filters -->
+                <div class="filter-section">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Search</label>
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search code, name, description...">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-bold">Module</label>
+                            <select id="filterModule" class="form-select">
+                                <option value="">All Modules</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-bold">Severity</label>
+                            <select id="filterSeverity" class="form-select">
+                                <option value="">All</option>
+                                <option value="critical">Critical</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                                <option value="info">Info</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-bold">Type</label>
+                            <select id="filterType" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="functional">Functional</option>
+                                <option value="security">Security</option>
+                                <option value="e2e">E2E</option>
+                                <option value="integration">Integration</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-bold">Automation</label>
+                            <select id="filterAutomation" class="form-select">
+                                <option value="">All</option>
+                                <option value="true">Automated</option>
+                                <option value="false">Manual</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scenarios Table -->
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="scenariosTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 130px;">Code</th>
+                                        <th>Scenario Name</th>
+                                        <th style="width: 130px;">Module</th>
+                                        <th style="width: 90px;">Type</th>
+                                        <th style="width: 80px;">Severity</th>
+                                        <th style="width: 90px;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scenariosBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5">
+                                            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                                            <p class="text-muted mb-0">Loading scenarios...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <nav class="mt-3">
+                    <ul class="pagination justify-content-center" id="pagination"></ul>
+                </nav>
+            </div>
+
+            <!-- Test Data Tab -->
+            <div class="tab-pane fade" id="testdata" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <strong><i class="fas fa-folder me-2"></i>Data Sets</strong>
+                            </div>
+                            <div class="list-group list-group-flush" id="dataSetsList">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <strong><i class="fas fa-table me-2"></i>Data Records</strong>
+                                <span id="selectedSetName" class="text-muted ms-2"></span>
+                            </div>
+                            <div class="card-body" id="dataRecordsContent">
+                                <p class="text-muted text-center py-4">Select a data set to view records</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Types Tab -->
+            <div class="tab-pane fade" id="testtypes" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-white">
+                                <strong><i class="fas fa-chart-pie me-2"></i>Test Type Distribution</strong>
+                            </div>
+                            <div class="card-body">
+                                <div id="testTypesChart" class="py-4">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-white">
+                                <strong><i class="fas fa-list me-2"></i>Test Types Overview</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="testTypesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Test Type</th>
+                                                <th>Description</th>
+                                                <th>Count</th>
+                                                <th>Automated</th>
+                                                <th>Coverage</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="testTypesBody">
+                                            <tr><td colspan="5" class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Roles Tab -->
+            <div class="tab-pane fade" id="userroles" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <strong><i class="fas fa-user-tag me-2"></i>Available User Roles</strong>
+                            </div>
+                            <div class="list-group list-group-flush" id="userRolesList">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8 mb-3">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <strong><i class="fas fa-table me-2"></i>Role Details</strong>
+                                <span id="selectedRoleName" class="text-muted ms-2"></span>
+                            </div>
+                            <div class="card-body" id="roleDetailsContent">
+                                <p class="text-muted text-center py-4">Select a user role to view details and associated test scenarios</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mt-3">
+                    <div class="card-header bg-white">
+                        <strong><i class="fas fa-shield-alt me-2"></i>Role-Based Testing Matrix</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered" id="roleMatrixTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Module</th>
+                                        <th>Admin</th>
+                                        <th>Farm Manager</th>
+                                        <th>Worker</th>
+                                        <th>Investor</th>
+                                        <th>Guest</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="roleMatrixBody">
+                                    <tr><td colspan="6" class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Instances Tab -->
+            <div class="tab-pane fade" id="testinstances" role="tabpanel">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Filter by Batch</label>
+                        <select id="filterInstanceBatch" class="form-select">
+                            <option value="">All Batches</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Status</label>
+                        <select id="filterInstanceStatus" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="passed">Passed</option>
+                            <option value="failed">Failed</option>
+                            <option value="skipped">Skipped</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Date Range</label>
+                        <input type="date" id="filterInstanceDate" class="form-control">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-outline-primary w-100" onclick="filterTestInstances()">
+                            <i class="fas fa-filter me-1"></i>Filter
+                        </button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="testInstancesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Instance ID</th>
+                                        <th>Scenario</th>
+                                        <th>Batch</th>
+                                        <th>Status</th>
+                                        <th>Duration</th>
+                                        <th>Executed</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="testInstancesBody">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading test instances...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <nav class="mt-3">
+                    <ul class="pagination justify-content-center" id="instancesPagination"></ul>
+                </nav>
+            </div>
+
+            <!-- Run History Tab -->
+            <div class="tab-pane fade" id="runhistory" role="tabpanel">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Environment</label>
+                        <select id="filterRunEnv" class="form-select">
+                            <option value="">All Environments</option>
+                            <option value="local">Local</option>
+                            <option value="development">Development</option>
+                            <option value="staging">Staging</option>
+                            <option value="production">Production</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Status</label>
+                        <select id="filterRunStatus" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="passed">Passed</option>
+                            <option value="failed">Failed</option>
+                            <option value="running">Running</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Date Range</label>
+                        <div class="input-group">
+                            <input type="date" id="filterRunDateFrom" class="form-control">
+                            <span class="input-group-text">to</span>
+                            <input type="date" id="filterRunDateTo" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-outline-primary w-100" onclick="filterRunHistory()">
+                            <i class="fas fa-filter me-1"></i>Filter
+                        </button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="runHistoryTable">
+                                <thead>
+                                    <tr>
+                                        <th>Batch Name</th>
+                                        <th>Started</th>
+                                        <th>Completed</th>
+                                        <th>Environment</th>
+                                        <th>Total</th>
+                                        <th>Passed</th>
+                                        <th>Failed</th>
+                                        <th>Skipped</th>
+                                        <th>Status</th>
+                                        <th>Recommendation</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="runHistoryBody">
+                                    <tr>
+                                        <td colspan="11" class="text-center py-4">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Audit Tab -->
+            <div class="tab-pane fade" id="testaudit" role="tabpanel">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Scenario</label>
+                        <select id="filterAuditScenario" class="form-select">
+                            <option value="">All Scenarios</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">Status</label>
+                        <select id="filterAuditStatus" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="passed">Passed</option>
+                            <option value="failed">Failed</option>
+                            <option value="blocked">Blocked</option>
+                            <option value="skipped">Skipped</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">Tester</label>
+                        <select id="filterAuditTester" class="form-select">
+                            <option value="">All Testers</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Date Range</label>
+                        <div class="input-group">
+                            <input type="date" id="filterAuditDateFrom" class="form-control">
+                            <span class="input-group-text">to</span>
+                            <input type="date" id="filterAuditDateTo" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-outline-primary w-100" onclick="filterTestAudit()">
+                            <i class="fas fa-filter me-1"></i>Filter
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="row mb-3">
+                    <div class="col-md-2">
+                        <div class="card text-center border-0 bg-light">
+                            <div class="card-body py-2">
+                                <h4 class="mb-0" id="auditTotalCount">0</h4>
+                                <small class="text-muted">Total Results</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center border-success border-2">
+                            <div class="card-body py-2">
+                                <h4 class="mb-0 text-success" id="auditPassedCount">0</h4>
+                                <small class="text-muted">Passed</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center border-danger border-2">
+                            <div class="card-body py-2">
+                                <h4 class="mb-0 text-danger" id="auditFailedCount">0</h4>
+                                <small class="text-muted">Failed</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center border-warning border-2">
+                            <div class="card-body py-2">
+                                <h4 class="mb-0 text-warning" id="auditBlockedCount">0</h4>
+                                <small class="text-muted">Blocked</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center border-secondary border-2">
+                            <div class="card-body py-2">
+                                <h4 class="mb-0 text-secondary" id="auditSkippedCount">0</h4>
+                                <small class="text-muted">Skipped</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center border-info border-2">
+                            <div class="card-body py-2">
+                                <h4 class="mb-0 text-info" id="auditPassRate">0%</h4>
+                                <small class="text-muted">Pass Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <strong><i class="fas fa-clipboard-list me-2"></i>Test Execution Audit Log</strong>
+                        <button class="btn btn-sm btn-outline-success" onclick="exportAuditToCsv()">
+                            <i class="fas fa-download me-1"></i>Export CSV
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0" id="testAuditTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 100px;">Audit ID</th>
+                                        <th style="width: 120px;">Scenario Code</th>
+                                        <th>Scenario Name</th>
+                                        <th style="width: 80px;">Status</th>
+                                        <th style="width: 100px;">Tester</th>
+                                        <th style="width: 130px;">Executed At</th>
+                                        <th style="width: 80px;">Duration</th>
+                                        <th style="width: 60px;">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="testAuditBody">
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading audit records...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <nav class="mt-3">
+                    <ul class="pagination justify-content-center" id="auditPagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scenario Detail Modal -->
+    <div class="modal fade" id="scenarioModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, var(--forest-deep) 0%, var(--forest-light) 100%);">
+                    <h5 class="modal-title text-white">
+                        <i class="fas fa-clipboard-check me-2"></i>
+                        <span id="modalScenarioCode"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 id="modalScenarioName" class="mb-3"></h5>
+                            <p id="modalDescription" class="text-muted"></p>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Module</small>
+                                    <span id="modalModule" class="badge module-badge"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Test Type</small>
+                                    <span id="modalTestType"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Severity</small>
+                                    <span id="modalSeverity"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-1">Preconditions</small>
+                                <div class="bg-light p-2 rounded" id="modalPreconditions"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-1">Expected Result</small>
+                                <div class="bg-light p-2 rounded" id="modalExpectedResult"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-info-circle me-1"></i>Details</h6>
+                                    <hr>
+                                    <div class="mb-2">
+                                        <small class="text-muted">Automation Status</small>
+                                        <div id="modalAutomation"></div>
+                                    </div>
+                                    <div class="mb-2" id="modalScriptPathContainer" style="display:none;">
+                                        <small class="text-muted">Script Path</small>
+                                        <code class="d-block small" id="modalScriptPath"></code>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small class="text-muted">Feature</small>
+                                        <div id="modalFeature">-</div>
+                                    </div>
+                                    <div id="modalTagsContainer" style="display:none;">
+                                        <small class="text-muted">Tags</small>
+                                        <div id="modalTags"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Test Steps -->
+                    <div class="mt-4">
+                        <h6><i class="fas fa-list-ol me-2"></i>Test Steps</h6>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 60px;">Step</th>
+                                    <th>Action</th>
+                                    <th>Expected</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalTestSteps"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Test Data -->
+                    <div class="mt-4" id="modalTestDataContainer" style="display:none;">
+                        <h6><i class="fas fa-database me-2"></i>Test Data</h6>
+                        <pre class="json-display" id="modalTestData"></pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Detail Modal -->
+    <div class="modal fade" id="auditDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #2D4A3E 0%, #4A7C59 100%);">
+                    <h5 class="modal-title text-white">
+                        <i class="fas fa-clipboard-list me-2"></i>Test Execution Audit Detail
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Audit Header Info -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <table class="table table-sm table-borderless">
+                                <tr><th width="120">Audit ID:</th><td><code id="auditDetailId"></code></td></tr>
+                                <tr><th>Scenario:</th><td><span id="auditDetailScenario"></span></td></tr>
+                                <tr><th>Module:</th><td><span id="auditDetailModule" class="badge module-badge"></span></td></tr>
+                                <tr><th>Test Type:</th><td><span id="auditDetailType"></span></td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm table-borderless">
+                                <tr><th width="120">Status:</th><td><span id="auditDetailStatus"></span></td></tr>
+                                <tr><th>Tester:</th><td id="auditDetailTester"></td></tr>
+                                <tr><th>Executed At:</th><td id="auditDetailExecutedAt"></td></tr>
+                                <tr><th>Duration:</th><td id="auditDetailDuration"></td></tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Test Steps with Results -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-list-ol me-2"></i>Test Steps Execution</strong>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm table-bordered mb-0">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th style="width: 60px;">Step</th>
+                                        <th>Action</th>
+                                        <th>Expected Result</th>
+                                        <th>Actual Result</th>
+                                        <th style="width: 80px;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditDetailSteps"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Test Data Used -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-database me-2"></i>Test Data Used</strong>
+                        </div>
+                        <div class="card-body">
+                            <pre class="json-display mb-0" id="auditDetailTestData" style="max-height: 200px;"></pre>
+                        </div>
+                    </div>
+
+                    <!-- Notes/Comments -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <strong><i class="fas fa-exclamation-triangle me-2"></i>Defects/Issues</strong>
+                                </div>
+                                <div class="card-body" id="auditDetailDefects">
+                                    <p class="text-muted mb-0">No defects recorded</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <strong><i class="fas fa-sticky-note me-2"></i>Notes/Comments</strong>
+                                </div>
+                                <div class="card-body" id="auditDetailNotes">
+                                    <p class="text-muted mb-0">No notes recorded</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Screenshots/Evidence -->
+                    <div class="card mt-4" id="auditEvidenceCard" style="display: none;">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-camera me-2"></i>Screenshots/Evidence</strong>
+                        </div>
+                        <div class="card-body" id="auditDetailEvidence"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" onclick="printAuditDetail()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://sofanhfpxifgdtooefzq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZmFuaGZweGlmZ2R0b29lZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDM2MDgsImV4cCI6MjA4MTg3OTYwOH0.oFOqODGzzrk5dqUBHDVrPS9VBDzR4xThfwlC33Qri3U';
+
+        let supabaseClient;
+        let scenarios = [];
+        let filteredScenarios = [];
+        let testDataSets = [];
+        let testDataRecords = [];
+        let testRunBatches = [];
+        let testInstances = [];
+        let filteredInstances = [];
+        let testAuditRecords = [];
+        let filteredAuditRecords = [];
+        let currentPage = 1;
+        let instancesPage = 1;
+        let auditPage = 1;
+        const itemsPerPage = 20;
+
+        // User roles data for the testing matrix
+        const userRolesConfig = [
+            { role: 'admin', label: 'Administrator', description: 'Full system access including user management, settings, and all modules', icon: 'fas fa-user-shield', color: 'danger' },
+            { role: 'farm_manager', label: 'Farm Manager', description: 'Manages farm operations, workers, inventory, and production cycles', icon: 'fas fa-user-tie', color: 'primary' },
+            { role: 'worker', label: 'Worker', description: 'Day-to-day operations: tasks, time tracking, basic inventory actions', icon: 'fas fa-user-hard-hat', color: 'success' },
+            { role: 'investor', label: 'Investor', description: 'Read-only access to financial reports, KPIs, and investment performance', icon: 'fas fa-chart-line', color: 'warning' },
+            { role: 'guest', label: 'Guest', description: 'Public-facing views, limited access to shared resources', icon: 'fas fa-user', color: 'secondary' }
+        ];
+
+        // Test types configuration
+        const testTypesConfig = [
+            { type: 'functional', label: 'Functional', description: 'Tests core features and user workflows', icon: 'fas fa-cog', color: '#0d6efd' },
+            { type: 'security', label: 'Security', description: 'Auth, authorization, data protection tests', icon: 'fas fa-lock', color: '#dc3545' },
+            { type: 'e2e', label: 'End-to-End', description: 'Full user journey tests across modules', icon: 'fas fa-route', color: '#198754' },
+            { type: 'integration', label: 'Integration', description: 'API and service integration tests', icon: 'fas fa-plug', color: '#6f42c1' },
+            { type: 'smoke', label: 'Smoke', description: 'Quick sanity checks for critical paths', icon: 'fas fa-fire', color: '#fd7e14' },
+            { type: 'regression', label: 'Regression', description: 'Validates existing functionality after changes', icon: 'fas fa-history', color: '#20c997' },
+            { type: 'performance', label: 'Performance', description: 'Load, stress, and response time tests', icon: 'fas fa-tachometer-alt', color: '#0dcaf0' },
+            { type: 'accessibility', label: 'Accessibility', description: 'WCAG compliance and usability tests', icon: 'fas fa-universal-access', color: '#6c757d' }
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                updateConnectionStatus('success', 'Connected to database');
+
+                await Promise.all([
+                    loadScenarios(),
+                    loadTestDataSets(),
+                    loadTestRunBatches(),
+                    loadTestInstances(),
+                    loadTestAuditRecords()
+                ]);
+
+                // Render new tabs data
+                renderTestTypes();
+                renderUserRoles();
+                renderRoleMatrix();
+                populateBatchFilter();
+                populateAuditFilters();
+
+                setupEventListeners();
+            } catch (error) {
+                console.error('Initialization error:', error);
+                updateConnectionStatus('error', 'Failed to connect: ' + error.message);
+            }
+        });
+
+        function updateConnectionStatus(type, message) {
+            const el = document.getElementById('connectionStatus');
+            if (type === 'success') {
+                el.className = 'alert alert-success mb-3';
+                el.innerHTML = `<i class="fas fa-check-circle me-2"></i>${message}`;
+                setTimeout(() => el.style.display = 'none', 3000);
+            } else if (type === 'error') {
+                el.className = 'alert alert-danger mb-3';
+                el.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${message}`;
+            }
+        }
+
+        // Load Scenarios
+        async function loadScenarios() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('test_scenarios')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('scenario_code');
+
+                if (error) throw error;
+
+                scenarios = data || [];
+                filteredScenarios = scenarios;
+
+                updateStats();
+                populateModuleFilter();
+                renderScenarios();
+            } catch (error) {
+                console.error('Error loading scenarios:', error);
+                document.getElementById('scenariosBody').innerHTML = `
+                    <tr><td colspan="6" class="text-center text-danger py-4">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Error loading scenarios: ${error.message}
+                    </td></tr>`;
+            }
+        }
+
+        // Load Test Data Sets
+        async function loadTestDataSets() {
+            try {
+                const { data: sets, error: setsError } = await supabaseClient
+                    .from('e2e_test_data_sets')
+                    .select('*')
+                    .order('module');
+
+                if (setsError) throw setsError;
+                testDataSets = sets || [];
+
+                const { data: records, error: recordsError } = await supabaseClient
+                    .from('e2e_test_data_records')
+                    .select('*');
+
+                if (recordsError) throw recordsError;
+                testDataRecords = records || [];
+
+                renderDataSetsList();
+            } catch (error) {
+                console.error('Error loading test data:', error);
+                document.getElementById('dataSetsList').innerHTML = `
+                    <div class="text-danger p-3"><small>Error: ${error.message}</small></div>`;
+            }
+        }
+
+        // Load Test Run Batches
+        async function loadTestRunBatches() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('test_run_batches')
+                    .select('*')
+                    .order('started_at', { ascending: false })
+                    .limit(50);
+
+                if (error) throw error;
+                testRunBatches = data || [];
+                renderRunHistory();
+            } catch (error) {
+                console.error('Error loading run history:', error);
+                document.getElementById('runHistoryBody').innerHTML = `
+                    <tr><td colspan="8" class="text-center text-danger">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalCount').textContent = scenarios.length;
+            document.getElementById('criticalCount').textContent = scenarios.filter(s => s.severity_level === 'critical').length;
+            document.getElementById('highCount').textContent = scenarios.filter(s => s.severity_level === 'high').length;
+            document.getElementById('mediumCount').textContent = scenarios.filter(s => s.severity_level === 'medium').length;
+            document.getElementById('automatedCount').textContent = scenarios.filter(s => s.is_automated).length;
+
+            const modules = [...new Set(scenarios.map(s => s.module_name).filter(Boolean))];
+            document.getElementById('modulesCount').textContent = modules.length;
+        }
+
+        function populateModuleFilter() {
+            const modules = [...new Set(scenarios.map(s => s.module_name).filter(Boolean))].sort();
+            const select = document.getElementById('filterModule');
+            select.innerHTML = '<option value="">All Modules</option>' +
+                modules.map(m => `<option value="${m}">${formatModuleName(m)}</option>`).join('');
+        }
+
+        function formatModuleName(name) {
+            if (!name) return '';
+            return name.replace(/-/g, ' ').replace(/_/g, ' ')
+                .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+
+        function setupEventListeners() {
+            // Search
+            document.getElementById('searchInput').addEventListener('input', debounce(filterScenarios, 300));
+
+            // Filters
+            ['filterModule', 'filterSeverity', 'filterType', 'filterAutomation'].forEach(id => {
+                document.getElementById(id).addEventListener('change', filterScenarios);
+            });
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        function filterScenarios() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const module = document.getElementById('filterModule').value;
+            const severity = document.getElementById('filterSeverity').value;
+            const type = document.getElementById('filterType').value;
+            const automation = document.getElementById('filterAutomation').value;
+
+            filteredScenarios = scenarios.filter(s => {
+                const matchesSearch = !search ||
+                    (s.scenario_code && s.scenario_code.toLowerCase().includes(search)) ||
+                    (s.scenario_name && s.scenario_name.toLowerCase().includes(search)) ||
+                    (s.description && s.description.toLowerCase().includes(search));
+                const matchesModule = !module || s.module_name === module;
+                const matchesSeverity = !severity || s.severity_level === severity;
+                const matchesType = !type || s.test_type === type;
+                const matchesAutomation = !automation || String(s.is_automated) === automation;
+
+                return matchesSearch && matchesModule && matchesSeverity && matchesType && matchesAutomation;
+            });
+
+            currentPage = 1;
+            renderScenarios();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterModule').value = '';
+            document.getElementById('filterSeverity').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterAutomation').value = '';
+            filteredScenarios = scenarios;
+            currentPage = 1;
+            renderScenarios();
+        }
+
+        function renderScenarios() {
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageScenarios = filteredScenarios.slice(start, end);
+
+            if (pageScenarios.length === 0) {
+                document.getElementById('scenariosBody').innerHTML = `
+                    <tr><td colspan="6" class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>No scenarios found
+                    </td></tr>`;
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            document.getElementById('scenariosBody').innerHTML = pageScenarios.map(s => `
+                <tr onclick="showScenarioDetail('${s.id}')">
+                    <td><span class="scenario-code">${escapeHtml(s.scenario_code)}</span></td>
+                    <td>
+                        <div class="text-truncate" style="max-width: 350px;" title="${escapeHtml(s.scenario_name || '')}">
+                            ${escapeHtml(s.scenario_name || '')}
+                        </div>
+                    </td>
+                    <td><span class="badge module-badge">${escapeHtml(formatModuleName(s.module_name))}</span></td>
+                    <td><span class="badge test-type-badge bg-secondary">${escapeHtml(s.test_type || 'functional')}</span></td>
+                    <td>${getSeverityBadge(s.severity_level)}</td>
+                    <td>${s.is_automated
+                        ? '<span class="badge bg-success"><i class="fas fa-robot me-1"></i>Auto</span>'
+                        : '<span class="badge bg-outline-secondary text-dark border">Manual</span>'}</td>
+                </tr>
+            `).join('');
+
+            renderPagination();
+        }
+
+        function getSeverityBadge(level) {
+            const badges = {
+                critical: '<span class="badge badge-critical">Critical</span>',
+                high: '<span class="badge badge-high">High</span>',
+                medium: '<span class="badge badge-medium">Medium</span>',
+                low: '<span class="badge badge-low">Low</span>',
+                info: '<span class="badge badge-info">Info</span>'
+            };
+            return badges[level] || badges.medium;
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredScenarios.length / itemsPerPage);
+            if (totalPages <= 1) {
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="goToPage(${currentPage - 1}); return false;">Prev</a></li>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i}</a></li>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+            }
+
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="goToPage(${currentPage + 1}); return false;">Next</a></li>`;
+
+            document.getElementById('pagination').innerHTML = html;
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.ceil(filteredScenarios.length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderScenarios();
+        }
+
+        function showScenarioDetail(id) {
+            const scenario = scenarios.find(s => s.id === id);
+            if (!scenario) return;
+
+            document.getElementById('modalScenarioCode').textContent = scenario.scenario_code;
+            document.getElementById('modalScenarioName').textContent = scenario.scenario_name;
+            document.getElementById('modalDescription').textContent = scenario.description || 'No description';
+            document.getElementById('modalModule').textContent = formatModuleName(scenario.module_name);
+            document.getElementById('modalTestType').innerHTML = `<span class="badge bg-secondary">${scenario.test_type || 'functional'}</span>`;
+            document.getElementById('modalSeverity').innerHTML = getSeverityBadge(scenario.severity_level);
+            document.getElementById('modalPreconditions').textContent = scenario.preconditions || 'None specified';
+            document.getElementById('modalExpectedResult').textContent = scenario.expected_result || 'Not specified';
+            document.getElementById('modalFeature').textContent = scenario.feature_name || '-';
+
+            // Automation
+            if (scenario.is_automated) {
+                document.getElementById('modalAutomation').innerHTML = '<span class="badge bg-success"><i class="fas fa-robot me-1"></i>Automated</span>';
+                if (scenario.automation_script_path) {
+                    document.getElementById('modalScriptPathContainer').style.display = 'block';
+                    document.getElementById('modalScriptPath').textContent = scenario.automation_script_path;
+                } else {
+                    document.getElementById('modalScriptPathContainer').style.display = 'none';
+                }
+            } else {
+                document.getElementById('modalAutomation').innerHTML = '<span class="badge bg-secondary">Manual</span>';
+                document.getElementById('modalScriptPathContainer').style.display = 'none';
+            }
+
+            // Test Steps
+            let steps = [];
+            if (scenario.test_steps) {
+                try {
+                    steps = typeof scenario.test_steps === 'string' ? JSON.parse(scenario.test_steps) : scenario.test_steps;
+                } catch(e) {}
+            }
+
+            document.getElementById('modalTestSteps').innerHTML = steps.length > 0
+                ? steps.map(step => `
+                    <tr class="test-step-row">
+                        <td class="text-center fw-bold">${step.step}</td>
+                        <td>${escapeHtml(step.action || '')}</td>
+                        <td>${escapeHtml(step.expected || '')}</td>
+                    </tr>`).join('')
+                : '<tr><td colspan="3" class="text-center text-muted">No steps defined</td></tr>';
+
+            // Test Data
+            if (scenario.test_data && Object.keys(scenario.test_data).length > 0) {
+                document.getElementById('modalTestDataContainer').style.display = 'block';
+                document.getElementById('modalTestData').textContent = JSON.stringify(scenario.test_data, null, 2);
+            } else {
+                document.getElementById('modalTestDataContainer').style.display = 'none';
+            }
+
+            // Tags
+            let tags = [];
+            if (scenario.tags) {
+                try {
+                    tags = typeof scenario.tags === 'string' ? JSON.parse(scenario.tags) : scenario.tags;
+                } catch(e) {}
+            }
+
+            if (tags.length > 0) {
+                document.getElementById('modalTagsContainer').style.display = 'block';
+                document.getElementById('modalTags').innerHTML = tags.map(t =>
+                    `<span class="badge bg-light text-dark me-1">${escapeHtml(t)}</span>`).join('');
+            } else {
+                document.getElementById('modalTagsContainer').style.display = 'none';
+            }
+
+            new bootstrap.Modal(document.getElementById('scenarioModal')).show();
+        }
+
+        function renderDataSetsList() {
+            if (testDataSets.length === 0) {
+                document.getElementById('dataSetsList').innerHTML = '<div class="text-muted p-3 text-center">No data sets found</div>';
+                return;
+            }
+
+            document.getElementById('dataSetsList').innerHTML = testDataSets.map(set => `
+                <a href="#" class="list-group-item list-group-item-action" onclick="showDataSetRecords('${set.id}', '${escapeHtml(set.set_name)}'); return false;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${escapeHtml(formatModuleName(set.set_name))}</strong>
+                            <br><small class="text-muted">${escapeHtml(set.module)}</small>
+                        </div>
+                        <span class="badge bg-secondary">${testDataRecords.filter(r => r.set_id === set.id).length}</span>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        function showDataSetRecords(setId, setName) {
+            document.getElementById('selectedSetName').textContent = `- ${formatModuleName(setName)}`;
+
+            const records = testDataRecords.filter(r => r.set_id === setId);
+
+            if (records.length === 0) {
+                document.getElementById('dataRecordsContent').innerHTML = '<p class="text-muted text-center">No records in this set</p>';
+                return;
+            }
+
+            document.getElementById('dataRecordsContent').innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Key</th>
+                                <th>Entity Type</th>
+                                <th>Data</th>
+                                <th>Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${records.map(r => `
+                                <tr>
+                                    <td><code>${escapeHtml(r.data_key)}</code></td>
+                                    <td><span class="badge bg-info">${escapeHtml(r.entity_type)}</span></td>
+                                    <td><pre class="json-display mb-0" style="max-height: 100px; font-size: 10px;">${escapeHtml(JSON.stringify(r.data_json, null, 2))}</pre></td>
+                                    <td><small>${escapeHtml(r.purpose || '')}</small></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderRunHistory() {
+            if (testRunBatches.length === 0) {
+                document.getElementById('runHistoryBody').innerHTML = '<tr><td colspan="8" class="text-center text-muted">No test runs recorded</td></tr>';
+                return;
+            }
+
+            document.getElementById('runHistoryBody').innerHTML = testRunBatches.map(batch => `
+                <tr>
+                    <td>${escapeHtml(batch.batch_name)}</td>
+                    <td><small>${new Date(batch.started_at).toLocaleString()}</small></td>
+                    <td><span class="badge bg-secondary">${escapeHtml(batch.environment || 'N/A')}</span></td>
+                    <td>${batch.total_tests || 0}</td>
+                    <td class="text-success">${batch.passed_count || 0}</td>
+                    <td class="text-danger">${batch.failed_count || 0}</td>
+                    <td>${getStatusBadge(batch.overall_status)}</td>
+                    <td>${getRecommendationBadge(batch.deployment_recommendation)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                passed: '<span class="badge bg-success">Passed</span>',
+                failed: '<span class="badge bg-danger">Failed</span>',
+                running: '<span class="badge bg-warning">Running</span>',
+                completed: '<span class="badge bg-info">Completed</span>'
+            };
+            return badges[status] || `<span class="badge bg-secondary">${status || 'Unknown'}</span>`;
+        }
+
+        function getRecommendationBadge(rec) {
+            const badges = {
+                block: '<span class="badge bg-danger">Block</span>',
+                hold: '<span class="badge bg-warning">Hold</span>',
+                proceed: '<span class="badge bg-success">Proceed</span>',
+                proceed_with_caution: '<span class="badge bg-warning">Caution</span>'
+            };
+            return badges[rec] || `<span class="badge bg-secondary">${rec || '-'}</span>`;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load Test Instances
+        async function loadTestInstances() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('test_instances')
+                    .select('*')
+                    .order('executed_at', { ascending: false })
+                    .limit(500);
+
+                if (error) throw error;
+                testInstances = data || [];
+                filteredInstances = testInstances;
+                renderTestInstances();
+            } catch (error) {
+                console.error('Error loading test instances:', error);
+                document.getElementById('testInstancesBody').innerHTML = `
+                    <tr><td colspan="7" class="text-center text-danger">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        // Populate Batch Filter Dropdown
+        function populateBatchFilter() {
+            const select = document.getElementById('filterInstanceBatch');
+            if (!select) return;
+
+            const uniqueBatches = [...new Set(testRunBatches.map(b => ({ id: b.id, name: b.batch_name })))];
+            select.innerHTML = '<option value="">All Batches</option>' +
+                uniqueBatches.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+        }
+
+        // Render Test Instances
+        function renderTestInstances() {
+            const start = (instancesPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageInstances = filteredInstances.slice(start, end);
+
+            if (pageInstances.length === 0) {
+                document.getElementById('testInstancesBody').innerHTML = `
+                    <tr><td colspan="7" class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>No test instances found
+                    </td></tr>`;
+                document.getElementById('instancesPagination').innerHTML = '';
+                return;
+            }
+
+            document.getElementById('testInstancesBody').innerHTML = pageInstances.map(inst => {
+                const scenario = scenarios.find(s => s.id === inst.scenario_id);
+                const batch = testRunBatches.find(b => b.id === inst.batch_id);
+                const duration = inst.duration_ms ? `${(inst.duration_ms / 1000).toFixed(2)}s` : '-';
+
+                return `
+                <tr>
+                    <td><code class="small">${escapeHtml(inst.id?.substring(0, 8) || '-')}...</code></td>
+                    <td>
+                        <span class="scenario-code" onclick="showScenarioDetail('${inst.scenario_id}')">${escapeHtml(scenario?.scenario_code || inst.scenario_id?.substring(0, 8) || '-')}</span>
+                        <br><small class="text-muted">${escapeHtml(scenario?.scenario_name?.substring(0, 40) || '')}${scenario?.scenario_name?.length > 40 ? '...' : ''}</small>
+                    </td>
+                    <td><small>${escapeHtml(batch?.batch_name || '-')}</small></td>
+                    <td>${getInstanceStatusBadge(inst.status)}</td>
+                    <td><small>${duration}</small></td>
+                    <td><small>${inst.executed_at ? new Date(inst.executed_at).toLocaleString() : '-'}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="showInstanceDetails('${inst.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            renderInstancesPagination();
+        }
+
+        function getInstanceStatusBadge(status) {
+            const badges = {
+                passed: '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Passed</span>',
+                failed: '<span class="badge bg-danger"><i class="fas fa-times me-1"></i>Failed</span>',
+                skipped: '<span class="badge bg-warning text-dark"><i class="fas fa-forward me-1"></i>Skipped</span>',
+                pending: '<span class="badge bg-secondary"><i class="fas fa-clock me-1"></i>Pending</span>',
+                running: '<span class="badge bg-info"><i class="fas fa-spinner fa-spin me-1"></i>Running</span>'
+            };
+            return badges[status] || `<span class="badge bg-secondary">${status || 'Unknown'}</span>`;
+        }
+
+        function renderInstancesPagination() {
+            const totalPages = Math.ceil(filteredInstances.length / itemsPerPage);
+            if (totalPages <= 1) {
+                document.getElementById('instancesPagination').innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            html += `<li class="page-item ${instancesPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="goToInstancesPage(${instancesPage - 1}); return false;">Prev</a></li>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= instancesPage - 2 && i <= instancesPage + 2)) {
+                    html += `<li class="page-item ${i === instancesPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="goToInstancesPage(${i}); return false;">${i}</a></li>`;
+                } else if (i === instancesPage - 3 || i === instancesPage + 3) {
+                    html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+            }
+
+            html += `<li class="page-item ${instancesPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="goToInstancesPage(${instancesPage + 1}); return false;">Next</a></li>`;
+
+            document.getElementById('instancesPagination').innerHTML = html;
+        }
+
+        function goToInstancesPage(page) {
+            const totalPages = Math.ceil(filteredInstances.length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
+            instancesPage = page;
+            renderTestInstances();
+        }
+
+        function filterTestInstances() {
+            const batchId = document.getElementById('filterInstanceBatch').value;
+            const status = document.getElementById('filterInstanceStatus').value;
+            const dateStr = document.getElementById('filterInstanceDate').value;
+
+            filteredInstances = testInstances.filter(inst => {
+                const matchesBatch = !batchId || inst.batch_id === batchId;
+                const matchesStatus = !status || inst.status === status;
+                const matchesDate = !dateStr || (inst.executed_at && inst.executed_at.startsWith(dateStr));
+                return matchesBatch && matchesStatus && matchesDate;
+            });
+
+            instancesPage = 1;
+            renderTestInstances();
+        }
+
+        function showInstanceDetails(instanceId) {
+            const instance = testInstances.find(i => i.id === instanceId);
+            if (!instance) return;
+
+            const scenario = scenarios.find(s => s.id === instance.scenario_id);
+            const batch = testRunBatches.find(b => b.id === instance.batch_id);
+
+            let details = `
+                <h5>Test Instance Details</h5>
+                <table class="table table-sm">
+                    <tr><th width="150">Instance ID</th><td><code>${instance.id}</code></td></tr>
+                    <tr><th>Scenario</th><td>${scenario ? `${scenario.scenario_code} - ${scenario.scenario_name}` : instance.scenario_id}</td></tr>
+                    <tr><th>Batch</th><td>${batch?.batch_name || '-'}</td></tr>
+                    <tr><th>Status</th><td>${getInstanceStatusBadge(instance.status)}</td></tr>
+                    <tr><th>Duration</th><td>${instance.duration_ms ? `${(instance.duration_ms / 1000).toFixed(2)}s` : '-'}</td></tr>
+                    <tr><th>Executed At</th><td>${instance.executed_at ? new Date(instance.executed_at).toLocaleString() : '-'}</td></tr>
+                    <tr><th>Executed By</th><td>${instance.executed_by || '-'}</td></tr>
+                </table>`;
+
+            if (instance.error_message) {
+                details += `<div class="alert alert-danger mt-3"><strong>Error:</strong> ${escapeHtml(instance.error_message)}</div>`;
+            }
+
+            if (instance.notes) {
+                details += `<div class="alert alert-info mt-3"><strong>Notes:</strong> ${escapeHtml(instance.notes)}</div>`;
+            }
+
+            // Show in a simple modal alert (could be improved with a dedicated modal)
+            const modal = document.createElement('div');
+            modal.innerHTML = `
+                <div class="modal fade" id="instanceModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title"><i class="fas fa-play-circle me-2"></i>Test Instance</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">${details}</div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            new bootstrap.Modal(document.getElementById('instanceModal')).show();
+            document.getElementById('instanceModal').addEventListener('hidden.bs.modal', () => modal.remove());
+        }
+
+        // Render Test Types Tab
+        function renderTestTypes() {
+            // Calculate stats from scenarios
+            const typeCounts = {};
+            const typeAutomated = {};
+
+            scenarios.forEach(s => {
+                const type = s.test_type || 'functional';
+                typeCounts[type] = (typeCounts[type] || 0) + 1;
+                if (s.is_automated) {
+                    typeAutomated[type] = (typeAutomated[type] || 0) + 1;
+                }
+            });
+
+            // Render the chart (simple bar representation)
+            const total = scenarios.length || 1;
+            const chartHtml = testTypesConfig.map(tc => {
+                const count = typeCounts[tc.type] || 0;
+                const pct = ((count / total) * 100).toFixed(1);
+                return `
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small><i class="${tc.icon} me-1" style="color: ${tc.color}"></i>${tc.label}</small>
+                            <small class="text-muted">${count} (${pct}%)</small>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar" role="progressbar"
+                                style="width: ${pct}%; background-color: ${tc.color};"
+                                aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            document.getElementById('testTypesChart').innerHTML = chartHtml || '<p class="text-muted">No data available</p>';
+
+            // Render table
+            document.getElementById('testTypesBody').innerHTML = testTypesConfig.map(tc => {
+                const count = typeCounts[tc.type] || 0;
+                const automated = typeAutomated[tc.type] || 0;
+                const automatedPct = count > 0 ? ((automated / count) * 100).toFixed(0) : 0;
+                const coveragePct = ((count / total) * 100).toFixed(1);
+
+                return `
+                    <tr onclick="filterByType('${tc.type}')" style="cursor: pointer;">
+                        <td>
+                            <i class="${tc.icon} me-2" style="color: ${tc.color}"></i>
+                            <strong>${tc.label}</strong>
+                        </td>
+                        <td><small class="text-muted">${tc.description}</small></td>
+                        <td><span class="badge bg-secondary">${count}</span></td>
+                        <td>
+                            <div class="progress" style="height: 20px; min-width: 80px;">
+                                <div class="progress-bar bg-success" style="width: ${automatedPct}%">${automatedPct}%</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="progress" style="height: 20px; min-width: 80px;">
+                                <div class="progress-bar" style="width: ${coveragePct}%; background-color: ${tc.color};">${coveragePct}%</div>
+                            </div>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        function filterByType(type) {
+            document.getElementById('filterType').value = type;
+            filterScenarios();
+            // Switch to scenarios tab
+            const tab = new bootstrap.Tab(document.getElementById('scenarios-tab'));
+            tab.show();
+        }
+
+        // Render User Roles Tab
+        function renderUserRoles() {
+            document.getElementById('userRolesList').innerHTML = userRolesConfig.map(role => `
+                <a href="#" class="list-group-item list-group-item-action" onclick="showRoleDetails('${role.role}'); return false;">
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-${role.color} rounded-circle me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                            <i class="${role.icon}"></i>
+                        </span>
+                        <div>
+                            <strong>${role.label}</strong>
+                            <br><small class="text-muted">${role.description.substring(0, 50)}...</small>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        function showRoleDetails(roleKey) {
+            const role = userRolesConfig.find(r => r.role === roleKey);
+            if (!role) return;
+
+            document.getElementById('selectedRoleName').textContent = `- ${role.label}`;
+
+            // Find scenarios that might be related to this role (search in test_data, tags, or description)
+            const relatedScenarios = scenarios.filter(s => {
+                const testData = JSON.stringify(s.test_data || {}).toLowerCase();
+                const tags = JSON.stringify(s.tags || []).toLowerCase();
+                const desc = (s.description || '').toLowerCase();
+                const roleSearch = roleKey.toLowerCase().replace('_', ' ');
+                return testData.includes(roleKey) || tags.includes(roleKey) || desc.includes(roleSearch) || desc.includes(role.label.toLowerCase());
+            });
+
+            let html = `
+                <div class="mb-4">
+                    <h5><i class="${role.icon} me-2 text-${role.color}"></i>${role.label}</h5>
+                    <p class="text-muted">${role.description}</p>
+                </div>
+                <h6>Permissions & Access</h6>
+                <div class="row mb-3">`;
+
+            // Define module access based on role
+            const moduleAccess = getModuleAccessForRole(roleKey);
+            Object.entries(moduleAccess).forEach(([module, access]) => {
+                const accessIcon = access === 'full' ? 'fa-check-circle text-success' :
+                                   access === 'read' ? 'fa-eye text-info' :
+                                   access === 'limited' ? 'fa-minus-circle text-warning' : 'fa-times-circle text-danger';
+                html += `
+                    <div class="col-md-4 mb-2">
+                        <small><i class="fas ${accessIcon} me-1"></i>${formatModuleName(module)}</small>
+                    </div>`;
+            });
+
+            html += `</div>
+                <h6 class="mt-4">Related Test Scenarios (${relatedScenarios.length})</h6>`;
+
+            if (relatedScenarios.length > 0) {
+                html += `<div class="table-responsive"><table class="table table-sm">
+                    <thead><tr><th>Code</th><th>Name</th><th>Type</th></tr></thead>
+                    <tbody>
+                        ${relatedScenarios.slice(0, 10).map(s => `
+                            <tr onclick="showScenarioDetail('${s.id}')" style="cursor: pointer;">
+                                <td><code>${escapeHtml(s.scenario_code)}</code></td>
+                                <td>${escapeHtml(s.scenario_name?.substring(0, 40) || '')}...</td>
+                                <td><span class="badge bg-secondary">${s.test_type || 'functional'}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table></div>`;
+                if (relatedScenarios.length > 10) {
+                    html += `<p class="text-muted small">...and ${relatedScenarios.length - 10} more scenarios</p>`;
+                }
+            } else {
+                html += '<p class="text-muted">No specific test scenarios found for this role.</p>';
+            }
+
+            document.getElementById('roleDetailsContent').innerHTML = html;
+        }
+
+        function getModuleAccessForRole(role) {
+            const access = {
+                admin: { auth: 'full', users: 'full', farm: 'full', inventory: 'full', tasks: 'full', reports: 'full', settings: 'full', finance: 'full' },
+                farm_manager: { auth: 'full', users: 'read', farm: 'full', inventory: 'full', tasks: 'full', reports: 'full', settings: 'limited', finance: 'read' },
+                worker: { auth: 'full', users: 'none', farm: 'read', inventory: 'limited', tasks: 'full', reports: 'limited', settings: 'none', finance: 'none' },
+                investor: { auth: 'full', users: 'none', farm: 'read', inventory: 'read', tasks: 'none', reports: 'full', settings: 'none', finance: 'read' },
+                guest: { auth: 'limited', users: 'none', farm: 'read', inventory: 'none', tasks: 'none', reports: 'limited', settings: 'none', finance: 'none' }
+            };
+            return access[role] || {};
+        }
+
+        // Render Role Matrix
+        function renderRoleMatrix() {
+            const modules = [...new Set(scenarios.map(s => s.module_name).filter(Boolean))].sort();
+
+            if (modules.length === 0) {
+                document.getElementById('roleMatrixBody').innerHTML = '<tr><td colspan="6" class="text-center text-muted">No modules found</td></tr>';
+                return;
+            }
+
+            document.getElementById('roleMatrixBody').innerHTML = modules.map(module => {
+                const moduleScenarios = scenarios.filter(s => s.module_name === module);
+                const total = moduleScenarios.length;
+
+                // Count scenarios per role (checking test_data and tags)
+                const getRoleCount = (roleKey) => {
+                    return moduleScenarios.filter(s => {
+                        const testData = JSON.stringify(s.test_data || {}).toLowerCase();
+                        const tags = JSON.stringify(s.tags || []).toLowerCase();
+                        return testData.includes(roleKey) || tags.includes(roleKey);
+                    }).length;
+                };
+
+                const adminCount = getRoleCount('admin');
+                const managerCount = getRoleCount('farm_manager') || getRoleCount('manager');
+                const workerCount = getRoleCount('worker');
+                const investorCount = getRoleCount('investor');
+                const guestCount = getRoleCount('guest');
+
+                return `
+                    <tr>
+                        <td><strong>${formatModuleName(module)}</strong> <small class="text-muted">(${total})</small></td>
+                        <td class="text-center">${adminCount > 0 ? `<span class="badge bg-danger">${adminCount}</span>` : '<span class="text-muted">-</span>'}</td>
+                        <td class="text-center">${managerCount > 0 ? `<span class="badge bg-primary">${managerCount}</span>` : '<span class="text-muted">-</span>'}</td>
+                        <td class="text-center">${workerCount > 0 ? `<span class="badge bg-success">${workerCount}</span>` : '<span class="text-muted">-</span>'}</td>
+                        <td class="text-center">${investorCount > 0 ? `<span class="badge bg-warning">${investorCount}</span>` : '<span class="text-muted">-</span>'}</td>
+                        <td class="text-center">${guestCount > 0 ? `<span class="badge bg-secondary">${guestCount}</span>` : '<span class="text-muted">-</span>'}</td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // Enhanced Run History
+        function renderRunHistory() {
+            if (testRunBatches.length === 0) {
+                document.getElementById('runHistoryBody').innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>No test runs recorded</td></tr>';
+                return;
+            }
+
+            document.getElementById('runHistoryBody').innerHTML = testRunBatches.map(batch => `
+                <tr>
+                    <td><strong>${escapeHtml(batch.batch_name)}</strong></td>
+                    <td><small>${batch.started_at ? new Date(batch.started_at).toLocaleString() : '-'}</small></td>
+                    <td><small>${batch.completed_at ? new Date(batch.completed_at).toLocaleString() : '-'}</small></td>
+                    <td><span class="badge bg-secondary">${escapeHtml(batch.environment || 'N/A')}</span></td>
+                    <td>${batch.total_tests || 0}</td>
+                    <td class="text-success fw-bold">${batch.passed_count || 0}</td>
+                    <td class="text-danger fw-bold">${batch.failed_count || 0}</td>
+                    <td class="text-warning">${batch.skipped_count || 0}</td>
+                    <td>${getStatusBadge(batch.overall_status)}</td>
+                    <td>${getRecommendationBadge(batch.deployment_recommendation)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewBatchInstances('${batch.id}')" title="View instances">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function viewBatchInstances(batchId) {
+            document.getElementById('filterInstanceBatch').value = batchId;
+            filterTestInstances();
+            // Switch to test instances tab
+            const tab = new bootstrap.Tab(document.getElementById('testinstances-tab'));
+            tab.show();
+        }
+
+        function filterRunHistory() {
+            const env = document.getElementById('filterRunEnv').value;
+            const status = document.getElementById('filterRunStatus').value;
+            const dateFrom = document.getElementById('filterRunDateFrom').value;
+            const dateTo = document.getElementById('filterRunDateTo').value;
+
+            const filtered = testRunBatches.filter(batch => {
+                const matchesEnv = !env || batch.environment === env;
+                const matchesStatus = !status || batch.overall_status === status;
+                const matchesDateFrom = !dateFrom || (batch.started_at && batch.started_at >= dateFrom);
+                const matchesDateTo = !dateTo || (batch.started_at && batch.started_at <= dateTo + 'T23:59:59');
+                return matchesEnv && matchesStatus && matchesDateFrom && matchesDateTo;
+            });
+
+            // Temporarily update and re-render
+            const original = testRunBatches;
+            testRunBatches = filtered;
+            renderRunHistory();
+            testRunBatches = original;
+        }
+
+        // ==========================================
+        // TEST AUDIT FUNCTIONS
+        // ==========================================
+
+        // Load Test Audit Records
+        async function loadTestAuditRecords() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('test_audit')
+                    .select('*')
+                    .order('executed_at', { ascending: false })
+                    .limit(1000);
+
+                if (error) throw error;
+                testAuditRecords = data || [];
+                filteredAuditRecords = testAuditRecords;
+                updateAuditStats();
+                renderTestAudit();
+            } catch (error) {
+                console.error('Error loading test audit:', error);
+                // If table doesn't exist, show message
+                document.getElementById('testAuditBody').innerHTML = `
+                    <tr><td colspan="8" class="text-center py-4 text-muted">
+                        <i class="fas fa-info-circle me-2"></i>No audit records found. Test audit data will be populated when tests are executed.
+                    </td></tr>`;
+                updateAuditStats();
+            }
+        }
+
+        // Populate Audit Filters
+        function populateAuditFilters() {
+            // Populate scenario filter
+            const scenarioSelect = document.getElementById('filterAuditScenario');
+            if (scenarioSelect && scenarios.length > 0) {
+                scenarioSelect.innerHTML = '<option value="">All Scenarios</option>' +
+                    scenarios.map(s => `<option value="${s.id}">${escapeHtml(s.scenario_code)} - ${escapeHtml(s.scenario_name?.substring(0, 40) || '')}...</option>`).join('');
+            }
+
+            // Populate tester filter (from audit records)
+            const testers = [...new Set(testAuditRecords.map(a => a.tester_name || a.executed_by).filter(Boolean))];
+            const testerSelect = document.getElementById('filterAuditTester');
+            if (testerSelect) {
+                testerSelect.innerHTML = '<option value="">All Testers</option>' +
+                    testers.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+            }
+        }
+
+        // Update Audit Statistics
+        function updateAuditStats() {
+            const total = filteredAuditRecords.length;
+            const passed = filteredAuditRecords.filter(a => a.status === 'passed').length;
+            const failed = filteredAuditRecords.filter(a => a.status === 'failed').length;
+            const blocked = filteredAuditRecords.filter(a => a.status === 'blocked').length;
+            const skipped = filteredAuditRecords.filter(a => a.status === 'skipped').length;
+            const passRate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
+
+            document.getElementById('auditTotalCount').textContent = total;
+            document.getElementById('auditPassedCount').textContent = passed;
+            document.getElementById('auditFailedCount').textContent = failed;
+            document.getElementById('auditBlockedCount').textContent = blocked;
+            document.getElementById('auditSkippedCount').textContent = skipped;
+            document.getElementById('auditPassRate').textContent = passRate + '%';
+        }
+
+        // Render Test Audit Table
+        function renderTestAudit() {
+            const start = (auditPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageAudit = filteredAuditRecords.slice(start, end);
+
+            if (pageAudit.length === 0) {
+                document.getElementById('testAuditBody').innerHTML = `
+                    <tr><td colspan="8" class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>No audit records found
+                    </td></tr>`;
+                document.getElementById('auditPagination').innerHTML = '';
+                return;
+            }
+
+            document.getElementById('testAuditBody').innerHTML = pageAudit.map(audit => {
+                const scenario = scenarios.find(s => s.id === audit.scenario_id);
+                const duration = audit.duration_ms ? `${(audit.duration_ms / 1000).toFixed(2)}s` : '-';
+
+                return `
+                <tr>
+                    <td><code class="small">${escapeHtml(audit.id?.substring(0, 8) || '-')}...</code></td>
+                    <td>
+                        <span class="scenario-code" onclick="showScenarioDetail('${audit.scenario_id}')">${escapeHtml(scenario?.scenario_code || audit.scenario_code || '-')}</span>
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${escapeHtml(scenario?.scenario_name || audit.scenario_name || '')}">
+                            ${escapeHtml(scenario?.scenario_name || audit.scenario_name || '-')}
+                        </span>
+                    </td>
+                    <td>${getAuditStatusBadge(audit.status)}</td>
+                    <td><small>${escapeHtml(audit.tester_name || audit.executed_by || '-')}</small></td>
+                    <td><small>${audit.executed_at ? new Date(audit.executed_at).toLocaleString() : '-'}</small></td>
+                    <td><small>${duration}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="showAuditDetail('${audit.id}')" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            renderAuditPagination();
+        }
+
+        function getAuditStatusBadge(status) {
+            const badges = {
+                passed: '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Passed</span>',
+                failed: '<span class="badge bg-danger"><i class="fas fa-times me-1"></i>Failed</span>',
+                blocked: '<span class="badge bg-warning text-dark"><i class="fas fa-ban me-1"></i>Blocked</span>',
+                skipped: '<span class="badge bg-secondary"><i class="fas fa-forward me-1"></i>Skipped</span>',
+                pending: '<span class="badge bg-info"><i class="fas fa-clock me-1"></i>Pending</span>'
+            };
+            return badges[status] || `<span class="badge bg-secondary">${status || 'Unknown'}</span>`;
+        }
+
+        function renderAuditPagination() {
+            const totalPages = Math.ceil(filteredAuditRecords.length / itemsPerPage);
+            if (totalPages <= 1) {
+                document.getElementById('auditPagination').innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            html += `<li class="page-item ${auditPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="goToAuditPage(${auditPage - 1}); return false;">Prev</a></li>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= auditPage - 2 && i <= auditPage + 2)) {
+                    html += `<li class="page-item ${i === auditPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="goToAuditPage(${i}); return false;">${i}</a></li>`;
+                } else if (i === auditPage - 3 || i === auditPage + 3) {
+                    html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+            }
+
+            html += `<li class="page-item ${auditPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="goToAuditPage(${auditPage + 1}); return false;">Next</a></li>`;
+
+            document.getElementById('auditPagination').innerHTML = html;
+        }
+
+        function goToAuditPage(page) {
+            const totalPages = Math.ceil(filteredAuditRecords.length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
+            auditPage = page;
+            renderTestAudit();
+        }
+
+        // Filter Test Audit
+        function filterTestAudit() {
+            const scenarioId = document.getElementById('filterAuditScenario').value;
+            const status = document.getElementById('filterAuditStatus').value;
+            const tester = document.getElementById('filterAuditTester').value;
+            const dateFrom = document.getElementById('filterAuditDateFrom').value;
+            const dateTo = document.getElementById('filterAuditDateTo').value;
+
+            filteredAuditRecords = testAuditRecords.filter(audit => {
+                const matchesScenario = !scenarioId || audit.scenario_id === scenarioId;
+                const matchesStatus = !status || audit.status === status;
+                const matchesTester = !tester || (audit.tester_name || audit.executed_by) === tester;
+                const matchesDateFrom = !dateFrom || (audit.executed_at && audit.executed_at >= dateFrom);
+                const matchesDateTo = !dateTo || (audit.executed_at && audit.executed_at <= dateTo + 'T23:59:59');
+                return matchesScenario && matchesStatus && matchesTester && matchesDateFrom && matchesDateTo;
+            });
+
+            auditPage = 1;
+            updateAuditStats();
+            renderTestAudit();
+        }
+
+        // Show Audit Detail Modal
+        function showAuditDetail(auditId) {
+            const audit = testAuditRecords.find(a => a.id === auditId);
+            if (!audit) return;
+
+            const scenario = scenarios.find(s => s.id === audit.scenario_id);
+
+            // Populate header info
+            document.getElementById('auditDetailId').textContent = audit.id;
+            document.getElementById('auditDetailScenario').innerHTML = `<strong>${escapeHtml(scenario?.scenario_code || audit.scenario_code || '-')}</strong> - ${escapeHtml(scenario?.scenario_name || audit.scenario_name || '')}`;
+            document.getElementById('auditDetailModule').textContent = formatModuleName(scenario?.module_name || audit.module_name || '');
+            document.getElementById('auditDetailType').innerHTML = `<span class="badge bg-secondary">${escapeHtml(scenario?.test_type || audit.test_type || 'functional')}</span>`;
+            document.getElementById('auditDetailStatus').innerHTML = getAuditStatusBadge(audit.status);
+            document.getElementById('auditDetailTester').textContent = audit.tester_name || audit.executed_by || '-';
+            document.getElementById('auditDetailExecutedAt').textContent = audit.executed_at ? new Date(audit.executed_at).toLocaleString() : '-';
+            document.getElementById('auditDetailDuration').textContent = audit.duration_ms ? `${(audit.duration_ms / 1000).toFixed(2)} seconds` : '-';
+
+            // Populate test steps with results
+            let steps = [];
+            try {
+                steps = audit.step_results ? (typeof audit.step_results === 'string' ? JSON.parse(audit.step_results) : audit.step_results) : [];
+            } catch(e) {}
+
+            // If no step results, try to get from scenario
+            if (steps.length === 0 && scenario?.test_steps) {
+                try {
+                    const scenarioSteps = typeof scenario.test_steps === 'string' ? JSON.parse(scenario.test_steps) : scenario.test_steps;
+                    steps = scenarioSteps.map(s => ({
+                        step: s.step,
+                        action: s.action,
+                        expected: s.expected,
+                        actual: audit.status === 'passed' ? 'As expected' : (audit.status === 'failed' ? 'Check error details' : '-'),
+                        status: audit.status
+                    }));
+                } catch(e) {}
+            }
+
+            document.getElementById('auditDetailSteps').innerHTML = steps.length > 0
+                ? steps.map(step => `
+                    <tr class="${step.status === 'failed' ? 'table-danger' : (step.status === 'passed' ? 'table-success-subtle' : '')}">
+                        <td class="text-center fw-bold">${step.step}</td>
+                        <td>${escapeHtml(step.action || '')}</td>
+                        <td>${escapeHtml(step.expected || '')}</td>
+                        <td>${escapeHtml(step.actual || '-')}</td>
+                        <td>${getStepStatusBadge(step.status)}</td>
+                    </tr>`).join('')
+                : '<tr><td colspan="5" class="text-center text-muted">No step details recorded</td></tr>';
+
+            // Populate test data
+            let testData = {};
+            try {
+                testData = audit.test_data_used || audit.test_data || scenario?.test_data || {};
+                if (typeof testData === 'string') testData = JSON.parse(testData);
+            } catch(e) {}
+            document.getElementById('auditDetailTestData').textContent = Object.keys(testData).length > 0
+                ? JSON.stringify(testData, null, 2)
+                : 'No test data recorded';
+
+            // Populate defects
+            let defects = [];
+            try {
+                defects = audit.defects ? (typeof audit.defects === 'string' ? JSON.parse(audit.defects) : audit.defects) : [];
+            } catch(e) {}
+            document.getElementById('auditDetailDefects').innerHTML = defects.length > 0
+                ? defects.map(d => `<div class="alert alert-danger py-1 mb-1"><small><strong>${escapeHtml(d.id || 'DEF')}:</strong> ${escapeHtml(d.description || d)}</small></div>`).join('')
+                : '<p class="text-muted mb-0">No defects recorded</p>';
+
+            // Populate notes
+            document.getElementById('auditDetailNotes').innerHTML = audit.notes || audit.comments
+                ? `<p class="mb-0">${escapeHtml(audit.notes || audit.comments)}</p>`
+                : '<p class="text-muted mb-0">No notes recorded</p>';
+
+            // Handle evidence/screenshots
+            let evidence = [];
+            try {
+                evidence = audit.evidence || audit.screenshots ? (typeof (audit.evidence || audit.screenshots) === 'string' ? JSON.parse(audit.evidence || audit.screenshots) : (audit.evidence || audit.screenshots)) : [];
+            } catch(e) {}
+            if (evidence.length > 0) {
+                document.getElementById('auditEvidenceCard').style.display = 'block';
+                document.getElementById('auditDetailEvidence').innerHTML = evidence.map(e =>
+                    `<img src="${escapeHtml(e.url || e)}" class="img-thumbnail me-2 mb-2" style="max-height: 150px;" alt="Evidence">`
+                ).join('');
+            } else {
+                document.getElementById('auditEvidenceCard').style.display = 'none';
+            }
+
+            new bootstrap.Modal(document.getElementById('auditDetailModal')).show();
+        }
+
+        function getStepStatusBadge(status) {
+            const badges = {
+                passed: '<span class="badge bg-success">Pass</span>',
+                failed: '<span class="badge bg-danger">Fail</span>',
+                skipped: '<span class="badge bg-secondary">Skip</span>',
+                blocked: '<span class="badge bg-warning text-dark">Block</span>'
+            };
+            return badges[status] || '<span class="badge bg-secondary">-</span>';
+        }
+
+        // Export Audit to CSV
+        function exportAuditToCsv() {
+            if (filteredAuditRecords.length === 0) {
+                alert('No audit records to export');
+                return;
+            }
+
+            const headers = ['Audit ID', 'Scenario Code', 'Scenario Name', 'Status', 'Tester', 'Executed At', 'Duration (s)', 'Notes'];
+            const rows = filteredAuditRecords.map(audit => {
+                const scenario = scenarios.find(s => s.id === audit.scenario_id);
+                return [
+                    audit.id,
+                    scenario?.scenario_code || audit.scenario_code || '',
+                    scenario?.scenario_name || audit.scenario_name || '',
+                    audit.status,
+                    audit.tester_name || audit.executed_by || '',
+                    audit.executed_at || '',
+                    audit.duration_ms ? (audit.duration_ms / 1000).toFixed(2) : '',
+                    (audit.notes || audit.comments || '').replace(/"/g, '""')
+                ];
+            });
+
+            const csvContent = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `test_audit_export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Print Audit Detail
+        function printAuditDetail() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
