@@ -112,85 +112,261 @@ Reference the `supabase_intial_boilerplate_setup.mdc` file for complete database
 ## 4. Create Modular Architecture
 
 ### Requirements:
-- Follow WebPortals module pattern from `modules.mdc`
+- **MUST follow WebPortals module pattern from `modules.mdc` exactly**
 - Dynamic module loading system
 - Separate HTML, CSS, and JS files for each module
+- **Grid and Form views as separate files**
 - Proper module initialization with retry logic
+- Route configuration in JSON format
 
-### Module Structure:
+### Module Structure (Following modules.mdc):
 ```
 modules/
 ├── companies/
 │   ├── html/
-│   │   └── companies_grid.html
+│   │   ├── companies_grid.html
+│   │   └── companies_form.html
 │   ├── js/
-│   │   └── companies_grid.js
+│   │   ├── companies_grid.js
+│   │   └── companies_form.js
 │   └── css/
-│       └── companies_grid.css
+│       ├── companies_grid.css
+│       └── companies_form.css
 ├── users/
 │   ├── html/
-│   │   └── users_grid.html
+│   │   ├── users_grid.html
+│   │   └── users_form.html
 │   ├── js/
-│   │   └── users_grid.js
+│   │   ├── users_grid.js
+│   │   └── users_form.js
 │   └── css/
-│       └── users_grid.css
+│       ├── users_grid.css
+│       └── users_form.css
 ├── roles/
 │   ├── html/
-│   │   └── roles_grid.html
+│   │   ├── roles_grid.html
+│   │   └── roles_form.html
 │   ├── js/
-│   │   └── roles_grid.js
+│   │   ├── roles_grid.js
+│   │   └── roles_form.js
 │   └── css/
-│       └── roles_grid.css
+│       ├── roles_grid.css
+│       └── roles_form.css
 ├── role-permissions/
 │   ├── html/
-│   │   └── role-permissions_grid.html
+│   │   ├── role-permissions_grid.html
+│   │   └── role-permissions_form.html
 │   ├── js/
-│   │   └── role-permissions_grid.js
+│   │   ├── role-permissions_grid.js
+│   │   └── role-permissions_form.js
 │   └── css/
-│       └── role-permissions_grid.css
+│       ├── role-permissions_grid.css
+│       └── role-permissions_form.css
 └── role-features/
     ├── html/
-    │   └── role-features_grid.html
+    │   ├── role-features_grid.html
+    │   └── role-features_form.html
     ├── js/
-    │   └── role-features_grid.js
+    │   ├── role-features_grid.js
+    │   └── role-features_form.js
     └── css/
-        └── role-features_grid.css
+        ├── role-features_grid.css
+        └── role-features_form.css
 ```
 
-### Module Features:
-- **Companies Management**: Complete CRUD operations with simplified form fields (Name, Primary Phone, Primary Email, Website)
-  - Clickable company names to open edit modal
+### JavaScript Patterns (Following modules.mdc):
+
+#### Grid Object Pattern:
+```javascript
+var _companiesGrid = function () {
+    return {
+        init: function() {
+            // Initialize grid
+        },
+        initRoutes: function() {
+            // Setup routes
+        },
+        initHandlers: function() {
+            // Event handlers
+        },
+        initFields: function() {
+            // Initialize form fields
+        },
+        loadGrid: function() {
+            // Load grid data
+        },
+        getCompanies: function() {
+            // Fetch companies
+        },
+        loadCompaniesGrid: function() {
+            // Render grid
+        },
+        deleteCompany: function(guid) {
+            // Delete company
+        }
+    }
+}();
+```
+
+#### Form Object Pattern:
+```javascript
+var _companiesForm = function () {
+    return {
+        init: function() {
+            // Initialize form
+        },
+        initRoutes: function() {
+            // Setup routes
+        },
+        initHandlers: function() {
+            // Event handlers
+        },
+        initFields: function() {
+            // Initialize form fields
+        },
+        validateForm: function() {
+            // Form validation
+        },
+        saveCompany: function() {
+            // Save company
+        },
+        loadCompanyData: function(guid) {
+            // Load company data
+        }
+    }
+}();
+```
+
+#### Initialization Pattern:
+- **MUST include** `_{module}Grid.init();` or `_{module}Form.init();` at bottom of JS files
+- Use Promise-based service calls
+- Always include error handling with `_common.showToastMessage()` or equivalent
+- Route parameter access: Use stored GUID approach for reliability
+
+### Route Configuration:
+- Add routes to `js/appRouteConfig.json` in `appRoutes` section
+- Pattern: `{module}-grid` and `{module}-form` route names
+- Path points to module directory, HTML/JS/CSS arrays
+- Example:
+```json
+{
+  "routeName": "companies-grid",
+  "path": "modules/companies",
+  "html": ["html/companies_grid.html"],
+  "js": ["js/companies_grid.js"],
+  "css": ["css/companies_grid.css"]
+}
+```
+
+### HTML Structure Patterns:
+- **Grid**: Header with title + "Add {Module}" button, filters accordion, search box, responsive table, pagination
+- **Form**: Breadcrumb container (if applicable), form sections with headers, required fields marked with *, Cancel/Save buttons
+- Use Bootstrap classes: `btn-primary`, `form-control`, `table-responsive`
+- Icons: Font Awesome icons (`<i class="fas fa-icon-name"></i>`)
+- Form sections: Group related fields logically
+- Status badges: Use appropriate badge classes for status indicators
+
+### Click-to-Read Functionality:
+- Implement click handlers on first column (name field) in grids
+- Use global variable pattern: `window._selected{Module}Data = { {module}GUID, {module}Data }`
+- Show loading state during data fetch
+- Navigate to form with parameters and pre-loaded data
+- Handle errors gracefully with toast messages
+
+### Delete Functionality:
+- Use SweetAlert2 for confirmation dialogs
+- Pattern: `Swal.fire({ title, text, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6' })`
+- Parameter: `UniqueGUID` for all delete operations
+- Show success/error toast messages
+- Refresh grid after successful deletion
+
+### Error Handling Standards:
+- Use toast messages for user notifications
+- Console logging for debugging (with meaningful messages)
+- Graceful fallbacks for failed operations
+- Loading states for async operations
+- Field-level validation with visual feedback
+
+### Module Features (Following modules.mdc Patterns):
+
+#### Companies Management:
+- **Grid View** (`companies_grid.html/js/css`):
+  - Complete CRUD operations with simplified form fields (Name, Primary Phone, Primary Email, Website)
+  - Clickable company names to open edit form (using `window._selectedCompanyData` pattern)
   - Real-time search by company name, email, or phone
-  - Delete functionality with confirmation
+  - Delete functionality with SweetAlert2 confirmation
   - Responsive data grid with pagination
   - Supabase MCP integration with working database functions
-- **Users Management**: Complete CRUD operations with simplified user interface
-  - Clickable user names to open edit modal
+  - Follow `_companiesGrid` object pattern
+- **Form View** (`companies_form.html/js/css`):
+  - Separate form page for create/edit
+  - Edit mode detection using stored GUID: `scope.currentCompanyGUID`
+  - Form validation with visual feedback
+  - Save/Cancel buttons
+  - Follow `_companiesForm` object pattern
+
+#### Users Management:
+- **Grid View** (`users_grid.html/js/js/css`):
+  - Complete CRUD operations with simplified user interface
+  - Clickable user names to open edit form
   - Real-time search by name, email, first name, last name
   - Avatar system with initials fallback
   - Role assignment (status management removed for cleaner interface)
   - Simplified table structure: User, Email, Role, Actions only
   - Supabase MCP integration with working database functions
-- **Roles Management**: Complete CRUD operations for role management
-  - Clickable role names to open edit modal
+  - Follow `_usersGrid` object pattern
+- **Form View** (`users_form.html/js/css`):
+  - Separate form page for create/edit
+  - Edit mode detection using stored GUID
+  - Form validation
+  - Follow `_usersForm` object pattern
+
+#### Roles Management:
+- **Grid View** (`roles_grid.html/js/css`):
+  - Complete CRUD operations for role management
+  - Clickable role names to open edit form
   - Real-time search by role name and description
   - User count tracking per role
   - Simplified interface without status/created columns
   - Supabase MCP integration with working database functions
-- **Database Role Permissions**: Complete CRUD operations for permission management
-  - Clickable object names to open edit modal
+  - Follow `_rolesGrid` object pattern
+- **Form View** (`roles_form.html/js/css`):
+  - Separate form page for create/edit
+  - Follow `_rolesForm` object pattern
+
+#### Database Role Permissions:
+- **Grid View** (`role-permissions_grid.html/js/css`):
+  - Complete CRUD operations for permission management
+  - Clickable object names to open edit form
   - Advanced filtering by role, object type, operation
   - Real-time search across multiple fields
   - Simplified interface without status/created columns
   - Supabase MCP integration with working database functions
-- **Role Features**: Complete CRUD operations for feature management
-  - Clickable feature names to open edit modal
+  - Follow `_rolePermissionsGrid` object pattern
+- **Form View** (`role-permissions_form.html/js/css`):
+  - Separate form page for create/edit
+  - Follow `_rolePermissionsForm` object pattern
+
+#### Role Features:
+- **Grid View** (`role-features_grid.html/js/css`):
+  - Complete CRUD operations for feature management
+  - Clickable feature names to open edit form
   - Role and feature assignment management
   - Real-time search and filtering
   - Supabase MCP integration with working database functions
+  - Follow `_roleFeaturesGrid` object pattern
+- **Form View** (`role-features_form.html/js/css`):
+  - Separate form page for create/edit
+  - Follow `_roleFeaturesForm` object pattern
+
+### Common Module Requirements:
 - All modules follow Phoenix theme styling
 - Dynamic loading with proper initialization
 - Error handling and retry logic
+- **MUST include initialization call at bottom**: `_{module}Grid.init();` or `_{module}Form.init();`
+- Route configuration in `appRouteConfig.json`
+- Proper error handling with toast messages
+- Loading states for async operations
 
 ## 5. Create Centralized Stylesheet (`css/main.css`)
 
@@ -269,14 +445,105 @@ modules/
 - Update sign-out to redirect to index.html
 - Preserve original code in comments
 
-## 8. Companies Module Implementation
+## 8. Companies Module Implementation (Following modules.mdc)
 
 ### Requirements:
 - Complete CRUD operations for company management
+- **Separate Grid and Form views** as per modules.mdc
 - Simplified form with essential fields only
 - Supabase MCP integration with working database functions
 - Responsive data grid with search and pagination
-- Clickable company names for editing
+- Clickable company names for editing (using click-to-read pattern)
+
+### Module Files Required:
+- `modules/companies/html/companies_grid.html` - Grid view
+- `modules/companies/html/companies_form.html` - Form view
+- `modules/companies/js/companies_grid.js` - Grid JavaScript (following `_companiesGrid` pattern)
+- `modules/companies/js/companies_form.js` - Form JavaScript (following `_companiesForm` pattern)
+- `modules/companies/css/companies_grid.css` - Grid styles
+- `modules/companies/css/companies_form.css` - Form styles
+
+### JavaScript Implementation Pattern:
+```javascript
+// companies_grid.js
+var _companiesGrid = function () {
+    return {
+        init: function() {
+            this.initRoutes();
+            this.initHandlers();
+            this.initFields();
+            this.loadGrid();
+        },
+        initRoutes: function() {
+            // Setup route handlers
+        },
+        initHandlers: function() {
+            // Event handlers for search, add button, etc.
+        },
+        initFields: function() {
+            // Initialize form fields, dropdowns
+        },
+        loadGrid: function() {
+            // Load and render grid data
+        },
+        getCompanies: function() {
+            // Fetch companies from API
+        },
+        loadCompaniesGrid: function() {
+            // Render grid HTML
+        },
+        deleteCompany: function(guid) {
+            // Delete with SweetAlert2 confirmation
+        }
+    }
+}();
+
+// MUST include at bottom:
+_companiesGrid.init();
+```
+
+```javascript
+// companies_form.js
+var _companiesForm = function () {
+    var scope = {
+        currentCompanyGUID: ''
+    };
+    
+    return {
+        init: function() {
+            this.initRoutes();
+            this.initHandlers();
+            this.initFields();
+            // Edit mode detection
+            const isEdit = scope.currentCompanyGUID && scope.currentCompanyGUID !== '';
+            if (isEdit) {
+                this.loadCompanyData(scope.currentCompanyGUID);
+            }
+        },
+        initRoutes: function() {
+            // Setup route handlers
+        },
+        initHandlers: function() {
+            // Event handlers for save, cancel
+        },
+        initFields: function() {
+            // Initialize form fields
+        },
+        validateForm: function() {
+            // Form validation
+        },
+        saveCompany: function() {
+            // Save company (create or update)
+        },
+        loadCompanyData: function(guid) {
+            // Load company data for editing
+        }
+    }
+}();
+
+// MUST include at bottom:
+_companiesForm.init();
+```
 
 ### Database Setup:
 **IMPORTANT**: The Companies module requires specific database functions and RBAC permissions:
@@ -333,29 +600,54 @@ SELECT r.id, 'function', 'update_company_simple', 'EXECUTE', true
 FROM roles r WHERE r.role_name IN ('Super Admin', 'Transport Manager', 'Fleet Supervisor', 'User', 'Customer Service');
 ```
 
-### Frontend Implementation:
+### Frontend Implementation (Following modules.mdc):
 
-#### 1. Companies Grid Module (`modules/companies/`):
-- **HTML Structure**: Simplified form with 4 fields (Name, Phone, Email, Website)
-- **JavaScript Logic**: CRUD operations with proper error handling
+#### 1. Companies Grid Module (`modules/companies/html/companies_grid.html`):
+- **HTML Structure**: Header with title + "Add Company" button, filters accordion, search box, responsive table, pagination
+- **JavaScript Pattern**: Follow `_companiesGrid` object pattern
 - **CSS Styling**: Phoenix theme compliance with clickable name links
+- **Click-to-Read**: Click on company name sets `window._selectedCompanyData` and navigates to form
 
-#### 2. Key Features:
-- **Clickable Company Names**: Only company names are clickable (not entire rows)
+#### 2. Companies Form Module (`modules/companies/html/companies_form.html`):
+- **HTML Structure**: Form sections with headers, required fields marked with *, Cancel/Save buttons
+- **JavaScript Pattern**: Follow `_companiesForm` object pattern
+- **Edit Mode**: Detect using `scope.currentCompanyGUID` or `window._selectedCompanyData`
+- **Form Fields (Simplified)**:
+  - **Company Name** (required, marked with *)
+  - **Primary Phone** (optional)
+  - **Primary Email** (optional)
+  - **Website** (optional)
+
+#### 3. Key Features:
+- **Clickable Company Names**: Only company names are clickable (not entire rows) - uses click-to-read pattern
 - **Real-time Search**: Search by company name, email, or phone number
 - **Responsive Design**: Mobile-friendly grid with proper pagination
-- **Error Handling**: Comprehensive error handling with user-friendly messages
-- **Supabase Integration**: Uses `auth-service.js` for API calls
+- **Error Handling**: Comprehensive error handling with user-friendly toast messages
+- **Supabase Integration**: Uses `auth-service.js` and `data-functions.js` for API calls
+- **Delete Confirmation**: SweetAlert2 confirmation dialog following modules.mdc pattern
 
-#### 3. Form Fields (Simplified):
-- **Company Name** (required)
-- **Primary Phone** (optional)
-- **Primary Email** (optional)
-- **Website** (optional)
+#### 4. Route Configuration:
+- Add to `js/appRouteConfig.json`:
+```json
+{
+  "routeName": "companies-grid",
+  "path": "modules/companies",
+  "html": ["html/companies_grid.html"],
+  "js": ["js/companies_grid.js"],
+  "css": ["css/companies_grid.css"]
+},
+{
+  "routeName": "companies-form",
+  "path": "modules/companies",
+  "html": ["html/companies_form.html"],
+  "js": ["js/companies_form.js"],
+  "css": ["css/companies_form.css"]
+}
+```
 
-#### 4. Navigation Integration:
+#### 5. Navigation Integration:
 - **Sidebar Position**: Companies link positioned directly under Dashboard
-- **Module Loading**: Integrated with dynamic module loading system
+- **Module Loading**: Integrated with dynamic module loading system using route config
 - **Active States**: Proper navigation state management
 
 ### Troubleshooting:
@@ -435,56 +727,74 @@ CREATE VIEW users AS SELECT * FROM "Users";
 - Chart.js (for dashboard)
 - Supabase JS v2
 
-### File Structure:
+### File Structure (Following modules.mdc):
 ```
 /
 ├── signin.html
 ├── index.html
 ├── js/
 │   ├── app.js (main application logic with module loading)
-│   └── auth-service.js (Supabase MCP integration for API calls)
+│   ├── auth-service.js (Supabase MCP integration for API calls)
+│   ├── data-functions.js (CRUD operations wrapper)
+│   └── appRouteConfig.json (Route configuration)
 ├── css/
 │   └── main.css (centralized Phoenix theme styling)
 ├── modules/
 │   ├── companies/
 │   │   ├── html/
-│   │   │   └── companies_grid.html
+│   │   │   ├── companies_grid.html
+│   │   │   └── companies_form.html
 │   │   ├── js/
-│   │   │   └── companies_grid.js
+│   │   │   ├── companies_grid.js
+│   │   │   └── companies_form.js
 │   │   └── css/
-│   │       └── companies_grid.css
+│   │       ├── companies_grid.css
+│   │       └── companies_form.css
 │   ├── users/
 │   │   ├── html/
-│   │   │   └── users_grid.html
+│   │   │   ├── users_grid.html
+│   │   │   └── users_form.html
 │   │   ├── js/
-│   │   │   └── users_grid.js
+│   │   │   ├── users_grid.js
+│   │   │   └── users_form.js
 │   │   └── css/
-│   │       └── users_grid.css
+│   │       ├── users_grid.css
+│   │       └── users_form.css
 │   ├── roles/
 │   │   ├── html/
-│   │   │   └── roles_grid.html
+│   │   │   ├── roles_grid.html
+│   │   │   └── roles_form.html
 │   │   ├── js/
-│   │   │   └── roles_grid.js
+│   │   │   ├── roles_grid.js
+│   │   │   └── roles_form.js
 │   │   └── css/
-│   │       └── roles_grid.css
+│   │       ├── roles_grid.css
+│   │       └── roles_form.css
 │   ├── role-permissions/
 │   │   ├── html/
-│   │   │   └── role-permissions_grid.html
+│   │   │   ├── role-permissions_grid.html
+│   │   │   └── role-permissions_form.html
 │   │   ├── js/
-│   │   │   └── role-permissions_grid.js
+│   │   │   ├── role-permissions_grid.js
+│   │   │   └── role-permissions_form.js
 │   │   └── css/
-│   │       └── role-permissions_grid.css
+│   │       ├── role-permissions_grid.css
+│   │       └── role-permissions_form.css
 │   └── role-features/
 │       ├── html/
-│       │   └── role-features_grid.html
+│       │   ├── role-features_grid.html
+│       │   └── role-features_form.html
 │       ├── js/
-│       │   └── role-features_grid.js
+│       │   ├── role-features_grid.js
+│       │   └── role-features_form.js
 │       └── css/
-│           └── role-features_grid.css
+│           ├── role-features_grid.css
+│           └── role-features_form.css
 ├── backup/ (old deprecated files)
-├── supabase_intial_boilerplate_setup.mdc
-├── modules.mdc
-└── admin_portal_complete_instructions.mdc
+├── BluePrint/
+│   ├── supabase_intial_boilerplate_setup.mdc
+│   ├── modules.mdc
+│   └── admin_portal_complete_instructions.md
 ```
 
 ### Key Features:
@@ -511,7 +821,7 @@ CREATE VIEW users AS SELECT * FROM "Users";
 - Enhanced sidebar navigation with active states
 - No breadcrumb styling (removed for cleaner interface)
 
-### JavaScript Features:
+### JavaScript Features (Following modules.mdc Patterns):
 - Supabase integration with proper error handling
 - Form validation with SweetAlert2 notifications
 - Dynamic module loading with retry logic
@@ -519,6 +829,19 @@ CREATE VIEW users AS SELECT * FROM "Users";
 - Comprehensive error handling and user feedback
 - Module initialization with proper timing
 - Active state management for navigation
+- **Module Object Pattern:**
+  - Grid objects: `var _{module}Grid = function() { return { init, initRoutes, initHandlers, initFields, loadGrid, get{Module}s, load{Module}sGrid, delete{Module} } }`
+  - Form objects: `var _{module}Form = function() { return { init, initRoutes, initHandlers, initFields, validateForm, save{Module}, load{Module}Data } }`
+  - **MUST include initialization**: `_{module}Grid.init();` or `_{module}Form.init();` at bottom of JS files
+- **Edit Mode Detection:**
+  - Store GUID in scope: `scope.current{Module}GUID` in form init
+  - Use stored GUID for edit detection: `const isEdit = scope.current{Module}GUID && scope.current{Module}GUID !== '';`
+  - Support global variable pattern: `window._selected{Module}Data = { {module}GUID, {module}Data }`
+- **Click-to-Read Functionality:**
+  - Click handlers on first column (name field) in grids
+  - Use global variable pattern for data passing
+  - Show loading state during data fetch
+  - Navigate to form with pre-loaded data
 - **Status Bar Management:**
   - Live time updates every second
   - Last updated timestamp management
@@ -579,9 +902,16 @@ CREATE VIEW users AS SELECT * FROM "Users";
 - Enhanced sidebar navigation with Phoenix theme styling
 - Added proper dark mode support with Phoenix variables
 
-### Modular Architecture Implementation:
-- Restructured project to follow WebPortals module pattern
+### Modular Architecture Implementation (Following modules.mdc):
+- Restructured project to follow WebPortals module pattern from `modules.mdc` exactly
 - Created separate HTML, CSS, and JS files for each module
+- **Separated Grid and Form views** as required by modules.mdc
+- Implemented JavaScript object pattern: `var _{module}Grid = function() { return { ... } }`
+- Added route configuration in `appRouteConfig.json`
+- Implemented click-to-read functionality with global variable pattern
+- Added proper module initialization with `_{module}Grid.init();` at bottom of files
+- Implemented edit mode detection using stored GUID approach
+- Added SweetAlert2 confirmation dialogs for delete operations
 - Implemented dynamic module loading system
 - Added proper module initialization with retry logic
 - Moved old files to backup directory for organization
@@ -723,13 +1053,20 @@ CREATE VIEW users AS SELECT * FROM "Users";
 - **✅ Soft Deletes**: Implemented soft deletes where appropriate
 - **✅ User Count Tracking**: Automatic user count tracking for roles
 
-### Technical Architecture:
-- **✅ ES6 Class Pattern**: All modules converted to modern ES6 class architecture
-- **✅ Consistent API**: Standardized API calls through auth-service.js
+### Technical Architecture (Following modules.mdc):
+- **✅ JavaScript Object Pattern**: All modules follow `var _{module}Grid = function() { return { ... } }` pattern from modules.mdc
+- **✅ Grid/Form Separation**: Separate files for grid and form views as required
+- **✅ Initialization Pattern**: All modules include `_{module}Grid.init();` or `_{module}Form.init();` at bottom
+- **✅ Route Configuration**: Routes configured in `appRouteConfig.json` following modules.mdc pattern
+- **✅ Edit Mode Detection**: Using stored GUID approach: `scope.current{Module}GUID`
+- **✅ Click-to-Read**: Implemented with global variable pattern: `window._selected{Module}Data`
+- **✅ Consistent API**: Standardized API calls through auth-service.js and data-functions.js
 - **✅ Module Initialization**: Proper module initialization with retry logic
-- **✅ Form Validation**: Comprehensive form validation across all modules
+- **✅ Form Validation**: Comprehensive form validation across all modules with visual feedback
 - **✅ Search Functionality**: Real-time search with debounced input
 - **✅ Pagination**: Consistent pagination across all modules
+- **✅ Delete Functionality**: SweetAlert2 confirmation dialogs following modules.mdc pattern
+- **✅ Error Handling**: Toast messages and console logging following modules.mdc standards
 
 ## 12. Latest Updates (Version 2.1.0)
 
@@ -762,10 +1099,16 @@ CREATE VIEW users AS SELECT * FROM "Users";
 - **✅ Search Functionality**: Updated search to use correct field names
 - **✅ Rendering Logic**: Updated table rendering to display correct field values
 
-### Technical Improvements:
+### Technical Improvements (Following modules.mdc):
 - **✅ Data Layer Separation**: Maintained separation between authentication (`auth-service.js`) and data operations (`data-functions.js`)
-- **✅ WebPortals Module Pattern**: All modules follow consistent WebPortals module pattern
-- **✅ Error Prevention**: Enhanced error handling and user feedback
+- **✅ WebPortals Module Pattern**: All modules follow consistent WebPortals module pattern from `modules.mdc` exactly
+- **✅ Grid/Form Separation**: Separate files for grid and form views as required
+- **✅ JavaScript Object Pattern**: Using `var _{module}Grid = function() { return { ... } }` pattern
+- **✅ Initialization Pattern**: All modules include initialization call at bottom
+- **✅ Route Configuration**: Routes configured in JSON format
+- **✅ Click-to-Read**: Implemented with global variable pattern
+- **✅ Edit Mode Detection**: Using stored GUID approach
+- **✅ Error Prevention**: Enhanced error handling and user feedback with toast messages
 - **✅ Debugging Tools**: Added comprehensive debugging for troubleshooting
 
 ### Grid Column Alignment Fixes (December 2024):
@@ -789,5 +1132,68 @@ CREATE VIEW users AS SELECT * FROM "Users";
 - **✅ Extra Columns**: Removed extra columns that were rendered in JavaScript but not defined in HTML
 - **✅ Data Integrity**: Ensured all displayed data matches the intended column purposes
 
-This instruction set provides a complete guide for recreating the Hope Diamond Transport admin portal with all the features and enhancements we've implemented, including the recent Phoenix theme compliance, modular architecture updates, complete CRUD implementations for all modules, comprehensive UI/UX improvements, users grid simplification, form population fixes, and grid column alignment corrections.
+## 13. Module Development Checklist (Following modules.mdc)
+
+When creating a new module, follow this checklist:
+
+1. **✅ Generate all required files** following naming conventions:
+   - `modules/{module}/html/{module}_grid.html`
+   - `modules/{module}/html/{module}_form.html`
+   - `modules/{module}/js/{module}_grid.js`
+   - `modules/{module}/js/{module}_form.js`
+   - `modules/{module}/css/{module}_grid.css`
+   - `modules/{module}/css/{module}_form.css`
+
+2. **✅ Implement JavaScript object pattern**:
+   - Grid: `var _{module}Grid = function() { return { init, initRoutes, initHandlers, initFields, loadGrid, get{Module}s, load{Module}sGrid, delete{Module} } }`
+   - Form: `var _{module}Form = function() { return { init, initRoutes, initHandlers, initFields, validateForm, save{Module}, load{Module}Data } }`
+
+3. **✅ Add initialization calls** at bottom of JS files:
+   - `_{module}Grid.init();` or `_{module}Form.init();`
+
+4. **✅ Add route configuration** to `js/appRouteConfig.json`:
+   - Both `{module}-grid` and `{module}-form` routes
+
+5. **✅ Implement click-to-read functionality**:
+   - Click handler on first column (name field)
+   - Use `window._selected{Module}Data = { {module}GUID, {module}Data }`
+   - Navigate to form with pre-loaded data
+
+6. **✅ Implement edit mode detection**:
+   - Store GUID: `scope.current{Module}GUID`
+   - Check: `const isEdit = scope.current{Module}GUID && scope.current{Module}GUID !== '';`
+
+7. **✅ Add delete functionality**:
+   - Use SweetAlert2 confirmation dialog
+   - Pattern: `Swal.fire({ title, text, icon: 'warning', showCancelButton: true })`
+   - Refresh grid after deletion
+
+8. **✅ Include proper error handling**:
+   - Toast messages for user notifications
+   - Console logging for debugging
+   - Graceful fallbacks for failed operations
+   - Loading states for async operations
+
+9. **✅ Add form validation**:
+   - Visual indicators (*) for required fields
+   - Field-level validation with `.is-invalid` class
+   - Error messages with visual feedback
+
+10. **✅ Follow HTML structure patterns**:
+    - Grid: Header + Add button, filters, search, table, pagination
+    - Form: Breadcrumb (if applicable), form sections, required field indicators, Cancel/Save buttons
+
+11. **✅ Use Phoenix theme styling**:
+    - Bootstrap classes: `btn-primary`, `form-control`, `table-responsive`
+    - Font Awesome icons
+    - Consistent badge styling for status indicators
+
+12. **✅ Integrate with Supabase**:
+    - Use `auth-service.js` for authentication
+    - Use `data-functions.js` for CRUD operations
+    - Proper error handling for API calls
+
+---
+
+This instruction set provides a complete guide for recreating the Hope Diamond Transport admin portal with all the features and enhancements we've implemented, following the **modules.mdc pattern exactly**. This includes Phoenix theme compliance, modular architecture updates with separate grid/form views, complete CRUD implementations for all modules, comprehensive UI/UX improvements, users grid simplification, form population fixes, grid column alignment corrections, and strict adherence to the WebPortals module pattern from `modules.mdc`.
 
