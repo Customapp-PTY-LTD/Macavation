@@ -78,10 +78,14 @@ var _usersGrid = function () {
             });
         },
 
-        loadUsers: async function () {
+        loadUsers: async function (forceRefresh = false) {
             try {
                 this.showLoading();
-                const users = await dataFunctions.getUsers();
+                const startTime = performance.now();
+                const users = await dataFunctions.getUsers(null, forceRefresh);
+                const loadTime = performance.now() - startTime;
+                console.log(`[Performance] Users loaded in ${loadTime.toFixed(2)}ms`);
+                
                 this.users = users;
                 this.filteredUsers = users;
                 this.renderUsers();
@@ -98,7 +102,7 @@ var _usersGrid = function () {
             try {
                 console.log('=== loadRolesForDropdown START (Users) ===');
 
-                const response = await dataFunctions.getRoles();
+                const response = await dataFunctions.getRoles(); // Uses cache automatically
                 console.log('API Response received:', response);
 
                 // Direct approach - use the response as-is since we know it's an array
@@ -256,6 +260,15 @@ var _usersGrid = function () {
             console.log('Reloading roles dropdown from database for add...');
             await this.loadRolesForDropdown();
 
+            // Show password fields and make them required for new users
+            $('#passwordSection').show();
+            $('#confirmPasswordSection').show();
+            $('#password').prop('required', true);
+            $('#txtConfirmPassword').prop('required', true);
+            $('#passwordLabel').addClass('required');
+            $('#confirmPasswordLabel').addClass('required');
+            $('#passwordHelp').text('Password is required for new users');
+
             $('#userModalLabel').text('Add User');
             $('#userModal').modal('show');
         },
@@ -282,6 +295,15 @@ var _usersGrid = function () {
                 setTimeout(() => {
                     this.populateForm(user);
                 }, 200);
+
+                // Hide password fields or make them optional for editing
+                $('#passwordSection').show();
+                $('#confirmPasswordSection').show();
+                $('#password').prop('required', false);
+                $('#txtConfirmPassword').prop('required', false);
+                $('#passwordLabel').removeClass('required');
+                $('#confirmPasswordLabel').removeClass('required');
+                $('#passwordHelp').text('Leave blank to keep current password');
 
                 $('#userModalLabel').text('Edit User');
                 $('#userModal').modal('show');
@@ -319,12 +341,14 @@ var _usersGrid = function () {
 
         saveUser: async function () {
             try {
+                const password = $('#password').val().trim();
+                const confirmPassword = $('#txtConfirmPassword').val().trim();
+                
                 const formData = {
                     username: $('#username').val().trim(),
                     email: $('#email').val().trim(),
                     first_name: $('#firstName').val().trim(),
                     last_name: $('#lastName').val().trim(),
-                    password: $('#password').val().trim(),
                     role_id: $('#cboRole').val(),
                     is_active: $('#isActive').is(':checked')
                 };
@@ -347,9 +371,28 @@ var _usersGrid = function () {
                     return;
                 }
 
-                if (!this.editingUser && !formData.password) {
-                    this.showError('Password is required for new users');
-                    return;
+                // Password validation
+                if (!this.editingUser) {
+                    // New user - password is required
+                    if (!password) {
+                        this.showError('Password is required for new users');
+                        return;
+                    }
+                    if (password !== confirmPassword) {
+                        this.showError('Passwords do not match');
+                        return;
+                    }
+                    formData.password = password;
+                } else {
+                    // Editing user - password is optional
+                    if (password) {
+                        if (password !== confirmPassword) {
+                            this.showError('Passwords do not match');
+                            return;
+                        }
+                        formData.password = password;
+                    }
+                    // If password is empty, don't include it in formData (will keep current password)
                 }
 
                 if (!formData.role_id) {
@@ -457,6 +500,31 @@ var _usersGrid = function () {
             // This method is called from the delete confirmation modal
             // The actual delete logic is handled by the deleteUser method
             console.log('Delete confirmation - this should be handled by deleteUser method');
+        },
+
+        refreshUsers: function () {
+            this.loadUsers(true); // Force refresh bypasses cache
+        },
+
+        exportUsers: function () {
+            if (!this.users || this.users.length === 0) {
+                Swal.fire('Info', 'No users to export', 'info');
+                return;
+            }
+            
+            const columns = [
+                { key: 'username', label: 'Username' },
+                { key: 'email', label: 'Email' },
+                { key: 'role', label: 'Role' },
+                { key: 'is_active', label: 'Active' },
+                { key: 'created_at', label: 'Created At' }
+            ];
+            
+            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                exportUtils.exportToCSV(this.users, 'users', columns);
+            } else {
+                Swal.fire('Error', 'Export utility not available', 'error');
+            }
         }
     }
 }();

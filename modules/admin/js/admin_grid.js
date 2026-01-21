@@ -1,14 +1,12 @@
 /**
- * System Administration Module
- * Multi-farm portfolio management, users, resources & configuration
+ * System Administration Module - Macadamia Management System
+ * User Management, Roles & Permissions, System Configuration
  */
 
 let adminData = {
-    farms: [],
     users: [],
-    resources: {},
-    cropTypes: [],
-    transfers: []
+    roles: [],
+    permissions: []
 };
 
 /**
@@ -43,17 +41,11 @@ async function initializeAdminGrid() {
             });
         });
         
-        // Load initial data with error handling
+        // Load initial data
         try {
-            await loadPortfolioSummary();
+            await loadSummary();
         } catch (error) {
-            console.error('Error loading portfolio summary:', error);
-        }
-        
-        try {
-            await loadFarms();
-        } catch (error) {
-            console.error('Error loading farms:', error);
+            console.error('Error loading summary:', error);
         }
         
         try {
@@ -63,21 +55,13 @@ async function initializeAdminGrid() {
         }
         
         try {
-            await loadSharedResources();
+            await loadRoles();
         } catch (error) {
-            console.error('Error loading shared resources:', error);
-        }
-        
-        try {
-            await loadCropTypes();
-        } catch (error) {
-            console.error('Error loading crop types:', error);
+            console.error('Error loading roles:', error);
         }
         
         // Set up form handlers
-        if (typeof setupFormHandlers === 'function') {
             setupFormHandlers();
-        }
     } catch (error) {
         console.error('Error initializing Admin Grid:', error);
     }
@@ -88,288 +72,79 @@ async function initializeAdminGrid() {
  */
 function handleTabSwitch(targetId) {
     switch(targetId) {
-        case '#farms':
-            loadFarms();
-            break;
         case '#users':
             loadUsers();
             break;
-        case '#resources':
-            loadSharedResources();
-            loadActiveTransfers();
+        case '#roles':
+            loadRoles();
             break;
-        case '#crops':
-            loadCropTypes();
-            break;
-        case '#analytics':
-            loadPortfolioAnalytics();
+        case '#system':
+            // System configuration - no action needed yet
             break;
     }
 }
 
 /**
- * Load portfolio summary data
+ * Load summary statistics
  */
-async function loadPortfolioSummary() {
+async function loadSummary() {
     try {
-        // Get actual data from API
-        let summary = {
-            totalFarms: 0,
-            totalUsers: 0,
-            totalWorkers: 0,
-            totalHectares: 0,
-            totalVehicles: 0,
-            totalEquipment: 0
-        };
-        
-        try {
-            // Get farms
-            if (typeof dataFunctions !== 'undefined' && dataFunctions.getFarms) {
-                const farms = await dataFunctions.getFarms();
-                if (farms && Array.isArray(farms)) {
-                    summary.totalFarms = farms.length;
-                    summary.totalHectares = farms.reduce((sum, farm) => sum + (parseFloat(farm.hectares) || 0), 0);
-                }
-            }
-            
-            // Get users (if function exists - may not be implemented yet)
-            // For now, skip user count if function doesn't exist
-            if (typeof dataFunctions !== 'undefined' && typeof dataFunctions.getUsers === 'function') {
+        // Load users count
+        if (typeof dataFunctions !== 'undefined' && dataFunctions.getUsers) {
                 try {
                     const users = await dataFunctions.getUsers();
                     if (users && Array.isArray(users)) {
-                        summary.totalUsers = users.length;
+                    const activeUsers = users.filter(u => u.is_active !== false);
+                    document.getElementById('totalUsers').textContent = activeUsers.length;
                     }
                 } catch (error) {
-                    console.warn('Could not load users count:', error);
+                    // Handle permission errors gracefully - don't show error, just set to 0
+                    const errorMessage = error.message || error.toString() || '';
+                    const isPermissionError = error.status === 403 || 
+                                              errorMessage.includes('Access denied') ||
+                                              errorMessage.includes('operation EXECUTE is not allowed') ||
+                                              errorMessage.includes('permission');
+                    if (!isPermissionError) {
+                        console.warn('Could not load users count:', error);
+                    }
+                    // Set to 0 if permission error or other error
+                    const totalUsersEl = document.getElementById('totalUsers');
+                    if (totalUsersEl) totalUsersEl.textContent = '0';
                 }
             }
             
-            // Get workers
-            if (typeof dataFunctions !== 'undefined' && dataFunctions.getWorkers) {
-                const workers = await dataFunctions.getWorkers({});
-                if (workers && Array.isArray(workers)) {
-                    summary.totalWorkers = workers.length;
+        // Load roles count
+        if (typeof dataFunctions !== 'undefined' && dataFunctions.getRoles) {
+            try {
+                const roles = await dataFunctions.getRoles();
+                if (roles && Array.isArray(roles)) {
+                    document.getElementById('totalRoles').textContent = roles.length;
                 }
-            }
-            
-            // Get vehicles
-            if (typeof dataFunctions !== 'undefined' && dataFunctions.getVehicles) {
-                const vehicles = await dataFunctions.getVehicles({});
-                if (vehicles && Array.isArray(vehicles)) {
-                    summary.totalVehicles = vehicles.length;
+            } catch (error) {
+                // Handle permission errors gracefully - don't show error, just set to 0
+                const errorMessage = error.message || error.toString() || '';
+                const isPermissionError = error.status === 403 || 
+                                          errorMessage.includes('Access denied') ||
+                                          errorMessage.includes('operation EXECUTE is not allowed') ||
+                                          errorMessage.includes('permission');
+                if (!isPermissionError) {
+                    console.warn('Could not load roles count:', error);
                 }
+                // Set to 0 if permission error or other error
+                const totalRolesEl = document.getElementById('totalRoles');
+                if (totalRolesEl) totalRolesEl.textContent = '0';
             }
-            
-            // Equipment count (same as vehicles for now)
-            summary.totalEquipment = summary.totalVehicles;
-        } catch (error) {
-            console.error('Error loading portfolio summary data:', error);
-            // Keep default zeros if API fails
         }
         
-        // Update summary cards (safely handle missing elements)
-        const setTextContent = (id, value) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = value;
-        };
+        // Load permissions count (placeholder)
+        document.getElementById('totalPermissions').textContent = '0';
         
-        setTextContent('totalFarms', summary.totalFarms);
-        setTextContent('totalUsers', summary.totalUsers);
-        setTextContent('totalWorkers', summary.totalWorkers);
-        setTextContent('totalHectares', summary.totalHectares);
-        
-        // Update additional summary elements
-        setTextContent('summaryHectares', summary.totalHectares + ' ha');
-        setTextContent('summaryWorkers', summary.totalWorkers);
-        setTextContent('summaryVehicles', summary.totalVehicles);
-        setTextContent('summaryEquipment', summary.totalEquipment);
-        
-        setTextContent('resourceWorkers', summary.totalWorkers);
-        setTextContent('resourceVehicles', summary.totalVehicles);
-        setTextContent('resourceEquipment', summary.totalEquipment);
+        // Active sessions (placeholder)
+        document.getElementById('activeSessions').textContent = '0';
         
     } catch (error) {
-        console.error('Error loading portfolio summary:', error);
-        showNotification('Failed to load portfolio summary', 'error');
+        console.error('Error loading summary:', error);
     }
-}
-
-/**
- * Load farms list
- */
-async function loadFarms() {
-    try {
-        if (typeof dataFunctions === 'undefined' || !dataFunctions.getFarms) {
-            console.error('dataFunctions.getFarms is not available');
-            return;
-        }
-        
-        const farms = await dataFunctions.getFarms();
-        
-        if (!farms || farms.length === 0) {
-            adminData.farms = [];
-        } else {
-            // Get worker and vehicle counts for each farm
-            const farmsWithCounts = await Promise.all(farms.map(async (farm) => {
-                let workerCount = 0;
-                let vehicleCount = 0;
-                
-                try {
-                    // Count workers for this farm
-                    if (dataFunctions.getWorkers) {
-                        const workers = await dataFunctions.getWorkers({ farmId: farm.id });
-                        if (workers && Array.isArray(workers)) {
-                            workerCount = workers.length;
-                        }
-                    }
-                    
-                    // Count vehicles for this farm
-                    if (dataFunctions.getVehicles) {
-                        const vehicles = await dataFunctions.getVehicles({ farmId: farm.id });
-                        if (vehicles && Array.isArray(vehicles)) {
-                            vehicleCount = vehicles.length;
-                        }
-                    }
-                } catch (error) {
-                    console.warn(`Error getting counts for farm ${farm.id}:`, error);
-                }
-                
-                return {
-                    id: farm.id,
-                    name: farm.name,
-                    location: farm.location || 'Location not set',
-                    region: farm.region || 'Region not set',
-                    hectares: farm.hectares || 0,
-                    crop_type: farm.crop_type || 'Not specified',
-                    manager_name: farm.manager_name || 'Manager TBD',
-                    status: farm.status || 'active',
-                    workers: workerCount,
-                    vehicles: vehicleCount
-                };
-            }));
-            
-            adminData.farms = farmsWithCounts;
-        }
-        
-        renderFarmsList(adminData.farms);
-        renderCropDistribution(adminData.farms);
-        
-        // Update farm selects in modals and forms
-        updateFarmSelects(adminData.farms);
-        
-    } catch (error) {
-        console.error('Error loading farms:', error);
-        showNotification('Failed to load farms', 'error');
-    }
-}
-
-/**
- * Render farms list
- */
-function renderFarmsList(farms) {
-    const container = document.getElementById('farmsListContainer');
-    if (!container) return;
-    
-    if (!farms || farms.length === 0) {
-        container.innerHTML = '<p class="text-muted text-center py-4">No farms found</p>';
-        return;
-    }
-    
-    container.innerHTML = farms.map(farm => `
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <h5 class="mb-1 fw-bold">${farm.name}</h5>
-                        <p class="text-muted mb-2">
-                            <i class="bi bi-geo-alt me-1"></i>${farm.location}
-                        </p>
-                        <p class="mb-0">
-                            <span class="badge bg-primary">${farm.crop_type}</span>
-                            <span class="badge bg-secondary ms-2">${farm.hectares} ha</span>
-                        </p>
-                    </div>
-                    <div class="col-md-4">
-                        <small class="text-muted d-block">Manager:</small>
-                        <strong>${farm.manager_name}</strong>
-                        <div class="mt-2">
-                            <small class="text-muted">Workers: ${farm.workers} | Vehicles: ${farm.vehicles}</small>
-                        </div>
-                    </div>
-                    <div class="col-md-2 text-end">
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-primary" onclick="editFarm('${farm.id}')" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="viewFarmDetails('${farm.id}')" title="View Details">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-/**
- * Render crop distribution
- */
-function renderCropDistribution(farms) {
-    const container = document.getElementById('cropDistributionContainer');
-    if (!container) return;
-    
-    const cropMap = {};
-    farms.forEach(farm => {
-        if (!cropMap[farm.crop_type]) {
-            cropMap[farm.crop_type] = 0;
-        }
-        cropMap[farm.crop_type] += farm.hectares;
-    });
-    
-    const total = Object.values(cropMap).reduce((sum, val) => sum + val, 0);
-    
-    container.innerHTML = Object.entries(cropMap).map(([crop, hectares]) => {
-        const percentage = ((hectares / total) * 100).toFixed(1);
-        return `
-            <div class="mb-2">
-                <div class="d-flex justify-content-between mb-1">
-                    <small>${crop}</small>
-                    <small class="fw-bold">${hectares} ha (${percentage}%)</small>
-                </div>
-                <div class="progress" style="height: 8px;">
-                    <div class="progress-bar" role="progressbar" style="width: ${percentage}%"></div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-/**
- * Update farm selects in forms
- */
-function updateFarmSelects(farms) {
-    const selects = [
-        'farmManagerSelect',
-        'transferFromFarm',
-        'transferToFarm',
-        'userFarmAccessSelect'
-    ];
-    
-    selects.forEach(selectId => {
-        const select = document.getElementById(selectId);
-        if (select) {
-            const isMultiple = select.hasAttribute('multiple');
-            select.innerHTML = farms.map(farm => 
-                `<option value="${farm.id}">${farm.name}</option>`
-            ).join('');
-            
-            if (!isMultiple) {
-                select.insertAdjacentHTML('afterbegin', '<option value="">Select farm...</option>');
-            }
-        }
-    });
 }
 
 /**
@@ -385,56 +160,47 @@ async function loadUsers() {
         const users = await dataFunctions.getUsers();
         
         if (!users || users.length === 0) {
-            // Fallback to mock data
-            const users = [
-            {
-                id: '1',
-                first_name: 'Admin',
-                last_name: 'User',
-                email: 'admin@fruitlive.com',
-                role: 'super_admin',
-                farm_access: ['All Farms'],
-                status: 'active'
-            },
-            {
-                id: '2',
-                first_name: 'John',
-                last_name: 'Smith',
-                email: 'john.smith@fruitlive.com',
-                role: 'farm_manager',
-                farm_access: ['Applewood Farm'],
-                status: 'active'
-            },
-            {
-                id: '3',
-                first_name: 'Sarah',
-                last_name: 'Johnson',
-                email: 'sarah.johnson@fruitlive.com',
-                role: 'farm_manager',
-                farm_access: ['Citrus Valley'],
-                status: 'active'
-            }
-            ];
-            adminData.users = users;
+            adminData.users = [];
         } else {
-            // Map database users to display format
             adminData.users = users.map(user => ({
                 id: user.id,
-                first_name: user.username || user.email?.split('@')[0] || 'User',
-                last_name: '',
+                first_name: user.first_name || user.username || user.email?.split('@')[0] || 'User',
+                last_name: user.last_name || '',
                 email: user.email,
-                role: user.role || 'user',
-                farm_access: ['All Farms'], // TODO: Get from user_farm_access
-                status: user.is_active ? 'active' : 'inactive'
+                role: user.role || user.role_name || 'user',
+                role_id: user.role_id,
+                status: user.is_active !== false ? 'active' : 'inactive',
+                last_login: user.last_login || null,
+                phone_number: user.phone_number || null
             }));
         }
         
         renderUsersTable(adminData.users);
         updateUserStats(adminData.users);
+        updateRoleFilter();
         
     } catch (error) {
         console.error('Error loading users:', error);
-        showNotification('Failed to load users', 'error');
+        
+        // Check if it's a permission error
+        const errorMessage = error.message || error.toString() || '';
+        const isPermissionError = error.status === 403 || 
+                                  errorMessage.includes('Access denied') ||
+                                  errorMessage.includes('operation EXECUTE is not allowed') ||
+                                  errorMessage.includes('permission');
+        
+        if (isPermissionError) {
+            // Show user-friendly permission error message
+            showNotification('You do not have permission to view users. Please contact your administrator.', 'warning');
+            // Set empty users array and render empty state
+            adminData.users = [];
+            renderUsersTable(adminData.users);
+            updateUserStats(adminData.users);
+            updateRoleFilter();
+        } else {
+            // Show generic error for other issues
+            showNotification('Failed to load users. Please try again later.', 'error');
+        }
     }
 }
 
@@ -446,41 +212,30 @@ function renderUsersTable(users) {
     if (!tbody) return;
     
     if (!users || users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No users found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No users found</td></tr>';
         return;
     }
     
-    const roleColors = {
-        super_admin: 'danger',
-        farm_admin: 'primary',
-        farm_manager: 'info',
-        field_user: 'secondary'
-    };
-    
-    const roleLabels = {
-        super_admin: 'Super Admin',
-        farm_admin: 'Farm Admin',
-        farm_manager: 'Farm Manager',
-        field_user: 'Field User'
-    };
-    
-    tbody.innerHTML = users.map(user => `
+    tbody.innerHTML = users.map(user => {
+        const roleBadge = getRoleBadge(user.role);
+        const statusBadge = user.status === 'active' 
+            ? '<span class="badge bg-success">Active</span>'
+            : '<span class="badge bg-secondary">Inactive</span>';
+        
+        const lastLogin = user.last_login 
+            ? new Date(user.last_login).toLocaleDateString()
+            : 'Never';
+        
+        return `
         <tr>
             <td>
                 <strong>${user.first_name} ${user.last_name}</strong>
-                <br><small class="text-muted">${user.email}</small>
+                    ${user.phone_number ? `<br><small class="text-muted">${user.phone_number}</small>` : ''}
             </td>
-            <td>
-                <span class="badge bg-${roleColors[user.role]}">${roleLabels[user.role]}</span>
-            </td>
-            <td>
-                <small>${user.farm_access.join(', ')}</small>
-            </td>
-            <td>
-                <span class="badge bg-${user.status === 'active' ? 'success' : 'secondary'}">
-                    ${user.status}
-                </span>
-            </td>
+                <td>${user.email}</td>
+                <td>${roleBadge}</td>
+                <td>${statusBadge}</td>
+                <td><small class="text-muted">${lastLogin}</small></td>
             <td>
                 <div class="btn-group" role="group">
                     <button class="btn btn-sm btn-outline-primary" onclick="editUser('${user.id}')" title="Edit">
@@ -492,409 +247,316 @@ function renderUsersTable(users) {
                 </div>
             </td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
+}
+
+/**
+ * Get role badge HTML
+ */
+function getRoleBadge(roleName) {
+    const roleMap = {
+        'super_user': { label: 'Super User', color: 'danger' },
+        'admin': { label: 'Admin', color: 'primary' },
+        'user': { label: 'User', color: 'info' },
+        'viewer': { label: 'Viewer', color: 'secondary' }
+    };
+    
+    const role = roleMap[roleName] || { label: roleName, color: 'secondary' };
+    return `<span class="badge bg-${role.color}">${role.label}</span>`;
 }
 
 /**
  * Update user statistics
  */
 function updateUserStats(users) {
-    const stats = {
-        super_admin: 0,
-        farm_admin: 0,
-        farm_manager: 0,
-        field_user: 0
-    };
+    const container = document.getElementById('userStatisticsContainer');
+    if (!container) return;
     
+    const stats = {};
     users.forEach(user => {
-        if (stats[user.role] !== undefined) {
-            stats[user.role]++;
-        }
+        const role = user.role || 'unknown';
+        stats[role] = (stats[role] || 0) + 1;
     });
     
-    document.getElementById('statSuperAdmin').textContent = stats.super_admin;
-    document.getElementById('statFarmAdmin').textContent = stats.farm_admin;
-    document.getElementById('statFarmManager').textContent = stats.farm_manager;
-    document.getElementById('statFieldUser').textContent = stats.field_user;
+    container.innerHTML = Object.entries(stats).map(([role, count]) => {
+        const roleInfo = getRoleInfo(role);
+        return `
+            <div class="mb-2">
+                <div class="d-flex justify-content-between">
+                    <small>${roleInfo.label}:</small>
+                    <strong>${count}</strong>
+                </div>
+            </div>
+        `;
+    }).join('') || '<p class="text-muted small mb-0">No statistics available</p>';
 }
 
 /**
- * Load shared resources
+ * Get role info
  */
-async function loadSharedResources() {
-    try {
-        // TODO: Replace with actual API call
-        // const resources = await dataFunctions.callFunction('get_shared_resource_summary', {});
-        
-        // Mock data
-        const resources = {
-            totalWorkers: 547,
-            totalVehicles: 50,
-            totalEquipment: 190,
-            byFarm: adminData.farms.map(farm => ({
-                farmId: farm.id,
-                farmName: farm.name,
-                workers: farm.workers,
-                vehicles: farm.vehicles
-            }))
-        };
-        
-        adminData.resources = resources;
-        renderLabourPoolDistribution(resources);
-        
-    } catch (error) {
-        console.error('Error loading shared resources:', error);
-        showNotification('Failed to load shared resources', 'error');
+function getRoleInfo(roleName) {
+    const roleMap = {
+        'super_user': { label: 'Super User' },
+        'admin': { label: 'Admin' },
+        'user': { label: 'User' },
+        'viewer': { label: 'Viewer' }
+    };
+    
+    return roleMap[roleName] || { label: roleName };
+}
+
+/**
+ * Update role filter dropdown
+ */
+function updateRoleFilter() {
+    const filter = document.getElementById('userRoleFilter');
+    if (!filter) return;
+    
+    const roles = [...new Set(adminData.users.map(u => u.role))];
+    const currentValue = filter.value;
+    
+    filter.innerHTML = '<option value="">All Roles</option>' + 
+        roles.map(role => {
+            const roleInfo = getRoleInfo(role);
+            return `<option value="${role}">${roleInfo.label}</option>`;
+        }).join('');
+    
+    if (currentValue) {
+        filter.value = currentValue;
     }
 }
 
 /**
- * Render labour pool distribution
+ * Load roles list
  */
-function renderLabourPoolDistribution(resources) {
-    const container = document.getElementById('labourPoolContainer');
-    if (!container) return;
+async function loadRoles() {
+    try {
+        if (typeof dataFunctions === 'undefined' || !dataFunctions.getRoles) {
+            console.error('dataFunctions.getRoles is not available');
+            return;
+        }
+        
+        const roles = await dataFunctions.getRoles();
+        
+        if (!roles || roles.length === 0) {
+            adminData.roles = [];
+        } else {
+            adminData.roles = roles.map(role => ({
+                id: role.id,
+                role_name: role.role_name || role.name,
+                description: role.description || role.role_description || '',
+                is_active: role.is_active !== false
+            }));
+        }
+        
+        renderRolesTable(adminData.roles);
+        renderRoleDefinitions(adminData.roles);
+        updateRoleSelects(adminData.roles);
+        
+    } catch (error) {
+        console.error('Error loading roles:', error);
+        
+        // Check if it's a permission error
+        const errorMessage = error.message || error.toString() || '';
+        const isPermissionError = error.status === 403 || 
+                                  errorMessage.includes('Access denied') ||
+                                  errorMessage.includes('operation EXECUTE is not allowed') ||
+                                  errorMessage.includes('permission');
+        
+        if (isPermissionError) {
+            // Show user-friendly permission error message
+            showNotification('You do not have permission to view roles. Please contact your administrator.', 'warning');
+            // Set empty roles array and render empty state
+            adminData.roles = [];
+            renderRolesTable(adminData.roles);
+            renderRoleDefinitions(adminData.roles);
+            updateRoleSelects(adminData.roles);
+        } else {
+            // Show generic error for other issues
+            showNotification('Failed to load roles. Please try again later.', 'error');
+        }
+    }
+}
+
+/**
+ * Render roles table
+ */
+function renderRolesTable(roles) {
+    const tbody = document.getElementById('rolesTableBody');
+    if (!tbody) return;
     
-    if (!resources.byFarm || resources.byFarm.length === 0) {
-        container.innerHTML = '<p class="text-muted">No labour data available</p>';
+    if (!roles || roles.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No roles found</td></tr>';
         return;
     }
     
-    const maxWorkers = Math.max(...resources.byFarm.map(f => f.workers));
-    
-    container.innerHTML = resources.byFarm.map(farm => {
-        const percentage = ((farm.workers / resources.totalWorkers) * 100).toFixed(1);
-        const barWidth = ((farm.workers / maxWorkers) * 100).toFixed(1);
+    tbody.innerHTML = roles.map(role => {
+        const userCount = adminData.users.filter(u => u.role === role.role_name).length;
+        const statusBadge = role.is_active 
+            ? '<span class="badge bg-success">Active</span>'
+            : '<span class="badge bg-secondary">Inactive</span>';
         
         return `
+            <tr>
+                <td><strong>${role.role_name}</strong></td>
+                <td><small class="text-muted">${role.description || 'No description'}</small></td>
+                <td><span class="badge bg-info">${userCount} users</span></td>
+                <td>${statusBadge}</td>
+            <td>
+                <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editRole('${role.id}')" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="manageRolePermissions('${role.id}')" title="Permissions">
+                            <i class="bi bi-key"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+/**
+ * Render role definitions
+ */
+function renderRoleDefinitions(roles) {
+    const container = document.getElementById('roleDefinitionsContainer');
+    if (!container) return;
+    
+    if (!roles || roles.length === 0) {
+        container.innerHTML = '<p class="text-muted small mb-0">No roles defined</p>';
+        return;
+    }
+    
+    container.innerHTML = roles.map(role => {
+        const roleBadge = getRoleBadge(role.role_name);
+        return `
             <div class="mb-3">
-                <div class="d-flex justify-content-between mb-1">
-                    <strong>${farm.farmName}</strong>
-                    <span>${farm.workers} workers (${percentage}%)</span>
+                <div class="d-flex align-items-center mb-2">
+                    ${roleBadge}
                 </div>
-                <div class="progress" style="height: 25px;">
-                    <div class="progress-bar bg-success" role="progressbar" style="width: ${barWidth}%">
-                        ${farm.workers}
-                    </div>
-                </div>
+                <small class="text-muted">${role.description || 'No description'}</small>
             </div>
         `;
     }).join('');
 }
 
 /**
- * Load active transfers
+ * Update role selects in forms
  */
-async function loadActiveTransfers() {
-    try {
-        // TODO: Replace with actual API call
-        // const transfers = await dataFunctions.callFunction('get_active_transfers', {});
-        
-        adminData.transfers = [];
-        renderTransfersTable(adminData.transfers);
-        
-    } catch (error) {
-        console.error('Error loading transfers:', error);
-    }
-}
-
-/**
- * Render transfers table
- */
-function renderTransfersTable(transfers) {
-    const tbody = document.getElementById('transfersTableBody');
-    if (!tbody) return;
+function updateRoleSelects(roles) {
+    const selects = ['userRoleSelect'];
     
-    if (!transfers || transfers.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No active transfers</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = transfers.map(transfer => `
-        <tr>
-            <td><code>${transfer.id.substring(0, 8)}</code></td>
-            <td>${transfer.resource_type}</td>
-            <td>${transfer.from_farm}</td>
-            <td>${transfer.to_farm}</td>
-            <td>${transfer.start_date}</td>
-            <td>${transfer.return_date}</td>
-            <td>
-                <span class="badge bg-${transfer.status === 'active' ? 'success' : 'secondary'}">
-                    ${transfer.status}
-                </span>
-            </td>
-        </tr>
-    `).join('');
-}
-
-/**
- * Load crop types
- */
-async function loadCropTypes() {
-    try {
-        // TODO: Replace with actual API call
-        // const cropTypes = await dataFunctions.callFunction('get_crop_types', {});
-        
-        // Mock data
-        const cropTypes = [
-            {
-                id: '1',
-                name: 'Apples',
-                category: 'Fruit',
-                varieties_count: 12,
-                farms_count: 2,
-                total_hectares: 192,
-                compliance_standards: ['Global GAP', 'BRC']
-            },
-            {
-                id: '2',
-                name: 'Citrus',
-                category: 'Citrus',
-                varieties_count: 8,
-                farms_count: 1,
-                total_hectares: 98,
-                compliance_standards: ['Global GAP']
-            },
-            {
-                id: '3',
-                name: 'Grapes',
-                category: 'Fruit',
-                varieties_count: 15,
-                farms_count: 1,
-                total_hectares: 156,
-                compliance_standards: ['Global GAP', 'FSSC 22000']
+    selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Select role...</option>' + 
+                roles.filter(r => r.is_active).map(role => 
+                    `<option value="${role.id}">${role.role_name}</option>`
+                ).join('');
+            
+            if (currentValue) {
+                select.value = currentValue;
             }
-        ];
-        
-        adminData.cropTypes = cropTypes;
-        renderCropTypesTable(cropTypes);
-        
-    } catch (error) {
-        console.error('Error loading crop types:', error);
-        showNotification('Failed to load crop types', 'error');
-    }
-}
-
-/**
- * Render crop types table
- */
-function renderCropTypesTable(cropTypes) {
-    const tbody = document.getElementById('cropTypesTableBody');
-    if (!tbody) return;
-    
-    if (!cropTypes || cropTypes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No crop types found</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = cropTypes.map(crop => `
-        <tr>
-            <td><strong>${crop.name}</strong></td>
-            <td>${crop.category}</td>
-            <td>${crop.varieties_count}</td>
-            <td>${crop.farms_count}</td>
-            <td>${crop.total_hectares} ha</td>
-            <td>
-                ${crop.compliance_standards.map(std => 
-                    `<span class="badge bg-success me-1">${std}</span>`
-                ).join('')}
-            </td>
-            <td>
-                <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-outline-primary" onclick="editCropType('${crop.id}')" title="Edit">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="viewVarieties('${crop.id}')" title="View Varieties">
-                        <i class="bi bi-list"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
-}
-
-/**
- * Load portfolio analytics
- */
-async function loadPortfolioAnalytics() {
-    try {
-        // TODO: Replace with actual API call
-        // Update analytics cards
-        document.getElementById('analyticsFarms').textContent = adminData.farms.length;
-        document.getElementById('analyticsHectares').textContent = 
-            adminData.farms.reduce((sum, f) => sum + f.hectares, 0);
-        document.getElementById('analyticsWorkers').textContent = 
-            adminData.farms.reduce((sum, f) => sum + f.workers, 0);
-        
-        const uniqueCrops = [...new Set(adminData.farms.map(f => f.crop_type))];
-        document.getElementById('analyticsCrops').textContent = uniqueCrops.length;
-        
-        // TODO: Initialize charts using Chart.js
-        initializeAnalyticsCharts();
-        
-    } catch (error) {
-        console.error('Error loading analytics:', error);
-    }
-}
-
-/**
- * Initialize analytics charts
- */
-function initializeAnalyticsCharts() {
-    // TODO: Implement Chart.js charts
-    console.log('Analytics charts would be initialized here');
+        }
+    });
 }
 
 /**
  * Setup form handlers
  */
 function setupFormHandlers() {
-    const transferForm = document.getElementById('createTransferForm');
-    if (transferForm) {
-        transferForm.addEventListener('submit', handleCreateTransfer);
+    // User role filter
+    const userRoleFilter = document.getElementById('userRoleFilter');
+    if (userRoleFilter) {
+        userRoleFilter.addEventListener('change', function() {
+            const filterValue = this.value;
+            if (filterValue) {
+                const filtered = adminData.users.filter(u => u.role === filterValue);
+                renderUsersTable(filtered);
+            } else {
+                renderUsersTable(adminData.users);
+            }
+        });
     }
-    
-    const roleFilter = document.getElementById('userRoleFilter');
-    if (roleFilter) {
-        roleFilter.addEventListener('change', handleUserRoleFilter);
-    }
-}
-
-/**
- * Handle create transfer form
- */
-function handleCreateTransfer(e) {
-    e.preventDefault();
-    
-    const formData = {
-        resource_type: document.getElementById('transferResourceType').value,
-        from_farm: document.getElementById('transferFromFarm').value,
-        to_farm: document.getElementById('transferToFarm').value,
-        return_date: document.getElementById('transferReturnDate').value
-    };
-    
-    if (!formData.resource_type || !formData.from_farm || !formData.to_farm) {
-        showNotification('Please fill in all required fields', 'warning');
-        return;
-    }
-    
-    console.log('Creating transfer:', formData);
-    // TODO: API call to create transfer
-    showNotification('Transfer created successfully', 'success');
-    e.target.reset();
-}
-
-/**
- * Handle user role filter
- */
-function handleUserRoleFilter(e) {
-    const role = e.target.value;
-    let filteredUsers = adminData.users;
-    
-    if (role) {
-        filteredUsers = adminData.users.filter(u => u.role === role);
-    }
-    
-    renderUsersTable(filteredUsers);
-}
-
-/**
- * Submit farm form
- */
-function submitFarmForm() {
-    const form = document.getElementById('addFarmForm');
-    const formData = new FormData(form);
-    
-    const farmData = {
-        name: formData.get('name'),
-        location: formData.get('location'),
-        region: formData.get('region'),
-        hectares: parseFloat(formData.get('hectares')),
-        crop_type: formData.get('crop_type'),
-        manager_id: formData.get('manager_id'),
-        status: formData.get('status') || 'active',
-        notes: formData.get('notes')
-    };
-    
-    console.log('Creating farm:', farmData);
-    // TODO: API call to create farm
-    showNotification('Farm created successfully', 'success');
-    
-    const modal = bootstrap.Modal.getInstance(document.getElementById('addFarmModal'));
-    modal.hide();
-    form.reset();
-    loadFarms();
 }
 
 /**
  * Submit user form
  */
-function submitUserForm() {
+async function submitUserForm() {
+    try {
     const form = document.getElementById('addUserForm');
+        if (!form) return;
+        
     const formData = new FormData(form);
-    
     const userData = {
         first_name: formData.get('first_name'),
         last_name: formData.get('last_name'),
         email: formData.get('email'),
-        role: formData.get('role'),
-        farm_access: Array.from(document.getElementById('userFarmAccessSelect').selectedOptions).map(o => o.value)
+            phone_number: formData.get('phone_number') || null,
+            role_id: formData.get('role_id'),
+            is_active: formData.get('is_active') === 'true'
     };
     
-    console.log('Creating user:', userData);
-    // TODO: API call to create user
+        if (typeof dataFunctions !== 'undefined' && dataFunctions.createUser) {
+            const result = await dataFunctions.createUser(userData);
+            if (result && result.success) {
     showNotification('User created successfully', 'success');
-    
     const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
-    modal.hide();
+                if (modal) modal.hide();
     form.reset();
-    loadUsers();
+                await loadUsers();
+                await loadSummary();
+            } else {
+                showNotification('Failed to create user', 'error');
+            }
+        } else {
+            showNotification('User creation not available', 'error');
+        }
+    } catch (error) {
+        console.error('Error submitting user form:', error);
+        showNotification('Error creating user: ' + error.message, 'error');
+    }
 }
 
 /**
- * Submit crop type form
+ * Submit role form
  */
-function submitCropTypeForm() {
-    const form = document.getElementById('addCropTypeForm');
+async function submitRoleForm() {
+    try {
+        const form = document.getElementById('addRoleForm');
+        if (!form) return;
+        
     const formData = new FormData(form);
-    
-    const standards = [];
-    document.querySelectorAll('input[name="standards"]:checked').forEach(cb => {
-        standards.push(cb.value);
-    });
-    
-    const cropData = {
-        name: formData.get('name'),
-        category: formData.get('category'),
-        compliance_standards: standards
-    };
-    
-    console.log('Creating crop type:', cropData);
-    // TODO: API call to create crop type
-    showNotification('Crop type created successfully', 'success');
-    
-    const modal = bootstrap.Modal.getInstance(document.getElementById('addCropTypeModal'));
-    modal.hide();
+        const roleData = {
+            role_name: formData.get('role_name'),
+            description: formData.get('description') || null,
+            is_active: formData.get('is_active') === 'true'
+        };
+        
+        if (typeof dataFunctions !== 'undefined' && dataFunctions.createRole) {
+            const result = await dataFunctions.createRole(roleData);
+            if (result && result.success) {
+                showNotification('Role created successfully', 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addRoleModal'));
+                if (modal) modal.hide();
     form.reset();
-    loadCropTypes();
-}
-
-/**
- * Edit farm
- */
-function editFarm(farmId) {
-    console.log('Edit farm:', farmId);
-    // TODO: Implement farm editing
-    showNotification('Farm editing coming soon', 'info');
-}
-
-/**
- * View farm details
- */
-function viewFarmDetails(farmId) {
-    console.log('View farm details:', farmId);
-    // TODO: Implement farm details view
-    showNotification('Farm details view coming soon', 'info');
+                await loadRoles();
+                await loadSummary();
+            } else {
+                showNotification('Failed to create role', 'error');
+            }
+        } else {
+            showNotification('Role creation not available', 'error');
+        }
+    } catch (error) {
+        console.error('Error submitting role form:', error);
+        showNotification('Error creating role: ' + error.message, 'error');
+    }
 }
 
 /**
@@ -902,7 +564,6 @@ function viewFarmDetails(farmId) {
  */
 function editUser(userId) {
     console.log('Edit user:', userId);
-    // TODO: Implement user editing
     showNotification('User editing coming soon', 'info');
 }
 
@@ -911,26 +572,23 @@ function editUser(userId) {
  */
 function manageUserPermissions(userId) {
     console.log('Manage permissions for user:', userId);
-    // TODO: Implement permissions management
     showNotification('Permissions management coming soon', 'info');
 }
 
 /**
- * Edit crop type
+ * Edit role
  */
-function editCropType(cropId) {
-    console.log('Edit crop type:', cropId);
-    // TODO: Implement crop type editing
-    showNotification('Crop type editing coming soon', 'info');
+function editRole(roleId) {
+    console.log('Edit role:', roleId);
+    showNotification('Role editing coming soon', 'info');
 }
 
 /**
- * View varieties
+ * Manage role permissions
  */
-function viewVarieties(cropId) {
-    console.log('View varieties for crop:', cropId);
-    // TODO: Implement varieties view
-    showNotification('Varieties view coming soon', 'info');
+function manageRolePermissions(roleId) {
+    console.log('Manage permissions for role:', roleId);
+    showNotification('Role permissions management coming soon', 'info');
 }
 
 /**

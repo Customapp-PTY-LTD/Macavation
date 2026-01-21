@@ -1,0 +1,121 @@
+/* CRM Grid Module Styles */
+
+.module-content {
+    min-height: 400px;
+}
+
+#contactsTable th {
+    border-top: none;
+    font-weight: 600;
+    color: var(--phoenix-text-color);
+    background-color: var(--phoenix-light);
+}
+
+#contactsTable td {
+    vertical-align: middle;
+}
+
+.grid-actions {
+    white-space: nowrap;
+}
+
+.grid-actions .btn {
+    margin-right: 0.25rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.4em 0.6em;
+}
+
+.search-container {
+    margin-bottom: 1.5rem;
+}
+
+.form-section {
+    margin-bottom: 1.5rem;
+}
+
+.form-section h5 {
+    color: var(--phoenix-primary);
+    border-bottom: 2px solid var(--phoenix-primary);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.required::after {
+    content: " *";
+    color: var(--phoenix-danger);
+}
+
+.modal-xl {
+    max-width: 1200px;
+}
+
+/* Ensure large CRM modal always scrolls on smaller screens / strict themes */
+#contactModal {
+    overflow-y: auto !important; /* Bootstrap default; enforce in case global CSS overrides */
+}
+
+#contactModal .modal-dialog {
+    max-height: calc(100vh - 2rem);
+}
+
+#contactModal .modal-content {
+    max-height: calc(100vh - 2rem);
+}
+
+#contactModal .modal-body {
+    /* Force internal scrolling even if theme CSS interferes */
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    /* Fallback height; JS will refine on open */
+    max-height: calc(100vh - 220px);
+}
+
+.nav-tabs .nav-link {
+    color: var(--phoenix-text-color);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--phoenix-primary);
+    border-color: var(--phoenix-primary);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(var(--phoenix-primary-rgb), 0.05);
+}
+
+/* Action buttons in tables */
+.table .btn-group .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    white-space: nowrap;
+}
+
+.table .btn-group .btn i {
+    margin-right: 0.25rem;
+}
+
+/* Ensure action buttons are always visible */
+.table td:last-child {
+    position: sticky;
+    right: 0;
+    background-color: inherit;
+    z-index: 1;
+}
+
+/* Make action column stand out slightly */
+.table thead th:last-child,
+.table tbody td:last-child {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.table tbody tr:hover td:last-child {
+    background-color: rgba(var(--phoenix-primary-rgb), 0.08);
+}

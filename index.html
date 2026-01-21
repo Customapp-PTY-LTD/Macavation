@@ -4,8 +4,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Macavation - Admin Portal</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2D4A3E">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Macavation">
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -13,21 +22,47 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Phoenix Theme CSS -->
-    <link href="https://prium.github.io/phoenix/v1.23.0/assets/css/phoenix.min.css" rel="stylesheet">
-    <link href="https://prium.github.io/phoenix/v1.23.0/assets/css/theme.min.css" rel="stylesheet">
+    <!-- Phoenix Theme CSS removed to avoid 404/CORB issues -->
     <!-- SweetAlert2 -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <!-- Choices.js -->
     <link href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css" rel="stylesheet">
     <!-- Custom Styles -->
     <link href="css/main.css" rel="stylesheet">
+    <!-- Exception UI Styles -->
+    <link href="css/exception-ui.css" rel="stylesheet">
+    <!-- Metric UI Styles -->
+    <link href="css/metric-ui.css" rel="stylesheet">
+    <!-- Workflow Views Styles -->
+    <link href="css/workflow-views.css" rel="stylesheet">
+    <!-- Connected Workflows Styles -->
+    <link href="css/connected-workflows.css" rel="stylesheet">
+    <!-- Mobile-First Styles -->
+    <link href="css/mobile-first.css" rel="stylesheet">
+    <!-- PWA Offline Styles -->
+    <link href="css/pwa-offline.css" rel="stylesheet">
+    <!-- Performance Utilities -->
+    <script src="js/performance-utils.js"></script>
+    <!-- Anomaly Detection -->
+    <script src="js/anomaly-detection.js"></script>
+    <!-- Exception UI -->
+    <script src="js/exception-ui.js"></script>
+    <!-- Metric UI -->
+    <script src="js/metric-ui.js"></script>
+    <!-- Workflow Views -->
+    <script src="js/workflow-views.js"></script>
+    <!-- Connected Workflows -->
+    <script src="js/connected-workflows.js"></script>
+    <!-- Proactive Intelligence -->
+    <script src="js/proactive-intelligence.js"></script>
+    <!-- Compliance Validation -->
+    <script src="js/compliance-validation.js"></script>
 
     <!-- Google Fonts - Premium Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Nunito+Sans:wght@300;400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
 
     <style>
@@ -57,7 +92,7 @@
         }
 
         .navbar-brand span {
-            font-family: 'Cormorant Garamond', serif;
+            font-family: 'Tahoma', sans-serif;
             font-size: 1.5rem;
             letter-spacing: 1px;
         }
@@ -135,7 +170,7 @@
         h4,
         h5,
         h6 {
-            font-family: 'Cormorant Garamond', serif;
+            font-family: 'Tahoma', sans-serif;
             color: var(--macadamia-dark);
         }
 
@@ -234,7 +269,7 @@
         }
 
         .swal2-title {
-            font-family: 'Cormorant Garamond', serif !important;
+            font-family: 'Tahoma', sans-serif !important;
             color: var(--macadamia-dark) !important;
         }
 
@@ -414,13 +449,132 @@
                     <div class="flex-grow-1 pt-3">
                         <ul class="nav flex-column gap-1">
                             <li class="nav-item">
-                                <a class="nav-link active" href="#" data-bs-toggle="collapse"
-                                    data-bs-target="#userManagementCollapse" aria-expanded="true"
-                                    aria-controls="userManagementCollapse">
-                                    <i class="fas fa-users me-2"></i>User Management
+                                <a class="nav-link" href="#" route="dashboard">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" route="my-day">
+                                    <i class="fas fa-calendar-day me-2"></i>My Day
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" route="amanda-dashboard">
+                                    <i class="fas fa-chart-line me-2"></i>Material Journey Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" route="executive-dashboard">
+                                    <i class="fas fa-chart-bar me-2"></i>Executive Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-bs-toggle="collapse"
+                                    data-bs-target="#crmCollapse" aria-expanded="false"
+                                    aria-controls="crmCollapse">
+                                    <i class="fas fa-address-book me-2"></i>CRM
                                     <i class="fas fa-chevron-down ms-auto"></i>
                                 </a>
-                                <div class="collapse show" id="userManagementCollapse">
+                                <div class="collapse" id="crmCollapse">
+                                    <ul class="nav flex-column ms-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="crm-grid">
+                                                <i class="fas fa-building me-2"></i>Contacts
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-bs-toggle="collapse"
+                                    data-bs-target="#productionCollapse" aria-expanded="false"
+                                    aria-controls="productionCollapse">
+                                    <i class="fas fa-industry me-2"></i>Production
+                                    <i class="fas fa-chevron-down ms-auto"></i>
+                                </a>
+                                <div class="collapse" id="productionCollapse">
+                                    <ul class="nav flex-column ms-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="grower-intake-grid">
+                                                <i class="fas fa-truck-loading me-2"></i>Grower Intake
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="kernel-production-grid">
+                                                <i class="fas fa-cogs me-2"></i>Kernel Production
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="oil-production-grid">
+                                                <i class="fas fa-oil-can me-2"></i>Oil Production
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-bs-toggle="collapse"
+                                    data-bs-target="#qualityCollapse" aria-expanded="false"
+                                    aria-controls="qualityCollapse">
+                                    <i class="fas fa-check-circle me-2"></i>Quality & Stock
+                                    <i class="fas fa-chevron-down ms-auto"></i>
+                                </a>
+                                <div class="collapse" id="qualityCollapse">
+                                    <ul class="nav flex-column ms-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="quality-assurance-grid">
+                                                <i class="fas fa-flask me-2"></i>Quality Assurance
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="stock-management-grid">
+                                                <i class="fas fa-warehouse me-2"></i>Stock Management
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-bs-toggle="collapse"
+                                    data-bs-target="#businessCollapse" aria-expanded="false"
+                                    aria-controls="businessCollapse">
+                                    <i class="fas fa-briefcase me-2"></i>Business
+                                    <i class="fas fa-chevron-down ms-auto"></i>
+                                </a>
+                                <div class="collapse" id="businessCollapse">
+                                    <ul class="nav flex-column ms-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="sales-forecasting-grid">
+                                                <i class="fas fa-chart-line me-2"></i>Sales Forecasting
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="financial-management-grid">
+                                                <i class="fas fa-money-bill-wave me-2"></i>Financial Management
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" route="document-management-grid">
+                                    <i class="fas fa-file-alt me-2"></i>Document Management
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" route="palladium-integration-grid">
+                                    <i class="fas fa-sync-alt me-2"></i>Palladium Integration
+                                </a>
+                            </li>
+                            <!-- User Management - Must be before System Administration -->
+                            <li class="nav-item" id="userManagementMenuItem">
+                                <a class="nav-link" href="#" data-bs-toggle="collapse"
+                                    data-bs-target="#userManagementCollapse" aria-expanded="false"
+                                    aria-controls="userManagementCollapse">
+                                    <i class="fas fa-users me-2"></i>User Management
+                                    <i class="fas fa-chevron-right ms-auto"></i>
+                                </a>
+                                <div class="collapse" id="userManagementCollapse">
                                     <ul class="nav flex-column ms-3">
                                         <li class="nav-item">
                                             <a class="nav-link" href="#" route="users-grid">
@@ -444,6 +598,12 @@
                                         </li>
                                     </ul>
                                 </div>
+                            </li>
+                            <!-- System Administration - Must be after User Management -->
+                            <li class="nav-item" id="systemAdminMenuItem">
+                                <a class="nav-link" href="#" route="admin-grid">
+                                    <i class="fas fa-cog me-2"></i>System Administration
+                                </a>
                             </li>
                         </ul>
                     </div>
@@ -496,6 +656,15 @@
                                 </div>
                             </div>
                         </div>
+
+            <!-- Quick link to Data Import -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <button class="btn btn-outline-primary btn-sm" route="data-import-grid">
+                        <i class="fas fa-file-excel me-1"></i>Data Import (Excel)
+                    </button>
+                </div>
+            </div>
 
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-start border-success border-4 shadow h-100">
@@ -556,7 +725,10 @@
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://prium.github.io/phoenix/v1.23.0/assets/js/phoenix.min.js"></script>
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Removed Phoenix script to avoid potential conflicts with Bootstrap tabs and Live Preview -->
+    <!-- <script src="https://prium.github.io/phoenix/v1.23.0/assets/js/phoenix.min.js"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.9/dist/signature_pad.umd.min.js"></script>
@@ -566,24 +738,87 @@
 
     <!-- Application Scripts -->
     <script src="js/themes.js"></script>
-    <script src="js/data-functions.js"></script>
+    <script src="js/data-functions.js?v=20260107b"></script>
     <script src="js/auth-service.js"></script>
     <script src="js/common.js"></script>
-    <!-- Test scripts (optional, loaded after main scripts) -->
-    <script src="test-crud-functions.js"></script>
-    <script src="test-data-generator.js"></script>
-    <!-- Debug script (optional) -->
-    <script src="debug-data-loading.js"></script>
-    <!-- Assign workers script (optional) -->
-    <script src="assign-workers-to-farm.js"></script>
-    <!-- Create team allocations script (optional) -->
-    <script src="create-team-allocations.js"></script>
-    <script src="js/appRouter.js"></script>
+    <script src="js/export-utils.js"></script>
+    
+    <!-- Offline PWA Scripts -->
+    <script src="js/offline-storage.js"></script>
+    <script src="js/offline-sync.js"></script>
+    <script src="js/offline-detector.js"></script>
+    <script src="js/data-validation.js"></script>
+    <script src="js/offline-helpers.js"></script>
+    
+    <!-- Role-Based Menu Scripts -->
+    <script src="js/role-menu-config.js"></script>
+    <script src="js/menu-filter.js"></script>
+    
+    <script src="js/appRouter.js?v=20260107b"></script>
     <script src="js/app.js"></script>
 
     <script>
+        // Ensure Bootstrap tabs work even in sandboxed preview environments by manually triggering Tab.show
+        (function ensureBootstrapTabsWork() {
+            if (typeof bootstrap === 'undefined' || !bootstrap.Tab) return;
+            let bound = false;
+            const bind = () => {
+                if (bound) return;
+                bound = true;
+                document.addEventListener('click', function (e) {
+                    const toggleEl = e.target.closest('a[data-bs-toggle="tab"], button[data-bs-toggle="tab"]');
+                    if (!toggleEl) return;
+                    // Prevent default only for anchors to avoid page jump
+                    if (toggleEl.tagName === 'A') e.preventDefault();
+                    try {
+                        const instance = bootstrap.Tab.getOrCreateInstance(toggleEl);
+                        instance.show();
+                    } catch (err) {
+                        console.warn('[Tabs] Fallback activation failed:', err);
+                    }
+                }, true);
+            };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bind);
+            } else {
+                bind();
+            }
+        })();
+
+        // Service Worker registration temporarily disabled to stabilize local/preview behavior
+        (function () {
+            const originStr = typeof location !== 'undefined' ? String(location.origin) : '';
+            const isVsCodeWebview = originStr.startsWith('vscode-webview://');
+            const isLocalDev = /localhost|127\.0\.0\.1/.test(location.hostname);
+            const disableParam = new URLSearchParams(location.search).get('disableSW') === '1';
+
+            // Always unregister in local/sandbox/webview or when explicitly disabled
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations()
+                    .then(regs => regs.forEach(r => r.unregister()))
+                    .catch(() => {});
+            }
+            console.log('[PWA] Service Worker registration disabled (local/dev).');
+        })();
+
         // Initialize application
         document.addEventListener('DOMContentLoaded', function () {
+            // Emergency: ensure ESC always force-closes stuck modals/backdrops
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && typeof window.forceCloseAllModals === 'function') {
+                    try { window.forceCloseAllModals(); } catch (err) { console.warn('ESC panic close failed', err); }
+                }
+            }, true);
+
+            // Initialize offline services first
+            if (typeof offlineDetector !== 'undefined') {
+                offlineDetector.init();
+            }
+            
+            if (typeof offlineSync !== 'undefined') {
+                offlineSync.init();
+            }
+
             // Check authentication first
             const isAuthenticated = (typeof dataFunctions !== 'undefined' && dataFunctions.isAuthenticated()) ||
                 (typeof authService !== 'undefined' && authService.isAuthenticated());
@@ -608,6 +843,40 @@
 
             // Load and display user information
             updateUserDisplay();
+
+            // Initialize role-based menu filtering
+            if (typeof menuFilter !== 'undefined') {
+                // Wait a bit for DOM to be ready
+                setTimeout(() => {
+                    menuFilter.init();
+                }, 500);
+            }
+
+            // Ensure User Management menu is collapsed by default
+            const userManagementCollapse = document.getElementById('userManagementCollapse');
+            if (userManagementCollapse) {
+                // Remove 'show' class if it exists (ensures collapsed state)
+                userManagementCollapse.classList.remove('show');
+                // Ensure aria-expanded is false
+                const userManagementToggle = document.querySelector('[data-bs-target="#userManagementCollapse"]');
+                if (userManagementToggle) {
+                    userManagementToggle.setAttribute('aria-expanded', 'false');
+                }
+            }
+
+            // Ensure User Management menu is positioned correctly before System Administration
+            // This ensures the order is maintained across all modules
+            const systemAdminItem = document.getElementById('systemAdminMenuItem');
+            const userManagementItem = document.getElementById('userManagementMenuItem');
+            if (systemAdminItem && userManagementItem) {
+                // Verify order - User Management should come before System Administration
+                const userManagementNextSibling = userManagementItem.nextElementSibling;
+                if (userManagementNextSibling !== systemAdminItem) {
+                    // If order is wrong, move User Management to be directly before System Administration
+                    systemAdminItem.insertAdjacentElement('beforebegin', userManagementItem);
+                    console.log('[Sidebar] Fixed User Management menu position - now before System Administration');
+                }
+            }
         });
 
         /**
@@ -643,8 +912,110 @@
                 // Update role display
                 const roleDisplay = document.getElementById('userRoleDisplay');
                 if (roleDisplay) {
-                    const roleName = user.role_name || user.role || 'User';
-                    roleDisplay.textContent = roleName;
+                    // Function to update role display
+                    const updateRoleDisplay = (roleName) => {
+                        if (!roleName) {
+                            roleName = 'User';
+                        }
+                        
+                        roleDisplay.textContent = roleName;
+                        
+                        // Add a badge or styling based on role type
+                        if (roleName.startsWith('PWA ')) {
+                            roleDisplay.className = 'badge bg-info text-white';
+                        } else if (roleName === 'admin' || roleName === 'super_user') {
+                            roleDisplay.className = 'badge bg-success text-white';
+                        } else {
+                            roleDisplay.className = 'text-muted';
+                        }
+                    };
+                    
+                    // Get role name from user object - check multiple possible fields
+                    let roleName = null;
+                    
+                    // Try different possible locations for role information
+                    if (user.role_name) {
+                        roleName = user.role_name;
+                    } else if (user.role) {
+                        // If role is a string, use it directly
+                        if (typeof user.role === 'string') {
+                            roleName = user.role;
+                        } 
+                        // If role is an object, extract the name
+                        else if (typeof user.role === 'object' && user.role !== null) {
+                            roleName = user.role.role_name || user.role.name || null;
+                        }
+                    }
+                    
+                    // If we found a role, display it immediately
+                    if (roleName) {
+                        updateRoleDisplay(roleName);
+                    } else {
+                        // No role found in user object, try to fetch it
+                        updateRoleDisplay('Loading...');
+                        
+                        // Try to fetch role from database
+                        if (typeof dataFunctions !== 'undefined') {
+                            // First, try to get current user's full info
+                            const userId = user.id || user.user_id;
+                            if (userId) {
+                                setTimeout(async () => {
+                                    try {
+                                        // Try to get user by ID to get full role info
+                                        const userData = await dataFunctions.getUserById(userId);
+                                        if (userData && userData.role_name) {
+                                            // Update localStorage with role_name
+                                            user.role_name = userData.role_name;
+                                            localStorage.setItem('user_info', JSON.stringify(user));
+                                            updateRoleDisplay(userData.role_name);
+                                            return;
+                                        }
+                                        
+                                        // If that doesn't work, try fetching from roles list
+                                        if (user.role_id) {
+                                            const roles = await dataFunctions.getRoles();
+                                            if (roles && Array.isArray(roles)) {
+                                                const userRole = roles.find(r => r.id === user.role_id);
+                                                if (userRole && userRole.role_name) {
+                                                    // Update localStorage with role_name
+                                                    user.role_name = userRole.role_name;
+                                                    localStorage.setItem('user_info', JSON.stringify(user));
+                                                    updateRoleDisplay(userRole.role_name);
+                                                    return;
+                                                }
+                                            }
+                                        }
+                                        
+                                        // If still no role found, check if user is in users list
+                                        const users = await dataFunctions.getUsers();
+                                        if (users && Array.isArray(users)) {
+                                            const currentUser = users.find(u => u.id === userId || u.email === user.email);
+                                            if (currentUser) {
+                                                const foundRole = currentUser.role_name || currentUser.role;
+                                                if (foundRole) {
+                                                    // Update localStorage with role_name
+                                                    user.role_name = foundRole;
+                                                    localStorage.setItem('user_info', JSON.stringify(user));
+                                                    updateRoleDisplay(foundRole);
+                                                    return;
+                                                }
+                                            }
+                                        }
+                                        
+                                        // If all else fails, show 'User'
+                                        updateRoleDisplay('User');
+                                    } catch (error) {
+                                        console.warn('Could not fetch role name:', error);
+                                        updateRoleDisplay('User');
+                                    }
+                                }, 200);
+                            } else {
+                                updateRoleDisplay('User');
+                            }
+                        } else {
+                            updateRoleDisplay('User');
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error loading user info:', error);

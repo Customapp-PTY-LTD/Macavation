@@ -1,0 +1,8 @@
+.map-select {
+    min-width: 220px;
+}
+
+#previewTable th, #previewTable td {
+    white-space: nowrap;
+}
+*** End Patch***  }>>

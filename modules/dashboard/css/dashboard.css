@@ -4,25 +4,6 @@
     padding: 0;
 }
 
-/* Farm Selector */
-#farmSelector {
-    border-color: var(--phoenix-border-color);
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
-    transition: all 0.3s ease;
-}
-
-#farmSelector:focus {
-    border-color: var(--phoenix-primary);
-    box-shadow: 0 0 0 0.2rem rgba(var(--phoenix-primary-rgb), 0.25);
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
-}
-
-#farmSelector option {
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
-}
 
 /* Stats Cards */
 .stat-card {

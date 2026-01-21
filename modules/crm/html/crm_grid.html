@@ -1,0 +1,606 @@
+<!-- CRM Grid Module -->
+<div class="module-content">
+    <!-- Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Contact Database Management</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-success me-2" id="importContactsBtn">
+                <i class="fas fa-file-excel me-1"></i>Import from Excel
+            </button>
+            <button type="button" class="btn btn-primary" id="addContactBtn">
+                <i class="fas fa-plus me-1"></i>Add Contact
+            </button>
+        </div>
+    </div>
+
+    <!-- Contact Type Tabs -->
+    <ul class="nav nav-tabs mb-4" id="contactTypeTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="nis-suppliers-tab" data-bs-toggle="tab" data-bs-target="#nis-suppliers" type="button" role="tab" data-contact-type="nis_supplier">
+                <i class="fas fa-seedling me-2"></i>NIS Suppliers
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="oil-processors-tab" data-bs-toggle="tab" data-bs-target="#oil-processors" type="button" role="tab" data-contact-type="oil_processor">
+                <i class="fas fa-oil-can me-2"></i>Oil Processors
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="kernel-customers-tab" data-bs-toggle="tab" data-bs-target="#kernel-customers" type="button" role="tab" data-contact-type="kernel_customer">
+                <i class="fas fa-shopping-cart me-2"></i>Kernel Customers
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="contactTypeTabContent">
+        <!-- NIS Suppliers Tab -->
+        <div class="tab-pane fade show active" id="nis-suppliers" role="tabpanel">
+            <div id="nisSuppliersContent">
+                            <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#nisFiltersCollapse">
+                                <i class="fas fa-filter me-1"></i>Filters
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="nisFiltersCollapse">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="nisFilterProvince" class="form-label">Province</label>
+                                    <select id="nisFilterProvince" class="form-select">
+                                        <option value="">All Provinces</option>
+                                        <option value="Mpumalanga">Mpumalanga</option>
+                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                        <option value="Limpopo">Limpopo</option>
+                                        <option value="Western Cape">Western Cape</option>
+                                        <option value="Eastern Cape">Eastern Cape</option>
+                                        <option value="Gauteng">Gauteng</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="nisFilterStatus" class="form-label">Status</label>
+                                    <select id="nisFilterStatus" class="form-select">
+                                        <option value="">All Statuses</option>
+                                        <option value="active">Active (Current)</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="nisSearchInput" class="form-label">Search</label>
+                                    <input type="text" id="nisSearchInput" class="form-control" placeholder="Search supplier name, contact, area...">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-primary me-2" id="nisApplyFiltersBtn">
+                                        <i class="fas fa-search me-1"></i>Apply Filters
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="nisClearFiltersBtn">
+                                        <i class="fas fa-times me-1"></i>Clear Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NIS Suppliers Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="nisSuppliersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Supplier Name</th>
+                                        <th>Province</th>
+                                        <th>Area</th>
+                                        <th>Contact #1</th>
+                                        <th>Contact #2</th>
+                                        <th>Cell #1</th>
+                                        <th>Cell #2</th>
+                                        <th>Email #1</th>
+                                        <th>Email #2</th>
+                                        <th>Status</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="nisSuppliersTableBody">
+                                    <!-- NIS Suppliers will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Oil Processors Tab -->
+        <div class="tab-pane fade" id="oil-processors" role="tabpanel">
+            <div id="oilProcessorsContent">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#oilFiltersCollapse">
+                                <i class="fas fa-filter me-1"></i>Filters
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="oilFiltersCollapse">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="oilFilterProvince" class="form-label">Province</label>
+                                    <select id="oilFilterProvince" class="form-select">
+                                        <option value="">All Provinces</option>
+                                        <option value="Mpumalanga">Mpumalanga</option>
+                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                        <option value="Limpopo">Limpopo</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="oilSearchInput" class="form-label">Search</label>
+                                    <input type="text" id="oilSearchInput" class="form-control" placeholder="Search processor name, contact...">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-primary me-2" id="oilApplyFiltersBtn">
+                                        <i class="fas fa-search me-1"></i>Apply Filters
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="oilClearFiltersBtn">
+                                        <i class="fas fa-times me-1"></i>Clear Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Oil Processors Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="oilProcessorsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Processor Name</th>
+                                        <th>Province</th>
+                                        <th>Area</th>
+                                        <th>Contact #1</th>
+                                        <th>Contact #2</th>
+                                        <th>Cell #1</th>
+                                        <th>Cell #2</th>
+                                        <th>Email #1</th>
+                                        <th>Email #2</th>
+                                        <th>Crude Kernel Rate/kg</th>
+                                        <th>Food Kernel Rate/kg</th>
+                                        <th>Kernel Dust Rate/kg</th>
+                                        <th>Cracker Dust Rate/kg</th>
+                                        <th>Crush Rate/kg</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="oilProcessorsTableBody">
+                                    <!-- Oil Processors will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kernel Customers Tab -->
+        <div class="tab-pane fade" id="kernel-customers" role="tabpanel">
+            <div id="kernelCustomersContent">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#customerFiltersCollapse">
+                                <i class="fas fa-filter me-1"></i>Filters
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="customerFiltersCollapse">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="customerFilterProvince" class="form-label">Province</label>
+                                    <select id="customerFilterProvince" class="form-select">
+                                        <option value="">All Provinces</option>
+                                        <option value="Western Cape">Western Cape</option>
+                                        <option value="Eastern Cape">Eastern Cape</option>
+                                        <option value="Gauteng">Gauteng</option>
+                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                        <option value="Mpumalanga">Mpumalanga</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="customerSearchInput" class="form-label">Search</label>
+                                    <input type="text" id="customerSearchInput" class="form-control" placeholder="Search customer name, contact...">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-primary me-2" id="customerApplyFiltersBtn">
+                                        <i class="fas fa-search me-1"></i>Apply Filters
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="customerClearFiltersBtn">
+                                        <i class="fas fa-times me-1"></i>Clear Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kernel Customers Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="kernelCustomersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Customer Name</th>
+                                        <th>Province</th>
+                                        <th>Area</th>
+                                        <th>Contact #1</th>
+                                        <th>Cell #1</th>
+                                        <th>Email #1</th>
+                                        <th>Preferred Styles</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kernelCustomersTableBody">
+                                    <!-- Kernel Customers will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Contacts Modal -->
+<div class="modal fade" id="importContactsModal" tabindex="-1" aria-labelledby="importContactsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="importContactsModalLabel">Import Contacts from Excel</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="importAllSheets">
+                    <label class="form-check-label" for="importAllSheets">
+                        Import all 3 sheets from one workbook (NIS Suppliers, Oil Processors, Kernel Customers)
+                    </label>
+                    <div class="form-text">If enabled, the Contact Type dropdown is ignored and we auto-detect sheet names.</div>
+                </div>
+                <div class="mb-3">
+                    <label for="importContactType" class="form-label required">Contact Type</label>
+                    <select class="form-select" id="importContactType" required>
+                        <option value="">Select Type</option>
+                        <option value="nis_supplier">NIS Suppliers</option>
+                        <option value="oil_processor">Oil Processors</option>
+                        <option value="kernel_customer">Kernel Customers</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="importExcelFile" class="form-label required">Excel File</label>
+                    <input type="file" class="form-control" id="importExcelFile" accept=".xlsx,.xls" required>
+                    <small class="form-text text-muted">Upload a single Excel file. If it contains multiple sheets, you can import all at once.</small>
+                </div>
+                <div id="importPreview" class="mt-3" style="display: none;">
+                    <h6>Preview (first 5 rows):</h6>
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm table-bordered" id="importPreviewTable">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="processImportBtn" disabled>
+                    <i class="fas fa-upload me-1"></i>Import Contacts
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Contact Modal -->
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactModalLabel">Add New Contact</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="contactTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">
+                            Details
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="communications-tab" data-bs-toggle="tab" data-bs-target="#communications" type="button" role="tab">
+                            Communications
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="quotes-tab" data-bs-toggle="tab" data-bs-target="#quotes" type="button" role="tab">
+                            Quotes
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab">
+                            Orders
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="contactTabContent">
+                    <div class="tab-pane fade show active" id="details" role="tabpanel">
+                        <form id="contactForm" class="mt-3">
+                            <input type="hidden" id="contactId">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-section">
+                                        <h5>Basic Information</h5>
+                                        <div class="mb-3">
+                                            <label for="contactType" class="form-label required">Contact Type</label>
+                                            <select class="form-select" id="contactType" required>
+                                                <option value="">Select Type</option>
+                                                <option value="nis_supplier">NIS Supplier</option>
+                                                <option value="oil_processor">Oil Processor</option>
+                                                <option value="kernel_customer">Kernel Customer</option>
+                                                <option value="customer">Customer (Legacy)</option>
+                                                <option value="supplier">Supplier (Legacy)</option>
+                                                <option value="both">Both (Legacy)</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="companyName" class="form-label required">Company Name</label>
+                                            <input type="text" class="form-control" id="companyName" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="tradingName" class="form-label">Trading Name</label>
+                                            <input type="text" class="form-control" id="tradingName">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="status" class="form-label required">Status</label>
+                                            <select class="form-select" id="status" required>
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                                <option value="prospect">Prospect</option>
+                                                <option value="suspended">Suspended</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="keyAccount">
+                                                <label class="form-check-label" for="keyAccount">
+                                                    Key Account
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-section">
+                                        <h5>Primary Contact Person</h5>
+                                        <div class="mb-3">
+                                            <label for="primaryContactName" class="form-label">Full Name</label>
+                                            <input type="text" class="form-control" id="primaryContactName">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="primaryContactTitle" class="form-label">Title</label>
+                                            <input type="text" class="form-control" id="primaryContactTitle">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="primaryContactEmail" class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="primaryContactEmail">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="primaryContactPhone" class="form-label">Phone</label>
+                                            <input type="tel" class="form-control" id="primaryContactPhone">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="primaryContactMobile" class="form-label">Mobile</label>
+                                            <input type="tel" class="form-control" id="primaryContactMobile">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="primaryContactBirthday" class="form-label">Birthday</label>
+                                            <input type="date" class="form-control" id="primaryContactBirthday">
+                                            <small class="form-text text-muted">For birthday reminders</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-section">
+                                        <h5>Secondary Contact Person (Contact #2)</h5>
+                                        <div class="mb-3">
+                                            <label for="secondaryContactName" class="form-label">Full Name</label>
+                                            <input type="text" class="form-control" id="secondaryContactName">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="secondaryContactPhone" class="form-label">Phone #2</label>
+                                            <input type="tel" class="form-control" id="secondaryContactPhone">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="secondaryContactMobile" class="form-label">Cell #2</label>
+                                            <input type="tel" class="form-control" id="secondaryContactMobile">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="secondaryContactEmail" class="form-label">Email #2</label>
+                                            <input type="email" class="form-control" id="secondaryContactEmail">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-section" id="oilProcessorRatesSection" style="display: none;">
+                                        <h5>Oil Processor Rates (R/kg)</h5>
+                                        <div class="mb-3">
+                                            <label for="rateCrudeKernel" class="form-label">Crude Kernel Rate</label>
+                                            <input type="number" class="form-control" id="rateCrudeKernel" step="0.01" placeholder="0.00">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rateFoodKernel" class="form-label">Food Kernel Rate</label>
+                                            <input type="number" class="form-control" id="rateFoodKernel" step="0.01" placeholder="0.00">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rateKernelDust" class="form-label">Kernel Dust Rate</label>
+                                            <input type="number" class="form-control" id="rateKernelDust" step="0.01" placeholder="0.00">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rateCrackerDust" class="form-label">Cracker Dust Rate</label>
+                                            <input type="number" class="form-control" id="rateCrackerDust" step="0.01" placeholder="0.00">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rateCrush" class="form-label">Crush Rate</label>
+                                            <input type="number" class="form-control" id="rateCrush" step="0.01" placeholder="0.00">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-section">
+                                        <h5>Business Information</h5>
+                                        <div class="mb-3">
+                                            <label for="registrationNumber" class="form-label">Registration Number</label>
+                                            <input type="text" class="form-control" id="registrationNumber">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="vatNumber" class="form-label">VAT Number</label>
+                                            <input type="text" class="form-control" id="vatNumber">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="accountManagerId" class="form-label">Account Manager</label>
+                                            <select class="form-select" id="accountManagerId">
+                                                <option value="">Select Account Manager</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="creditLimit" class="form-label">Credit Limit (ZAR)</label>
+                                            <input type="number" class="form-control" id="creditLimit" step="0.01">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="paymentTerms" class="form-label">Payment Terms (Days)</label>
+                                            <input type="number" class="form-control" id="paymentTerms" value="30">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-section">
+                                        <h5>Physical Address</h5>
+                                        <div class="mb-3">
+                                            <label for="physicalAddressLine1" class="form-label">Address Line 1</label>
+                                            <input type="text" class="form-control" id="physicalAddressLine1">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="physicalAddressLine2" class="form-label">Address Line 2</label>
+                                            <input type="text" class="form-control" id="physicalAddressLine2">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="physicalArea" class="form-label">Area</label>
+                                            <input type="text" class="form-control" id="physicalArea" placeholder="e.g., White River, Port Edward">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="physicalCity" class="form-label">City</label>
+                                            <input type="text" class="form-control" id="physicalCity">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="physicalProvince" class="form-label">Province</label>
+                                            <select class="form-select" id="physicalProvince">
+                                                <option value="">Select Province</option>
+                                                <option value="Eastern Cape">Eastern Cape</option>
+                                                <option value="Free State">Free State</option>
+                                                <option value="Gauteng">Gauteng</option>
+                                                <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                                <option value="Limpopo">Limpopo</option>
+                                                <option value="Mpumalanga">Mpumalanga</option>
+                                                <option value="Northern Cape">Northern Cape</option>
+                                                <option value="North West">North West</option>
+                                                <option value="Western Cape">Western Cape</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="physicalPostalCode" class="form-label">Postal Code</label>
+                                            <input type="text" class="form-control" id="physicalPostalCode">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-section" id="kernelCustomerPreferencesSection" style="display: none;">
+                                        <h5>Kernel Customer Preferences</h5>
+                                        <div class="mb-3">
+                                            <label for="preferredStyles" class="form-label">Preferred Styles</label>
+                                            <input type="text" class="form-control" id="preferredStyles" placeholder="e.g., Style A, Style B, Style C">
+                                            <small class="form-text text-muted">Enter preferred kernel styles separated by commas</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="notes" class="form-label">Notes</label>
+                                        <textarea class="form-control" id="notes" rows="4"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="tab-pane fade" id="communications" role="tabpanel">
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-primary mb-3" onclick="crmGrid.addCommunication()">
+                                <i class="fas fa-plus me-1"></i>Log Communication
+                            </button>
+                            <div id="communicationsList">
+                                <!-- Communications will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="quotes" role="tabpanel">
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-primary mb-3" onclick="crmGrid.createQuote()">
+                                <i class="fas fa-plus me-1"></i>Create Quote
+                            </button>
+                            <div id="quotesList">
+                                <!-- Quotes will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="orders" role="tabpanel">
+                        <div class="mt-3">
+                            <div id="ordersList">
+                                <!-- Orders will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveContactBtn">
+                    <i class="fas fa-save me-1"></i>Save Contact
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+

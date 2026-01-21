@@ -296,23 +296,85 @@ var _common = {
     // Wait for dataFunctions to be available
     waitForDataFunctions: async function (maxRetries = 50, delay = 100) {
         for (let i = 0; i < maxRetries; i++) {
-            if (typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getFarms === 'function') {
+            if (typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getContacts === 'function') {
                 return dataFunctions;
             }
             await new Promise(resolve => setTimeout(resolve, delay));
         }
         throw new Error('dataFunctions not available after waiting');
+    },
+
+    /**
+     * Safely call a dataFunctions method with authentication error handling
+     * @param {Function} dataFunction - The dataFunctions method to call
+     * @param {*} defaultValue - Default value to return on authentication error
+     * @param {string} authMessage - Message to show on authentication error
+     * @returns {Promise<*>} The result or defaultValue on auth error
+     */
+    safeDataCall: async function (dataFunction, defaultValue = null, authMessage = 'Please log in to access this data') {
+        try {
+            return await dataFunction();
+        } catch (error) {
+            // Handle authentication errors gracefully
+            if (error.message && (error.message.includes('token') || error.message.includes('Unauthorized') || error.status === 401)) {
+                console.warn('Authentication required:', authMessage);
+                return defaultValue;
+            }
+            // Re-throw other errors
+            throw error;
+        }
+    },
+
+    /**
+     * Force-close any stuck Bootstrap modals/backdrops and restore page scroll.
+     * This is a safety hatch for cases where a modal fails to close cleanly and leaves the UI "dark".
+     */
+    forceCloseAllModals: function () {
+        try {
+            // Close via Bootstrap API if available
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                document.querySelectorAll('.modal').forEach((modalEl) => {
+                    const instance = bootstrap.Modal.getInstance(modalEl);
+                    if (instance) {
+                        try { instance.hide(); } catch (e) { /* ignore */ }
+                    }
+                });
+            }
+
+            // Hard cleanup: hide any visible modals
+            document.querySelectorAll('.modal.show').forEach((modalEl) => {
+                modalEl.classList.remove('show');
+                modalEl.style.display = 'none';
+                modalEl.setAttribute('aria-hidden', 'true');
+            });
+
+            // Remove backdrops
+            document.querySelectorAll('.modal-backdrop').forEach((bd) => bd.remove());
+
+            // Restore body state
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        } catch (e) {
+            console.warn('[Common] forceCloseAllModals failed:', e);
+        }
     }
 };
 
 // Make _common available globally
 window._common = _common;
 const common = _common;
+// Provide a simple global alias for emergency cleanup
+window.forceCloseAllModals = function () {
+    if (window._common && typeof window._common.forceCloseAllModals === 'function') {
+        window._common.forceCloseAllModals();
+    }
+};
 
 // Also add waitForDataFunctions as a standalone global function for convenience
 window.waitForDataFunctions = async function (maxRetries = 50, delay = 100) {
     for (let i = 0; i < maxRetries; i++) {
-        if (typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getFarms === 'function') {
+        if (typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getContacts === 'function') {
             return dataFunctions;
         }
         await new Promise(resolve => setTimeout(resolve, delay));

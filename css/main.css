@@ -1,4 +1,4 @@
-/* FruitLive Farm Management - Theme System */
+/* Macavation Premium Macadamia Management System - Theme System */
 
 /* ============================================
    BASE CSS VARIABLES (Default: Irrigation Blue)
@@ -121,6 +121,15 @@ body {
     background-color: var(--phoenix-body-bg);
     color: var(--phoenix-text-color);
     line-height: 1.6;
+}
+
+/* Global Typography - Ensure consistent fonts across all modules */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6,
+.card-title, .modal-title, .page-title,
+.module-title, .section-title {
+    font-family: 'Tahoma', sans-serif !important;
+    font-weight: 600;
 }
 
 .mt-navbar {

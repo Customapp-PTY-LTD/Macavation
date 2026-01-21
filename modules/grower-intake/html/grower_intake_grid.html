@@ -1,0 +1,72 @@
+<!-- Grower Intake Grid Module -->
+<div class="module-content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Grower Intake Management</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-primary" id="addSampleBtn">
+                <i class="fas fa-plus me-1"></i>New Sample Submission
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="exportSamplesBtn" onclick="growerIntakeGrid.exportSamples()">
+                <i class="fas fa-download me-1"></i>Export
+            </button>
+        </div>
+    </div>
+    
+    <!-- Search and Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="searchSamplesInput" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="searchSamplesInput" placeholder="Search by submission number, grower, or status...">
+                </div>
+                <div class="col-md-3">
+                    <label for="filterSampleStatus" class="form-label">Status</label>
+                    <select class="form-select" id="filterSampleStatus">
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="testing">Testing</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="main_run_issued">Main Run Issued</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filterSampleDate" class="form-label">Date Range</label>
+                    <select class="form-select" id="filterSampleDate">
+                        <option value="">All Dates</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" id="clearSampleFiltersBtn">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="samplesTable">
+                    <thead>
+                        <tr>
+                            <th>Submission Number</th>
+                            <th>Grower</th>
+                            <th>Delivery Date</th>
+                            <th>Wet NIS (kg)</th>
+                            <th>Moisture %</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="samplesTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

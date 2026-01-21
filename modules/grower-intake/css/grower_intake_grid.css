@@ -1,0 +1,4 @@
+/* Grower Intake Grid Module Styles */
+.module-content { min-height: 400px; }
+#samplesTable th { border-top: none; font-weight: 600; }
+

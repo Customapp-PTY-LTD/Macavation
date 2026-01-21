@@ -2,7 +2,7 @@ var _appRouter = function () {
     return {
         version: '2.01',
         routeConfigPath: './js/appRouteConfig.json',
-        baseScripts: ['js/data-functions.js', 'js/farm-selector-utils.js'],
+        baseScripts: ['js/data-functions.js'],
         //--Set in the appRouteConfig.json
         SupabaseUrl: "",
         LambdaProxyUrl: "",
@@ -146,6 +146,33 @@ var _appRouter = function () {
                     return { success: false, errors: ['Authentication required'] };
                 }
 
+                // Role-based menu access check (currently disabled - all users have access)
+                // To re-enable role-based access, uncomment the code below:
+                /*
+                if (typeof roleMenuConfig !== 'undefined') {
+                    const hasAccess = roleMenuConfig.hasAccess(routeName);
+                    if (!hasAccess) {
+                        console.log(`[App Router] Access denied for route: ${routeName}`);
+                        // Show permission error
+                        const contentArea = document.getElementById('content-area');
+                        if (contentArea) {
+                            contentArea.innerHTML = `
+                                <div class="alert alert-warning" role="alert">
+                                    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Access Denied</h4>
+                                    <p>You do not have permission to access this module.</p>
+                                    <hr>
+                                    <p class="mb-0">Redirecting to dashboard...</p>
+                                </div>
+                            `;
+                            setTimeout(() => {
+                                _appRouter.routeTo('dashboard');
+                            }, 3000);
+                        }
+                        return { success: false, errors: ['Insufficient permissions'] };
+                    }
+                }
+                */
+
                 // Check if this is a user management module
                 const userManagementModules = ['users-grid', 'roles-grid', 'role-permissions-grid', 'role-features-grid'];
 
@@ -161,11 +188,11 @@ var _appRouter = function () {
                                     <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Access Denied</h4>
                                     <p>You need admin or manager role to access user management.</p>
                                     <hr>
-                                    <p class="mb-0">Redirecting to users grid...</p>
+                                    <p class="mb-0">Redirecting to dashboard...</p>
                                 </div>
                             `;
                             setTimeout(() => {
-                                _appRouter.routeTo('users-grid');
+                                _appRouter.routeTo('dashboard');
                             }, 3000);
                         }
                         return { success: false, errors: ['Insufficient permissions'] };
@@ -213,6 +240,11 @@ var _appRouter = function () {
 
             content = content.replace(/{basePath}/g, resoucePath);
 
+            // Safety: if a modal/backdrop got stuck on the previous screen, clear it before rendering new content
+            if (window._common && typeof window._common.forceCloseAllModals === 'function') {
+                window._common.forceCloseAllModals();
+            }
+
             $(elementSelector).html(content);
 
             //load js
@@ -246,9 +278,9 @@ var _appRouter = function () {
                         initializeDashboard();
                     }
                 },
-                'labour-grid': () => {
-                    if (typeof initializeLabourGrid === 'function') {
-                        initializeLabourGrid();
+                'my-day': () => {
+                    if (typeof initializeMyDay === 'function') {
+                        initializeMyDay();
                     }
                 },
                 'users-grid': () => {
@@ -266,36 +298,6 @@ var _appRouter = function () {
                         initializeRolePermissionsGrid();
                     }
                 },
-                'compliance-grid': () => {
-                    if (typeof initializeComplianceGrid === 'function') {
-                        initializeComplianceGrid();
-                    }
-                },
-                'chemicals-grid': () => {
-                    if (typeof initializeChemicalsGrid === 'function') {
-                        initializeChemicalsGrid();
-                    }
-                },
-                'crops-grid': () => {
-                    if (typeof initializeCropsGrid === 'function') {
-                        initializeCropsGrid();
-                    }
-                },
-                'assets-grid': () => {
-                    if (typeof initializeAssetsGrid === 'function') {
-                        initializeAssetsGrid();
-                    }
-                },
-                'postharvest-grid': () => {
-                    if (typeof initializePostharvestGrid === 'function') {
-                        initializePostharvestGrid();
-                    }
-                },
-                'water-grid': () => {
-                    if (typeof initializeWaterGrid === 'function') {
-                        initializeWaterGrid();
-                    }
-                },
                 'admin-grid': () => {
                     if (typeof initializeAdminGrid === 'function') {
                         initializeAdminGrid();
@@ -306,29 +308,69 @@ var _appRouter = function () {
                         initializeRoleFeaturesGrid();
                     }
                 },
-                'companies-grid': () => {
-                    if (typeof initializeCompaniesGrid === 'function') {
-                        initializeCompaniesGrid();
+                'crm-grid': () => {
+                    if (typeof initializeCrmGrid === 'function') {
+                        initializeCrmGrid();
                     }
                 },
-                'drivers-grid': () => {
-                    if (typeof initializeDriversGrid === 'function') {
-                        initializeDriversGrid();
+                'grower-intake-grid': () => {
+                    if (typeof initializeGrowerIntakeGrid === 'function') {
+                        initializeGrowerIntakeGrid();
                     }
                 },
-                'vehicles-grid': () => {
-                    if (typeof initializeVehiclesGrid === 'function') {
-                        initializeVehiclesGrid();
+                'kernel-production-grid': () => {
+                    if (typeof initializeKernelProductionGrid === 'function') {
+                        initializeKernelProductionGrid();
                     }
                 },
-                'inspections-grid': () => {
-                    if (typeof initializeInspectionsGrid === 'function') {
-                        initializeInspectionsGrid();
+                'data-import-grid': () => {
+                    if (typeof initializeDataImportGrid === 'function') {
+                        initializeDataImportGrid();
                     }
                 },
-                'inspection-form': () => {
-                    if (typeof initializeInspectionForm === 'function') {
-                        initializeInspectionForm();
+                'quality-assurance-grid': () => {
+                    if (typeof initializeQualityAssuranceGrid === 'function') {
+                        initializeQualityAssuranceGrid();
+                    }
+                },
+                'stock-management-grid': () => {
+                    if (typeof initializeStockManagementGrid === 'function') {
+                        initializeStockManagementGrid();
+                    }
+                },
+                'sales-forecasting-grid': () => {
+                    if (typeof initializeSalesForecastingGrid === 'function') {
+                        initializeSalesForecastingGrid();
+                    }
+                },
+                'oil-production-grid': () => {
+                    if (typeof initializeOilProductionGrid === 'function') {
+                        initializeOilProductionGrid();
+                    }
+                },
+                'financial-management-grid': () => {
+                    if (typeof initializeFinancialManagementGrid === 'function') {
+                        initializeFinancialManagementGrid();
+                    }
+                },
+                'amanda-dashboard': () => {
+                    if (typeof initializeAmandaDashboard === 'function') {
+                        initializeAmandaDashboard();
+                    }
+                },
+                'executive-dashboard': () => {
+                    if (typeof initializeExecutiveDashboard === 'function') {
+                        initializeExecutiveDashboard();
+                    }
+                },
+                'document-management-grid': () => {
+                    if (typeof initializeDocumentManagementGrid === 'function') {
+                        initializeDocumentManagementGrid();
+                    }
+                },
+                'palladium-integration-grid': () => {
+                    if (typeof initializePalladiumIntegrationGrid === 'function') {
+                        initializePalladiumIntegrationGrid();
                     }
                 }
             };

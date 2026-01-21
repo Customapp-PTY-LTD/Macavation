@@ -1,0 +1,4 @@
+/* Sales Forecasting Grid Module Styles */
+.module-content { min-height: 400px; }
+#forecastsTable th { border-top: none; font-weight: 600; }
+

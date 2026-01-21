@@ -28,15 +28,7 @@ async function initializeDashboard() {
         // Set current date
         setCurrentDate();
         
-        // Load farms and set up farm selector first (await to ensure it's ready)
-        try {
-            await loadFarmsAndSetupSelector();
-        } catch (error) {
-            console.error('Error loading farms:', error);
-            // Continue anyway - dashboard can still work without farm selector
-        }
-        
-        // Load dashboard data (will use selected farm from selector)
+        // Load dashboard data
         try {
             await loadDashboardData();
         } catch (error) {
@@ -44,12 +36,22 @@ async function initializeDashboard() {
             // Continue with fallback data
         }
         
-        // Load components (async)
+        // Load Process-Driven Design components (Exception-First)
+        await loadExceptions();
+        await loadMetrics();
+        loadQuickActions();
+        
+        // Load legacy components (for backward compatibility)
         loadAlerts();
         loadStats();
         loadModules();
         loadRecentActivity();
-        await loadUpcomingTasks();
+        
+        // Load upcoming tasks if container exists
+        const upcomingTasksContainer = document.getElementById('upcomingTasksList');
+        if (upcomingTasksContainer) {
+            await loadUpcomingTasks();
+        }
     } catch (error) {
         console.error('Error initializing Dashboard:', error);
         // Show user-friendly error message
@@ -81,201 +83,297 @@ function setCurrentDate() {
     }
 }
 
-/**
- * Load farms and set up farm selector dropdown
- */
-async function loadFarmsAndSetupSelector() {
-    const farmSelector = document.getElementById('farmSelector');
-    if (!farmSelector) return;
-    
-    try {
-        // Check if dataFunctions is available
-        if (typeof dataFunctions === 'undefined' || !dataFunctions.getFarms) {
-            console.error('dataFunctions.getFarms is not available');
-            farmSelector.innerHTML = '<option value="">Data functions not available</option>';
-            return;
-        }
-        
-        const farmsResponse = await dataFunctions.getFarms();
-        
-        // Handle different response structures
-        let farms = farmsResponse;
-        if (farmsResponse && !Array.isArray(farmsResponse)) {
-            if (farmsResponse.farms && Array.isArray(farmsResponse.farms)) {
-                farms = farmsResponse.farms;
-            } else if (farmsResponse.data && Array.isArray(farmsResponse.data)) {
-                farms = farmsResponse.data;
-            } else if (farmsResponse.result && Array.isArray(farmsResponse.result)) {
-                farms = farmsResponse.result;
-            } else {
-                console.warn('Dashboard - Farms response is not in expected format:', farmsResponse);
-                farms = [];
-            }
-        }
-        
-        if (farms && farms.length > 0) {
-            // Clear loading message
-            farmSelector.innerHTML = '';
-            
-            // Add "All Farms" option first
-            const allFarmsOption = document.createElement('option');
-            allFarmsOption.value = 'all';
-            allFarmsOption.textContent = 'All Farms';
-            farmSelector.appendChild(allFarmsOption);
-            
-            // Populate dropdown with individual farms
-            farms.forEach(farm => {
-                const option = document.createElement('option');
-                option.value = farm.id;
-                option.textContent = farm.name;
-                farmSelector.appendChild(option);
-            });
-            
-            // Get previously selected farm from localStorage, or use "All Farms"
-            const savedFarmId = localStorage.getItem('selectedFarmId');
-            let farmToSelect = 'all'; // Default to "All Farms"
-            
-            if (savedFarmId) {
-                if (savedFarmId === 'all') {
-                    farmToSelect = 'all';
-                } else if (farms.find(f => f.id === savedFarmId)) {
-                    farmToSelect = savedFarmId;
-                }
-            }
-            
-            farmSelector.value = farmToSelect;
-            
-            // Store selected farm
-            localStorage.setItem('selectedFarmId', farmToSelect);
-            
-            // Add change event listener
-            farmSelector.addEventListener('change', function() {
-                const selectedValue = this.value;
-                localStorage.setItem('selectedFarmId', selectedValue);
-                // Reload dashboard data with new selection
-                loadDashboardData().then(() => {
-                    loadAlerts();
-                    loadStats();
-                    loadRecentActivity();
-                });
-            });
-        } else {
-            farmSelector.innerHTML = '<option value="">No farms available</option>';
-        }
-    } catch (error) {
-        console.error('Error loading farms:', error);
-        farmSelector.innerHTML = '<option value="">Error loading farms</option>';
-    }
-}
 
 /**
  * Load dashboard data from API
  */
+/**
+ * Load exceptions (Exception-First Design)
+ */
+async function loadExceptions() {
+    const container = document.getElementById('exceptionsContainer');
+    if (!container) return;
+    
+    try {
+        if (typeof anomalyDetection === 'undefined' || !anomalyDetection.getActiveAnomalies) {
+            console.error('anomalyDetection.getActiveAnomalies is not available');
+            container.innerHTML = '<div class="alert alert-info">Exception detection not available.</div>';
+            return;
+        }
+        
+        const exceptions = await anomalyDetection.getActiveAnomalies();
+        
+        if (typeof exceptionUI !== 'undefined' && exceptionUI.renderExceptionPanel) {
+            exceptionUI.renderExceptionPanel(exceptions, 'exceptionsContainer');
+        } else {
+            // Fallback rendering
+            if (exceptions && exceptions.length > 0) {
+                container.innerHTML = exceptions.map(e => `
+                    <div class="alert alert-${e.severity === 'critical' ? 'danger' : e.severity === 'warning' ? 'warning' : 'info'}">
+                        <strong>${e.title}:</strong> ${e.description}
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="alert alert-success">No exceptions at this time. All systems operating normally.</div>';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading exceptions:', error);
+        container.innerHTML = '<div class="alert alert-warning">Unable to load exceptions. Please try again later.</div>';
+    }
+}
+
+/**
+ * Load context-aware metrics
+ */
+async function loadMetrics() {
+    const container = document.getElementById('metricsContainer');
+    if (!container) return;
+    
+    try {
+        // Get KPIs and calculate metrics with context
+        const kpis = await dataFunctions.getExecutiveKPIs().catch(() => ({}));
+        const batches = await dataFunctions.getProductionBatches().catch(() => []);
+        const stockItems = await dataFunctions.getStockItems().catch(() => []);
+        
+        // Calculate metrics with context - make them clickable
+        const metrics = [
+            {
+                title: 'Active Batches',
+                value: kpis.active_batches || 0,
+                unit: 'batches',
+                target: 10, // Example target
+                current: kpis.active_batches || 0,
+                trend: 5, // Example trend
+                trendPeriod: 'vs. last week',
+                icon: 'bi-box-seam',
+                color: 'primary',
+                actionUrl: 'kernel-production-grid' // Click to view production batches
+            },
+            {
+                title: 'Quality Pass Rate',
+                value: kpis.quality_pass_rate || 0,
+                unit: '%',
+                target: 95,
+                current: kpis.quality_pass_rate || 0,
+                trend: -2, // Example trend
+                trendPeriod: 'vs. last month',
+                icon: 'bi-check-circle',
+                color: kpis.quality_pass_rate >= 95 ? 'success' : kpis.quality_pass_rate >= 80 ? 'warning' : 'danger',
+                actionUrl: 'quality-assurance-grid' // Click to view quality tests
+            },
+            {
+                title: 'Total Production',
+                value: kpis.total_production_kg || 0,
+                unit: 'kg',
+                target: 50000,
+                current: kpis.total_production_kg || 0,
+                trend: 10,
+                trendPeriod: 'vs. last month',
+                icon: 'bi-graph-up',
+                color: 'info',
+                actionUrl: 'kernel-production-grid' // Click to view production batches
+            },
+            {
+                title: 'Total Sales',
+                value: kpis.total_sales || 0,
+                unit: 'ZAR',
+                target: 1000000,
+                current: kpis.total_sales || 0,
+                trend: 8,
+                trendPeriod: 'vs. last month',
+                icon: 'bi-currency-dollar',
+                color: 'success',
+                actionUrl: 'financial-management-grid' // Click to view financial transactions
+            }
+        ];
+        
+        if (typeof metricUI !== 'undefined' && metricUI.renderMetricPanel) {
+            metricUI.renderMetricPanel(metrics, 'metricsContainer');
+        } else {
+            // Fallback rendering
+            container.innerHTML = `
+                <div class="row g-3">
+                    ${metrics.map(m => `
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h3>${m.value} ${m.unit}</h3>
+                                    <p class="text-muted mb-0">${m.title}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading metrics:', error);
+        container.innerHTML = '<div class="alert alert-warning">Unable to load metrics. Please try again later.</div>';
+    }
+}
+
+/**
+ * Load quick actions
+ */
+function loadQuickActions() {
+    const container = document.getElementById('quickActionsContainer');
+    if (!container) return;
+    
+    const quickActions = [
+        {
+            icon: 'bi-person-plus',
+            label: 'Add Contact',
+            route: 'crm-grid',
+            action: 'add',
+            color: 'primary'
+        },
+        {
+            icon: 'bi-clipboard-check',
+            label: 'Submit Sample',
+            route: 'grower-intake-grid',
+            action: 'add',
+            color: 'success'
+        },
+        {
+            icon: 'bi-box-seam',
+            label: 'New Batch',
+            route: 'kernel-production-grid',
+            action: 'add',
+            color: 'info'
+        },
+        {
+            icon: 'bi-clipboard-data',
+            label: 'Quality Test',
+            route: 'quality-assurance-grid',
+            action: 'add',
+            color: 'warning'
+        },
+        {
+            icon: 'bi-arrow-left-right',
+            label: 'Stock Movement',
+            route: 'stock-management-grid',
+            action: 'add',
+            color: 'secondary'
+        },
+        {
+            icon: 'bi-file-earmark-text',
+            label: 'Upload Document',
+            route: 'document-management-grid',
+            action: 'add',
+            color: 'dark'
+        }
+    ];
+    
+    container.innerHTML = quickActions.map(action => `
+        <div class="col-md-4 col-lg-2">
+            <button class="btn btn-${action.color} w-100 quick-action-btn" 
+                    onclick="handleQuickAction('${action.route}', '${action.action}')"
+                    style="height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+                <i class="bi ${action.icon} fs-3"></i>
+                <span>${action.label}</span>
+            </button>
+        </div>
+    `).join('');
+}
+
+/**
+ * Map of routes to their add button IDs
+ */
+const routeAddButtonMap = {
+    'crm-grid': 'addContactBtn',
+    'grower-intake-grid': 'addSampleBtn',
+    'kernel-production-grid': 'addBatchBtn',
+    'quality-assurance-grid': 'addTestBtn',
+    'stock-management-grid': 'addStockBtn',
+    'document-management-grid': 'uploadDocBtn' // Document module uses uploadDocBtn
+};
+
+/**
+ * Handle quick action - Navigate to module and trigger add functionality
+ */
+function handleQuickAction(route, action) {
+    if (typeof _appRouter === 'undefined' || !_appRouter.loadContent && !_appRouter.routeTo) {
+        console.error('AppRouter not available');
+        if (typeof _common !== 'undefined' && _common.showErrorToast) {
+            _common.showErrorToast('Unable to navigate to module');
+        }
+        return;
+    }
+
+    // Navigate to the module
+    const navigatePromise = typeof _appRouter.routeTo === 'function' 
+        ? Promise.resolve(_appRouter.routeTo(route))
+        : _appRouter.loadContent(route);
+
+    navigatePromise.then(() => {
+        // Trigger add action after route loads
+        if (action === 'add') {
+            // Use route-specific button ID if available, otherwise try common patterns
+            const buttonId = routeAddButtonMap[route];
+            let addBtn = null;
+
+            if (buttonId) {
+                // Try the mapped button ID first
+                addBtn = document.getElementById(buttonId);
+            }
+
+            // Fallback to common button IDs if mapped ID not found
+            if (!addBtn) {
+                const commonIds = [
+                    'addContactBtn',
+                    'addSampleBtn',
+                    'addBatchBtn',
+                    'addTestBtn',
+                    'addStockBtn',
+                    'addDocumentBtn',
+                    'addBtn'
+                ];
+                for (const id of commonIds) {
+                    addBtn = document.getElementById(id);
+                    if (addBtn) break;
+                }
+            }
+
+            // Last resort: try to find any button with "add" in the ID and primary class
+            if (!addBtn) {
+                addBtn = document.querySelector('[id*="add"][id*="Btn"][class*="btn-primary"]') ||
+                         document.querySelector('[id$="Btn"][class*="btn-primary"]');
+            }
+
+            if (addBtn) {
+                // Small delay to ensure module is fully initialized
+                setTimeout(() => {
+                    addBtn.click();
+                }, 300);
+            } else {
+                console.warn(`Could not find add button for route: ${route}`);
+            }
+        }
+    }).catch(error => {
+        console.error('Error navigating to module:', error);
+        if (typeof _common !== 'undefined' && _common.showErrorToast) {
+            _common.showErrorToast('Error navigating to module');
+        }
+    });
+}
+
 async function loadDashboardData() {
     try {
-        // Get selected farm ID from localStorage or selector
-        const farmSelector = document.getElementById('farmSelector');
-        const selectedValue = farmSelector?.value || localStorage.getItem('selectedFarmId') || 'all';
-        
-        // Check if "All Farms" is selected
-        if (selectedValue === 'all') {
-            // For "All Farms" view, show aggregated information
-            const farms = await dataFunctions.getFarms();
-            
-            if (farms && farms.length > 0) {
-                // Calculate totals across all farms
-                const totalHectares = farms.reduce((sum, farm) => sum + (parseFloat(farm.hectares) || 0), 0);
-                const farmCount = farms.length;
-                
-                dashboardData = {
-                    farm: {
-                        id: null,
-                        name: 'All Farms',
-                        location: `${farmCount} farm${farmCount > 1 ? 's' : ''}`,
-                        size: `${totalHectares.toLocaleString('en-ZA', {maximumFractionDigits: 0})} hectares total`,
-                        cropType: 'Portfolio View'
-                    }
-                };
-            } else {
-                dashboardData = {
-                    farm: {
-                        id: null,
-                        name: 'All Farms',
-                        location: 'No farms available',
-                        size: '0 hectares',
-                        cropType: 'Portfolio View'
-                    }
-                };
+        // Dashboard data for Macadamia Management System
+        dashboardData = {
+            company: {
+                name: 'Macavation',
+                description: 'Premium Macadamia Management System'
             }
-            
-            // Update farm selector if it exists
-            if (farmSelector) {
-                farmSelector.value = 'all';
-            }
-            
-            // Store selected value
-            localStorage.setItem('selectedFarmId', 'all');
-        } else {
-            // Single farm view
-            const farms = await dataFunctions.getFarms();
-            let selectedFarm = null;
-            
-            if (farms && farms.length > 0) {
-                selectedFarm = farms.find(f => f.id === selectedValue) || farms[0];
-            }
-            
-            if (selectedFarm) {
-                dashboardData = {
-                    farm: {
-                        id: selectedFarm.id,
-                        name: selectedFarm.name,
-                        location: selectedFarm.location || 'Location not set',
-                        size: selectedFarm.hectares ? `${selectedFarm.hectares} hectares` : 'Size not set',
-                        cropType: selectedFarm.crop_type || 'Not specified'
-                    }
-                };
-                
-                // Update farm selector if it exists
-                if (farmSelector) {
-                    farmSelector.value = selectedFarm.id;
-                }
-                
-                // Store selected farm
-                localStorage.setItem('selectedFarmId', selectedFarm.id);
-            } else {
-                // No farms available - use empty state
-                dashboardData = {
-                    farm: {
-                        name: 'No Farm Selected',
-                        location: 'Select a farm to view details',
-                        size: 'N/A',
-                        cropType: 'N/A'
-                    }
-                };
-            }
-        }
-        
-        // Update farm info display
-        const locationElement = document.getElementById('farmLocation');
-        const sizeElement = document.getElementById('farmSize');
-        
-        if (locationElement) {
-            locationElement.textContent = dashboardData.farm.location;
-        }
-        if (sizeElement) {
-            sizeElement.textContent = dashboardData.farm.size;
-        }
-        
+        };
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         showErrorMessage('Failed to load dashboard data');
-        // Use empty state on error
         dashboardData = {
-            farm: {
-                name: 'Error Loading Data',
-                location: 'Unable to load farm information',
-                size: 'N/A',
-                cropType: 'Apples & Citrus'
+            company: {
+                name: 'Macavation',
+                description: 'Premium Macadamia Management System'
             }
         };
     }
@@ -295,9 +393,7 @@ async function loadAlerts() {
             return;
         }
         
-        // Pass null for "All Farms" view, otherwise pass the farm ID
-        const farmId = dashboardData?.farm?.id || null;
-        const alerts = await dataFunctions.getDashboardAlerts(farmId);
+        const alerts = await dataFunctions.getDashboardAlerts(null);
         
         if (alerts && alerts.length > 0) {
             container.innerHTML = alerts.map(alert => {
@@ -337,9 +433,7 @@ async function loadStats() {
             return;
         }
         
-        // Pass null for "All Farms" view, otherwise pass the farm ID
-        const farmId = dashboardData?.farm?.id || null;
-        const statsData = await dataFunctions.getDashboardStats(farmId);
+        const statsData = await dataFunctions.getDashboardStats(null);
         
         const stats = [
             {
@@ -394,55 +488,79 @@ function loadModules() {
     const container = document.getElementById('modulesContainer');
     if (!container) return;
     
-    // Define available modules
+    // Define available Macavation modules
     const modules = [
         {
-            icon: 'bi-people-fill',
-            title: 'Labour Allocation',
-            description: 'Daily allocation, attendance, task tracking',
-            route: 'labour-grid'
-        },
-        {
-            icon: 'bi-clipboard-check',
-            title: 'Compliance & Audits',
-            description: 'Global GAP, Caesar audits, training certificates',
-            route: 'compliance-grid'
-        },
-        {
-            icon: 'bi-droplet-fill',
-            title: 'Chemicals',
-            description: 'Spray programs, inventory & compliance',
-            route: 'chemicals-grid'
-        },
-        {
-            icon: 'bi-graph-up',
-            title: 'Crop Monitoring',
-            description: 'Growth tracking, quality & yield forecasts',
-            route: 'crops-grid'
+            icon: 'bi-person-fill',
+            title: 'CRM',
+            description: 'Customer and supplier relationship management',
+            route: 'crm-grid'
         },
         {
             icon: 'bi-truck',
-            title: 'Asset Management',
-            description: 'Vehicles, fuel, equipment & inventory',
-            route: 'assets-grid'
+            title: 'Grower Intake',
+            description: 'Sample submissions and raw material intake',
+            route: 'grower-intake-grid'
         },
         {
             icon: 'bi-box-seam',
-            title: 'Post-Harvest',
-            description: 'Pack season data, traceability & markets',
-            route: 'postharvest-grid'
+            title: 'Kernel Production',
+            description: '17-step kernel production workflow',
+            route: 'kernel-production-grid'
         },
         {
-            icon: 'bi-water',
-            title: 'Water & Irrigation',
-            description: 'Water usage, pump meters & compliance',
-            route: 'water-grid'
+            icon: 'bi-clipboard-check',
+            title: 'Quality Assurance',
+            description: 'Quality testing and food safety',
+            route: 'quality-assurance-grid'
         },
         {
-            icon: 'bi-gear-fill',
-            title: 'System Administration',
-            description: 'Farms, users, resources & permissions',
-            route: 'admin-grid'
+            icon: 'bi-archive',
+            title: 'Stock Management',
+            description: 'Inventory tracking and stock movements',
+            route: 'stock-management-grid'
+        },
+        {
+            icon: 'bi-graph-up',
+            title: 'Sales Forecasting',
+            description: 'Sales pipeline and forecasting',
+            route: 'sales-forecasting-grid'
+        },
+        {
+            icon: 'bi-droplet-fill',
+            title: 'Oil Production',
+            description: '11-step oil production workflow',
+            route: 'oil-production-grid'
+        },
+        {
+            icon: 'bi-cash-stack',
+            title: 'Financial Management',
+            description: 'Financial transactions and accounting',
+            route: 'financial-management-grid'
+        },
+        {
+            icon: 'bi-file-earmark-text',
+            title: 'Document Management',
+            description: 'Document storage and organization',
+            route: 'document-management-grid'
+        },
+        {
+            icon: 'bi-speedometer2',
+            title: 'Amanda Dashboard',
+            description: 'Material journey tracking dashboard',
+            route: 'amanda-dashboard'
+        },
+        {
+            icon: 'bi-bar-chart',
+            title: 'Executive Dashboard',
+            description: 'Executive reporting and KPIs',
+            route: 'executive-dashboard'
+        },
+        {
+            icon: 'bi-box-arrow-right',
+            title: 'Palladium Integration',
+            description: 'ERP integration and synchronization',
+            route: 'palladium-integration-grid'
         }
     ];
     
@@ -474,17 +592,31 @@ async function loadRecentActivity() {
             return;
         }
         
-        // Pass null for "All Farms" view, otherwise pass the farm ID
-        const farmId = dashboardData?.farm?.id || null;
-        const activities = await dataFunctions.getRecentActivity(farmId, 10);
+        // Try to get recent activity, but handle authentication errors gracefully
+        let activities = [];
+        try {
+            activities = await dataFunctions.getRecentActivity(10);
+        } catch (error) {
+            // If authentication error, show empty state instead of error
+            if (error.message && error.message.includes('token')) {
+                console.warn('Authentication required for recent activity');
+                container.innerHTML = '<div class="text-center text-muted py-4"><p>Please log in to view recent activity</p></div>';
+                return;
+            }
+            throw error; // Re-throw if it's a different error
+        }
         
         if (activities && activities.length > 0) {
             const iconMap = {
-                'labour': { icon: 'bi-people-fill', class: 'success' },
-                'compliance': { icon: 'bi-shield-check', class: 'info' },
-                'chemicals': { icon: 'bi-droplet-fill', class: 'warning' },
-                'crops': { icon: 'bi-graph-up', class: 'primary' },
-                'assets': { icon: 'bi-truck', class: 'secondary' }
+                'crm': { icon: 'bi-person-fill', class: 'primary' },
+                'production': { icon: 'bi-gear-fill', class: 'info' },
+                'quality': { icon: 'bi-shield-check', class: 'success' },
+                'stock': { icon: 'bi-box-seam', class: 'warning' },
+                'sales': { icon: 'bi-graph-up', class: 'primary' },
+                'financial': { icon: 'bi-cash-stack', class: 'success' },
+                'document': { icon: 'bi-file-earmark', class: 'secondary' },
+                'grower': { icon: 'bi-truck', class: 'info' },
+                'oil': { icon: 'bi-droplet-fill', class: 'warning' }
             };
             
             container.innerHTML = activities.map(activity => {
@@ -535,42 +667,43 @@ function formatTimeAgo(timestamp) {
 }
 
 /**
- * Load and display upcoming tasks
+ * Load and display upcoming tasks (using workflow tasks from Process-Driven Design)
  */
 async function loadUpcomingTasks() {
     const container = document.getElementById('upcomingTasksList');
     if (!container) return;
     
     try {
-        if (typeof dataFunctions === 'undefined' || !dataFunctions.getUpcomingTasks) {
-            console.error('dataFunctions.getUpcomingTasks is not available');
-            container.innerHTML = '<li class="text-center text-muted py-4"><p>Unable to load tasks</p></li>';
-            return;
-        }
-        
-        // Pass null for "All Farms" view, otherwise pass the farm ID
-        const farmId = dashboardData?.farm?.id || null;
-        const tasks = await dataFunctions.getUpcomingTasks(farmId, 5);
-        
-        if (tasks && tasks.length > 0) {
-            container.innerHTML = tasks.map(task => {
-                const priority = task.priority || 'medium';
-                const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No due date';
-                
-                return `
-                    <li class="task-item">
-                        <span class="task-priority-dot priority-${priority}"></span>
-                        <strong>${task.title || 'Task'}</strong>
-                        <br><small class="text-muted">Due: ${dueDate}</small>
-                    </li>
-                `;
-            }).join('');
+        // Use workflow tasks from Process-Driven Design if available
+        if (typeof workflowViews !== 'undefined' && workflowViews.getTasksForRole) {
+            // Get current user's role (you may need to get this from auth service)
+            const userRole = 'user'; // TODO: Get from auth service
+            const tasks = await workflowViews.getTasksForRole(userRole);
+            
+            if (tasks && tasks.length > 0) {
+                const upcomingTasks = tasks.slice(0, 5); // Limit to 5
+                container.innerHTML = upcomingTasks.map(task => {
+                    const dueDate = task.scheduled_date 
+                        ? new Date(task.scheduled_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : 'No due date';
+                    
+                    return `
+                        <li class="task-item">
+                            <span class="task-priority-dot priority-medium"></span>
+                            <strong>${task.title || 'Task'}</strong>
+                            <br><small class="text-muted">Due: ${dueDate}</small>
+                        </li>
+                    `;
+                }).join('');
+            } else {
+                container.innerHTML = '<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>';
+            }
         } else {
             container.innerHTML = '<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>';
         }
     } catch (error) {
         console.error('Error loading upcoming tasks:', error);
-        container.innerHTML = '<li class="text-center text-muted py-4"><p>Unable to load tasks</p></li>';
+        container.innerHTML = '<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>';
     }
 }
 

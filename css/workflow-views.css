@@ -1,0 +1,159 @@
+/**
+ * Workflow Views Styles
+ * Implements Process-Driven Design: Role-Based Workflow Views
+ */
+
+.my-day-dashboard {
+    padding: 1rem 0;
+}
+
+.my-day-header {
+    text-align: center;
+    padding: 2rem 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.my-day-header h2 {
+    color: white;
+    font-weight: 600;
+}
+
+/* Workflow Tasks */
+.workflow-tasks {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.workflow-task {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    transition: box-shadow 0.2s;
+}
+
+.workflow-task:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.workflow-task.task-completed {
+    background: #f8f9fa;
+    opacity: 0.7;
+}
+
+.workflow-task.task-completed .task-description {
+    text-decoration: line-through;
+}
+
+.task-checkbox {
+    margin-top: 0.25rem;
+}
+
+.task-checkbox input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+}
+
+.task-content {
+    flex: 1;
+}
+
+.task-time {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.task-description {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.task-context {
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.task-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Due Items */
+.due-item {
+    padding: 0.75rem;
+    border-left: 3px solid #ffc107;
+    background: #fffbf0;
+    border-radius: 4px;
+}
+
+.due-item.overdue {
+    border-left-color: #dc3545;
+    background: #fff5f5;
+}
+
+/* Watching Items */
+.watching-item {
+    padding: 0.75rem;
+    border-left: 3px solid #0dcaf0;
+    background: #f0f9ff;
+    border-radius: 4px;
+}
+
+.trend-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+/* Activity Items */
+.activity-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-radius: 50%;
+    color: #6c757d;
+}
+
+.activity-description {
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .workflow-task {
+        flex-direction: column;
+    }
+    
+    .task-actions {
+        width: 100%;
+    }
+    
+    .task-actions .btn {
+        flex: 1;
+    }
+}
+
