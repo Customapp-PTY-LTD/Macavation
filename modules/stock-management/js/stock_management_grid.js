@@ -255,14 +255,23 @@ var _stockManagementGrid = function () {
                 });
             }
             
-            // Native modal cleanup handlers
+            // Native modal cleanup handlers and explicit close for Receiving Checklist
             const receivingModal = document.getElementById('receivingChecklistModal');
             if (receivingModal) {
                 receivingModal.addEventListener('hidden.bs.modal', function () {
                     scope.clearReceivingForm();
                 });
+                // Explicit close so exit/close button always dismisses
+                const receivingCloseBtn = receivingModal.querySelector('.modal-header .btn-close');
+                const receivingCancelBtn = receivingModal.querySelector('.modal-footer button[data-bs-dismiss="modal"]');
+                if (receivingCloseBtn) {
+                    receivingCloseBtn.addEventListener('click', function () { scope.closeReceivingChecklistModal(); });
+                }
+                if (receivingCancelBtn) {
+                    receivingCancelBtn.addEventListener('click', function () { scope.closeReceivingChecklistModal(); });
+                }
             }
-            
+
             const rawMaterialModal = document.getElementById('rawMaterialIssuedModal');
             if (rawMaterialModal) {
                 rawMaterialModal.addEventListener('hidden.bs.modal', function () {
@@ -991,14 +1000,51 @@ var _stockManagementGrid = function () {
                 console.error('Error loading suppliers:', error);
             }
             
-            // Use Bootstrap 5 modal API
+            // Use Bootstrap 5 modal API (getOrCreateInstance so close button uses same instance)
             const receivingModal = document.getElementById('receivingChecklistModal');
             if (receivingModal) {
-                const modal = new bootstrap.Modal(receivingModal);
-                modal.show();
+                const modal = typeof bootstrap !== 'undefined' && bootstrap.Modal
+                    ? bootstrap.Modal.getOrCreateInstance(receivingModal)
+                    : null;
+                if (modal) modal.show();
             } else {
                 console.error('Receiving checklist modal element not found!');
             }
+        },
+
+        closeReceivingChecklistModal: function () {
+            const modalElement = document.getElementById('receivingChecklistModal');
+            if (!modalElement) return;
+            try {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modal.hide();
+                }
+                if (typeof $ !== 'undefined' && $.fn.modal) {
+                    $('#receivingChecklistModal').modal('hide');
+                }
+                setTimeout(() => {
+                    if (modalElement.classList.contains('show') || modalElement.style.display === 'block') {
+                        this.forceCloseModal('receivingChecklistModal');
+                    }
+                }, 80);
+            } catch (e) {
+                this.forceCloseModal('receivingChecklistModal');
+            }
+        },
+
+        forceCloseModal: function (modalId) {
+            const el = document.getElementById(modalId);
+            if (!el) return;
+            el.classList.remove('show');
+            el.style.display = 'none';
+            el.setAttribute('aria-hidden', 'true');
+            el.removeAttribute('aria-modal');
+            el.removeAttribute('role');
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
         },
         
         clearReceivingForm: function () {
@@ -1098,11 +1144,7 @@ var _stockManagementGrid = function () {
                         timer: 2000,
                         showConfirmButton: false
                     });
-                    const receivingModal = document.getElementById('receivingChecklistModal');
-                    if (receivingModal) {
-                        const modal = bootstrap.Modal.getInstance(receivingModal);
-                        if (modal) modal.hide();
-                    }
+                    this.closeReceivingChecklistModal();
                     this.loadStockItems(true); // Force refresh
                 } else {
                     throw new Error(result?.error || result?.message || 'Failed to save receiving checklist');
