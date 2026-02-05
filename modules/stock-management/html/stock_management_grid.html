@@ -1,7 +1,7 @@
-<!-- Stock Management Grid Module -->
+<!-- Stock Management Grid Module - Kernel and Oil & Protein are separate (per supply chain flow). -->
 <div class="module-content">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Stock Management</h1>
+        <h1 class="h2" id="stockManagementTitle">Stock Management</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
             <button type="button" class="btn btn-primary" id="addStockBtn">
                 <i class="fas fa-plus me-1"></i>New Stock Item
@@ -24,6 +24,23 @@
         </div>
     </div>
     
+    <!-- Stream: Kernel vs Oil & Protein (separate storage per supply chain flow) -->
+    <div class="card mb-2 border-secondary">
+        <div class="card-body py-2">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <label class="form-label mb-0 me-2"><strong>Stream</strong></label>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" id="filterStockStream">
+                        <option value="kernel">Kernel (NIS = R NIL, KERNEL R YES)</option>
+                        <option value="oil">Oil &amp; Protein (OIL KERNEL R YES, OIL PROTEIN R YES)</option>
+                    </select>
+                </div>
+                <div class="col text-muted small">Warehouse sections match supply chain: Kernel and Oil are separate entities.</div>
+            </div>
+        </div>
+    </div>
     <!-- Search and Filters -->
     <div class="card mb-3">
         <div class="card-body">
@@ -46,18 +63,23 @@
                     <label for="filterStockProduct" class="form-label">Product Type</label>
                     <select class="form-select" id="filterStockProduct">
                         <option value="">All Types</option>
+                        <option value="nis">NIS</option>
                         <option value="kernel">Kernel</option>
                         <option value="oil">Oil</option>
-                        <option value="nis">NIS</option>
+                        <option value="protein">Protein</option>
+                        <option value="feed">Feed</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label for="filterStockLocation" class="form-label">Location</label>
+                    <label for="filterStockLocation" class="form-label">Location (W/House section)</label>
                     <select class="form-select" id="filterStockLocation">
                         <option value="">All Locations</option>
-                        <option value="Warehouse A">Warehouse A</option>
-                        <option value="Warehouse B">Warehouse B</option>
-                        <option value="Warehouse C">Warehouse C</option>
+                        <!-- Kernel: W/House Raws NIS = R NIL; W/House Finished KERNEL R YES -->
+                        <option value="NIS = R NIL" data-stream="kernel">NIS = R NIL (Raws)</option>
+                        <option value="KERNEL R YES" data-stream="kernel">KERNEL R YES (Finished)</option>
+                        <!-- Oil: W/House Raws OIL KERNEL R YES; W/House Finished OIL PROTEIN R YES -->
+                        <option value="OIL KERNEL R YES" data-stream="oil">OIL KERNEL R YES (Raws)</option>
+                        <option value="OIL PROTEIN R YES" data-stream="oil">OIL PROTEIN R YES (Finished)</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
@@ -95,7 +117,7 @@
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Oil Stock Ledger (801 / 850 / Sold)</h5>
-            <small class="text-muted">Matches spreadsheet columns: Supplier/Customer, PO Ref, Batch, Product/Grade, FFA, Units, Kg, Mfg/BB</small>
+            <small class="text-muted">801 = OIL KERNEL R YES (raw); 850 = OIL PROTEIN R YES (finished). Supplier/Customer, PO Ref, Batch, Product/Grade, FFA, Units, Kg, Mfg/BB</small>
         </div>
         <div class="card-body">
             <div class="row g-3 mb-3">

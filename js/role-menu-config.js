@@ -34,7 +34,13 @@ var _roleMenuConfig = function () {
                     'dashboard',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'supply-chain-flow',
+                    'supplier-intake-grid',
                     'oil-production-grid',
+                    'kernel-dispatch-grid',
+                    'oil-dispatch-grid',
+                    'stock-management-kernel',
+                    'stock-management-oil',
                     'my-day'
                 ]
             },
@@ -175,22 +181,50 @@ var _roleMenuConfig = function () {
                 route: 'grower-intake-grid',
                 icon: 'fas fa-truck-loading',
                 label: 'Grower Intake',
-                category: 'production',
-                parent: 'productionCollapse'
+                category: 'kernel',
+                parent: 'kernelCollapse'
             },
             'kernel-production-grid': {
                 route: 'kernel-production-grid',
                 icon: 'fas fa-cogs',
                 label: 'Kernel Production',
-                category: 'production',
-                parent: 'productionCollapse'
+                category: 'kernel',
+                parent: 'kernelCollapse'
+            },
+            'supply-chain-flow': {
+                route: 'supply-chain-flow',
+                icon: 'fas fa-project-diagram',
+                label: 'Supply Chain Flow',
+                category: 'kernel',
+                parent: 'kernelCollapse'
+            },
+            'supplier-intake-grid': {
+                route: 'supplier-intake-grid',
+                icon: 'fas fa-dolly',
+                label: 'Supplier Intake',
+                category: 'oil',
+                parent: 'oilCollapse'
             },
             'oil-production-grid': {
                 route: 'oil-production-grid',
-                icon: 'fas fa-oil-can',
+                icon: 'fas fa-industry',
                 label: 'Oil Production',
-                category: 'production',
-                parent: 'productionCollapse'
+                category: 'oil',
+                parent: 'oilCollapse'
+            },
+            'kernel-dispatch-grid': {
+                route: 'kernel-dispatch-grid',
+                icon: 'fas fa-box',
+                label: 'Kernel Dispatch',
+                category: 'dispatch',
+                parent: 'dispatchCollapse'
+            },
+            'oil-dispatch-grid': {
+                route: 'oil-dispatch-grid',
+                icon: 'fas fa-box-open',
+                label: 'Oil & Protein Dispatch',
+                category: 'dispatch',
+                parent: 'dispatchCollapse'
             },
             'quality-assurance-grid': {
                 route: 'quality-assurance-grid',
@@ -203,6 +237,20 @@ var _roleMenuConfig = function () {
                 route: 'stock-management-grid',
                 icon: 'fas fa-warehouse',
                 label: 'Stock Management',
+                category: 'quality',
+                parent: 'qualityCollapse'
+            },
+            'stock-management-kernel': {
+                route: 'stock-management-kernel',
+                icon: 'fas fa-warehouse',
+                label: 'Stock (Kernel)',
+                category: 'quality',
+                parent: 'qualityCollapse'
+            },
+            'stock-management-oil': {
+                route: 'stock-management-oil',
+                icon: 'fas fa-warehouse',
+                label: 'Stock (Oil & Protein)',
                 category: 'quality',
                 parent: 'qualityCollapse'
             },

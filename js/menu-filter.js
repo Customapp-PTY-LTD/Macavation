@@ -125,19 +125,31 @@ var _menuFilter = function () {
                 }
             }
 
-            // Production
-            const productionItems = document.querySelectorAll('#productionCollapse .nav-item');
-            const visibleProductionItems = Array.from(productionItems).filter(item => 
-                item.style.display !== 'none'
-            );
-            const productionToggle = document.querySelector('[data-bs-target="#productionCollapse"]');
-            if (productionToggle) {
-                const parentNavItem = productionToggle.closest('.nav-item');
-                if (visibleProductionItems.length > 0) {
-                    parentNavItem.style.display = '';
-                } else {
-                    parentNavItem.style.display = 'none';
-                }
+            // Kernel
+            const kernelItems = document.querySelectorAll('#kernelCollapse .nav-item');
+            const visibleKernelItems = Array.from(kernelItems).filter(item => item.style.display !== 'none');
+            const kernelToggle = document.querySelector('[data-bs-target="#kernelCollapse"]');
+            if (kernelToggle) {
+                const parentNavItem = kernelToggle.closest('.nav-item');
+                parentNavItem.style.display = visibleKernelItems.length > 0 ? '' : 'none';
+            }
+
+            // Oil & Protein
+            const oilItems = document.querySelectorAll('#oilCollapse .nav-item');
+            const visibleOilItems = Array.from(oilItems).filter(item => item.style.display !== 'none');
+            const oilToggle = document.querySelector('[data-bs-target="#oilCollapse"]');
+            if (oilToggle) {
+                const parentNavItem = oilToggle.closest('.nav-item');
+                parentNavItem.style.display = visibleOilItems.length > 0 ? '' : 'none';
+            }
+
+            // Dispatch
+            const dispatchItems = document.querySelectorAll('#dispatchCollapse .nav-item');
+            const visibleDispatchItems = Array.from(dispatchItems).filter(item => item.style.display !== 'none');
+            const dispatchToggle = document.querySelector('[data-bs-target="#dispatchCollapse"]');
+            if (dispatchToggle) {
+                const parentNavItem = dispatchToggle.closest('.nav-item');
+                parentNavItem.style.display = visibleDispatchItems.length > 0 ? '' : 'none';
             }
 
             // Quality & Stock
