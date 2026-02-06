@@ -143,15 +143,6 @@ var _menuFilter = function () {
                 parentNavItem.style.display = visibleOilItems.length > 0 ? '' : 'none';
             }
 
-            // Dispatch
-            const dispatchItems = document.querySelectorAll('#dispatchCollapse .nav-item');
-            const visibleDispatchItems = Array.from(dispatchItems).filter(item => item.style.display !== 'none');
-            const dispatchToggle = document.querySelector('[data-bs-target="#dispatchCollapse"]');
-            if (dispatchToggle) {
-                const parentNavItem = dispatchToggle.closest('.nav-item');
-                parentNavItem.style.display = visibleDispatchItems.length > 0 ? '' : 'none';
-            }
-
             // Quality & Stock
             const qualityItems = document.querySelectorAll('#qualityCollapse .nav-item');
             const visibleQualityItems = Array.from(qualityItems).filter(item => 

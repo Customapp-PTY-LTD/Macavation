@@ -274,6 +274,19 @@ var _kernelProductionGrid = function () {
                 $('#filterBatchStep').val('');
                 scope.filterBatches();
             });
+
+            // Delegated: Advance step / View batch (dynamic rows)
+            $(document).on('click', '.js-advance-batch', function () {
+                const btn = $(this);
+                if (btn.prop('disabled')) return;
+                const batchId = btn.data('batch-id');
+                const currentStep = btn.data('current-step') || 1;
+                scope.advanceBatchStep(batchId, currentStep);
+            });
+            $(document).on('click', '.js-view-batch', function () {
+                const batchId = $(this).data('batch-id');
+                scope.viewBatch(batchId);
+            });
         },
         filterBatches: function () {
             const searchTerm = $('#searchBatchesInput').val().toLowerCase();
@@ -343,18 +356,64 @@ var _kernelProductionGrid = function () {
                 return;
             }
             this.filteredBatches.forEach(batch => {
+                const step = batch.current_step != null ? batch.current_step : 1;
+                const isCompleted = batch.status === 'completed' || step >= 17;
+                const advanceDisabled = isCompleted ? 'disabled' : '';
                 const row = `<tr>
                     <td>${batch.batch_number || 'N/A'}</td>
                     <td>${batch.grower_name || 'N/A'}</td>
                     <td>${batch.received_date || 'N/A'}</td>
                     <td>${batch.wet_nis_received_kg || '0'}</td>
-                    <td>${batch.current_step || '1'}/17</td>
+                    <td>${step}/17</td>
                     <td><span class="badge bg-info">${batch.status || 'receiving'}</span></td>
-                    <td><button class="btn btn-sm btn-outline-primary" onclick="kernelProductionGrid.viewBatch('${batch.id}')"><i class="fas fa-eye"></i></button></td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-success me-1 js-advance-batch" ${advanceDisabled} data-batch-id="${batch.id}" data-current-step="${step}" title="${isCompleted ? 'Batch complete' : 'Move to next step'}">
+                            <i class="fas fa-arrow-right"></i> ${isCompleted ? 'Done' : 'Next step'}
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary js-view-batch" data-batch-id="${batch.id}"><i class="fas fa-eye"></i></button>
+                    </td>
                 </tr>`;
                 tbody.append(row);
             });
         },
+
+        /** Step 1–17 map to status; advancing moves batch along kernel journey */
+        getNextStepAndStatus: function (currentStep) {
+            const step = currentStep != null ? currentStep : 1;
+            if (step >= 17) return { nextStep: 17, nextStatus: 'in_finished_stock', stage: 'finished_stock' };
+            const nextStep = step + 1;
+            const statusMap = { 1: 'receiving', 2: 'cracking', 3: 'drying', 4: 'sorting_dry', 5: 'packing', 6: 'packing', 7: 'packing', 8: 'packing', 9: 'packing', 10: 'packing', 11: 'packing', 12: 'packing', 13: 'packing', 14: 'packing', 15: 'packing', 16: 'packing', 17: 'in_finished_stock' };
+            const nextStatus = nextStep >= 17 ? 'in_finished_stock' : (statusMap[nextStep] || 'packing');
+            const stage = nextStep >= 17 ? 'finished_stock' : 'production';
+            return { nextStep, nextStatus, stage };
+        },
+
+        advanceBatchStep: async function (batchId, currentStep) {
+            if (!batchId) return;
+            const step = currentStep != null ? currentStep : 1;
+            if (step >= 17) {
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'Batch already at final step (17).', 'info');
+                return;
+            }
+            const { nextStep, nextStatus, stage } = this.getNextStepAndStatus(step);
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.updateProductionBatch) {
+                    Swal.fire('Error', 'Update batch function not available', 'error');
+                    return;
+                }
+                const result = await dataFunctions.updateProductionBatch(batchId, { status: nextStatus, current_step: nextStep, stage: stage });
+                if (result && result.success !== false) {
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Step updated', text: 'Batch moved to step ' + nextStep + ' (' + nextStatus + ')', timer: 2000, showConfirmButton: false });
+                    this.loadBatches(true);
+                } else {
+                    throw new Error(result && result.error ? result.error : 'Failed to update batch');
+                }
+            } catch (e) {
+                console.error('[Kernel Production] advanceBatchStep failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to advance step', 'error');
+            }
+        },
+
         viewBatch: function (batchId) {
             Swal.fire('Info', 'Batch details view coming soon', 'info');
         },

@@ -118,7 +118,8 @@
             "path": "grower-intake",
             "html": "html/grower_intake_grid.html",
             "js": [
-                "js/grower_intake_grid.js"
+                "js/grower_intake_grid.js",
+                "js/receiving_checklist_shared.js"
             ],
             "css": [
                 "css/grower_intake_grid.css"
@@ -184,7 +185,8 @@
             "path": "supplier-intake",
             "html": "html/supplier_intake_grid.html",
             "js": [
-                "js/supplier_intake_grid.js"
+                "js/supplier_intake_grid.js",
+                "js/receiving_checklist_shared.js"
             ],
             "css": [
                 "css/supplier_intake_grid.css"
@@ -254,17 +256,6 @@
             ],
             "css": [
                 "css/amanda_dashboard.css"
-            ]
-        },
-        "supply-chain-flow": {
-            "description": "Supply Chain & Production Process Flow",
-            "path": "supply-chain-flow",
-            "html": "html/supply_chain_flow.html",
-            "js": [
-                "js/supply_chain_flow.js"
-            ],
-            "css": [
-                "css/supply_chain_flow.css"
             ]
         },
         "executive-dashboard": {

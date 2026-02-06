@@ -34,7 +34,6 @@ var _roleMenuConfig = function () {
                     'dashboard',
                     'grower-intake-grid',
                     'kernel-production-grid',
-                    'supply-chain-flow',
                     'supplier-intake-grid',
                     'oil-production-grid',
                     'kernel-dispatch-grid',
@@ -191,13 +190,6 @@ var _roleMenuConfig = function () {
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },
-            'supply-chain-flow': {
-                route: 'supply-chain-flow',
-                icon: 'fas fa-project-diagram',
-                label: 'Supply Chain Flow',
-                category: 'kernel',
-                parent: 'kernelCollapse'
-            },
             'supplier-intake-grid': {
                 route: 'supplier-intake-grid',
                 icon: 'fas fa-dolly',
@@ -216,15 +208,15 @@ var _roleMenuConfig = function () {
                 route: 'kernel-dispatch-grid',
                 icon: 'fas fa-box',
                 label: 'Kernel Dispatch',
-                category: 'dispatch',
-                parent: 'dispatchCollapse'
+                category: 'kernel',
+                parent: 'kernelCollapse'
             },
             'oil-dispatch-grid': {
                 route: 'oil-dispatch-grid',
                 icon: 'fas fa-box-open',
                 label: 'Oil & Protein Dispatch',
-                category: 'dispatch',
-                parent: 'dispatchCollapse'
+                category: 'oil',
+                parent: 'oilCollapse'
             },
             'quality-assurance-grid': {
                 route: 'quality-assurance-grid',
@@ -244,15 +236,15 @@ var _roleMenuConfig = function () {
                 route: 'stock-management-kernel',
                 icon: 'fas fa-warehouse',
                 label: 'Stock (Kernel)',
-                category: 'quality',
-                parent: 'qualityCollapse'
+                category: 'kernel',
+                parent: 'kernelCollapse'
             },
             'stock-management-oil': {
                 route: 'stock-management-oil',
                 icon: 'fas fa-warehouse',
                 label: 'Stock (Oil & Protein)',
-                category: 'quality',
-                parent: 'qualityCollapse'
+                category: 'oil',
+                parent: 'oilCollapse'
             },
             'sales-forecasting-grid': {
                 route: 'sales-forecasting-grid',
