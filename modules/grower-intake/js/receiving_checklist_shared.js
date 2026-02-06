@@ -19,6 +19,8 @@
         if (typeof $ === 'undefined') return;
         $('#receivingChecklistForm')[0].reset();
         $('#receivingId').val('');
+        var batchIdEl = document.getElementById('receivingChecklistBatchId');
+        if (batchIdEl) batchIdEl.value = '';
         $('#receivedItemsTableBody tr:not(:first)').remove();
         $('#receivedItemsTableBody tr:first input').val('');
         $('#receivedItemsTableBody tr:first input[name="cartonBags"]').val('1');
@@ -53,6 +55,7 @@
             bootstrap.Modal.getOrCreateInstance(el).show();
         }
     }
+    window.showReceivingChecklistModal = showReceivingChecklistModal;
 
     function closeReceivingChecklistModal() {
         var el = document.getElementById('receivingChecklistModal');
@@ -112,6 +115,16 @@
                     dataFunctions.clearCachePattern('receiving_checklists');
                     dataFunctions.clearCachePattern('stock_items');
                 }
+                var batchIdEl = document.getElementById('receivingChecklistBatchId');
+                var batchId = batchIdEl && batchIdEl.value ? batchIdEl.value : null;
+                var newId = result.id || result.receiving_id || (receivingId ? null : (result.data && result.data.id ? result.data.id : null));
+                if (batchId && newId && !receivingId) {
+                    dataFunctions.updateProductionBatch(batchId, { receiving_checklist_id: newId }).then(function () {
+                        if (batchIdEl) batchIdEl.value = '';
+                        if (typeof growerIntakeGrid !== 'undefined' && growerIntakeGrid.loadIntakeBatches) growerIntakeGrid.loadIntakeBatches(true);
+                    }).catch(function (e) { console.error('Link checklist to batch failed', e); });
+                }
+                if (batchIdEl) batchIdEl.value = '';
                 if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: receivingId ? 'Receiving checklist updated.' : 'Receiving checklist created.', timer: 2000, showConfirmButton: false });
                 closeReceivingChecklistModal();
             } else {

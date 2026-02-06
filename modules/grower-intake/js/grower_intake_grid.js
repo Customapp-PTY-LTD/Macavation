@@ -52,6 +52,15 @@ var _growerIntakeGrid = function () {
                 const id = $(this).data('batch-id');
                 if (id) scope.moveBatchToRawStock(id);
             });
+            $(document).on('click', '.js-batch-receiving-checklist', function () {
+                const id = $(this).data('batch-id');
+                if (id) scope.openReceivingChecklistForBatch(id);
+            });
+            $(document).on('click', '.js-batch-sample-submission', function () {
+                const id = $(this).data('batch-id');
+                if (id) scope.openSampleSubmissionForBatch(id);
+            });
+            $('#linkSampleToBatchBtn').on('click', function () { scope.linkSampleToBatch(); });
         },
         filterSamples: function () {
             const searchTerm = $('#searchSamplesInput').val().toLowerCase();
@@ -155,13 +164,97 @@ var _growerIntakeGrid = function () {
             const tbody = $('#intakeBatchesTableBody');
             tbody.empty();
             if (!this.intakeBatches.length) {
-                tbody.html('<tr><td colspan="6" class="text-center text-muted py-3">No kernel batches in intake. Create one to start the journey.</td></tr>');
+                tbody.html('<tr><td colspan="7" class="text-center text-muted py-3">No kernel batches in intake. Create one to start the journey.</td></tr>');
                 return;
             }
+            const scope = this;
             this.intakeBatches.forEach(function (b) {
-                const row = '<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + (b.received_date || '') + '</td><td>' + (b.wet_nis_received_kg || '') + '</td><td><span class="badge bg-info">' + (b.status || '') + '</span></td><td><button type="button" class="btn btn-sm btn-success js-move-batch-to-raw" data-batch-id="' + b.id + '">Move to raw stock</button></td></tr>';
+                const checklistDone = !!b.receiving_checklist_id;
+                const sampleDone = !!b.sample_submission_id;
+                const sampleEnabled = checklistDone;
+                const checklistBox = checklistDone
+                    ? '<span class="text-success me-2" title="Incoming Receiving checklist completed"><i class="fas fa-check-square"></i></span>'
+                    : '<button type="button" class="btn btn-link btn-sm p-0 me-2 text-secondary js-batch-receiving-checklist" data-batch-id="' + b.id + '" title="Complete Incoming Receiving checklist"><i class="far fa-square"></i></button>';
+                const checklistLabel = checklistDone ? 'Checklist' : 'Incoming Receiving checklist';
+                const sampleBox = sampleDone
+                    ? '<span class="text-success me-2" title="Sample submission completed"><i class="fas fa-check-square"></i></span>'
+                    : (!sampleEnabled
+                        ? '<span class="text-muted me-2" title="Complete checklist first"><i class="far fa-square"></i></span>'
+                        : '<button type="button" class="btn btn-link btn-sm p-0 me-2 text-secondary js-batch-sample-submission" data-batch-id="' + b.id + '" title="New sample submission"><i class="far fa-square"></i></button>');
+                const sampleLabel = sampleDone ? 'Sample' : 'New sample submission';
+                const stepsHtml = '<div class="d-flex align-items-center flex-wrap gap-2">' +
+                    checklistBox + '<span class="small">' + checklistLabel + '</span> ' +
+                    sampleBox + '<span class="small">' + sampleLabel + '</span></div>';
+                const row = '<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + (b.received_date || '') + '</td><td>' + (b.wet_nis_received_kg || '') + '</td><td>' + stepsHtml + '</td><td><span class="badge bg-info">' + (b.status || '') + '</span></td><td><button type="button" class="btn btn-sm btn-success js-move-batch-to-raw" data-batch-id="' + b.id + '">Move to raw stock</button></td></tr>';
                 tbody.append(row);
             });
+        },
+
+        openReceivingChecklistForBatch: function (batchId) {
+            var batchIdEl = document.getElementById('receivingChecklistBatchId');
+            if (batchIdEl) batchIdEl.value = batchId || '';
+            if (typeof window.showReceivingChecklistModal === 'function') {
+                window.showReceivingChecklistModal();
+            } else {
+                var el = document.getElementById('receivingChecklistModal');
+                if (el && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    bootstrap.Modal.getOrCreateInstance(el).show();
+                } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                    $('#receivingChecklistModal').modal('show');
+                }
+            }
+        },
+
+        openSampleSubmissionForBatch: function (batchId) {
+            this._sampleForBatchId = batchId;
+            var modal = document.getElementById('linkSampleToBatchModal');
+            if (!modal) return;
+            var sel = document.getElementById('linkSampleToBatchSelect');
+            if (sel) {
+                sel.innerHTML = '<option value="">Select a sample to link…</option>';
+                var scope = this;
+                (this.samples || []).forEach(function (s) {
+                    var opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = (s.submission_number || s.id) + ' – ' + (s.grower_name || '');
+                    sel.appendChild(opt);
+                });
+            }
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modal).show();
+            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $(modal).modal('show');
+            }
+        },
+
+        linkSampleToBatch: async function () {
+            var batchId = this._sampleForBatchId;
+            var sel = document.getElementById('linkSampleToBatchSelect');
+            var sampleId = sel && sel.value ? sel.value : null;
+            if (!batchId || !sampleId) {
+                Swal.fire('Please select a sample to link to this batch.', '', 'info');
+                return;
+            }
+            try {
+                var result = await dataFunctions.updateProductionBatch(batchId, { sample_submission_id: sampleId });
+                if (result && result.success !== false) {
+                    var modal = document.getElementById('linkSampleToBatchModal');
+                    if (modal && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        var inst = bootstrap.Modal.getInstance(modal);
+                        if (inst) inst.hide();
+                    } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                        $('#linkSampleToBatchModal').modal('hide');
+                    }
+                    this._sampleForBatchId = null;
+                    Swal.fire({ icon: 'success', title: 'Linked', text: 'Sample linked to batch.', timer: 2000, showConfirmButton: false });
+                    this.loadIntakeBatches(true);
+                } else {
+                    throw new Error(result && result.error ? result.error : 'Update failed');
+                }
+            } catch (e) {
+                console.error(e);
+                Swal.fire('Error', e.message || 'Failed to link sample', 'error');
+            }
         },
 
         showCreateKernelBatchModal: async function () {

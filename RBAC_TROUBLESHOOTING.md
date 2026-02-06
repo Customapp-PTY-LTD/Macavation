@@ -1,5 +1,29 @@
 # RBAC 403 Forbidden Errors - Troubleshooting Guide
 
+## Why do I get "operation execute is not allowed"?
+
+This message means **your role is not allowed to run the requested function** (e.g. `create_production_batch_simple`, `get_production_batches`, `update_production_batch`).
+
+1. **How it works**  
+   When you call an API (e.g. "Create kernel batch"), the backend:
+   - Reads your **role** from your JWT (e.g. `user`, `viewer`, `admin`).
+   - Looks up `role_permissions` for that role and the function name with operation `EXECUTE`.
+   - If there is **no row** or **allowed = false**, it returns 403 with a message like "operation execute is not allowed".
+
+2. **What was fixed**  
+   EXECUTE permission has been granted for **all roles** (admin, super_user, user, manager, viewer, assessor, student) on:
+   - `get_production_batches`
+   - `create_production_batch_simple`
+   - `update_production_batch`  
+   So creating and updating kernel batches should work for any role.
+
+3. **If you still see the error**  
+   - **Log out and log back in** so a new JWT is issued with your current role.
+   - If your app uses a **different backend** (e.g. another Lambda or DB), the same permissions must exist there.
+   - Ask an admin to confirm your user’s **role** in the `users` table and that `role_permissions` has EXECUTE for that role and the function name.
+
+---
+
 ## Status: All Functions and Permissions Verified ✅
 
 All required database functions have been created and RBAC permissions have been set correctly:

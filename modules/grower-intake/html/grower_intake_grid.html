@@ -3,12 +3,6 @@
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Grower Intake Management</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-success me-1" id="receivingChecklistBtn">
-                <i class="fas fa-clipboard-list me-1"></i>Incoming Receiving Checklist
-            </button>
-            <button type="button" class="btn btn-primary me-1" id="addSampleBtn">
-                <i class="fas fa-plus me-1"></i>New Sample Submission
-            </button>
             <button type="button" class="btn btn-outline-secondary" id="exportSamplesBtn" onclick="growerIntakeGrid.exportSamples()">
                 <i class="fas fa-download me-1"></i>Export
             </button>
@@ -82,7 +76,7 @@
             </button>
         </div>
         <div class="card-body">
-            <p class="text-muted small mb-3">Batches received at grower intake. Move to raw stock when ready for warehouse (NIS = R NIL).</p>
+            <p class="text-muted small mb-3">Stage 1: Complete <strong>Incoming Receiving checklist</strong> for each batch (box becomes a tick); then <strong>New sample submission</strong> (enabled after checklist is done). Then move to raw stock.</p>
             <div class="table-responsive">
                 <table class="table table-sm table-hover" id="intakeBatchesTable">
                     <thead>
@@ -91,6 +85,7 @@
                             <th>Grower / supplier</th>
                             <th>Received date</th>
                             <th>Wet NIS (kg)</th>
+                            <th>Stage 1 steps</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -113,6 +108,7 @@
             <div class="modal-body">
                 <form id="receivingChecklistForm">
                     <input type="hidden" id="receivingId">
+                    <input type="hidden" id="receivingChecklistBatchId" value="">
                     <div class="card mb-3">
                         <div class="card-header"><h6 class="mb-0">Vehicle &amp; Receiving Checks</h6></div>
                         <div class="card-body">
@@ -258,6 +254,29 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="saveCreateKernelBatchBtn"><i class="fas fa-save me-1"></i>Create batch</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Link sample to batch (Stage 1 – New sample submission) -->
+<div class="modal fade" id="linkSampleToBatchModal" tabindex="-1" aria-labelledby="linkSampleToBatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="linkSampleToBatchModalLabel">New sample submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Link an existing sample submission to this batch. You can create samples in the table above first.</p>
+                <label for="linkSampleToBatchSelect" class="form-label">Sample</label>
+                <select class="form-select" id="linkSampleToBatchSelect">
+                    <option value="">Select a sample to link…</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="linkSampleToBatchBtn"><i class="fas fa-link me-1"></i>Link to batch</button>
             </div>
         </div>
     </div>
