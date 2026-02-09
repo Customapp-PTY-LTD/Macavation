@@ -21,23 +21,7 @@
         </div>
     </div>
     
-    <!-- Stream: Kernel vs Oil & Protein (separate storage per supply chain flow) -->
-    <div class="card mb-2 border-secondary">
-        <div class="card-body py-2">
-            <div class="row align-items-center">
-                <div class="col-auto">
-                    <label class="form-label mb-0 me-2"><strong>Stream</strong></label>
-                </div>
-                <div class="col-md-3">
-                    <select class="form-select form-select-sm" id="filterStockStream">
-                        <option value="kernel">Kernel (NIS = R NIL, KERNEL R YES)</option>
-                        <option value="oil">Oil &amp; Protein (OIL KERNEL R YES, OIL PROTEIN R YES)</option>
-                    </select>
-                </div>
-                <div class="col text-muted small">Warehouse sections match supply chain: Kernel and Oil are separate entities.</div>
-            </div>
-        </div>
-    </div>
+    <input type="hidden" id="filterStockStream" value="kernel">
     <!-- Search and Filters -->
     <div class="card mb-3">
         <div class="card-body">

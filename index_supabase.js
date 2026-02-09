@@ -19,8 +19,10 @@ const logger = createLogger();
 // Initialize rate limiter
 const rateLimiter = createRateLimiter();
 
-// Note: Environment variables are accessed directly via process.env
-// The Lambda environment should have all required variables set
+// Required environment variable (set in AWS Lambda configuration):
+//   SUPABASE_URL = https://tfwrktyynvnjjhcqnlul.supabase.co
+// This must be the same project as appRouteConfig + signin (RBAC, production_batches, users).
+// Note: All other env (JWT secret, etc.) are read via process.env.
 
 /**
  * Main Lambda handler

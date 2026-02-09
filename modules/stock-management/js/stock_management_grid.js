@@ -15,6 +15,9 @@ var _stockManagementGrid = function () {
             console.log('[Stock Management] Initializing grid...');
             const scope = this;
             
+            // Apply stream from route (Stock (Kernel) vs Stock (Oil & Protein)) so storage is separate per supply chain
+            scope.applyStreamFromRoute();
+            
             // Use MutationObserver to wait for buttons to be added to DOM
             const checkAndInit = () => {
                 const stockTakeBtn = document.getElementById('stockTakeBtn');
@@ -22,7 +25,7 @@ var _stockManagementGrid = function () {
                     console.log('[Stock Management] Buttons found, setting up event listeners');
                     scope.setupEventListeners();
                     scope.loadStockItems();
-                    // Oil stock ledger (only if section exists in DOM)
+                    scope.toggleKernelBatchJourney(document.getElementById('filterStockStream') ? document.getElementById('filterStockStream').value : 'kernel');
                     if (document.getElementById('oilLotsTableBody')) {
                         scope.loadOilLotsAndSummary();
                     }
@@ -34,6 +37,37 @@ var _stockManagementGrid = function () {
             
             // Start checking
             setTimeout(checkAndInit, 50);
+        },
+        applyStreamFromRoute: function () {
+            var route = (typeof _appRouter !== 'undefined' && _appRouter.currentRoute) ? _appRouter.currentRoute : '';
+            var stream = '';
+            var titleEl = document.getElementById('stockManagementTitle');
+            if (route === 'stock-management-kernel') {
+                stream = 'kernel';
+                if (titleEl) titleEl.textContent = 'Stock (Kernel)';
+            } else if (route === 'stock-management-oil') {
+                stream = 'oil';
+                if (titleEl) titleEl.textContent = 'Stock (Oil & Protein)';
+            }
+            var streamSel = document.getElementById('filterStockStream');
+            if (streamSel) {
+                if (stream) streamSel.value = stream;
+                this.updateLocationOptionsByStream(streamSel.value || 'kernel');
+                this.toggleKernelBatchJourney(streamSel.value || 'kernel');
+            }
+        },
+        updateLocationOptionsByStream: function (stream) {
+            var locSel = document.getElementById('filterStockLocation');
+            if (!locSel) return;
+            var opts = locSel.querySelectorAll('option');
+            opts.forEach(function (opt) {
+                var s = opt.getAttribute('data-stream');
+                opt.hidden = (s && s !== stream);
+            });
+            if (locSel.value) {
+                var chosen = locSel.querySelector('option[value="' + locSel.value + '"]');
+                if (chosen && chosen.hidden) locSel.value = '';
+            }
         },
         setupEventListeners: function () {
             const scope = this;
@@ -49,24 +83,20 @@ var _stockManagementGrid = function () {
             // Remove existing handlers to prevent duplicates (if jQuery is available)
             if (typeof $ !== 'undefined') {
                 $('#addStockBtn').off('click');
-                $('#receivingChecklistBtn').off('click');
                 $('#rawMaterialIssuedBtn').off('click');
                 $('#stockTakeBtn').off('click');
             }
             
-            // Use both native and jQuery event listeners
+            // Use both native and jQuery event listeners (only open on real user click, not programmatic)
             if (stockTakeBtn) {
                 stockTakeBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    console.log('[Stock Management] Stock Take button clicked (native)');
-                    scope.showStockTakeModal();
+                    if (e.isTrusted) scope.showStockTakeModal();
                 });
-                
                 if (typeof $ !== 'undefined') {
                     $('#stockTakeBtn').on('click', function(e) {
                         e.preventDefault();
-                        console.log('[Stock Management] Stock Take button clicked (jQuery)');
-                        scope.showStockTakeModal();
+                        if (e.originalEvent && e.originalEvent.isTrusted) scope.showStockTakeModal();
                     });
                 }
             }
@@ -81,13 +111,6 @@ var _stockManagementGrid = function () {
                 });
             }
             
-            const receivingBtn = document.getElementById('receivingChecklistBtn');
-            if (receivingBtn) {
-                receivingBtn.addEventListener('click', function() {
-                    scope.showReceivingChecklistModal();
-                });
-            }
-            
             const rawMaterialBtn = document.getElementById('rawMaterialIssuedBtn');
             if (rawMaterialBtn) {
                 rawMaterialBtn.addEventListener('click', function() {
@@ -97,9 +120,6 @@ var _stockManagementGrid = function () {
             
             // jQuery handlers for compatibility
             if (typeof $ !== 'undefined') {
-                $('#receivingChecklistBtn').on('click', function () {
-                    scope.showReceivingChecklistModal();
-                });
                 $('#rawMaterialIssuedBtn').on('click', function () {
                     scope.showRawMaterialIssuedModal();
                 });
@@ -154,28 +174,25 @@ var _stockManagementGrid = function () {
                 });
             }
             
-            // Close modal handlers - ensure modal can be closed
+            // Close modal handlers - ensure modal can be closed (direct + delegated so it always works)
             const stockTakeModal = document.getElementById('stockTakeModal');
             if (stockTakeModal) {
-                // Cancel button in footer
                 const cancelBtn = stockTakeModal.querySelector('.modal-footer button[data-bs-dismiss="modal"]');
                 if (cancelBtn) {
                     cancelBtn.addEventListener('click', function(e) {
-                        console.log('[Stock Management] Cancel button clicked');
+                        e.preventDefault();
+                        e.stopPropagation();
                         scope.closeStockTakeModal();
                     });
                 }
-                
-                // Close button in header
-                const closeBtn = stockTakeModal.querySelector('.btn-close');
+                const closeBtn = stockTakeModal.querySelector('.modal-header .btn-close');
                 if (closeBtn) {
                     closeBtn.addEventListener('click', function(e) {
-                        console.log('[Stock Management] Close button clicked');
+                        e.preventDefault();
+                        e.stopPropagation();
                         scope.closeStockTakeModal();
                     });
                 }
-                
-                // Also handle ESC key
                 stockTakeModal.addEventListener('keydown', function(e) {
                     if (e.key === 'Escape' || e.keyCode === 27) {
                         e.preventDefault();
@@ -183,6 +200,17 @@ var _stockManagementGrid = function () {
                     }
                 });
             }
+
+            // Delegated close for Stock Take modal (works even if modal was opened before listeners attached)
+            document.addEventListener('click', function(e) {
+                const modal = document.getElementById('stockTakeModal');
+                if (!modal || !modal.classList.contains('show')) return;
+                if (e.target.closest('#stockTakeModal .btn-close') || e.target.closest('#stockTakeModal .modal-footer button[data-bs-dismiss="modal"]')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    scope.closeStockTakeModal();
+                }
+            }, true);
             
             // Delegated event handlers for dynamic content (both native and jQuery)
             document.addEventListener('click', function(e) {
@@ -222,17 +250,6 @@ var _stockManagementGrid = function () {
                     }
                 });
                 
-                // Receiving checklist handlers
-                $('#saveReceivingChecklistBtn').on('click', function () {
-                    scope.saveReceivingChecklist();
-                });
-                $('#addReceivedItemRow').on('click', function () {
-                    scope.addReceivedItemRow();
-                });
-                $(document).on('click', '.removeItemRow', function () {
-                    $(this).closest('tr').remove();
-                });
-                
                 // Raw Material Issued handlers
                 $('#saveRawMaterialIssuedBtn').on('click', function () {
                     scope.saveRawMaterialIssued();
@@ -247,31 +264,11 @@ var _stockManagementGrid = function () {
             
             // Modal cleanup
             if (typeof $ !== 'undefined') {
-                $('#receivingChecklistModal').on('hidden.bs.modal', function () {
-                    scope.clearReceivingForm();
-                });
                 $('#rawMaterialIssuedModal').on('hidden.bs.modal', function () {
                     scope.clearRawMaterialIssuedForm();
                 });
             }
             
-            // Native modal cleanup handlers and explicit close for Receiving Checklist
-            const receivingModal = document.getElementById('receivingChecklistModal');
-            if (receivingModal) {
-                receivingModal.addEventListener('hidden.bs.modal', function () {
-                    scope.clearReceivingForm();
-                });
-                // Explicit close so exit/close button always dismisses
-                const receivingCloseBtn = receivingModal.querySelector('.modal-header .btn-close');
-                const receivingCancelBtn = receivingModal.querySelector('.modal-footer button[data-bs-dismiss="modal"]');
-                if (receivingCloseBtn) {
-                    receivingCloseBtn.addEventListener('click', function () { scope.closeReceivingChecklistModal(); });
-                }
-                if (receivingCancelBtn) {
-                    receivingCancelBtn.addEventListener('click', function () { scope.closeReceivingChecklistModal(); });
-                }
-            }
-
             const rawMaterialModal = document.getElementById('rawMaterialIssuedModal');
             if (rawMaterialModal) {
                 rawMaterialModal.addEventListener('hidden.bs.modal', function () {
@@ -290,6 +287,11 @@ var _stockManagementGrid = function () {
             // Filters
             $('#filterStockStatus, #filterStockProduct, #filterStockLocation').on('change', function () {
                 scope.filterStockItems();
+            });
+            
+            $(document).on('click', '.js-release-batch-to-production', function () {
+                var id = $(this).data('batch-id');
+                if (id) scope.releaseBatchToProduction(id);
             });
             
             // Clear filters
@@ -380,6 +382,12 @@ var _stockManagementGrid = function () {
             const statusFilter = $('#filterStockStatus').val();
             const productFilter = $('#filterStockProduct').val();
             const locationFilter = $('#filterStockLocation').val();
+            const streamSel = document.getElementById('filterStockStream');
+            const stream = streamSel ? streamSel.value : '';
+            // Per supply chain: Kernel and Oil are separate; only show stock for selected stream
+            const kernelLocations = ['NIS = R NIL', 'KERNEL R YES'];
+            const oilLocations = ['OIL KERNEL R YES', 'OIL PROTEIN R YES'];
+            const streamLocations = stream === 'oil' ? oilLocations : (stream === 'kernel' ? kernelLocations : null);
             
             this.filteredStockItems = this.stockItems.filter(item => {
                 // Search filter
@@ -397,10 +405,84 @@ var _stockManagementGrid = function () {
                 // Location filter
                 const matchesLocation = !locationFilter || item.location === locationFilter;
                 
-                return matchesSearch && matchesStatus && matchesProduct && matchesLocation;
+                // Stream filter: only show locations for Kernel or Oil & Protein
+                const matchesStream = !streamLocations || (item.location && streamLocations.indexOf(item.location) !== -1);
+                
+                return matchesSearch && matchesStatus && matchesProduct && matchesLocation && matchesStream;
             });
             
             this.renderStockItems();
+        },
+        toggleKernelBatchJourney: function (stream) {
+            var card = document.getElementById('kernelBatchJourneyCard');
+            var oilCard = document.getElementById('oilStockLedgerCard');
+            var addOilBtn = document.getElementById('addOilLotBtn');
+            var importOilBtn = document.getElementById('importOilLotsBtn');
+            if (stream === 'kernel') {
+                if (card) { card.style.display = ''; }
+                this.loadKernelBatches();
+                if (oilCard) oilCard.style.display = 'none';
+                if (addOilBtn) addOilBtn.classList.add('d-none');
+                if (importOilBtn) importOilBtn.classList.add('d-none');
+            } else {
+                if (card) card.style.display = 'none';
+                if (oilCard) oilCard.style.display = '';
+                if (addOilBtn) addOilBtn.classList.remove('d-none');
+                if (importOilBtn) importOilBtn.classList.remove('d-none');
+                if (stream === 'oil' && document.getElementById('oilLotsTableBody')) this.loadOilLotsAndSummary();
+            }
+        },
+        loadKernelBatches: async function (forceRefresh) {
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getProductionBatches) return;
+                var all = await dataFunctions.getProductionBatches(null, forceRefresh, { batch_type: 'kernel' });
+                all = all || [];
+                this.kernelRawBatches = all.filter(function (b) { return b.status === 'in_raw_stock'; });
+                this.kernelFinishedBatches = all.filter(function (b) { return b.status === 'in_finished_stock'; });
+                this.renderKernelBatches();
+            } catch (e) {
+                console.error('[Stock Management] loadKernelBatches failed:', e);
+                this.kernelRawBatches = [];
+                this.kernelFinishedBatches = [];
+                this.renderKernelBatches();
+            }
+        },
+        renderKernelBatches: function () {
+            var rawBody = $('#kernelRawBatchesBody');
+            var finishedBody = $('#kernelFinishedBatchesBody');
+            if (!rawBody.length || !finishedBody.length) return;
+            rawBody.empty();
+            finishedBody.empty();
+            var scope = this;
+            if (this.kernelRawBatches && this.kernelRawBatches.length) {
+                this.kernelRawBatches.forEach(function (b) {
+                    rawBody.append('<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + (b.received_date || '') + '</td><td>' + (b.wet_nis_received_kg || '') + '</td><td><button type="button" class="btn btn-sm btn-success js-release-batch-to-production" data-batch-id="' + b.id + '">Release to production</button></td></tr>');
+                });
+            } else {
+                rawBody.append('<tr><td colspan="5" class="text-muted small">No batches in raw stock. Move batches from Grower Intake first.</td></tr>');
+            }
+            if (this.kernelFinishedBatches && this.kernelFinishedBatches.length) {
+                this.kernelFinishedBatches.forEach(function (b) {
+                    finishedBody.append('<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + (b.received_date || '') + '</td><td>' + (b.wet_nis_received_kg || '') + '</td></tr>');
+                });
+            } else {
+                finishedBody.append('<tr><td colspan="4" class="text-muted small">No finished batches. Complete production (step 17) to see them here. Dispatch from Kernel Dispatch.</td></tr>');
+            }
+        },
+        releaseBatchToProduction: async function (batchId) {
+            if (!batchId) return;
+            try {
+                var result = await dataFunctions.updateProductionBatch(batchId, { status: 'receiving', current_step: 1, stage: 'production' });
+                if (result && result.success !== false) {
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in production. Use Kernel Production to advance steps.', timer: 2000, showConfirmButton: false });
+                    this.loadKernelBatches(true);
+                } else {
+                    throw new Error(result && result.error ? result.error : 'Update failed');
+                }
+            } catch (e) {
+                console.error(e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release batch', 'error');
+            }
         },
         loadStockItems: async function (forceRefresh = false) {
             try {
@@ -976,63 +1058,6 @@ var _stockManagementGrid = function () {
             }
         },
         
-        showReceivingChecklistModal: async function () {
-            $('#receivingChecklistModalLabel').text('Incoming Receiving Checklist');
-            $('#receivingId').val('');
-            this.clearReceivingForm();
-            // Set default date to today
-            const today = new Date().toISOString().split('T')[0];
-            $('#dateReceived').val(today);
-            
-            // Load suppliers
-            try {
-                const contacts = await dataFunctions.getContacts();
-                const select = $('#supplierDetails');
-                let html = '<option value="">Select Supplier</option>';
-                if (contacts && Array.isArray(contacts)) {
-                    contacts.forEach(contact => {
-                        const name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
-                        html += `<option value="${contact.id}">${name}</option>`;
-                    });
-                }
-                select.html(html);
-            } catch (error) {
-                console.error('Error loading suppliers:', error);
-            }
-            
-            // Use Bootstrap 5 modal API (getOrCreateInstance so close button uses same instance)
-            const receivingModal = document.getElementById('receivingChecklistModal');
-            if (receivingModal) {
-                const modal = typeof bootstrap !== 'undefined' && bootstrap.Modal
-                    ? bootstrap.Modal.getOrCreateInstance(receivingModal)
-                    : null;
-                if (modal) modal.show();
-            } else {
-                console.error('Receiving checklist modal element not found!');
-            }
-        },
-
-        closeReceivingChecklistModal: function () {
-            const modalElement = document.getElementById('receivingChecklistModal');
-            if (!modalElement) return;
-            try {
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
-                    modal.hide();
-                }
-                if (typeof $ !== 'undefined' && $.fn.modal) {
-                    $('#receivingChecklistModal').modal('hide');
-                }
-                setTimeout(() => {
-                    if (modalElement.classList.contains('show') || modalElement.style.display === 'block') {
-                        this.forceCloseModal('receivingChecklistModal');
-                    }
-                }, 80);
-            } catch (e) {
-                this.forceCloseModal('receivingChecklistModal');
-            }
-        },
-
         forceCloseModal: function (modalId) {
             const el = document.getElementById(modalId);
             if (!el) return;
@@ -1045,118 +1070,6 @@ var _stockManagementGrid = function () {
             document.body.classList.remove('modal-open');
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
-        },
-        
-        clearReceivingForm: function () {
-            $('#receivingChecklistForm')[0].reset();
-            $('#receivingId').val('');
-            // Clear received items rows except first
-            $('#receivedItemsTableBody tr:not(:first)').remove();
-            $('#receivedItemsTableBody tr:first input').val('');
-            $('#receivedItemsTableBody tr:first input[name="cartonBags"]').val('1');
-        },
-        
-        addReceivedItemRow: function () {
-            const newRow = `
-                <tr>
-                    <td><input type="text" class="form-control form-control-sm" name="reference"></td>
-                    <td><input type="text" class="form-control form-control-sm" name="description"></td>
-                    <td><input type="text" class="form-control form-control-sm" name="batch"></td>
-                    <td><input type="number" class="form-control form-control-sm" name="cartonBags" value="1"></td>
-                    <td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01"></td>
-                    <td><input type="date" class="form-control form-control-sm" name="manufacturedDate"></td>
-                    <td><input type="date" class="form-control form-control-sm" name="bestBeforeDate"></td>
-                    <td><button type="button" class="btn btn-sm btn-danger removeItemRow"><i class="fas fa-times"></i></button></td>
-                </tr>
-            `;
-            $('#receivedItemsTableBody').append(newRow);
-        },
-        
-        saveReceivingChecklist: async function () {
-            try {
-                const form = $('#receivingChecklistForm')[0];
-                if (!form.checkValidity()) {
-                    form.reportValidity();
-                    return;
-                }
-                
-                // Collect received items
-                const receivedItems = [];
-                $('#receivedItemsTableBody tr').each(function () {
-                    const reference = $(this).find('input[name="reference"]').val();
-                    const description = $(this).find('input[name="description"]').val();
-                    const batch = $(this).find('input[name="batch"]').val();
-                    const cartonBags = $(this).find('input[name="cartonBags"]').val();
-                    const quantity = $(this).find('input[name="quantity"]').val();
-                    const manufacturedDate = $(this).find('input[name="manufacturedDate"]').val();
-                    const bestBeforeDate = $(this).find('input[name="bestBeforeDate"]').val();
-                    
-                    if (reference || description || batch || quantity) {
-                        receivedItems.push({
-                            reference: reference || null,
-                            description: description || null,
-                            batch: batch || null,
-                            carton_bags: cartonBags ? parseInt(cartonBags) : null,
-                            quantity_kg: quantity ? parseFloat(quantity) : null,
-                            manufactured_date: manufacturedDate || null,
-                            best_before_date: bestBeforeDate || null
-                        });
-                    }
-                });
-                
-                const receivingData = {
-                    p_date_received: $('#dateReceived').val(),
-                    p_delivery_note_ref: $('#deliveryNoteRef').val(),
-                    p_supplier_id: $('#supplierDetails').val(),
-                    p_vehicle_clean: $('input[name="vehicleClean"]:checked').val() || null,
-                    p_vehicle_enclosed: $('input[name="vehicleEnclosed"]:checked').val() || null,
-                    p_hazard_substances: $('input[name="hazardSubstances"]:checked').val() || null,
-                    p_pest_infestations: $('input[name="pestInfestations"]:checked').val() || null,
-                    p_pallets_condition: $('input[name="palletsCondition"]:checked').val() || null,
-                    p_raw_materials_condition: $('input[name="rawMaterialsCondition"]:checked').val() || null,
-                    p_comments: $('#receivingComments').val() || null,
-                    p_received_items: JSON.stringify(receivedItems)
-                };
-                
-                const receivingId = $('#receivingId').val();
-                let result;
-                
-                if (receivingId) {
-                    result = await dataFunctions.callFunction('update_receiving_checklist', {
-                        p_receiving_id: receivingId,
-                        ...receivingData
-                    });
-                } else {
-                    result = await dataFunctions.callFunction('create_receiving_checklist', receivingData);
-                }
-                
-                if (result && result.success !== false) {
-                    // Invalidate caches
-                    if (typeof dataFunctions !== 'undefined' && dataFunctions.clearCachePattern) {
-                        dataFunctions.clearCachePattern('receiving_checklists');
-                        dataFunctions.clearCachePattern('stock_items');
-                    }
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: receivingId ? 'Receiving checklist updated successfully' : 'Receiving checklist created successfully',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    this.closeReceivingChecklistModal();
-                    this.loadStockItems(true); // Force refresh
-                } else {
-                    throw new Error(result?.error || result?.message || 'Failed to save receiving checklist');
-                }
-            } catch (error) {
-                console.error('Error saving receiving checklist:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to save receiving checklist: ' + error.message
-                });
-            }
         },
         
         showRawMaterialIssuedModal: async function () {
@@ -1362,37 +1275,29 @@ var _stockManagementGrid = function () {
         },
         
         closeStockTakeModal: function () {
-            console.log('[Stock Management] Closing stock take modal');
             const modalElement = document.getElementById('stockTakeModal');
-            if (!modalElement) {
-                console.warn('[Stock Management] Modal element not found');
-                return;
-            }
-            
+            if (!modalElement) return;
             try {
-                // Try Bootstrap 5 first
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                     const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
                     modal.hide();
-                    console.log('[Stock Management] Modal closed via Bootstrap 5');
                 }
-                
-                // Try jQuery
                 if (typeof $ !== 'undefined' && $.fn.modal) {
                     $('#stockTakeModal').modal('hide');
-                    console.log('[Stock Management] Modal closed via jQuery');
                 }
-                
-                // If the modal is still visible after Bootstrap/jQuery attempts, force close.
+                // Always run force-cleanup after a short delay so backdrop and body state are cleared
                 setTimeout(() => {
-                    const stillShown = modalElement.classList.contains('show') || modalElement.style.display === 'block';
+                    const stillShown = modalElement.classList.contains('show') || (modalElement.style.display && modalElement.style.display !== 'none');
                     if (stillShown) {
-                        console.warn('[Stock Management] Modal still visible after hide(); forcing close');
                         this.hardForceCloseStockTakeModal();
                     }
-                }, 50);
+                    // Remove any leftover backdrops and restore body
+                    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                }, 100);
             } catch (error) {
-                console.error('[Stock Management] Error closing modal:', error);
                 this.hardForceCloseStockTakeModal();
             }
         },

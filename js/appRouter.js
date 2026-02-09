@@ -13,7 +13,36 @@ var _appRouter = function () {
         currentRoute: null,
         //------------
         init: async () => {
+            // Native sidebar route handler (capture phase) so navigation works even if jQuery or other handlers interfere
+            document.addEventListener('click', function (e) {
+                var link = e.target && e.target.closest ? e.target.closest('.sidebar a[route]') : null;
+                if (!link || link.getAttribute('data-bs-toggle') === 'collapse') return;
+                var routeName = link.getAttribute('route');
+                if (!routeName) return;
+                e.preventDefault();
+                e.stopPropagation();
+                document.querySelectorAll('.sidebar a[route]').forEach(function (a) { a.classList.remove('active'); });
+                link.classList.add('active');
+                _appRouter.promptOnFormExit(routeName).then(function () { window.scrollTo(0, 0); });
+            }, true);
 
+            // jQuery binding (kept for non-sidebar route links and compatibility)
+            $(document).on('click', 'a[route]', async function (e) {
+                const target = e.currentTarget;
+                if (target && (target.getAttribute('data-bs-toggle') === 'dropdown' || target.getAttribute('data-bs-toggle') === 'collapse')) {
+                    return;
+                }
+                if (target && target.closest && target.closest('.sidebar')) return; // sidebar handled by native handler above
+                e.preventDefault();
+                const routeName = $(target).attr('route');
+                if (routeName) {
+                    console.log('Navigation clicked:', routeName);
+                    $('a[route]').removeClass('active');
+                    $(target).addClass('active');
+                    await _appRouter.promptOnFormExit(routeName);
+                    $(window).scrollTop(0);
+                }
+            });
 
             const breadCrumbs = sessionStorage.getItem('breadCrumbs');
             if (breadCrumbs) {
@@ -31,7 +60,6 @@ var _appRouter = function () {
                 catch (e) { }
             }
 
-            //bind nav event
             await _appRouter.loadRouteConfig();
 
             // Check localStorage first (persists across sessions), then sessionStorage, then default
@@ -60,25 +88,6 @@ var _appRouter = function () {
             if (!loadContent_result.success) {
                 console.error('failed to load content', loadContent_result.errors)
             }
-
-            // Bind navigation events for all nav links with route attribute
-            $(document).on('click', 'a[route]', async (e) => {
-                e.preventDefault();
-
-                const routeName = $(e.currentTarget).attr('route');
-
-                if (routeName) {
-                    console.log('Navigation clicked:', routeName);
-
-                    // Update active nav link
-                    $('a[route]').removeClass('active');
-                    $(e.currentTarget).addClass('active');
-
-                    await _appRouter.promptOnFormExit(routeName);
-                    $(window).scrollTop(0);
-                }
-            });
-
         },
         loadRouteConfig: () => {
 
@@ -346,6 +355,31 @@ var _appRouter = function () {
                 'oil-production-grid': () => {
                     if (typeof initializeOilProductionGrid === 'function') {
                         initializeOilProductionGrid();
+                    }
+                },
+                'supplier-intake-grid': () => {
+                    if (typeof initializeSupplierIntakeGrid === 'function') {
+                        initializeSupplierIntakeGrid();
+                    }
+                },
+                'kernel-dispatch-grid': () => {
+                    if (typeof initializeKernelDispatchGrid === 'function') {
+                        initializeKernelDispatchGrid();
+                    }
+                },
+                'oil-dispatch-grid': () => {
+                    if (typeof initializeOilDispatchGrid === 'function') {
+                        initializeOilDispatchGrid();
+                    }
+                },
+                'stock-management-kernel': () => {
+                    if (typeof initializeStockManagementGrid === 'function') {
+                        initializeStockManagementGrid();
+                    }
+                },
+                'stock-management-oil': () => {
+                    if (typeof initializeStockManagementGrid === 'function') {
+                        initializeStockManagementGrid();
                     }
                 },
                 'financial-management-grid': () => {

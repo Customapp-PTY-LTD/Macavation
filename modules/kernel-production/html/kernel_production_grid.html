@@ -3,9 +3,6 @@
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Kernel Production Workflow</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-primary" id="addBatchBtn">
-                <i class="fas fa-plus me-1"></i>New Production Batch
-            </button>
             <button type="button" class="btn btn-success" id="addJobCardBtn">
                 <i class="fas fa-clipboard me-1"></i>Kernel Production Job Card
             </button>
@@ -71,113 +68,6 @@
                     </thead>
                     <tbody id="batchesTableBody"></tbody>
                 </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- New Production Batch Modal -->
-<div class="modal fade" id="newBatchModal" tabindex="-1" aria-labelledby="newBatchModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="newBatchModalLabel">New Production Batch</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="newBatchForm">
-                    <input type="hidden" id="batchId">
-                    
-                    <!-- Batch Information -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0">Batch Information</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label for="batchNumber" class="form-label required">Batch Number *</label>
-                                    <input type="text" class="form-control" id="batchNumber" required placeholder="e.g., BATCH-2025-001">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="batchReceivedDate" class="form-label required">Received Date *</label>
-                                    <input type="date" class="form-control" id="batchReceivedDate" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Supplier Information -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0">Supplier Information</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label for="batchSupplier" class="form-label">Supplier</label>
-                                    <select class="form-select" id="batchSupplier">
-                                        <option value="">Select Supplier</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="batchGrowerName" class="form-label">Grower Name</label>
-                                    <input type="text" class="form-control" id="batchGrowerName" placeholder="Enter grower name if not in list">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Receiving Information -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0">Receiving Information</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label for="batchWetNIS" class="form-label required">Wet NIS Received (kg) *</label>
-                                    <input type="number" class="form-control" id="batchWetNIS" step="0.01" required placeholder="0.00">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="batchReceivingMoisture" class="form-label">Receiving Moisture (%)</label>
-                                    <input type="number" class="form-control" id="batchReceivingMoisture" step="0.01" placeholder="0.00">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Optional Information -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h6 class="mb-0">Optional Information</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label for="batchStartDate" class="form-label">Start Date</label>
-                                    <input type="date" class="form-control" id="batchStartDate">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="batchEstimatedCompletion" class="form-label">Estimated Completion Date</label>
-                                    <input type="date" class="form-control" id="batchEstimatedCompletion">
-                                </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-md-12">
-                                    <label for="batchNotes" class="form-label">Notes</label>
-                                    <textarea class="form-control" id="batchNotes" rows="3" placeholder="Any additional notes about this batch..."></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveBatchBtn">
-                    <i class="fas fa-save me-1"></i>Create Batch
-                </button>
             </div>
         </div>
     </div>

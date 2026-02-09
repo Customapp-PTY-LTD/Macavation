@@ -307,8 +307,8 @@ function handleQuickAction(route, action) {
         : _appRouter.loadContent(route);
 
     navigatePromise.then(() => {
-        // Trigger add action after route loads
-        if (action === 'add') {
+        // Trigger add action after route loads (skip for stock-management to avoid opening modal on navigate)
+        if (action === 'add' && route !== 'stock-management-grid') {
             // Use route-specific button ID if available, otherwise try common patterns
             const buttonId = routeAddButtonMap[route];
             let addBtn = null;

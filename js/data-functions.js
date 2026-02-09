@@ -227,8 +227,9 @@ var _dataFunctions = function () {
             const forceRefresh = options.forceRefresh === true;
             const isOfflineOperation = options.offlineOperation !== false; // Default to true - allow offline queuing
 
-            // Check if we're offline
-            const isOffline = !navigator.onLine;
+            // Check if we're offline (prefer offlineDetector so we don't block on false browser offline)
+            const detectorOnline = (typeof offlineDetector !== 'undefined' && offlineDetector.getStatus && offlineDetector.getStatus().isOnline);
+            const isOffline = detectorOnline === true ? false : !navigator.onLine;
 
             // Return cached data if available and not forcing refresh (for GET operations)
             if (useCache && !forceRefresh && !isOffline) {
@@ -1133,15 +1134,38 @@ var _dataFunctions = function () {
         },
 
         // Production Functions (cached for 1 minute - dynamic data)
-        getProductionBatches: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_production_batches', {}, token, {
-                cacheKey: 'production_batches_list',
+        getProductionBatches: async function (token = null, forceRefresh = false, options = {}) {
+            const params = {};
+            if (options.batch_type != null) params.p_batch_type = options.batch_type;
+            if (options.status != null) params.p_status = options.status;
+            const cacheKey = 'production_batches_list' + (options.status ? '_' + options.status : '') + (options.batch_type ? '_' + options.batch_type : '');
+            const raw = await this.callFunction('get_production_batches', params, token, {
+                cacheKey: cacheKey,
                 useCache: true,
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (Array.isArray(raw)) return raw;
+            return [];
         },
-        
+
+        /**
+         * Update production batch status/step (move batch along journey)
+         */
+        updateProductionBatch: async function (batchId, params, token = null) {
+            const result = await this.callFunction('update_production_batch', {
+                p_batch_id: batchId,
+                p_status: params.status || undefined,
+                p_current_step: params.current_step !== undefined ? params.current_step : undefined,
+                p_stage: params.stage || undefined,
+                p_receiving_checklist_id: params.receiving_checklist_id !== undefined ? params.receiving_checklist_id : undefined,
+                p_sample_submission_id: params.sample_submission_id !== undefined ? params.sample_submission_id : undefined
+            }, token, { useCache: false });
+            this.clearCachePattern('production_batches');
+            return result;
+        },
+
         /**
          * Create production batch (invalidates batches cache)
          */

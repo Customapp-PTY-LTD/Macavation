@@ -2,6 +2,8 @@
 
 This document defines how to configure the system so **kernel batches** can be tracked and updated at each step of the journey. Batches move from one **stage** to the next, and their **status** reflects the current step. Use this with Cursor (or any dev) to implement the flow on `http://127.0.0.1:3000/index.html`.
 
+**Status: Active** — Backend and frontend are implemented. The app and sign-in use the **same Supabase project** (see [Activation & config](#10-activation--config-single-supabase--lambda-redeploy) below). Ensure the Lambda is deployed with that project’s URL so RBAC and kernel batch RPCs use it.
+
 ---
 
 ## 1. Journey Overview (Where Data Is Captured)
@@ -144,17 +146,17 @@ When user clicks **“Advance to next step”**:
 
 ## 7. Implementation Checklist for Cursor / Dev
 
-- [ ] **Backend**
+- [x] **Backend**
   - Table (or equivalent) for kernel batches with `batch_number`, `status`, `current_step`, and optional `stage`.
   - RPCs: `get_production_batches` (filter by stream = kernel; optional filter by status/step), `create_production_batch_simple` (already present), `update_production_batch` (update `status`, `current_step`, and any new fields).
   - Optional: `create_batch_from_intake` (from Grower Intake receipt/sample) and `release_batch_to_production` (raw_stock → receiving, step 1).
-- [ ] **Grower Intake**
+- [x] **Grower Intake**
   - After “Incoming Receiving Checklist” or sample approval: option to “Create batch” or “Link to existing batch”; set status `intake_received` or `quality_approved`; when moving to warehouse, set `in_raw_stock`.
-- [ ] **Stock (Kernel)**
+- [x] **Stock (Kernel)**
   - Show batches (from `get_production_batches` or stock table with batch_number) in NIS = R NIL (`in_raw_stock`) and KERNEL R YES (`in_finished_stock`). Actions: “Release to production” (→ receiving, step 1), “Receive from production” (completed → in_finished_stock).
-- [ ] **Kernel Production**
+- [x] **Kernel Production**
   - List batches where status in (`receiving`, `cracking`, `drying`, `sorting_dry`, `packing`, `completed`). “Advance step” button (or per-step buttons) calls `update_production_batch` to set next step/status. Job card save updates same batch.
-- [ ] **Kernel Dispatch**
+- [x] **Kernel Dispatch**
   - List batches with status `in_finished_stock`; “Dispatch” records INV and sets status to `dispatched`.
 
 ---
@@ -208,9 +210,44 @@ Use this doc plus the app at **http://127.0.0.1:3000/index.html** to implement: 
 ## 9. What’s Implemented (Quick Reference)
 
 - **Backend (Supabase):**
-  - Table `production_batches` with `status`, `current_step`, `stage`.
-  - RPCs: `get_production_batches`, `update_production_batch`, `create_production_batch_simple`.
+  - Table `production_batches` with `status`, `current_step`, `stage`, `receiving_checklist_id`, `sample_submission_id`.
+  - RPCs: `get_production_batches`, `update_production_batch`, `create_production_batch_simple`. EXECUTE granted for all roles (including assessor).
 - **Frontend:**
-  - **data-functions.js:** `getProductionBatches()` unwraps `{ data }`; `updateProductionBatch(batchId, { status, current_step, stage })` added.
-  - **Kernel Production:** “Next step” button on each batch row; `advanceBatchStep()` updates status/step (1→receiving … 17→completed, stage `finished_stock`).
-- **Next (for you or Cursor):** Grower Intake “create/link batch”; Stock (Kernel) show batches by stage and “Release to production”; Kernel Dispatch list `in_finished_stock` and “Dispatch”.
+  - **data-functions.js:** `getProductionBatches()` unwraps `{ data }`; `updateProductionBatch(batchId, { status, current_step, stage, receiving_checklist_id, sample_submission_id })`; `createProductionBatch()`.
+  - **Grower Intake:** Create kernel batch modal; Stage 1 step boxes (checklist, sample) per batch; Move to raw stock.
+  - **Stock (Kernel):** Kernel batch journey card; Release to production; Oil ledger hidden when stream = Kernel.
+  - **Kernel Production:** “Next step” per batch; at step 17 → `in_finished_stock`.
+  - **Kernel Dispatch:** List `in_finished_stock`; Dispatch sets `dispatched`.
+
+---
+
+## 10. Activation & Config: Single Supabase + Lambda Redeploy
+
+The **same Supabase project** must be used for:
+- App config (`js/appRouteConfig.json` → `SupabaseUrl`)
+- Sign-in (`signin.html` → Supabase client for auth)
+- Lambda backend (env var `SUPABASE_URL`)
+
+That project is the one where **production_batches**, **role_permissions** (assessor EXECUTE grants), and **users**/auth live. In this repo it is configured as:
+
+| What | Value |
+|------|--------|
+| **Supabase project URL** | `https://tfwrktyynvnjjhcqnlul.supabase.co` |
+| **Lambda proxy URL** | `https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws` (unchanged) |
+
+### Ensure same project is used
+
+1. **App:** `js/appRouteConfig.json` — all environments’ `SupabaseUrl` are set to the URL above.
+2. **Sign-in:** `signin.html` — `SUPABASE_URL` and `SUPABASE_ANON_KEY` point to this project so auth and RBAC use the same DB.
+3. **Lambda:** In AWS Lambda configuration for the function behind the proxy URL, set **environment variable** `SUPABASE_URL` = `https://tfwrktyynvnjjhcqnlul.supabase.co`. If your Lambda used a different Supabase project before, update it and redeploy.
+
+### Lambda redeploy (when needed)
+
+After changing `index_supabase.js` or Lambda env:
+
+1. Package the Lambda: zip `index_supabase.js` and any dependencies (or use your existing build/deploy pipeline).
+2. In AWS: Lambda → your function → **Code** → Upload from .zip (or deploy via SAM/Serverless/CI).
+3. In **Configuration → Environment variables**, set `SUPABASE_URL` = `https://tfwrktyynvnjjhcqnlul.supabase.co`.
+4. Save; the Lambda URL stays the same, so the frontend does not need changes.
+
+If “operation EXECUTE is not allowed” persists after granting assessor, the Lambda is likely still using a different Supabase project; fix by pointing it to this project and redeploying.

@@ -66,45 +66,6 @@ var _kernelProductionGrid = function () {
                 }
             }
             
-            // Batch button
-            const addBatchBtn = document.getElementById('addBatchBtn');
-            if (addBatchBtn) {
-                addBatchBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('[Kernel Production] New Batch button clicked (native)');
-                    scope.showNewBatchModal();
-                });
-                
-                // jQuery handler for compatibility
-                if (typeof $ !== 'undefined') {
-                    $('#addBatchBtn').on('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('[Kernel Production] New Batch button clicked (jQuery)');
-                        scope.showNewBatchModal();
-                    });
-                }
-            } else {
-                console.warn('[Kernel Production] addBatchBtn not found!');
-            }
-            
-            // Save Batch button
-            const saveBatchBtn = document.getElementById('saveBatchBtn');
-            if (saveBatchBtn) {
-                saveBatchBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    scope.saveNewBatch();
-                });
-            }
-            
-            if (typeof $ !== 'undefined') {
-                $('#saveBatchBtn').on('click', function(e) {
-                    e.preventDefault();
-                    scope.saveNewBatch();
-                });
-            }
-            
             // Export button
             const exportBtn = document.getElementById('exportBatchesBtn');
             if (exportBtn) {
@@ -349,7 +310,7 @@ var _kernelProductionGrid = function () {
             tbody.empty();
             if (this.filteredBatches.length === 0) {
                 if (this.batches.length === 0) {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No production batches found. Click "New Production Batch" to create one.</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No production batches found. Create batches from Grower Intake, then release them to production from Stock (Kernel).</td></tr>');
                 } else {
                     tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search criteria. Try adjusting your filters.</td></tr>');
                 }

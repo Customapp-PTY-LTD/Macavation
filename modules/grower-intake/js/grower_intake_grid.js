@@ -14,7 +14,6 @@ var _growerIntakeGrid = function () {
 
         init: function () {
             this.setupEventListeners();
-            this.loadSamples();
             this.loadIntakeBatches();
         },
 
@@ -22,27 +21,6 @@ var _growerIntakeGrid = function () {
             const scope = this;
             $('#addSampleBtn').on('click', function () {
                 scope.showAddSampleModal();
-            });
-            
-            // Search with debouncing
-            $('#searchSamplesInput').on('input', function () {
-                clearTimeout(scope.searchTimeout);
-                scope.searchTimeout = setTimeout(() => {
-                    scope.filterSamples();
-                }, 300);
-            });
-            
-            // Filters
-            $('#filterSampleStatus, #filterSampleDate').on('change', function () {
-                scope.filterSamples();
-            });
-            
-            // Clear filters
-            $('#clearSampleFiltersBtn').on('click', function () {
-                $('#searchSamplesInput').val('');
-                $('#filterSampleStatus').val('');
-                $('#filterSampleDate').val('');
-                scope.filterSamples();
             });
 
             // Kernel batch journey
@@ -205,10 +183,13 @@ var _growerIntakeGrid = function () {
             }
         },
 
-        openSampleSubmissionForBatch: function (batchId) {
+        openSampleSubmissionForBatch: async function (batchId) {
             this._sampleForBatchId = batchId;
             var modal = document.getElementById('linkSampleToBatchModal');
             if (!modal) return;
+            if (!this.samples || this.samples.length === 0) {
+                try { await this.loadSamples(true); } catch (e) { console.error(e); }
+            }
             var sel = document.getElementById('linkSampleToBatchSelect');
             if (sel) {
                 sel.innerHTML = '<option value="">Select a sample to link…</option>';
@@ -306,9 +287,16 @@ var _growerIntakeGrid = function () {
                     p_status: 'receiving',
                     p_current_step: 1
                 });
-                const id = createResult && createResult.id;
+                // Support direct { id }, { data: { id } }, or RPC-wrapped shape
+                const id = (createResult && createResult.id) ||
+                    (createResult && createResult.data && createResult.data.id) ||
+                    (createResult && createResult.create_production_batch_simple && createResult.create_production_batch_simple.id);
+                if (createResult && createResult.success === false && createResult.error) {
+                    Swal.fire('Error', createResult.error, 'error');
+                    return;
+                }
                 if (!id) {
-                    throw new Error(createResult && createResult.error ? createResult.error : 'Create failed');
+                    throw new Error(createResult && createResult.error ? createResult.error : 'Create failed: no batch id returned');
                 }
                 await dataFunctions.updateProductionBatch(id, { status: 'intake_received', stage: 'intake' });
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -317,11 +305,21 @@ var _growerIntakeGrid = function () {
                 } else if (typeof $ !== 'undefined' && $.fn.modal) {
                     $('#createKernelBatchModal').modal('hide');
                 }
-                Swal.fire({ icon: 'success', title: 'Batch created', text: 'Kernel batch is in intake. Move to raw stock when ready.', timer: 2000, showConfirmButton: false });
-                this.loadIntakeBatches(true);
+                Swal.fire({ icon: 'success', title: 'Batch created', text: 'Kernel batch is in intake. Complete Stage 1 steps then move to raw stock when ready.', timer: 2500, showConfirmButton: false });
+                await this.loadIntakeBatches(true);
             } catch (e) {
                 console.error(e);
-                Swal.fire('Error', e.message || 'Failed to create batch', 'error');
+                const msg = e.message || '';
+                const isRbacDenied = msg.includes('operation EXECUTE is not allowed') || msg.includes('Access denied');
+                if (isRbacDenied) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Permission denied',
+                        html: 'Creating a batch was blocked by the server. <strong>Ask an admin</strong> to either set the Lambda env <code>SUPABASE_URL</code> to the project where permissions were granted, or run the EXECUTE grants on the database the server uses. See <strong>BluePrint/RBAC_GUIDE.md</strong> or <strong>LAMBDA_ENV_REQUIRED.md</strong>.'
+                    });
+                } else {
+                    Swal.fire('Error', msg || 'Failed to create batch', 'error');
+                }
             }
         },
 

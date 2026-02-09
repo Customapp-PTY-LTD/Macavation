@@ -458,6 +458,42 @@ When adding RBAC for new module:
 - [ ] Documentation updated
 - [ ] Tested with different user roles
 
+## Troubleshooting: "Access denied: operation EXECUTE is not allowed" (Kernel / Create batch)
+
+When creating a new kernel batch in **Grower Intake**, the backend (Lambda) checks the `role_permissions` table in Supabase. If you see this error:
+
+1. **Log out and log back in** so your JWT has your current role.
+2. **Admin fix (required if step 1 doesn’t help):** The Lambda must use the **same Supabase project** where `role_permissions` has EXECUTE for your role.
+
+**Option A – Point Lambda at the correct Supabase (recommended)**  
+In **AWS Lambda** → your function → **Configuration** → **Environment variables**, set:
+- **Name:** `SUPABASE_URL`
+- **Value:** `https://tfwrktyynvnjjhcqnlul.supabase.co`  
+(See project root file `LAMBDA_ENV_REQUIRED.md`.)
+
+**Option B – Grant EXECUTE on the database the Lambda already uses**  
+If the Lambda cannot be changed, run this SQL on the Supabase project that the Lambda’s `SUPABASE_URL` points to (so `role_permissions` and `users`/roles are in that project):
+
+```sql
+-- Grant EXECUTE on production batch functions to all roles (so Create kernel batch works)
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'get_production_batches', 'EXECUTE', true
+FROM public.roles r
+ON CONFLICT (role_id, object_type, object_name, operation) DO UPDATE SET allowed = true;
+
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'create_production_batch_simple', 'EXECUTE', true
+FROM public.roles r
+ON CONFLICT (role_id, object_type, object_name, operation) DO UPDATE SET allowed = true;
+
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'update_production_batch', 'EXECUTE', true
+FROM public.roles r
+ON CONFLICT (role_id, object_type, object_name, operation) DO UPDATE SET allowed = true;
+```
+
+Then have users log out and log back in and try again.
+
 ## Next Steps
 
 - See `MODULE_GUIDE.md` for module creation

@@ -4,23 +4,23 @@
     "contentContainer": "#content-area",
     "environmentSettings": {
         "default": {
-            "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "SupabaseUrl": "https://tfwrktyynvnjjhcqnlul.supabase.co",
             "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "dev": {
-            "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "SupabaseUrl": "https://tfwrktyynvnjjhcqnlul.supabase.co",
             "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "uat": {
-            "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "SupabaseUrl": "https://tfwrktyynvnjjhcqnlul.supabase.co",
             "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "demo": {
-            "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "SupabaseUrl": "https://tfwrktyynvnjjhcqnlul.supabase.co",
             "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "prod": {
-            "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "SupabaseUrl": "https://tfwrktyynvnjjhcqnlul.supabase.co",
             "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
         }
     },

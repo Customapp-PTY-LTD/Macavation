@@ -24,17 +24,18 @@ var _offlineDetector = function () {
                 this.handleOffline();
             });
 
-            // Initial state
+            // Initial state from browser
             if (this.isOnline) {
                 this.hideIndicator();
             } else {
                 this.showOfflineIndicator();
             }
 
-            // Periodic connectivity check (every 10 seconds)
-            setInterval(() => {
-                this.checkConnectivity();
-            }, 10000);
+            // Run one connectivity check soon to correct false "offline" (browser often wrong)
+            setTimeout(() => this.checkConnectivity(), 1500);
+
+            // Periodic connectivity check (every 30 seconds) - only to correct false offline
+            setInterval(() => this.checkConnectivity(), 30000);
         },
 
         /**
@@ -61,7 +62,14 @@ var _offlineDetector = function () {
                     font-size: 14px;
                     font-weight: 600;
                 `;
-                indicator.innerHTML = '<i class="fas fa-wifi-slash me-2"></i>Offline';
+                indicator.innerHTML = '<i class="fas fa-wifi-slash me-2"></i>Offline <span class="ms-2 small">(click to recheck)</span>';
+                indicator.style.cursor = 'pointer';
+                indicator.title = 'Click to recheck connection';
+                indicator.addEventListener('click', () => {
+                    if (typeof offlineDetector !== 'undefined' && offlineDetector.forceOnlineCheck) {
+                        offlineDetector.forceOnlineCheck();
+                    }
+                });
 
                 document.body.appendChild(indicator);
                 this.indicatorElement = indicator;
@@ -116,7 +124,7 @@ var _offlineDetector = function () {
          */
         showOfflineIndicator: function () {
             if (this.indicatorElement) {
-                this.indicatorElement.innerHTML = '<i class="fas fa-wifi-slash me-2"></i>Offline';
+                this.indicatorElement.innerHTML = '<i class="fas fa-wifi-slash me-2"></i>Offline <span class="ms-2 small">(click to recheck)</span>';
                 this.indicatorElement.className = 'badge bg-danger';
                 this.indicatorElement.style.display = 'block';
             }
@@ -143,28 +151,35 @@ var _offlineDetector = function () {
         },
 
         /**
-         * Check connectivity with a test request
+         * Check connectivity with a test request.
+         * Only corrects "browser says offline but we can reach the network".
+         * Does NOT mark as offline when fetch fails (could be 404, CORS, server down, file:// origin).
          */
         checkConnectivity: async function () {
+            // Don't run fetch from file:// or when browser already says we're offline (avoid false positives)
+            if (typeof window === 'undefined' || !window.location || window.location.protocol === 'file:') {
+                return;
+            }
             try {
-                // Try to fetch a small resource to verify connectivity
-                const response = await fetch('/favicon.svg', {
+                const url = (window.location.origin || window.location.href.split('/').slice(0, 3).join('/')) + '/';
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 6000);
+                const response = await fetch(url, {
                     method: 'HEAD',
                     cache: 'no-cache',
-                    timeout: 5000
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
 
                 if (response.ok && !this.isOnline) {
-                    // Actually online but browser thinks offline
                     this.handleOnline();
-                } else if (!response.ok && this.isOnline) {
-                    // Actually offline but browser thinks online
-                    this.handleOffline();
                 }
             } catch (error) {
-                if (this.isOnline) {
-                    // Network error - might be offline
-                    this.handleOffline();
+                if (!this.isOnline) {
+                    try {
+                        const r = await fetch(window.location.href, { method: 'HEAD', cache: 'no-cache' });
+                        if (r.ok) this.handleOnline();
+                    } catch (_) { /* ignore */ }
                 }
             }
         },
@@ -175,9 +190,21 @@ var _offlineDetector = function () {
         getStatus: function () {
             return {
                 isOnline: this.isOnline,
-                indicatorVisible: this.indicatorElement ? 
+                indicatorVisible: this.indicatorElement ?
                     this.indicatorElement.style.display !== 'none' : false
             };
+        },
+
+        /**
+         * Force re-check and treat as online (user says they have connection)
+         */
+        forceOnlineCheck: function () {
+            this.isOnline = true;
+            this.hideIndicator();
+            this.checkConnectivity();
+            if (typeof offlineSync !== 'undefined') {
+                offlineSync.startSync();
+            }
         }
     };
 }();
