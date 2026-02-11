@@ -232,14 +232,14 @@ That project is the one where **production_batches**, **role_permissions** (asse
 
 | What | Value |
 |------|--------|
-| **Supabase project URL** | `https://tfwrktyynvnjjhcqnlul.supabase.co` |
+| **Supabase project URL** | `https://sofanhfpxifgdtooefzq.supabase.co` |
 | **Lambda proxy URL** | `https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws` (unchanged) |
 
 ### Ensure same project is used
 
 1. **App:** `js/appRouteConfig.json` — all environments’ `SupabaseUrl` are set to the URL above.
 2. **Sign-in:** `signin.html` — `SUPABASE_URL` and `SUPABASE_ANON_KEY` point to this project so auth and RBAC use the same DB.
-3. **Lambda:** In AWS Lambda configuration for the function behind the proxy URL, set **environment variable** `SUPABASE_URL` = `https://tfwrktyynvnjjhcqnlul.supabase.co`. If your Lambda used a different Supabase project before, update it and redeploy.
+3. **Lambda:** In AWS Lambda configuration for the function behind the proxy URL, set **environment variable** `SUPABASE_URL` = `https://sofanhfpxifgdtooefzq.supabase.co`. If your Lambda used a different Supabase project before, update it and redeploy.
 
 ### Lambda redeploy (when needed)
 
@@ -247,7 +247,7 @@ After changing `index_supabase.js` or Lambda env:
 
 1. Package the Lambda: zip `index_supabase.js` and any dependencies (or use your existing build/deploy pipeline).
 2. In AWS: Lambda → your function → **Code** → Upload from .zip (or deploy via SAM/Serverless/CI).
-3. In **Configuration → Environment variables**, set `SUPABASE_URL` = `https://tfwrktyynvnjjhcqnlul.supabase.co`.
+3. In **Configuration → Environment variables**, set `SUPABASE_URL` = `https://sofanhfpxifgdtooefzq.supabase.co`.
 4. Save; the Lambda URL stays the same, so the frontend does not need changes.
 
 If “operation EXECUTE is not allowed” persists after granting assessor, the Lambda is likely still using a different Supabase project; fix by pointing it to this project and redeploying.

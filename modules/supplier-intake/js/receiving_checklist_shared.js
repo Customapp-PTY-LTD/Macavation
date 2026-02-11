@@ -101,7 +101,7 @@
                 p_pallets_condition: $('input[name="palletsCondition"]:checked').val() || null,
                 p_raw_materials_condition: $('input[name="rawMaterialsCondition"]:checked').val() || null,
                 p_comments: $('#receivingComments').val() || null,
-                p_received_items: JSON.stringify(receivedItems)
+                p_received_items: receivedItems
             };
             var receivingId = $('#receivingId').val();
             var result = receivingId

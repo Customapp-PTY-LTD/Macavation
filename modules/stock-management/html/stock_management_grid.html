@@ -22,8 +22,8 @@
     </div>
     
     <input type="hidden" id="filterStockStream" value="kernel">
-    <!-- Search and Filters -->
-    <div class="card mb-3">
+    <!-- Search and Filters (hidden when Kernel Stock - only batch journey / by-style table shown) -->
+    <div class="card mb-3" id="mainStockFiltersCard">
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4">
@@ -72,7 +72,7 @@
         </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="card mb-4" id="mainStockTableCard">
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover" id="stockTable">
@@ -100,7 +100,7 @@
             <h5 class="mb-0"><i class="fas fa-seedling me-2"></i>Kernel batch journey</h5>
         </div>
         <div class="card-body">
-            <p class="text-muted small mb-3">Move batches from raw (NIS = R NIL) to production, or view finished (KERNEL R YES) ready for dispatch.</p>
+            <p class="text-muted small mb-3">Batches released from Grower Intake go to Kernel Production; release to stock from there. Raw (NIS = R NIL) is legacy; finished (KERNEL R YES) are ready for dispatch.</p>
             <div class="row">
                 <div class="col-md-6">
                     <h6 class="text-secondary">Raw stock (NIS = R NIL)</h6>
@@ -120,6 +120,26 @@
                         </table>
                     </div>
                 </div>
+            </div>
+            <hr class="my-3">
+            <h6 class="text-secondary">Kernel Stock by style</h6>
+            <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with yield quantity per style (from Production Job Card).</p>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered" id="kernelStockByStyleTable">
+                    <thead>
+                        <tr>
+                            <th>Batch</th>
+                            <th class="text-center">SP</th><th class="text-center">0</th><th class="text-center">1</th><th class="text-center">1S</th><th class="text-center">4L</th><th class="text-center">5</th><th class="text-center">6</th>
+                            <th class="text-center">7/8</th><th class="text-center">Butter High Oil</th><th class="text-center">Butter Low Oil</th>
+                        </tr>
+                        <tr id="kernelStockByStyleTotalsRow" class="table-light fw-bold">
+                            <td>Totals</td>
+                            <td class="text-end" data-style="SP">0</td><td class="text-end" data-style="0">0</td><td class="text-end" data-style="1">0</td><td class="text-end" data-style="1S">0</td><td class="text-end" data-style="4L">0</td><td class="text-end" data-style="5">0</td><td class="text-end" data-style="6">0</td>
+                            <td class="text-end" data-style="7/8">0</td><td class="text-end" data-style="Butter High Oil">0</td><td class="text-end" data-style="Butter Low Oil">0</td>
+                        </tr>
+                    </thead>
+                    <tbody id="kernelStockByStyleBody"></tbody>
+                </table>
             </div>
         </div>
     </div>

@@ -416,17 +416,23 @@ var _stockManagementGrid = function () {
         toggleKernelBatchJourney: function (stream) {
             var card = document.getElementById('kernelBatchJourneyCard');
             var oilCard = document.getElementById('oilStockLedgerCard');
+            var mainFiltersCard = document.getElementById('mainStockFiltersCard');
+            var mainTableCard = document.getElementById('mainStockTableCard');
             var addOilBtn = document.getElementById('addOilLotBtn');
             var importOilBtn = document.getElementById('importOilLotsBtn');
             if (stream === 'kernel') {
                 if (card) { card.style.display = ''; }
                 this.loadKernelBatches();
                 if (oilCard) oilCard.style.display = 'none';
+                if (mainFiltersCard) mainFiltersCard.style.display = 'none';
+                if (mainTableCard) mainTableCard.style.display = 'none';
                 if (addOilBtn) addOilBtn.classList.add('d-none');
                 if (importOilBtn) importOilBtn.classList.add('d-none');
             } else {
                 if (card) card.style.display = 'none';
                 if (oilCard) oilCard.style.display = '';
+                if (mainFiltersCard) mainFiltersCard.style.display = '';
+                if (mainTableCard) mainTableCard.style.display = '';
                 if (addOilBtn) addOilBtn.classList.remove('d-none');
                 if (importOilBtn) importOilBtn.classList.remove('d-none');
                 if (stream === 'oil' && document.getElementById('oilLotsTableBody')) this.loadOilLotsAndSummary();
@@ -466,8 +472,33 @@ var _stockManagementGrid = function () {
                     finishedBody.append('<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + (b.received_date || '') + '</td><td>' + (b.wet_nis_received_kg || '') + '</td></tr>');
                 });
             } else {
-                finishedBody.append('<tr><td colspan="4" class="text-muted small">No finished batches. Complete production (step 17) to see them here. Dispatch from Kernel Dispatch.</td></tr>');
+                finishedBody.append('<tr><td colspan="4" class="text-muted small">No finished batches. Release to stock from Kernel Production when Production and End sample are done.</td></tr>');
             }
+            this.renderKernelStockByStyle();
+        },
+        kernelStyleKeys: ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'],
+        renderKernelStockByStyle: function () {
+            var body = $('#kernelStockByStyleBody');
+            var totalsRow = $('#kernelStockByStyleTotalsRow');
+            if (!body.length || !totalsRow.length) return;
+            body.empty();
+            var batches = this.kernelFinishedBatches || [];
+            var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
+            batches.forEach(function (b) {
+                var cells = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
+                var row = '<tr><td>' + (b.batch_number || '') + '</td>';
+                ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'].forEach(function (k) {
+                    var val = cells[k] != null ? cells[k] : (b['yield_' + k] != null ? b['yield_' + k] : 0);
+                    if (typeof val === 'number') totals[k] += val;
+                    row += '<td class="text-end">' + (val !== 0 && val !== '' ? val : '—') + '</td>';
+                });
+                row += '</tr>';
+                body.append(row);
+            });
+            totalsRow.find('td[data-style]').each(function () {
+                var k = $(this).data('style');
+                $(this).text(totals[k] != null ? totals[k] : 0);
+            });
         },
         releaseBatchToProduction: async function (batchId) {
             if (!batchId) return;

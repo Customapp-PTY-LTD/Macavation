@@ -8,7 +8,7 @@ For **Create kernel batch** and RBAC (e.g. assessor) to work, the Lambda must us
 
 | Name           | Value                                                                 |
 |----------------|-----------------------------------------------------------------------|
-| `SUPABASE_URL` | `https://tfwrktyynvnjjhcqnlul.supabase.co`                           |
+| `SUPABASE_URL` | `https://sofanhfpxifgdtooefzq.supabase.co`                           |
 
 Then **Save** (and redeploy the function if you changed code). The function URL does not change.
 

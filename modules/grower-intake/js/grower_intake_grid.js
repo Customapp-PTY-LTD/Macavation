@@ -14,7 +14,7 @@ var _growerIntakeGrid = function () {
 
         init: function () {
             this.setupEventListeners();
-            this.loadIntakeBatches();
+            this.loadIntakeBatches(true);
         },
 
         setupEventListeners: function () {
@@ -31,12 +31,17 @@ var _growerIntakeGrid = function () {
                 if (id) scope.moveBatchToRawStock(id);
             });
             $(document).on('click', '.js-batch-receiving-checklist', function () {
-                const id = $(this).data('batch-id');
-                if (id) scope.openReceivingChecklistForBatch(id);
+                const batchId = $(this).data('batch-id');
+                const checklistId = $(this).data('receiving-checklist-id') || null;
+                if (batchId) scope.openReceivingChecklistForBatch(batchId, checklistId);
             });
             $(document).on('click', '.js-batch-sample-submission', function () {
                 const id = $(this).data('batch-id');
                 if (id) scope.openSampleSubmissionForBatch(id);
+            });
+            $(document).on('click', '.js-batch-sample-view', function () {
+                const sampleId = $(this).data('sample-submission-id');
+                if (sampleId) scope.viewSample(sampleId);
             });
             $('#linkSampleToBatchBtn').on('click', function () { scope.linkSampleToBatch(); });
         },
@@ -128,7 +133,7 @@ var _growerIntakeGrid = function () {
             try {
                 const all = await dataFunctions.getProductionBatches(null, forceRefresh, { batch_type: 'kernel' });
                 this.intakeBatches = (all || []).filter(function (b) {
-                    return ['intake_received', 'quality_pending', 'quality_approved'].indexOf(b.status) >= 0;
+                    return ['receiving', 'intake_received', 'quality_pending', 'quality_approved'].indexOf(b.status) >= 0;
                 });
                 this.renderIntakeBatches();
             } catch (e) {
@@ -140,6 +145,12 @@ var _growerIntakeGrid = function () {
 
         renderIntakeBatches: function () {
             const tbody = $('#intakeBatchesTableBody');
+            if (!tbody.length) {
+                // DOM may not be ready yet (e.g. right after route load); retry once
+                const scope = this;
+                setTimeout(function () { scope.renderIntakeBatches(); }, 150);
+                return;
+            }
             tbody.empty();
             if (!this.intakeBatches.length) {
                 tbody.html('<tr><td colspan="7" class="text-center text-muted py-3">No kernel batches in intake. Create one to start the journey.</td></tr>');
@@ -147,31 +158,43 @@ var _growerIntakeGrid = function () {
             }
             const scope = this;
             this.intakeBatches.forEach(function (b) {
-                const checklistDone = !!b.receiving_checklist_id;
-                const sampleDone = !!b.sample_submission_id;
+                const receivedDate = b.received_date ? (b.received_date.toString().split('T')[0]) : '';
+                const checklistDone = !!(b.receiving_checklist_id || b.receivingChecklistId);
+                const sampleDone = !!(b.sample_submission_id || b.sampleSubmissionId);
                 const sampleEnabled = checklistDone;
-                const checklistBox = checklistDone
-                    ? '<span class="text-success me-2" title="Incoming Receiving checklist completed"><i class="fas fa-check-square"></i></span>'
-                    : '<button type="button" class="btn btn-link btn-sm p-0 me-2 text-secondary js-batch-receiving-checklist" data-batch-id="' + b.id + '" title="Complete Incoming Receiving checklist"><i class="far fa-square"></i></button>';
+                // Completed: box with tick over it (checkbox-style)
+                var tickBoxDone = '<span class="d-inline-flex align-items-center justify-content-center me-2 rounded border-2 border-success bg-success text-white" style="width:1.35em;height:1.35em;font-size:1em;line-height:1;font-weight:bold;" title="Completed">&#10003;</span>';
+                // Not done: empty box (clickable to open checklist)
+                var tickBoxEmpty = '<span class="d-inline-flex align-items-center justify-content-center me-2 rounded border-2 border-secondary" style="width:1.35em;height:1.35em;background:#fff;" title="Not done">&nbsp;</span>';
+                var checklistBox = checklistDone
+                    ? '<button type="button" class="btn btn-link btn-sm p-0 d-inline-flex align-items-center js-batch-receiving-checklist" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + (b.receiving_checklist_id || b.receivingChecklistId || '') + '" title="Edit Incoming Receiving checklist">' + tickBoxDone + '</button>'
+                    : '<button type="button" class="btn btn-link btn-sm p-0 text-secondary d-inline-flex align-items-center js-batch-receiving-checklist" data-batch-id="' + b.id + '" title="Complete Incoming Receiving checklist">' + tickBoxEmpty + '</button>';
                 const checklistLabel = checklistDone ? 'Checklist' : 'Incoming Receiving checklist';
-                const sampleBox = sampleDone
-                    ? '<span class="text-success me-2" title="Sample submission completed"><i class="fas fa-check-square"></i></span>'
+                var sampleId = b.sample_submission_id || b.sampleSubmissionId || '';
+                var sampleBox = sampleDone
+                    ? '<button type="button" class="btn btn-link btn-sm p-0 d-inline-flex align-items-center js-batch-sample-view" data-batch-id="' + b.id + '" data-sample-submission-id="' + sampleId + '" title="View sample submission">' + tickBoxDone + '</button>'
                     : (!sampleEnabled
-                        ? '<span class="text-muted me-2" title="Complete checklist first"><i class="far fa-square"></i></span>'
-                        : '<button type="button" class="btn btn-link btn-sm p-0 me-2 text-secondary js-batch-sample-submission" data-batch-id="' + b.id + '" title="New sample submission"><i class="far fa-square"></i></button>');
+                        ? '<span class="d-inline-flex align-items-center text-muted" title="Complete checklist first">' + tickBoxEmpty + '</span>'
+                        : '<button type="button" class="btn btn-link btn-sm p-0 text-secondary d-inline-flex align-items-center js-batch-sample-submission" data-batch-id="' + b.id + '" title="New sample submission">' + tickBoxEmpty + '</button>');
                 const sampleLabel = sampleDone ? 'Sample' : 'New sample submission';
                 const stepsHtml = '<div class="d-flex align-items-center flex-wrap gap-2">' +
                     checklistBox + '<span class="small">' + checklistLabel + '</span> ' +
                     sampleBox + '<span class="small">' + sampleLabel + '</span></div>';
-                const row = '<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + (b.received_date || '') + '</td><td>' + (b.wet_nis_received_kg || '') + '</td><td>' + stepsHtml + '</td><td><span class="badge bg-info">' + (b.status || '') + '</span></td><td><button type="button" class="btn btn-sm btn-success js-move-batch-to-raw" data-batch-id="' + b.id + '">Move to raw stock</button></td></tr>';
+                var canRelease = checklistDone && sampleDone;
+                var moveBtn = canRelease
+                    ? '<button type="button" class="btn btn-sm btn-success js-move-batch-to-raw" data-batch-id="' + b.id + '" title="Release to production">Release to production</button>'
+                    : '<button type="button" class="btn btn-sm btn-secondary" disabled title="Complete Receiving checklist and Batch test/sample first">Release to production</button>';
+                const row = '<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + receivedDate + '</td><td>' + (b.wet_nis_received_kg || '') + '</td><td>' + stepsHtml + '</td><td><span class="badge bg-info">' + (b.status || '') + '</span></td><td>' + moveBtn + '</td></tr>';
                 tbody.append(row);
             });
         },
 
-        openReceivingChecklistForBatch: function (batchId) {
+        openReceivingChecklistForBatch: function (batchId, existingChecklistId) {
             var batchIdEl = document.getElementById('receivingChecklistBatchId');
             if (batchIdEl) batchIdEl.value = batchId || '';
-            if (typeof window.showReceivingChecklistModal === 'function') {
+            if (existingChecklistId && typeof window.showReceivingChecklistModalForEdit === 'function') {
+                window.showReceivingChecklistModalForEdit(existingChecklistId, batchId);
+            } else if (typeof window.showReceivingChecklistModal === 'function') {
                 window.showReceivingChecklistModal();
             } else {
                 var el = document.getElementById('receivingChecklistModal');
@@ -326,16 +349,16 @@ var _growerIntakeGrid = function () {
         moveBatchToRawStock: async function (batchId) {
             if (!batchId) return;
             try {
-                const result = await dataFunctions.updateProductionBatch(batchId, { status: 'in_raw_stock', stage: 'raw_stock' });
+                const result = await dataFunctions.updateProductionBatch(batchId, { status: 'in_production', stage: 'production' });
                 if (result && result.success !== false) {
-                    Swal.fire({ icon: 'success', title: 'Moved', text: 'Batch is now in raw stock (NIS = R NIL). Release from Stock (Kernel) when ready.', timer: 2000, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in Kernel Production. Complete Production and End sample, then Release to stock.', timer: 2500, showConfirmButton: false });
                     this.loadIntakeBatches(true);
                 } else {
                     throw new Error(result && result.error ? result.error : 'Update failed');
                 }
             } catch (e) {
                 console.error(e);
-                Swal.fire('Error', e.message || 'Failed to move batch', 'error');
+                Swal.fire('Error', e.message || 'Failed to release batch', 'error');
             }
         },
 
@@ -343,8 +366,28 @@ var _growerIntakeGrid = function () {
             Swal.fire('Info', 'Sample submission form coming soon', 'info');
         },
 
-        viewSample: function (sampleId) {
-            Swal.fire('Info', 'Sample details view coming soon', 'info');
+        viewSample: async function (sampleId) {
+            if (!sampleId) return;
+            var sample = (this.samples || []).find(function (s) { return s.id === sampleId; });
+            if (!sample) {
+                try {
+                    await this.loadSamples(true);
+                    sample = (this.samples || []).find(function (s) { return s.id === sampleId; });
+                } catch (e) { console.error(e); }
+            }
+            if (!sample) {
+                Swal.fire('Info', 'Sample not found.', 'info');
+                return;
+            }
+            var html = '<div class="text-start small">' +
+                '<p><strong>Submission:</strong> ' + (sample.submission_number || '—') + '</p>' +
+                '<p><strong>Grower:</strong> ' + (sample.grower_name || '—') + '</p>' +
+                '<p><strong>Delivery date:</strong> ' + (sample.delivery_date || '—') + '</p>' +
+                '<p><strong>Wet NIS (kg):</strong> ' + (sample.wet_nut_in_shell_kg != null ? sample.wet_nut_in_shell_kg : '—') + '</p>' +
+                '<p><strong>Moisture %:</strong> ' + (sample.moisture_content_percentage != null ? sample.moisture_content_percentage : '—') + '</p>' +
+                '<p><strong>Status:</strong> ' + (sample.status || '—') + '</p>' +
+                '</div>';
+            Swal.fire({ title: 'Sample submission', html: html, confirmButtonText: 'OK', width: '400px' });
         },
 
         showError: function (message) {

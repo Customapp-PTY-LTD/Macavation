@@ -99,6 +99,126 @@ INSERT INTO public.roles (role_name, description) VALUES
 SELECT id, role_name FROM public.roles;
 ```
 
+## Adding Super Users
+
+To add users with `super_user` role (full system access), use the following SQL:
+
+### Step 1: Get Super User Role ID
+
+```sql
+-- Get the super_user role ID
+SELECT id, role_name 
+FROM public.roles 
+WHERE role_name = 'super_user';
+```
+
+### Step 2: Add Super User
+
+**Replace the placeholder values with the actual user details:**
+
+```sql
+-- Insert or update user as super_user
+INSERT INTO public.users (email, username, role_id, role, is_active)
+VALUES (
+    'USER_EMAIL_HERE',           -- e.g., 'cedric@customapp.co.za'
+    'USERNAME_HERE',             -- e.g., 'cedric'
+    (SELECT id FROM public.roles WHERE role_name = 'super_user' LIMIT 1),
+    'super_user',
+    true
+)
+ON CONFLICT (email) 
+DO UPDATE SET 
+    role_id = (SELECT id FROM public.roles WHERE role_name = 'super_user' LIMIT 1),
+    role = 'super_user',
+    is_active = true,
+    updated_at = now()
+RETURNING *;
+```
+
+**Required Values:**
+- **Email**: User's email address (must be unique)
+- **Username**: Username for the user (optional, can be NULL)
+
+**Example with actual values:**
+
+```sql
+-- Example: Add cedric@customapp.co.za as super_user
+INSERT INTO public.users (email, username, role_id, role, is_active)
+VALUES (
+    'cedric@customapp.co.za',
+    'cedric',
+    (SELECT id FROM public.roles WHERE role_name = 'super_user' LIMIT 1),
+    'super_user',
+    true
+)
+ON CONFLICT (email) 
+DO UPDATE SET 
+    role_id = (SELECT id FROM public.roles WHERE role_name = 'super_user' LIMIT 1),
+    role = 'super_user',
+    is_active = true,
+    updated_at = now();
+```
+
+### Step 3: Verify Super User
+
+After adding, verify the user was created/updated correctly:
+
+```sql
+-- Verify super_user was added
+SELECT 
+    u.id,
+    u.email,
+    u.username,
+    u.role,
+    r.role_name,
+    u.is_active,
+    u.created_at,
+    u.updated_at
+FROM public.users u
+JOIN public.roles r ON r.id = u.role_id
+WHERE u.email = 'USER_EMAIL_HERE'  -- Replace with actual email
+AND r.role_name = 'super_user';
+```
+
+### Adding Multiple Super Users
+
+To add multiple super users at once:
+
+```sql
+-- Add multiple super users
+INSERT INTO public.users (email, username, role_id, role, is_active)
+SELECT 
+    email_value,
+    username_value,
+    (SELECT id FROM public.roles WHERE role_name = 'super_user' LIMIT 1),
+    'super_user',
+    true
+FROM (VALUES
+    ('user1@example.com', 'user1'),
+    ('user2@example.com', 'user2'),
+    ('user3@example.com', 'user3')
+) AS users(email_value, username_value)
+ON CONFLICT (email) 
+DO UPDATE SET 
+    role_id = (SELECT id FROM public.roles WHERE role_name = 'super_user' LIMIT 1),
+    role = 'super_user',
+    is_active = true,
+    updated_at = now();
+```
+
+**Super User Permissions:**
+- Full access to all 44 database functions
+- Can view identity provider `config_data` (including OAuth secrets)
+- Can create, read, update, and delete all entities
+- Can manage roles and permissions
+- Can delete any entity (hard delete)
+
+**Security Notes:**
+- Limit the number of super_users in your system
+- Super users have unrestricted access - use with caution
+- Consider using admin role for most administrative tasks
+- Audit super user actions regularly
+
 ## Adding Permissions for New Functions
 
 When creating a new database function, add permissions:
@@ -120,14 +240,76 @@ $$;
 ### Step 2: Add Permissions
 
 ```sql
--- Add EXECUTE permission for specific roles
-INSERT INTO role_permissions (role_id, object_type, object_name, operation, allowed)
+-- Add EXECUTE permission for specific roles (use public.role_permissions and public.roles in Supabase)
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
 SELECT r.id, 'function', 'get_items', 'EXECUTE', true
-FROM roles r 
+FROM public.roles r 
 WHERE r.role_name IN ('super_user', 'admin', 'user')
 ON CONFLICT (role_id, object_type, object_name, operation) 
 DO UPDATE SET allowed = true;
 ```
+
+### Grower Intake: Create kernel batch + Receiving checklist tick (one backend fix)
+
+The Lambda checks `role_permissions` before running each function. For **Create kernel batch** and for the **Receiving checklist checkbox to tick**, every role that uses Grower Intake needs EXECUTE on the same set of functions. If you already fixed “create new batch” but the **tick still doesn’t show**, the backend is still missing EXECUTE on **create_receiving_checklist**, **update_receiving_checklist**, or **update_production_batch** for your role.
+
+**Run this once in your Supabase project** (Dashboard → SQL Editor → New query). It uses `WHERE NOT EXISTS` so it works even if your `role_permissions` table has no unique constraint. It adds EXECUTE for all roles so both create batch and the checklist tick work:
+
+```sql
+-- Grower Intake: create batch + receiving checklist tick (all roles)
+-- Run in Supabase SQL Editor on the same project the app uses (SUPABASE_URL in Lambda).
+
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'get_production_batches', 'EXECUTE', true
+FROM public.roles r
+WHERE NOT EXISTS (SELECT 1 FROM public.role_permissions rp WHERE rp.role_id = r.id AND rp.object_type = 'function' AND rp.object_name = 'get_production_batches' AND rp.operation = 'EXECUTE');
+
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'create_production_batch_simple', 'EXECUTE', true
+FROM public.roles r
+WHERE NOT EXISTS (SELECT 1 FROM public.role_permissions rp WHERE rp.role_id = r.id AND rp.object_type = 'function' AND rp.object_name = 'create_production_batch_simple' AND rp.operation = 'EXECUTE');
+
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'update_production_batch', 'EXECUTE', true
+FROM public.roles r
+WHERE NOT EXISTS (SELECT 1 FROM public.role_permissions rp WHERE rp.role_id = r.id AND rp.object_type = 'function' AND rp.object_name = 'update_production_batch' AND rp.operation = 'EXECUTE');
+
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'create_receiving_checklist', 'EXECUTE', true
+FROM public.roles r
+WHERE NOT EXISTS (SELECT 1 FROM public.role_permissions rp WHERE rp.role_id = r.id AND rp.object_type = 'function' AND rp.object_name = 'create_receiving_checklist' AND rp.operation = 'EXECUTE');
+
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'update_receiving_checklist', 'EXECUTE', true
+FROM public.roles r
+WHERE NOT EXISTS (SELECT 1 FROM public.role_permissions rp WHERE rp.role_id = r.id AND rp.object_type = 'function' AND rp.object_name = 'update_receiving_checklist' AND rp.operation = 'EXECUTE');
+
+-- Ensure existing rows are allowed = true (in case they were inserted as false)
+UPDATE public.role_permissions
+SET allowed = true
+WHERE object_type = 'function' AND operation = 'EXECUTE'
+  AND object_name IN ('get_production_batches', 'create_production_batch_simple', 'update_production_batch', 'create_receiving_checklist', 'update_receiving_checklist');
+```
+
+Then **sign out and sign in again** so the Lambda sees the new permissions. After that, create batch and the receiving checklist tick should both work.
+
+### Kernel Production: Save job card
+
+If you get **"Failed to save job card: Access denied: operation EXECUTE is not allowed"** after completing the job card, your role needs EXECUTE on `create_kernel_job_card`. Run this in Supabase SQL Editor (same project as the app):
+
+```sql
+-- Kernel Production: allow save job card (all roles)
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'create_kernel_job_card', 'EXECUTE', true
+FROM public.roles r
+WHERE NOT EXISTS (SELECT 1 FROM public.role_permissions rp WHERE rp.role_id = r.id AND rp.object_type = 'function' AND rp.object_name = 'create_kernel_job_card' AND rp.operation = 'EXECUTE');
+
+UPDATE public.role_permissions SET allowed = true WHERE object_type = 'function' AND object_name = 'create_kernel_job_card' AND operation = 'EXECUTE';
+```
+
+Then **sign out and sign in again** and try saving the job card.
+
+**Important:** Use the **same Supabase project** the app uses. Set the Lambda env var `SUPABASE_URL` to that project’s URL (see `LAMBDA_ENV_REQUIRED.md`). If the app points at a different project, run the SQL above in that project’s SQL Editor.
 
 ### Step 3: Permission Levels Example
 
@@ -427,6 +609,99 @@ ON CONFLICT DO NOTHING;
 - Consider separate functions for viewing vs. modifying sensitive config
 - Validate provider configurations before saving
 
+### Adding Google OAuth Provider
+
+To configure Google OAuth authentication, you need to add the Google identity provider with OAuth credentials:
+
+**Step 1: Obtain Google OAuth Credentials**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Navigate to **APIs & Services** > **Credentials**
+4. Click **Create Credentials** > **OAuth client ID**
+5. Configure the OAuth consent screen if prompted
+6. Select application type (Web application)
+7. Add authorized redirect URIs (e.g., `https://your-domain.com/auth/callback`)
+8. Copy the **Client ID** and **Client Secret**
+
+**Step 2: Add Google Provider to Database**
+
+Use the following SQL to insert or update the Google identity provider. **Replace the placeholder values with your actual credentials:**
+
+```sql
+-- Insert or update Google identity provider with OAuth credentials
+INSERT INTO public.identity_providers (provider_name, config_data, is_active)
+VALUES (
+    'google',
+    jsonb_build_object(
+        'client_id', 'YOUR_GOOGLE_CLIENT_ID_HERE',
+        'client_secret', 'YOUR_GOOGLE_CLIENT_SECRET_HERE'
+    ),
+    true
+)
+ON CONFLICT (provider_name) 
+DO UPDATE SET 
+    config_data = EXCLUDED.config_data,
+    is_active = EXCLUDED.is_active,
+    updated_at = now()
+RETURNING *;
+```
+
+**Required Values:**
+- **Client ID**: Your Google OAuth Client ID (e.g., `YOUR_CLIENT_ID.apps.googleusercontent.com`)
+- **Client Secret**: Your Google OAuth Client Secret (e.g., `YOUR_CLIENT_SECRET`)
+
+**Example with placeholder values:**
+
+```sql
+-- Example: Google OAuth provider configuration
+INSERT INTO public.identity_providers (provider_name, config_data, is_active)
+VALUES (
+    'google',
+    jsonb_build_object(
+        'client_id', 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+        'client_secret', 'YOUR_GOOGLE_CLIENT_SECRET'
+    ),
+    true
+)
+ON CONFLICT (provider_name) 
+DO UPDATE SET 
+    config_data = EXCLUDED.config_data,
+    is_active = EXCLUDED.is_active,
+    updated_at = now();
+```
+
+**Step 3: Verify Configuration**
+
+After inserting, verify the provider was added correctly:
+
+```sql
+-- View Google provider (sanitized - no secrets)
+SELECT 
+    id,
+    provider_name,
+    is_active,
+    created_at,
+    updated_at
+FROM public.identity_providers
+WHERE provider_name = 'google';
+
+-- View full configuration including secrets (super_user only)
+SELECT 
+    id,
+    provider_name,
+    config_data,
+    is_active
+FROM public.identity_providers
+WHERE provider_name = 'google';
+```
+
+**Security Notes:**
+- Only users with `super_user` role can view the full `config_data` including the client secret
+- Store credentials securely and never commit them to version control
+- Rotate credentials periodically for security
+- Use environment variables or secure vaults in production
+
 ## Troubleshooting
 
 **403 Forbidden errors?**
@@ -447,6 +722,11 @@ ON CONFLICT DO NOTHING;
 - Check permission is allowed = true
 - Verify role_id is correct
 
+**Receiving checklist saves but checkbox never ticks (receiving_checklist_id stays null)?**
+- **1) create_receiving_checklist must return the new id.** The Lambda response from `create_receiving_checklist` must expose the new checklist id so the app can link it to the batch. The app expects one of: `{ success: true, id: "<uuid>" }` or `{ data: { id: "<uuid>" } }` or `{ create_receiving_checklist: { id: "<uuid>" } }`. If the Lambda wraps the RPC result differently, the app cannot get the id and will show “Checklist saved, tick not updated” – open the browser console (F12) and look for `[Receiving checklist]` to see the actual response shape.
+- **2) update_production_batch must be allowed and receive the id.** The Lambda must pass the request body through to Supabase’s `update_production_batch` RPC, including `p_receiving_checklist_id`. Ensure the user’s role has EXECUTE on **update_production_batch** (run the “Grower Intake: Create kernel batch + Receiving checklist tick” SQL in this guide). Sign out and sign in after changing permissions.
+- **3) Check the browser console** for “Link checklist to batch failed” (permission/403) or “[Receiving checklist] Saved but id missing” (response shape).
+
 ## Checklist
 
 When adding RBAC for new module:
@@ -457,42 +737,6 @@ When adding RBAC for new module:
 - [ ] Frontend checks added (if needed)
 - [ ] Documentation updated
 - [ ] Tested with different user roles
-
-## Troubleshooting: "Access denied: operation EXECUTE is not allowed" (Kernel / Create batch)
-
-When creating a new kernel batch in **Grower Intake**, the backend (Lambda) checks the `role_permissions` table in Supabase. If you see this error:
-
-1. **Log out and log back in** so your JWT has your current role.
-2. **Admin fix (required if step 1 doesn’t help):** The Lambda must use the **same Supabase project** where `role_permissions` has EXECUTE for your role.
-
-**Option A – Point Lambda at the correct Supabase (recommended)**  
-In **AWS Lambda** → your function → **Configuration** → **Environment variables**, set:
-- **Name:** `SUPABASE_URL`
-- **Value:** `https://tfwrktyynvnjjhcqnlul.supabase.co`  
-(See project root file `LAMBDA_ENV_REQUIRED.md`.)
-
-**Option B – Grant EXECUTE on the database the Lambda already uses**  
-If the Lambda cannot be changed, run this SQL on the Supabase project that the Lambda’s `SUPABASE_URL` points to (so `role_permissions` and `users`/roles are in that project):
-
-```sql
--- Grant EXECUTE on production batch functions to all roles (so Create kernel batch works)
-INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
-SELECT r.id, 'function', 'get_production_batches', 'EXECUTE', true
-FROM public.roles r
-ON CONFLICT (role_id, object_type, object_name, operation) DO UPDATE SET allowed = true;
-
-INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
-SELECT r.id, 'function', 'create_production_batch_simple', 'EXECUTE', true
-FROM public.roles r
-ON CONFLICT (role_id, object_type, object_name, operation) DO UPDATE SET allowed = true;
-
-INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
-SELECT r.id, 'function', 'update_production_batch', 'EXECUTE', true
-FROM public.roles r
-ON CONFLICT (role_id, object_type, object_name, operation) DO UPDATE SET allowed = true;
-```
-
-Then have users log out and log back in and try again.
 
 ## Next Steps
 

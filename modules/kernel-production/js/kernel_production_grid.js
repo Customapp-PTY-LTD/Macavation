@@ -100,6 +100,34 @@ var _kernelProductionGrid = function () {
                 });
             }
             
+            // Save End sample button
+            const saveEndSampleBtn = document.getElementById('saveEndSampleBtn');
+            if (saveEndSampleBtn) {
+                saveEndSampleBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.saveEndSample();
+                });
+            }
+            if (typeof $ !== 'undefined') {
+                $('#saveEndSampleBtn').on('click', function (e) {
+                    e.preventDefault();
+                    scope.saveEndSample();
+                });
+            }
+            var saveProductionStagesBtn = document.getElementById('saveProductionStagesBtn');
+            if (saveProductionStagesBtn) {
+                saveProductionStagesBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.saveProductionStages();
+                });
+            }
+            if (typeof $ !== 'undefined') {
+                $('#saveProductionStagesBtn').off('click').on('click', function (e) {
+                    e.preventDefault();
+                    scope.saveProductionStages();
+                });
+            }
+            
             // Add row buttons - use delegated events for dynamically added elements
             const addSoundKernelBtn = document.getElementById('addSoundKernelRow');
             if (addSoundKernelBtn) {
@@ -236,17 +264,35 @@ var _kernelProductionGrid = function () {
                 scope.filterBatches();
             });
 
-            // Delegated: Advance step / View batch (dynamic rows)
-            $(document).on('click', '.js-advance-batch', function () {
-                const btn = $(this);
-                if (btn.prop('disabled')) return;
-                const batchId = btn.data('batch-id');
-                const currentStep = btn.data('current-step') || 1;
-                scope.advanceBatchStep(batchId, currentStep);
-            });
-            $(document).on('click', '.js-view-batch', function () {
+            // Delegated: Production / End sample / Release to stock (per doc)
+            $(document).on('click', '.js-production-batch', function () {
                 const batchId = $(this).data('batch-id');
-                scope.viewBatch(batchId);
+                const productionStagesId = $(this).data('production-stages-id');
+                const jobCardId = $(this).data('job-card-id');
+                if (productionStagesId) {
+                    scope.showProductionStagesViewModal(productionStagesId);
+                } else if (jobCardId) {
+                    scope.showJobCardViewModal(jobCardId);
+                } else if (batchId) {
+                    scope.showProductionStagesModalForBatch(batchId);
+                }
+            });
+            $(document).on('click', '.js-end-sample-batch', function () {
+                const batchId = $(this).data('batch-id');
+                const packingSampleId = $(this).data('packing-sample-id');
+                if (packingSampleId) {
+                    scope.showEndSampleViewModal(packingSampleId);
+                } else if (batchId) {
+                    scope.showEndSampleModal(batchId);
+                }
+            });
+            $(document).on('click', '.js-release-to-stock', function () {
+                const batchId = $(this).data('batch-id');
+                if (batchId) scope.releaseBatchToStock(batchId);
+            });
+            $(document).on('click', '.js-batch-history', function () {
+                const batchId = $(this).data('batch-id');
+                if (batchId) scope.showBatchHistory(batchId);
             });
         },
         filterBatches: function () {
@@ -290,15 +336,52 @@ var _kernelProductionGrid = function () {
                 const startTime = performance.now();
                 console.log('[Kernel Production] Loading batches...');
                 
-                const batches = await dataFunctions.getProductionBatches(null, forceRefresh).catch((error) => {
+                const allBatches = await dataFunctions.getProductionBatches(null, forceRefresh, { batch_type: 'kernel' }).catch((error) => {
                     console.error('[Kernel Production] Error loading batches:', error);
                     return [];
                 });
-                
+                const productionStatuses = ['in_production', 'receiving', 'cracking', 'drying', 'sorting_dry', 'packing', 'completed'];
+                const batches = (allBatches || []).filter(function (b) {
+                    return productionStatuses.indexOf(b.status) >= 0 && b.status !== 'in_finished_stock';
+                });
+                var jobCards = [];
+                try {
+                    jobCards = await dataFunctions.getKernelJobCards(null, forceRefresh) || [];
+                } catch (e) { console.warn('[Kernel Production] getKernelJobCards failed:', e); }
+                var jobCardByBatch = {};
+                jobCards.forEach(function (jc) {
+                    if (jc.batch_number) jobCardByBatch[jc.batch_number] = { id: jc.id, status: jc.status };
+                });
+                var packingSamples = [];
+                try {
+                    packingSamples = await dataFunctions.getKernelPackingSamples(null, forceRefresh) || [];
+                } catch (e) { console.warn('[Kernel Production] getKernelPackingSamples failed:', e); }
+                var packingByBatchId = {};
+                packingSamples.forEach(function (ps) {
+                    if (ps.production_batch_id) packingByBatchId[ps.production_batch_id] = { id: ps.id };
+                });
+                var stagesList = [];
+                try {
+                    stagesList = await dataFunctions.getKernelProductionStagesList(null, forceRefresh) || [];
+                } catch (e) { console.warn('[Kernel Production] getKernelProductionStagesList failed:', e); }
+                var stagesByBatchId = {};
+                stagesList.forEach(function (s) {
+                    if (s.production_batch_id) stagesByBatchId[s.production_batch_id] = { id: s.id };
+                });
+                batches.forEach(function (b) {
+                    var jc = jobCardByBatch[b.batch_number];
+                    b.jobCardId = jc ? jc.id : null;
+                    b.hasJobCard = !!(jc && jc.id);
+                    var ps = packingByBatchId[b.id];
+                    b.packingSampleId = ps ? ps.id : null;
+                    b.hasPackingSample = !!(ps && ps.id);
+                    var st = stagesByBatchId[b.id];
+                    b.productionStagesId = st ? st.id : null;
+                    b.hasProductionStages = !!(st && st.id);
+                });
                 const loadTime = performance.now() - startTime;
-                console.log(`[Kernel Production] Batches loaded in ${loadTime.toFixed(2)}ms, count: ${batches ? batches.length : 0}`);
-                
-                this.batches = batches || [];
+                console.log(`[Kernel Production] Batches loaded in ${loadTime.toFixed(2)}ms, count: ${batches.length}`);
+                this.batches = batches;
                 this.filteredBatches = this.batches;
                 this.renderBatches();
             } catch (error) {
@@ -310,30 +393,48 @@ var _kernelProductionGrid = function () {
             tbody.empty();
             if (this.filteredBatches.length === 0) {
                 if (this.batches.length === 0) {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No production batches found. Create batches from Grower Intake, then release them to production from Stock (Kernel).</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No production batches. Release batches from Grower Intake (complete Receiving checklist and Batch test/sample, then click Release to production).</td></tr>');
                 } else {
                     tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search criteria. Try adjusting your filters.</td></tr>');
                 }
                 return;
             }
+            const scope = this;
             this.filteredBatches.forEach(batch => {
                 const step = batch.current_step != null ? batch.current_step : 1;
-                const isCompleted = batch.status === 'completed' || step >= 17;
-                const advanceDisabled = isCompleted ? 'disabled' : '';
-                const row = `<tr>
-                    <td>${batch.batch_number || 'N/A'}</td>
-                    <td>${batch.grower_name || 'N/A'}</td>
-                    <td>${batch.received_date || 'N/A'}</td>
-                    <td>${batch.wet_nis_received_kg || '0'}</td>
-                    <td>${step}/17</td>
-                    <td><span class="badge bg-info">${batch.status || 'receiving'}</span></td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-success me-1 js-advance-batch" ${advanceDisabled} data-batch-id="${batch.id}" data-current-step="${step}" title="${isCompleted ? 'Batch complete' : 'Move to next step'}">
-                            <i class="fas fa-arrow-right"></i> ${isCompleted ? 'Done' : 'Next step'}
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary js-view-batch" data-batch-id="${batch.id}"><i class="fas fa-eye"></i></button>
-                    </td>
-                </tr>`;
+                const productionAndSampleDone = (batch.hasJobCard || batch.hasProductionStages) && batch.hasPackingSample;
+                const canReleaseToStock = productionAndSampleDone || batch.status === 'completed' || step >= 17;
+                const receivedDate = batch.received_date ? (batch.received_date.toString().split ? batch.received_date.toString().split('T')[0] : batch.received_date) : 'N/A';
+                const releaseBtn = canReleaseToStock
+                    ? '<button type="button" class="btn btn-sm btn-success me-1 js-release-to-stock" data-batch-id="' + batch.id + '" title="Release batch to Kernel Stock">Release to stock</button>'
+                    : '<button type="button" class="btn btn-sm btn-secondary me-1" disabled title="Complete Production and End sample first">Release to stock</button>';
+                var productionBtn;
+                if (batch.hasProductionStages && batch.productionStagesId) {
+                    productionBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-production-batch" data-batch-id="' + batch.id + '" data-production-stages-id="' + batch.productionStagesId + '" title="View Production (completed)"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;line-height:1;">&#10003;</span>Production</button>';
+                } else if (batch.hasJobCard && batch.jobCardId) {
+                    productionBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-production-batch" data-batch-id="' + batch.id + '" data-job-card-id="' + batch.jobCardId + '" title="View Production (completed)"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;line-height:1;">&#10003;</span>Production</button>';
+                } else {
+                    productionBtn = '<button type="button" class="btn btn-sm btn-primary me-1 js-production-batch" data-batch-id="' + batch.id + '" title="Open Production (Cracking, Washing, Sorting, Packing, Summary)">Production</button>';
+                }
+                var endSampleBtn;
+                if (batch.hasPackingSample && batch.packingSampleId) {
+                    endSampleBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-end-sample-batch" data-batch-id="' + batch.id + '" data-packing-sample-id="' + batch.packingSampleId + '" title="View End sample (completed)"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;line-height:1;">&#10003;</span>End sample</button>';
+                } else {
+                    endSampleBtn = '<button type="button" class="btn btn-sm btn-outline-primary me-1 js-end-sample-batch" data-batch-id="' + batch.id + '" title="Open End sample form">End sample</button>';
+                }
+                const row = '<tr>' +
+                    '<td>' + (batch.batch_number || 'N/A') + '</td>' +
+                    '<td>' + (batch.grower_name || 'N/A') + '</td>' +
+                    '<td>' + receivedDate + '</td>' +
+                    '<td>' + (batch.wet_nis_received_kg || '0') + '</td>' +
+                    '<td>' + step + '/17</td>' +
+                    '<td><span class="badge bg-info">' + (batch.status || 'in_production') + '</span></td>' +
+                    '<td>' +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary me-1 js-batch-history" data-batch-id="' + batch.id + '" title="View Grower Intake checklist and sample">History</button>' +
+                    productionBtn +
+                    endSampleBtn +
+                    releaseBtn +
+                    '</td></tr>';
                 tbody.append(row);
             });
         },
@@ -372,6 +473,397 @@ var _kernelProductionGrid = function () {
             } catch (e) {
                 console.error('[Kernel Production] advanceBatchStep failed:', e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to advance step', 'error');
+            }
+        },
+
+        showJobCardModalForBatch: async function (batchId) {
+            const batch = this.batches.find(function (b) { return b.id === batchId; }) || this.filteredBatches.find(function (b) { return b.id === batchId; });
+            if (!batch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
+                return;
+            }
+            $('#jobCardProductionBatchId').val(batchId);
+            $('#jobCardBatchNumber').val(batch.batch_number || '');
+            $('#jobCardReceivedDate').val(batch.received_date ? (batch.received_date.toString().split('T')[0]) : '');
+            $('#jobCardSupplierName').val(batch.grower_name || '');
+            const today = new Date().toISOString().split('T')[0];
+            if (!batch.received_date) $('#jobCardReceivedDate').val(today);
+            try {
+                const contacts = await dataFunctions.getContacts();
+                const select = $('#jobCardSupplier');
+                let html = '<option value="">Select Supplier</option>';
+                if (contacts && Array.isArray(contacts)) {
+                    contacts.forEach(contact => {
+                        const name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
+                        const selected = batch.supplier_id && contact.id === batch.supplier_id ? ' selected' : '';
+                        html += '<option value="' + contact.id + '"' + selected + '>' + name + '</option>';
+                    });
+                }
+                select.html(html);
+            } catch (e) { console.error(e); }
+            const modalElement = document.getElementById('kernelJobCardModal');
+            if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalElement).show();
+            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#kernelJobCardModal').modal('show');
+            }
+        },
+
+        showJobCardViewModal: async function (jobCardId) {
+            var body = document.getElementById('jobCardViewBody');
+            if (!body) return;
+            body.innerHTML = '<p class="text-muted mb-0">Loading…</p>';
+            var modalEl = document.getElementById('jobCardViewModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#jobCardViewModal').modal('show');
+            }
+            try {
+                var jc = await dataFunctions.getKernelJobCard(jobCardId);
+                if (!jc) { body.innerHTML = '<p class="text-muted mb-0">Job card not found.</p>'; return; }
+                var fmt = function (v) { return v != null && v !== '' ? v : '—'; };
+                var html = '<div class="small">';
+                html += '<div class="card mb-2"><div class="card-body py-2"><strong>Batch:</strong> ' + fmt(jc.batch_number) + ' &nbsp; <strong>Received:</strong> ' + fmt(jc.received_date) + ' &nbsp; <strong>Supplier:</strong> ' + fmt(jc.supplier_name) + '</div></div>';
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Receiving</strong></div><div class="card-body py-2">Total weight: ' + fmt(jc.total_weight_kg) + ' kg &nbsp; Removed pre-sizer: ' + fmt(jc.removed_pre_sizer_kg) + ' kg &nbsp; Balance: ' + fmt(jc.balance_kg) + ' kg</div></div>';
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Moisture</strong></div><div class="card-body py-2">Receiving: ' + fmt(jc.receiving_moisture_percentage) + '% &nbsp; Packing: ' + fmt(jc.packing_moisture_percentage) + '% &nbsp; Removed: ' + fmt(jc.removed_moisture_percentage) + '%</div></div>';
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Packing</strong></div><div class="card-body py-2">Start: ' + fmt(jc.packing_start_date) + ' &nbsp; Completion: ' + fmt(jc.packing_completion_date) + ' &nbsp; Best before: ' + fmt(jc.best_before_date) + '</div></div>';
+                var sk = jc.sound_kernel_styles;
+                if (typeof sk === 'string') { try { sk = JSON.parse(sk); } catch (e) { sk = null; } }
+                if (sk && Array.isArray(sk) && sk.length > 0) {
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Sound kernel</strong></div><div class="card-body py-2"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
+                    for (var i = 0; i < sk.length; i++) {
+                        var row = sk[i];
+                        html += '<tr><td>' + fmt(row.style) + '</td><td>' + fmt(row.cartons) + '</td><td>' + fmt(row.weight_kg) + '</td></tr>';
+                    }
+                    html += '</tbody></table><div class="mt-1">Total cartons: ' + fmt(jc.sound_kernel_total_cartons) + ' &nbsp; Total kg: ' + fmt(jc.sound_kernel_total_kg) + '</div></div></div>';
+                } else {
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Sound kernel</strong></div><div class="card-body py-2">Total cartons: ' + fmt(jc.sound_kernel_total_cartons) + ' &nbsp; Total kg: ' + fmt(jc.sound_kernel_total_kg) + '</div></div>';
+                }
+                var bg = jc.butter_grade_styles;
+                if (typeof bg === 'string') { try { bg = JSON.parse(bg); } catch (e) { bg = null; } }
+                if (bg && Array.isArray(bg) && bg.length > 0) {
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Butter grade</strong></div><div class="card-body py-2"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
+                    for (var j = 0; j < bg.length; j++) {
+                        var r = bg[j];
+                        html += '<tr><td>' + fmt(r.style) + '</td><td>' + fmt(r.cartons) + '</td><td>' + fmt(r.weight_kg) + '</td></tr>';
+                    }
+                    html += '</tbody></table><div class="mt-1">Total cartons: ' + fmt(jc.butter_grade_total_cartons) + ' &nbsp; Total kg: ' + fmt(jc.butter_grade_total_kg) + '</div></div></div>';
+                } else {
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Butter grade</strong></div><div class="card-body py-2">Total cartons: ' + fmt(jc.butter_grade_total_cartons) + ' &nbsp; Total kg: ' + fmt(jc.butter_grade_total_kg) + '</div></div>';
+                }
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Waste (kg)</strong></div><div class="card-body py-2">Oil kernel: ' + fmt(jc.waste_oil_kernel_kg) + ' &nbsp; Salt/pepper: ' + fmt(jc.waste_salt_pepper_kg) + ' &nbsp; Shell fines: ' + fmt(jc.waste_shell_fines_kg) + ' &nbsp; Compost: ' + fmt(jc.waste_compost_kg) + ' &nbsp; Shell: ' + fmt(jc.waste_shell_kg) + '</div></div>';
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Mass balance</strong></div><div class="card-body py-2">In: ' + fmt(jc.mass_balance_in_kg) + ' kg &nbsp; Out: ' + fmt(jc.mass_balance_out_kg) + ' kg &nbsp; Balance: ' + fmt(jc.mass_balance_percentage) + '%</div></div>';
+                html += '<p class="mb-0"><strong>Status:</strong> ' + fmt(jc.status) + '</p>';
+                html += '</div>';
+                body.innerHTML = html;
+            } catch (e) {
+                console.error('[Kernel Production] Error loading job card for view:', e);
+                body.innerHTML = '<p class="text-danger mb-0">Could not load job card.</p>';
+            }
+        },
+
+        getProductionStagesSectionData: function (prefix) {
+            var out = {};
+            var sel = document.querySelectorAll('[id^="ps_' + prefix + '_"]');
+            for (var i = 0; i < sel.length; i++) {
+                var el = sel[i];
+                var key = el.id.replace(new RegExp('^ps_' + prefix + '_'), '');
+                var val = el.type === 'checkbox' ? el.checked : (el.value || '');
+                out[key] = val;
+            }
+            return out;
+        },
+
+        showProductionStagesModalForBatch: function (batchId) {
+            var batch = this.batches.find(function (b) { return b.id === batchId; }) || this.filteredBatches.find(function (b) { return b.id === batchId; });
+            if (!batch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
+                return;
+            }
+            var batchIdEl = document.getElementById('productionStagesBatchId');
+            if (batchIdEl) batchIdEl.value = batchId;
+            var dateVal = batch.received_date ? (batch.received_date.toString().split('T')[0]) : (new Date().toISOString().split('T')[0]);
+            var growerVal = batch.grower_name || '';
+            var batchNumVal = batch.batch_number || '';
+            var crackDate = document.getElementById('ps_crack_date');
+            if (crackDate) crackDate.value = dateVal;
+            var crackGrower = document.getElementById('ps_crack_grower');
+            if (crackGrower) crackGrower.value = growerVal;
+            var crackBatch1 = document.getElementById('ps_crack_batch1');
+            if (crackBatch1) crackBatch1.value = batchNumVal;
+            var modalEl = document.getElementById('productionStagesModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#productionStagesModal').modal('show');
+            }
+        },
+
+        saveProductionStages: async function () {
+            var batchIdEl = document.getElementById('productionStagesBatchId');
+            var batchId = batchIdEl ? batchIdEl.value : null;
+            if (!batchId) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
+                return;
+            }
+            var batch = this.batches.find(function (b) { return String(b.id) === String(batchId); }) || this.filteredBatches.find(function (b) { return String(b.id) === String(batchId); });
+            var batchNumber = batch ? (batch.batch_number || '') : '';
+            var growerName = batch ? (batch.grower_name || '') : '';
+            var cracking_data = this.getProductionStagesSectionData('crack');
+            var washing_data = this.getProductionStagesSectionData('wash');
+            var sorting_data = this.getProductionStagesSectionData('sort');
+            var packing_data = this.getProductionStagesSectionData('pack');
+            var summary_data = this.getProductionStagesSectionData('sum');
+            var payload = {
+                production_batch_id: batchId,
+                batch_number: batchNumber,
+                grower_name: growerName,
+                cracking_data: cracking_data,
+                washing_data: washing_data,
+                sorting_data: sorting_data,
+                packing_data: packing_data,
+                summary_data: summary_data
+            };
+            try {
+                await dataFunctions.saveKernelProductionStages(payload);
+                if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved.', 'success');
+                var modalEl = document.getElementById('productionStagesModal');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                    $('#productionStagesModal').modal('hide');
+                }
+                this.loadBatches(true);
+            } catch (e) {
+                console.error('[Kernel Production] saveProductionStages failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save production stages', 'error');
+            }
+        },
+
+        showProductionStagesViewModal: async function (stagesId) {
+            var body = document.getElementById('productionStagesViewBody');
+            if (!body) return;
+            body.innerHTML = '<p class="text-muted mb-0">Loading…</p>';
+            var modalEl = document.getElementById('productionStagesViewModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#productionStagesViewModal').modal('show');
+            }
+            try {
+                var s = await dataFunctions.getKernelProductionStages(stagesId);
+                if (!s) { body.innerHTML = '<p class="text-muted mb-0">Production record not found.</p>'; return; }
+                var fmt = function (v) { return v != null && v !== '' ? String(v) : '—'; };
+                var renderSection = function (title, data) {
+                    if (!data || typeof data !== 'object') return '<p class="text-muted mb-0">No data</p>';
+                    var rows = [];
+                    for (var k in data) { if (data.hasOwnProperty(k)) rows.push('<tr><td class="text-nowrap">' + k + '</td><td>' + fmt(data[k]) + '</td></tr>'); }
+                    if (rows.length === 0) return '<p class="text-muted mb-0">No data</p>';
+                    return '<table class="table table-sm table-bordered mb-2"><tbody>' + rows.join('') + '</tbody></table>';
+                };
+                var html = '<div class="small">';
+                html += '<p class="mb-2"><strong>Batch:</strong> ' + fmt(s.batch_number) + ' &nbsp; <strong>Grower:</strong> ' + fmt(s.grower_name) + '</p>';
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Cracking</strong></div><div class="card-body py-2">' + renderSection('Cracking', s.cracking_data) + '</div></div>';
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Washing</strong></div><div class="card-body py-2">' + renderSection('Washing', s.washing_data) + '</div></div>';
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Sorting</strong></div><div class="card-body py-2">' + renderSection('Sorting', s.sorting_data) + '</div></div>';
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Packing</strong></div><div class="card-body py-2">' + renderSection('Packing', s.packing_data) + '</div></div>';
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Summary</strong></div><div class="card-body py-2">' + renderSection('Summary', s.summary_data) + '</div></div>';
+                html += '</div>';
+                body.innerHTML = html;
+            } catch (e) {
+                console.error('[Kernel Production] Error loading production stages for view:', e);
+                body.innerHTML = '<p class="text-danger mb-0">Could not load production record.</p>';
+            }
+        },
+
+        showEndSampleModal: function (batchId) {
+            var batchIdEl = document.getElementById('endSampleProductionBatchId');
+            if (batchIdEl) batchIdEl.value = batchId || '';
+            document.getElementById('endSampleMoistureRequired').checked = false;
+            document.getElementById('endSampleMoistureResult').value = '';
+            document.getElementById('endSamplePeroxideRequired').checked = false;
+            document.getElementById('endSamplePeroxideResult').value = '';
+            document.getElementById('endSampleFfaRequired').checked = false;
+            document.getElementById('endSampleFfaResult').value = '';
+            document.getElementById('endSampleInternalMicroRequired').checked = false;
+            document.getElementById('endSampleInternalMicroResult').value = '';
+            document.getElementById('endSampleExternalLabRequired').checked = false;
+            document.getElementById('endSampleExternalLabResult').value = '';
+            document.getElementById('endSampleSupervisorSigned').value = '';
+            document.getElementById('endSampleNutPlantManagerSigned').value = '';
+            var modalEl = document.getElementById('endSampleModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#endSampleModal').modal('show');
+            }
+        },
+
+        saveEndSample: async function () {
+            var batchIdEl = document.getElementById('endSampleProductionBatchId');
+            var batchId = batchIdEl && batchIdEl.value ? batchIdEl.value.trim() : null;
+            if (!batchId) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
+                return;
+            }
+            var data = {
+                production_batch_id: batchId,
+                moisture_required: document.getElementById('endSampleMoistureRequired').checked,
+                moisture_result: document.getElementById('endSampleMoistureResult').value ? parseFloat(document.getElementById('endSampleMoistureResult').value) : null,
+                peroxide_required: document.getElementById('endSamplePeroxideRequired').checked,
+                peroxide_result: document.getElementById('endSamplePeroxideResult').value ? parseFloat(document.getElementById('endSamplePeroxideResult').value) : null,
+                ffa_required: document.getElementById('endSampleFfaRequired').checked,
+                ffa_result: document.getElementById('endSampleFfaResult').value ? parseFloat(document.getElementById('endSampleFfaResult').value) : null,
+                internal_micro_required: document.getElementById('endSampleInternalMicroRequired').checked,
+                internal_micro_result: document.getElementById('endSampleInternalMicroResult').value || null,
+                external_lab_required: document.getElementById('endSampleExternalLabRequired').checked,
+                external_lab_result: document.getElementById('endSampleExternalLabResult').value || null,
+                supervisor_signed_by: document.getElementById('endSampleSupervisorSigned').value || null,
+                nut_plant_manager_signed_by: document.getElementById('endSampleNutPlantManagerSigned').value || null
+            };
+            try {
+                var result = await dataFunctions.createKernelPackingSample(data);
+                if (result && result.success !== false) {
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'End sample saved.', timer: 2000, showConfirmButton: false });
+                    var modalEl = document.getElementById('endSampleModal');
+                    if (modalEl && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                    else if (typeof $ !== 'undefined' && $.fn.modal) $('#endSampleModal').modal('hide');
+                    this.loadBatches(true);
+                } else {
+                    throw new Error(result && result.error ? result.error : 'Save failed');
+                }
+            } catch (e) {
+                console.error(e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save end sample', 'error');
+            }
+        },
+
+        showEndSampleViewModal: async function (packingSampleId) {
+            var body = document.getElementById('endSampleViewBody');
+            if (!body) return;
+            body.innerHTML = '<p class="text-muted mb-0">Loading…</p>';
+            var modalEl = document.getElementById('endSampleViewModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#endSampleViewModal').modal('show');
+            }
+            try {
+                var ps = await dataFunctions.getKernelPackingSample(packingSampleId);
+                if (!ps || !ps.id) {
+                    body.innerHTML = '<p class="text-muted mb-0">End sample not found.</p>';
+                    return;
+                }
+                var fmt = function (v) { return v != null && v !== '' ? v : '—'; };
+                var tick = function (b) { return b ? '&#10003;' : '—'; };
+                var html = '<p class="text-muted small mb-3">1 x kernel sample – ziplock bag, 1 x sterile bag, 1 x 1kg vacuum bag</p>';
+                html += '<table class="table table-bordered table-sm"><thead><tr><th>Description</th><th>Required (tick)</th><th>Result</th><th>UOM</th></tr></thead><tbody>';
+                html += '<tr><td>Moisture</td><td>' + tick(ps.moisture_required) + '</td><td>' + fmt(ps.moisture_result) + '</td><td>%</td></tr>';
+                html += '<tr><td>Peroxide Value</td><td>' + tick(ps.peroxide_required) + '</td><td>' + fmt(ps.peroxide_result) + '</td><td>meqO2/kg</td></tr>';
+                html += '<tr><td>Free Fatty Acids</td><td>' + tick(ps.ffa_required) + '</td><td>' + fmt(ps.ffa_result) + '</td><td>%</td></tr>';
+                html += '<tr><td>Internal Micro</td><td>' + tick(ps.internal_micro_required) + '</td><td>' + fmt(ps.internal_micro_result) + '</td><td></td></tr>';
+                html += '<tr><td>External lab testing</td><td>' + tick(ps.external_lab_required) + '</td><td>' + fmt(ps.external_lab_result) + '</td><td></td></tr>';
+                html += '</tbody></table>';
+                html += '<div class="row mt-3"><div class="col-md-6"><p class="mb-0"><strong>Signed (Supervisor):</strong> ' + fmt(ps.supervisor_signed_by) + '</p></div>';
+                html += '<div class="col-md-6"><p class="mb-0"><strong>Signed (Nut Plant Manager):</strong> ' + fmt(ps.nut_plant_manager_signed_by) + '</p></div></div>';
+                body.innerHTML = html;
+            } catch (e) {
+                console.error('[Kernel Production] Error loading end sample for view:', e);
+                body.innerHTML = '<p class="text-danger mb-0">Could not load end sample.</p>';
+            }
+        },
+
+        releaseBatchToStock: async function (batchId) {
+            if (!batchId) return;
+            try {
+                const result = await dataFunctions.updateProductionBatch(batchId, { status: 'in_finished_stock', stage: 'finished_stock' });
+                if (result && result.success !== false) {
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in Kernel Stock.', timer: 2000, showConfirmButton: false });
+                    this.loadBatches(true);
+                } else {
+                    throw new Error(result && result.error ? result.error : 'Update failed');
+                }
+            } catch (e) {
+                console.error(e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release to stock', 'error');
+            }
+        },
+
+        showBatchHistory: async function (batchId) {
+            const batch = this.batches.find(function (b) { return b.id === batchId; }) || this.filteredBatches.find(function (b) { return b.id === batchId; });
+            if (!batch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
+                return;
+            }
+            const checklistId = batch.receiving_checklist_id || batch.receivingChecklistId;
+            const sampleId = batch.sample_submission_id || batch.sampleSubmissionId;
+            const batchInfo = (batch.batch_number || 'Batch') + (batch.grower_name ? ' — ' + batch.grower_name : '');
+            $('#batchHistoryModalLabel').text('Grower Intake history');
+            document.getElementById('batchHistoryBatchInfo').textContent = 'Batch: ' + batchInfo;
+            $('#batchHistoryChecklistBody').html('<p class="text-muted mb-0">Loading…</p>');
+            $('#batchHistorySampleBody').html('<p class="text-muted mb-0">Loading…</p>');
+            const modalEl = document.getElementById('batchHistoryModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#batchHistoryModal').modal('show');
+            }
+            try {
+                if (checklistId && typeof dataFunctions !== 'undefined' && dataFunctions.getReceivingChecklist) {
+                    const raw = await dataFunctions.getReceivingChecklist(checklistId);
+                    const payload = (raw && (raw.checklist || raw.received_items !== undefined)) ? raw : (raw && raw.data) ? raw.data : raw;
+                    if (payload && payload.checklist) {
+                        const c = payload.checklist;
+                        const items = payload.received_items || [];
+                        let html = '<div class="small">';
+                        html += '<p class="mb-1"><strong>Date received:</strong> ' + (c.date_received || '—') + '</p>';
+                        html += '<p class="mb-1"><strong>Delivery note ref:</strong> ' + (c.delivery_note_ref || '—') + '</p>';
+                        html += '<p class="mb-1"><strong>Vehicle clean:</strong> ' + (c.vehicle_clean || '—') + ' &nbsp; <strong>Enclosed:</strong> ' + (c.vehicle_enclosed || '—') + '</p>';
+                        html += '<p class="mb-1"><strong>Pallets condition:</strong> ' + (c.pallets_condition || '—') + ' &nbsp; <strong>Raw materials:</strong> ' + (c.raw_materials_condition || '—') + '</p>';
+                        if (c.comments) html += '<p class="mb-2"><strong>Comments:</strong> ' + (c.comments || '—') + '</p>';
+                        if (items.length > 0) {
+                            html += '<table class="table table-sm table-bordered mt-2"><thead><tr><th>Reference</th><th>Description</th><th>Batch</th><th>Qty (kg)</th><th>Best before</th></tr></thead><tbody>';
+                            items.forEach(function (it) {
+                                html += '<tr><td>' + (it.reference || '—') + '</td><td>' + (it.description || '—') + '</td><td>' + (it.batch || '—') + '</td><td>' + (it.quantity_kg != null ? it.quantity_kg : '—') + '</td><td>' + (it.best_before_date || '—') + '</td></tr>';
+                            });
+                            html += '</tbody></table>';
+                        }
+                        html += '</div>';
+                        $('#batchHistoryChecklistBody').html(html);
+                    } else {
+                        $('#batchHistoryChecklistBody').html('<p class="text-muted mb-0">No checklist data available.</p>');
+                    }
+                } else {
+                    $('#batchHistoryChecklistBody').html('<p class="text-muted mb-0">No receiving checklist linked to this batch.</p>');
+                }
+            } catch (e) {
+                console.error('[Kernel Production] Error loading checklist for history:', e);
+                $('#batchHistoryChecklistBody').html('<p class="text-danger mb-0">Could not load checklist.</p>');
+            }
+            try {
+                if (sampleId && typeof dataFunctions !== 'undefined' && dataFunctions.getSampleSubmissions) {
+                    const samples = await dataFunctions.getSampleSubmissions(null, true);
+                    const sample = (samples || []).find(function (s) { return s.id === sampleId; });
+                    if (sample) {
+                        let html = '<div class="small">';
+                        html += '<p class="mb-1"><strong>Submission:</strong> ' + (sample.submission_number || '—') + '</p>';
+                        html += '<p class="mb-1"><strong>Grower:</strong> ' + (sample.grower_name || '—') + '</p>';
+                        html += '<p class="mb-1"><strong>Delivery date:</strong> ' + (sample.delivery_date || '—') + '</p>';
+                        html += '<p class="mb-1"><strong>Wet NIS (kg):</strong> ' + (sample.wet_nut_in_shell_kg != null ? sample.wet_nut_in_shell_kg : '—') + '</p>';
+                        html += '<p class="mb-1"><strong>Moisture %:</strong> ' + (sample.moisture_content_percentage != null ? sample.moisture_content_percentage : '—') + '</p>';
+                        html += '<p class="mb-0"><strong>Status:</strong> ' + (sample.status || '—') + '</p>';
+                        html += '</div>';
+                        $('#batchHistorySampleBody').html(html);
+                    } else {
+                        $('#batchHistorySampleBody').html('<p class="text-muted mb-0">Sample not found.</p>');
+                    }
+                } else {
+                    $('#batchHistorySampleBody').html('<p class="text-muted mb-0">No sample linked to this batch.</p>');
+                }
+            } catch (e) {
+                console.error('[Kernel Production] Error loading sample for history:', e);
+                $('#batchHistorySampleBody').html('<p class="text-danger mb-0">Could not load sample.</p>');
             }
         },
 
@@ -565,6 +1057,7 @@ var _kernelProductionGrid = function () {
                 console.log('[Kernel Production] Opening job card modal');
                 $('#kernelJobCardModalLabel').text('Kernel Production Job Card');
                 $('#jobCardId').val('');
+                $('#jobCardProductionBatchId').val('');
                 this.clearJobCardForm();
                 
                 // Set default date to today

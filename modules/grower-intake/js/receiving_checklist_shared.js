@@ -32,11 +32,22 @@
         $('#receivedItemsTableBody').append(newRow);
     }
 
-    async function showReceivingChecklistModal() {
+    async function showReceivingChecklistModal(forBatch) {
         if (typeof $ === 'undefined') return;
-        $('#receivingChecklistModalLabel').text('Incoming Receiving Checklist');
+        var batchIdEl = document.getElementById('receivingChecklistBatchId');
+        var forThisBatch = forBatch || (batchIdEl && batchIdEl.value && batchIdEl.value.trim());
+        $('#receivingChecklistModalLabel').text(forThisBatch ? 'Incoming Receiving checklist (for this batch)' : 'Incoming Receiving Checklist');
         $('#receivingId').val('');
-        clearReceivingForm();
+        if (!forThisBatch) {
+            clearReceivingForm();
+        } else {
+            $('#receivingChecklistForm')[0].reset();
+            $('#receivingId').val('');
+            $('#receivedItemsTableBody tr:not(:first)').remove();
+            $('#receivedItemsTableBody tr:first input').val('');
+            $('#receivedItemsTableBody tr:first input[name="cartonBags"]').val('1');
+            $('#dateReceived').val(new Date().toISOString().split('T')[0]);
+        }
         $('#dateReceived').val(new Date().toISOString().split('T')[0]);
         try {
             var contacts = await dataFunctions.getContacts();
@@ -56,6 +67,86 @@
         }
     }
     window.showReceivingChecklistModal = showReceivingChecklistModal;
+
+    function loadReceivingChecklistIntoForm(payload) {
+        if (typeof $ === 'undefined' || !payload) return;
+        var checklist = payload.checklist || payload;
+        var items = payload.received_items || [];
+        if (!checklist) return;
+        $('#receivingId').val(checklist.id || '');
+        $('#dateReceived').val(checklist.date_received || '');
+        $('#deliveryNoteRef').val(checklist.delivery_note_ref || '');
+        $('#supplierDetails').val(checklist.supplier_id || '');
+        $('input[name="vehicleClean"][value="' + (checklist.vehicle_clean || '') + '"]').prop('checked', true);
+        $('input[name="vehicleEnclosed"][value="' + (checklist.vehicle_enclosed || '') + '"]').prop('checked', true);
+        $('input[name="hazardSubstances"][value="' + (checklist.hazard_substances || '') + '"]').prop('checked', true);
+        $('input[name="pestInfestations"][value="' + (checklist.pest_infestations || '') + '"]').prop('checked', true);
+        $('input[name="palletsCondition"][value="' + (checklist.pallets_condition || '') + '"]').prop('checked', true);
+        $('input[name="rawMaterialsCondition"][value="' + (checklist.raw_materials_condition || '') + '"]').prop('checked', true);
+        $('#receivingComments').val(checklist.comments || '');
+        $('#receivedItemsTableBody tr:not(:first)').remove();
+        var firstRow = $('#receivedItemsTableBody tr:first');
+        firstRow.find('input[name="reference"]').val('');
+        firstRow.find('input[name="description"]').val('');
+        firstRow.find('input[name="batch"]').val('');
+        firstRow.find('input[name="cartonBags"]').val('1');
+        firstRow.find('input[name="quantity"]').val('');
+        firstRow.find('input[name="manufacturedDate"]').val('');
+        firstRow.find('input[name="bestBeforeDate"]').val('');
+        if (Array.isArray(items) && items.length) {
+            items.forEach(function (it, i) {
+                if (i === 0) {
+                    firstRow.find('input[name="reference"]').val(it.reference || '');
+                    firstRow.find('input[name="description"]').val(it.description || '');
+                    firstRow.find('input[name="batch"]').val(it.batch || '');
+                    firstRow.find('input[name="cartonBags"]').val(it.carton_bags != null ? it.carton_bags : 1);
+                    firstRow.find('input[name="quantity"]').val(it.quantity_kg != null ? it.quantity_kg : '');
+                    firstRow.find('input[name="manufacturedDate"]').val(it.manufactured_date || '');
+                    firstRow.find('input[name="bestBeforeDate"]').val(it.best_before_date || '');
+                } else {
+                    addReceivedItemRow();
+                    var row = $('#receivedItemsTableBody tr').eq(i);
+                    row.find('input[name="reference"]').val(it.reference || '');
+                    row.find('input[name="description"]').val(it.description || '');
+                    row.find('input[name="batch"]').val(it.batch || '');
+                    row.find('input[name="cartonBags"]').val(it.carton_bags != null ? it.carton_bags : 1);
+                    row.find('input[name="quantity"]').val(it.quantity_kg != null ? it.quantity_kg : '');
+                    row.find('input[name="manufacturedDate"]').val(it.manufactured_date || '');
+                    row.find('input[name="bestBeforeDate"]').val(it.best_before_date || '');
+                }
+            });
+        }
+    }
+
+    async function showReceivingChecklistModalForEdit(checklistId, batchId) {
+        if (typeof $ === 'undefined' || !checklistId) return;
+        var batchIdEl = document.getElementById('receivingChecklistBatchId');
+        if (batchIdEl) batchIdEl.value = batchId || '';
+        $('#receivingChecklistModalLabel').text('Incoming Receiving Checklist (edit)');
+        try {
+            var contacts = await dataFunctions.getContacts();
+            var select = $('#supplierDetails');
+            var html = '<option value="">Select Supplier</option>';
+            if (contacts && Array.isArray(contacts)) {
+                contacts.forEach(function (c) {
+                    var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
+                    html += '<option value="' + c.id + '">' + name + '</option>';
+                });
+            }
+            select.html(html);
+            var raw = await dataFunctions.getReceivingChecklist(checklistId);
+            var payload = (raw && (raw.checklist || raw.received_items !== undefined)) ? raw : (raw && raw.data) ? raw.data : raw;
+            if (payload) loadReceivingChecklistIntoForm(payload);
+            var el = document.getElementById('receivingChecklistModal');
+            if (el && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(el).show();
+            }
+        } catch (e) {
+            console.error('Error loading receiving checklist for edit:', e);
+            if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: 'Could not load checklist: ' + (e.message || e) });
+        }
+    }
+    window.showReceivingChecklistModalForEdit = showReceivingChecklistModalForEdit;
 
     function closeReceivingChecklistModal() {
         var el = document.getElementById('receivingChecklistModal');
@@ -104,7 +195,7 @@
                 p_pallets_condition: $('input[name="palletsCondition"]:checked').val() || null,
                 p_raw_materials_condition: $('input[name="rawMaterialsCondition"]:checked').val() || null,
                 p_comments: $('#receivingComments').val() || null,
-                p_received_items: JSON.stringify(receivedItems)
+                p_received_items: receivedItems
             };
             var receivingId = $('#receivingId').val();
             var result = receivingId
@@ -114,18 +205,44 @@
                 if (dataFunctions.clearCachePattern) {
                     dataFunctions.clearCachePattern('receiving_checklists');
                     dataFunctions.clearCachePattern('stock_items');
+                    dataFunctions.clearCachePattern('production_batches');
                 }
                 var batchIdEl = document.getElementById('receivingChecklistBatchId');
-                var batchId = batchIdEl && batchIdEl.value ? batchIdEl.value : null;
-                var newId = result.id || result.receiving_id || (receivingId ? null : (result.data && result.data.id ? result.data.id : null));
+                var batchId = batchIdEl && batchIdEl.value ? batchIdEl.value.trim() : null;
+                var newId = result.id || result.receiving_id || (result.data && (result.data.id || result.data.receiving_id)) || (result.create_receiving_checklist && (result.create_receiving_checklist.id || result.create_receiving_checklist.receiving_id)) || (result.result && (result.result.id || result.result.receiving_id)) || (Array.isArray(result) && result[0] && (result[0].id || result[0].receiving_id));
+                if (!newId && result.data && typeof result.data === 'object') {
+                    newId = result.data.id || result.data.receiving_id;
+                }
+                if (typeof result.body === 'string') {
+                    try {
+                        var parsed = JSON.parse(result.body);
+                        newId = newId || (parsed && (parsed.id || parsed.receiving_id || (parsed.data && (parsed.data.id || parsed.data.receiving_id))));
+                    } catch (e) { /* ignore */ }
+                }
                 if (batchId && newId && !receivingId) {
-                    dataFunctions.updateProductionBatch(batchId, { receiving_checklist_id: newId }).then(function () {
+                    try {
+                        console.log('[Receiving checklist] Linking checklist', newId, 'to batch', batchId);
+                        await dataFunctions.updateProductionBatch(batchId, { receiving_checklist_id: newId });
+                        console.log('[Receiving checklist] Batch updated successfully');
                         if (batchIdEl) batchIdEl.value = '';
                         if (typeof growerIntakeGrid !== 'undefined' && growerIntakeGrid.loadIntakeBatches) growerIntakeGrid.loadIntakeBatches(true);
-                    }).catch(function (e) { console.error('Link checklist to batch failed', e); });
+                    } catch (e) {
+                        console.error('[Receiving checklist] Link checklist to batch failed', e);
+                        var msg = 'Receiving checklist was saved but could not be linked to the batch.';
+                        if (e && (e.message || '').toLowerCase().indexOf('forbidden') >= 0 || (e.status === 403)) {
+                            msg = 'Checklist saved but permission denied when linking to batch. Your role may need EXECUTE on update_production_batch (see BluePrint/RBAC_GUIDE.md).';
+                        }
+                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'Checklist saved', text: msg, timer: 5000, showConfirmButton: true });
+                    }
+                } else if (!batchId && !receivingId) {
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'info', title: 'Checklist saved', text: 'To get the tick on a batch, open the checklist by clicking the empty box next to that batch row, then save.', timer: 5000, showConfirmButton: true });
+                } else if (batchId && !receivingId && !newId) {
+                    console.warn('[Receiving checklist] Saved but id missing in response – cannot link to batch. Full response:', JSON.stringify(result));
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'Checklist saved, tick not updated', text: 'The checklist was saved but the batch link failed (no id in API response). Open the browser console (F12) and look for "[Receiving checklist]" to see the response shape. The API must return { success: true, id: "<uuid>" } from create_receiving_checklist.', timer: 8000, showConfirmButton: true });
                 }
                 if (batchIdEl) batchIdEl.value = '';
                 if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: receivingId ? 'Receiving checklist updated.' : 'Receiving checklist created.', timer: 2000, showConfirmButton: false });
+                if (typeof growerIntakeGrid !== 'undefined' && growerIntakeGrid.loadIntakeBatches) growerIntakeGrid.loadIntakeBatches(true);
                 closeReceivingChecklistModal();
             } else {
                 throw new Error(result && (result.error || result.message)) || 'Failed to save';

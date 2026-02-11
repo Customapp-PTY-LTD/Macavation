@@ -1145,23 +1145,43 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            if (Array.isArray(raw)) return raw;
-            return [];
+            // Unwrap: RPC returns { success, data } or Lambda may wrap as { get_production_batches: { data } }
+            var batches = null;
+            if (raw && Array.isArray(raw.data)) batches = raw.data;
+            else if (raw && raw.get_production_batches && Array.isArray(raw.get_production_batches.data)) batches = raw.get_production_batches.data;
+            else if (raw && raw.get_production_batches && Array.isArray(raw.get_production_batches)) batches = raw.get_production_batches;
+            else if (Array.isArray(raw) && raw.length === 1 && raw[0] && Array.isArray(raw[0].data)) batches = raw[0].data;
+            else if (Array.isArray(raw)) batches = raw;
+            if (!batches || !Array.isArray(batches)) {
+                if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+                    console.warn('[getProductionBatches] Unexpected response shape. Keys:', Object.keys(raw), 'raw:', raw);
+                }
+                return [];
+            }
+            // Normalize so grid can rely on both snake_case and camelCase for checklist/sample ticks
+            return batches.map(function (b) {
+                var rid = b.receiving_checklist_id != null ? b.receiving_checklist_id : (b.receivingChecklistId);
+                var sid = b.sample_submission_id != null ? b.sample_submission_id : (b.sampleSubmissionId);
+                return Object.assign({}, b, {
+                    receiving_checklist_id: rid,
+                    receivingChecklistId: rid,
+                    sample_submission_id: sid,
+                    sampleSubmissionId: sid
+                });
+            });
         },
 
         /**
          * Update production batch status/step (move batch along journey)
          */
         updateProductionBatch: async function (batchId, params, token = null) {
-            const result = await this.callFunction('update_production_batch', {
-                p_batch_id: batchId,
-                p_status: params.status || undefined,
-                p_current_step: params.current_step !== undefined ? params.current_step : undefined,
-                p_stage: params.stage || undefined,
-                p_receiving_checklist_id: params.receiving_checklist_id !== undefined ? params.receiving_checklist_id : undefined,
-                p_sample_submission_id: params.sample_submission_id !== undefined ? params.sample_submission_id : undefined
-            }, token, { useCache: false });
+            var payload = { p_batch_id: batchId };
+            if (params.status !== undefined) payload.p_status = params.status;
+            if (params.current_step !== undefined) payload.p_current_step = params.current_step;
+            if (params.stage !== undefined) payload.p_stage = params.stage;
+            if (params.receiving_checklist_id !== undefined && params.receiving_checklist_id !== null) payload.p_receiving_checklist_id = params.receiving_checklist_id;
+            if (params.sample_submission_id !== undefined && params.sample_submission_id !== null) payload.p_sample_submission_id = params.sample_submission_id;
+            var result = await this.callFunction('update_production_batch', payload, token, { useCache: false });
             this.clearCachePattern('production_batches');
             return result;
         },
@@ -1335,8 +1355,103 @@ var _dataFunctions = function () {
         // Kernel Production Job Card Functions
         createKernelJobCard: async function (jobCardData, token = null) {
             const result = await this.callFunction('create_kernel_job_card', jobCardData, token, { useCache: false });
-            // Invalidate stock cache
             this.clearCachePattern('stock_items');
+            this.clearCachePattern('kernel_job_cards');
+            return result;
+        },
+
+        getKernelJobCards: async function (token = null, forceRefresh = false) {
+            var raw = await this.callFunction('get_kernel_job_cards', {}, token, {
+                cacheKey: 'kernel_job_cards_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && raw.get_kernel_job_cards) return raw.get_kernel_job_cards;
+            return [];
+        },
+
+        getKernelJobCard: async function (id, token = null) {
+            if (!id) return null;
+            var raw = await this.callFunction('get_kernel_job_card', { p_id: id }, token, { useCache: false });
+            if (raw && typeof raw === 'object' && !raw.success === false && (raw.id || raw.batch_number)) return raw;
+            if (raw && raw.data) return raw.data;
+            return raw;
+        },
+
+        getKernelPackingSamples: async function (token = null, forceRefresh = false) {
+            var raw = await this.callFunction('get_kernel_packing_samples', {}, token, {
+                cacheKey: 'kernel_packing_samples_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && raw.get_kernel_packing_samples) return raw.get_kernel_packing_samples;
+            return [];
+        },
+
+        getKernelPackingSample: async function (id, token = null) {
+            if (!id) return null;
+            var raw = await this.callFunction('get_kernel_packing_sample', { p_id: id }, token, { useCache: false });
+            if (raw && typeof raw === 'object' && (raw.id || raw.production_batch_id)) return raw;
+            if (raw && raw.data) return raw.data;
+            return raw;
+        },
+
+        getKernelProductionStagesList: async function (token = null, forceRefresh = false) {
+            var raw = await this.callFunction('get_kernel_production_stages_list', {}, token, {
+                cacheKey: 'kernel_production_stages_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+        getKernelProductionStages: async function (id, token = null) {
+            if (!id) return null;
+            var raw = await this.callFunction('get_kernel_production_stages', { p_id: id }, token, { useCache: false });
+            if (raw && typeof raw === 'object' && (raw.id || raw.production_batch_id)) return raw;
+            if (raw && raw.data) return raw.data;
+            return raw;
+        },
+        saveKernelProductionStages: async function (data, token = null) {
+            var result = await this.callFunction('save_kernel_production_stages', {
+                p_production_batch_id: data.production_batch_id,
+                p_batch_number: data.batch_number || null,
+                p_grower_name: data.grower_name || null,
+                p_cracking_data: data.cracking_data || {},
+                p_washing_data: data.washing_data || {},
+                p_sorting_data: data.sorting_data || {},
+                p_packing_data: data.packing_data || {},
+                p_summary_data: data.summary_data || {}
+            }, token, { useCache: false });
+            this.clearCachePattern('kernel_production_stages');
+            return result;
+        },
+
+        createKernelPackingSample: async function (data, token = null) {
+            var result = await this.callFunction('create_kernel_packing_sample', {
+                p_production_batch_id: data.production_batch_id,
+                p_moisture_required: data.moisture_required === true,
+                p_moisture_result: data.moisture_result != null ? data.moisture_result : null,
+                p_peroxide_required: data.peroxide_required === true,
+                p_peroxide_result: data.peroxide_result != null ? data.peroxide_result : null,
+                p_ffa_required: data.ffa_required === true,
+                p_ffa_result: data.ffa_result != null ? data.ffa_result : null,
+                p_internal_micro_required: data.internal_micro_required === true,
+                p_internal_micro_result: data.internal_micro_result || null,
+                p_external_lab_required: data.external_lab_required === true,
+                p_external_lab_result: data.external_lab_result || null,
+                p_supervisor_signed_by: data.supervisor_signed_by || null,
+                p_nut_plant_manager_signed_by: data.nut_plant_manager_signed_by || null
+            }, token, { useCache: false });
+            this.clearCachePattern('kernel_packing_samples');
             return result;
         },
         
@@ -1370,6 +1485,11 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
+        },
+
+        getReceivingChecklist: async function (id, token = null) {
+            if (!id) return null;
+            return await this.callFunction('get_receiving_checklist', { p_id: id }, token, { useCache: false });
         },
         
         // Raw Material Issued Functions (cached for 1 minute)
