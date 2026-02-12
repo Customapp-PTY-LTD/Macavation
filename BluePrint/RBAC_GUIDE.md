@@ -311,6 +311,67 @@ Then **sign out and sign in again** and try saving the job card.
 
 **Important:** Use the **same Supabase project** the app uses. Set the Lambda env var `SUPABASE_URL` to that project’s URL (see `LAMBDA_ENV_REQUIRED.md`). If the app points at a different project, run the SQL above in that project’s SQL Editor.
 
+### Supplier Intake (Oil & Protein): Save batch
+
+If you get **"Access denied: operation EXECUTE is not allowed"** (or `RBAC_PERMISSION_DENIED`) when saving a batch in **Supplier Intake**, your role needs EXECUTE on `get_supplier_intake_batches` and `create_supplier_intake_batch`.
+
+**Most common cause:** The SQL was run in a **different Supabase project** than the one the Lambda uses. The Lambda reads permissions only from the project in its **SUPABASE_URL** env var. Run the SQL in **that** project, then sign out and sign in. See **docs/FIX_SUPPLIER_INTAKE_ACCESS_DENIED.md** for step-by-step troubleshooting.
+
+**1. Use the same Supabase project as the app.** The Lambda uses the project set in env var `SUPABASE_URL`. Run the SQL below in that project’s **Dashboard → SQL Editor**.
+
+**2. Run this SQL** (inserts missing permissions and forces `allowed = true` for existing rows via `ON CONFLICT DO UPDATE`):
+
+```sql
+-- Supplier Intake: allow list + save batch (all roles)
+-- Uses ON CONFLICT so existing rows get allowed = true.
+
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'get_supplier_intake_batches', 'EXECUTE', true
+FROM public.roles r
+ON CONFLICT (role_id, object_type, object_name, operation)
+DO UPDATE SET allowed = true;
+
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'create_supplier_intake_batch', 'EXECUTE', true
+FROM public.roles r
+ON CONFLICT (role_id, object_type, object_name, operation)
+DO UPDATE SET allowed = true;
+```
+
+If your `role_permissions` table does **not** have a unique constraint on `(role_id, object_type, object_name, operation)`, use this version instead:
+
+```sql
+-- Alternative if ON CONFLICT fails (no unique constraint):
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'get_supplier_intake_batches', 'EXECUTE', true
+FROM public.roles r
+WHERE NOT EXISTS (SELECT 1 FROM public.role_permissions rp WHERE rp.role_id = r.id AND rp.object_type = 'function' AND rp.object_name = 'get_supplier_intake_batches' AND rp.operation = 'EXECUTE');
+
+INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+SELECT r.id, 'function', 'create_supplier_intake_batch', 'EXECUTE', true
+FROM public.roles r
+WHERE NOT EXISTS (SELECT 1 FROM public.role_permissions rp WHERE rp.role_id = r.id AND rp.object_type = 'function' AND rp.object_name = 'create_supplier_intake_batch' AND rp.operation = 'EXECUTE');
+
+UPDATE public.role_permissions SET allowed = true
+WHERE object_type = 'function' AND operation = 'EXECUTE'
+  AND object_name IN ('get_supplier_intake_batches', 'create_supplier_intake_batch');
+```
+
+**3. Sign out and sign in again** so the Lambda sees the new permissions.
+
+**4. If you still get 403**, the error response includes your `role` (a UUID). Check that this role has the permission:
+
+```sql
+-- Replace YOUR_ROLE_ID with the "role" value from the error (e.g. 9c69485d-0116-4cf6-b7e6-2ff6c025478e)
+SELECT rp.role_id, r.role_name, rp.object_name, rp.operation, rp.allowed
+FROM public.role_permissions rp
+JOIN public.roles r ON r.id = rp.role_id
+WHERE rp.role_id = 'YOUR_ROLE_ID'::uuid
+  AND rp.object_name IN ('get_supplier_intake_batches', 'create_supplier_intake_batch');
+```
+
+You should see two rows with `allowed = true`. If not, run the INSERT/UPDATE SQL again in the **same** Supabase project the Lambda uses (see `LAMBDA_ENV_REQUIRED.md` for `SUPABASE_URL`).
+
 ### Step 3: Permission Levels Example
 
 **super_user**: Full access to all functions

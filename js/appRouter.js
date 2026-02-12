@@ -125,6 +125,7 @@ var _appRouter = function () {
 
                         _appRouter.SupabaseUrl = environmentSetting.SupabaseUrl;
                         _appRouter.LambdaProxyUrl = environmentSetting.LambdaProxyUrl;
+                        _appRouter.SupabaseAnonKey = environmentSetting.SupabaseAnonKey || null;
                         // _appRouter.routeConfig = _appRouter.loadRoleConfig(data.appRoutes);
 
                     }
@@ -799,6 +800,7 @@ var _appRouter = function () {
                         _appRouter.env = environmentSetting;
                         _appRouter.SupabaseUrl = environmentSetting.SupabaseUrl;
                         _appRouter.LambdaProxyUrl = environmentSetting.LambdaProxyUrl;
+                        _appRouter.SupabaseAnonKey = environmentSetting.SupabaseAnonKey || null;
                     }
                 })
                 .catch(error => {

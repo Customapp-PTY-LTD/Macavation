@@ -1491,6 +1491,96 @@ var _dataFunctions = function () {
             if (!id) return null;
             return await this.callFunction('get_receiving_checklist', { p_id: id }, token, { useCache: false });
         },
+
+        // Oil & Protein Supplier Intake Batches
+        callSupabaseRpc: async function (functionName, params) {
+            var url = (typeof _appRouter !== 'undefined' && _appRouter.SupabaseUrl) ? _appRouter.SupabaseUrl : (window.__SUPABASE_URL || null);
+            var key = (typeof _appRouter !== 'undefined' && _appRouter.SupabaseAnonKey) ? _appRouter.SupabaseAnonKey : (window.__SUPABASE_ANON_KEY || null);
+            if (!url || !key) {
+                throw new Error('Supplier Intake direct save is not configured: add your Supabase anon key. In js/appRouteConfig.json set "SupabaseAnonKey" to your project\'s anon public key (Supabase → Project Settings → API), then run the SQL in migrations/20260212000003_supplier_intake_grant_anon.sql in the same project. See docs/SUPPLIER_INTAKE_DIRECT_SUPABASE_FALLBACK.md.');
+            }
+            var rpcUrl = url.replace(/\/$/, '') + '/rest/v1/rpc/' + functionName;
+            var res = await fetch(rpcUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': key, 'Authorization': 'Bearer ' + key, 'Prefer': 'return=representation' },
+                body: JSON.stringify(params || {})
+            });
+            if (!res.ok) {
+                var errText = await res.text();
+                var errMsg = 'Supabase RPC failed: ' + res.status;
+                try {
+                    if (errText) {
+                        var errJson = JSON.parse(errText);
+                        errMsg = errJson.message || errJson.error || errJson.details || errText;
+                    } else if (errText) errMsg = errText;
+                } catch (parseErr) { if (errText) errMsg = errText; }
+                throw new Error(errMsg);
+            }
+            var text = await res.text();
+            return text ? JSON.parse(text) : null;
+        },
+        getSupplierIntakeBatches: async function (status, token = null, forceRefresh = false) {
+            var raw;
+            try {
+                raw = await this.callFunction('get_supplier_intake_batches', { p_status: status || 'supplier_intake' }, token, {
+                    cacheKey: 'supplier_intake_batches_' + (status || 'supplier_intake'),
+                    useCache: true,
+                    cacheTtl: this.cache.ttl.dynamic,
+                    forceRefresh: forceRefresh
+                });
+            } catch (e) {
+                if (e && (e.status === 403 || (e.message && (e.message.indexOf('EXECUTE') >= 0 || e.message.indexOf('Access denied') >= 0)))) {
+                    raw = await this.callSupabaseRpc('get_supplier_intake_batches', { p_status: status || 'supplier_intake' });
+                } else {
+                    throw e;
+                }
+            }
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+        createSupplierIntakeBatch: async function (data, token = null) {
+            var payload = {
+                p_product_type: data.product_type,
+                p_date_received: data.date_received,
+                p_delivery_note_ref: data.delivery_note_ref || null,
+                p_supplier_id: data.supplier_id || null,
+                p_supplier_details: data.supplier_details || null,
+                p_vehicle_clean: data.vehicle_clean || null,
+                p_vehicle_enclosed: data.vehicle_enclosed || null,
+                p_hazard_substances: data.hazard_substances || null,
+                p_pest_infestations: data.pest_infestations || null,
+                p_pallets_condition: data.pallets_condition || null,
+                p_raw_materials_condition: data.raw_materials_condition || null,
+                p_receiving_comments: data.receiving_comments || null,
+                p_reference: data.reference || null,
+                p_description: data.description || null,
+                p_batch_number: data.batch_number || null,
+                p_carton_bulk_bags: data.carton_bulk_bags != null ? data.carton_bulk_bags : null,
+                p_quantity_kg: data.quantity_kg != null ? data.quantity_kg : null,
+                p_manufactured_date: data.manufactured_date || null,
+                p_best_before_date: data.best_before_date || null
+            };
+            try {
+                var result = await this.callFunction('create_supplier_intake_batch', payload, token, { useCache: false });
+                if (result && (result.error || result.code === 'RBAC_PERMISSION_DENIED')) {
+                    throw new Error(result.message || result.error || 'Access denied');
+                }
+                this.clearCachePattern('supplier_intake_batches');
+                return result;
+            } catch (e) {
+                if (e && (e.status === 403 || (e.message && (e.message.indexOf('EXECUTE') >= 0 || e.message.indexOf('Access denied') >= 0 || e.message.indexOf('RBAC') >= 0)))) {
+                    try {
+                        var direct = await this.callSupabaseRpc('create_supplier_intake_batch', payload);
+                        this.clearCachePattern('supplier_intake_batches');
+                        return direct;
+                    } catch (directErr) {
+                        throw directErr;
+                    }
+                }
+                throw e;
+            }
+        },
         
         // Raw Material Issued Functions (cached for 1 minute)
         getRawMaterialIssued: async function (token = null, forceRefresh = false) {

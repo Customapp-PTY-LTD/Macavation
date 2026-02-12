@@ -1,23 +1,152 @@
-<!-- Supplier Intake: Oil-grade kernel for oil & protein. GRV/INV → W/House Raws (OIL KERNEL R YES). -->
+<!-- Supplier Intake: Oil & Protein – oil kernel, cracker dust, kernel dust, crush, cake. -->
 <div class="module-content">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Supplier Intake</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-success" id="receivingChecklistBtn">
+            <button type="button" class="btn btn-primary me-2" id="addNewBatchProductBtn">
+                <i class="fas fa-plus-circle me-1"></i>Add new batch of product
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="receivingChecklistBtn">
                 <i class="fas fa-clipboard-list me-1"></i>Incoming Receiving Checklist
             </button>
         </div>
     </div>
-    <div class="card border-primary">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Batches in supplier intake</h5>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="refreshSupplierIntakeBtn"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
+        </div>
         <div class="card-body">
-            <h5 class="card-title text-primary"><i class="fas fa-dolly me-2"></i>Oil-grade kernel intake</h5>
-            <p class="card-text mb-2">Capture supplier deliveries of <strong>oil-grade kernel</strong> for oil &amp; protein production. Flow:</p>
-            <ul class="mb-0">
-                <li><strong>GRV</strong> (Goods Receiving Voucher) → W/House Raws section: <strong>OIL KERNEL R YES</strong></li>
-                <li><strong>INV</strong> (Inventory) → same section</li>
-            </ul>
-            <hr>
-            <p class="text-muted mb-0 small">Data capture screen for supplier intake (GRV/INV to OIL KERNEL R YES) will be implemented here. Use <strong>Stock (Oil &amp; Protein)</strong> to view raw oil kernel stock.</p>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover" id="supplierIntakeBatchesTable">
+                    <thead>
+                        <tr>
+                            <th>Product type</th>
+                            <th>Date received</th>
+                            <th>Delivery note / PO</th>
+                            <th>Supplier</th>
+                            <th>Batch #</th>
+                            <th>Quantity (kg)</th>
+                            <th>Mfg / Best before</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="supplierIntakeBatchesTableBody">
+                        <tr><td colspan="8" class="text-center text-muted py-3">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New batch of product modal (Incoming Receiving Checklist fields + product type) -->
+<div class="modal fade" id="newBatchProductModal" tabindex="-1" aria-labelledby="newBatchProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newBatchProductModalLabel">New batch of product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newBatchProductForm">
+                    <div class="card mb-3">
+                        <div class="card-header"><h6 class="mb-0">Product &amp; delivery</h6></div>
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <label for="newBatchProductType" class="form-label required">Product type</label>
+                                    <select class="form-select" id="newBatchProductType" required>
+                                        <option value="">Select product…</option>
+                                        <option value="oil_kernel">Oil kernel</option>
+                                        <option value="cracker_dust">Cracker dust</option>
+                                        <option value="kernel_dust">Kernel dust</option>
+                                        <option value="crush">Crush</option>
+                                        <option value="cake">Cake</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="newBatchDateReceived" class="form-label required">Date received</label>
+                                    <input type="date" class="form-control" id="newBatchDateReceived" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="newBatchDeliveryNoteRef" class="form-label">Delivery note reference / PO number</label>
+                                    <input type="text" class="form-control" id="newBatchDeliveryNoteRef" placeholder="e.g. PO-12345">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="newBatchSupplier" class="form-label">Supplier details</label>
+                                    <select class="form-select" id="newBatchSupplier">
+                                        <option value="">Select supplier</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card mb-3">
+                        <div class="card-header"><h6 class="mb-0">Vehicle &amp; receiving checks</h6></div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <label class="form-label">Is the vehicle clean?</label>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchVehicleClean" id="newBatchVehicleCleanYes" value="Yes"><label class="form-check-label" for="newBatchVehicleCleanYes">Yes</label></div>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchVehicleClean" id="newBatchVehicleCleanNo" value="No"><label class="form-check-label" for="newBatchVehicleCleanNo">No</label></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Vehicle fully enclosed?</label>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchVehicleEnclosed" value="Yes"><label class="form-check-label">Yes</label></div>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchVehicleEnclosed" value="No"><label class="form-check-label">No</label></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Any hazard substances noted on truck?</label>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchHazardSubstances" value="Yes"><label class="form-check-label">Yes</label></div>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchHazardSubstances" value="No"><label class="form-check-label">No</label></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <label class="form-label">Any signs of pest infestations?</label>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchPestInfestations" value="Yes"><label class="form-check-label">Yes</label></div>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchPestInfestations" value="No"><label class="form-check-label">No</label></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Pallets received are in good condition</label>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchPalletsCondition" value="Yes"><label class="form-check-label">Yes</label></div>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchPalletsCondition" value="No"><label class="form-check-label">No</label></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Are raw materials received in good condition?</label>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchRawMaterialsCondition" value="Yes"><label class="form-check-label">Yes</label></div>
+                                        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchRawMaterialsCondition" value="No"><label class="form-check-label">No</label></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-0">
+                                <label for="newBatchReceivingComments" class="form-label">Comments / actions taken</label>
+                                <textarea class="form-control" id="newBatchReceivingComments" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card mb-3">
+                        <div class="card-header"><h6 class="mb-0">Product item details</h6></div>
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-md-2"><label for="newBatchReference" class="form-label">Reference / PO</label><input type="text" class="form-control form-control-sm" id="newBatchReference"></div>
+                                <div class="col-md-2"><label for="newBatchDescription" class="form-label">Description</label><input type="text" class="form-control form-control-sm" id="newBatchDescription" placeholder="e.g. product description"></div>
+                                <div class="col-md-2"><label for="newBatchBatchNumber" class="form-label">Batch</label><input type="text" class="form-control form-control-sm" id="newBatchBatchNumber"></div>
+                                <div class="col-md-2"><label for="newBatchCartonBags" class="form-label">Carton / bulk bags</label><input type="number" class="form-control form-control-sm" id="newBatchCartonBags" value="1" min="1"></div>
+                                <div class="col-md-2"><label for="newBatchQuantityKg" class="form-label">Quantity (kg)</label><input type="number" class="form-control form-control-sm" id="newBatchQuantityKg" step="0.01" min="0"></div>
+                                <div class="col-md-2"><label for="newBatchManufacturedDate" class="form-label">Manufactured date</label><input type="date" class="form-control form-control-sm" id="newBatchManufacturedDate"></div>
+                                <div class="col-md-2"><label for="newBatchBestBeforeDate" class="form-label">Best before date</label><input type="date" class="form-control form-control-sm" id="newBatchBestBeforeDate"></div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveNewBatchProductBtn"><i class="fas fa-save me-1"></i>Save batch</button>
+            </div>
         </div>
     </div>
 </div>

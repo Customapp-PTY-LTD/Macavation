@@ -14,8 +14,9 @@ This message means **your role is not allowed to run the requested function** (e
    EXECUTE permission has been granted for **all roles** (admin, super_user, user, manager, viewer, assessor, student) on:
    - `get_production_batches`
    - `create_production_batch_simple`
-   - `update_production_batch`  
-   So creating and updating kernel batches should work for any role.
+   - `update_production_batch`
+   - `get_supplier_intake_batches` and `create_supplier_intake_batch` (Supplier Intake – save batch)  
+   So creating/updating kernel batches and saving supplier intake batches should work for any role once the corresponding SQL has been run (see BluePrint/RBAC_GUIDE.md).
 
 3. **If you still see the error**  
    - **Log out and log back in** so a new JWT is issued with your current role.

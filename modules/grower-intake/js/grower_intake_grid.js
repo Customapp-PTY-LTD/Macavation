@@ -162,24 +162,17 @@ var _growerIntakeGrid = function () {
                 const checklistDone = !!(b.receiving_checklist_id || b.receivingChecklistId);
                 const sampleDone = !!(b.sample_submission_id || b.sampleSubmissionId);
                 const sampleEnabled = checklistDone;
-                // Completed: box with tick over it (checkbox-style)
-                var tickBoxDone = '<span class="d-inline-flex align-items-center justify-content-center me-2 rounded border-2 border-success bg-success text-white" style="width:1.35em;height:1.35em;font-size:1em;line-height:1;font-weight:bold;" title="Completed">&#10003;</span>';
-                // Not done: empty box (clickable to open checklist)
-                var tickBoxEmpty = '<span class="d-inline-flex align-items-center justify-content-center me-2 rounded border-2 border-secondary" style="width:1.35em;height:1.35em;background:#fff;" title="Not done">&nbsp;</span>';
-                var checklistBox = checklistDone
-                    ? '<button type="button" class="btn btn-link btn-sm p-0 d-inline-flex align-items-center js-batch-receiving-checklist" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + (b.receiving_checklist_id || b.receivingChecklistId || '') + '" title="Edit Incoming Receiving checklist">' + tickBoxDone + '</button>'
-                    : '<button type="button" class="btn btn-link btn-sm p-0 text-secondary d-inline-flex align-items-center js-batch-receiving-checklist" data-batch-id="' + b.id + '" title="Complete Incoming Receiving checklist">' + tickBoxEmpty + '</button>';
-                const checklistLabel = checklistDone ? 'Checklist' : 'Incoming Receiving checklist';
+                var checklistBtn = checklistDone
+                    ? '<button type="button" class="btn btn-sm btn-success d-inline-flex align-items-center js-batch-receiving-checklist" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + (b.receiving_checklist_id || b.receivingChecklistId || '') + '" title="Edit Receiving checklist"><i class="fas fa-check me-1"></i>Checklist</button>'
+                    : '<button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center js-batch-receiving-checklist" data-batch-id="' + b.id + '" title="Complete Receiving checklist"><i class="fas fa-clipboard-check me-1"></i>Receiving checklist</button>';
                 var sampleId = b.sample_submission_id || b.sampleSubmissionId || '';
-                var sampleBox = sampleDone
-                    ? '<button type="button" class="btn btn-link btn-sm p-0 d-inline-flex align-items-center js-batch-sample-view" data-batch-id="' + b.id + '" data-sample-submission-id="' + sampleId + '" title="View sample submission">' + tickBoxDone + '</button>'
+                var sampleBtn = sampleDone
+                    ? '<button type="button" class="btn btn-sm btn-success d-inline-flex align-items-center js-batch-sample-view" data-batch-id="' + b.id + '" data-sample-submission-id="' + sampleId + '" title="View sample submission"><i class="fas fa-check me-1"></i>Sample</button>'
                     : (!sampleEnabled
-                        ? '<span class="d-inline-flex align-items-center text-muted" title="Complete checklist first">' + tickBoxEmpty + '</span>'
-                        : '<button type="button" class="btn btn-link btn-sm p-0 text-secondary d-inline-flex align-items-center js-batch-sample-submission" data-batch-id="' + b.id + '" title="New sample submission">' + tickBoxEmpty + '</button>');
-                const sampleLabel = sampleDone ? 'Sample' : 'New sample submission';
+                        ? '<button type="button" class="btn btn-sm btn-outline-secondary disabled d-inline-flex align-items-center" disabled title="Complete checklist first"><i class="fas fa-vial me-1"></i>New batch sample</button>'
+                        : '<button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center js-batch-sample-submission" data-batch-id="' + b.id + '" title="New sample submission"><i class="fas fa-vial me-1"></i>New batch sample</button>');
                 const stepsHtml = '<div class="d-flex align-items-center flex-wrap gap-2">' +
-                    checklistBox + '<span class="small">' + checklistLabel + '</span> ' +
-                    sampleBox + '<span class="small">' + sampleLabel + '</span></div>';
+                    checklistBtn + sampleBtn + '</div>';
                 var canRelease = checklistDone && sampleDone;
                 var moveBtn = canRelease
                     ? '<button type="button" class="btn btn-sm btn-success js-move-batch-to-raw" data-batch-id="' + b.id + '" title="Release to production">Release to production</button>'
