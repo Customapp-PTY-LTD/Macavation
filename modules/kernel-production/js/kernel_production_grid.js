@@ -252,7 +252,7 @@ var _kernelProductionGrid = function () {
             });
             
             // Filters
-            $('#filterBatchStatus, #filterBatchStep').on('change', function () {
+            $('#filterBatchStatus').on('change', function () {
                 scope.filterBatches();
             });
             
@@ -260,7 +260,6 @@ var _kernelProductionGrid = function () {
             $('#clearBatchFiltersBtn').on('click', function () {
                 $('#searchBatchesInput').val('');
                 $('#filterBatchStatus').val('');
-                $('#filterBatchStep').val('');
                 scope.filterBatches();
             });
 
@@ -294,11 +293,46 @@ var _kernelProductionGrid = function () {
                 const batchId = $(this).data('batch-id');
                 if (batchId) scope.showBatchHistory(batchId);
             });
+            $(document).on('click', '.js-job-card-batch', function () {
+                const batchId = $(this).data('batch-id');
+                if (batchId) scope.showJobCardModalForBatch(batchId);
+            });
+
+            // Remember production form tab per batch (when user switches tab or closes modal)
+            var tabsEl = document.getElementById('productionStagesTabs');
+            if (tabsEl) {
+                tabsEl.addEventListener('shown.bs.tab', function (e) {
+                    var target = e.target;
+                    if (target && target.getAttribute && target.getAttribute('data-bs-target')) {
+                        var paneId = target.getAttribute('data-bs-target'); // e.g. "#pane-washing"
+                        var tabName = paneId.replace('#pane-', '');
+                        var batchIdEl = document.getElementById('productionStagesBatchId');
+                        var batchId = batchIdEl ? batchIdEl.value : null;
+                        if (batchId && tabName) {
+                            try { localStorage.setItem('kernelProduction_lastTab_' + batchId, tabName); } catch (err) {}
+                        }
+                    }
+                });
+            }
+            var productionStagesModalEl = document.getElementById('productionStagesModal');
+            if (productionStagesModalEl) {
+                productionStagesModalEl.addEventListener('hidden.bs.modal', function () {
+                    var batchIdEl = document.getElementById('productionStagesBatchId');
+                    var batchId = batchIdEl ? batchIdEl.value : null;
+                    if (!batchId) return;
+                    var activeTab = tabsEl && tabsEl.querySelector('.nav-link.active');
+                    if (activeTab && activeTab.getAttribute('data-bs-target')) {
+                        var paneId = activeTab.getAttribute('data-bs-target');
+                        var tabName = paneId.replace('#pane-', '');
+                        try { localStorage.setItem('kernelProduction_lastTab_' + batchId, tabName); } catch (err) {}
+                    }
+                    scope.saveProductionStagesDraftToStorage();
+                });
+            }
         },
         filterBatches: function () {
             const searchTerm = $('#searchBatchesInput').val().toLowerCase();
             const statusFilter = $('#filterBatchStatus').val();
-            const stepFilter = $('#filterBatchStep').val();
             
             this.filteredBatches = this.batches.filter(batch => {
                 // Search filter
@@ -310,17 +344,7 @@ var _kernelProductionGrid = function () {
                 // Status filter
                 const matchesStatus = !statusFilter || batch.status === statusFilter;
                 
-                // Step filter
-                let matchesStep = true;
-                if (stepFilter) {
-                    const currentStep = batch.current_step || 1;
-                    if (stepFilter === '1-5') matchesStep = currentStep >= 1 && currentStep <= 5;
-                    else if (stepFilter === '6-10') matchesStep = currentStep >= 6 && currentStep <= 10;
-                    else if (stepFilter === '11-15') matchesStep = currentStep >= 11 && currentStep <= 15;
-                    else if (stepFilter === '16-17') matchesStep = currentStep >= 16 && currentStep <= 17;
-                }
-                
-                return matchesSearch && matchesStatus && matchesStep;
+                return matchesSearch && matchesStatus;
             });
             
             this.renderBatches();
@@ -348,9 +372,11 @@ var _kernelProductionGrid = function () {
                 try {
                     jobCards = await dataFunctions.getKernelJobCards(null, forceRefresh) || [];
                 } catch (e) { console.warn('[Kernel Production] getKernelJobCards failed:', e); }
-                var jobCardByBatch = {};
+                var jobCardByBatchId = {};
+                var jobCardByBatchNumber = {};
                 jobCards.forEach(function (jc) {
-                    if (jc.batch_number) jobCardByBatch[jc.batch_number] = { id: jc.id, status: jc.status };
+                    if (jc.production_batch_id) jobCardByBatchId[jc.production_batch_id] = { id: jc.id, status: jc.status };
+                    if (jc.batch_number) jobCardByBatchNumber[jc.batch_number] = { id: jc.id, status: jc.status };
                 });
                 var packingSamples = [];
                 try {
@@ -369,7 +395,7 @@ var _kernelProductionGrid = function () {
                     if (s.production_batch_id) stagesByBatchId[s.production_batch_id] = { id: s.id };
                 });
                 batches.forEach(function (b) {
-                    var jc = jobCardByBatch[b.batch_number];
+                    var jc = jobCardByBatchId[b.id] || jobCardByBatchNumber[b.batch_number];
                     b.jobCardId = jc ? jc.id : null;
                     b.hasJobCard = !!(jc && jc.id);
                     var ps = packingByBatchId[b.id];
@@ -393,9 +419,9 @@ var _kernelProductionGrid = function () {
             tbody.empty();
             if (this.filteredBatches.length === 0) {
                 if (this.batches.length === 0) {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No production batches. Release batches from Grower Intake (complete Receiving checklist and Batch test/sample, then click Release to production).</td></tr>');
+                    tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No production batches. Release batches from Grower Intake (complete Receiving checklist and Batch test/sample, then click Release to production).</td></tr>');
                 } else {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search criteria. Try adjusting your filters.</td></tr>');
+                    tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search criteria. Try adjusting your filters.</td></tr>');
                 }
                 return;
             }
@@ -422,17 +448,25 @@ var _kernelProductionGrid = function () {
                 } else {
                     endSampleBtn = '<button type="button" class="btn btn-sm btn-outline-primary me-1 js-end-sample-batch" data-batch-id="' + batch.id + '" title="Open End sample form">End sample</button>';
                 }
+                var jobCardBtn = '';
+                if (batch.hasProductionStages) {
+                    if (batch.hasJobCard && batch.jobCardId) {
+                        jobCardBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-job-card-batch" data-batch-id="' + batch.id + '" data-job-card-id="' + batch.jobCardId + '" title="View/Edit Job Card (completed)"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;line-height:1;">&#10003;</span>Job Card</button>';
+                    } else {
+                        jobCardBtn = '<button type="button" class="btn btn-sm btn-outline-primary me-1 js-job-card-batch" data-batch-id="' + batch.id + '" title="Open Job Card (same fields as Kernel Production Job Card)">Job Card</button>';
+                    }
+                }
                 const row = '<tr>' +
                     '<td>' + (batch.batch_number || 'N/A') + '</td>' +
                     '<td>' + (batch.grower_name || 'N/A') + '</td>' +
                     '<td>' + receivedDate + '</td>' +
                     '<td>' + (batch.wet_nis_received_kg || '0') + '</td>' +
-                    '<td>' + step + '/17</td>' +
                     '<td><span class="badge bg-info">' + (batch.status || 'in_production') + '</span></td>' +
                     '<td>' +
                     '<button type="button" class="btn btn-sm btn-outline-secondary me-1 js-batch-history" data-batch-id="' + batch.id + '" title="View Grower Intake checklist and sample">History</button>' +
                     productionBtn +
                     endSampleBtn +
+                    jobCardBtn +
                     releaseBtn +
                     '</td></tr>';
                 tbody.append(row);
@@ -476,32 +510,135 @@ var _kernelProductionGrid = function () {
             }
         },
 
+        setJobCardField: function (id, value) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            if (el.type === 'checkbox') {
+                el.checked = value === true || value === 'true' || value === 1 || value === '1';
+            } else {
+                el.value = value != null && value !== '' ? String(value) : '';
+            }
+        },
+
+        populateJobCardFormFromData: function (jc) {
+            var fmtDate = function (v) {
+                if (!v) return '';
+                var s = typeof v === 'string' ? v : (v.toString && v.toString());
+                return s.indexOf('T') >= 0 ? s.split('T')[0] : s;
+            };
+            this.setJobCardField('jobCardBatchNumber', jc.batch_number);
+            this.setJobCardField('jobCardReceivedDate', fmtDate(jc.received_date));
+            this.setJobCardField('jobCardSupplierName', jc.supplier_name);
+            if (jc.supplier_id != null && jc.supplier_id !== '') this.setJobCardField('jobCardSupplier', jc.supplier_id);
+            this.setJobCardField('jobCardTotalWeight', jc.total_weight_kg);
+            this.setJobCardField('jobCardRemovedPreSizer', jc.removed_pre_sizer_kg);
+            this.setJobCardField('jobCardBalance', jc.balance_kg);
+            this.setJobCardField('jobCardReceivingMoisture', jc.receiving_moisture_percentage);
+            this.setJobCardField('jobCardPackingMoisture', jc.packing_moisture_percentage);
+            this.setJobCardField('jobCardRemovedMoisture', jc.removed_moisture_percentage);
+            this.setJobCardField('jobCardPackingStartDate', fmtDate(jc.packing_start_date));
+            this.setJobCardField('jobCardPackingCompletionDate', fmtDate(jc.packing_completion_date));
+            this.setJobCardField('jobCardBestBeforeDate', fmtDate(jc.best_before_date));
+            this.setJobCardField('jobCardWasteOilKernel', jc.waste_oil_kernel_kg);
+            this.setJobCardField('jobCardWasteSaltPepper', jc.waste_salt_pepper_kg);
+            this.setJobCardField('jobCardWasteShellFines', jc.waste_shell_fines_kg);
+            this.setJobCardField('jobCardWasteCompost', jc.waste_compost_kg);
+            this.setJobCardField('jobCardWasteShell', jc.waste_shell_kg);
+            this.setJobCardField('jobCardMassBalanceIn', jc.mass_balance_in_kg);
+            this.setJobCardField('jobCardMassBalanceOut', jc.mass_balance_out_kg);
+            this.setJobCardField('jobCardMassBalancePercentage', jc.mass_balance_percentage);
+            var sk = jc.sound_kernel_styles;
+            if (typeof sk === 'string') { try { sk = JSON.parse(sk); } catch (e) { sk = null; } }
+            if (sk && Array.isArray(sk) && sk.length > 0) {
+                var tbody = document.getElementById('soundKernelTableBody');
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    sk.forEach(function (row) {
+                        var tr = tbody.insertRow(-1);
+                        tr.innerHTML = '<td><select class="form-select form-select-sm" name="style"><option value="">Select Style</option><option value="SP">SP</option><option value="0">0</option><option value="1">1</option><option value="1S">1S</option><option value="4L">4L</option><option value="5">5</option><option value="6">6</option></select></td><td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td><td><input type="number" class="form-control form-control-sm" name="weight_kg" step="0.01" value="0"></td><td><button type="button" class="btn btn-sm btn-danger removeSoundKernelRow"><i class="fas fa-times"></i></button></td>';
+                        var sel = tr.querySelector('select[name="style"]');
+                        var cartons = tr.querySelector('input[name="cartons"]');
+                        var weight = tr.querySelector('input[name="weight_kg"]');
+                        if (sel && row.style) sel.value = row.style;
+                        if (cartons && row.cartons != null) cartons.value = row.cartons;
+                        if (weight && row.weight_kg != null) weight.value = row.weight_kg;
+                    });
+                }
+            }
+            var bg = jc.butter_grade_styles;
+            if (typeof bg === 'string') { try { bg = JSON.parse(bg); } catch (e) { bg = null; } }
+            if (bg && Array.isArray(bg) && bg.length > 0) {
+                var tbody = document.getElementById('butterGradeTableBody');
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    bg.forEach(function (row) {
+                        var tr = tbody.insertRow(-1);
+                        tr.innerHTML = '<td><select class="form-select form-select-sm" name="style"><option value="">Select Style</option><option value="7/8">7/8</option><option value="Butter High Oil (Floaters)">Butter High Oil (Floaters)</option><option value="Butter Low Oil (Sinkers)">Butter Low Oil (Sinkers)</option></select></td><td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td><td><input type="number" class="form-control form-control-sm" name="weight_kg" step="0.01" value="0"></td><td><button type="button" class="btn btn-sm btn-danger removeButterGradeRow"><i class="fas fa-times"></i></button></td>';
+                        var sel = tr.querySelector('select[name="style"]');
+                        var cartons = tr.querySelector('input[name="cartons"]');
+                        var weight = tr.querySelector('input[name="weight_kg"]');
+                        if (sel && row.style) sel.value = row.style;
+                        if (cartons && row.cartons != null) cartons.value = row.cartons;
+                        if (weight && row.weight_kg != null) weight.value = row.weight_kg;
+                    });
+                }
+            }
+            this.calculateJobCardTotals();
+        },
+
+        prefillJobCardFromProductionStages: function (s) {
+            if (!s) return;
+            var crack = s.cracking_data || {};
+            var pack = s.packing_data || {};
+            var sum = s.summary_data || {};
+            if (crack.date) this.setJobCardField('jobCardReceivedDate', crack.date.toString().split('T')[0]);
+            if (crack.grower) this.setJobCardField('jobCardSupplierName', crack.grower);
+            if (crack.batch1) this.setJobCardField('jobCardBatchNumber', crack.batch1);
+            if (pack.date) this.setJobCardField('jobCardPackingStartDate', pack.date.toString().split('T')[0]);
+            if (pack.date) this.setJobCardField('jobCardPackingCompletionDate', pack.date.toString().split('T')[0]);
+            var totalQty = sum.pack_total_qty || sum.crack_qty;
+            if (totalQty != null && totalQty !== '') this.setJobCardField('jobCardTotalWeight', totalQty);
+            this.calculateBalance();
+            this.calculateRemovedMoisture();
+            this.calculateJobCardTotals();
+        },
+
         showJobCardModalForBatch: async function (batchId) {
-            const batch = this.batches.find(function (b) { return b.id === batchId; }) || this.filteredBatches.find(function (b) { return b.id === batchId; });
+            var batch = this.batches.find(function (b) { return b.id === batchId; }) || this.filteredBatches.find(function (b) { return b.id === batchId; });
             if (!batch) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
                 return;
             }
+            this.clearJobCardForm();
+            var jobCardIdEl = document.getElementById('jobCardId');
+            if (jobCardIdEl) jobCardIdEl.value = batch.hasJobCard && batch.jobCardId ? batch.jobCardId : '';
             $('#jobCardProductionBatchId').val(batchId);
             $('#jobCardBatchNumber').val(batch.batch_number || '');
             $('#jobCardReceivedDate').val(batch.received_date ? (batch.received_date.toString().split('T')[0]) : '');
             $('#jobCardSupplierName').val(batch.grower_name || '');
-            const today = new Date().toISOString().split('T')[0];
+            var today = new Date().toISOString().split('T')[0];
             if (!batch.received_date) $('#jobCardReceivedDate').val(today);
             try {
-                const contacts = await dataFunctions.getContacts();
-                const select = $('#jobCardSupplier');
-                let html = '<option value="">Select Supplier</option>';
+                var contacts = await dataFunctions.getContacts();
+                var select = $('#jobCardSupplier');
+                var html = '<option value="">Select Supplier</option>';
                 if (contacts && Array.isArray(contacts)) {
-                    contacts.forEach(contact => {
-                        const name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
-                        const selected = batch.supplier_id && contact.id === batch.supplier_id ? ' selected' : '';
+                    contacts.forEach(function (contact) {
+                        var name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
+                        var selected = batch.supplier_id && contact.id === batch.supplier_id ? ' selected' : '';
                         html += '<option value="' + contact.id + '"' + selected + '>' + name + '</option>';
                     });
                 }
                 select.html(html);
+                if (batch.hasJobCard && batch.jobCardId) {
+                    var jc = await dataFunctions.getKernelJobCard(batch.jobCardId);
+                    if (jc) this.populateJobCardFormFromData(jc);
+                } else if (batch.productionStagesId) {
+                    var s = await dataFunctions.getKernelProductionStages(batch.productionStagesId);
+                    this.prefillJobCardFromProductionStages(s);
+                }
             } catch (e) { console.error(e); }
-            const modalElement = document.getElementById('kernelJobCardModal');
+            var modalElement = document.getElementById('kernelJobCardModal');
             if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 bootstrap.Modal.getOrCreateInstance(modalElement).show();
             } else if (typeof $ !== 'undefined' && $.fn.modal) {
@@ -575,7 +712,82 @@ var _kernelProductionGrid = function () {
             return out;
         },
 
-        showProductionStagesModalForBatch: function (batchId) {
+        /** Populate one section of the production form from saved data (key = suffix after ps_prefix_) */
+        setProductionStagesSectionData: function (prefix, data) {
+            if (!data || typeof data !== 'object') return;
+            for (var key in data) {
+                if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+                var el = document.getElementById('ps_' + prefix + '_' + key);
+                if (el) {
+                    var v = data[key];
+                    if (el.type === 'checkbox') {
+                        el.checked = v === true || v === 'true' || v === '1' || v === 1;
+                    } else {
+                        el.value = v != null && v !== '' ? String(v) : '';
+                    }
+                }
+            }
+        },
+
+        /** Clear all production stages form inputs so switching batches doesn't show previous batch data */
+        clearProductionStagesForm: function () {
+            var sel = document.querySelectorAll('[id^="ps_"]');
+            for (var i = 0; i < sel.length; i++) {
+                var el = sel[i];
+                if (el.type === 'checkbox') {
+                    el.checked = false;
+                } else {
+                    el.value = '';
+                }
+            }
+        },
+
+        /** Save current form state to localStorage for this batch (draft) so user can exit and come back */
+        saveProductionStagesDraftToStorage: function () {
+            var batchIdEl = document.getElementById('productionStagesBatchId');
+            var batchId = batchIdEl ? batchIdEl.value : null;
+            if (!batchId) return;
+            var draft = {
+                cracking_data: this.getProductionStagesSectionData('crack'),
+                washing_data: this.getProductionStagesSectionData('wash'),
+                sorting_data: this.getProductionStagesSectionData('sort'),
+                packing_data: this.getProductionStagesSectionData('pack'),
+                summary_data: this.getProductionStagesSectionData('sum')
+            };
+            try {
+                localStorage.setItem('kernelProduction_draft_' + batchId, JSON.stringify(draft));
+            } catch (err) { console.warn('[Kernel Production] Could not save draft to localStorage', err); }
+        },
+
+        /** Clear draft for a batch (e.g. after successful save) */
+        clearProductionStagesDraft: function (batchId) {
+            if (!batchId) return;
+            try {
+                localStorage.removeItem('kernelProduction_draft_' + batchId);
+            } catch (err) {}
+        },
+
+        /** Restore draft from localStorage for this batch (overwrites server-loaded data so user sees where they left off) */
+        restoreProductionStagesDraft: function (batchId) {
+            if (!batchId) return;
+            var json = null;
+            try {
+                json = localStorage.getItem('kernelProduction_draft_' + batchId);
+            } catch (err) { return; }
+            if (!json) return;
+            var draft;
+            try {
+                draft = JSON.parse(json);
+            } catch (e) { return; }
+            if (!draft || typeof draft !== 'object') return;
+            if (draft.cracking_data) this.setProductionStagesSectionData('crack', draft.cracking_data);
+            if (draft.washing_data) this.setProductionStagesSectionData('wash', draft.washing_data);
+            if (draft.sorting_data) this.setProductionStagesSectionData('sort', draft.sorting_data);
+            if (draft.packing_data) this.setProductionStagesSectionData('pack', draft.packing_data);
+            if (draft.summary_data) this.setProductionStagesSectionData('sum', draft.summary_data);
+        },
+
+        showProductionStagesModalForBatch: async function (batchId) {
             var batch = this.batches.find(function (b) { return b.id === batchId; }) || this.filteredBatches.find(function (b) { return b.id === batchId; });
             if (!batch) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
@@ -583,6 +795,7 @@ var _kernelProductionGrid = function () {
             }
             var batchIdEl = document.getElementById('productionStagesBatchId');
             if (batchIdEl) batchIdEl.value = batchId;
+            this.clearProductionStagesForm();
             var dateVal = batch.received_date ? (batch.received_date.toString().split('T')[0]) : (new Date().toISOString().split('T')[0]);
             var growerVal = batch.grower_name || '';
             var batchNumVal = batch.batch_number || '';
@@ -592,11 +805,45 @@ var _kernelProductionGrid = function () {
             if (crackGrower) crackGrower.value = growerVal;
             var crackBatch1 = document.getElementById('ps_crack_batch1');
             if (crackBatch1) crackBatch1.value = batchNumVal;
+            if (batch.productionStagesId) {
+                try {
+                    var s = await dataFunctions.getKernelProductionStages(batch.productionStagesId);
+                    if (s) {
+                        this.setProductionStagesSectionData('crack', s.cracking_data);
+                        this.setProductionStagesSectionData('wash', s.washing_data);
+                        this.setProductionStagesSectionData('sort', s.sorting_data);
+                        this.setProductionStagesSectionData('pack', s.packing_data);
+                        this.setProductionStagesSectionData('sum', s.summary_data);
+                    }
+                } catch (e) {
+                    console.warn('[Kernel Production] Could not load existing production stages for batch:', e);
+                }
+            }
+            this.restoreProductionStagesDraft(batchId);
             var modalEl = document.getElementById('productionStagesModal');
+            var doRestoreTab = function () {
+                var savedTab = null;
+                try { savedTab = localStorage.getItem('kernelProduction_lastTab_' + batchId); } catch (err) {}
+                var tabNames = ['cracking', 'washing', 'sorting', 'packing', 'summary'];
+                if (savedTab && tabNames.indexOf(savedTab) !== -1) {
+                    var tabBtn = document.getElementById('tab-' + savedTab);
+                    if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                        bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+                    }
+                }
+            };
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                var onceShown = function () {
+                    modalEl.removeEventListener('shown.bs.modal', onceShown);
+                    doRestoreTab();
+                };
+                modalEl.addEventListener('shown.bs.modal', onceShown);
                 bootstrap.Modal.getOrCreateInstance(modalEl).show();
             } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#productionStagesModal').one('shown.bs.modal', doRestoreTab);
                 $('#productionStagesModal').modal('show');
+            } else {
+                doRestoreTab();
             }
         },
 
@@ -627,6 +874,7 @@ var _kernelProductionGrid = function () {
             };
             try {
                 await dataFunctions.saveKernelProductionStages(payload);
+                this.clearProductionStagesDraft(batchId);
                 if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved.', 'success');
                 var modalEl = document.getElementById('productionStagesModal');
                 if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -882,7 +1130,6 @@ var _kernelProductionGrid = function () {
                 { key: 'grower_name', label: 'Supplier' },
                 { key: 'received_date', label: 'Received Date' },
                 { key: 'wet_nis_received_kg', label: 'Wet NIS (kg)' },
-                { key: 'current_step', label: 'Current Step' },
                 { key: 'status', label: 'Status' }
             ];
             
@@ -1389,10 +1636,13 @@ var _kernelProductionGrid = function () {
                 };
                 
                 const autoUpdateStockEl = document.getElementById('jobCardAutoUpdateStock');
+                const jobCardIdVal = getValue('jobCardId');
+                const productionBatchIdVal = getValue('jobCardProductionBatchId');
                 
                 const jobCardData = {
                     p_batch_number: getValue('jobCardBatchNumber'),
                     p_received_date: getValue('jobCardReceivedDate'),
+                    p_production_batch_id: productionBatchIdVal || null,
                     p_total_weight_kg: getFloatValue('jobCardTotalWeight'),
                     p_supplier_id: getValue('jobCardSupplier') || null,
                     p_supplier_name: getValue('jobCardSupplierName') || null,
@@ -1420,6 +1670,7 @@ var _kernelProductionGrid = function () {
                     p_mass_balance_percentage: getFloatValue('jobCardMassBalancePercentage'),
                     p_auto_update_stock: autoUpdateStockEl ? autoUpdateStockEl.checked : false
                 };
+                if (jobCardIdVal) jobCardData.p_id = jobCardIdVal;
                 
                 console.log('[Kernel Production] Job card data:', jobCardData);
                 const result = await dataFunctions.createKernelJobCard(jobCardData);
