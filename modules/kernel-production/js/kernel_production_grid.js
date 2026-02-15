@@ -127,6 +127,49 @@ var _kernelProductionGrid = function () {
                     scope.saveProductionStages();
                 });
             }
+            var addProductionDayBtn = document.getElementById('addProductionDayBtn');
+            if (addProductionDayBtn) {
+                addProductionDayBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.addProductionDay();
+                });
+            }
+            var batchSummaryBtn = document.getElementById('batchSummaryBtn');
+            if (batchSummaryBtn) {
+                batchSummaryBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.showBatchSummary();
+                });
+            }
+            var finishBatchProductionBtn = document.getElementById('finishBatchProductionBtn');
+            if (finishBatchProductionBtn) {
+                finishBatchProductionBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.finishBatchProduction();
+                });
+            }
+            var dayListEl = document.getElementById('productionStagesDayList');
+            if (dayListEl) {
+                dayListEl.addEventListener('click', function (e) {
+                    var btn = e.target && e.target.closest && e.target.closest('[data-day-id]');
+                    if (btn && btn.getAttribute('data-day-id')) {
+                        e.preventDefault();
+                        scope.selectProductionDay(btn.getAttribute('data-day-id'));
+                    }
+                });
+            }
+
+            // Production form: auto-fill Time Spent from Start Time and End Time (Cracking section)
+            document.addEventListener('change', function (e) {
+                var id = e.target && e.target.id;
+                if (id === 'ps_crack_start1' || id === 'ps_crack_end1') scope.updateCrackTimeSpentRow(1);
+                if (id === 'ps_crack_start2' || id === 'ps_crack_end2') scope.updateCrackTimeSpentRow(2);
+            });
+            document.addEventListener('input', function (e) {
+                var id = e.target && e.target.id;
+                if (id === 'ps_crack_start1' || id === 'ps_crack_end1') scope.updateCrackTimeSpentRow(1);
+                if (id === 'ps_crack_start2' || id === 'ps_crack_end2') scope.updateCrackTimeSpentRow(2);
+            });
             
             // Add row buttons - use delegated events for dynamically added elements
             const addSoundKernelBtn = document.getElementById('addSoundKernelRow');
@@ -386,13 +429,20 @@ var _kernelProductionGrid = function () {
                 packingSamples.forEach(function (ps) {
                     if (ps.production_batch_id) packingByBatchId[ps.production_batch_id] = { id: ps.id };
                 });
-                var stagesList = [];
+                var daysList = [];
                 try {
-                    stagesList = await dataFunctions.getKernelProductionStagesList(null, forceRefresh) || [];
-                } catch (e) { console.warn('[Kernel Production] getKernelProductionStagesList failed:', e); }
-                var stagesByBatchId = {};
-                stagesList.forEach(function (s) {
-                    if (s.production_batch_id) stagesByBatchId[s.production_batch_id] = { id: s.id };
+                    daysList = await dataFunctions.getKernelProductionDaysList(null, forceRefresh) || [];
+                } catch (e) { console.warn('[Kernel Production] getKernelProductionDaysList failed:', e); }
+                var productionDaysByBatchId = {};
+                (Array.isArray(daysList) ? daysList : []).forEach(function (d) {
+                    var bid = d.production_batch_id;
+                    if (!bid) return;
+                    if (!productionDaysByBatchId[bid]) productionDaysByBatchId[bid] = [];
+                    productionDaysByBatchId[bid].push({
+                        id: d.id,
+                        day_number: d.day_number,
+                        kernel_production_stages_id: d.kernel_production_stages_id
+                    });
                 });
                 batches.forEach(function (b) {
                     var jc = jobCardByBatchId[b.id] || jobCardByBatchNumber[b.batch_number];
@@ -401,9 +451,9 @@ var _kernelProductionGrid = function () {
                     var ps = packingByBatchId[b.id];
                     b.packingSampleId = ps ? ps.id : null;
                     b.hasPackingSample = !!(ps && ps.id);
-                    var st = stagesByBatchId[b.id];
-                    b.productionStagesId = st ? st.id : null;
-                    b.hasProductionStages = !!(st && st.id);
+                    b.productionDays = productionDaysByBatchId[b.id] || [];
+                    b.productionFinishedAt = b.production_finished_at != null ? b.production_finished_at : (b.productionFinishedAt);
+                    b.hasProductionStages = b.productionDays.length > 0;
                 });
                 const loadTime = performance.now() - startTime;
                 console.log(`[Kernel Production] Batches loaded in ${loadTime.toFixed(2)}ms, count: ${batches.length}`);
@@ -435,12 +485,10 @@ var _kernelProductionGrid = function () {
                     ? '<button type="button" class="btn btn-sm btn-success me-1 js-release-to-stock" data-batch-id="' + batch.id + '" title="Release batch to Kernel Stock">Release to stock</button>'
                     : '<button type="button" class="btn btn-sm btn-secondary me-1" disabled title="Complete Production and End sample first">Release to stock</button>';
                 var productionBtn;
-                if (batch.hasProductionStages && batch.productionStagesId) {
-                    productionBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-production-batch" data-batch-id="' + batch.id + '" data-production-stages-id="' + batch.productionStagesId + '" title="View Production (completed)"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;line-height:1;">&#10003;</span>Production</button>';
-                } else if (batch.hasJobCard && batch.jobCardId) {
-                    productionBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-production-batch" data-batch-id="' + batch.id + '" data-job-card-id="' + batch.jobCardId + '" title="View Production (completed)"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;line-height:1;">&#10003;</span>Production</button>';
+                if (batch.productionFinishedAt) {
+                    productionBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-production-batch" data-batch-id="' + batch.id + '" title="View Production (finished)"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;line-height:1;">&#10003;</span>Production</button>';
                 } else {
-                    productionBtn = '<button type="button" class="btn btn-sm btn-primary me-1 js-production-batch" data-batch-id="' + batch.id + '" title="Open Production (Cracking, Washing, Sorting, Packing, Summary)">Production</button>';
+                    productionBtn = '<button type="button" class="btn btn-sm btn-primary me-1 js-production-batch" data-batch-id="' + batch.id + '" title="Open Production (Add days: Cracking, Washing, Sorting, Packing, Summary)">Production</button>';
                 }
                 var endSampleBtn;
                 if (batch.hasPackingSample && batch.packingSampleId) {
@@ -700,6 +748,63 @@ var _kernelProductionGrid = function () {
             }
         },
 
+        /** Compute time spent string from start/end time inputs (HH:mm). Returns e.g. "2h 30m" or "" */
+        computeTimeSpent: function (startTimeVal, endTimeVal) {
+            if (!startTimeVal || !endTimeVal || typeof startTimeVal !== 'string' || typeof endTimeVal !== 'string') return '';
+            var s = startTimeVal.trim().split(':');
+            var e = endTimeVal.trim().split(':');
+            if (s.length < 2 || e.length < 2) return '';
+            var startM = parseInt(s[0], 10) * 60 + parseInt(s[1], 10);
+            var endM = parseInt(e[0], 10) * 60 + parseInt(e[1], 10);
+            if (isNaN(startM) || isNaN(endM)) return '';
+            var diffM = endM - startM;
+            if (diffM < 0) diffM += 24 * 60;
+            var h = Math.floor(diffM / 60);
+            var m = diffM % 60;
+            if (h === 0) return m + 'm';
+            if (m === 0) return h + 'h';
+            return h + 'h ' + m + 'm';
+        },
+
+        /** Parse time-spent string "Xh Ym" or "Xh" or "Ym" to total minutes */
+        parseTimeSpentToMinutes: function (str) {
+            if (!str || typeof str !== 'string') return 0;
+            str = str.trim();
+            var total = 0;
+            var hMatch = str.match(/(\d+)\s*h/);
+            var mMatch = str.match(/(\d+)\s*m/);
+            if (hMatch) total += parseInt(hMatch[1], 10) * 60;
+            if (mMatch) total += parseInt(mMatch[1], 10);
+            return total;
+        },
+
+        /** Update Time Spent and Total Time in Cracking section from Start/End times */
+        updateCrackTimeSpentRow: function (rowNum) {
+            var startEl = document.getElementById('ps_crack_start' + rowNum);
+            var endEl = document.getElementById('ps_crack_end' + rowNum);
+            var spentEl = document.getElementById('ps_crack_timespent' + rowNum);
+            if (!startEl || !endEl || !spentEl) return;
+            var spent = this.computeTimeSpent(startEl.value, endEl.value);
+            spentEl.value = spent;
+            this.updateCrackTotalTime();
+        },
+
+        updateCrackTotalTime: function () {
+            var spent1El = document.getElementById('ps_crack_timespent1');
+            var spent2El = document.getElementById('ps_crack_timespent2');
+            var totalEl = document.getElementById('ps_crack_totaltime');
+            if (!totalEl) return;
+            var m1 = spent1El ? this.parseTimeSpentToMinutes(spent1El.value) : 0;
+            var m2 = spent2El ? this.parseTimeSpentToMinutes(spent2El.value) : 0;
+            var totalM = m1 + m2;
+            var h = Math.floor(totalM / 60);
+            var m = totalM % 60;
+            if (h === 0 && m === 0) totalEl.value = '';
+            else if (h === 0) totalEl.value = m + 'm';
+            else if (m === 0) totalEl.value = h + 'h';
+            else totalEl.value = h + 'h ' + m + 'm';
+        },
+
         getProductionStagesSectionData: function (prefix) {
             var out = {};
             var sel = document.querySelectorAll('[id^="ps_' + prefix + '_"]');
@@ -795,6 +900,8 @@ var _kernelProductionGrid = function () {
             }
             var batchIdEl = document.getElementById('productionStagesBatchId');
             if (batchIdEl) batchIdEl.value = batchId;
+            var dayIdEl = document.getElementById('productionStagesDayId');
+            if (dayIdEl) dayIdEl.value = '';
             this.clearProductionStagesForm();
             var dateVal = batch.received_date ? (batch.received_date.toString().split('T')[0]) : (new Date().toISOString().split('T')[0]);
             var growerVal = batch.grower_name || '';
@@ -805,19 +912,22 @@ var _kernelProductionGrid = function () {
             if (crackGrower) crackGrower.value = growerVal;
             var crackBatch1 = document.getElementById('ps_crack_batch1');
             if (crackBatch1) crackBatch1.value = batchNumVal;
-            if (batch.productionStagesId) {
-                try {
-                    var s = await dataFunctions.getKernelProductionStages(batch.productionStagesId);
-                    if (s) {
-                        this.setProductionStagesSectionData('crack', s.cracking_data);
-                        this.setProductionStagesSectionData('wash', s.washing_data);
-                        this.setProductionStagesSectionData('sort', s.sorting_data);
-                        this.setProductionStagesSectionData('pack', s.packing_data);
-                        this.setProductionStagesSectionData('sum', s.summary_data);
-                    }
-                } catch (e) {
-                    console.warn('[Kernel Production] Could not load existing production stages for batch:', e);
+            var days = batch.productionDays && batch.productionDays.length ? batch.productionDays : [];
+            try {
+                if (days.length === 0) {
+                    var raw = await dataFunctions.getKernelProductionDays(batchId);
+                    days = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
                 }
+            } catch (e) { console.warn('[Kernel Production] getKernelProductionDays failed:', e); }
+            this.modalProductionDays = days;
+            this.renderProductionDaysList(days);
+            this.setProductionStagesTabsVisibility(days.length > 0);
+            if (days.length > 0) {
+                var first = days[0];
+                var firstDayId = first.id || first.kernel_production_day_id;
+                if (dayIdEl) dayIdEl.value = firstDayId || '';
+                await this.loadProductionStagesForDay(firstDayId, first.kernel_production_stages_id);
+                this.setProductionDayActive(firstDayId);
             }
             this.restoreProductionStagesDraft(batchId);
             var modalEl = document.getElementById('productionStagesModal');
@@ -847,11 +957,249 @@ var _kernelProductionGrid = function () {
             }
         },
 
-        saveProductionStages: async function () {
+        setProductionStagesTabsVisibility: function (visible) {
+            var el = document.getElementById('productionStagesTabsContainer');
+            if (el) el.style.display = visible ? '' : 'none';
+        },
+
+        renderProductionDaysList: function (days) {
+            var container = document.getElementById('productionStagesDayList');
+            if (!container) return;
+            container.innerHTML = '';
+            (days || []).forEach(function (d, idx) {
+                var dayId = d.id || d.kernel_production_day_id;
+                var num = d.day_number != null ? d.day_number : (idx + 1);
+                if (!dayId) return;
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-sm btn-outline-secondary';
+                btn.setAttribute('data-day-id', dayId);
+                btn.setAttribute('data-day-saved', d.kernel_production_stages_id ? '1' : '0');
+                if (d.kernel_production_stages_id) {
+                    btn.innerHTML = 'Day ' + num + ' <span class="text-success ms-1" aria-hidden="true">&#10003;</span>';
+                } else {
+                    btn.textContent = 'Day ' + num;
+                }
+                container.appendChild(btn);
+            });
+        },
+
+        setProductionDayActive: function (dayId) {
+            var container = document.getElementById('productionStagesDayList');
+            if (!container) return;
+            container.querySelectorAll('[data-day-id]').forEach(function (btn) {
+                var isActive = btn.getAttribute('data-day-id') === dayId;
+                var isSaved = btn.getAttribute('data-day-saved') === '1';
+                btn.classList.remove('btn-primary', 'btn-outline-secondary', 'btn-outline-success');
+                if (isActive) {
+                    btn.classList.add('btn-primary');
+                } else if (isSaved) {
+                    btn.classList.add('btn-outline-success');
+                } else {
+                    btn.classList.add('btn-outline-secondary');
+                }
+            });
+        },
+
+        loadProductionStagesForDay: async function (dayId, stagesId) {
+            if (!dayId && !stagesId) return;
+            var s = null;
+            try {
+                if (stagesId) s = await dataFunctions.getKernelProductionStages(stagesId);
+                else if (dayId) s = await dataFunctions.getKernelProductionStagesByDay(dayId);
+            } catch (e) { console.warn('[Kernel Production] load stages failed:', e); }
+            if (s) {
+                this.setProductionStagesSectionData('crack', s.cracking_data);
+                this.setProductionStagesSectionData('wash', s.washing_data);
+                this.setProductionStagesSectionData('sort', s.sorting_data);
+                this.setProductionStagesSectionData('pack', s.packing_data);
+                this.setProductionStagesSectionData('sum', s.summary_data);
+            } else {
+                this.clearProductionStagesForm();
+            }
+        },
+
+        selectProductionDay: async function (dayId) {
+            var dayIdEl = document.getElementById('productionStagesDayId');
+            if (dayIdEl) dayIdEl.value = dayId || '';
+            var days = this.modalProductionDays || [];
+            var day = days.find(function (d) { return (d.id || d.kernel_production_day_id) === dayId; });
+            await this.loadProductionStagesForDay(dayId, day && day.kernel_production_stages_id);
+            this.setProductionDayActive(dayId);
+        },
+
+        addProductionDay: async function () {
             var batchIdEl = document.getElementById('productionStagesBatchId');
             var batchId = batchIdEl ? batchIdEl.value : null;
             if (!batchId) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
+                return;
+            }
+            try {
+                var result = await dataFunctions.createKernelProductionDay(batchId);
+                var inner = (result && result.create_kernel_production_day) ? result.create_kernel_production_day : result;
+                if (!inner || inner.success === false) {
+                    throw new Error(inner && inner.error ? inner.error : 'Failed to create day');
+                }
+                var newDayId = inner.id;
+                var dayNum = inner.day_number != null ? inner.day_number : ((this.modalProductionDays || []).length + 1);
+                this.modalProductionDays = this.modalProductionDays || [];
+                this.modalProductionDays.push({ id: newDayId, day_number: dayNum, kernel_production_stages_id: null });
+                this.renderProductionDaysList(this.modalProductionDays);
+                this.setProductionStagesTabsVisibility(true);
+                var dayIdEl = document.getElementById('productionStagesDayId');
+                if (dayIdEl) dayIdEl.value = newDayId;
+                this.clearProductionStagesForm();
+                this.setProductionDayActive(newDayId);
+            } catch (e) {
+                console.error('[Kernel Production] addProductionDay failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to add day', 'error');
+            }
+        },
+
+        showBatchSummary: async function () {
+            var batchIdEl = document.getElementById('productionStagesBatchId');
+            var batchId = batchIdEl ? batchIdEl.value : null;
+            if (!batchId) return;
+            var body = document.getElementById('batchSummaryBody');
+            if (!body) return;
+            body.innerHTML = '<p class="text-muted mb-0">Loading…</p>';
+            var modalEl = document.getElementById('batchSummaryModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#batchSummaryModal').modal('show');
+            }
+            var days = this.modalProductionDays || [];
+            try {
+                if (days.length === 0) {
+                    var raw = await dataFunctions.getKernelProductionDays(batchId);
+                    days = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
+                }
+            } catch (e) {}
+            if (days.length === 0) {
+                body.innerHTML = '<p class="text-muted mb-0">No production days to summarize. Add days and save data first.</p>';
+                return;
+            }
+            var allStages = [];
+            for (var i = 0; i < days.length; i++) {
+                var d = days[i];
+                var s = d.kernel_production_stages_id
+                    ? await dataFunctions.getKernelProductionStages(d.kernel_production_stages_id)
+                    : await dataFunctions.getKernelProductionStagesByDay(d.id || d.kernel_production_day_id);
+                if (s) allStages.push(s);
+            }
+            var agg = this.aggregateProductionStages(allStages);
+            body.innerHTML = this.renderBatchSummaryHtml(agg, days.length);
+        },
+
+        aggregateProductionStages: function (stagesList) {
+            var sum = function (obj) {
+                if (obj == null || typeof obj !== 'object') return obj;
+                var out = {};
+                for (var key in obj) {
+                    var v = obj[key];
+                    if (typeof v === 'number' && !isNaN(v)) out[key] = v;
+                }
+                return out;
+            };
+            var add = function (acc, obj) {
+                if (!obj || typeof obj !== 'object') return;
+                for (var key in obj) {
+                    var v = obj[key];
+                    if (typeof v === 'number' && !isNaN(v)) {
+                        acc[key] = (acc[key] || 0) + v;
+                    }
+                }
+            };
+            var sections = ['cracking_data', 'washing_data', 'sorting_data', 'packing_data', 'summary_data'];
+            var agg = {};
+            sections.forEach(function (sec) {
+                agg[sec] = {};
+            });
+            (stagesList || []).forEach(function (s) {
+                sections.forEach(function (sec) {
+                    var data = s[sec];
+                    if (data && typeof data === 'object') add(agg[sec], data);
+                });
+            });
+            return agg;
+        },
+
+        renderBatchSummaryHtml: function (agg, dayCount) {
+            var fmt = function (v) { return v != null && typeof v === 'number' ? v.toFixed(2) : (v != null ? String(v) : '—'); };
+            var rows = [];
+            var pushRow = function (label, val) { rows.push('<tr><td>' + label + '</td><td>' + fmt(val) + '</td></tr>'); };
+            rows.push('<p class="text-muted small">Totals across ' + dayCount + ' day(s).</p>');
+            rows.push('<table class="table table-sm table-bordered"><thead><tr><th>Field</th><th>Total</th></tr></thead><tbody>');
+            var sections = [
+                ['cracking_data', 'Cracking'],
+                ['washing_data', 'Washing'],
+                ['sorting_data', 'Sorting'],
+                ['packing_data', 'Packing'],
+                ['summary_data', 'Summary']
+            ];
+            sections.forEach(function (pair) {
+                var sec = pair[0], name = pair[1];
+                var data = agg[sec];
+                if (data && typeof data === 'object') {
+                    rows.push('<tr><td colspan="2" class="fw-bold">' + name + '</td></tr>');
+                    for (var k in data) rows.push('<tr><td class="ps-3">' + k + '</td><td>' + fmt(data[k]) + '</td></tr>');
+                }
+            });
+            rows.push('</tbody></table>');
+            return rows.join('');
+        },
+
+        finishBatchProduction: async function () {
+            var batchIdEl = document.getElementById('productionStagesBatchId');
+            var batchId = batchIdEl ? batchIdEl.value : null;
+            if (!batchId) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
+                return;
+            }
+            var scope = this;
+            if (typeof Swal !== 'undefined') {
+                var confirmResult = await Swal.fire({
+                    title: 'Finish batch production?',
+                    text: 'This will mark the batch production as complete and show the tick on the Production button.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Finish'
+                });
+                if (!confirmResult.isConfirmed) return;
+            }
+            try {
+                var result = await dataFunctions.finishKernelBatchProduction(batchId);
+                if (result && result.success !== false) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Batch production marked as finished.', 'success');
+                    var modalEl = document.getElementById('productionStagesModal');
+                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                    } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                        $('#productionStagesModal').modal('hide');
+                    }
+                    scope.loadBatches(true);
+                } else {
+                    throw new Error(result && result.error ? result.error : 'Failed to finish');
+                }
+            } catch (e) {
+                console.error('[Kernel Production] finishBatchProduction failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to finish batch production', 'error');
+            }
+        },
+
+        saveProductionStages: async function () {
+            var batchIdEl = document.getElementById('productionStagesBatchId');
+            var batchId = batchIdEl ? batchIdEl.value : null;
+            var dayIdEl = document.getElementById('productionStagesDayId');
+            var dayId = dayIdEl ? dayIdEl.value : null;
+            if (!batchId) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
+                return;
+            }
+            if (!dayId) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Select or add a day first, then save.', 'error');
                 return;
             }
             var batch = this.batches.find(function (b) { return String(b.id) === String(batchId); }) || this.filteredBatches.find(function (b) { return String(b.id) === String(batchId); });
@@ -863,7 +1211,7 @@ var _kernelProductionGrid = function () {
             var packing_data = this.getProductionStagesSectionData('pack');
             var summary_data = this.getProductionStagesSectionData('sum');
             var payload = {
-                production_batch_id: batchId,
+                kernel_production_day_id: dayId,
                 batch_number: batchNumber,
                 grower_name: growerName,
                 cracking_data: cracking_data,
@@ -875,14 +1223,15 @@ var _kernelProductionGrid = function () {
             try {
                 await dataFunctions.saveKernelProductionStages(payload);
                 this.clearProductionStagesDraft(batchId);
-                if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved.', 'success');
-                var modalEl = document.getElementById('productionStagesModal');
-                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                    $('#productionStagesModal').modal('hide');
-                }
-                this.loadBatches(true);
+                if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved for this day.', 'success');
+                var days = [];
+                try {
+                    var raw = await dataFunctions.getKernelProductionDays(batchId);
+                    days = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
+                } catch (err) {}
+                this.modalProductionDays = days;
+                this.renderProductionDaysList(days);
+                this.setProductionDayActive(dayId);
             } catch (e) {
                 console.error('[Kernel Production] saveProductionStages failed:', e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save production stages', 'error');

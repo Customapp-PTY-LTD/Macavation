@@ -1424,6 +1424,35 @@ var _dataFunctions = function () {
             if (raw && Array.isArray(raw.data)) return raw.data;
             return [];
         },
+        getKernelProductionDaysList: async function (token = null, forceRefresh = false) {
+            var raw = await this.callFunction('get_kernel_production_days_list', {}, token, {
+                cacheKey: 'kernel_production_days_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (raw && raw.get_kernel_production_days_list !== undefined) raw = raw.get_kernel_production_days_list;
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && typeof raw === 'string') try { raw = JSON.parse(raw); return Array.isArray(raw) ? raw : []; } catch (e) { return []; }
+            return [];
+        },
+        getKernelProductionDays: async function (batchId, token = null) {
+            if (!batchId) return [];
+            var raw = await this.callFunction('get_kernel_production_days', { p_batch_id: batchId }, token, { useCache: false });
+            if (raw && raw.get_kernel_production_days !== undefined) raw = raw.get_kernel_production_days;
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && typeof raw === 'string') try { raw = JSON.parse(raw); return Array.isArray(raw) ? raw : []; } catch (e) { return []; }
+            return [];
+        },
+        createKernelProductionDay: async function (batchId, token = null) {
+            var result = await this.callFunction('create_kernel_production_day', { p_batch_id: batchId }, token, { useCache: false });
+            this.clearCachePattern('kernel_production_days');
+            this.clearCachePattern('kernel_production_stages');
+            var out = result && result.create_kernel_production_day !== undefined ? result.create_kernel_production_day : result;
+            return out || result;
+        },
         getKernelProductionStages: async function (id, token = null) {
             if (!id) return null;
             var raw = await this.callFunction('get_kernel_production_stages', { p_id: id }, token, { useCache: false });
@@ -1431,9 +1460,17 @@ var _dataFunctions = function () {
             if (raw && raw.data) return raw.data;
             return raw;
         },
+        getKernelProductionStagesByDay: async function (dayId, token = null) {
+            if (!dayId) return null;
+            var raw = await this.callFunction('get_kernel_production_stages_by_day', { p_day_id: dayId }, token, { useCache: false });
+            if (raw && raw.get_kernel_production_stages_by_day !== undefined) raw = raw.get_kernel_production_stages_by_day;
+            if (raw && typeof raw === 'object' && (raw.id || raw.kernel_production_day_id)) return raw;
+            if (raw && raw.data) return raw.data;
+            return raw;
+        },
         saveKernelProductionStages: async function (data, token = null) {
             var result = await this.callFunction('save_kernel_production_stages', {
-                p_production_batch_id: data.production_batch_id,
+                p_kernel_production_day_id: data.kernel_production_day_id,
                 p_batch_number: data.batch_number || null,
                 p_grower_name: data.grower_name || null,
                 p_cracking_data: data.cracking_data || {},
@@ -1443,6 +1480,13 @@ var _dataFunctions = function () {
                 p_summary_data: data.summary_data || {}
             }, token, { useCache: false });
             this.clearCachePattern('kernel_production_stages');
+            this.clearCachePattern('kernel_production_days');
+            return result;
+        },
+        finishKernelBatchProduction: async function (batchId, token = null) {
+            var result = await this.callFunction('finish_kernel_batch_production', { p_batch_id: batchId }, token, { useCache: false });
+            this.clearCachePattern('production_batches');
+            this.clearCachePattern('kernel_production_days');
             return result;
         },
 
@@ -1591,6 +1635,23 @@ var _dataFunctions = function () {
                 }
                 throw e;
             }
+        },
+
+        /** Link a supplier intake batch to a production day (oil_production_sheets). Sets status to added_to_production. */
+        updateSupplierIntakeBatchProductionDay: async function (batchId, productionSheetId, token = null) {
+            const result = await this.callFunction('update_supplier_intake_batch_production_day', {
+                p_batch_id: batchId,
+                p_production_sheet_id: productionSheetId
+            }, token, { useCache: false });
+            this.clearCachePattern('supplier_intake_batches');
+            return result;
+        },
+
+        /** Get supplier intake batches linked to a specific production day (traceability: which produce went into this day). */
+        getSupplierIntakeBatchesByProductionDay: async function (productionSheetId, token = null) {
+            return await this.callFunction('get_supplier_intake_batches_by_production_day', {
+                p_production_sheet_id: productionSheetId
+            }, token);
         },
         
         // Raw Material Issued Functions (cached for 1 minute)
