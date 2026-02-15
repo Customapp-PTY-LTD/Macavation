@@ -454,26 +454,6 @@ var _stockManagementGrid = function () {
             }
         },
         renderKernelBatches: function () {
-            var rawBody = $('#kernelRawBatchesBody');
-            var finishedBody = $('#kernelFinishedBatchesBody');
-            if (!rawBody.length || !finishedBody.length) return;
-            rawBody.empty();
-            finishedBody.empty();
-            var scope = this;
-            if (this.kernelRawBatches && this.kernelRawBatches.length) {
-                this.kernelRawBatches.forEach(function (b) {
-                    rawBody.append('<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + (b.received_date || '') + '</td><td>' + (b.wet_nis_received_kg || '') + '</td><td><button type="button" class="btn btn-sm btn-success js-release-batch-to-production" data-batch-id="' + b.id + '">Release to production</button></td></tr>');
-                });
-            } else {
-                rawBody.append('<tr><td colspan="5" class="text-muted small">No batches in raw stock. Move batches from Grower Intake first.</td></tr>');
-            }
-            if (this.kernelFinishedBatches && this.kernelFinishedBatches.length) {
-                this.kernelFinishedBatches.forEach(function (b) {
-                    finishedBody.append('<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + (b.received_date || '') + '</td><td>' + (b.wet_nis_received_kg || '') + '</td></tr>');
-                });
-            } else {
-                finishedBody.append('<tr><td colspan="4" class="text-muted small">No finished batches. Release to stock from Kernel Production when Production and End sample are done.</td></tr>');
-            }
             this.renderKernelStockByStyle();
         },
         kernelStyleKeys: ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'],
