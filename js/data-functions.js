@@ -419,7 +419,7 @@ var _dataFunctions = function () {
             if (functionName.includes('sample') || functionName.includes('grower')) return 'grower-intake';
             if (functionName.includes('production') || functionName.includes('batch')) return 'kernel-production';
             if (functionName.includes('quality') || functionName.includes('test')) return 'quality-assurance';
-            if (functionName.includes('stock') || functionName.includes('item')) return 'stock-management';
+            if (functionName.includes('stock') || functionName.includes('item') || functionName.includes('dispatch')) return 'stock-management';
             if (functionName.includes('oil')) return 'oil-production';
             if (functionName.includes('sales') || functionName.includes('forecast')) return 'sales-forecasting';
             if (functionName.includes('financial') || functionName.includes('transaction')) return 'financial-management';
@@ -1243,6 +1243,17 @@ var _dataFunctions = function () {
             // Invalidate quality tests cache
             this.clearCachePattern('quality_tests');
             return result;
+        },
+
+        createKernelDispatchOrder: async function (orderData, token = null) {
+            const params = {
+                p_buyer_name: orderData.buyer_name || orderData.buyer,
+                p_delivery_date: orderData.delivery_date,
+                p_best_before_date: orderData.best_before_date || null,
+                p_buyer_contact_id: orderData.buyer_contact_id || null,
+                p_lines: orderData.lines || []
+            };
+            return await this.callFunction('create_kernel_dispatch_order_simple', params, token, { useCache: false });
         },
 
         // Stock Management Functions (cached for 1 minute)

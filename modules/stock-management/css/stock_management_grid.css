@@ -14,3 +14,11 @@ body.modal-open .main-content {
 .modal-backdrop {
     z-index: 1040;
 }
+
+/* Kernel stock - selectable cells for dispatch */
+.js-dispatch-selectable {
+    cursor: pointer;
+}
+.js-dispatch-selectable:hover {
+    background-color: rgba(25, 135, 84, 0.15);
+}

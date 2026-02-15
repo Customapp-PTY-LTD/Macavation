@@ -7,6 +7,9 @@ var _stockManagementGrid = function () {
         filteredStockItems: [],
         oilLots: [],
         oilSummary: [],
+        dispatchSelectionMode: false,
+        dispatchSelectedLines: [],
+        dispatchOrderDetails: {},
         oilSearchTimeout: null,
         oilImportWorkbook: null,
         oilImportPreviewRows: [],
@@ -293,6 +296,19 @@ var _stockManagementGrid = function () {
                 var id = $(this).data('batch-id');
                 if (id) scope.releaseBatchToProduction(id);
             });
+
+            // Send to Dispatch
+            const sendToDispatchBtn = document.getElementById('sendToDispatchBtn');
+            if (sendToDispatchBtn) sendToDispatchBtn.addEventListener('click', function () { scope.showSendToDispatchModal(); });
+            const selectBoxesBtn = document.getElementById('selectBoxesBtn');
+            if (selectBoxesBtn) selectBoxesBtn.addEventListener('click', function () { scope.toggleDispatchSelectionMode(); });
+            const dispatchModalSelectBoxesBtn = document.getElementById('dispatchModalSelectBoxesBtn');
+            if (dispatchModalSelectBoxesBtn) dispatchModalSelectBoxesBtn.addEventListener('click', function () { scope.dispatchModalNextSelectBoxes(); });
+            const sendDispatchBtn = document.getElementById('sendDispatchBtn');
+            if (sendDispatchBtn) sendDispatchBtn.addEventListener('click', function () { scope.submitDispatchOrder(); });
+            $(document).on('click', '.js-dispatch-selectable', function () {
+                if (scope.dispatchSelectionMode) scope.onDispatchCellClick(this);
+            });
             
             // Clear filters
             $('#clearStockFiltersBtn').on('click', function () {
@@ -462,6 +478,7 @@ var _stockManagementGrid = function () {
             var totalsRow = $('#kernelStockByStyleTotalsRow');
             if (!body.length || !totalsRow.length) return;
             body.empty();
+            var scope = this;
             var batches = this.kernelFinishedBatches || [];
             var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
             batches.forEach(function (b) {
@@ -470,7 +487,10 @@ var _stockManagementGrid = function () {
                 ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'].forEach(function (k) {
                     var val = cells[k] != null ? cells[k] : (b['yield_' + k] != null ? b['yield_' + k] : 0);
                     if (typeof val === 'number') totals[k] += val;
-                    row += '<td class="text-end">' + (val !== 0 && val !== '' ? val : '—') + '</td>';
+                    var qty = (typeof val === 'number' && val > 0) ? val : 0;
+                    var selectable = scope.dispatchSelectionMode && qty > 0 ? ' js-dispatch-selectable' : '';
+                    var dataAttrs = qty > 0 ? ' data-batch-id="' + (b.id || '') + '" data-style="' + (k || '') + '" data-quantity="' + qty + '"' : '';
+                    row += '<td class="text-end' + selectable + '"' + dataAttrs + '>' + (val !== 0 && val !== '' ? val : '—') + '</td>';
                 });
                 row += '</tr>';
                 body.append(row);
@@ -493,6 +513,189 @@ var _stockManagementGrid = function () {
             } catch (e) {
                 console.error(e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release batch', 'error');
+            }
+        },
+        showSendToDispatchModal: function () {
+            this.dispatchSelectedLines = [];
+            this.dispatchOrderDetails = {};
+            var modal = document.getElementById('sendToDispatchModal');
+            var buyerInput = document.getElementById('dispatchBuyer');
+            var buyerSelect = document.getElementById('dispatchBuyerContact');
+            var deliveryInput = document.getElementById('dispatchDeliveryDate');
+            if (buyerInput) buyerInput.value = '';
+            if (deliveryInput) {
+                var today = new Date().toISOString().split('T')[0];
+                deliveryInput.value = today;
+            }
+            if (buyerSelect) {
+                buyerSelect.innerHTML = '<option value="">— Select contact —</option>';
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.getContacts) {
+                    dataFunctions.getContacts(null, true).then(function (contacts) {
+                        if (Array.isArray(contacts)) {
+                            contacts.forEach(function (c) {
+                                var name = c.company_name || c.trading_name || c.primary_contact_name || c.id;
+                                if (!name) return;
+                                var opt = document.createElement('option');
+                                opt.value = c.id;
+                                opt.textContent = name;
+                                opt.setAttribute('data-buyer-name', name);
+                                buyerSelect.appendChild(opt);
+                            });
+                        }
+                    }).catch(function () {});
+                }
+            }
+            if (buyerSelect) {
+                buyerSelect.onchange = function () {
+                    var sel = buyerSelect.options[buyerSelect.selectedIndex];
+                    if (sel && sel.value && buyerInput) buyerInput.value = sel.getAttribute('data-buyer-name') || sel.textContent || '';
+                };
+            }
+            if (modal && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                new bootstrap.Modal(modal).show();
+            }
+        },
+        dispatchModalNextSelectBoxes: function () {
+            var buyerInput = document.getElementById('dispatchBuyer');
+            var buyerSelect = document.getElementById('dispatchBuyerContact');
+            var deliveryInput = document.getElementById('dispatchDeliveryDate');
+            var buyerName = (buyerInput && buyerInput.value && buyerInput.value.trim()) ? buyerInput.value.trim() : null;
+            if (!buyerName) {
+                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Please enter the buyer name.', 'warning');
+                return;
+            }
+            var deliveryDate = deliveryInput && deliveryInput.value ? deliveryInput.value : null;
+            if (!deliveryDate) {
+                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Please select the delivery date.', 'warning');
+                return;
+            }
+            this.dispatchOrderDetails = {
+                buyer_name: buyerName,
+                buyer_contact_id: (buyerSelect && buyerSelect.value) ? buyerSelect.value : null,
+                delivery_date: deliveryDate
+            };
+            this.dispatchSelectedLines = [];
+            var modal = document.getElementById('sendToDispatchModal');
+            if (modal && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                var bsModal = bootstrap.Modal.getInstance(modal);
+                if (bsModal) bsModal.hide();
+            }
+            this.toggleDispatchSelectionMode();
+        },
+        toggleDispatchSelectionMode: function () {
+            if (!this.dispatchSelectionMode && (!this.dispatchOrderDetails || !this.dispatchOrderDetails.buyer_name)) {
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'Please fill in dispatch details first. Click "Send to Dispatch" to enter buyer, delivery date, and best before date.', 'info');
+                this.showSendToDispatchModal();
+                return;
+            }
+            this.dispatchSelectionMode = !this.dispatchSelectionMode;
+            var selectBtn = document.getElementById('selectBoxesBtn');
+            var summary = document.getElementById('dispatchSelectedSummary');
+            if (selectBtn) {
+                if (this.dispatchSelectionMode) {
+                    selectBtn.classList.add('btn-primary');
+                    selectBtn.classList.remove('btn-outline-primary');
+                    selectBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Stop selecting';
+                } else {
+                    selectBtn.classList.remove('btn-primary');
+                    selectBtn.classList.add('btn-outline-primary');
+                    selectBtn.innerHTML = '<i class="fas fa-check-square me-1"></i>Select boxes';
+                    this.dispatchSelectedLines = [];
+                }
+            }
+            this.renderKernelStockByStyle();
+            this.renderDispatchSelectedList();
+            if (summary) summary.style.display = (this.dispatchSelectionMode && this.dispatchSelectedLines.length > 0) ? '' : 'none';
+        },
+        onDispatchCellClick: function (cellEl) {
+            if (!cellEl) return;
+            var $cell = typeof $ !== 'undefined' ? $(cellEl) : null;
+            var batchId = $cell ? $cell.data('batch-id') : (cellEl.getAttribute && cellEl.getAttribute('data-batch-id'));
+            var style = $cell ? $cell.data('style') : (cellEl.getAttribute && cellEl.getAttribute('data-style'));
+            var qty = parseFloat($cell ? $cell.data('quantity') : (cellEl.getAttribute && cellEl.getAttribute('data-quantity'))) || 0;
+            if (!batchId || !style || qty <= 0) return;
+            var key = batchId + '|' + style;
+            var idx = this.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && l.style === style; });
+            if (idx >= 0) {
+                this.dispatchSelectedLines.splice(idx, 1);
+                if ($cell) $cell.removeClass('table-success'); else cellEl.classList.remove('table-success');
+            } else {
+                this.dispatchSelectedLines.push({
+                    production_batch_id: batchId,
+                    style: style,
+                    quantity_kg: qty
+                });
+                if ($cell) $cell.addClass('table-success'); else cellEl.classList.add('table-success');
+            }
+            this.renderDispatchSelectedList();
+            var summary = document.getElementById('dispatchSelectedSummary');
+            if (summary) summary.style.display = this.dispatchSelectedLines.length > 0 ? '' : 'none';
+        },
+        renderDispatchSelectedList: function () {
+            var listEl = document.getElementById('dispatchSelectedList');
+            if (!listEl) return;
+            if (this.dispatchSelectedLines.length === 0) {
+                listEl.innerHTML = '<span class="text-muted">No boxes selected. Click cells in the table to select.</span>';
+                return;
+            }
+            var batches = this.kernelFinishedBatches || [];
+            var batchMap = {};
+            batches.forEach(function (b) { batchMap[b.id] = b; });
+            var html = '<ul class="list-unstyled mb-0">';
+            var totalKg = 0;
+            this.dispatchSelectedLines.forEach(function (line) {
+                var batch = batchMap[line.production_batch_id || line.batch_id];
+                var batchNum = batch ? batch.batch_number : (line.production_batch_id || line.batch_id);
+                var qty = parseFloat(line.quantity_kg) || 0;
+                totalKg += qty;
+                html += '<li><span class="badge bg-secondary me-1">' + batchNum + '</span> Style ' + (line.style || '') + ': ' + qty + ' kg</li>';
+            });
+            html += '</ul><div class="mt-2 fw-bold">Total: ' + totalKg.toFixed(1) + ' kg</div>';
+            listEl.innerHTML = html;
+        },
+        submitDispatchOrder: async function () {
+            if (!this.dispatchOrderDetails || !this.dispatchOrderDetails.buyer_name) {
+                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Please fill in dispatch details first (Send to Dispatch → Next: Select boxes).', 'warning');
+                return;
+            }
+            if (this.dispatchSelectedLines.length === 0) {
+                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Please select at least one box from the table.', 'warning');
+                return;
+            }
+            try {
+                var lines = this.dispatchSelectedLines.map(function (l) {
+                    return {
+                        production_batch_id: l.production_batch_id || l.batch_id,
+                        style: l.style,
+                        quantity_kg: l.quantity_kg
+                    };
+                });
+                var result = await dataFunctions.createKernelDispatchOrder({
+                    buyer_name: this.dispatchOrderDetails.buyer_name,
+                    buyer_contact_id: this.dispatchOrderDetails.buyer_contact_id || null,
+                    delivery_date: this.dispatchOrderDetails.delivery_date,
+                    lines: lines
+                });
+                if (result && result.success !== false) {
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Sent', text: 'Dispatch order created successfully.', timer: 2000, showConfirmButton: false });
+                    this.dispatchSelectedLines = [];
+                    this.dispatchOrderDetails = {};
+                    this.dispatchSelectionMode = false;
+                    var selectBtn = document.getElementById('selectBoxesBtn');
+                    if (selectBtn) {
+                        selectBtn.classList.remove('btn-primary');
+                        selectBtn.classList.add('btn-outline-primary');
+                        selectBtn.innerHTML = '<i class="fas fa-check-square me-1"></i>Select boxes';
+                    }
+                    var summary = document.getElementById('dispatchSelectedSummary');
+                    if (summary) summary.style.display = 'none';
+                    this.renderKernelStockByStyle();
+                } else {
+                    throw new Error(result && result.error ? result.error : 'Failed to create dispatch order');
+                }
+            } catch (e) {
+                console.error(e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to create dispatch order', 'error');
             }
         },
         loadStockItems: async function (forceRefresh = false) {

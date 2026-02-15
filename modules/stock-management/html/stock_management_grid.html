@@ -96,14 +96,22 @@
 
     <!-- Kernel batch journey (visible when stream = Kernel) -->
     <div class="card mb-4 border-primary" id="kernelBatchJourneyCard" style="display: none;">
-        <div class="card-header bg-light">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap">
             <h5 class="mb-0"><i class="fas fa-seedling me-2"></i>Kernel batch journey</h5>
+            <div class="btn-toolbar">
+                <button type="button" class="btn btn-success me-1" id="sendToDispatchBtn">
+                    <i class="fas fa-truck me-1"></i>Send to Dispatch
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="selectBoxesBtn">
+                    <i class="fas fa-check-square me-1"></i>Select boxes
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <p class="text-muted small mb-3">Batches released from Grower Intake go to Kernel Production; release to stock from there. Raw (NIS = R NIL) is legacy; finished (KERNEL R YES) are ready for dispatch.</p>
             <hr class="my-3">
             <h6 class="text-secondary">Kernel Stock by style</h6>
-            <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with yield quantity per style (from Production Job Card).</p>
+            <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with yield quantity per style (from Production Job Card). Click cells to select boxes when in selection mode.</p>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered" id="kernelStockByStyleTable">
                     <thead>
@@ -120,6 +128,52 @@
                     </thead>
                     <tbody id="kernelStockByStyleBody"></tbody>
                 </table>
+            </div>
+            <!-- Selected boxes summary (visible when selection mode and items selected) -->
+            <div id="dispatchSelectedSummary" class="mt-3" style="display: none;">
+                <hr>
+                <h6 class="text-secondary">Selected for dispatch</h6>
+                <div id="dispatchSelectedList" class="small mb-2"></div>
+                <button type="button" class="btn btn-success" id="sendDispatchBtn">
+                    <i class="fas fa-paper-plane me-1"></i>Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send to Dispatch Modal -->
+    <div class="modal fade" id="sendToDispatchModal" tabindex="-1" aria-labelledby="sendToDispatchModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="sendToDispatchModalLabel"><i class="fas fa-truck me-2"></i>Send to Dispatch</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="sendToDispatchForm">
+                        <div class="mb-3">
+                            <label for="dispatchBuyer" class="form-label required">Buyer</label>
+                            <input type="text" class="form-control" id="dispatchBuyer" placeholder="Buyer or customer name" required>
+                            <small class="text-muted">Or select from contacts below</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="dispatchBuyerContact" class="form-label">Buyer (from contacts)</label>
+                            <select class="form-select" id="dispatchBuyerContact">
+                                <option value="">— Select contact —</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="dispatchDeliveryDate" class="form-label required">Date of delivery</label>
+                            <input type="date" class="form-control" id="dispatchDeliveryDate" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="dispatchModalSelectBoxesBtn">
+                        <i class="fas fa-check-square me-1"></i>Next: Select boxes
+                    </button>
+                </div>
             </div>
         </div>
     </div>
