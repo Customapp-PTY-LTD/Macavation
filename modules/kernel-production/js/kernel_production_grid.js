@@ -94,6 +94,13 @@ var _kernelProductionGrid = function () {
                     _kernelProductionBatchActions.showBatchHistory(batchId);
                 }
             });
+            $(document).on('click', '#batchesTableBody tr.js-batch-row', function (e) {
+                if ($(e.target).closest('.dropdown').length) return;
+                const batchId = $(this).data('batch-id');
+                if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.showBatchHistory) {
+                    _kernelProductionBatchActions.showBatchHistory(batchId);
+                }
+            });
             $(document).on('click', '.js-job-card-batch', function (e) {
                 e.preventDefault();
                 const batchId = $(this).data('batch-id');
@@ -221,7 +228,7 @@ var _kernelProductionGrid = function () {
                 const actionsCell = '<div class="dropdown">' +
                     '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false">Actions</button>' +
                     '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="batchActions' + batch.id + '">' + menuItems.join('') + '</ul></div>';
-                const row = '<tr><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + (batch.status || 'in_production') + '</span></td><td>' + actionsCell + '</td></tr>';
+                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + (batch.status || 'in_production') + '</span></td><td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
         },

@@ -646,7 +646,7 @@
     </div>
 </div>
 
-<!-- Batch History Modal (Grower Intake checklist + sample) -->
+<!-- Batch History Modal (Grower Intake – vertical timeline) -->
 <div class="modal fade" id="batchHistoryModal" tabindex="-1" aria-labelledby="batchHistoryModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -655,21 +655,24 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted small mb-3" id="batchHistoryBatchInfo">Batch: —</p>
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-clipboard-check me-1"></i>Receiving checklist</h6>
-                    </div>
-                    <div class="card-body" id="batchHistoryChecklistBody">
-                        <p class="text-muted mb-0">Loading…</p>
-                    </div>
-                </div>
-                <div class="card mb-0">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-vial me-1"></i>Batch test / sample</h6>
-                    </div>
-                    <div class="card-body" id="batchHistorySampleBody">
-                        <p class="text-muted mb-0">Loading…</p>
+                <p class="text-muted small mb-4" id="batchHistoryBatchInfo">Batch: —</p>
+                <div class="batch-history-timeline">
+                    <div class="batch-history-timeline__line" aria-hidden="true"></div>
+                    <div class="batch-history-timeline__entries">
+                        <div class="batch-history-timeline__entry">
+                            <div class="batch-history-timeline__node"></div>
+                            <div class="batch-history-timeline__block">
+                                <h6 class="batch-history-timeline__block-title">Batch test / sample</h6>
+                                <div class="batch-history-timeline__block-body" id="batchHistorySampleBody"><p class="text-muted mb-0">Loading…</p></div>
+                            </div>
+                        </div>
+                        <div class="batch-history-timeline__entry">
+                            <div class="batch-history-timeline__node"></div>
+                            <div class="batch-history-timeline__block">
+                                <h6 class="batch-history-timeline__block-title">Receiving checklist</h6>
+                                <div class="batch-history-timeline__block-body" id="batchHistoryChecklistBody"><p class="text-muted mb-0">Loading…</p></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
