@@ -1150,13 +1150,26 @@ var _dataFunctions = function () {
         },
 
         // Production Functions (cached for 1 minute - dynamic data)
-        getProductionBatches: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_production_batches', {}, token, {
-                cacheKey: 'production_batches_list',
+        // Pass explicit params for the parameterized overload to avoid Postgres ambiguity with get_production_batches() vs get_production_batches(p_batch_type, p_status, p_limit, p_offset)
+        getProductionBatches: async function (token = null, forceRefresh = false, options = {}) {
+            const params = {
+                p_batch_type: options.batch_type != null ? options.batch_type : null,
+                p_status: options.status != null ? options.status : null,
+                p_limit: options.limit != null ? options.limit : null,
+                p_offset: options.offset != null ? options.offset : null
+            };
+            const cacheKey = 'production_batches_list' + (params.p_batch_type ? '_' + params.p_batch_type : '');
+            const raw = await this.callFunction('get_production_batches', params, token, {
+                cacheKey: cacheKey,
                 useCache: true,
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
+            // Normalize: Lambda/Postgres may return array or { data: [] } or { get_production_batches: [] }
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && Array.isArray(raw.get_production_batches)) return raw.get_production_batches;
+            return [];
         },
         
         /**
@@ -1330,6 +1343,54 @@ var _dataFunctions = function () {
             const result = await this.callFunction('create_kernel_job_card', jobCardData, token, { useCache: false });
             // Invalidate stock cache
             this.clearCachePattern('stock_items');
+            return result;
+        },
+
+        createKernelProductionDay: async function (batchId, token = null) {
+            const result = await this.callFunction('create_kernel_production_day', { p_production_batch_id: batchId }, token, { useCache: false });
+            this.clearCachePattern('kernel_production');
+            return result;
+        },
+
+        getKernelProductionDays: async function (batchId, token = null) {
+            const raw = await this.callFunction('get_kernel_production_days', { p_production_batch_id: batchId }, token, { useCache: false });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && Array.isArray(raw.get_kernel_production_days)) return raw.get_kernel_production_days;
+            return [];
+        },
+
+        getKernelProductionDaysList: async function (token = null, forceRefresh = false) {
+            const raw = await this.callFunction('get_kernel_production_days_list', {}, token, {
+                cacheKey: 'kernel_production_days_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && Array.isArray(raw.get_kernel_production_days_list)) return raw.get_kernel_production_days_list;
+            return [];
+        },
+
+        getKernelProductionStages: async function (stagesId, token = null) {
+            return await this.callFunction('get_kernel_production_stages', { p_id: stagesId }, token, { useCache: false });
+        },
+
+        getKernelProductionStagesByDay: async function (dayId, token = null) {
+            return await this.callFunction('get_kernel_production_stages_by_day', { p_kernel_production_day_id: dayId }, token, { useCache: false });
+        },
+
+        saveKernelProductionStages: async function (payload, token = null) {
+            const result = await this.callFunction('save_kernel_production_stages', payload, token, { useCache: false });
+            this.clearCachePattern('kernel_production');
+            return result;
+        },
+
+        finishKernelBatchProduction: async function (batchId, token = null) {
+            const result = await this.callFunction('finish_kernel_batch_production', { p_production_batch_id: batchId }, token, { useCache: false });
+            this.clearCachePattern('kernel_production');
+            this.clearCachePattern('production_batches');
             return result;
         },
         

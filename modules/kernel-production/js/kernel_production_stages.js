@@ -19,6 +19,7 @@ var _kernelProductionStages = function () {
 
         init: () => {
             const scope = _kernelProductionStages;
+            console.log('kernelProductionStages init');
         $('#productionStagesDayList').off('click').on('click', '[data-day-id]', function (e) {
             e.preventDefault();
             var dayId = $(this).attr('data-day-id');
@@ -356,6 +357,11 @@ var _kernelProductionStages = function () {
         var batchId = $('#productionStagesBatchId').val();
         if (!batchId) {
             if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
+            return;
+        }
+        if (typeof dataFunctions === 'undefined' || typeof dataFunctions.createKernelProductionDay !== 'function') {
+            console.error('[Kernel Production] dataFunctions.createKernelProductionDay not available');
+            if (typeof Swal !== 'undefined') Swal.fire('Error', 'Add production day is not available. Please refresh the page (Ctrl+Shift+R or Cmd+Shift+R).', 'error');
             return;
         }
         dataFunctions.createKernelProductionDay(batchId).then(function (result) {

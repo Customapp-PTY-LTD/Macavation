@@ -15,27 +15,18 @@ var _kernelProductionGrid = function () {
             requestAnimationFrame(tick);
         });
     };
-    const waitForElement = async (selector, maxMs = 10000) => {
-        const start = Date.now();
-        while (Date.now() - start < maxMs) {
-            if ($(selector).length) return;
-            await delay(50);
-        }
-    };
 
     return {
         batches: [],
         filteredBatches: [],
         searchDebounceToken: 0,
 
-        init: async () => {
+        init: () => {
             const scope = _kernelProductionGrid;
             if (typeof _app !== 'undefined' && typeof _app.checkSession === 'function' && !_app.checkSession()) {
                 return;
             }
             console.log('[Kernel Production] Initializing grid...');
-            await waitForElement('#addJobCardBtn', 10000);
-            console.log('[Kernel Production] Buttons found, setting up');
             scope.bindEvents();
             scope.loadBatches();
             if (typeof _kernelProductionStages !== 'undefined' && _kernelProductionStages.init) _kernelProductionStages.init();
@@ -46,18 +37,6 @@ var _kernelProductionGrid = function () {
 
         bindEvents: () => {
             const scope = _kernelProductionGrid;
-            $('#addJobCardBtn').off('click').on('click', (e) => {
-                e.preventDefault();
-                if (typeof _kernelProductionJobCard !== 'undefined' && _kernelProductionJobCard.showJobCardModal) {
-                    _kernelProductionJobCard.showJobCardModal();
-                }
-            });
-            $('#addBatchBtn').off('click').on('click', (e) => {
-                e.preventDefault();
-                if (typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.showNewBatchModal) {
-                    _kernelProductionBatchActions.showNewBatchModal();
-                }
-            });
             $('#exportBatchesBtn').off('click').on('click', (e) => {
                 e.preventDefault();
                 scope.exportBatches();
@@ -75,16 +54,24 @@ var _kernelProductionGrid = function () {
                 $('#filterBatchStatus').val('');
                 scope.filterBatches();
             });
-            $(document).on('click', '.js-production-batch', function () {
+            $(document).on('click', '.js-production-batch', function (e) {
+                e.preventDefault();
                 const batchId = $(this).data('batch-id');
                 const productionStagesId = $(this).data('production-stages-id');
-                if (productionStagesId && typeof _kernelProductionStages !== 'undefined' && _kernelProductionStages.showProductionStagesViewModal) {
+                if (typeof _kernelProductionStages === 'undefined') {
+                    console.warn('[Kernel Production] Stages module not loaded');
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Production stages not loaded. Please refresh the page.', 'error');
+                    return;
+                }
+                if (typeof _kernelProductionStages.init === 'function') _kernelProductionStages.init();
+                if (productionStagesId && _kernelProductionStages.showProductionStagesViewModal) {
                     _kernelProductionStages.showProductionStagesViewModal(productionStagesId);
-                } else if (batchId && typeof _kernelProductionStages !== 'undefined' && _kernelProductionStages.showProductionStagesModalForBatch) {
+                } else if (batchId && _kernelProductionStages.showProductionStagesModalForBatch) {
                     _kernelProductionStages.showProductionStagesModalForBatch(batchId);
                 }
             });
-            $(document).on('click', '.js-end-sample-batch', function () {
+            $(document).on('click', '.js-end-sample-batch', function (e) {
+                e.preventDefault();
                 const batchId = $(this).data('batch-id');
                 const packingSampleId = $(this).data('packing-sample-id');
                 if (packingSampleId && typeof _kernelProductionEndSample !== 'undefined' && _kernelProductionEndSample.showEndSampleViewModal) {
@@ -93,19 +80,22 @@ var _kernelProductionGrid = function () {
                     _kernelProductionEndSample.showEndSampleModal(batchId);
                 }
             });
-            $(document).on('click', '.js-release-to-stock', function () {
+            $(document).on('click', '.js-release-to-stock', function (e) {
+                e.preventDefault();
                 const batchId = $(this).data('batch-id');
                 if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.releaseBatchToStock) {
                     _kernelProductionBatchActions.releaseBatchToStock(batchId);
                 }
             });
-            $(document).on('click', '.js-batch-history', function () {
+            $(document).on('click', '.js-batch-history', function (e) {
+                e.preventDefault();
                 const batchId = $(this).data('batch-id');
                 if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.showBatchHistory) {
                     _kernelProductionBatchActions.showBatchHistory(batchId);
                 }
             });
-            $(document).on('click', '.js-job-card-batch', function () {
+            $(document).on('click', '.js-job-card-batch', function (e) {
+                e.preventDefault();
                 const batchId = $(this).data('batch-id');
                 const jobCardId = $(this).data('job-card-id');
                 if (jobCardId && typeof _kernelProductionJobCard !== 'undefined' && _kernelProductionJobCard.showJobCardViewModal) {
@@ -212,31 +202,26 @@ var _kernelProductionGrid = function () {
                 const productionAndSampleDone = (batch.hasJobCard || batch.hasProductionStages) && batch.hasPackingSample;
                 const canReleaseToStock = productionAndSampleDone || batch.status === 'completed' || step >= 17;
                 const receivedDate = batch.received_date ? (batch.received_date.toString().split ? batch.received_date.toString().split('T')[0] : batch.received_date) : 'N/A';
-                let releaseBtn = canReleaseToStock
-                    ? '<button type="button" class="btn btn-sm btn-success me-1 js-release-to-stock" data-batch-id="' + batch.id + '">Release to stock</button>'
-                    : '<button type="button" class="btn btn-sm btn-secondary me-1" disabled>Release to stock</button>';
-                let productionBtn;
-                if (batch.productionFinishedAt) {
-                    productionBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-production-batch" data-batch-id="' + batch.id + '" data-production-stages-id="' + (batch.productionDays && batch.productionDays[0] && batch.productionDays[0].kernel_production_stages_id ? batch.productionDays[0].kernel_production_stages_id : '') + '"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;">&#10003;</span>Production</button>';
+                const productionStagesId = batch.productionDays && batch.productionDays[0] && batch.productionDays[0].kernel_production_stages_id ? batch.productionDays[0].kernel_production_stages_id : '';
+                const productionLabel = batch.productionFinishedAt ? '&#10003; Production' : 'Production';
+                const endSampleLabel = batch.hasPackingSample && batch.packingSampleId ? '&#10003; End sample' : 'End sample';
+                const jobCardLabel = batch.hasJobCard && batch.jobCardId ? '&#10003; Job Card' : 'Job Card';
+                const jobCardItem = '<a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '" data-job-card-id="' + (batch.jobCardId || '') + '">' + jobCardLabel + '</a>';
+                let menuItems = [
+                    '<a class="dropdown-item js-batch-history" href="#" data-batch-id="' + batch.id + '">History</a>',
+                    '<a class="dropdown-item js-production-batch" href="#" data-batch-id="' + batch.id + '" data-production-stages-id="' + productionStagesId + '">' + productionLabel + '</a>',
+                    '<a class="dropdown-item js-end-sample-batch" href="#" data-batch-id="' + batch.id + '" data-packing-sample-id="' + (batch.packingSampleId || '') + '">' + endSampleLabel + '</a>',
+                    jobCardItem
+                ];
+                if (canReleaseToStock) {
+                    menuItems.push('<a class="dropdown-item js-release-to-stock" href="#" data-batch-id="' + batch.id + '">Release to stock</a>');
                 } else {
-                    productionBtn = '<button type="button" class="btn btn-sm btn-primary me-1 js-production-batch" data-batch-id="' + batch.id + '">Production</button>';
+                    menuItems.push('<span class="dropdown-item text-muted">Release to stock</span>');
                 }
-                let endSampleBtn;
-                if (batch.hasPackingSample && batch.packingSampleId) {
-                    endSampleBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-end-sample-batch" data-batch-id="' + batch.id + '" data-packing-sample-id="' + batch.packingSampleId + '"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;">&#10003;</span>End sample</button>';
-                } else {
-                    endSampleBtn = '<button type="button" class="btn btn-sm btn-outline-primary me-1 js-end-sample-batch" data-batch-id="' + batch.id + '">End sample</button>';
-                }
-                let jobCardBtn = '';
-                if (batch.hasProductionStages) {
-                    if (batch.hasJobCard && batch.jobCardId) {
-                        jobCardBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-job-card-batch" data-batch-id="' + batch.id + '" data-job-card-id="' + batch.jobCardId + '"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;">&#10003;</span>Job Card</button>';
-                    } else {
-                        jobCardBtn = '<button type="button" class="btn btn-sm btn-outline-primary me-1 js-job-card-batch" data-batch-id="' + batch.id + '">Job Card</button>';
-                    }
-                }
-                const row = '<tr><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + (batch.status || 'in_production') + '</span></td><td>' +
-                    '<button type="button" class="btn btn-sm btn-outline-secondary me-1 js-batch-history" data-batch-id="' + batch.id + '">History</button>' + productionBtn + endSampleBtn + jobCardBtn + releaseBtn + '</td></tr>';
+                const actionsCell = '<div class="dropdown">' +
+                    '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false">Actions</button>' +
+                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="batchActions' + batch.id + '">' + menuItems.join('') + '</ul></div>';
+                const row = '<tr><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + (batch.status || 'in_production') + '</span></td><td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
         },
@@ -305,13 +290,10 @@ var _kernelProductionGrid = function () {
     };
 }();
 
-async function initializeKernelProductionGrid() {
+function initializeKernelProductionGrid() {
     if (typeof _kernelProductionGrid === 'undefined') {
         console.error('[Kernel Production] _kernelProductionGrid not defined');
         return;
     }
-    if (document.readyState === 'loading') {
-        await new Promise((resolve) => $(document).one('DOMContentLoaded', resolve));
-    }
-    await _kernelProductionGrid.init();
+    _kernelProductionGrid.init();
 }
