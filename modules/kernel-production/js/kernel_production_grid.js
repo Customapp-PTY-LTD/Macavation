@@ -1,978 +1,317 @@
 /**
  * Kernel Production Grid Module
- * Handles 17-step production workflow
+ * Loads batch table and wires on-screen buttons. Action buttons trigger their own JS modules.
+ * Pattern: same as hatchability.js (return object, arrow functions, const scope = _module).
  */
 var _kernelProductionGrid = function () {
+    'use strict';
+    const delay = (ms) => {
+        const end = Date.now() + ms;
+        return new Promise((resolve) => {
+            function tick() {
+                if (Date.now() >= end) return resolve();
+                requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+        });
+    };
+    const waitForElement = async (selector, maxMs = 10000) => {
+        const start = Date.now();
+        while (Date.now() - start < maxMs) {
+            if ($(selector).length) return;
+            await delay(50);
+        }
+    };
+
     return {
         batches: [],
         filteredBatches: [],
-        searchTimeout: null,
-        init: function () {
-            console.log('[Kernel Production] Initializing grid...');
-            const scope = this;
-            
-            // Use MutationObserver to wait for buttons to be added to DOM
-            const checkAndInit = () => {
-                const addJobCardBtn = document.getElementById('addJobCardBtn');
-                if (addJobCardBtn) {
-                    console.log('[Kernel Production] Buttons found, setting up event listeners');
-                    scope.setupEventListeners();
-                    scope.loadBatches();
-                } else {
-                    console.log('[Kernel Production] Buttons not found yet, retrying...');
-                    setTimeout(checkAndInit, 100);
-                }
-            };
-            
-            // Start checking
-            setTimeout(checkAndInit, 50);
-        },
-        setupEventListeners: function () {
-            const scope = this;
-            console.log('[Kernel Production] Setting up event listeners...');
-            
-            // Check if buttons exist
-            const addJobCardBtn = document.getElementById('addJobCardBtn');
-            if (!addJobCardBtn) {
-                console.warn('[Kernel Production] addJobCardBtn not found!');
+        searchDebounceToken: 0,
+
+        init: async () => {
+            const scope = _kernelProductionGrid;
+            if (typeof _app !== 'undefined' && typeof _app.checkSession === 'function' && !_app.checkSession()) {
                 return;
             }
-            
-            // Remove existing handlers to prevent duplicates (if jQuery is available)
-            if (typeof $ !== 'undefined') {
-                $('#addBatchBtn').off('click');
-                $('#addJobCardBtn').off('click');
-                $('#saveJobCardBtn').off('click');
-                $('#addSoundKernelRow').off('click');
-                $('#addButterGradeRow').off('click');
-            }
-            
-            // Use both native and jQuery event listeners for maximum compatibility
-            if (addJobCardBtn) {
-                // Native event listener
-                addJobCardBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    console.log('[Kernel Production] Job Card button clicked (native)');
-                    scope.showJobCardModal();
-                });
-                
-                // jQuery event listener (if available)
-                if (typeof $ !== 'undefined') {
-                    $('#addJobCardBtn').on('click', function(e) {
-                        e.preventDefault();
-                        console.log('[Kernel Production] Job Card button clicked (jQuery)');
-                        scope.showJobCardModal();
-                    });
-                }
-            }
-            
-            // Batch button
-            const addBatchBtn = document.getElementById('addBatchBtn');
-            if (addBatchBtn) {
-                addBatchBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('[Kernel Production] New Batch button clicked (native)');
-                    scope.showNewBatchModal();
-                });
-                
-                // jQuery handler for compatibility
-                if (typeof $ !== 'undefined') {
-                    $('#addBatchBtn').on('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('[Kernel Production] New Batch button clicked (jQuery)');
-                        scope.showNewBatchModal();
-                    });
-                }
-            } else {
-                console.warn('[Kernel Production] addBatchBtn not found!');
-            }
-            
-            // Save Batch button
-            const saveBatchBtn = document.getElementById('saveBatchBtn');
-            if (saveBatchBtn) {
-                saveBatchBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    scope.saveNewBatch();
-                });
-            }
-            
-            if (typeof $ !== 'undefined') {
-                $('#saveBatchBtn').on('click', function(e) {
-                    e.preventDefault();
-                    scope.saveNewBatch();
-                });
-            }
-            
-            // Export button
-            const exportBtn = document.getElementById('exportBatchesBtn');
-            if (exportBtn) {
-                exportBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('[Kernel Production] Export button clicked (native)');
-                    if (typeof scope.exportBatches === 'function') {
-                        scope.exportBatches();
-                    } else {
-                        console.warn('[Kernel Production] exportBatches function not found');
-                    }
-                });
-            } else {
-                console.warn('[Kernel Production] exportBatchesBtn not found!');
-            }
-            
-            // Save Job Card button
-            const saveJobCardBtn = document.getElementById('saveJobCardBtn');
-            if (saveJobCardBtn) {
-                saveJobCardBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    scope.saveJobCard();
-                });
-            }
-            
-            // jQuery handlers for compatibility
-            if (typeof $ !== 'undefined') {
-                $('#saveJobCardBtn').on('click', function (e) {
-                    e.preventDefault();
-                    scope.saveJobCard();
-                });
-            }
-            
-            // Add row buttons - use delegated events for dynamically added elements
-            const addSoundKernelBtn = document.getElementById('addSoundKernelRow');
-            if (addSoundKernelBtn) {
-                addSoundKernelBtn.addEventListener('click', function() {
-                    scope.addSoundKernelRow();
-                });
-            }
-            
-            const addButterGradeBtn = document.getElementById('addButterGradeRow');
-            if (addButterGradeBtn) {
-                addButterGradeBtn.addEventListener('click', function() {
-                    scope.addButterGradeRow();
-                });
-            }
-            
-            // jQuery handlers
-            if (typeof $ !== 'undefined') {
-                $('#addSoundKernelRow').on('click', function () {
-                    scope.addSoundKernelRow();
-                });
-                $('#addButterGradeRow').on('click', function () {
-                    scope.addButterGradeRow();
-                });
-            }
-            // Delegated event handlers for dynamic content (both native and jQuery)
-            document.addEventListener('click', function(e) {
-                if (e.target.closest('.removeSoundKernelRow')) {
-                    e.preventDefault();
-                    const row = e.target.closest('tr');
-                    if (row) row.remove();
-                    scope.calculateJobCardTotals();
-                }
-                if (e.target.closest('.removeButterGradeRow')) {
-                    e.preventDefault();
-                    const row = e.target.closest('tr');
-                    if (row) row.remove();
-                    scope.calculateJobCardTotals();
+            console.log('[Kernel Production] Initializing grid...');
+            await waitForElement('#addJobCardBtn', 10000);
+            console.log('[Kernel Production] Buttons found, setting up');
+            scope.bindEvents();
+            scope.loadBatches();
+            if (typeof _kernelProductionStages !== 'undefined' && _kernelProductionStages.init) _kernelProductionStages.init();
+            if (typeof _kernelProductionJobCard !== 'undefined' && _kernelProductionJobCard.init) _kernelProductionJobCard.init();
+            if (typeof _kernelProductionEndSample !== 'undefined' && _kernelProductionEndSample.init) _kernelProductionEndSample.init();
+            if (typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.init) _kernelProductionBatchActions.init();
+        },
+
+        bindEvents: () => {
+            const scope = _kernelProductionGrid;
+            $('#addJobCardBtn').off('click').on('click', (e) => {
+                e.preventDefault();
+                if (typeof _kernelProductionJobCard !== 'undefined' && _kernelProductionJobCard.showJobCardModal) {
+                    _kernelProductionJobCard.showJobCardModal();
                 }
             });
-            
-            // Auto-calculate fields - use native and jQuery
-            const totalWeightInput = document.getElementById('jobCardTotalWeight');
-            const removedPreSizerInput = document.getElementById('jobCardRemovedPreSizer');
-            if (totalWeightInput) {
-                totalWeightInput.addEventListener('input', () => scope.calculateBalance());
-            }
-            if (removedPreSizerInput) {
-                removedPreSizerInput.addEventListener('input', () => scope.calculateBalance());
-            }
-            
-            const receivingMoistureInput = document.getElementById('jobCardReceivingMoisture');
-            const packingMoistureInput = document.getElementById('jobCardPackingMoisture');
-            if (receivingMoistureInput) {
-                receivingMoistureInput.addEventListener('input', () => scope.calculateRemovedMoisture());
-            }
-            if (packingMoistureInput) {
-                packingMoistureInput.addEventListener('input', () => scope.calculateRemovedMoisture());
-            }
-            
-            // Delegated input handlers for tables
-            const soundKernelTable = document.getElementById('soundKernelTable');
-            const butterGradeTable = document.getElementById('butterGradeTable');
-            if (soundKernelTable) {
-                soundKernelTable.addEventListener('input', () => scope.calculateJobCardTotals());
-            }
-            if (butterGradeTable) {
-                butterGradeTable.addEventListener('input', () => scope.calculateJobCardTotals());
-            }
-            
-            // Waste inputs
-            const wasteInputs = ['jobCardWasteOilKernel', 'jobCardWasteSaltPepper', 'jobCardWasteShellFines', 'jobCardWasteCompost', 'jobCardWasteShell'];
-            wasteInputs.forEach(id => {
-                const input = document.getElementById(id);
-                if (input) {
-                    input.addEventListener('input', () => scope.calculateMassBalance());
+            $('#addBatchBtn').off('click').on('click', (e) => {
+                e.preventDefault();
+                if (typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.showNewBatchModal) {
+                    _kernelProductionBatchActions.showNewBatchModal();
                 }
             });
-            
-            // jQuery handlers for compatibility
-            if (typeof $ !== 'undefined') {
-                $(document).on('click', '.removeSoundKernelRow', function () {
-                    $(this).closest('tr').remove();
-                    scope.calculateJobCardTotals();
-                });
-                $(document).on('click', '.removeButterGradeRow', function () {
-                    $(this).closest('tr').remove();
-                    scope.calculateJobCardTotals();
-                });
-                $('#jobCardTotalWeight, #jobCardRemovedPreSizer').on('input', function () {
-                    scope.calculateBalance();
-                });
-                $('#jobCardReceivingMoisture, #jobCardPackingMoisture').on('input', function () {
-                    scope.calculateRemovedMoisture();
-                });
-                $(document).on('input', '#soundKernelTableBody input, #butterGradeTableBody input', function () {
-                    scope.calculateJobCardTotals();
-                });
-                $(document).on('input', '#jobCardWasteOilKernel, #jobCardWasteSaltPepper, #jobCardWasteShellFines, #jobCardWasteCompost, #jobCardWasteShell', function () {
-                    scope.calculateMassBalance();
-                });
-                
-                // Modal cleanup
-                $('#kernelJobCardModal').on('hidden.bs.modal', function () {
-                    scope.clearJobCardForm();
-                });
-            }
-            
-            // Native modal cleanup
-            const kernelJobCardModal = document.getElementById('kernelJobCardModal');
-            if (kernelJobCardModal) {
-                kernelJobCardModal.addEventListener('hidden.bs.modal', function () {
-                    scope.clearJobCardForm();
-                });
-            }
-            
-            // Search with debouncing
-            $('#searchBatchesInput').on('input', function () {
-                clearTimeout(scope.searchTimeout);
-                scope.searchTimeout = setTimeout(() => {
-                    scope.filterBatches();
-                }, 300);
+            $('#exportBatchesBtn').off('click').on('click', (e) => {
+                e.preventDefault();
+                scope.exportBatches();
             });
-            
-            // Filters
-            $('#filterBatchStatus, #filterBatchStep').on('change', function () {
-                scope.filterBatches();
+            $('#searchBatchesInput').on('input', () => {
+                const token = ++scope.searchDebounceToken;
+                (async () => {
+                    await delay(300);
+                    if (token === scope.searchDebounceToken) scope.filterBatches();
+                })();
             });
-            
-            // Clear filters
-            $('#clearBatchFiltersBtn').on('click', function () {
+            $('#filterBatchStatus').on('change', () => scope.filterBatches());
+            $('#clearBatchFiltersBtn').on('click', () => {
                 $('#searchBatchesInput').val('');
                 $('#filterBatchStatus').val('');
-                $('#filterBatchStep').val('');
                 scope.filterBatches();
             });
-        },
-        filterBatches: function () {
-            const searchTerm = $('#searchBatchesInput').val().toLowerCase();
-            const statusFilter = $('#filterBatchStatus').val();
-            const stepFilter = $('#filterBatchStep').val();
-            
-            this.filteredBatches = this.batches.filter(batch => {
-                // Search filter
-                const matchesSearch = !searchTerm || 
-                    (batch.batch_number && batch.batch_number.toLowerCase().includes(searchTerm)) ||
-                    (batch.grower_name && batch.grower_name.toLowerCase().includes(searchTerm)) ||
-                    (batch.status && batch.status.toLowerCase().includes(searchTerm));
-                
-                // Status filter
-                const matchesStatus = !statusFilter || batch.status === statusFilter;
-                
-                // Step filter
-                let matchesStep = true;
-                if (stepFilter) {
-                    const currentStep = batch.current_step || 1;
-                    if (stepFilter === '1-5') matchesStep = currentStep >= 1 && currentStep <= 5;
-                    else if (stepFilter === '6-10') matchesStep = currentStep >= 6 && currentStep <= 10;
-                    else if (stepFilter === '11-15') matchesStep = currentStep >= 11 && currentStep <= 15;
-                    else if (stepFilter === '16-17') matchesStep = currentStep >= 16 && currentStep <= 17;
+            $(document).on('click', '.js-production-batch', function () {
+                const batchId = $(this).data('batch-id');
+                const productionStagesId = $(this).data('production-stages-id');
+                if (productionStagesId && typeof _kernelProductionStages !== 'undefined' && _kernelProductionStages.showProductionStagesViewModal) {
+                    _kernelProductionStages.showProductionStagesViewModal(productionStagesId);
+                } else if (batchId && typeof _kernelProductionStages !== 'undefined' && _kernelProductionStages.showProductionStagesModalForBatch) {
+                    _kernelProductionStages.showProductionStagesModalForBatch(batchId);
                 }
-                
-                return matchesSearch && matchesStatus && matchesStep;
             });
-            
-            this.renderBatches();
-        },
-        loadBatches: async function (forceRefresh = false) {
-            try {
-                // Ensure dataFunctions is available
-                if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getProductionBatches !== 'function') {
-                    console.warn('[Kernel Production] dataFunctions not available, skipping load');
-                    return;
+            $(document).on('click', '.js-end-sample-batch', function () {
+                const batchId = $(this).data('batch-id');
+                const packingSampleId = $(this).data('packing-sample-id');
+                if (packingSampleId && typeof _kernelProductionEndSample !== 'undefined' && _kernelProductionEndSample.showEndSampleViewModal) {
+                    _kernelProductionEndSample.showEndSampleViewModal(packingSampleId);
+                } else if (batchId && typeof _kernelProductionEndSample !== 'undefined' && _kernelProductionEndSample.showEndSampleModal) {
+                    _kernelProductionEndSample.showEndSampleModal(batchId);
                 }
-                
-                const startTime = performance.now();
-                console.log('[Kernel Production] Loading batches...');
-                
-                const batches = await dataFunctions.getProductionBatches(null, forceRefresh).catch((error) => {
-                    console.error('[Kernel Production] Error loading batches:', error);
-                    return [];
-                });
-                
-                const loadTime = performance.now() - startTime;
-                console.log(`[Kernel Production] Batches loaded in ${loadTime.toFixed(2)}ms, count: ${batches ? batches.length : 0}`);
-                
-                this.batches = batches || [];
-                this.filteredBatches = this.batches;
-                this.renderBatches();
-            } catch (error) {
-                console.error('[Kernel Production] Error loading batches:', error);
-            }
+            });
+            $(document).on('click', '.js-release-to-stock', function () {
+                const batchId = $(this).data('batch-id');
+                if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.releaseBatchToStock) {
+                    _kernelProductionBatchActions.releaseBatchToStock(batchId);
+                }
+            });
+            $(document).on('click', '.js-batch-history', function () {
+                const batchId = $(this).data('batch-id');
+                if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.showBatchHistory) {
+                    _kernelProductionBatchActions.showBatchHistory(batchId);
+                }
+            });
+            $(document).on('click', '.js-job-card-batch', function () {
+                const batchId = $(this).data('batch-id');
+                const jobCardId = $(this).data('job-card-id');
+                if (jobCardId && typeof _kernelProductionJobCard !== 'undefined' && _kernelProductionJobCard.showJobCardViewModal) {
+                    _kernelProductionJobCard.showJobCardViewModal(jobCardId);
+                } else if (batchId && typeof _kernelProductionJobCard !== 'undefined' && _kernelProductionJobCard.showJobCardModalForBatch) {
+                    _kernelProductionJobCard.showJobCardModalForBatch(batchId);
+                }
+            });
         },
-        renderBatches: function () {
+
+        filterBatches: () => {
+            const scope = _kernelProductionGrid;
+            const searchTerm = ($('#searchBatchesInput').val() || '').toLowerCase();
+            const statusFilter = $('#filterBatchStatus').val();
+            scope.filteredBatches = scope.batches.filter((batch) => {
+                const matchesSearch = !searchTerm ||
+                    (batch.batch_number && batch.batch_number.toLowerCase().indexOf(searchTerm) >= 0) ||
+                    (batch.grower_name && batch.grower_name.toLowerCase().indexOf(searchTerm) >= 0) ||
+                    (batch.status && batch.status.toLowerCase().indexOf(searchTerm) >= 0);
+                const matchesStatus = !statusFilter || batch.status === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+            scope.renderBatches();
+        },
+
+        loadBatches: (forceRefresh) => {
+            const scope = _kernelProductionGrid;
+            forceRefresh = !!forceRefresh;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getProductionBatches !== 'function') {
+                console.warn('[Kernel Production] dataFunctions not available');
+                return;
+            }
+            const startTime = performance.now();
+            dataFunctions.getProductionBatches(null, forceRefresh, { batch_type: 'kernel' }).then((allBatches) => {
+                const productionStatuses = ['in_production', 'receiving', 'cracking', 'drying', 'sorting_dry', 'packing', 'completed'];
+                const batches = (allBatches || []).filter((b) =>
+                    productionStatuses.indexOf(b.status) >= 0 && b.status !== 'in_finished_stock'
+                );
+                const jobCardsPromise = (dataFunctions.getKernelJobCards && dataFunctions.getKernelJobCards(null, forceRefresh)) || Promise.resolve([]);
+                const packingSamplesPromise = (dataFunctions.getKernelPackingSamples && dataFunctions.getKernelPackingSamples(null, forceRefresh)) || Promise.resolve([]);
+                const daysListPromise = (dataFunctions.getKernelProductionDaysList && dataFunctions.getKernelProductionDaysList(null, forceRefresh)) || Promise.resolve([]);
+                Promise.all([Promise.resolve(batches), jobCardsPromise, packingSamplesPromise, daysListPromise]).then((results) => {
+                    const jobCards = results[1] || [];
+                    const packingSamples = results[2] || [];
+                    const daysList = results[3] || [];
+                    const jobCardByBatchId = {};
+                    const jobCardByBatchNumber = {};
+                    jobCards.forEach((jc) => {
+                        if (jc.production_batch_id) jobCardByBatchId[jc.production_batch_id] = { id: jc.id, status: jc.status };
+                        if (jc.batch_number) jobCardByBatchNumber[jc.batch_number] = { id: jc.id, status: jc.status };
+                    });
+                    const packingByBatchId = {};
+                    (packingSamples || []).forEach((ps) => {
+                        if (ps.production_batch_id) packingByBatchId[ps.production_batch_id] = { id: ps.id };
+                    });
+                    const productionDaysByBatchId = {};
+                    (Array.isArray(daysList) ? daysList : []).forEach((d) => {
+                        const bid = d.production_batch_id;
+                        if (!bid) return;
+                        if (!productionDaysByBatchId[bid]) productionDaysByBatchId[bid] = [];
+                        productionDaysByBatchId[bid].push({
+                            id: d.id,
+                            day_number: d.day_number,
+                            kernel_production_stages_id: d.kernel_production_stages_id
+                        });
+                    });
+                    batches.forEach((b) => {
+                        const jc = jobCardByBatchId[b.id] || jobCardByBatchNumber[b.batch_number];
+                        b.jobCardId = jc ? jc.id : null;
+                        b.hasJobCard = !!(jc && jc.id);
+                        const ps = packingByBatchId[b.id];
+                        b.packingSampleId = ps ? ps.id : null;
+                        b.hasPackingSample = !!(ps && ps.id);
+                        b.productionDays = productionDaysByBatchId[b.id] || [];
+                        b.productionFinishedAt = b.production_finished_at != null ? b.production_finished_at : b.productionFinishedAt;
+                        b.hasProductionStages = b.productionDays.length > 0;
+                    });
+                    scope.batches = batches;
+                    scope.filteredBatches = scope.batches;
+                    scope.renderBatches();
+                    console.log('[Kernel Production] Batches loaded in ' + (performance.now() - startTime).toFixed(2) + 'ms, count: ' + batches.length);
+                }).catch((err) => {
+                    console.error('[Kernel Production] Error loading batches:', err);
+                });
+            }).catch((error) => {
+                console.error('[Kernel Production] Error loading batches:', error);
+            });
+        },
+
+        renderBatches: () => {
+            const scope = _kernelProductionGrid;
             const tbody = $('#batchesTableBody');
             tbody.empty();
-            if (this.filteredBatches.length === 0) {
-                if (this.batches.length === 0) {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No production batches found. Click "New Production Batch" to create one.</td></tr>');
+            if (scope.filteredBatches.length === 0) {
+                if (scope.batches.length === 0) {
+                    tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No production batches. Release batches from Grower Intake.</td></tr>');
                 } else {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search criteria. Try adjusting your filters.</td></tr>');
+                    tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
                 }
                 return;
             }
-            this.filteredBatches.forEach(batch => {
-                const row = `<tr>
-                    <td>${batch.batch_number || 'N/A'}</td>
-                    <td>${batch.grower_name || 'N/A'}</td>
-                    <td>${batch.received_date || 'N/A'}</td>
-                    <td>${batch.wet_nis_received_kg || '0'}</td>
-                    <td>${batch.current_step || '1'}/17</td>
-                    <td><span class="badge bg-info">${batch.status || 'receiving'}</span></td>
-                    <td><button class="btn btn-sm btn-outline-primary" onclick="kernelProductionGrid.viewBatch('${batch.id}')"><i class="fas fa-eye"></i></button></td>
-                </tr>`;
+            scope.filteredBatches.forEach((batch) => {
+                const step = batch.current_step != null ? batch.current_step : 1;
+                const productionAndSampleDone = (batch.hasJobCard || batch.hasProductionStages) && batch.hasPackingSample;
+                const canReleaseToStock = productionAndSampleDone || batch.status === 'completed' || step >= 17;
+                const receivedDate = batch.received_date ? (batch.received_date.toString().split ? batch.received_date.toString().split('T')[0] : batch.received_date) : 'N/A';
+                let releaseBtn = canReleaseToStock
+                    ? '<button type="button" class="btn btn-sm btn-success me-1 js-release-to-stock" data-batch-id="' + batch.id + '">Release to stock</button>'
+                    : '<button type="button" class="btn btn-sm btn-secondary me-1" disabled>Release to stock</button>';
+                let productionBtn;
+                if (batch.productionFinishedAt) {
+                    productionBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-production-batch" data-batch-id="' + batch.id + '" data-production-stages-id="' + (batch.productionDays && batch.productionDays[0] && batch.productionDays[0].kernel_production_stages_id ? batch.productionDays[0].kernel_production_stages_id : '') + '"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;">&#10003;</span>Production</button>';
+                } else {
+                    productionBtn = '<button type="button" class="btn btn-sm btn-primary me-1 js-production-batch" data-batch-id="' + batch.id + '">Production</button>';
+                }
+                let endSampleBtn;
+                if (batch.hasPackingSample && batch.packingSampleId) {
+                    endSampleBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-end-sample-batch" data-batch-id="' + batch.id + '" data-packing-sample-id="' + batch.packingSampleId + '"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;">&#10003;</span>End sample</button>';
+                } else {
+                    endSampleBtn = '<button type="button" class="btn btn-sm btn-outline-primary me-1 js-end-sample-batch" data-batch-id="' + batch.id + '">End sample</button>';
+                }
+                let jobCardBtn = '';
+                if (batch.hasProductionStages) {
+                    if (batch.hasJobCard && batch.jobCardId) {
+                        jobCardBtn = '<button type="button" class="btn btn-sm btn-success me-1 js-job-card-batch" data-batch-id="' + batch.id + '" data-job-card-id="' + batch.jobCardId + '"><span class="d-inline-flex align-items-center justify-content-center me-1 rounded border-2 border-success bg-success text-white" style="width:1.1em;height:1.1em;font-size:0.85em;">&#10003;</span>Job Card</button>';
+                    } else {
+                        jobCardBtn = '<button type="button" class="btn btn-sm btn-outline-primary me-1 js-job-card-batch" data-batch-id="' + batch.id + '">Job Card</button>';
+                    }
+                }
+                const row = '<tr><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + (batch.status || 'in_production') + '</span></td><td>' +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary me-1 js-batch-history" data-batch-id="' + batch.id + '">History</button>' + productionBtn + endSampleBtn + jobCardBtn + releaseBtn + '</td></tr>';
                 tbody.append(row);
             });
         },
-        viewBatch: function (batchId) {
-            Swal.fire('Info', 'Batch details view coming soon', 'info');
+
+        getNextStepAndStatus: (currentStep) => {
+            const step = currentStep != null ? currentStep : 1;
+            if (step >= 17) return { nextStep: 17, nextStatus: 'in_finished_stock', stage: 'finished_stock' };
+            const nextStep = step + 1;
+            const statusMap = { 1: 'receiving', 2: 'cracking', 3: 'drying', 4: 'sorting_dry', 5: 'packing', 6: 'packing', 7: 'packing', 8: 'packing', 9: 'packing', 10: 'packing', 11: 'packing', 12: 'packing', 13: 'packing', 14: 'packing', 15: 'packing', 16: 'packing', 17: 'in_finished_stock' };
+            const nextStatus = nextStep >= 17 ? 'in_finished_stock' : (statusMap[nextStep] || 'packing');
+            const stage = nextStep >= 17 ? 'finished_stock' : 'production';
+            return { nextStep, nextStatus, stage };
         },
-        
-        exportBatches: function () {
-            if (!this.batches || this.batches.length === 0) {
-                Swal.fire('Info', 'No batches to export', 'info');
+
+        advanceBatchStep: (batchId, currentStep) => {
+            const scope = _kernelProductionGrid;
+            if (!batchId) return;
+            const step = currentStep != null ? currentStep : 1;
+            if (step >= 17) {
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'Batch already at final step (17).', 'info');
                 return;
             }
-            
+            const out = scope.getNextStepAndStatus(step);
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.updateProductionBatch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Update batch function not available', 'error');
+                return;
+            }
+            dataFunctions.updateProductionBatch(batchId, { status: out.nextStatus, current_step: out.nextStep, stage: out.stage }).then((result) => {
+                if (result && result.success !== false) {
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Step updated', text: 'Batch moved to step ' + out.nextStep, timer: 2000, showConfirmButton: false });
+                    scope.loadBatches(true);
+                } else {
+                    throw new Error(result && result.error ? result.error : 'Failed to update batch');
+                }
+            }).catch((e) => {
+                console.error('[Kernel Production] advanceBatchStep failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to advance step', 'error');
+            });
+        },
+
+        getBatch: (batchId) => {
+            const scope = _kernelProductionGrid;
+            const id = String(batchId);
+            return scope.batches.filter((b) => String(b.id) === id)[0] || scope.filteredBatches.filter((b) => String(b.id) === id)[0] || null;
+        },
+
+        exportBatches: () => {
+            const scope = _kernelProductionGrid;
+            if (!scope.batches || scope.batches.length === 0) {
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'No batches to export', 'info');
+                return;
+            }
             const columns = [
                 { key: 'batch_number', label: 'Batch Number' },
                 { key: 'grower_name', label: 'Supplier' },
                 { key: 'received_date', label: 'Received Date' },
                 { key: 'wet_nis_received_kg', label: 'Wet NIS (kg)' },
-                { key: 'current_step', label: 'Current Step' },
                 { key: 'status', label: 'Status' }
             ];
-            
             if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
-                exportUtils.exportToCSV(this.batches, 'production_batches', columns);
+                exportUtils.exportToCSV(scope.batches, 'production_batches', columns);
             } else {
-                Swal.fire('Error', 'Export utility not available', 'error');
-            }
-        },
-        
-        showNewBatchModal: async function () {
-            try {
-                console.log('[Kernel Production] Opening new batch modal');
-                $('#newBatchModalLabel').text('New Production Batch');
-                $('#batchId').val('');
-                this.clearNewBatchForm();
-                
-                // Set default date to today
-                const today = new Date().toISOString().split('T')[0];
-                $('#batchReceivedDate').val(today);
-                
-                // Load suppliers
-                try {
-                    const contacts = await dataFunctions.getContacts();
-                    const select = $('#batchSupplier');
-                    let html = '<option value="">Select Supplier</option>';
-                    if (contacts && Array.isArray(contacts)) {
-                        contacts.forEach(contact => {
-                            const name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
-                            html += `<option value="${contact.id}">${name}</option>`;
-                        });
-                    }
-                    select.html(html);
-                } catch (error) {
-                    console.error('Error loading suppliers:', error);
-                }
-                
-                // Generate suggested batch number
-                const year = new Date().getFullYear();
-                const month = String(new Date().getMonth() + 1).padStart(2, '0');
-                const suggestedBatch = `BATCH-${year}-${month}-001`;
-                $('#batchNumber').val(suggestedBatch);
-                
-                // Use Bootstrap 5 modal API with fallback
-                const modalElement = document.getElementById('newBatchModal');
-                if (!modalElement) {
-                    console.error('[Kernel Production] New batch modal element not found!');
-                    Swal.fire('Error', 'Modal not found. Please refresh the page.', 'error');
-                    return;
-                }
-                
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = new bootstrap.Modal(modalElement);
-                    modal.show();
-                    console.log('[Kernel Production] New batch modal shown via Bootstrap 5');
-                } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                    $('#newBatchModal').modal('show');
-                    console.log('[Kernel Production] New batch modal shown via jQuery');
-                } else {
-                    console.error('[Kernel Production] Neither Bootstrap nor jQuery modal available!');
-                    Swal.fire('Error', 'Unable to open modal. Please ensure Bootstrap is loaded.', 'error');
-                }
-            } catch (error) {
-                console.error('[Kernel Production] Error showing new batch modal:', error);
-                Swal.fire('Error', 'Failed to open new batch form: ' + error.message, 'error');
-            }
-        },
-        
-        clearNewBatchForm: function () {
-            const form = document.getElementById('newBatchForm');
-            if (form) form.reset();
-            
-            const batchId = document.getElementById('batchId');
-            if (batchId) batchId.value = '';
-        },
-        
-        saveNewBatch: async function () {
-            try {
-                console.log('[Kernel Production] Saving new batch...');
-                const form = document.getElementById('newBatchForm');
-                if (!form) {
-                    Swal.fire('Error', 'Form not found', 'error');
-                    return;
-                }
-                if (!form.checkValidity()) {
-                    form.reportValidity();
-                    return;
-                }
-                
-                const getValue = (id) => {
-                    const el = document.getElementById(id);
-                    return el ? el.value : null;
-                };
-                
-                const getFloatValue = (id) => {
-                    const el = document.getElementById(id);
-                    return el && el.value ? parseFloat(el.value) : null;
-                };
-                
-                const batchData = {
-                    p_batch_number: getValue('batchNumber'),
-                    p_received_date: getValue('batchReceivedDate'),
-                    p_wet_nis_received_kg: getFloatValue('batchWetNIS'),
-                    p_supplier_id: getValue('batchSupplier') || null,
-                    p_grower_name: getValue('batchGrowerName') || null,
-                    p_receiving_moisture_percentage: getFloatValue('batchReceivingMoisture') || null,
-                    p_start_date: getValue('batchStartDate') || null,
-                    p_estimated_completion_date: getValue('batchEstimatedCompletion') || null,
-                    p_batch_type: 'kernel',
-                    p_status: 'receiving',
-                    p_current_step: 1
-                };
-                
-                console.log('[Kernel Production] Batch data:', batchData);
-                
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.createProductionBatch) {
-                    Swal.fire('Error', 'Batch creation function not available', 'error');
-                    return;
-                }
-                
-                const result = await dataFunctions.createProductionBatch(batchData);
-                console.log('[Kernel Production] Save result:', result);
-                
-                if (result && result.success !== false) {
-                    // Invalidate caches
-                    if (typeof dataFunctions !== 'undefined' && dataFunctions.clearCachePattern) {
-                        dataFunctions.clearCachePattern('production_batches');
-                    }
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: 'Production batch created successfully',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    
-                    // Close modal
-                    const modalElement = document.getElementById('newBatchModal');
-                    if (modalElement) {
-                        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                            const modal = bootstrap.Modal.getInstance(modalElement);
-                            if (modal) {
-                                modal.hide();
-                            } else {
-                                const newModal = new bootstrap.Modal(modalElement);
-                                newModal.hide();
-                            }
-                        } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                            $('#newBatchModal').modal('hide');
-                        }
-                    }
-                    
-                    this.loadBatches(true); // Force refresh
-                } else {
-                    const errorMsg = result?.error || result?.message || 'Failed to create batch';
-                    console.error('[Kernel Production] Save failed:', errorMsg);
-                    throw new Error(errorMsg);
-                }
-            } catch (error) {
-                console.error('[Kernel Production] Error saving new batch:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to create batch: ' + (error.message || error.toString())
-                });
-            }
-        },
-        
-        showJobCardModal: async function () {
-            try {
-                console.log('[Kernel Production] Opening job card modal');
-                $('#kernelJobCardModalLabel').text('Kernel Production Job Card');
-                $('#jobCardId').val('');
-                this.clearJobCardForm();
-                
-                // Set default date to today
-                const today = new Date().toISOString().split('T')[0];
-                $('#jobCardReceivedDate').val(today);
-                
-                // Load suppliers
-                try {
-                    const contacts = await dataFunctions.getContacts();
-                    const select = $('#jobCardSupplier');
-                    let html = '<option value="">Select Supplier</option>';
-                    if (contacts && Array.isArray(contacts)) {
-                        contacts.forEach(contact => {
-                            const name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
-                            html += `<option value="${contact.id}">${name}</option>`;
-                        });
-                    }
-                    select.html(html);
-                } catch (error) {
-                    console.error('Error loading suppliers:', error);
-                }
-                
-                // Use Bootstrap 5 modal API with fallback
-                const modalElement = document.getElementById('kernelJobCardModal');
-                if (!modalElement) {
-                    console.error('[Kernel Production] Modal element not found!');
-                    Swal.fire('Error', 'Modal not found. Please refresh the page.', 'error');
-                    return;
-                }
-                
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = new bootstrap.Modal(modalElement);
-                    modal.show();
-                    console.log('[Kernel Production] Modal shown via Bootstrap 5');
-                } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                    $('#kernelJobCardModal').modal('show');
-                    console.log('[Kernel Production] Modal shown via jQuery');
-                } else {
-                    console.error('[Kernel Production] Neither Bootstrap nor jQuery modal available!');
-                    Swal.fire('Error', 'Unable to open modal. Please ensure Bootstrap is loaded.', 'error');
-                }
-            } catch (error) {
-                console.error('[Kernel Production] Error showing job card modal:', error);
-                Swal.fire('Error', 'Failed to open job card form: ' + error.message, 'error');
-            }
-        },
-        
-        clearJobCardForm: function () {
-            const form = document.getElementById('kernelJobCardForm');
-            if (form) form.reset();
-            
-            const jobCardId = document.getElementById('jobCardId');
-            if (jobCardId) jobCardId.value = '';
-            
-            // Clear style rows except first
-            const soundKernelBody = document.getElementById('soundKernelTableBody');
-            if (soundKernelBody) {
-                const rows = soundKernelBody.querySelectorAll('tr');
-                for (let i = rows.length - 1; i > 0; i--) {
-                    rows[i].remove();
-                }
-                if (rows[0]) {
-                    const inputs = rows[0].querySelectorAll('input, select');
-                    inputs.forEach(input => input.value = '');
-                }
-            }
-            
-            const butterGradeBody = document.getElementById('butterGradeTableBody');
-            if (butterGradeBody) {
-                const rows = butterGradeBody.querySelectorAll('tr');
-                for (let i = rows.length - 1; i > 0; i--) {
-                    rows[i].remove();
-                }
-                if (rows[0]) {
-                    const inputs = rows[0].querySelectorAll('input, select');
-                    inputs.forEach(input => input.value = '');
-                }
-            }
-            
-            this.calculateJobCardTotals();
-        },
-        
-        calculateBalance: function () {
-            const totalWeightEl = document.getElementById('jobCardTotalWeight');
-            const removedPreSizerEl = document.getElementById('jobCardRemovedPreSizer');
-            const balanceEl = document.getElementById('jobCardBalance');
-            
-            const totalWeight = totalWeightEl ? parseFloat(totalWeightEl.value) || 0 : 0;
-            const removedPreSizer = removedPreSizerEl ? parseFloat(removedPreSizerEl.value) || 0 : 0;
-            const balance = totalWeight - removedPreSizer;
-            
-            if (balanceEl) balanceEl.value = balance.toFixed(2);
-            this.calculateMassBalance();
-        },
-        
-        calculateRemovedMoisture: function () {
-            const receivingEl = document.getElementById('jobCardReceivingMoisture');
-            const packingEl = document.getElementById('jobCardPackingMoisture');
-            const removedEl = document.getElementById('jobCardRemovedMoisture');
-            
-            const receiving = receivingEl ? parseFloat(receivingEl.value) || 0 : 0;
-            const packing = packingEl ? parseFloat(packingEl.value) || 0 : 0;
-            const removed = receiving - packing;
-            
-            if (removedEl) removedEl.value = removed.toFixed(2);
-        },
-        
-        calculateJobCardTotals: function () {
-            // Sound Kernel totals - use native DOM
-            const soundKernelBody = document.getElementById('soundKernelTableBody');
-            let soundCartons = 0;
-            let soundKg = 0;
-            
-            if (soundKernelBody) {
-                const rows = soundKernelBody.querySelectorAll('tr');
-                rows.forEach(row => {
-                    const cartonsInput = row.querySelector('input[name="cartons"]');
-                    const weightInput = row.querySelector('input[name="weight_kg"]');
-                    const cartons = cartonsInput ? parseInt(cartonsInput.value) || 0 : 0;
-                    const weight = weightInput ? parseFloat(weightInput.value) || 0 : 0;
-                    soundCartons += cartons;
-                    soundKg += weight;
-                });
-            }
-            
-            const soundCartonsEl = document.getElementById('soundKernelTotalCartons');
-            const soundKgEl = document.getElementById('soundKernelTotalKg');
-            if (soundCartonsEl) soundCartonsEl.textContent = soundCartons;
-            if (soundKgEl) soundKgEl.textContent = soundKg.toFixed(2);
-            
-            // Butter Grade totals
-            const butterGradeBody = document.getElementById('butterGradeTableBody');
-            let butterCartons = 0;
-            let butterKg = 0;
-            
-            if (butterGradeBody) {
-                const rows = butterGradeBody.querySelectorAll('tr');
-                rows.forEach(row => {
-                    const cartonsInput = row.querySelector('input[name="cartons"]');
-                    const weightInput = row.querySelector('input[name="weight_kg"]');
-                    const cartons = cartonsInput ? parseInt(cartonsInput.value) || 0 : 0;
-                    const weight = weightInput ? parseFloat(weightInput.value) || 0 : 0;
-                    butterCartons += cartons;
-                    butterKg += weight;
-                });
-            }
-            
-            const butterCartonsEl = document.getElementById('butterGradeTotalCartons');
-            const butterKgEl = document.getElementById('butterGradeTotalKg');
-            if (butterCartonsEl) butterCartonsEl.textContent = butterCartons;
-            if (butterKgEl) butterKgEl.textContent = butterKg.toFixed(2);
-            
-            this.calculateMassBalance();
-        },
-        
-        calculateMassBalance: function () {
-            const balanceEl = document.getElementById('jobCardBalance');
-            const soundKgEl = document.getElementById('soundKernelTotalKg');
-            const butterKgEl = document.getElementById('butterGradeTotalKg');
-            
-            const balance = balanceEl ? parseFloat(balanceEl.value) || 0 : 0;
-            const soundKg = soundKgEl ? parseFloat(soundKgEl.textContent) || 0 : 0;
-            const butterKg = butterKgEl ? parseFloat(butterKgEl.textContent) || 0 : 0;
-            
-            const wasteInputs = {
-                oil: document.getElementById('jobCardWasteOilKernel'),
-                saltPepper: document.getElementById('jobCardWasteSaltPepper'),
-                shellFines: document.getElementById('jobCardWasteShellFines'),
-                compost: document.getElementById('jobCardWasteCompost'),
-                shell: document.getElementById('jobCardWasteShell')
-            };
-            
-            const wasteOil = wasteInputs.oil ? parseFloat(wasteInputs.oil.value) || 0 : 0;
-            const wasteSaltPepper = wasteInputs.saltPepper ? parseFloat(wasteInputs.saltPepper.value) || 0 : 0;
-            const wasteShellFines = wasteInputs.shellFines ? parseFloat(wasteInputs.shellFines.value) || 0 : 0;
-            const wasteCompost = wasteInputs.compost ? parseFloat(wasteInputs.compost.value) || 0 : 0;
-            const wasteShell = wasteInputs.shell ? parseFloat(wasteInputs.shell.value) || 0 : 0;
-            
-            const totalOut = soundKg + butterKg + wasteOil + wasteSaltPepper + wasteShellFines + wasteCompost + wasteShell;
-            
-            const massBalanceInEl = document.getElementById('jobCardMassBalanceIn');
-            const massBalanceOutEl = document.getElementById('jobCardMassBalanceOut');
-            const massBalancePctEl = document.getElementById('jobCardMassBalancePercentage');
-            
-            if (massBalanceInEl) massBalanceInEl.value = balance.toFixed(2);
-            if (massBalanceOutEl) massBalanceOutEl.value = totalOut.toFixed(2);
-            
-            const percentage = balance > 0 ? (totalOut / balance) * 100 : 0;
-            if (massBalancePctEl) massBalancePctEl.value = percentage.toFixed(2);
-        },
-        
-        addSoundKernelRow: function () {
-            const newRow = `
-                <tr>
-                    <td>
-                        <select class="form-select form-select-sm" name="style">
-                            <option value="">Select Style</option>
-                            <option value="SP">SP</option>
-                            <option value="0">0</option>
-                            <option value="1">1</option>
-                            <option value="1S">1S</option>
-                            <option value="4L">4L</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                        </select>
-                    </td>
-                    <td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td>
-                    <td><input type="number" class="form-control form-control-sm" name="weight_kg" step="0.01" value="0"></td>
-                    <td><button type="button" class="btn btn-sm btn-danger removeSoundKernelRow"><i class="fas fa-times"></i></button></td>
-                </tr>
-            `;
-            const soundKernelBody = document.getElementById('soundKernelTableBody');
-            if (soundKernelBody) {
-                soundKernelBody.insertAdjacentHTML('beforeend', newRow);
-            } else if (typeof $ !== 'undefined') {
-                $('#soundKernelTableBody').append(newRow);
-            }
-        },
-        
-        addButterGradeRow: function () {
-            const newRow = `
-                <tr>
-                    <td>
-                        <select class="form-select form-select-sm" name="style">
-                            <option value="">Select Style</option>
-                            <option value="7/8">7/8</option>
-                            <option value="Butter High Oil (Floaters)">Butter High Oil (Floaters)</option>
-                            <option value="Butter Low Oil (Sinkers)">Butter Low Oil (Sinkers)</option>
-                        </select>
-                    </td>
-                    <td><input type="number" class="form-control form-control-sm" name="cartons" value="0"></td>
-                    <td><input type="number" class="form-control form-control-sm" name="weight_kg" step="0.01" value="0"></td>
-                    <td><button type="button" class="btn btn-sm btn-danger removeButterGradeRow"><i class="fas fa-times"></i></button></td>
-                </tr>
-            `;
-            const butterGradeBody = document.getElementById('butterGradeTableBody');
-            if (butterGradeBody) {
-                butterGradeBody.insertAdjacentHTML('beforeend', newRow);
-            } else if (typeof $ !== 'undefined') {
-                $('#butterGradeTableBody').append(newRow);
-            }
-        },
-        
-        saveJobCard: async function () {
-            try {
-                console.log('[Kernel Production] Saving job card...');
-                const form = $('#kernelJobCardForm')[0];
-                if (!form) {
-                    Swal.fire('Error', 'Form not found', 'error');
-                    return;
-                }
-                if (!form.checkValidity()) {
-                    form.reportValidity();
-                    return;
-                }
-                
-                // Collect sound kernel styles - use native DOM
-                const soundKernelStyles = [];
-                const soundKernelBody = document.getElementById('soundKernelTableBody');
-                if (soundKernelBody) {
-                    const rows = soundKernelBody.querySelectorAll('tr');
-                    rows.forEach(row => {
-                        const styleSelect = row.querySelector('select[name="style"]');
-                        const cartonsInput = row.querySelector('input[name="cartons"]');
-                        const weightInput = row.querySelector('input[name="weight_kg"]');
-                        
-                        const style = styleSelect ? styleSelect.value : '';
-                        const cartons = cartonsInput ? parseInt(cartonsInput.value) || 0 : 0;
-                        const weight = weightInput ? parseFloat(weightInput.value) || 0 : 0;
-                        
-                        if (style && (cartons > 0 || weight > 0)) {
-                            soundKernelStyles.push({
-                                style: style,
-                                cartons: cartons,
-                                weight_kg: weight
-                            });
-                        }
-                    });
-                }
-                
-                // Collect butter grade styles - use native DOM
-                const butterGradeStyles = [];
-                const butterGradeBody = document.getElementById('butterGradeTableBody');
-                if (butterGradeBody) {
-                    const rows = butterGradeBody.querySelectorAll('tr');
-                    rows.forEach(row => {
-                        const styleSelect = row.querySelector('select[name="style"]');
-                        const cartonsInput = row.querySelector('input[name="cartons"]');
-                        const weightInput = row.querySelector('input[name="weight_kg"]');
-                        
-                        const style = styleSelect ? styleSelect.value : '';
-                        const cartons = cartonsInput ? parseInt(cartonsInput.value) || 0 : 0;
-                        const weight = weightInput ? parseFloat(weightInput.value) || 0 : 0;
-                        
-                        if (style && (cartons > 0 || weight > 0)) {
-                            butterGradeStyles.push({
-                                style: style,
-                                cartons: cartons,
-                                weight_kg: weight
-                            });
-                        }
-                    });
-                }
-                
-                // Get form values using native DOM
-                const getValue = (id) => {
-                    const el = document.getElementById(id);
-                    return el ? el.value : null;
-                };
-                
-                const getFloatValue = (id) => {
-                    const el = document.getElementById(id);
-                    return el && el.value ? parseFloat(el.value) : null;
-                };
-                
-                const getIntValue = (id) => {
-                    const el = document.getElementById(id);
-                    return el && el.value ? parseInt(el.value) : null;
-                };
-                
-                const getTextValue = (id) => {
-                    const el = document.getElementById(id);
-                    return el && el.textContent ? parseFloat(el.textContent) : null;
-                };
-                
-                const getIntTextValue = (id) => {
-                    const el = document.getElementById(id);
-                    return el && el.textContent ? parseInt(el.textContent) : null;
-                };
-                
-                const autoUpdateStockEl = document.getElementById('jobCardAutoUpdateStock');
-                
-                const jobCardData = {
-                    p_batch_number: getValue('jobCardBatchNumber'),
-                    p_received_date: getValue('jobCardReceivedDate'),
-                    p_total_weight_kg: getFloatValue('jobCardTotalWeight'),
-                    p_supplier_id: getValue('jobCardSupplier') || null,
-                    p_supplier_name: getValue('jobCardSupplierName') || null,
-                    p_removed_pre_sizer_kg: getFloatValue('jobCardRemovedPreSizer'),
-                    p_balance_kg: getFloatValue('jobCardBalance'),
-                    p_receiving_moisture_percentage: getFloatValue('jobCardReceivingMoisture'),
-                    p_packing_moisture_percentage: getFloatValue('jobCardPackingMoisture'),
-                    p_removed_moisture_percentage: getFloatValue('jobCardRemovedMoisture'),
-                    p_packing_start_date: getValue('jobCardPackingStartDate') || null,
-                    p_packing_completion_date: getValue('jobCardPackingCompletionDate') || null,
-                    p_best_before_date: getValue('jobCardBestBeforeDate') || null,
-                    p_sound_kernel_styles: soundKernelStyles.length > 0 ? JSON.stringify(soundKernelStyles) : null,
-                    p_sound_kernel_total_cartons: getIntTextValue('soundKernelTotalCartons'),
-                    p_sound_kernel_total_kg: getTextValue('soundKernelTotalKg'),
-                    p_butter_grade_styles: butterGradeStyles.length > 0 ? JSON.stringify(butterGradeStyles) : null,
-                    p_butter_grade_total_cartons: getIntTextValue('butterGradeTotalCartons'),
-                    p_butter_grade_total_kg: getTextValue('butterGradeTotalKg'),
-                    p_waste_oil_kernel_kg: getFloatValue('jobCardWasteOilKernel'),
-                    p_waste_salt_pepper_kg: getFloatValue('jobCardWasteSaltPepper'),
-                    p_waste_shell_fines_kg: getFloatValue('jobCardWasteShellFines'),
-                    p_waste_compost_kg: getFloatValue('jobCardWasteCompost'),
-                    p_waste_shell_kg: getFloatValue('jobCardWasteShell'),
-                    p_mass_balance_in_kg: getFloatValue('jobCardMassBalanceIn'),
-                    p_mass_balance_out_kg: getFloatValue('jobCardMassBalanceOut'),
-                    p_mass_balance_percentage: getFloatValue('jobCardMassBalancePercentage'),
-                    p_auto_update_stock: autoUpdateStockEl ? autoUpdateStockEl.checked : false
-                };
-                
-                console.log('[Kernel Production] Job card data:', jobCardData);
-                const result = await dataFunctions.createKernelJobCard(jobCardData);
-                console.log('[Kernel Production] Save result:', result);
-                
-                if (result && result.success !== false) {
-                    // Invalidate caches
-                    if (typeof dataFunctions !== 'undefined' && dataFunctions.clearCachePattern) {
-                        dataFunctions.clearCachePattern('stock_items');
-                    }
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: 'Kernel production job card saved successfully' + (jobCardData.p_auto_update_stock ? ' and stock updated' : ''),
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    
-                    // Close modal
-                    const modalElement = document.getElementById('kernelJobCardModal');
-                    if (modalElement) {
-                        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                            const modal = bootstrap.Modal.getInstance(modalElement);
-                            if (modal) {
-                                modal.hide();
-                            } else {
-                                const newModal = new bootstrap.Modal(modalElement);
-                                newModal.hide();
-                            }
-                        } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                            $('#kernelJobCardModal').modal('hide');
-                        }
-                    }
-                    
-                    this.loadBatches(true); // Force refresh
-                } else {
-                    const errorMsg = result?.error || result?.message || 'Failed to save job card';
-                    console.error('[Kernel Production] Save failed:', errorMsg);
-                    throw new Error(errorMsg);
-                }
-            } catch (error) {
-                console.error('[Kernel Production] Error saving job card:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to save job card: ' + (error.message || error.toString())
-                });
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Export utility not available', 'error');
             }
         }
     };
 }();
-const kernelProductionGrid = _kernelProductionGrid;
-function initializeKernelProductionGrid() {
-    console.log('[Kernel Production] Initializing module...');
-    if (typeof kernelProductionGrid !== 'undefined') {
-        // Wait for DOM to be fully ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(() => kernelProductionGrid.init(), 100);
-            });
-        } else {
-            setTimeout(() => kernelProductionGrid.init(), 100);
-        }
-    } else {
-        console.error('[Kernel Production] kernelProductionGrid object not defined!');
-    }
-}
 
+async function initializeKernelProductionGrid() {
+    if (typeof _kernelProductionGrid === 'undefined') {
+        console.error('[Kernel Production] _kernelProductionGrid not defined');
+        return;
+    }
+    if (document.readyState === 'loading') {
+        await new Promise((resolve) => $(document).one('DOMContentLoaded', resolve));
+    }
+    await _kernelProductionGrid.init();
+}

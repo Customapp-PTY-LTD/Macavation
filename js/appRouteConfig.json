@@ -129,7 +129,11 @@
             "path": "kernel-production",
             "html": "html/kernel_production_grid.html",
             "js": [
-                "js/kernel_production_grid.js"
+                "js/kernel_production_grid.js",
+                "js/kernel_production_stages.js",
+                "js/kernel_production_job_card.js",
+                "js/kernel_production_end_sample.js",
+                "js/kernel_production_batch_actions.js"
             ],
             "css": [
                 "css/kernel_production_grid.css"
