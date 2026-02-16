@@ -158,6 +158,27 @@ var _kernelProductionGrid = function () {
                     }
                 });
             }
+            document.addEventListener('click', function (e) {
+                var actionBtn = e.target && e.target.closest && e.target.closest('.production-action-btn');
+                if (actionBtn && actionBtn.getAttribute('data-action')) {
+                    e.preventDefault();
+                    scope.chooseProductionAction(actionBtn.getAttribute('data-action'));
+                }
+            });
+            var recordAnotherBtn = document.getElementById('recordAnotherActionBtn');
+            if (recordAnotherBtn) {
+                recordAnotherBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.showProductionActionSelector();
+                });
+            }
+            var saveSingleBtn = document.getElementById('saveProductionStagesBtnSingle');
+            if (saveSingleBtn) {
+                saveSingleBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    scope.saveProductionStages();
+                });
+            }
 
             // Production form: auto-fill Time Spent from Start Time and End Time (Cracking section)
             document.addEventListener('change', function (e) {
@@ -828,10 +849,50 @@ var _kernelProductionGrid = function () {
                     if (el.type === 'checkbox') {
                         el.checked = v === true || v === 'true' || v === '1' || v === 1;
                     } else {
+                        if (el.tagName === 'SELECT' && v != null && v !== '') {
+                            this.ensureSelectHasOption(el, String(v));
+                        }
                         el.value = v != null && v !== '' ? String(v) : '';
                     }
                 }
             }
+        },
+
+        ensureSelectHasOption: function (selectEl, value) {
+            if (!selectEl || selectEl.tagName !== 'SELECT' || !value) return;
+            var opts = selectEl.options;
+            for (var i = 0; i < opts.length; i++) {
+                if (opts[i].value === value) return;
+            }
+            var opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = value;
+            selectEl.appendChild(opt);
+        },
+
+        populateProductionGrowerSelects: async function (selectedGrowerName) {
+            var ids = ['ps_crack_grower', 'ps_wash_grower', 'ps_sort_grower', 'ps_pack_grower'];
+            var html = '<option value="">Select grower</option>';
+            try {
+                var contacts = await dataFunctions.getContacts();
+                if (contacts && Array.isArray(contacts)) {
+                    contacts.forEach(function (contact) {
+                        var name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
+                        if (name) html += '<option value="' + name.replace(/"/g, '&quot;') + '">' + name.replace(/</g, '&lt;') + '</option>';
+                    });
+                }
+            } catch (e) { console.warn('[Kernel Production] getContacts failed:', e); }
+            var scope = this;
+            ids.forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el && el.tagName === 'SELECT') {
+                    el.innerHTML = html;
+                    if (selectedGrowerName) {
+                        scope.ensureSelectHasOption(el, selectedGrowerName);
+                        el.value = selectedGrowerName;
+                    }
+                }
+            });
         },
 
         /** Clear all production stages form inputs so switching batches doesn't show previous batch data */
@@ -908,8 +969,7 @@ var _kernelProductionGrid = function () {
             var batchNumVal = batch.batch_number || '';
             var crackDate = document.getElementById('ps_crack_date');
             if (crackDate) crackDate.value = dateVal;
-            var crackGrower = document.getElementById('ps_crack_grower');
-            if (crackGrower) crackGrower.value = growerVal;
+            await this.populateProductionGrowerSelects(growerVal);
             var crackBatch1 = document.getElementById('ps_crack_batch1');
             if (crackBatch1) crackBatch1.value = batchNumVal;
             var days = batch.productionDays && batch.productionDays.length ? batch.productionDays : [];
@@ -928,6 +988,7 @@ var _kernelProductionGrid = function () {
                 if (dayIdEl) dayIdEl.value = firstDayId || '';
                 await this.loadProductionStagesForDay(firstDayId, first.kernel_production_stages_id);
                 this.setProductionDayActive(firstDayId);
+                this.updateProductionActionButtonTicks();
             }
             this.restoreProductionStagesDraft(batchId);
             var modalEl = document.getElementById('productionStagesModal');
@@ -960,6 +1021,94 @@ var _kernelProductionGrid = function () {
         setProductionStagesTabsVisibility: function (visible) {
             var el = document.getElementById('productionStagesTabsContainer');
             if (el) el.style.display = visible ? '' : 'none';
+            if (visible) this.showProductionActionSelector();
+        },
+
+        /** Map action (crack/wash/sort/pack/sum) to section key and pane id */
+        productionActionMap: {
+            crack: { section: 'crack', paneId: 'pane-cracking', dataKey: 'cracking_data' },
+            wash: { section: 'wash', paneId: 'pane-washing', dataKey: 'washing_data' },
+            sort: { section: 'sort', paneId: 'pane-sorting', dataKey: 'sorting_data' },
+            pack: { section: 'pack', paneId: 'pane-packing', dataKey: 'packing_data' },
+            sum: { section: 'sum', paneId: 'pane-summary', dataKey: 'summary_data' }
+        },
+
+        showProductionActionSelector: function () {
+            if (this.currentProductionAction) {
+                var prev = this.productionActionMap[this.currentProductionAction];
+                if (prev && this.modalProductionDayStages) {
+                    this.modalProductionDayStages[prev.dataKey] = this.getProductionStagesSectionData(prev.section);
+                }
+            }
+            this.currentProductionAction = null;
+            var sel = document.getElementById('productionStagesActionSelector');
+            var tabsWrap = document.getElementById('productionStagesTabsWrap');
+            var recAnother = document.getElementById('productionStagesRecordAnotherWrap');
+            var singleSave = document.getElementById('productionStagesSingleSaveWrap');
+            var summarySaveRow = document.getElementById('summaryPaneSaveRow');
+            if (sel) sel.style.display = '';
+            if (tabsWrap) tabsWrap.style.display = 'none';
+            if (recAnother) recAnother.style.display = 'none';
+            if (singleSave) singleSave.style.display = 'none';
+            if (summarySaveRow) summarySaveRow.style.display = '';
+            ['pane-cracking', 'pane-washing', 'pane-sorting', 'pane-packing', 'pane-summary'].forEach(function (id) {
+                var p = document.getElementById(id);
+                if (p) { p.style.display = 'none'; p.classList.remove('show', 'active'); }
+            });
+            this.updateProductionActionButtonTicks();
+        },
+
+        updateProductionActionButtonTicks: function () {
+            var stages = this.modalProductionDayStages || {};
+            var map = this.productionActionMap;
+            Object.keys(map).forEach(function (action) {
+                var dataKey = map[action].dataKey;
+                var data = stages[dataKey];
+                var hasData = data && typeof data === 'object' && Object.keys(data).length > 0;
+                var btn = document.querySelector('.production-action-btn[data-action="' + action + '"]');
+                if (!btn) return;
+                var label = btn.textContent.replace(/\s*✓\s*$/, '').trim();
+                if (action === 'crack') label = 'Cracking';
+                else if (action === 'wash') label = 'Washing';
+                else if (action === 'sort') label = 'Sorting';
+                else if (action === 'pack') label = 'Packing';
+                else if (action === 'sum') label = 'Summary';
+                btn.textContent = hasData ? label + ' ✓' : label;
+            });
+        },
+
+        chooseProductionAction: function (action) {
+            var map = this.productionActionMap[action];
+            if (!map) return;
+            if (this.currentProductionAction) {
+                var prev = this.productionActionMap[this.currentProductionAction];
+                if (prev && this.modalProductionDayStages) {
+                    this.modalProductionDayStages[prev.dataKey] = this.getProductionStagesSectionData(prev.section);
+                }
+            }
+            this.currentProductionAction = action;
+            this.modalProductionDayStages = this.modalProductionDayStages || {};
+            this.setProductionStagesSectionData(map.section, this.modalProductionDayStages[map.dataKey] || {});
+            var sel = document.getElementById('productionStagesActionSelector');
+            var tabsWrap = document.getElementById('productionStagesTabsWrap');
+            var recAnother = document.getElementById('productionStagesRecordAnotherWrap');
+            var singleSave = document.getElementById('productionStagesSingleSaveWrap');
+            var tabsEl = document.getElementById('productionStagesTabs');
+            var summarySaveRow = document.getElementById('summaryPaneSaveRow');
+            if (sel) sel.style.display = 'none';
+            if (tabsWrap) tabsWrap.style.display = '';
+            if (tabsEl) tabsEl.style.display = 'none';
+            if (recAnother) recAnother.style.display = '';
+            if (singleSave) singleSave.style.display = '';
+            if (summarySaveRow) summarySaveRow.style.display = 'none';
+            ['pane-cracking', 'pane-washing', 'pane-sorting', 'pane-packing', 'pane-summary'].forEach(function (id) {
+                var p = document.getElementById(id);
+                if (p) {
+                    p.style.display = (id === map.paneId) ? '' : 'none';
+                    if (id === map.paneId) p.classList.add('show', 'active');
+                    else p.classList.remove('show', 'active');
+                }
+            });
         },
 
         renderProductionDaysList: function (days) {
@@ -1008,6 +1157,13 @@ var _kernelProductionGrid = function () {
                 if (stagesId) s = await dataFunctions.getKernelProductionStages(stagesId);
                 else if (dayId) s = await dataFunctions.getKernelProductionStagesByDay(dayId);
             } catch (e) { console.warn('[Kernel Production] load stages failed:', e); }
+            this.modalProductionDayStages = {
+                cracking_data: (s && s.cracking_data) ? s.cracking_data : {},
+                washing_data: (s && s.washing_data) ? s.washing_data : {},
+                sorting_data: (s && s.sorting_data) ? s.sorting_data : {},
+                packing_data: (s && s.packing_data) ? s.packing_data : {},
+                summary_data: (s && s.summary_data) ? s.summary_data : {}
+            };
             if (s) {
                 this.setProductionStagesSectionData('crack', s.cracking_data);
                 this.setProductionStagesSectionData('wash', s.washing_data);
@@ -1026,6 +1182,7 @@ var _kernelProductionGrid = function () {
             var day = days.find(function (d) { return (d.id || d.kernel_production_day_id) === dayId; });
             await this.loadProductionStagesForDay(dayId, day && day.kernel_production_stages_id);
             this.setProductionDayActive(dayId);
+            this.showProductionActionSelector();
         },
 
         addProductionDay: async function () {
@@ -1046,10 +1203,11 @@ var _kernelProductionGrid = function () {
                 this.modalProductionDays = this.modalProductionDays || [];
                 this.modalProductionDays.push({ id: newDayId, day_number: dayNum, kernel_production_stages_id: null });
                 this.renderProductionDaysList(this.modalProductionDays);
-                this.setProductionStagesTabsVisibility(true);
                 var dayIdEl = document.getElementById('productionStagesDayId');
                 if (dayIdEl) dayIdEl.value = newDayId;
                 this.clearProductionStagesForm();
+                this.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
+                this.setProductionStagesTabsVisibility(true);
                 this.setProductionDayActive(newDayId);
             } catch (e) {
                 console.error('[Kernel Production] addProductionDay failed:', e);
@@ -1205,11 +1363,22 @@ var _kernelProductionGrid = function () {
             var batch = this.batches.find(function (b) { return String(b.id) === String(batchId); }) || this.filteredBatches.find(function (b) { return String(b.id) === String(batchId); });
             var batchNumber = batch ? (batch.batch_number || '') : '';
             var growerName = batch ? (batch.grower_name || '') : '';
-            var cracking_data = this.getProductionStagesSectionData('crack');
-            var washing_data = this.getProductionStagesSectionData('wash');
-            var sorting_data = this.getProductionStagesSectionData('sort');
-            var packing_data = this.getProductionStagesSectionData('pack');
-            var summary_data = this.getProductionStagesSectionData('sum');
+            var cracking_data, washing_data, sorting_data, packing_data, summary_data;
+            if (this.currentProductionAction) {
+                var stages = this.modalProductionDayStages || {};
+                var cur = this.productionActionMap[this.currentProductionAction];
+                cracking_data = (cur && cur.dataKey === 'cracking_data') ? this.getProductionStagesSectionData('crack') : (stages.cracking_data || {});
+                washing_data = (cur && cur.dataKey === 'washing_data') ? this.getProductionStagesSectionData('wash') : (stages.washing_data || {});
+                sorting_data = (cur && cur.dataKey === 'sorting_data') ? this.getProductionStagesSectionData('sort') : (stages.sorting_data || {});
+                packing_data = (cur && cur.dataKey === 'packing_data') ? this.getProductionStagesSectionData('pack') : (stages.packing_data || {});
+                summary_data = (cur && cur.dataKey === 'summary_data') ? this.getProductionStagesSectionData('sum') : (stages.summary_data || {});
+            } else {
+                cracking_data = this.getProductionStagesSectionData('crack');
+                washing_data = this.getProductionStagesSectionData('wash');
+                sorting_data = this.getProductionStagesSectionData('sort');
+                packing_data = this.getProductionStagesSectionData('pack');
+                summary_data = this.getProductionStagesSectionData('sum');
+            }
             var payload = {
                 kernel_production_day_id: dayId,
                 batch_number: batchNumber,
@@ -1222,6 +1391,14 @@ var _kernelProductionGrid = function () {
             };
             try {
                 await dataFunctions.saveKernelProductionStages(payload);
+                this.modalProductionDayStages = {
+                    cracking_data: cracking_data,
+                    washing_data: washing_data,
+                    sorting_data: sorting_data,
+                    packing_data: packing_data,
+                    summary_data: summary_data
+                };
+                this.updateProductionActionButtonTicks();
                 this.clearProductionStagesDraft(batchId);
                 if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved for this day.', 'success');
                 var days = [];
