@@ -29,34 +29,29 @@ var _menuFilter = function () {
             }
 
             const accessibleMenus = roleMenuConfig.getAccessibleMenus();
-            const isPWAUser = roleMenuConfig.isPWAUser();
             const isAdmin = roleMenuConfig.isAdminUser();
 
             console.log('[Menu Filter] Accessible menus:', accessibleMenus);
-            console.log('[Menu Filter] Is PWA User:', isPWAUser);
             console.log('[Menu Filter] Is Admin:', isAdmin);
 
-            // If PWA user, apply role-based filtering
-            if (isPWAUser) {
-                // Hide all menu items first
+            // Only admin/super_user see all menus. Everyone else (PWA, KP Data Admin, or unknown role) gets restricted menu.
+            // This avoids showing full menu on first load when role_name is not yet in user_info.
+            if (isAdmin) {
+                this.showAllMenus();
+                this.updateParentMenus();
+            } else {
+                // Restricted: hide all first, then show only allowed routes (empty if role unknown)
                 this.hideAllMenus();
-
-                // Show accessible menus
                 accessibleMenus.forEach(route => {
                     this.showMenu(route);
                 });
-
-                // Handle parent collapse menus
                 this.updateParentMenus();
-
-                // Hide admin-only sections
                 this.hideAdminSections();
-            } else {
-                // Admin and super_user see all menus
-                this.showAllMenus();
-                this.updateParentMenus();
             }
         },
+
+        /** Display value used when showing nav items (overrides default hidden state) */
+        _visibleDisplay: 'block',
 
         /**
          * Show a specific menu item
@@ -66,7 +61,7 @@ var _menuFilter = function () {
             if (menuItem) {
                 const navItem = menuItem.closest('.nav-item');
                 if (navItem) {
-                    navItem.style.display = '';
+                    navItem.style.display = this._visibleDisplay;
                 }
             }
         },
@@ -87,7 +82,7 @@ var _menuFilter = function () {
         showAllMenus: function () {
             const allMenuItems = document.querySelectorAll('.sidebar .nav-item');
             allMenuItems.forEach(item => {
-                item.style.display = '';
+                item.style.display = this._visibleDisplay;
             });
         },
 
@@ -103,10 +98,12 @@ var _menuFilter = function () {
             const userManagementToggle = document.querySelector('[data-bs-target="#userManagementCollapse"]');
             if (userManagementToggle) {
                 const parentNavItem = userManagementToggle.closest('.nav-item');
-                if (visibleUserItems.length > 0) {
-                    parentNavItem.style.display = '';
-                } else {
-                    parentNavItem.style.display = 'none';
+                if (parentNavItem) {
+                    if (visibleUserItems.length > 0) {
+                        parentNavItem.style.display = this._visibleDisplay;
+                    } else {
+                        parentNavItem.style.display = 'none';
+                    }
                 }
             }
 
@@ -118,10 +115,12 @@ var _menuFilter = function () {
             const crmToggle = document.querySelector('[data-bs-target="#crmCollapse"]');
             if (crmToggle) {
                 const parentNavItem = crmToggle.closest('.nav-item');
-                if (visibleCrmItems.length > 0) {
-                    parentNavItem.style.display = '';
-                } else {
-                    parentNavItem.style.display = 'none';
+                if (parentNavItem) {
+                    if (visibleCrmItems.length > 0) {
+                        parentNavItem.style.display = this._visibleDisplay;
+                    } else {
+                        parentNavItem.style.display = 'none';
+                    }
                 }
             }
 
@@ -133,10 +132,12 @@ var _menuFilter = function () {
             const productionToggle = document.querySelector('[data-bs-target="#productionCollapse"]');
             if (productionToggle) {
                 const parentNavItem = productionToggle.closest('.nav-item');
-                if (visibleProductionItems.length > 0) {
-                    parentNavItem.style.display = '';
-                } else {
-                    parentNavItem.style.display = 'none';
+                if (parentNavItem) {
+                    if (visibleProductionItems.length > 0) {
+                        parentNavItem.style.display = this._visibleDisplay;
+                    } else {
+                        parentNavItem.style.display = 'none';
+                    }
                 }
             }
 
@@ -148,10 +149,12 @@ var _menuFilter = function () {
             const qualityToggle = document.querySelector('[data-bs-target="#qualityCollapse"]');
             if (qualityToggle) {
                 const parentNavItem = qualityToggle.closest('.nav-item');
-                if (visibleQualityItems.length > 0) {
-                    parentNavItem.style.display = '';
-                } else {
-                    parentNavItem.style.display = 'none';
+                if (parentNavItem) {
+                    if (visibleQualityItems.length > 0) {
+                        parentNavItem.style.display = this._visibleDisplay;
+                    } else {
+                        parentNavItem.style.display = 'none';
+                    }
                 }
             }
 
@@ -163,10 +166,12 @@ var _menuFilter = function () {
             const businessToggle = document.querySelector('[data-bs-target="#businessCollapse"]');
             if (businessToggle) {
                 const parentNavItem = businessToggle.closest('.nav-item');
-                if (visibleBusinessItems.length > 0) {
-                    parentNavItem.style.display = '';
-                } else {
-                    parentNavItem.style.display = 'none';
+                if (parentNavItem) {
+                    if (visibleBusinessItems.length > 0) {
+                        parentNavItem.style.display = this._visibleDisplay;
+                    } else {
+                        parentNavItem.style.display = 'none';
+                    }
                 }
             }
         },

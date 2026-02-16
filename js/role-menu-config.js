@@ -105,6 +105,16 @@ var _roleMenuConfig = function () {
                     'quality-assurance-grid',
                     'my-day'
                 ]
+            },
+
+            // KP Data Admin - Production section only (Kernel Production, Grower Intake, Oil Production)
+            'KP Data Admin': {
+                access: 'specific',
+                menus: [
+                    'grower-intake-grid',
+                    'kernel-production-grid',
+                    'oil-production-grid'
+                ]
             }
         },
 
@@ -328,6 +338,13 @@ var _roleMenuConfig = function () {
             if (!roleName) return false;
 
             return roleName === 'admin' || roleName === 'super_user';
+        },
+
+        /**
+         * Check if user is KP Data Admin (production section only)
+         */
+        isKpDataAdmin: function () {
+            return this.getUserRole() === 'KP Data Admin';
         }
     };
 }();

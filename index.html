@@ -118,6 +118,10 @@
         }
 
         /* Sidebar Styling */
+        /* All sidebar nav items start hidden; menu-filter.js shows them by role */
+        #sidebarMenu .nav-item {
+            display: none;
+        }
         .sidebar {
             background: linear-gradient(180deg, var(--forest-deep) 0%, var(--macadamia-dark) 100%) !important;
             border-right: none !important;
@@ -875,12 +879,9 @@
             // Load and display user information
             updateUserDisplay();
 
-            // Initialize role-based menu filtering
+            // Initialize role-based menu filtering (run immediately so correct menu shows from first paint)
             if (typeof menuFilter !== 'undefined') {
-                // Wait a bit for DOM to be ready
-                setTimeout(() => {
-                    menuFilter.init();
-                }, 500);
+                menuFilter.init();
             }
 
             // Ensure User Management menu is collapsed by default
@@ -982,67 +983,51 @@
                     if (roleName) {
                         updateRoleDisplay(roleName);
                     } else {
-                        // No role found in user object, try to fetch it
+                        // No role found in user object, try to fetch it (async, no delay)
                         updateRoleDisplay('Loading...');
-                        
-                        // Try to fetch role from database
-                        if (typeof dataFunctions !== 'undefined') {
-                            // First, try to get current user's full info
-                            const userId = user.id || user.user_id;
-                            if (userId) {
-                                setTimeout(async () => {
-                                    try {
-                                        // Try to get user by ID to get full role info
-                                        const userData = await dataFunctions.getUserById(userId);
-                                        if (userData && userData.role_name) {
-                                            // Update localStorage with role_name
-                                            user.role_name = userData.role_name;
+                        const userId = user.id || user.user_id;
+                        if (typeof dataFunctions !== 'undefined' && userId) {
+                            (async function () {
+                                try {
+                                    const userData = await dataFunctions.getUserById(userId);
+                                    if (userData && userData.role_name) {
+                                        user.role_name = userData.role_name;
+                                        localStorage.setItem('user_info', JSON.stringify(user));
+                                        updateRoleDisplay(userData.role_name);
+                                        if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
+                                        return;
+                                    }
+                                    if (user.role_id) {
+                                        const roles = await dataFunctions.getRoles();
+                                        if (roles && Array.isArray(roles)) {
+                                            const userRole = roles.find(r => r.id === user.role_id);
+                                            if (userRole && userRole.role_name) {
+                                                user.role_name = userRole.role_name;
+                                                localStorage.setItem('user_info', JSON.stringify(user));
+                                                updateRoleDisplay(userRole.role_name);
+                                                if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
+                                                return;
+                                            }
+                                        }
+                                    }
+                                    const users = await dataFunctions.getUsers();
+                                    if (users && Array.isArray(users)) {
+                                        const currentUser = users.find(u => u.id === userId || u.email === user.email);
+                                        if (currentUser && (currentUser.role_name || currentUser.role)) {
+                                            const foundRole = currentUser.role_name || currentUser.role;
+                                            user.role_name = foundRole;
                                             localStorage.setItem('user_info', JSON.stringify(user));
-                                            updateRoleDisplay(userData.role_name);
+                                            updateRoleDisplay(foundRole);
+                                            if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
                                             return;
                                         }
-                                        
-                                        // If that doesn't work, try fetching from roles list
-                                        if (user.role_id) {
-                                            const roles = await dataFunctions.getRoles();
-                                            if (roles && Array.isArray(roles)) {
-                                                const userRole = roles.find(r => r.id === user.role_id);
-                                                if (userRole && userRole.role_name) {
-                                                    // Update localStorage with role_name
-                                                    user.role_name = userRole.role_name;
-                                                    localStorage.setItem('user_info', JSON.stringify(user));
-                                                    updateRoleDisplay(userRole.role_name);
-                                                    return;
-                                                }
-                                            }
-                                        }
-                                        
-                                        // If still no role found, check if user is in users list
-                                        const users = await dataFunctions.getUsers();
-                                        if (users && Array.isArray(users)) {
-                                            const currentUser = users.find(u => u.id === userId || u.email === user.email);
-                                            if (currentUser) {
-                                                const foundRole = currentUser.role_name || currentUser.role;
-                                                if (foundRole) {
-                                                    // Update localStorage with role_name
-                                                    user.role_name = foundRole;
-                                                    localStorage.setItem('user_info', JSON.stringify(user));
-                                                    updateRoleDisplay(foundRole);
-                                                    return;
-                                                }
-                                            }
-                                        }
-                                        
-                                        // If all else fails, show 'User'
-                                        updateRoleDisplay('User');
-                                    } catch (error) {
-                                        console.warn('Could not fetch role name:', error);
-                                        updateRoleDisplay('User');
                                     }
-                                }, 200);
-                            } else {
-                                updateRoleDisplay('User');
-                            }
+                                    updateRoleDisplay('User');
+                                } catch (error) {
+                                    console.warn('Could not fetch role name:', error);
+                                    updateRoleDisplay('User');
+                                }
+                            })();
                         } else {
                             updateRoleDisplay('User');
                         }
@@ -1265,36 +1250,31 @@
             });
         }
 
-        // Control menu visibility based on user permissions
+        // Control menu visibility based on user permissions (run after dataFunctions is ready)
         function updateMenuVisibility() {
-            // Wait for dataFunctions to be available
-            if (typeof dataFunctions === 'undefined') {
-                setTimeout(updateMenuVisibility, 100);
-                return;
-            }
-
-            // Show/hide test management menu based on permissions
             const testManagementMenuItem = document.getElementById('testScenariosMenuItem');
-            if (testManagementMenuItem) {
-                if (dataFunctions.canAccessTestManagement()) {
-                    testManagementMenuItem.style.display = '';
-                } else {
-                    testManagementMenuItem.style.display = 'none';
-                }
+            if (testManagementMenuItem && typeof dataFunctions !== 'undefined') {
+                testManagementMenuItem.style.display = dataFunctions.canAccessTestManagement() ? 'block' : 'none';
             }
         }
 
-        // Update menu visibility when page loads and when user info changes
-        document.addEventListener('DOMContentLoaded', function () {
-            updateMenuVisibility();
-            
-            // Also update when user info might change (e.g., after login)
-            const checkInterval = setInterval(function () {
+        // Wait for dataFunctions then update menu visibility (no delays; use await)
+        async function initMenuVisibilityWhenReady() {
+            try {
+                if (typeof waitForDataFunctions === 'function') {
+                    await waitForDataFunctions();
+                }
                 if (typeof dataFunctions !== 'undefined' && dataFunctions.isAuthenticated()) {
                     updateMenuVisibility();
-                    clearInterval(checkInterval);
                 }
-            }, 500);
+            } catch (e) {
+                console.warn('[Menu visibility] init skipped:', e);
+            }
+        }
+
+        // Update menu visibility when page loads (after dataFunctions is ready)
+        document.addEventListener('DOMContentLoaded', function () {
+            initMenuVisibilityWhenReady();
         });
     </script>
 </body>
