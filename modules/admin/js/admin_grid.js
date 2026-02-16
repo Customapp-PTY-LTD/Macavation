@@ -482,33 +482,70 @@ function setupFormHandlers() {
             }
         });
     }
+
+    // Reset add user modal when closed so "Add User" opens clean
+    const addUserModalEl = document.getElementById('addUserModal');
+    if (addUserModalEl) {
+        addUserModalEl.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('editUserId').value = '';
+            const form = document.getElementById('addUserForm');
+            if (form) form.reset();
+            const titleEl = addUserModalEl.querySelector('.modal-title');
+            if (titleEl) titleEl.textContent = 'Add New User';
+            const submitBtn = document.getElementById('addUserModalSubmitBtn');
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Create User';
+            }
+        });
+    }
 }
 
 /**
- * Submit user form
+ * Submit user form (create or update)
  */
 async function submitUserForm() {
     try {
-    const form = document.getElementById('addUserForm');
+        const form = document.getElementById('addUserForm');
         if (!form) return;
-        
-    const formData = new FormData(form);
-    const userData = {
-        first_name: formData.get('first_name'),
-        last_name: formData.get('last_name'),
-        email: formData.get('email'),
+
+        const editIdEl = document.getElementById('editUserId');
+        const isEdit = editIdEl && editIdEl.value;
+
+        const formData = new FormData(form);
+        const userData = {
+            first_name: formData.get('first_name'),
+            last_name: formData.get('last_name'),
+            email: formData.get('email'),
+            username: formData.get('email') || null,
             phone_number: formData.get('phone_number') || null,
-            role_id: formData.get('role_id'),
+            role_id: formData.get('role_id') || null,
             is_active: formData.get('is_active') === 'true'
-    };
-    
-        if (typeof dataFunctions !== 'undefined' && dataFunctions.createUser) {
+        };
+
+        if (isEdit) {
+            if (typeof dataFunctions !== 'undefined' && dataFunctions.updateUser) {
+                const result = await dataFunctions.updateUser(editIdEl.value, userData);
+                if (result && result.success) {
+                    showNotification('User updated successfully', 'success');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                    if (modal) modal.hide();
+                    editIdEl.value = '';
+                    form.reset();
+                    await loadUsers();
+                    await loadSummary();
+                } else {
+                    showNotification('Failed to update user', 'error');
+                }
+            } else {
+                showNotification('User update not available', 'error');
+            }
+        } else if (typeof dataFunctions !== 'undefined' && dataFunctions.createUser) {
             const result = await dataFunctions.createUser(userData);
             if (result && result.success) {
-    showNotification('User created successfully', 'success');
-    const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                showNotification('User created successfully', 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
                 if (modal) modal.hide();
-    form.reset();
+                form.reset();
                 await loadUsers();
                 await loadSummary();
             } else {
@@ -519,7 +556,7 @@ async function submitUserForm() {
         }
     } catch (error) {
         console.error('Error submitting user form:', error);
-        showNotification('Error creating user: ' + error.message, 'error');
+        showNotification('Error saving user: ' + error.message, 'error');
     }
 }
 
@@ -560,11 +597,94 @@ async function submitRoleForm() {
 }
 
 /**
- * Edit user
+ * Normalize user from API (may be wrapped or snake_case). Handles last_name and phone_number.
  */
-function editUser(userId) {
-    console.log('Edit user:', userId);
-    showNotification('User editing coming soon', 'info');
+function normalizeUserForForm(raw) {
+    if (!raw) return null;
+    const u = Array.isArray(raw) ? raw[0] : (raw.get_user_by_id || raw);
+    if (!u) return null;
+    const last = (u.last_name ?? u.lastName ?? u.lastname ?? '').toString().trim();
+    const phone = (u.phone_number ?? u.phone ?? u.phoneNumber ?? '').toString().trim();
+    return {
+        id: u.id,
+        first_name: u.first_name ?? u.firstName ?? u.username ?? (u.email && u.email.split('@')[0]) ?? '',
+        last_name: last,
+        email: u.email ?? '',
+        phone_number: phone,
+        role_id: u.role_id ?? u.roleId ?? '',
+        is_active: u.is_active !== false
+    };
+}
+
+/**
+ * Merge table user with API user so we have first_name, last_name, phone_number, etc.
+ */
+function mergeUserForForm(tableUser, apiUser) {
+    if (!apiUser) return tableUser;
+    return {
+        id: apiUser.id ?? tableUser?.id,
+        first_name: (apiUser.first_name != null && apiUser.first_name !== '') ? apiUser.first_name : (tableUser?.first_name || ''),
+        last_name: (apiUser.last_name != null && apiUser.last_name !== '') ? apiUser.last_name : (tableUser?.last_name || ''),
+        email: apiUser.email ?? tableUser?.email ?? '',
+        phone_number: (apiUser.phone_number != null && apiUser.phone_number !== '') ? apiUser.phone_number : (tableUser?.phone_number || ''),
+        role_id: apiUser.role_id ?? tableUser?.role_id ?? '',
+        is_active: apiUser.is_active !== undefined ? apiUser.is_active : (tableUser?.status !== 'inactive')
+    };
+}
+
+/**
+ * Edit user: fetch full user (so last_name and phone_number are included), then fill form and show modal
+ */
+async function editUser(userId) {
+    try {
+        const form = document.getElementById('addUserForm');
+        const editIdEl = document.getElementById('editUserId');
+        if (!form || !editIdEl) return;
+
+        const tableUser = (adminData.users || []).find(u => u.id === userId);
+        let user = tableUser ? {
+            id: tableUser.id,
+            first_name: tableUser.first_name || '',
+            last_name: tableUser.last_name || '',
+            email: tableUser.email || '',
+            phone_number: tableUser.phone_number || '',
+            role_id: tableUser.role_id || '',
+            is_active: tableUser.status !== 'inactive'
+        } : null;
+
+        if (typeof dataFunctions !== 'undefined' && dataFunctions.getUserById) {
+            const raw = await dataFunctions.getUserById(userId, null, true);
+            const apiUser = normalizeUserForForm(raw);
+            user = mergeUserForForm(user, apiUser) || apiUser;
+        }
+        if (!user) {
+            showNotification('User not found', 'error');
+            return;
+        }
+
+        const isActive = user.is_active !== undefined ? user.is_active : (user.status !== 'inactive');
+        const roleId = user.role_id || '';
+
+        editIdEl.value = userId;
+        form.querySelector('[name="first_name"]').value = user.first_name || '';
+        form.querySelector('[name="last_name"]').value = user.last_name || '';
+        form.querySelector('[name="email"]').value = user.email || '';
+        form.querySelector('[name="phone_number"]').value = user.phone_number || '';
+        form.querySelector('[name="role_id"]').value = roleId;
+        form.querySelector('[name="is_active"]').value = isActive ? 'true' : 'false';
+
+        const modalEl = document.getElementById('addUserModal');
+        const titleEl = modalEl ? modalEl.querySelector('.modal-title') : null;
+        const submitBtn = document.getElementById('addUserModalSubmitBtn');
+        if (titleEl) titleEl.textContent = 'Edit User';
+        if (submitBtn) submitBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Update User';
+
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    } catch (error) {
+        console.error('Error opening edit user:', error);
+        showNotification('Error loading user: ' + (error.message || 'Unknown error'), 'error');
+    }
 }
 
 /**
