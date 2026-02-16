@@ -428,19 +428,16 @@ h1, h2, h3, h4, h5, h6,
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
     background-color: var(--theme-sidebar-hover);
-    border: 1px solid rgba(var(--phoenix-primary-rgb), 0.2);
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link:hover {
     background-color: rgba(var(--phoenix-primary-rgb), 0.25);
     color: #fff;
-    border-color: rgba(var(--phoenix-primary-rgb), 0.35);
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link[aria-expanded="true"] {
     background-color: rgba(var(--phoenix-primary-rgb), 0.25);
     color: #fff;
-    border-color: rgba(var(--phoenix-primary-rgb), 0.35);
 }
 
 /* Main Content Area */
@@ -783,14 +780,25 @@ h1, h2, h3, h4, h5, h6,
     position: relative;
 }
 
-.sidebar .nav-item:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 1rem;
-    right: 1rem;
-    height: 1px;
-    background-color: rgba(var(--phoenix-border-color), 0.3);
+/* Separator lines between nav items removed to avoid framed look on dropdown buttons */
+
+/* Force no frames/borders on sidebar dropdown buttons and sub-items (override any theme/Bootstrap) */
+#sidebarMenu.sidebar .nav-link,
+#sidebarMenu.sidebar .collapse .nav-link,
+#sidebarMenu.sidebar .nav-item .nav-link,
+#sidebarMenu.sidebar .collapse .nav-item .nav-link,
+#sidebarMenu.sidebar .nav-item .nav-link:hover,
+#sidebarMenu.sidebar .collapse .nav-link:hover,
+#sidebarMenu.sidebar .nav-item .nav-link:focus,
+#sidebarMenu.sidebar .collapse .nav-link:focus,
+#sidebarMenu.sidebar .nav-item .nav-link.active,
+#sidebarMenu.sidebar .collapse .nav-item .nav-link.active {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+#sidebarMenu.sidebar .nav-item {
+    border: none !important;
 }
 
 /* Sidebar Scrollbar */

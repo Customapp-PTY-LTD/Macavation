@@ -16,6 +16,14 @@ var _kernelProductionGrid = function () {
         });
     };
 
+    /** Convert status from snake_case to title case with spaces for display (e.g. in_production -> In Production). */
+    const statusToTitleCase = (str) => {
+        if (!str || typeof str !== 'string') return str || '';
+        return str.split('_').map((part) =>
+            part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+        ).join(' ');
+    };
+
     return {
         batches: [],
         filteredBatches: [],
@@ -228,7 +236,7 @@ var _kernelProductionGrid = function () {
                 const actionsCell = '<div class="dropdown">' +
                     '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false">Actions</button>' +
                     '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="batchActions' + batch.id + '">' + menuItems.join('') + '</ul></div>';
-                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + (batch.status || 'in_production') + '</span></td><td>' + actionsCell + '</td></tr>';
+                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + statusToTitleCase(batch.status || 'in_production') + '</span></td><td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
         },
