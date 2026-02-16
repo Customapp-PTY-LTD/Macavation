@@ -5,6 +5,25 @@
  */
 var _kernelProductionGrid = function () {
     'use strict';
+
+    // --- TEMPORARY: Role-based UI (hardcoded). To remove: delete this ROLE_FEATURE block and the "if (isKpDataAdmin)" branch in renderBatches (keep only the dropdown branch). ---
+    const ROLE_FEATURE = {
+        /** Role name that sees only the Production button instead of the full Actions dropdown. */
+        KP_DATA_ADMIN_ROLE: 'KP Data Admin',
+        /** Returns true if current user has role "KP Data Admin" (from localStorage user_info). */
+        isKpDataAdmin: function () {
+            try {
+                const raw = typeof localStorage !== 'undefined' && localStorage.getItem('user_info');
+                if (!raw) return false;
+                const user = JSON.parse(raw);
+                return user && user.role_name === ROLE_FEATURE.KP_DATA_ADMIN_ROLE;
+            } catch (e) {
+                return false;
+            }
+        }
+    };
+    // --- End TEMPORARY role feature ---
+
     const delay = (ms) => {
         const end = Date.now() + ms;
         return new Promise((resolve) => {
@@ -64,6 +83,7 @@ var _kernelProductionGrid = function () {
             });
             $(document).on('click', '.js-production-batch', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
                 const batchId = $(this).data('batch-id');
                 const productionStagesId = $(this).data('production-stages-id');
                 if (typeof _kernelProductionStages === 'undefined') {
@@ -103,7 +123,7 @@ var _kernelProductionGrid = function () {
                 }
             });
             $(document).on('click', '#batchesTableBody tr.js-batch-row', function (e) {
-                if ($(e.target).closest('.dropdown').length) return;
+                if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
                 const batchId = $(this).data('batch-id');
                 if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.showBatchHistory) {
                     _kernelProductionBatchActions.showBatchHistory(batchId);
@@ -233,9 +253,16 @@ var _kernelProductionGrid = function () {
                 } else {
                     menuItems.push('<span class="dropdown-item text-muted">Release to stock</span>');
                 }
-                const actionsCell = '<div class="dropdown">' +
-                    '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false">Actions</button>' +
-                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="batchActions' + batch.id + '">' + menuItems.join('') + '</ul></div>';
+                // TEMPORARY: KP Data Admin sees only Production button. Remove when replacing with real auth.
+                const isKpDataAdmin = typeof ROLE_FEATURE !== 'undefined' && ROLE_FEATURE.isKpDataAdmin && ROLE_FEATURE.isKpDataAdmin();
+                let actionsCell;
+                if (isKpDataAdmin) {
+                    actionsCell = '<button type="button" class="btn btn-sm btn-outline-secondary js-production-batch" data-batch-id="' + batch.id + '" data-production-stages-id="' + productionStagesId + '">' + productionLabel + '</button>';
+                } else {
+                    actionsCell = '<div class="dropdown">' +
+                        '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false">Actions</button>' +
+                        '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="batchActions' + batch.id + '">' + menuItems.join('') + '</ul></div>';
+                }
                 const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + statusToTitleCase(batch.status || 'in_production') + '</span></td><td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });

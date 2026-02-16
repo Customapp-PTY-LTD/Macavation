@@ -1,0 +1,416 @@
+/**
+ * Sign-in Module
+ * Handles email/password and Google sign-in, sign-up, and forgot password.
+ * Pattern: same as kernel_production_grid.js (return object, arrow functions, const scope = _signin).
+ */
+var _signin = function () {
+    'use strict';
+
+    const LAMBDA_PROXY_URL = 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws';
+    const SUPABASE_URL = 'https://iwxmuemrfopajwvqdiae.supabase.co';
+    const SUPABASE_ANON_KEY = 'your-anon-key-here';
+    const DEFAULT_CLIENT_GUID = '9e1d961a-bfc2-469d-8526-8af75f536656';
+
+    let sbClient = null;
+    try {
+        if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+            sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+    } catch (e) {
+        console.warn('[Sign-in] Supabase client initialization failed:', e);
+    }
+
+    /** Get client GUID from URL query parameter cc, or default. */
+    const getClientGUID = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const ccParam = urlParams.get('cc');
+        return ccParam || DEFAULT_CLIENT_GUID;
+    };
+
+    /**
+     * Fetch full user record from backend after login (Lambda returns minimal user).
+     * Returns full user object for user_info, or null on failure (caller can fall back to minimal user).
+     */
+    const fetchFullUserData = async (token, userId) => {
+        if (!token || !userId) return null;
+        try {
+            const response = await fetch(LAMBDA_PROXY_URL + '/proxy/function', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    function: 'get_user_by_id',
+                    params: { p_id: userId }
+                })
+            });
+            if (!response.ok) return null;
+            const data = await response.json();
+            // Proxy may return { data: row } or the row directly; normalize to one object
+            const userRow = data && (data.data !== undefined ? data.data : data);
+            if (userRow && (userRow.id || userRow.user_id)) {
+                return userRow;
+            }
+            return null;
+        } catch (e) {
+            console.warn('[Sign-in] Fetch full user failed:', e);
+            return null;
+        }
+    };
+
+    return {
+        init: () => {
+            const scope = _signin;
+            const token = typeof localStorage !== 'undefined' && localStorage.getItem('lambda_token');
+            const userInfo = typeof localStorage !== 'undefined' && localStorage.getItem('user_info');
+            const isAuthenticated = !!(token && userInfo);
+
+            if (isAuthenticated) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            console.log('[Sign-in] Initializing...');
+            scope.bindEvents();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.get('cc')) {
+                urlParams.set('cc', DEFAULT_CLIENT_GUID);
+                const newUrl = window.location.pathname + '?' + urlParams.toString() + (window.location.hash || '');
+                window.history.replaceState({}, '', newUrl);
+            }
+
+            if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                try {
+                    google.accounts.id.initialize({
+                        client_id: '753420461338-f17hesq624p8ubcs67s1rp8hmnbp97ff.apps.googleusercontent.com',
+                        callback: (response) => scope.handleGoogleResponse(response),
+                        auto_select: false,
+                        cancel_on_tap_outside: true,
+                        itp_support: true,
+                        use_fedcm_for_prompt: false
+                    });
+                } catch (err) {
+                    console.error('[Sign-in] Google Sign-In initialization failed:', err);
+                }
+            }
+
+            if (sbClient && sbClient.auth && typeof sbClient.auth.onAuthStateChange === 'function') {
+                sbClient.auth.onAuthStateChange((event, session) => {
+                    if (event === 'SIGNED_IN' && session) {
+                        window.location.href = 'index.html';
+                    }
+                });
+            }
+        },
+
+        bindEvents: () => {
+            const scope = _signin;
+            const signinForm = document.getElementById('signinForm');
+            const signupForm = document.getElementById('signupForm');
+            if (signinForm) {
+                signinForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    scope.handleEmailSignIn(e);
+                });
+            }
+            if (signupForm) {
+                signupForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    scope.handleSignUp(e);
+                });
+            }
+            const forgotBtn = document.getElementById('forgotPasswordBtn');
+            if (forgotBtn) {
+                forgotBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    scope.forgotPassword();
+                });
+            }
+            const showSignUpBtn = document.getElementById('showSignUpBtn');
+            if (showSignUpBtn) {
+                showSignUpBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    scope.showSignUpModal();
+                });
+            }
+        },
+
+        handleEmailSignIn: async (e) => {
+            const scope = _signin;
+            e.preventDefault();
+
+            const clientGUID = getClientGUID();
+            const emailEl = document.getElementById('email');
+            const passwordEl = document.getElementById('password');
+            const email = emailEl ? emailEl.value : '';
+            const password = passwordEl ? passwordEl.value : '';
+
+            scope.showLoading();
+
+            try {
+                const response = await fetch(LAMBDA_PROXY_URL + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: 'email',
+                        email: email,
+                        password: password,
+                        client_unique_guid: clientGUID
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'HTTP error! status: ' + response.status);
+                }
+
+                const authResult = await response.json();
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('lambda_token', authResult.token);
+                    localStorage.setItem('user_info', JSON.stringify(authResult.user));
+                    debugger
+                    localStorage.setItem('client_guid', clientGUID);
+                }
+
+                scope.hideLoading();
+
+                const userRole = (authResult.user && (authResult.user.role_name || authResult.user.role)) || '';
+                if (userRole.toLowerCase().indexOf('driver') >= 0) {
+                    window.location.href = 'driver-inspection.html';
+                } else {
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                scope.hideLoading();
+                scope.showError('Sign in failed: ' + error.message);
+            }
+        },
+
+        handleGoogleResponse: (response) => {
+            const scope = _signin;
+            scope.showLoading();
+
+            try {
+                if (response && response.credential) {
+                    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+                    if (!payload.email || !payload.sub) {
+                        throw new Error('Invalid Google token: missing email or sub');
+                    }
+                    scope.authenticateWithGoogle(response.credential, getClientGUID());
+                } else {
+                    scope.hideLoading();
+                    scope.showError('Invalid response from Google. Please try again.');
+                }
+            } catch (error) {
+                scope.hideLoading();
+                scope.showError('Failed to process Google login. Please try again.');
+            }
+        },
+
+        authenticateWithGoogle: async (idToken, clientGUID) => {
+            const scope = _signin;
+            try {
+                if (!idToken) {
+                    throw new Error('No Google token provided');
+                }
+
+                const response = await fetch(LAMBDA_PROXY_URL + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: 'google',
+                        id_token: idToken,
+                        client_unique_guid: clientGUID
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'HTTP error! status: ' + response.status);
+                }
+
+                const authResult = await response.json();
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('lambda_token', authResult.token);
+                    localStorage.setItem('user_info', JSON.stringify(authResult.user));
+                    localStorage.setItem('client_guid', clientGUID);
+                }
+
+                scope.hideLoading();
+
+                const userRole = (authResult.user && (authResult.user.role_name || authResult.user.role)) || '';
+                if (userRole.toLowerCase().indexOf('driver') >= 0) {
+                    window.location.href = 'driver-inspection.html';
+                } else {
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                scope.hideLoading();
+                scope.showError('Google authentication failed: ' + error.message);
+            }
+        },
+
+        forgotPassword: async () => {
+            const scope = _signin;
+            if (typeof Swal === 'undefined') {
+                console.warn('[Sign-in] Swal not available for forgot password');
+                return;
+            }
+            const { value: email } = await Swal.fire({
+                title: 'Reset Password',
+                text: 'Enter your email address to receive a password reset link',
+                input: 'email',
+                inputPlaceholder: 'Enter your email address',
+                showCancelButton: true,
+                confirmButtonText: 'Send Reset Link',
+                cancelButtonText: 'Cancel',
+                inputValidator: (value) => {
+                    if (!value) return 'You need to enter an email address!';
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address!';
+                }
+            });
+
+            if (!email) return;
+
+            if (!sbClient) {
+                scope.showError('Password reset is not available at this time.');
+                return;
+            }
+
+            try {
+                const { error } = await sbClient.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/reset-password.html'
+                });
+                if (error) throw error;
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Email Sent!',
+                    text: 'Password reset email sent! Check your inbox.'
+                });
+            } catch (error) {
+                scope.showError('Failed to send reset email: ' + error.message);
+            }
+        },
+
+        showSignUpModal: () => {
+            const el = document.getElementById('signupModal');
+            if (el && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const signupModal = new bootstrap.Modal(el);
+                signupModal.show();
+            }
+        },
+
+        handleSignUp: async (e) => {
+            const scope = _signin;
+            e.preventDefault();
+
+            const clientGUID = getClientGUID();
+            const email = (document.getElementById('signupEmail') || {}).value || '';
+            const password = (document.getElementById('signupPassword') || {}).value || '';
+            const confirmPassword = (document.getElementById('signupConfirmPassword') || {}).value || '';
+            const fullName = (document.getElementById('signupFullName') || {}).value || '';
+            const firstName = (document.getElementById('signupFirstName') || {}).value || '';
+            const lastName = (document.getElementById('signupLastName') || {}).value || '';
+
+            if (password !== confirmPassword) {
+                scope.showError('Passwords do not match.');
+                return;
+            }
+            if (password.length < 8) {
+                scope.showError('Password must be at least 8 characters long.');
+                return;
+            }
+
+            scope.showLoading();
+
+            try {
+                const response = await fetch(LAMBDA_PROXY_URL + '/proxy/function', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        function: 'create_user_simple',
+                        params: {
+                            p_email: email,
+                            p_password: password,
+                            p_full_name: fullName,
+                            p_first_name: firstName,
+                            p_last_name: lastName,
+                            p_client_unique_guid: clientGUID,
+                            p_provider: 'email'
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'HTTP error! status: ' + response.status);
+                }
+
+                scope.hideLoading();
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Account Created!',
+                        text: 'Your account has been created successfully. Please sign in.'
+                    }).then(() => {
+                        const signupModalEl = document.getElementById('signupModal');
+                        if (signupModalEl) {
+                            const modalInstance = bootstrap.Modal.getInstance(signupModalEl);
+                            if (modalInstance) modalInstance.hide();
+                        }
+                        const form = document.getElementById('signupForm');
+                        if (form) form.reset();
+                    });
+                }
+            } catch (error) {
+                scope.hideLoading();
+                scope.showError('Sign up failed: ' + error.message);
+            }
+        },
+
+        showLoading: () => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Signing you in...',
+                    text: 'Please wait while we authenticate you',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+            }
+        },
+
+        hideLoading: () => {
+            if (typeof Swal !== 'undefined') Swal.close();
+        },
+
+        showError: (message) => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'error', title: 'Error', text: message });
+            } else {
+                console.error('[Sign-in]', message);
+            }
+        }
+    };
+}();
+
+function initializeSignin() {
+    if (typeof _signin === 'undefined') {
+        console.error('[Sign-in] _signin not defined');
+        return;
+    }
+    _signin.init();
+}
+
+// Expose globals for HTML onclick and Google One Tap data-callback
+window.forgotPassword = function () { _signin.forgotPassword(); };
+window.showSignUpModal = function () { _signin.showSignUpModal(); };
+window.handleGoogleResponse = function (res) { _signin.handleGoogleResponse(res); };
+
+document.addEventListener('DOMContentLoaded', function () {
+    initializeSignin();
+});

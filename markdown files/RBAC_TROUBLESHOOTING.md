@@ -11,12 +11,7 @@ This message means **your role is not allowed to run the requested function** (e
    - If there is **no row** or **allowed = false**, it returns 403 with a message like "operation execute is not allowed".
 
 2. **What was fixed**  
-   EXECUTE permission has been granted for **all roles** (admin, super_user, user, manager, viewer, assessor, student) on:
-   - `get_production_batches`
-   - `create_production_batch_simple`
-   - `update_production_batch`
-   - `get_supplier_intake_batches` and `create_supplier_intake_batch` (Supplier Intake – save batch)  
-   So creating/updating kernel batches and saving supplier intake batches should work for any role once the corresponding SQL has been run (see BluePrint/RBAC_GUIDE.md).
+   EXECUTE permission has been granted for **all roles** (including admin, super_user, KP Data Admin, and every PWA role) on all data functions used to date (see **Data functions – public to all roles** below). Creating/updating kernel batches, supplier intake, dashboard, and kernel production flows should work for any role once the migration has been applied (see BluePrint/RBAC_GUIDE.md).
 
 3. **If you still see the error**  
    - **Log out and log back in** so a new JWT is issued with your current role.
@@ -43,10 +38,22 @@ All required database functions have been created and RBAC permissions have been
 - ✅ `get_stock_items`
 
 ### Permissions Set ✅
-All functions have `EXECUTE` permissions for:
-- ✅ `super_user` role
-- ✅ `admin` role
-- ✅ All PWA roles (PWA Production, PWA Quality Assurance, PWA Grower Intake)
+All **data functions** (listed below) have `EXECUTE` permissions for **every user role** in the system:
+- ✅ `super_user`, `admin`
+- ✅ `KP Data Admin`
+- ✅ All PWA roles (PWA Production, PWA Quality Assurance, PWA Grower Intake, PWA Document Management, PWA Field Operations, PWA Finance, PWA Sales, PWA Stock Management)
+
+### Data functions – completely public (all roles)
+
+**Macavation Supabase:** Migration `grant_all_functions_execute_to_all_roles_public` makes **every** function in `role_permissions` executable by **every** active role. No role is excluded: admin, super_user, KP Data Admin, and all PWA roles can EXECUTE all 128+ database functions. This is the “completely public” RBAC setup.
+
+Earlier migrations (still valid on other projects or for reference):
+- **Auth / user (all roles):** `get_user_by_id`, `get_user_with_permissions`, `get_roles`, `get_users`
+- Dashboard / My Day: `get_workflow_tasks`, `get_watching_items`, `get_due_items`, `get_executive_kpis`, `get_recent_activity_by_role`, `get_active_anomalies`, `get_dashboard_alerts`, `get_dashboard_stats`, `get_recent_activity`, `get_stock_items`
+- Production batches: `get_production_batches`, `create_production_batch_simple`, `update_production_batch`
+- Supplier intake: `get_supplier_intake_batches`, `create_supplier_intake_batch`, `get_supplier_intake_batches_by_production_day`, `update_supplier_intake_batch_production_day`
+- Kernel production: `get_kernel_job_card`, `get_kernel_job_cards`, `create_kernel_job_card`, `get_kernel_packing_sample`, `get_kernel_packing_samples`, `create_kernel_packing_sample`, `get_kernel_production_days`, `get_kernel_production_days_list`, `create_kernel_production_day`, `get_kernel_production_stages`, `get_kernel_production_stages_by_day`, `get_kernel_production_stages_list`, `save_kernel_production_stages`, `finish_kernel_batch_production`
+- Supporting: `get_receiving_checklist`, `get_receiving_checklists`, `get_sample_submissions`, `get_contacts`
 
 ## If You're Still Getting 403 Errors
 
@@ -85,6 +92,16 @@ If errors persist after logging out/in:
 2. Go to Console tab
 3. Look for the exact error message
 4. Check if it's still a 403 error or a different error
+
+### Role display / "Could not fetch role name" (index.html)
+
+If you see **"Could not fetch role name: Error: Access denied: operation EXECUTE is not allowed"** when loading the app, the Lambda is denying `get_user_by_id` or `get_roles` for your role. Ensure RBAC allows these for **all** roles:
+
+- **`get_user_by_id`** – used by `dataFunctions.getUserById()` so index.html can show role name.
+- **`get_roles`** – used when resolving role name from `role_id`.
+- **`get_user_with_permissions`** – used by auth-service for full user/role info.
+
+On the **Macavation** Supabase project, migration `grant_get_user_by_id_and_get_roles_to_all_roles` grants EXECUTE on these three functions to every active role (admin, super_user, KP Data Admin, and all PWA roles). After applying it, **log out and log back in** so the new permissions are used.
 
 ### Solution 4: Verify Database Permissions (Admin Only)
 
