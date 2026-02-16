@@ -20,27 +20,22 @@ var _kernelProductionStages = function () {
         init: () => {
             const scope = _kernelProductionStages;
             console.log('kernelProductionStages init');
-        $('#productionStagesDayList').off('click').on('click', '[data-day-id]', function (e) {
-            e.preventDefault();
-            var dayId = $(this).attr('data-day-id');
-            if (dayId) scope.selectProductionDay(dayId);
-        });
-        $(document).off('click.kernelStages', '.production-action-item').on('click.kernelStages', '.production-action-item', function (e) {
-            e.preventDefault();
-            var action = $(this).attr('data-action');
-            if (action) scope.chooseProductionAction(action);
-        });
-        $('#recordAnotherActionBtn').off('click').on('click', function (e) {
-            e.preventDefault();
-            scope.showProductionActionSelector();
+        $('#productionStagesTabs').off('shown.bs.tab').on('shown.bs.tab', function (e) {
+            var newTabId = (e.target && e.target.id) ? e.target.id : ($(e.target).attr && $(e.target).attr('id'));
+            if (newTabId && scope.tabIdToSection[newTabId]) {
+                scope.persistCurrentTabToStages();
+                scope.currentTabSection = scope.tabIdToSection[newTabId];
+                scope.updateProductionActionButtonTicks();
+                var batchId = $('#productionStagesBatchId').val();
+                var tabName = newTabId.replace('tab-', '');
+                if (batchId && tabName) {
+                    try { localStorage.setItem('kernelProduction_lastTab_' + batchId, tabName); } catch (err) {}
+                }
+            }
         });
         $('#saveProductionStagesBtnSingle, #saveProductionStagesBtn').off('click').on('click', function (e) {
             e.preventDefault();
             scope.saveProductionStages();
-        });
-        $('#addProductionDayBtn').off('click').on('click', function (e) {
-            e.preventDefault();
-            scope.addProductionDay();
         });
         $('#batchSummaryBtn').off('click').on('click', function (e) {
             e.preventDefault();
@@ -58,17 +53,6 @@ var _kernelProductionStages = function () {
         $('#productionStagesModal').off('hidden.bs.modal').on('hidden.bs.modal', function () {
             var batchId = $('#productionStagesBatchId').val();
             if (batchId) scope.saveProductionStagesDraftToStorage();
-        });
-        $('#productionStagesTabs').off('shown.bs.tab').on('shown.bs.tab', function (e) {
-            var target = e.target;
-            var paneId = $(target).attr('data-bs-target');
-            if (paneId) {
-                var tabName = paneId.replace('#pane-', '');
-                var batchId = $('#productionStagesBatchId').val();
-                if (batchId && tabName) {
-                    try { localStorage.setItem('kernelProduction_lastTab_' + batchId, tabName); } catch (err) {}
-                }
-            }
         });
         },
 
@@ -224,68 +208,38 @@ var _kernelProductionStages = function () {
         if (draft.summary_data) scope.setProductionStagesSectionData('sum', draft.summary_data);
         },
 
+        tabIdToSection: { 'tab-cracking': 'crack', 'tab-washing': 'wash', 'tab-sorting': 'sort', 'tab-packing': 'pack', 'tab-summary': 'sum' },
+        currentTabSection: 'crack',
+
         setProductionStagesTabsVisibility: (visible) => {
             const scope = _kernelProductionStages;
         $('#productionStagesTabsContainer').css('display', visible ? '' : 'none');
-        if (visible) scope.showProductionActionSelector();
-        },
-
-        showProductionActionSelector: () => {
-            const scope = _kernelProductionStages;
-        if (scope.currentProductionAction) {
-            var prev = scope.productionActionMap[scope.currentProductionAction];
-            if (prev && scope.modalProductionDayStages) {
-                scope.modalProductionDayStages[prev.dataKey] = scope.getProductionStagesSectionData(prev.section);
-            }
+        if (visible) {
+            scope.currentTabSection = 'crack';
+            scope.updateProductionActionButtonTicks();
         }
-        scope.currentProductionAction = null;
-        $('#productionStagesActionSelector').show();
-        $('#productionStagesTabsWrap').hide();
-        $('#productionStagesRecordAnotherWrap').hide();
-        $('#productionStagesSingleSaveWrap').hide();
-        $('#summaryPaneSaveRow').show();
-        ['pane-cracking', 'pane-washing', 'pane-sorting', 'pane-packing', 'pane-summary'].forEach(function (id) {
-            $('#' + id).hide().removeClass('show active');
-        });
-        scope.updateProductionActionButtonTicks();
         },
 
         updateProductionActionButtonTicks: () => {
             const scope = _kernelProductionStages;
-            var stages = scope.modalProductionDayStages || {};
-        $.each(scope.productionActionMap, function (action, map) {
-            var dataKey = map.dataKey;
-            var data = stages[dataKey];
-            var hasData = data && typeof data === 'object' && Object.keys(data).length > 0;
-            var label = action === 'crack' ? 'Cracking' : action === 'wash' ? 'Washing' : action === 'sort' ? 'Sorting' : action === 'pack' ? 'Packing' : 'Summary';
-            var $item = $('.production-action-item[data-action="' + action + '"]');
-            $item.text(hasData ? label + ' ✓' : label);
-        });
+            scope.modalProductionDayStages = scope.modalProductionDayStages || {};
+            ['crack', 'wash', 'sort', 'pack', 'sum'].forEach(function (action) {
+                var data = scope.modalProductionDayStages[scope.productionActionMap[action].dataKey];
+                var formData = scope.getProductionStagesSectionData(scope.productionActionMap[action].section);
+                var hasData = (data && typeof data === 'object' && Object.keys(data).length > 0) ||
+                    (formData && typeof formData === 'object' && Object.keys(formData).length > 0);
+                var label = action === 'crack' ? 'Cracking' : action === 'wash' ? 'Washing' : action === 'sort' ? 'Sorting' : action === 'pack' ? 'Packing' : 'Summary';
+                var $tab = $('#tab-' + (action === 'crack' ? 'cracking' : action === 'wash' ? 'washing' : action === 'sort' ? 'sorting' : action === 'pack' ? 'packing' : 'summary'));
+                if ($tab.length) $tab.text(hasData ? label + ' ✓' : label);
+            });
         },
 
-        chooseProductionAction: (action) => {
+        persistCurrentTabToStages: () => {
             const scope = _kernelProductionStages;
-        var map = scope.productionActionMap[action];
-        if (!map) return;
-        if (scope.currentProductionAction) {
-            var prev = scope.productionActionMap[scope.currentProductionAction];
-            if (prev && scope.modalProductionDayStages) {
-                scope.modalProductionDayStages[prev.dataKey] = scope.getProductionStagesSectionData(prev.section);
+            var map = scope.productionActionMap[scope.currentTabSection];
+            if (map && scope.modalProductionDayStages) {
+                scope.modalProductionDayStages[map.dataKey] = scope.getProductionStagesSectionData(map.section);
             }
-        }
-        scope.currentProductionAction = action;
-        scope.modalProductionDayStages = scope.modalProductionDayStages || {};
-        scope.setProductionStagesSectionData(map.section, scope.modalProductionDayStages[map.dataKey] || {});
-        $('#productionStagesActionSelector').hide();
-        $('#productionStagesTabsWrap').show();
-        $('#productionStagesTabs').hide();
-        $('#productionStagesRecordAnotherWrap').show();
-        $('#productionStagesSingleSaveWrap').show();
-        $('#summaryPaneSaveRow').hide();
-        ['pane-cracking', 'pane-washing', 'pane-sorting', 'pane-packing', 'pane-summary'].forEach(function (id) {
-            var show = id === map.paneId;
-            $('#' + id).css('display', show ? '' : 'none').toggleClass('show active', show);
-        });
         },
 
         renderProductionDaysList: (days) => {
@@ -348,7 +302,7 @@ var _kernelProductionStages = function () {
         var day = days.filter(function (d) { return (d.id || d.kernel_production_day_id) === dayId; })[0];
         scope.loadProductionStagesForDay(dayId, day && day.kernel_production_stages_id).then(function () {
             scope.setProductionDayActive(dayId);
-            scope.showProductionActionSelector();
+            scope.updateProductionActionButtonTicks();
         });
         },
 
@@ -502,22 +456,12 @@ var _kernelProductionStages = function () {
         var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
         var batchNumber = batch ? (batch.batch_number || '') : '';
         var growerName = batch ? (batch.grower_name || '') : '';
-        var cracking_data, washing_data, sorting_data, packing_data, summary_data;
-        if (scope.currentProductionAction) {
-            var stages = scope.modalProductionDayStages || {};
-            var cur = scope.productionActionMap[scope.currentProductionAction];
-            cracking_data = (cur && cur.dataKey === 'cracking_data') ? scope.getProductionStagesSectionData('crack') : (stages.cracking_data || {});
-            washing_data = (cur && cur.dataKey === 'washing_data') ? scope.getProductionStagesSectionData('wash') : (stages.washing_data || {});
-            sorting_data = (cur && cur.dataKey === 'sorting_data') ? scope.getProductionStagesSectionData('sort') : (stages.sorting_data || {});
-            packing_data = (cur && cur.dataKey === 'packing_data') ? scope.getProductionStagesSectionData('pack') : (stages.packing_data || {});
-            summary_data = (cur && cur.dataKey === 'summary_data') ? scope.getProductionStagesSectionData('sum') : (stages.summary_data || {});
-        } else {
-            cracking_data = scope.getProductionStagesSectionData('crack');
-            washing_data = scope.getProductionStagesSectionData('wash');
-            sorting_data = scope.getProductionStagesSectionData('sort');
-            packing_data = scope.getProductionStagesSectionData('pack');
-            summary_data = scope.getProductionStagesSectionData('sum');
-        }
+        scope.persistCurrentTabToStages();
+        var cracking_data = scope.getProductionStagesSectionData('crack');
+        var washing_data = scope.getProductionStagesSectionData('wash');
+        var sorting_data = scope.getProductionStagesSectionData('sort');
+        var packing_data = scope.getProductionStagesSectionData('pack');
+        var summary_data = scope.getProductionStagesSectionData('sum');
         var payload = {
             kernel_production_day_id: dayId,
             batch_number: batchNumber,
@@ -562,8 +506,20 @@ var _kernelProductionStages = function () {
         var loadDays = days.length === 0 && dataFunctions.getKernelProductionDays ? dataFunctions.getKernelProductionDays(batchId) : Promise.resolve(days);
         loadDays.then(function (raw) {
             var list = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
+            if (list.length === 0 && typeof dataFunctions !== 'undefined' && typeof dataFunctions.createKernelProductionDay === 'function') {
+                return dataFunctions.createKernelProductionDay(batchId).then(function (result) {
+                    var inner = (result && result.create_kernel_production_day) ? result.create_kernel_production_day : result;
+                    if (!inner || inner.success === false) throw new Error(inner && inner.error ? inner.error : 'Failed to create production day');
+                    var newDayId = inner.id;
+                    list = [{ id: newDayId, day_number: 1, kernel_production_stages_id: null }];
+                    scope.modalProductionDays = list;
+                    $('#productionStagesDayId').val(newDayId);
+                    scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
+                    scope.setProductionStagesTabsVisibility(true);
+                    return scope.populateProductionGrowerSelects(batch.grower_name || '');
+                });
+            }
             scope.modalProductionDays = list;
-            scope.renderProductionDaysList(list);
             scope.setProductionStagesTabsVisibility(list.length > 0);
             if (list.length > 0) {
                 var first = list[0];
@@ -572,7 +528,6 @@ var _kernelProductionStages = function () {
                 return scope.populateProductionGrowerSelects(batch.grower_name || '').then(function () {
                     return scope.loadProductionStagesForDay(firstDayId, first.kernel_production_stages_id);
                 }).then(function () {
-                    scope.setProductionDayActive(firstDayId);
                     scope.updateProductionActionButtonTicks();
                 });
             }

@@ -358,34 +358,9 @@
             <div class="modal-body" style="max-height: calc(100vh - 180px); overflow-y: auto;">
                 <input type="hidden" id="productionStagesBatchId" value="">
                 <input type="hidden" id="productionStagesDayId" value="">
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <span class="fw-bold">Day:</span>
-                    <div id="productionStagesDayList" class="d-flex flex-wrap gap-1"></div>
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="addProductionDayBtn"><i class="fas fa-plus me-1"></i>Add day</button>
-                </div>
                 <div id="productionStagesTabsContainer" style="display: none;">
-                <div id="productionStagesActionSelector" class="mb-3">
-                    <p class="fw-bold mb-2">What are you recording?</p>
-                    <div class="dropdown">
-                        <button type="button" class="btn btn-lg btn-outline-primary dropdown-toggle" id="productionActionDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">Choose action...</button>
-                        <ul class="dropdown-menu" aria-labelledby="productionActionDropdownBtn">
-                            <li><a class="dropdown-item production-action-item" href="#" data-action="crack">Cracking</a></li>
-                            <li><a class="dropdown-item production-action-item" href="#" data-action="wash">Washing</a></li>
-                            <li><a class="dropdown-item production-action-item" href="#" data-action="sort">Sorting</a></li>
-                            <li><a class="dropdown-item production-action-item" href="#" data-action="pack">Packing</a></li>
-                            <li><a class="dropdown-item production-action-item" href="#" data-action="sum">Summary</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div id="productionStagesRecordAnotherWrap" class="mb-2" style="display: none;">
-                    <button type="button" class="btn btn-outline-secondary" id="recordAnotherActionBtn"><i class="fas fa-plus me-1"></i>Record another action for this day</button>
-                </div>
-                <div id="productionStagesSingleSaveWrap" class="mb-3" style="display: none;">
-                    <button type="button" class="btn btn-primary" id="saveProductionStagesBtnSingle"><i class="fas fa-save me-1"></i>Save Production</button>
-                </div>
-                <div id="productionStagesTabsWrap" style="display: none;">
                 <p class="text-muted small mb-2">Doc no: MP02-27 to MP02-31 Rev 0</p>
-                <ul class="nav nav-tabs mb-3" id="productionStagesTabs" role="tablist">
+                <ul class="nav nav-tabs mb-3 production-stages-nav-tabs" id="productionStagesTabs" role="tablist">
                     <li class="nav-item" role="presentation"><button class="nav-link active" id="tab-cracking" data-bs-toggle="tab" data-bs-target="#pane-cracking" type="button" role="tab">Cracking</button></li>
                     <li class="nav-item" role="presentation"><button class="nav-link" id="tab-washing" data-bs-toggle="tab" data-bs-target="#pane-washing" type="button" role="tab">Washing</button></li>
                     <li class="nav-item" role="presentation"><button class="nav-link" id="tab-sorting" data-bs-toggle="tab" data-bs-target="#pane-sorting" type="button" role="tab">Sorting</button></li>
@@ -514,11 +489,6 @@
                             <div class="row g-2 mb-2"><strong class="col-12">Washing</strong><div class="col-md-3"><label class="form-label">Quantity In</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_qty_in" step="0.01"></div><div class="col-md-3"><label class="form-label">Floater Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_floater_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Sinker Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_sinker_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Total Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_total_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Salt &amp; Pepper Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_saltpepper" step="0.01"></div><div class="col-md-3"><label class="form-label">Shell Fines Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_shellfines" step="0.01"></div><div class="col-md-3"><label class="form-label">Compost Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_compost" step="0.01"></div></div>
                             <div class="row g-2 mb-2"><strong class="col-12">Sorting</strong><div class="col-md-3"><label class="form-label">Floater Qty In</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_floater_in" step="0.01"></div><div class="col-md-3"><label class="form-label">Sound Kernel Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_sound_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Sinker Qty In</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_sinker_in" step="0.01"></div><div class="col-md-3"><label class="form-label">Butter Low Oil Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_butterlow_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Butter High Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_butterhigh_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Oil Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_oil_waste" step="0.01"></div><div class="col-md-3"><label class="form-label">Compost Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_compost_waste" step="0.01"></div></div>
                             <div class="row g-2"><strong class="col-12">Packing</strong><div class="col-md-3"><label class="form-label">Sound Kernel Qty</label><input type="number" class="form-control form-control-sm" id="ps_sum_pack_sound_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Unsound Kernel Qty</label><input type="number" class="form-control form-control-sm" id="ps_sum_pack_unsound_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Total Qty</label><input type="number" class="form-control form-control-sm" id="ps_sum_pack_total_qty" step="0.01"></div></div>
-                            <div class="row g-2 mt-3" id="summaryPaneSaveRow">
-                                <div class="col-12">
-                                    <button type="button" class="btn btn-primary" id="saveProductionStagesBtn"><i class="fas fa-save me-1"></i>Save Production</button>
-                                </div>
-                            </div>
                         </div></div>
                     </div>
                 </div>
@@ -527,6 +497,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveProductionStagesBtnSingle"><i class="fas fa-save me-1"></i>Save Production</button>
                 <button type="button" class="btn btn-outline-info" id="batchSummaryBtn"><i class="fas fa-calculator me-1"></i>Batch summary</button>
                 <button type="button" class="btn btn-success" id="finishBatchProductionBtn"><i class="fas fa-flag-checkered me-1"></i>Finish batch production</button>
             </div>
