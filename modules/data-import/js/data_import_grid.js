@@ -5,87 +5,97 @@
  * - Preview and bulk import via Supabase RPC
  */
 
-var _dataImportGrid = function () {
+var _dataImportGrid = (function () {
+    'use strict';
+
     return {
         workbook: null,
         sheetData: [],
         headers: [],
         targetColumns: [],
-        headerMap: {}, // excelHeader -> dbColumn
+        headerMap: {},
 
-        init: function () {
-            this.bindEvents();
+        init: () => {
+            const scope = _dataImportGrid;
+            scope.initHandlers();
         },
 
-        bindEvents: function () {
-            const scope = this;
-
-            $('#loadPreviewBtn').on('click', async function () {
+        initHandlers: () => {
+            const scope = _dataImportGrid;
+            $('#loadPreviewBtn').on('click', async () => {
                 try {
-                    const file = document.getElementById('excelFileInput').files[0];
+                    const fileInput = $('#excelFileInput').prop('files')[0];
                     const targetTable = $('#targetTableSelect').val();
-                    if (!file) {
-                        Swal.fire('Upload required', 'Please choose an Excel file first.', 'warning');
+                    if (!fileInput) {
+                        if (typeof Swal !== 'undefined') Swal.fire('Upload required', 'Please choose an Excel file first.', 'warning');
+                        else alert('Please choose an Excel file first.');
                         return;
                     }
                     if (!targetTable) {
-                        Swal.fire('Target required', 'Please select a target table.', 'warning');
+                        if (typeof Swal !== 'undefined') Swal.fire('Target required', 'Please select a target table.', 'warning');
+                        else alert('Please select a target table.');
                         return;
                     }
-
-                    await scope.parseExcel(file);
+                    await scope.parseExcel(fileInput);
                     await scope.loadTargetColumns(targetTable);
                     scope.buildMappingUI();
                     scope.renderPreview();
-
                     $('#mappingCard').show();
                     $('#previewCard').show();
                 } catch (err) {
                     console.error('[Data Import] Preview error:', err);
-                    Swal.fire('Error', err.message || 'Failed to load preview', 'error');
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', err.message || 'Failed to load preview', 'error');
+                    else alert('Error: ' + (err.message || 'Failed to load preview'));
                 }
             });
 
-            $('#importBtn').on('click', async function () {
+            $('#importBtn').on('click', async () => {
                 try {
                     const targetTable = $('#targetTableSelect').val();
                     if (!targetTable) {
-                        Swal.fire('Target required', 'Please select a target table.', 'warning');
+                        if (typeof Swal !== 'undefined') Swal.fire('Target required', 'Please select a target table.', 'warning');
+                        else alert('Please select a target table.');
                         return;
                     }
-                    const mappedRows = _dataImportGrid.mapRowsToColumns();
+                    const mappedRows = scope.mapRowsToColumns();
                     if (!mappedRows || mappedRows.length === 0) {
-                        Swal.fire('No rows', 'No rows to import after mapping.', 'warning');
+                        if (typeof Swal !== 'undefined') Swal.fire('No rows', 'No rows to import after mapping.', 'warning');
+                        else alert('No rows to import after mapping.');
                         return;
                     }
-
-                    const confirm = await Swal.fire({
-                        icon: 'question',
-                        title: 'Import data',
-                        text: `Import ${mappedRows.length} rows into ${targetTable}?`,
-                        showCancelButton: true,
-                        confirmButtonText: 'Import'
-                    });
+                    const confirm = typeof Swal !== 'undefined'
+                        ? await Swal.fire({
+                            icon: 'question',
+                            title: 'Import data',
+                            text: `Import ${mappedRows.length} rows into ${targetTable}?`,
+                            showCancelButton: true,
+                            confirmButtonText: 'Import'
+                        })
+                        : { isConfirmed: window.confirm(`Import ${mappedRows.length} rows into ${targetTable}?`) };
                     if (!confirm.isConfirmed) return;
 
+                    if (typeof dataFunctions === 'undefined' || !dataFunctions.importTableRows) {
+                        throw new Error('dataFunctions.importTableRows is not available');
+                    }
                     const result = await dataFunctions.importTableRows(targetTable, mappedRows);
                     if (result && result.success) {
-                        Swal.fire('Imported', result.message || 'Data imported successfully.', 'success');
+                        if (typeof Swal !== 'undefined') Swal.fire('Imported', result.message || 'Data imported successfully.', 'success');
+                        else alert(result.message || 'Data imported successfully.');
                     } else {
                         throw new Error(result?.message || 'Import failed');
                     }
                 } catch (err) {
                     console.error('[Data Import] Import error:', err);
-                    Swal.fire('Error', err.message || 'Import failed', 'error');
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', err.message || 'Import failed', 'error');
+                    else alert('Error: ' + (err.message || 'Import failed'));
                 }
             });
 
-            $('#downloadTemplateBtn').on('click', function () {
-                _dataImportGrid.downloadTemplate();
-            });
+            $('#downloadTemplateBtn').on('click', () => scope.downloadTemplate());
         },
 
-        parseExcel: async function (file) {
+        parseExcel: async (file) => {
+            const scope = _dataImportGrid;
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data, { type: 'array' });
             const sheetName = workbook.SheetNames[0];
@@ -99,51 +109,54 @@ var _dataImportGrid = function () {
             const headers = (json[0] || []).map(h => (h || '').toString().trim());
             const rows = json.slice(1).map(r => {
                 const obj = {};
-                headers.forEach((h, i) => obj[h] = r[i] ?? null);
+                headers.forEach((h, i) => (obj[h] = r[i] ?? null));
                 return obj;
             });
 
-            this.workbook = workbook;
-            this.sheetData = rows;
-            this.headers = headers;
+            scope.workbook = workbook;
+            scope.sheetData = rows;
+            scope.headers = headers;
         },
 
-        loadTargetColumns: async function (tableName) {
+        loadTargetColumns: async (tableName) => {
+            const scope = _dataImportGrid;
             try {
-                const cols = await dataFunctions.getTableColumns(tableName);
-                this.targetColumns = (cols || []).map(c => c.column_name);
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.getTableColumns) {
+                    const cols = await dataFunctions.getTableColumns(tableName);
+                    scope.targetColumns = (cols || []).map(c => c.column_name);
+                } else {
+                    scope.targetColumns = [];
+                }
             } catch (err) {
                 console.warn('[Data Import] Could not load target columns for mapping:', err);
-                this.targetColumns = [];
+                scope.targetColumns = [];
             }
         },
 
-        buildMappingUI: function () {
+        buildMappingUI: () => {
+            const scope = _dataImportGrid;
             const tbody = $('#mappingTableBody');
             tbody.empty();
-            const sample = this.sheetData[0] || {};
+            const sample = scope.sheetData[0] || {};
+            scope.headerMap = {};
 
-            this.headerMap = {};
-
-            this.headers.forEach(h => {
+            scope.headers.forEach(h => {
                 const row = $('<tr/>');
                 const sampleVal = (sample[h] !== undefined && sample[h] !== null) ? sample[h] : '';
-
                 const select = $('<select class="form-select form-select-sm map-select"/>');
                 select.append('<option value="">(ignore)</option>');
 
-                // Try exact match first
-                this.targetColumns.forEach(tc => {
+                scope.targetColumns.forEach(tc => {
                     const opt = $('<option/>').attr('value', tc).text(tc);
                     if (tc.toLowerCase() === (h || '').toLowerCase()) {
                         opt.attr('selected', 'selected');
-                        this.headerMap[h] = tc;
+                        scope.headerMap[h] = tc;
                     }
                     select.append(opt);
                 });
 
                 select.on('change', () => {
-                    this.headerMap[h] = select.val() || null;
+                    scope.headerMap[h] = select.val() || null;
                 });
 
                 row.append($('<td/>').text(h || '(unnamed)'));
@@ -153,31 +166,33 @@ var _dataImportGrid = function () {
             });
         },
 
-        renderPreview: function () {
+        renderPreview: () => {
+            const scope = _dataImportGrid;
             const head = $('#previewHead').empty();
             const body = $('#previewBody').empty();
-            const headers = this.headers;
+            const headers = scope.headers;
 
             const tr = $('<tr/>');
             headers.forEach(h => tr.append($('<th/>').text(h)));
             head.append(tr);
 
-            const rowCount = Math.min(this.sheetData.length, 50);
+            const rowCount = Math.min(scope.sheetData.length, 50);
             for (let i = 0; i < rowCount; i++) {
-                const r = this.sheetData[i];
+                const r = scope.sheetData[i];
                 const trb = $('<tr/>');
                 headers.forEach(h => trb.append($('<td/>').text(r[h] != null ? r[h] : '')));
                 body.append(trb);
             }
-            $('#rowCountBadge').text(`${this.sheetData.length} rows`);
+            $('#rowCountBadge').text(`${scope.sheetData.length} rows`);
         },
 
-        mapRowsToColumns: function () {
+        mapRowsToColumns: () => {
+            const scope = _dataImportGrid;
             const mapped = [];
-            for (const row of this.sheetData) {
+            for (const row of scope.sheetData) {
                 const obj = {};
-                for (const [excelHeader, dbColumn] of Object.entries(this.headerMap)) {
-                    if (!dbColumn) continue; // ignored
+                for (const [excelHeader, dbColumn] of Object.entries(scope.headerMap)) {
+                    if (!dbColumn) continue;
                     obj[dbColumn] = row[excelHeader] ?? null;
                 }
                 if (Object.keys(obj).length > 0) mapped.push(obj);
@@ -185,19 +200,15 @@ var _dataImportGrid = function () {
             return mapped;
         },
 
-        downloadTemplate: function () {
-            const ws = XLSX.utils.aoa_to_sheet([['column1','column2','column3']]);
+        downloadTemplate: () => {
+            const ws = XLSX.utils.aoa_to_sheet([['column1', 'column2', 'column3']]);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Template');
             XLSX.writeFile(wb, 'import_template.xlsx');
         }
     };
-}();
+})();
 
-const dataImportGrid = _dataImportGrid;
 function initializeDataImportGrid() {
-    if (typeof dataImportGrid !== 'undefined') {
-        dataImportGrid.init();
-    }
+    if (typeof _dataImportGrid !== 'undefined') _dataImportGrid.init();
 }
-
