@@ -91,6 +91,13 @@
                 "css/role-features_grid.css"
             ]
         },
+        "role-feature-modal": {
+            "description": "Add/Edit Role Feature Modal",
+            "path": "modal-role-feature",
+            "html": "html/modal_role_feature.html",
+            "js": ["js/modal_role_feature.js"],
+            "css": []
+        },
         "admin-grid": {
             "description": "System Administration",
             "path": "admin",

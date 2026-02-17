@@ -343,6 +343,11 @@ var _appRouter = function () {
                         initializeRoleFeaturesGrid();
                     }
                 },
+                'role-feature-modal': () => {
+                    if (typeof _modal_role_feature !== 'undefined' && _modal_role_feature.init) {
+                        _modal_role_feature.init();
+                    }
+                },
                 'crm-grid': () => {
                     if (typeof initializeCrmGrid === 'function') {
                         initializeCrmGrid();

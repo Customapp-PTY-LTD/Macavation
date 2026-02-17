@@ -18,16 +18,25 @@ var _roleFeaturesGrid = function () {
         filteredFeatures: [],
         currentPage: 1,
         itemsPerPage: 10,
-        editingFeature: null,
         searchDebounceToken: 0,
 
         init: async () => {
             const scope = _roleFeaturesGrid;
             await scope.waitForReady();
+            var modalContainers = document.querySelectorAll('.modal[route-name]');
+            var loadPromises = [];
+            modalContainers.forEach(function (el) {
+                var routeName = el.getAttribute('route-name');
+                if (routeName && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                    loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: '#' + el.id }));
+                }
+            });
+            if (loadPromises.length) await Promise.all(loadPromises);
+            if (typeof _modal_role_feature !== 'undefined' && _modal_role_feature.init) _modal_role_feature.init();
             scope.setupEventListeners();
-            await scope.loadFeatures();
             await scope.loadRolesForDropdown();
             await scope.loadFeaturesForDropdown();
+            await scope.loadFeatures();
         },
 
         waitForReady: () => {
@@ -61,7 +70,7 @@ var _roleFeaturesGrid = function () {
             });
 
             $('#addFeatureBtn').on('click', function () {
-                scope.showAddFeatureModal();
+                if (typeof _modal_role_feature !== 'undefined' && _modal_role_feature.show) _modal_role_feature.show();
             });
 
             $(document).on('click', '.feature-name-link', function (e) {
@@ -76,14 +85,6 @@ var _roleFeaturesGrid = function () {
                 const scope = _roleFeaturesGrid;
                 var featureId = $(this).data('feature-id');
                 scope.deleteFeature(featureId);
-            });
-
-            $('#saveFeatureBtn').on('click', function () {
-                scope.saveFeature();
-            });
-
-            $('#featureModal').on('hidden.bs.modal', function () {
-                scope.clearForm();
             });
         },
 
@@ -108,17 +109,14 @@ var _roleFeaturesGrid = function () {
             try {
                 var roles = await dataFunctions.getRoles();
                 if (!roles || !Array.isArray(roles) || roles.length === 0) return;
-                var roleSelects = ['cboRole', 'filterRole'];
-                roleSelects.forEach(function (selectId) {
-                    var select = document.getElementById(selectId);
-                    if (select) {
-                        var html = selectId === 'filterRole' ? '<option value="">All Roles</option>' : '<option value="">Select Role</option>';
-                        roles.forEach(function (role) {
-                            html += '<option value="' + role.id + '">' + scope.escapeHtml(role.role_name) + '</option>';
-                        });
-                        select.innerHTML = html;
-                    }
-                });
+                var select = document.getElementById('filterRole');
+                if (select) {
+                    var html = '<option value="">All Roles</option>';
+                    roles.forEach(function (role) {
+                        html += '<option value="' + role.id + '">' + scope.escapeHtml(role.role_name) + '</option>';
+                    });
+                    select.innerHTML = html;
+                }
             } catch (error) {
                 console.error('Error loading roles:', error);
             }
@@ -138,17 +136,14 @@ var _roleFeaturesGrid = function () {
                     scope.loadMockFeatures();
                     return;
                 }
-                var featureSelects = ['cboFeature', 'filterFeature'];
-                featureSelects.forEach(function (selectId) {
-                    var select = document.getElementById(selectId);
-                    if (select) {
-                        var html = selectId === 'filterFeature' ? '<option value="">All Features</option>' : '<option value="">Select Feature</option>';
-                        features.forEach(function (feature) {
-                            html += '<option value="' + (feature.id || '') + '">' + scope.escapeHtml(feature.feature_name || feature.name || '') + '</option>';
-                        });
-                        select.innerHTML = html;
-                    }
-                });
+                var select = document.getElementById('filterFeature');
+                if (select) {
+                    var html = '<option value="">All Features</option>';
+                    features.forEach(function (feature) {
+                        html += '<option value="' + (feature.id || '') + '">' + scope.escapeHtml(feature.feature_name || feature.name || '') + '</option>';
+                    });
+                    select.innerHTML = html;
+                }
             } catch (error) {
                 console.error('Error loading features:', error);
                 scope.loadMockFeatures();
@@ -167,17 +162,14 @@ var _roleFeaturesGrid = function () {
                 { id: '7', feature_name: 'Settings' },
                 { id: '8', feature_name: 'Dashboard' }
             ];
-            var featureSelects = ['cboFeature', 'filterFeature'];
-            featureSelects.forEach(function (selectId) {
-                var select = document.getElementById(selectId);
-                if (select) {
-                    var html = selectId === 'filterFeature' ? '<option value="">All Features</option>' : '<option value="">Select Feature</option>';
-                    mockFeatures.forEach(function (feature) {
-                        html += '<option value="' + feature.id + '">' + scope.escapeHtml(feature.feature_name) + '</option>';
-                    });
-                    select.innerHTML = html;
-                }
-            });
+            var select = document.getElementById('filterFeature');
+            if (select) {
+                var html = '<option value="">All Features</option>';
+                mockFeatures.forEach(function (feature) {
+                    html += '<option value="' + feature.id + '">' + scope.escapeHtml(feature.feature_name) + '</option>';
+                });
+                select.innerHTML = html;
+            }
         },
 
         filterFeatures: () => {
@@ -246,35 +238,14 @@ var _roleFeaturesGrid = function () {
             $('#pagination').html(paginationHtml);
         },
 
-        showAddFeatureModal: async () => {
+        editFeature: (featureId) => {
             const scope = _roleFeaturesGrid;
-            scope.editingFeature = null;
-            scope.clearForm();
-            await scope.loadRolesForDropdown();
-            await scope.loadFeaturesForDropdown();
-            $('#featureModalLabel').text('Add Role Feature');
-            $('#featureModal').modal('show');
-        },
-
-        editFeature: async (featureId) => {
-            const scope = _roleFeaturesGrid;
-            try {
-                var feature = scope.features.find(function (f) { return f.id === featureId; });
-                if (!feature) {
-                    scope.showError('Feature not found');
-                    return;
-                }
-                scope.editingFeature = feature;
-                await scope.loadRolesForDropdown();
-                await scope.loadFeaturesForDropdown();
-                await delay(100);
-                scope.populateForm(feature);
-                $('#featureModalLabel').text('Edit Role Feature');
-                $('#featureModal').modal('show');
-            } catch (error) {
-                console.error('Error editing feature:', error);
-                scope.showError('Error loading feature details: ' + error.message);
+            var feature = scope.features.find(function (f) { return f.id === featureId; });
+            if (!feature) {
+                scope.showError('Feature not found');
+                return;
             }
+            if (typeof _modal_role_feature !== 'undefined' && _modal_role_feature.show) _modal_role_feature.show(feature);
         },
 
         deleteFeature: (featureId) => {
@@ -302,64 +273,6 @@ var _roleFeaturesGrid = function () {
                     }
                 }
             });
-        },
-
-        saveFeature: async () => {
-            const scope = _roleFeaturesGrid;
-            try {
-                var formData = {
-                    role_id: $('#cboRole').val(),
-                    feature_id: $('#cboFeature').val(),
-                    value: $('#cboValue').val(),
-                    description: $('#txtDescription').val() || ''
-                };
-                if (!formData.role_id) {
-                    scope.showError('Role is required');
-                    return;
-                }
-                if (!formData.feature_id) {
-                    scope.showError('Feature is required');
-                    return;
-                }
-                if (!formData.value) {
-                    scope.showError('Value is required');
-                    return;
-                }
-                var backendData = {
-                    role_id: formData.role_id,
-                    feature_id: formData.feature_id,
-                    value: formData.value === 'true' ? true : (formData.value === 'false' ? false : formData.value),
-                    description: formData.description
-                };
-                if (scope.editingFeature) {
-                    await dataFunctions.updateRoleFeature(scope.editingFeature.id, backendData);
-                    scope.showSuccess('Feature updated successfully');
-                } else {
-                    await dataFunctions.createRoleFeature(backendData);
-                    scope.showSuccess('Feature created successfully');
-                }
-                $('#featureModal').modal('hide');
-                scope.loadFeatures();
-            } catch (error) {
-                console.error('Error saving feature:', error);
-                scope.showError('Error saving feature: ' + error.message);
-            }
-        },
-
-        populateForm: (feature) => {
-            var roleId = feature.role_id || '';
-            var featureId = feature.feature_id || '';
-            var featureValue = feature.value || feature.feature_value || '';
-            $('#cboRole').val(roleId);
-            $('#cboFeature').val(featureId);
-            $('#cboValue').val(featureValue);
-            $('#txtDescription').val(feature.description || feature.feature_description || '');
-        },
-
-        clearForm: () => {
-            const scope = _roleFeaturesGrid;
-            $('#featureForm')[0].reset();
-            scope.editingFeature = null;
         },
 
         showLoading: () => {

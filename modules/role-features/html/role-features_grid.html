@@ -5,7 +5,7 @@
         class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Role Features Management</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-primary" onclick="_roleFeaturesGrid.showAddFeatureModal()">
+            <button type="button" class="btn btn-primary" id="addFeatureBtn">
                 <i class="fas fa-plus me-1"></i>Add Feature
             </button>
         </div>
@@ -138,64 +138,8 @@
     </nav>
 </div>
 
-<!-- Add/Edit Feature Modal -->
-<div class="modal fade" id="featureModal" tabindex="-1" aria-labelledby="featureModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="featureModalLabel">Add New Feature</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="featureForm">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-section">
-                                <h5>Feature Information</h5>
-                                <div class="mb-3">
-                                    <label for="cboRole" class="form-label required">Role</label>
-                                    <select class="form-select" id="cboRole" name="cboRole" required>
-                                        <option value="">Select Role</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="cboFeature" class="form-label required">Feature</label>
-                                    <select class="form-select" id="cboFeature" name="cboFeature" required>
-                                        <option value="">Select Feature</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="cboValue" class="form-label required">Value</label>
-                                    <select class="form-select" id="cboValue" name="cboValue" required>
-                                        <option value="">Select Value</option>
-                                        <option value="true">Enabled</option>
-                                        <option value="false">Disabled</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-section">
-                                <h5>Feature Settings</h5>
-                                <div class="mb-3">
-                                    <label for="txtDescription" class="form-label">Description</label>
-                                    <textarea class="form-control" id="txtDescription" name="txtDescription" rows="3"
-                                        placeholder="Optional description of this feature assignment"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="roleFeaturesGrid.saveFeature()">
-                    <i class="fas fa-save me-1"></i>Save Feature
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Add/Edit Feature Modal (content loaded by router via route-name) -->
+<div class="modal fade" id="featureModal" tabindex="-1" role="dialog" aria-labelledby="featureModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" route-name="role-feature-modal"></div>
 
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
