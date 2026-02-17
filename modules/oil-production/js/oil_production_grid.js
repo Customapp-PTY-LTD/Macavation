@@ -1,41 +1,37 @@
 /**
  * Oil Production Grid Module
  * Version: 2.0.0 - Production Sheet Form Implementation
- * Date: 2025-01-XX
+ * Follows company module pattern: IIFE, arrow methods, scope = _oilProductionGrid for same-module calls.
  */
 console.log('[Oil Production] Loading module v2.0.0 - Production Sheet Form Enabled');
 
 var _oilProductionGrid = function () {
+    'use strict';
+
+    function delay(ms) {
+        return new Promise(function (resolve) {
+            setTimeout(resolve, ms);
+        });
+    }
+
     return {
         batches: [],
-        init: function () {
-            console.log('[Oil Production] Initializing module...');
-            
-            // Wait for dataFunctions to be available
-            if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getOilProductionSheets !== 'function') {
-                console.warn('[Oil Production] dataFunctions not ready, waiting...');
-                let retries = 0;
-                const checkDataFunctions = setInterval(() => {
-                    retries++;
-                    if (typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getOilProductionSheets === 'function') {
-                        clearInterval(checkDataFunctions);
-                        console.log('[Oil Production] dataFunctions ready, proceeding with initialization');
-                        this.setupEventListeners();
-                        this.loadBatches();
-                    } else if (retries > 50) {
-                        clearInterval(checkDataFunctions);
-                        console.error('[Oil Production] dataFunctions not available after 5 seconds');
-                        this.showError('Unable to initialize. Please refresh the page.');
-                    }
-                }, 100);
-                return;
-            }
-            
-            this.setupEventListeners();
-            this.loadBatches();
+
+        init: async () => {
+            const scope = _oilProductionGrid;
+            await scope.waitForReady();
+            scope.setupEventListeners();
+            await scope.loadBatches();
         },
-        setupEventListeners: function () {
-            const scope = this;
+
+        waitForReady: () => {
+            return new Promise(function (resolve) {
+                $(document).ready(resolve);
+            });
+        },
+
+        setupEventListeners: () => {
+            const scope = _oilProductionGrid;
             // Remove any existing handlers first to prevent duplicates
             $('#addOilBatchBtn').off('click').on('click', function (e) {
                 e.preventDefault();
@@ -78,65 +74,57 @@ var _oilProductionGrid = function () {
                 scope.clearForm();
             });
         },
-        
-        showAddProductionModal: function () {
+
+        showAddProductionModal: () => {
+            const scope = _oilProductionGrid;
             console.log('[Oil Production] Opening production sheet modal...');
-            
-            // Check if modal exists in DOM
-            const modalElement = document.getElementById('oilProductionModal');
+            var modalElement = document.getElementById('oilProductionModal');
             if (!modalElement) {
                 console.error('[Oil Production] Modal element not found in DOM!');
-                console.log('[Oil Production] Available modals:', document.querySelectorAll('.modal').length);
-                Swal.fire({
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({
                     icon: 'error',
                     title: 'Modal Not Found',
                     text: 'The production sheet form could not be loaded. Please refresh the page (Ctrl+F5) to clear cache.',
                     confirmButtonText: 'OK'
-                });
+                    });
+                }
                 return;
             }
-            
             console.log('[Oil Production] Modal element found, initializing...');
-            
-            // Set form values
             $('#oilProductionModalLabel').text('New Oil Production Sheet');
             $('#oilBatchId').val('');
-            this.clearForm();
+            scope.clearForm();
             
             // Set default date to today
             const today = new Date().toISOString().split('T')[0];
             $('#productionDate').val(today);
             
-            // Use Bootstrap 5 modal API
             try {
-                // Check if Bootstrap is available
                 if (typeof bootstrap === 'undefined') {
-                    console.error('[Oil Production] Bootstrap is not defined!');
-                    // Fallback to jQuery if Bootstrap not available
                     $('#oilProductionModal').modal('show');
                 } else {
-                    const modal = new bootstrap.Modal(modalElement);
+                    var modal = new bootstrap.Modal(modalElement);
                     modal.show();
                     console.log('[Oil Production] Modal shown successfully');
                 }
             } catch (error) {
                 console.error('[Oil Production] Error showing modal:', error);
-                // Fallback to jQuery
                 $('#oilProductionModal').modal('show');
             }
         },
-        
-        clearForm: function () {
+
+        clearForm: () => {
+            const scope = _oilProductionGrid;
             $('#oilProductionForm')[0].reset();
             $('#oilBatchId').val('');
             $('#productName').val('Food grade oil');
-            // Clear raw material rows except first
             $('#rawMaterialTableBody tr:not(:first)').remove();
             $('#rawMaterialTableBody tr:first input').val('');
-            this.calculateRawMaterialTotals();
+            scope.calculateRawMaterialTotals();
         },
-        
-        addMixRow: function () {
+
+        addMixRow: () => {
             const nextMixNumber = $('#mixTableBody tr').length + 1;
             const newRow = `
                 <tr>
@@ -161,8 +149,8 @@ var _oilProductionGrid = function () {
             `;
             $('#mixTableBody').append(newRow);
         },
-        
-        addRawMaterialRow: function () {
+
+        addRawMaterialRow: () => {
             const newRow = `
                 <tr>
                     <td><input type="text" class="form-control form-control-sm" name="rawMaterialBatch"></td>
@@ -174,8 +162,8 @@ var _oilProductionGrid = function () {
             `;
             $('#rawMaterialTableBody').append(newRow);
         },
-        
-        calculateRawMaterialTotals: function () {
+
+        calculateRawMaterialTotals: () => {
             let totalRawIn = 0;
             let totalOilOut = 0;
             let totalCakeOut = 0;
@@ -194,12 +182,12 @@ var _oilProductionGrid = function () {
             $('#totalOilOut').text(totalOilOut.toFixed(2));
             $('#totalCakeOut').text(totalCakeOut.toFixed(2));
         },
-        
-        saveProductionSheet: async function () {
-            // Ensure dataFunctions is available
+
+        saveProductionSheet: async () => {
+            const scope = _oilProductionGrid;
             if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.callFunction !== 'function') {
                 console.error('[Oil Production] dataFunctions not available');
-                if (typeof Swal !== 'undefined') {
+                if (typeof Swal !== 'undefined' && Swal.fire) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
@@ -314,81 +302,79 @@ var _oilProductionGrid = function () {
                         timer: 2000,
                         showConfirmButton: false
                     });
-                    const modalElement = document.getElementById('oilProductionModal');
-                    if (modalElement) {
-                        const modal = bootstrap.Modal.getInstance(modalElement);
-                        if (modal) modal.hide();
+                    var modalElement = document.getElementById('oilProductionModal');
+                    if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) modalInstance.hide();
                     }
-                    this.loadBatches(true); // Force refresh
+                    scope.loadBatches(true);
                 } else {
                     throw new Error(result?.error || result?.message || 'Failed to save production sheet');
                 }
             } catch (error) {
                 console.error('Error saving production sheet:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to save production sheet: ' + error.message
-                });
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to save production sheet: ' + error.message
+                    });
+                }
             }
         },
-        loadBatches: async function (forceRefresh = false) {
+
+        loadBatches: async (forceRefresh) => {
+            const scope = _oilProductionGrid;
             try {
-                // Ensure dataFunctions is available
                 if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getOilProductionSheets !== 'function') {
                     console.warn('[Oil Production] dataFunctions not available, skipping load');
                     return;
                 }
-                
-                const startTime = performance.now();
+                var startTime = performance.now();
                 console.log('[Oil Production] Loading batches...');
-                
-                const batches = await dataFunctions.getOilProductionSheets(null, forceRefresh).catch((error) => {
+                var batches = await dataFunctions.getOilProductionSheets(null, forceRefresh).catch(function (error) {
                     console.error('[Oil Production] Error loading batches:', error);
-                    // Don't throw, just return empty array
                     return [];
                 });
-                
-                const loadTime = performance.now() - startTime;
-                console.log(`[Oil Production] Batches loaded in ${loadTime.toFixed(2)}ms, count: ${batches ? batches.length : 0}`);
-                
-                this.batches = batches || [];
-                this.renderBatches();
+                console.log('[Oil Production] Batches loaded, count: ' + (batches ? batches.length : 0));
+                scope.batches = batches || [];
+                scope.renderBatches();
             } catch (error) {
                 console.error('[Oil Production] Error loading oil production sheets:', error);
-                // Don't show error alert on initial load if it's just that dataFunctions isn't ready yet
                 if (error.message && !error.message.includes('dataFunctions')) {
-                    this.showError('Unable to load oil production sheets. Please try again later.');
+                    scope.showError('Unable to load oil production sheets. Please try again later.');
                 }
             }
         },
-        renderBatches: function () {
-            const tbody = $('#oilBatchesTableBody');
+
+        renderBatches: () => {
+            const scope = _oilProductionGrid;
+            var tbody = $('#oilBatchesTableBody');
             tbody.empty();
-            if (this.batches.length === 0) {
+            if (scope.batches.length === 0) {
                 tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No oil production batches found. Click "New Oil Production Sheet" to create one.</td></tr>');
                 return;
             }
-            this.batches.forEach(batch => {
-                const row = `<tr>
-                    <td>${batch.production_date || 'N/A'}</td>
-                    <td>${batch.shift || 'N/A'}</td>
-                    <td>${batch.batch_number || 'N/A'}</td>
-                    <td>${batch.product_name || 'N/A'}</td>
-                    <td>${batch.total_oil_litre || '0'}</td>
-                    <td><span class="badge bg-info">${batch.status || 'pending'}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="oilProductionGrid.viewBatch('${batch.id}')"><i class="fas fa-eye"></i></button>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="oilProductionGrid.editBatch('${batch.id}')"><i class="fas fa-edit"></i></button>
-                    </td>
-                </tr>`;
+            scope.batches.forEach(function (batch) {
+                var dateStr = scope.formatDate(batch.production_date);
+                var row = '<tr>' +
+                    '<td>' + scope.escapeHtml(dateStr || 'N/A') + '</td>' +
+                    '<td>' + scope.escapeHtml(batch.shift || 'N/A') + '</td>' +
+                    '<td>' + scope.escapeHtml(batch.batch_number || 'N/A') + '</td>' +
+                    '<td>' + scope.escapeHtml(batch.product_name || 'N/A') + '</td>' +
+                    '<td>' + scope.escapeHtml(String(batch.total_oil_litre || '0')) + '</td>' +
+                    '<td><span class="badge bg-info">' + scope.escapeHtml(batch.status || 'pending') + '</span></td>' +
+                    '<td>' +
+                    '<button class="btn btn-sm btn-outline-primary" onclick="oilProductionGrid.viewBatch(\'' + scope.escapeHtml(batch.id) + '\')"><i class="fas fa-eye"></i></button> ' +
+                    '<button class="btn btn-sm btn-outline-secondary" onclick="oilProductionGrid.editBatch(\'' + scope.escapeHtml(batch.id) + '\')"><i class="fas fa-edit"></i></button>' +
+                    '</td></tr>';
                 tbody.append(row);
             });
         },
-        
-        editBatch: function (batchId) {
-            // Load batch data and populate form
-            const batch = this.batches.find(b => b.id === batchId);
+
+        editBatch: (batchId) => {
+            const scope = _oilProductionGrid;
+            var batch = scope.batches.find(function (b) { return b.id === batchId; });
             if (batch) {
                 $('#oilBatchId').val(batch.id);
                 $('#oilProductionModalLabel').text('Edit Oil Production Sheet');
@@ -400,68 +386,89 @@ var _oilProductionGrid = function () {
                 $('#batchNumber').val(batch.batch_number || '');
                 $('#productName').val(batch.product_name || 'Food grade oil');
                 // ... populate other fields
-                const modalElement = document.getElementById('oilProductionModal');
-                if (modalElement) {
-                    const modal = new bootstrap.Modal(modalElement);
+                var modalElement = document.getElementById('oilProductionModal');
+                if (modalElement && typeof bootstrap !== 'undefined') {
+                    var modal = new bootstrap.Modal(modalElement);
                     modal.show();
                 }
             }
         },
-        viewBatch: function (batchId) {
-            Swal.fire('Info', 'Oil batch details view is under development', 'info');
+
+        viewBatch: (batchId) => {
+            if (typeof Swal !== 'undefined' && Swal.fire) {
+                Swal.fire('Info', 'Oil batch details view is under development', 'info');
+            }
         },
-        showError: function (message) {
-            Swal.fire({ icon: 'error', title: 'Error', text: message });
+
+        showError: (message) => {
+            if (typeof Swal !== 'undefined' && Swal.fire) {
+                Swal.fire({ icon: 'error', title: 'Error', text: message });
+            } else {
+                alert(message);
+            }
         },
-        exportBatches: function () {
-            if (!this.batches || this.batches.length === 0) {
-                Swal.fire('Info', 'No batches to export', 'info');
+
+        escapeHtml: (text) => {
+            if (!text) return '';
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        },
+
+        formatDate: (value) => {
+            if (!value) return '';
+            var d = value instanceof Date ? value : new Date(value);
+            if (isNaN(d.getTime())) return '';
+            var day = String(d.getDate()).padStart(2, '0');
+            var month = String(d.getMonth() + 1).padStart(2, '0');
+            var year = d.getFullYear();
+            return day + '/' + month + '/' + year;
+        },
+
+        exportBatches: () => {
+            const scope = _oilProductionGrid;
+            if (!scope.batches || scope.batches.length === 0) {
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire('Info', 'No batches to export', 'info');
+                }
                 return;
             }
-            
-            const columns = [
+            var columns = [
                 { key: 'batch_number', label: 'Batch Number' },
                 { key: 'input_material', label: 'Input Material' },
                 { key: 'input_quantity_kg', label: 'Input Quantity (kg)' },
                 { key: 'oil_produced_l', label: 'Oil Produced (L)' },
                 { key: 'status', label: 'Status' }
             ];
-            
             if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
-                exportUtils.exportToCSV(this.batches, 'oil_production_batches', columns);
+                exportUtils.exportToCSV(scope.batches, 'oil_production_batches', columns);
             } else {
-                Swal.fire('Error', 'Export utility not available', 'error');
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire('Error', 'Export utility not available', 'error');
+                }
             }
         }
     };
 }();
-const oilProductionGrid = _oilProductionGrid;
+
+window.oilProductionGrid = _oilProductionGrid;
+
 function initializeOilProductionGrid() {
-    console.log('Initializing Oil Production Grid...');
-    if (typeof oilProductionGrid !== 'undefined') {
-        // Wait a bit for DOM to be ready
-        setTimeout(() => {
-            oilProductionGrid.init();
-            console.log('Oil Production Grid initialized');
-            
-            // Verify button exists
-            const btn = document.getElementById('addOilBatchBtn');
-            if (btn) {
-                console.log('Add Oil Production button found in DOM');
-            } else {
-                console.error('Add Oil Production button NOT found in DOM!');
-            }
-            
-            // Verify modal exists
-            const modal = document.getElementById('oilProductionModal');
-            if (modal) {
-                console.log('Oil Production modal found in DOM');
-            } else {
-                console.error('Oil Production modal NOT found in DOM!');
-            }
-        }, 200);
-    } else {
-        console.error('oilProductionGrid is undefined!');
+    var maxWait = 5000;
+    var start = Date.now();
+    function tryInit() {
+        if (typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getOilProductionSheets === 'function') {
+            _oilProductionGrid.init();
+            return;
+        }
+        if (Date.now() - start < maxWait) {
+            setTimeout(tryInit, 50);
+        }
     }
+    tryInit();
 }
+
+$(document).ready(function () {
+    initializeOilProductionGrid();
+});
 
