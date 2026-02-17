@@ -167,7 +167,8 @@
             "path": "grower-intake",
             "html": "html/grower_intake_grid.html",
             "js": [
-                "js/grower_intake_grid.js"
+                "js/grower_intake_grid.js",
+                "js/receiving_checklist_shared.js"
             ],
             "css": [
                 "css/grower_intake_grid.css"
