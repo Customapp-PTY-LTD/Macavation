@@ -19,6 +19,7 @@ These apply to **every** module JS file. Not every file needs to be split; all s
 | **Entry init** | The entry module owns page-level init (load data, bind events); it may call feature modules’ `init()` after. |
 | **Init at end** | At the end of the module file, just call **`_moduleName.init();`**. No wrapper function, no checks. The script is loaded by the route; when it runs, init runs. Infrastructure handles load order. |
 | **Button / form handlers** | Use an **`initHandlers`** method (or similar) that attaches click/submit handlers to the relevant buttons or forms by **id** or selector. Call `initHandlers` from `init` (after the DOM / tables / buttons are loaded). Do not rely on global functions or inline `onclick` in HTML; attach in JS. |
+| **jQuery** | Use **jQuery** for DOM selection, event binding, and content updates where the project already uses it (e.g. `$('#id')`, `$(selector).on('click', ...)`, `.html()`, `.val()`). Keeps module code consistent with the rest of the app; use vanilla `document.getElementById` / `addEventListener` only when not mixing with jQuery in the same flow. |
 | **Dates** | Display all dates in **dd/mm/yyyy** format (e.g. 17/02/2025). Use a small helper or consistent formatting so users see the same format everywhere. |
 
 **Init-at-end example** (see `modules/amanda-dashboard/js/amanda_dashboard.js`):

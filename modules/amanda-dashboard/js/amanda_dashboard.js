@@ -99,7 +99,4 @@ var _amandaDashboard = function () {
         }
     };
 }();
-
-var initializeAmandaDashboard = function () {
-    return _amandaDashboard.init();
-};
+_amandaDashboard.init();

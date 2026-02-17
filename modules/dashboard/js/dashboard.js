@@ -1,140 +1,133 @@
 /**
  * Dashboard Module
  * Main dashboard with farm overview, stats, and quick access
+ * Pattern: IIFE, single global _dashboard, arrow methods, const scope for same-module calls.
  */
+var _dashboard = function () {
+    'use strict';
 
-let dashboardData = null;
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/**
- * Initialize Dashboard Module
- */
-async function initializeDashboard() {
-    try {
-        // Wait for dataFunctions to be available
-        if (typeof waitForDataFunctions === 'function') {
+    const routeAddButtonMap = {
+        'crm-grid': 'addContactBtn',
+        'grower-intake-grid': 'addSampleBtn',
+        'kernel-production-grid': 'addBatchBtn',
+        'quality-assurance-grid': 'addTestBtn',
+        'stock-management-grid': 'addStockBtn',
+        'document-management-grid': 'uploadDocBtn'
+    };
+
+    return {
+        data: null,
+
+        init: async () => {
+            const scope = _dashboard;
             try {
-                await waitForDataFunctions(50, 100);
+                if (typeof waitForDataFunctions === 'function') {
+                    try {
+                        await waitForDataFunctions(50, 100);
+                    } catch (error) {
+                        console.error('dataFunctions not available:', error);
+                        throw new Error('Data functions not available');
+                    }
+                } else if (typeof dataFunctions === 'undefined') {
+                    await delay(500);
+                    if (typeof dataFunctions === 'undefined') {
+                        throw new Error('dataFunctions is not available');
+                    }
+                }
+
+                scope.setCurrentDate();
+                scope.initHandlers();
+                try {
+                    await scope.loadDashboardData();
+                } catch (error) {
+                    console.error('Error loading dashboard data:', error);
+                }
+                await scope.loadExceptions();
+                await scope.loadMetrics();
+                scope.loadQuickActions();
+                scope.loadAlerts();
+                scope.loadStats();
+                scope.loadModules();
+                scope.loadRecentActivity();
+                if ($('#upcomingTasksList').length) await scope.loadUpcomingTasks();
             } catch (error) {
-                console.error('dataFunctions not available:', error);
-                throw new Error('Data functions not available');
+                console.error('Error initializing Dashboard:', error);
+                const $container = $('#content-area');
+                if ($container.length) {
+                    $container.html(`
+                        <div class="alert alert-danger" role="alert">
+                            <h4 class="alert-heading">Error Loading Dashboard</h4>
+                            <p>There was an error initializing the dashboard. Please refresh the page.</p>
+                            <hr>
+                            <p class="mb-0"><small>Error: ${error.message}</small></p>
+                        </div>
+                    `);
+                }
             }
-        } else if (typeof dataFunctions === 'undefined') {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            if (typeof dataFunctions === 'undefined') {
-                throw new Error('dataFunctions is not available');
+        },
+
+        initHandlers: () => {
+            const scope = _dashboard;
+            $(document).on('click', '[data-dashboard-route][data-dashboard-action]', function (e) {
+                e.preventDefault();
+                const $btn = $(this);
+                scope.handleQuickAction($btn.data('dashboard-route'), $btn.data('dashboard-action'));
+            });
+            $(document).on('click', '[data-dashboard-module-route]', function (e) {
+                e.preventDefault();
+                scope.navigateToModule($(this).data('dashboard-module-route'));
+            });
+        },
+
+        setCurrentDate: () => {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateString = now.toLocaleDateString('en-US', options);
+            $('#currentDate').text(dateString);
+        },
+
+        loadExceptions: async () => {
+            const $container = $('#exceptionsContainer');
+            if (!$container.length) return;
+            try {
+                if (typeof anomalyDetection === 'undefined' || !anomalyDetection.getActiveAnomalies) {
+                    console.error('anomalyDetection.getActiveAnomalies is not available');
+                    $container.html('<div class="alert alert-info">Exception detection not available.</div>');
+                    return;
+                }
+                const exceptions = await anomalyDetection.getActiveAnomalies();
+                if (typeof exceptionUI !== 'undefined' && exceptionUI.renderExceptionPanel) {
+                    exceptionUI.renderExceptionPanel(exceptions, 'exceptionsContainer');
+                } else {
+                    if (exceptions && exceptions.length > 0) {
+                        $container.html(exceptions.map(e => `
+                            <div class="alert alert-${e.severity === 'critical' ? 'danger' : e.severity === 'warning' ? 'warning' : 'info'}">
+                                <strong>${e.title}:</strong> ${e.description}
+                            </div>
+                        `).join(''));
+                    } else {
+                        $container.html('<div class="alert alert-success">No exceptions at this time. All systems operating normally.</div>');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading exceptions:', error);
+                $container.html('<div class="alert alert-warning">Unable to load exceptions. Please try again later.</div>');
             }
-        }
-        
-        // Set current date
-        setCurrentDate();
-        
-        // Load dashboard data
-        try {
-            await loadDashboardData();
-        } catch (error) {
-            console.error('Error loading dashboard data:', error);
-            // Continue with fallback data
-        }
-        
-        // Load Process-Driven Design components (Exception-First)
-        await loadExceptions();
-        await loadMetrics();
-        loadQuickActions();
-        
-        // Load legacy components (for backward compatibility)
-        loadAlerts();
-        loadStats();
-        loadModules();
-        loadRecentActivity();
-        
-        // Load upcoming tasks if container exists
-        const upcomingTasksContainer = document.getElementById('upcomingTasksList');
-        if (upcomingTasksContainer) {
-            await loadUpcomingTasks();
-        }
-    } catch (error) {
-        console.error('Error initializing Dashboard:', error);
-        // Show user-friendly error message
-        const container = document.getElementById('content-area');
-        if (container) {
-            container.innerHTML = `
-                <div class="alert alert-danger" role="alert">
-                    <h4 class="alert-heading">Error Loading Dashboard</h4>
-                    <p>There was an error initializing the dashboard. Please refresh the page.</p>
-                    <hr>
-                    <p class="mb-0"><small>Error: ${error.message}</small></p>
-                </div>
-            `;
-        }
-    }
-}
+        },
 
-/**
- * Set current date display
- */
-function setCurrentDate() {
-    const now = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const dateString = now.toLocaleDateString('en-US', options);
-    
-    const dateElement = document.getElementById('currentDate');
-    if (dateElement) {
-        dateElement.textContent = dateString;
-    }
-}
-
-
-/**
- * Load dashboard data from API
- */
-/**
- * Load exceptions (Exception-First Design)
- */
-async function loadExceptions() {
-    const container = document.getElementById('exceptionsContainer');
-    if (!container) return;
-    
-    try {
-        if (typeof anomalyDetection === 'undefined' || !anomalyDetection.getActiveAnomalies) {
-            console.error('anomalyDetection.getActiveAnomalies is not available');
-            container.innerHTML = '<div class="alert alert-info">Exception detection not available.</div>';
-            return;
-        }
-        
-        const exceptions = await anomalyDetection.getActiveAnomalies();
-        
-        if (typeof exceptionUI !== 'undefined' && exceptionUI.renderExceptionPanel) {
-            exceptionUI.renderExceptionPanel(exceptions, 'exceptionsContainer');
-        } else {
-            // Fallback rendering
-            if (exceptions && exceptions.length > 0) {
-                container.innerHTML = exceptions.map(e => `
-                    <div class="alert alert-${e.severity === 'critical' ? 'danger' : e.severity === 'warning' ? 'warning' : 'info'}">
-                        <strong>${e.title}:</strong> ${e.description}
-                    </div>
-                `).join('');
-            } else {
-                container.innerHTML = '<div class="alert alert-success">No exceptions at this time. All systems operating normally.</div>';
-            }
-        }
-    } catch (error) {
-        console.error('Error loading exceptions:', error);
-        container.innerHTML = '<div class="alert alert-warning">Unable to load exceptions. Please try again later.</div>';
-    }
-}
-
-/**
- * Load context-aware metrics
- */
-async function loadMetrics() {
-    const container = document.getElementById('metricsContainer');
-    if (!container) return;
-    
-    try {
-        // Get KPIs and calculate metrics with context
-        const kpis = await dataFunctions.getExecutiveKPIs().catch(() => ({}));
-        const batches = await dataFunctions.getProductionBatches().catch(() => []);
-        const stockItems = await dataFunctions.getStockItems().catch(() => []);
+        loadMetrics: async () => {
+            const $container = $('#metricsContainer');
+            if (!$container.length) return;
+            try {
+                if (typeof dataFunctions === 'undefined') {
+                    $container.html('<div class="alert alert-info">Metrics not available.</div>');
+                    return;
+                }
+                const kpis = await dataFunctions.getExecutiveKPIs().catch(() => ({}));
+                const batches = await dataFunctions.getProductionBatches().catch(() => []);
+                const stockItems = await dataFunctions.getStockItems().catch(() => []);
         
         // Calculate metrics with context - make them clickable
         const metrics = [
@@ -192,7 +185,7 @@ async function loadMetrics() {
             metricUI.renderMetricPanel(metrics, 'metricsContainer');
         } else {
             // Fallback rendering
-            container.innerHTML = `
+            $container.html(`
                 <div class="row g-3">
                     ${metrics.map(m => `
                         <div class="col-md-6 col-lg-3">
@@ -205,22 +198,18 @@ async function loadMetrics() {
                         </div>
                     `).join('')}
                 </div>
-            `;
+            `);
         }
-    } catch (error) {
-        console.error('Error loading metrics:', error);
-        container.innerHTML = '<div class="alert alert-warning">Unable to load metrics. Please try again later.</div>';
-    }
-}
+            } catch (error) {
+                console.error('Error loading metrics:', error);
+                $container.html('<div class="alert alert-warning">Unable to load metrics. Please try again later.</div>');
+            }
+        },
 
-/**
- * Load quick actions
- */
-function loadQuickActions() {
-    const container = document.getElementById('quickActionsContainer');
-    if (!container) return;
-    
-    const quickActions = [
+        loadQuickActions: () => {
+            const $container = $('#quickActionsContainer');
+            if (!$container.length) return;
+            const quickActions = [
         {
             icon: 'bi-person-plus',
             label: 'Add Contact',
@@ -263,140 +252,83 @@ function loadQuickActions() {
             action: 'add',
             color: 'dark'
         }
-    ];
-    
-    container.innerHTML = quickActions.map(action => `
-        <div class="col-md-4 col-lg-2">
-            <button class="btn btn-${action.color} w-100 quick-action-btn" 
-                    onclick="handleQuickAction('${action.route}', '${action.action}')"
-                    style="height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
-                <i class="bi ${action.icon} fs-3"></i>
-                <span>${action.label}</span>
-            </button>
-        </div>
-    `).join('');
-}
+            ];
+            $container.html(quickActions.map(action => `
+                <div class="col-md-4 col-lg-2">
+                    <button class="btn btn-${action.color} w-100 quick-action-btn"
+                            data-dashboard-route="${action.route}"
+                            data-dashboard-action="${action.action}"
+                            style="height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <i class="bi ${action.icon} fs-3"></i>
+                        <span>${action.label}</span>
+                    </button>
+                </div>
+            `).join(''));
+        },
 
-/**
- * Map of routes to their add button IDs
- */
-const routeAddButtonMap = {
-    'crm-grid': 'addContactBtn',
-    'grower-intake-grid': 'addSampleBtn',
-    'kernel-production-grid': 'addBatchBtn',
-    'quality-assurance-grid': 'addTestBtn',
-    'stock-management-grid': 'addStockBtn',
-    'document-management-grid': 'uploadDocBtn' // Document module uses uploadDocBtn
-};
-
-/**
- * Handle quick action - Navigate to module and trigger add functionality
- */
-function handleQuickAction(route, action) {
-    if (typeof _appRouter === 'undefined' || !_appRouter.loadContent && !_appRouter.routeTo) {
-        console.error('AppRouter not available');
-        if (typeof _common !== 'undefined' && _common.showErrorToast) {
-            _common.showErrorToast('Unable to navigate to module');
-        }
-        return;
-    }
-
-    // Navigate to the module
-    const navigatePromise = typeof _appRouter.routeTo === 'function' 
-        ? Promise.resolve(_appRouter.routeTo(route))
-        : _appRouter.loadContent(route);
-
-    navigatePromise.then(() => {
-        // Trigger add action after route loads
-        if (action === 'add') {
-            // Use route-specific button ID if available, otherwise try common patterns
-            const buttonId = routeAddButtonMap[route];
-            let addBtn = null;
-
-            if (buttonId) {
-                // Try the mapped button ID first
-                addBtn = document.getElementById(buttonId);
+        handleQuickAction: (route, action) => {
+            if (typeof _appRouter === 'undefined' || (!_appRouter.loadContent && !_appRouter.routeTo)) {
+                console.error('AppRouter not available');
+                if (typeof _common !== 'undefined' && _common.showErrorToast) _common.showErrorToast('Unable to navigate to module');
+                return;
             }
-
-            // Fallback to common button IDs if mapped ID not found
-            if (!addBtn) {
-                const commonIds = [
-                    'addContactBtn',
-                    'addSampleBtn',
-                    'addBatchBtn',
-                    'addTestBtn',
-                    'addStockBtn',
-                    'addDocumentBtn',
-                    'addBtn'
-                ];
-                for (const id of commonIds) {
-                    addBtn = document.getElementById(id);
-                    if (addBtn) break;
+            const navigatePromise = typeof _appRouter.routeTo === 'function'
+                ? Promise.resolve(_appRouter.routeTo(route))
+                : _appRouter.loadContent(route);
+            navigatePromise.then(() => {
+                if (action === 'add') {
+                    const buttonId = routeAddButtonMap[route];
+                    let $addBtn = buttonId ? $('#' + buttonId) : $();
+                    if (!$addBtn.length) {
+                        const commonIds = ['addContactBtn', 'addSampleBtn', 'addBatchBtn', 'addTestBtn', 'addStockBtn', 'addDocumentBtn', 'addBtn'];
+                        for (const id of commonIds) {
+                            $addBtn = $('#' + id);
+                            if ($addBtn.length) break;
+                        }
+                    }
+                    if (!$addBtn.length) {
+                        $addBtn = $('[id*="add"][id*="Btn"].btn-primary').length ? $('[id*="add"][id*="Btn"].btn-primary').first() : $('[id$="Btn"].btn-primary').first();
+                    }
+                    if ($addBtn.length) setTimeout(() => $addBtn.trigger('click'), 300);
+                    else console.warn('Could not find add button for route: ' + route);
                 }
-            }
+            }).catch((error) => {
+                console.error('Error navigating to module:', error);
+                if (typeof _common !== 'undefined' && _common.showErrorToast) _common.showErrorToast('Error navigating to module');
+            });
+        },
 
-            // Last resort: try to find any button with "add" in the ID and primary class
-            if (!addBtn) {
-                addBtn = document.querySelector('[id*="add"][id*="Btn"][class*="btn-primary"]') ||
-                         document.querySelector('[id$="Btn"][class*="btn-primary"]');
-            }
-
-            if (addBtn) {
-                // Small delay to ensure module is fully initialized
-                setTimeout(() => {
-                    addBtn.click();
-                }, 300);
-            } else {
-                console.warn(`Could not find add button for route: ${route}`);
-            }
-        }
-    }).catch(error => {
-        console.error('Error navigating to module:', error);
-        if (typeof _common !== 'undefined' && _common.showErrorToast) {
-            _common.showErrorToast('Error navigating to module');
-        }
-    });
-}
-
-async function loadDashboardData() {
-    try {
-        // Dashboard data for Macadamia Management System
-        dashboardData = {
+        loadDashboardData: async () => {
+            const scope = _dashboard;
+            try {
+                scope.data = {
             company: {
                 name: 'Macavation',
                 description: 'Premium Macadamia Management System'
             }
         };
-    } catch (error) {
-        console.error('Error loading dashboard data:', error);
-        showErrorMessage('Failed to load dashboard data');
-        dashboardData = {
-            company: {
-                name: 'Macavation',
-                description: 'Premium Macadamia Management System'
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                scope.showErrorMessage('Failed to load dashboard data');
+                scope.data = { company: { name: 'Macavation', description: 'Premium Macadamia Management System' } };
             }
-        };
-    }
-}
+        },
 
-/**
- * Load and display alerts
- */
-async function loadAlerts() {
-    const container = document.getElementById('alertsContainer');
-    if (!container) return;
+        loadAlerts: async () => {
+    const $container = $('#alertsContainer');
+    if (!$container.length) return;
     
     try {
         if (typeof dataFunctions === 'undefined' || !dataFunctions.getDashboardAlerts) {
             console.error('dataFunctions.getDashboardAlerts is not available');
-            container.innerHTML = '<div class="col-12"><div class="alert alert-info">Unable to load alerts.</div></div>';
+            $container.html('<div class="col-12"><div class="alert alert-info">Unable to load alerts.</div></div>');
             return;
         }
         
         const alerts = await dataFunctions.getDashboardAlerts(null);
         
         if (alerts && alerts.length > 0) {
-            container.innerHTML = alerts.map(alert => {
+            $container.html(alerts.map(alert => {
                 const alertClass = alert.alert_type === 'critical' ? 'danger' : 
                                  alert.alert_type === 'warning' ? 'warning' : 'info';
                 const icon = alert.alert_type === 'critical' ? 'bi-exclamation-triangle-fill' :
@@ -410,32 +342,26 @@ async function loadAlerts() {
                         </div>
                     </div>
                 `;
-            }).join('');
+            }).join(''));
         } else {
-            container.innerHTML = '<div class="col-12"><div class="alert alert-info">No alerts at this time.</div></div>';
+            $container.html('<div class="col-12"><div class="alert alert-info">No alerts at this time.</div></div>');
         }
-    } catch (error) {
-        console.error('Error loading alerts:', error);
-        container.innerHTML = '<div class="col-12"><div class="alert alert-warning">Unable to load alerts. Please try again later.</div></div>';
-    }
-}
+            } catch (error) {
+                console.error('Error loading alerts:', error);
+                $container.html('<div class="col-12"><div class="alert alert-warning">Unable to load alerts. Please try again later.</div></div>');
+            }
+        },
 
-/**
- * Load and display statistics cards
- */
-async function loadStats() {
-    const container = document.getElementById('statsContainer');
-    if (!container) return;
-    
-    try {
-        if (typeof dataFunctions === 'undefined' || !dataFunctions.getDashboardStats) {
-            console.error('dataFunctions.getDashboardStats is not available');
-            return;
-        }
-        
-        const statsData = await dataFunctions.getDashboardStats(null);
-        
-        const stats = [
+        loadStats: async () => {
+            const $container = $('#statsContainer');
+            if (!$container.length) return;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getDashboardStats) {
+                    console.error('dataFunctions.getDashboardStats is not available');
+                    return;
+                }
+                const statsData = await dataFunctions.getDashboardStats(null);
+                const stats = [
             {
                 icon: 'bi-people-fill',
                 title: 'Active Workers',
@@ -460,9 +386,8 @@ async function loadStats() {
                 value: statsData?.spray_schedule_due || '0',
                 label: 'applications due this week'
             }
-        ];
-        
-        container.innerHTML = stats.map(stat => `
+                ];
+                $container.html(stats.map(stat => `
             <div class="col-md-6 col-lg-3">
                 <div class="card stat-card">
                     <div class="card-header">
@@ -474,22 +399,17 @@ async function loadStats() {
                     </div>
                 </div>
             </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading stats:', error);
-        container.innerHTML = '<div class="col-12"><div class="alert alert-warning">Unable to load statistics. Please try again later.</div></div>';
-    }
-}
+        `).join(''));
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                $container.html('<div class="col-12"><div class="alert alert-warning">Unable to load statistics. Please try again later.</div></div>');
+            }
+        },
 
-/**
- * Load and display module cards
- */
-function loadModules() {
-    const container = document.getElementById('modulesContainer');
-    if (!container) return;
-    
-    // Define available Macavation modules
-    const modules = [
+        loadModules: () => {
+            const $container = $('#modulesContainer');
+            if (!$container.length) return;
+            const modules = [
         {
             icon: 'bi-person-fill',
             title: 'CRM',
@@ -564,31 +484,28 @@ function loadModules() {
         }
     ];
     
-    container.innerHTML = modules.map(module => `
-        <div class="col-lg-3 col-md-6">
-            <div class="card module-card" onclick="navigateToModule('${module.route}')">
-                <div class="card-body text-center">
-                    <i class="bi ${module.icon} module-icon"></i>
-                    <h5 class="card-title mt-3 fw-bold">${module.title}</h5>
-                    <p class="card-text text-muted">${module.description}</p>
-                    <button class="btn btn-dashboard">Open Module</button>
+            $container.html(modules.map(module => `
+                <div class="col-lg-3 col-md-6">
+                    <div class="card module-card" data-dashboard-module-route="${module.route}">
+                        <div class="card-body text-center">
+                            <i class="bi ${module.icon} module-icon"></i>
+                            <h5 class="card-title mt-3 fw-bold">${module.title}</h5>
+                            <p class="card-text text-muted">${module.description}</p>
+                            <button class="btn btn-dashboard">Open Module</button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    `).join('');
-}
+            `).join(''));
+        },
 
-/**
- * Load and display recent activity
- */
-async function loadRecentActivity() {
-    const container = document.getElementById('recentActivityList');
-    if (!container) return;
-    
-    try {
-        if (typeof dataFunctions === 'undefined' || !dataFunctions.getRecentActivity) {
+        loadRecentActivity: async () => {
+            const scope = _dashboard;
+            const $container = $('#recentActivityList');
+            if (!$container.length) return;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getRecentActivity) {
             console.error('dataFunctions.getRecentActivity is not available');
-            container.innerHTML = '<div class="text-center text-muted py-4"><p>Unable to load activity</p></div>';
+            $container.html('<div class="text-center text-muted py-4"><p>Unable to load activity</p></div>');
             return;
         }
         
@@ -600,7 +517,7 @@ async function loadRecentActivity() {
             // If authentication error, show empty state instead of error
             if (error.message && error.message.includes('token')) {
                 console.warn('Authentication required for recent activity');
-                container.innerHTML = '<div class="text-center text-muted py-4"><p>Please log in to view recent activity</p></div>';
+                $container.html('<div class="text-center text-muted py-4"><p>Please log in to view recent activity</p></div>');
                 return;
             }
             throw error; // Re-throw if it's a different error
@@ -619,9 +536,9 @@ async function loadRecentActivity() {
                 'oil': { icon: 'bi-droplet-fill', class: 'warning' }
             };
             
-            container.innerHTML = activities.map(activity => {
+            $container.html(activities.map(activity => {
                 const iconInfo = iconMap[activity.module] || { icon: 'bi-circle', class: 'info' };
-                const timeAgo = formatTimeAgo(activity.created_at);
+                const timeAgo = scope.formatTimeAgo(activity.created_at);
                 
                 return `
                     <div class="list-group-item px-0">
@@ -636,140 +553,102 @@ async function loadRecentActivity() {
                         </div>
                     </div>
                 `;
-            }).join('');
+            }).join(''));
         } else {
-            container.innerHTML = '<div class="text-center text-muted py-4"><p>No recent activity</p></div>';
+            $container.html('<div class="text-center text-muted py-4"><p>No recent activity</p></div>');
         }
-    } catch (error) {
-        console.error('Error loading recent activity:', error);
-        // Fallback to mock data
-        container.innerHTML = '<div class="text-center text-muted py-4"><p>Loading activity...</p></div>';
-    }
-}
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+                $container.html('<div class="text-center text-muted py-4"><p>Loading activity...</p></div>');
+            }
+        },
 
-/**
- * Format time ago from timestamp
- */
-function formatTimeAgo(timestamp) {
-    if (!timestamp) return 'Recently';
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString();
-}
+        formatTimeAgo: (timestamp) => {
+            if (!timestamp) return 'Recently';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            return date.toLocaleDateString();
+        },
 
-/**
- * Load and display upcoming tasks (using workflow tasks from Process-Driven Design)
- */
-async function loadUpcomingTasks() {
-    const container = document.getElementById('upcomingTasksList');
-    if (!container) return;
-    
-    try {
-        // Use workflow tasks from Process-Driven Design if available
-        if (typeof workflowViews !== 'undefined' && workflowViews.getTasksForRole) {
+        loadUpcomingTasks: async () => {
+            const $container = $('#upcomingTasksList');
+            if (!$container.length) return;
+            try {
+                if (typeof workflowViews !== 'undefined' && workflowViews.getTasksForRole) {
             // Get current user's role (you may need to get this from auth service)
-            const userRole = 'user'; // TODO: Get from auth service
-            const tasks = await workflowViews.getTasksForRole(userRole);
-            
-            if (tasks && tasks.length > 0) {
-                const upcomingTasks = tasks.slice(0, 5); // Limit to 5
-                container.innerHTML = upcomingTasks.map(task => {
-                    const dueDate = task.scheduled_date 
-                        ? new Date(task.scheduled_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
-                        : 'No due date';
-                    
-                    return `
+                const userRole = 'user';
+                const tasks = await workflowViews.getTasksForRole(userRole);
+                if (tasks && tasks.length > 0) {
+                    const upcomingTasks = tasks.slice(0, 5);
+                    $container.html(upcomingTasks.map(task => {
+                        const dueDate = task.scheduled_date
+                            ? new Date(task.scheduled_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                            : 'No due date';
+                        return `
                         <li class="task-item">
                             <span class="task-priority-dot priority-medium"></span>
                             <strong>${task.title || 'Task'}</strong>
                             <br><small class="text-muted">Due: ${dueDate}</small>
                         </li>
                     `;
-                }).join('');
+                    }).join(''));
+                } else {
+                    $container.html('<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>');
+                }
             } else {
-                container.innerHTML = '<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>';
+                $container.html('<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>');
             }
-        } else {
-            container.innerHTML = '<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>';
-        }
-    } catch (error) {
-        console.error('Error loading upcoming tasks:', error);
-        container.innerHTML = '<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>';
-    }
-}
+            } catch (error) {
+                console.error('Error loading upcoming tasks:', error);
+                $container.html('<li class="text-center text-muted py-4"><p>No upcoming tasks</p></li>');
+            }
+        },
 
-/**
- * Navigate to a module
- * Make this function globally accessible
- */
-window.navigateToModule = function navigateToModule(routeName) {
-    // Use appRouter if available
-    if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
-        // Use routeTo method if available (preferred)
-        _appRouter.routeTo(routeName);
-    } else if (typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
-        _appRouter.loadContent({
-            routeName: routeName,
-            elementSelector: _appRouter.contentContainer || '#content-area'
-        }).then(() => {
-            if (typeof $ !== 'undefined') {
-                $(window).scrollTop(0);
+        navigateToModule: (routeName) => {
+            if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
+                _appRouter.routeTo(routeName);
+            } else if (typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                _appRouter.loadContent({
+                    routeName: routeName,
+                    elementSelector: _appRouter.contentContainer || '#content-area'
+                }).then(() => {
+                    $(window).scrollTop(0);
+                    if (typeof sessionStorage !== 'undefined') {
+                        sessionStorage.setItem('lastActivePage', routeName);
+                        localStorage.setItem('lastActivePage', routeName);
+                    }
+                }).catch((error) => console.error('Navigation error:', error));
+            } else if (typeof window.appRouter !== 'undefined' && window.appRouter.loadContent) {
+                window.appRouter.loadContent({
+                    routeName: routeName,
+                    elementSelector: window.appRouter.contentContainer || '#content-area'
+                });
             } else {
-                window.scrollTo(0, 0);
+                console.error('AppRouter not available. Route:', routeName);
+                if (window.location) window.location.hash = '#' + routeName;
             }
-            // Update session storage
-            if (typeof sessionStorage !== 'undefined') {
-                sessionStorage.setItem('lastActivePage', routeName);
-                localStorage.setItem('lastActivePage', routeName);
+        },
+
+        showErrorMessage: (message) => {
+            if (typeof _common !== 'undefined' && _common.showErrorToast) {
+                _common.showErrorToast(message);
+            } else if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'error', title: 'Error', text: message, timer: 5000, showConfirmButton: true });
+            } else {
+                console.error(message);
+                alert('Error: ' + message);
             }
-        }).catch(error => {
-            console.error('Navigation error:', error);
-        });
-    } else if (typeof window.appRouter !== 'undefined' && window.appRouter.loadContent) {
-        window.appRouter.loadContent({
-            routeName: routeName,
-            elementSelector: window.appRouter.contentContainer || '#content-area'
-        });
-    } else {
-        console.error('AppRouter not available. Route:', routeName);
-        // Fallback: try direct URL change
-        if (window.location) {
-            window.location.hash = '#' + routeName;
         }
-    }
-};
+    };
+}();
 
-/**
- * Show error message
- */
-function showErrorMessage(message) {
-    if (typeof _common !== 'undefined' && _common.showErrorToast) {
-        _common.showErrorToast(message);
-    } else if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: message,
-            timer: 5000,
-            showConfirmButton: true
-        });
-    } else {
-        console.error(message);
-        alert('Error: ' + message);
-    }
-}
-
-// Auto-initialize when loaded via router
-if (typeof window !== 'undefined') {
-    // Module loaded and ready
-}
+_dashboard.init();
 

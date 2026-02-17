@@ -150,14 +150,6 @@
             font-size: 0.9rem;
         }
 
-        /* Remove frames/borders from sidebar dropdown buttons and sub-items */
-        .sidebar .nav-link,
-        .sidebar .collapse .nav-link {
-            border: none !important;
-            outline: none !important;
-            box-shadow: none !important;
-        }
-
         .sidebar-footer {
             border-color: rgba(255, 255, 255, 0.1) !important;
         }
@@ -497,14 +489,15 @@
                                     </ul>
                                 </div>
                             </li>
+                            <!-- Kernel stream: Grower Intake → PROCESSED/USK → W/House Finished (KERNEL R YES) -->
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
-                                    data-bs-target="#productionCollapse" aria-expanded="false"
-                                    aria-controls="productionCollapse">
-                                    <i class="fas fa-industry me-2"></i>Production
+                                    data-bs-target="#kernelCollapse" aria-expanded="false"
+                                    aria-controls="kernelCollapse">
+                                    <svg class="kernel-nav-icon me-2" aria-hidden="true" width="1em" height="1em" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><ellipse cx="12" cy="12" rx="10" ry="9" fill="currentColor"/><ellipse cx="8.5" cy="8" rx="3.5" ry="3" fill="currentColor" opacity="0.45"/></svg>Kernel
                                     <i class="fas fa-chevron-down ms-auto"></i>
                                 </a>
-                                <div class="collapse" id="productionCollapse">
+                                <div class="collapse" id="kernelCollapse">
                                     <ul class="nav flex-column ms-3">
                                         <li class="nav-item">
                                             <a class="nav-link" href="#" route="grower-intake-grid">
@@ -517,8 +510,46 @@
                                             </a>
                                         </li>
                                         <li class="nav-item">
+                                            <a class="nav-link" href="#" route="stock-management-kernel">
+                                                <i class="fas fa-warehouse me-2"></i>Stock (Kernel)
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="kernel-dispatch-grid">
+                                                <i class="fas fa-box me-2"></i>Kernel Dispatch
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <!-- Oil & Protein stream: Supplier Intake → W/House Raws (OIL KERNEL R YES) → PRODUCTION → W/House Finished (OIL PROTEIN R YES) -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-bs-toggle="collapse"
+                                    data-bs-target="#oilCollapse" aria-expanded="false"
+                                    aria-controls="oilCollapse">
+                                    <i class="fas fa-oil-can me-2"></i>Oil &amp; Protein
+                                    <i class="fas fa-chevron-down ms-auto"></i>
+                                </a>
+                                <div class="collapse" id="oilCollapse">
+                                    <ul class="nav flex-column ms-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="supplier-intake-grid">
+                                                <i class="fas fa-dolly me-2"></i>Supplier Intake
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
                                             <a class="nav-link" href="#" route="oil-production-grid">
-                                                <i class="fas fa-oil-can me-2"></i>Oil Production
+                                                <i class="fas fa-industry me-2"></i>Oil Production
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="stock-management-oil">
+                                                <i class="fas fa-warehouse me-2"></i>Stock (Oil &amp; Protein)
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#" route="oil-dispatch-grid">
+                                                <i class="fas fa-box-open me-2"></i>Oil &amp; Protein Dispatch
                                             </a>
                                         </li>
                                     </ul>
@@ -528,7 +559,7 @@
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#qualityCollapse" aria-expanded="false"
                                     aria-controls="qualityCollapse">
-                                    <i class="fas fa-check-circle me-2"></i>Quality & Stock
+                                    <i class="fas fa-check-circle me-2"></i>Quality
                                     <i class="fas fa-chevron-down ms-auto"></i>
                                 </a>
                                 <div class="collapse" id="qualityCollapse">
@@ -536,11 +567,6 @@
                                         <li class="nav-item">
                                             <a class="nav-link" href="#" route="quality-assurance-grid">
                                                 <i class="fas fa-flask me-2"></i>Quality Assurance
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" href="#" route="stock-management-grid">
-                                                <i class="fas fa-warehouse me-2"></i>Stock Management
                                             </a>
                                         </li>
                                     </ul>
@@ -838,6 +864,22 @@
 
         // Initialize application
         document.addEventListener('DOMContentLoaded', function () {
+            // Clear any stuck modal state that could block clicks (e.g. body overlay)
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+            document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.remove(); });
+
+            // Ensure Bootstrap dropdowns and collapses work (explicit init if data-api missed)
+            if (typeof bootstrap !== 'undefined') {
+                document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (el) {
+                    try { bootstrap.Dropdown.getOrCreateInstance(el); } catch (e) { }
+                });
+                document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function (el) {
+                    try { bootstrap.Collapse.getOrCreateInstance(el); } catch (e) { }
+                });
+            }
+
             // Emergency: ensure ESC always force-closes stuck modals/backdrops
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape' && typeof window.forceCloseAllModals === 'function') {
@@ -870,8 +912,9 @@
                 return;
             }
 
-            // Initialize sidebar collapse behavior
-            initializeSidebarCollapse();
+            try {
+                // Initialize sidebar collapse behavior
+                initializeSidebarCollapse();
 
             // Initialize sidebar toggle
             initializeSidebarToggle();
@@ -879,9 +922,12 @@
             // Load and display user information
             updateUserDisplay();
 
-            // Initialize role-based menu filtering (run immediately so correct menu shows from first paint)
+            // Initialize role-based menu filtering
             if (typeof menuFilter !== 'undefined') {
-                menuFilter.init();
+                // Wait a bit for DOM to be ready
+                setTimeout(() => {
+                    menuFilter.init();
+                }, 500);
             }
 
             // Ensure User Management menu is collapsed by default
@@ -894,20 +940,14 @@
                 if (userManagementToggle) {
                     userManagementToggle.setAttribute('aria-expanded', 'false');
                 }
-            }
-
-            // Ensure User Management menu is positioned correctly before System Administration
-            // This ensures the order is maintained across all modules
-            const systemAdminItem = document.getElementById('systemAdminMenuItem');
-            const userManagementItem = document.getElementById('userManagementMenuItem');
-            if (systemAdminItem && userManagementItem) {
-                // Verify order - User Management should come before System Administration
-                const userManagementNextSibling = userManagementItem.nextElementSibling;
-                if (userManagementNextSibling !== systemAdminItem) {
-                    // If order is wrong, move User Management to be directly before System Administration
+                var systemAdminItem = document.getElementById('systemAdminMenuItem');
+                var userManagementItem = document.getElementById('userManagementMenuItem');
+                if (systemAdminItem && userManagementItem && userManagementItem.nextElementSibling !== systemAdminItem) {
                     systemAdminItem.insertAdjacentElement('beforebegin', userManagementItem);
-                    console.log('[Sidebar] Fixed User Management menu position - now before System Administration');
                 }
+            }
+            } catch (err) {
+                console.error('[Index init] Sidebar/display init error:', err);
             }
         });
 
@@ -1125,13 +1165,14 @@
             initializeActiveStates();
         }
 
-        // Initialize active state management for sidebar
+        // Initialize active state management for sidebar (only for collapse toggles; route links are handled by appRouter)
         function initializeActiveStates() {
             const navLinks = document.querySelectorAll('.sidebar .nav-link');
             const sidebar = document.getElementById('sidebarMenu');
             const userManagementCollapse = document.getElementById('userManagementCollapse');
 
             navLinks.forEach(link => {
+                if (link.hasAttribute('route')) return;
                 link.addEventListener('click', function (e) {
                     // Remove active class from all links
                     navLinks.forEach(l => l.classList.remove('active'));
