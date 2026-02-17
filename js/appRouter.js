@@ -313,6 +313,11 @@ var _appRouter = function () {
                         initializeUsersGrid();
                     }
                 },
+                'user-modal': () => {
+                    if (typeof _modal_user !== 'undefined' && _modal_user.init) {
+                        _modal_user.init();
+                    }
+                },
                 'roles-grid': () => {
                     if (typeof initializeRolesGrid === 'function') {
                         initializeRolesGrid();

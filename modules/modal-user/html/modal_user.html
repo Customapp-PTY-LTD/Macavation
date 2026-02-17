@@ -1,0 +1,73 @@
+<div class="modal-dialog modal-lg">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="userModalLabel">Add New User</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="userForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <h5>Personal Information</h5>
+                            <div class="mb-3">
+                                <label for="username" class="form-label required">Username</label>
+                                <input type="text" class="form-control" id="username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="firstName" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="firstName">
+                            </div>
+                            <div class="mb-3">
+                                <label for="lastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="lastName">
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label required">Email Address</label>
+                                <input type="email" class="form-control" id="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="txtMobile" class="form-label">Mobile Number</label>
+                                <input type="tel" class="form-control" id="txtMobile">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <h5>Account Information</h5>
+                            <div class="mb-3">
+                                <label for="cboRole" class="form-label required">Role</label>
+                                <select class="form-select" id="cboRole" required>
+                                    <option value="">Select Role</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                    <label class="form-check-label" for="isActive">
+                                        Active User
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3" id="passwordSection">
+                                <label for="password" class="form-label" id="passwordLabel">Password</label>
+                                <input type="password" class="form-control" id="password">
+                                <small class="form-text text-muted" id="passwordHelp">Leave blank to keep current password when editing</small>
+                            </div>
+                            <div class="mb-3" id="confirmPasswordSection">
+                                <label for="txtConfirmPassword" class="form-label" id="confirmPasswordLabel">Confirm Password</label>
+                                <input type="password" class="form-control" id="txtConfirmPassword">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveUserBtn">
+                <i class="fas fa-save me-1"></i>Save User
+            </button>
+        </div>
+    </div>
+</div>

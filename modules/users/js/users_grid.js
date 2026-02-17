@@ -18,12 +18,21 @@ var _usersGrid = function () {
         filteredUsers: [],
         currentPage: 1,
         itemsPerPage: 10,
-        editingUser: null,
         searchDebounceToken: 0,
 
         init: async () => {
             const scope = _usersGrid;
             await scope.waitForReady();
+            var modalContainers = document.querySelectorAll('.modal[route-name]');
+            var loadPromises = [];
+            modalContainers.forEach(function (el) {
+                var routeName = el.getAttribute('route-name');
+                if (routeName && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                    loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: '#' + el.id }));
+                }
+            });
+            if (loadPromises.length) await Promise.all(loadPromises);
+            if (typeof _modal_user !== 'undefined' && _modal_user.init) _modal_user.init();
             scope.setupEventListeners();
             await scope.loadUsers();
         },
@@ -61,7 +70,7 @@ var _usersGrid = function () {
             });
 
             $('#addUserBtn').on('click', function () {
-                scope.showAddUserModal();
+                if (typeof _modal_user !== 'undefined' && _modal_user.show) _modal_user.show();
             });
 
             $(document).on('click', '.user-name-link', function (e) {
@@ -76,14 +85,6 @@ var _usersGrid = function () {
                 const scope = _usersGrid;
                 const userId = $(this).data('user-id');
                 scope.deleteUser(userId);
-            });
-
-            $('#saveUserBtn').on('click', function () {
-                scope.saveUser();
-            });
-
-            $('#userModal').on('hidden.bs.modal', function () {
-                scope.clearForm();
             });
         },
 
@@ -112,24 +113,19 @@ var _usersGrid = function () {
             const scope = _usersGrid;
             try {
                 const response = await dataFunctions.getRoles();
-                let roles = response;
-
+                var roles = response;
                 if (!roles || !Array.isArray(roles) || roles.length === 0) {
                     console.error('No valid roles data!');
                     return;
                 }
-
-                const roleSelects = ['cboRole', 'filterRole'];
-                roleSelects.forEach(function (selectId) {
-                    const select = document.getElementById(selectId);
-                    if (select) {
-                        let html = selectId === 'filterRole' ? '<option value="">All Roles</option>' : '<option value="">Select Role</option>';
-                        roles.forEach(function (role) {
-                            html += '<option value="' + role.id + '">' + scope.escapeHtml(role.role_name) + '</option>';
-                        });
-                        select.innerHTML = html;
-                    }
-                });
+                var select = document.getElementById('filterRole');
+                if (select) {
+                    var html = '<option value="">All Roles</option>';
+                    roles.forEach(function (role) {
+                        html += '<option value="' + role.id + '">' + scope.escapeHtml(role.role_name) + '</option>';
+                    });
+                    select.innerHTML = html;
+                }
             } catch (error) {
                 console.error('Error in loadRolesForDropdown (Users):', error);
             }
@@ -225,49 +221,14 @@ var _usersGrid = function () {
             $('#pagination').html(paginationHtml);
         },
 
-        showAddUserModal: async () => {
+        editUser: (userId) => {
             const scope = _usersGrid;
-            scope.editingUser = null;
-            scope.clearForm();
-            await scope.loadRolesForDropdown();
-
-            $('#passwordSection').show();
-            $('#confirmPasswordSection').show();
-            $('#password').prop('required', true);
-            $('#txtConfirmPassword').prop('required', true);
-            $('#passwordLabel').addClass('required');
-            $('#confirmPasswordLabel').addClass('required');
-            $('#passwordHelp').text('Password is required for new users');
-            $('#userModalLabel').text('Add User');
-            $('#userModal').modal('show');
-        },
-
-        editUser: async (userId) => {
-            const scope = _usersGrid;
-            try {
-                const user = scope.users.find(function (u) { return u.id === userId; });
-                if (!user) {
-                    scope.showError('User not found');
-                    return;
-                }
-                scope.editingUser = user;
-                await scope.loadRolesForDropdown();
-                await delay(200);
-                scope.populateForm(user);
-
-                $('#passwordSection').show();
-                $('#confirmPasswordSection').show();
-                $('#password').prop('required', false);
-                $('#txtConfirmPassword').prop('required', false);
-                $('#passwordLabel').removeClass('required');
-                $('#confirmPasswordLabel').removeClass('required');
-                $('#passwordHelp').text('Leave blank to keep current password');
-                $('#userModalLabel').text('Edit User');
-                $('#userModal').modal('show');
-            } catch (error) {
-                console.error('Error editing user:', error);
-                scope.showError('Error loading user details: ' + error.message);
+            var user = scope.users.find(function (u) { return u.id === userId; });
+            if (!user) {
+                scope.showError('User not found');
+                return;
             }
+            if (typeof _modal_user !== 'undefined' && _modal_user.show) _modal_user.show(user);
         },
 
         deleteUser: (userId) => {
@@ -296,95 +257,6 @@ var _usersGrid = function () {
                     }
                 }
             });
-        },
-
-        saveUser: async () => {
-            const scope = _usersGrid;
-            try {
-                const password = $('#password').val().trim();
-                const confirmPassword = $('#txtConfirmPassword').val().trim();
-                const formData = {
-                    username: $('#username').val().trim(),
-                    email: $('#email').val().trim(),
-                    first_name: $('#firstName').val().trim(),
-                    last_name: $('#lastName').val().trim(),
-                    role_id: $('#cboRole').val(),
-                    is_active: $('#isActive').is(':checked')
-                };
-
-                if (!formData.username) {
-                    scope.showError('Username is required');
-                    return;
-                }
-                if (!formData.email) {
-                    scope.showError('Email is required');
-                    return;
-                }
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(formData.email)) {
-                    scope.showError('Please enter a valid email address');
-                    return;
-                }
-                if (!scope.editingUser) {
-                    if (!password) {
-                        scope.showError('Password is required for new users');
-                        return;
-                    }
-                    if (password !== confirmPassword) {
-                        scope.showError('Passwords do not match');
-                        return;
-                    }
-                    formData.password = password;
-                } else {
-                    if (password) {
-                        if (password !== confirmPassword) {
-                            scope.showError('Passwords do not match');
-                            return;
-                        }
-                        formData.password = password;
-                    }
-                }
-                if (!formData.role_id) {
-                    scope.showError('Role is required');
-                    return;
-                }
-
-                if (scope.editingUser) {
-                    await dataFunctions.updateUser(scope.editingUser.id, formData);
-                    scope.showSuccess('User updated successfully');
-                } else {
-                    await dataFunctions.createUser(formData);
-                    scope.showSuccess('User created successfully');
-                }
-                $('#userModal').modal('hide');
-                scope.loadUsers();
-            } catch (error) {
-                console.error('Error saving user:', error);
-                scope.showError('Error saving user: ' + error.message);
-            }
-        },
-
-        populateForm: (user) => {
-            const username = user.username || user.user_name || user.userName || '';
-            const email = user.email || user.email_address || '';
-            const firstName = user.first_name || user.firstName || user.firstname || '';
-            const lastName = user.last_name || user.lastName || user.lastname || '';
-            const roleId = user.role_id || user.roleId || '';
-            const isActive = user.is_active !== undefined ? user.is_active : true;
-
-            $('#username').val(username);
-            $('#email').val(email);
-            $('#firstName').val(firstName);
-            $('#lastName').val(lastName);
-            $('#cboRole').val(roleId);
-            $('#isActive').prop('checked', isActive);
-            $('#password').val('');
-        },
-
-        clearForm: () => {
-            const scope = _usersGrid;
-            $('#userForm')[0].reset();
-            scope.editingUser = null;
         },
 
         showLoading: () => {

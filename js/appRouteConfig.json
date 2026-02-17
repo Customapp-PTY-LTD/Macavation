@@ -58,6 +58,13 @@
                 "css/users_grid.css"
             ]
         },
+        "user-modal": {
+            "description": "Add/Edit User Modal",
+            "path": "modal-user",
+            "html": "html/modal_user.html",
+            "js": ["js/modal_user.js"],
+            "css": []
+        },
         "roles-grid": {
             "description": "Role Management",
             "path": "roles",
