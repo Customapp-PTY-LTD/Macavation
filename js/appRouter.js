@@ -333,6 +333,11 @@ var _appRouter = function () {
                         initializeRolePermissionsGrid();
                     }
                 },
+                'role-permission-modal': () => {
+                    if (typeof _modal_role_permission !== 'undefined' && _modal_role_permission.init) {
+                        _modal_role_permission.init();
+                    }
+                },
                 'admin-grid': () => {
                     if (typeof initializeAdminGrid === 'function') {
                         initializeAdminGrid();

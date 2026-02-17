@@ -1,0 +1,80 @@
+<div class="modal-dialog modal-lg">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="permissionModalLabel">Add New Permission</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="permissionForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <h5>Permission Information</h5>
+                            <div class="mb-3">
+                                <label for="cboRole" class="form-label required">Role</label>
+                                <select class="form-select" id="cboRole" required>
+                                    <option value="">Select Role</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="cboObjectType" class="form-label required">Object Type</label>
+                                <select class="form-select" id="cboObjectType" required>
+                                    <option value="">Select Object Type</option>
+                                    <option value="Users">Users</option>
+                                    <option value="Roles">Roles</option>
+                                    <option value="Permissions">Permissions</option>
+                                    <option value="Features">Features</option>
+                                    <option value="Reports">Reports</option>
+                                    <option value="Settings">Settings</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="cboPermission" class="form-label required">Permission</label>
+                                <select class="form-select" id="cboPermission" required>
+                                    <option value="">Select Permission</option>
+                                    <option value="Create">Create</option>
+                                    <option value="Read">Read</option>
+                                    <option value="Update">Update</option>
+                                    <option value="Delete">Delete</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <h5>Permission Settings</h5>
+                            <div class="mb-3">
+                                <label for="txtDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="txtDescription" rows="3"
+                                    placeholder="Optional description of this permission"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="cboStatus" class="form-label required">Status</label>
+                                <select class="form-select" id="cboStatus" required>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="chkIsDefault" value="1">
+                                    <label class="form-check-label" for="chkIsDefault">
+                                        Default Permission
+                                    </label>
+                                    <div class="form-text">This permission will be granted by default to new users
+                                        with this role</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="savePermissionBtn">
+                <i class="fas fa-save me-1"></i>Save Permission
+            </button>
+        </div>
+    </div>
+</div>

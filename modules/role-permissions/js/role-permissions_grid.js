@@ -18,15 +18,24 @@ var _rolePermissionsGrid = function () {
         filteredPermissions: [],
         currentPage: 1,
         itemsPerPage: 10,
-        editingPermission: null,
         searchDebounceToken: 0,
 
         init: async () => {
             const scope = _rolePermissionsGrid;
             await scope.waitForReady();
+            var modalContainers = document.querySelectorAll('.modal[route-name]');
+            var loadPromises = [];
+            modalContainers.forEach(function (el) {
+                var routeName = el.getAttribute('route-name');
+                if (routeName && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                    loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: '#' + el.id }));
+                }
+            });
+            if (loadPromises.length) await Promise.all(loadPromises);
+            if (typeof _modal_role_permission !== 'undefined' && _modal_role_permission.init) _modal_role_permission.init();
             scope.setupEventListeners();
-            await scope.loadPermissions();
             await scope.loadRolesForDropdown();
+            await scope.loadPermissions();
         },
 
         waitForReady: () => {
@@ -60,7 +69,7 @@ var _rolePermissionsGrid = function () {
             });
 
             $('#addPermissionBtn').on('click', function () {
-                scope.showAddPermissionModal();
+                if (typeof _modal_role_permission !== 'undefined' && _modal_role_permission.show) _modal_role_permission.show();
             });
 
             $(document).on('click', '.object-name-link', function (e) {
@@ -75,14 +84,6 @@ var _rolePermissionsGrid = function () {
                 const scope = _rolePermissionsGrid;
                 var permissionId = $(this).data('permission-id');
                 scope.deletePermission(permissionId);
-            });
-
-            $('#savePermissionBtn').on('click', function () {
-                scope.savePermission();
-            });
-
-            $('#permissionModal').on('hidden.bs.modal', function () {
-                scope.clearForm();
             });
         },
 
@@ -107,17 +108,14 @@ var _rolePermissionsGrid = function () {
             try {
                 var roles = await dataFunctions.getRoles();
                 if (!roles || !Array.isArray(roles) || roles.length === 0) return;
-                var roleSelects = ['cboRole', 'filterRole'];
-                roleSelects.forEach(function (selectId) {
-                    var select = document.getElementById(selectId);
-                    if (select) {
-                        var html = selectId === 'filterRole' ? '<option value="">All Roles</option>' : '<option value="">Select Role</option>';
-                        roles.forEach(function (role) {
-                            html += '<option value="' + role.id + '">' + scope.escapeHtml(role.role_name) + '</option>';
-                        });
-                        select.innerHTML = html;
-                    }
-                });
+                var select = document.getElementById('filterRole');
+                if (select) {
+                    var html = '<option value="">All Roles</option>';
+                    roles.forEach(function (role) {
+                        html += '<option value="' + role.id + '">' + scope.escapeHtml(role.role_name) + '</option>';
+                    });
+                    select.innerHTML = html;
+                }
             } catch (error) {
                 console.error('Error loading roles:', error);
             }
@@ -187,33 +185,14 @@ var _rolePermissionsGrid = function () {
             $('#pagination').html(paginationHtml);
         },
 
-        showAddPermissionModal: async () => {
+        editPermission: (permissionId) => {
             const scope = _rolePermissionsGrid;
-            scope.editingPermission = null;
-            scope.clearForm();
-            await scope.loadRolesForDropdown();
-            $('#permissionModalLabel').text('Add Database Role Permission');
-            $('#permissionModal').modal('show');
-        },
-
-        editPermission: async (permissionId) => {
-            const scope = _rolePermissionsGrid;
-            try {
-                var permission = scope.permissions.find(function (p) { return p.id === permissionId; });
-                if (!permission) {
-                    scope.showError('Permission not found');
-                    return;
-                }
-                scope.editingPermission = permission;
-                await scope.loadRolesForDropdown();
-                await delay(200);
-                scope.populateForm(permission);
-                $('#permissionModalLabel').text('Edit Database Role Permission');
-                $('#permissionModal').modal('show');
-            } catch (error) {
-                console.error('Error editing permission:', error);
-                scope.showError('Error loading permission details: ' + error.message);
+            var permission = scope.permissions.find(function (p) { return p.id === permissionId; });
+            if (!permission) {
+                scope.showError('Permission not found');
+                return;
             }
+            if (typeof _modal_role_permission !== 'undefined' && _modal_role_permission.show) _modal_role_permission.show(permission);
         },
 
         deletePermission: (permissionId) => {
@@ -241,64 +220,6 @@ var _rolePermissionsGrid = function () {
                     }
                 }
             });
-        },
-
-        savePermission: async () => {
-            const scope = _rolePermissionsGrid;
-            try {
-                var formData = {
-                    role_id: $('#cboRole').val(),
-                    object_name: $('#cboObjectType').val() || '',
-                    object_type: $('#cboObjectType').val() || '',
-                    operation: $('#cboPermission').val() || '',
-                    description: $('#txtDescription').val() || '',
-                    is_active: $('#cboStatus').val() === 'active'
-                };
-                if (!formData.role_id) {
-                    scope.showError('Role is required');
-                    return;
-                }
-                if (!formData.object_type) {
-                    scope.showError('Object type is required');
-                    return;
-                }
-                if (!formData.operation) {
-                    scope.showError('Permission is required');
-                    return;
-                }
-                formData.object_name = formData.object_type;
-                if (scope.editingPermission) {
-                    await dataFunctions.updateRolePermission(scope.editingPermission.id, formData);
-                    scope.showSuccess('Permission updated successfully');
-                } else {
-                    await dataFunctions.createRolePermission(formData);
-                    scope.showSuccess('Permission created successfully');
-                }
-                $('#permissionModal').modal('hide');
-                scope.loadPermissions();
-            } catch (error) {
-                console.error('Error saving permission:', error);
-                scope.showError('Error saving permission: ' + error.message);
-            }
-        },
-
-        populateForm: (permission) => {
-            var roleId = permission.role_id || '';
-            var objectType = permission.object_type || '';
-            var operation = permission.operation || '';
-            var description = permission.description || '';
-            var isActive = permission.is_active !== undefined ? permission.is_active : true;
-            $('#cboRole').val(roleId);
-            $('#cboObjectType').val(objectType);
-            $('#cboPermission').val(operation);
-            $('#txtDescription').val(description);
-            $('#cboStatus').val(isActive ? 'active' : 'inactive');
-        },
-
-        clearForm: () => {
-            const scope = _rolePermissionsGrid;
-            $('#permissionForm')[0].reset();
-            scope.editingPermission = null;
         },
 
         showLoading: () => {
@@ -349,7 +270,7 @@ var _rolePermissionsGrid = function () {
         },
 
         addPermission: () => {
-            _rolePermissionsGrid.showAddPermissionModal();
+            if (typeof _modal_role_permission !== 'undefined' && _modal_role_permission.show) _modal_role_permission.show();
         },
 
         exportPermissions: () => {

@@ -80,6 +80,13 @@
                 "css/role-permissions_grid.css"
             ]
         },
+        "role-permission-modal": {
+            "description": "Add/Edit Role Permission Modal",
+            "path": "modal-role-permission",
+            "html": "html/modal_role_permission.html",
+            "js": ["js/modal_role_permission.js"],
+            "css": []
+        },
         "role-features-grid": {
             "description": "Role Features Management",
             "path": "role-features",
