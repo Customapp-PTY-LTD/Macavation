@@ -1,0 +1,10 @@
+/* Supply Chain Process Flow module */
+.supply-chain-flow-module .card-header.bg-dark { font-weight: 600; }
+.supply-chain-flow-module .mermaid { min-height: 320px; }
+.supply-chain-flow-module .list-group-item { align-items: center; }
+.supply-chain-flow-module .list-group-item .btn { flex-shrink: 0; }
+@media (max-width: 768px) {
+    .supply-chain-flow-module .d-flex.flex-wrap .btn-toolbar { width: 100%; }
+    .supply-chain-flow-module .list-group-item { flex-wrap: wrap; }
+    .supply-chain-flow-module .list-group-item .btn { margin-top: 0.5rem; margin-left: 0 !important; }
+}

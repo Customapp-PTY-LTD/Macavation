@@ -12,10 +12,12 @@ var _stockManagementGrid = function () {
         oilImportPreviewRows: [],
         searchTimeout: null,
         init: function () {
-            console.log('[Stock Management] Initializing grid...');
             const scope = this;
-            
-            // Use MutationObserver to wait for buttons to be added to DOM
+            // Hide Stock Take modal immediately on load (DOM-only, no Bootstrap) so it never flashes open
+            scope.forceHideStockTakeModalOnLoad();
+
+            console.log('[Stock Management] Initializing grid...');
+
             const checkAndInit = () => {
                 const stockTakeBtn = document.getElementById('stockTakeBtn');
                 if (stockTakeBtn) {
@@ -31,9 +33,23 @@ var _stockManagementGrid = function () {
                     setTimeout(checkAndInit, 100);
                 }
             };
-            
-            // Start checking
+
             setTimeout(checkAndInit, 50);
+        },
+
+        /** DOM-only hide so modal never auto-shows on route load. Call before any Bootstrap modal API. */
+        forceHideStockTakeModalOnLoad: function () {
+            var modalEl = document.getElementById('stockTakeModal');
+            if (!modalEl) return;
+            modalEl.classList.remove('show');
+            modalEl.style.display = 'none';
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.removeAttribute('aria-modal');
+            var backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+            document.body.classList.remove('modal-open');
+            if (document.body.style.removeProperty) document.body.style.removeProperty('overflow');
+            if (document.body.style.removeProperty) document.body.style.removeProperty('padding-right');
         },
         setupEventListeners: function () {
             const scope = this;
@@ -154,35 +170,18 @@ var _stockManagementGrid = function () {
                 });
             }
             
-            // Close modal handlers - ensure modal can be closed
-            const stockTakeModal = document.getElementById('stockTakeModal');
-            if (stockTakeModal) {
-                // Cancel button in footer
-                const cancelBtn = stockTakeModal.querySelector('.modal-footer button[data-bs-dismiss="modal"]');
-                if (cancelBtn) {
-                    cancelBtn.addEventListener('click', function(e) {
-                        console.log('[Stock Management] Cancel button clicked');
-                        scope.closeStockTakeModal();
-                    });
+            // Close modal: delegated so it works when modal is open (only open when user clicks Stock Take)
+            $(document).on('click', '#stockTakeModalCloseBtn, #stockTakeModalCancelBtn', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                scope.closeStockTakeModal();
+            });
+            $(document).on('keydown', '#stockTakeModal', function (e) {
+                if (e.key === 'Escape' || e.keyCode === 27) {
+                    e.preventDefault();
+                    scope.closeStockTakeModal();
                 }
-                
-                // Close button in header
-                const closeBtn = stockTakeModal.querySelector('.btn-close');
-                if (closeBtn) {
-                    closeBtn.addEventListener('click', function(e) {
-                        console.log('[Stock Management] Close button clicked');
-                        scope.closeStockTakeModal();
-                    });
-                }
-                
-                // Also handle ESC key
-                stockTakeModal.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape' || e.keyCode === 27) {
-                        e.preventDefault();
-                        scope.closeStockTakeModal();
-                    }
-                });
-            }
+            });
             
             // Delegated event handlers for dynamic content (both native and jQuery)
             document.addEventListener('click', function(e) {
@@ -1301,7 +1300,7 @@ var _stockManagementGrid = function () {
                     Swal.fire('Error', 'Stock take modal not found. Please refresh the page.', 'error');
                     return;
                 }
-                
+                modalElement.style.removeProperty('display');
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                     const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
                     modal.show();
@@ -1320,39 +1319,22 @@ var _stockManagementGrid = function () {
         },
         
         closeStockTakeModal: function () {
-            console.log('[Stock Management] Closing stock take modal');
-            const modalElement = document.getElementById('stockTakeModal');
-            if (!modalElement) {
-                console.warn('[Stock Management] Modal element not found');
-                return;
-            }
-            
+            var scope = this;
+            var modalElement = document.getElementById('stockTakeModal');
+            if (!modalElement) return;
+
             try {
-                // Try Bootstrap 5 first
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
-                    modal.hide();
-                    console.log('[Stock Management] Modal closed via Bootstrap 5');
+                    var existing = bootstrap.Modal.getInstance(modalElement);
+                    if (existing) existing.hide();
                 }
-                
-                // Try jQuery
                 if (typeof $ !== 'undefined' && $.fn.modal) {
                     $('#stockTakeModal').modal('hide');
-                    console.log('[Stock Management] Modal closed via jQuery');
                 }
-                
-                // If the modal is still visible after Bootstrap/jQuery attempts, force close.
-                setTimeout(() => {
-                    const stillShown = modalElement.classList.contains('show') || modalElement.style.display === 'block';
-                    if (stillShown) {
-                        console.warn('[Stock Management] Modal still visible after hide(); forcing close');
-                        this.hardForceCloseStockTakeModal();
-                    }
-                }, 50);
-            } catch (error) {
-                console.error('[Stock Management] Error closing modal:', error);
-                this.hardForceCloseStockTakeModal();
-            }
+            } catch (e) { /* ignore */ }
+
+            // Always force-clear modal and backdrop so close buttons work reliably
+            setTimeout(function () { scope.hardForceCloseStockTakeModal(); }, 50);
         },
 
         hardForceCloseStockTakeModal: function () {
@@ -1655,19 +1637,39 @@ var _stockManagementGrid = function () {
     };
 }();
 const stockManagementGrid = _stockManagementGrid;
+
 function initializeStockManagementGrid() {
     console.log('[Stock Management] Initializing module...');
     if (typeof stockManagementGrid !== 'undefined') {
-        // Wait for DOM to be fully ready
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(() => stockManagementGrid.init(), 100);
+            document.addEventListener('DOMContentLoaded', function () {
+                setTimeout(function () { stockManagementGrid.init(); }, 100);
             });
         } else {
-            setTimeout(() => stockManagementGrid.init(), 100);
+            setTimeout(function () { stockManagementGrid.init(); }, 100);
         }
     } else {
         console.error('[Stock Management] stockManagementGrid object not defined!');
     }
 }
+
+(function () {
+    function hideStockTakeModalNow() {
+        var el = document.getElementById('stockTakeModal');
+        if (el) {
+            el.classList.remove('show');
+            el.style.display = 'none';
+            el.setAttribute('aria-hidden', 'true');
+        }
+        document.querySelectorAll('.modal-backdrop').forEach(function (b) {
+            if (b && b.parentNode) b.parentNode.removeChild(b);
+        });
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }
+    hideStockTakeModalNow();
+    setTimeout(hideStockTakeModalNow, 0);
+    setTimeout(hideStockTakeModalNow, 150);
+})();
 

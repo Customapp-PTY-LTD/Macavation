@@ -1,0 +1,144 @@
+<!-- Supply Chain & Production Process Flow - from docs/SUPPLY_CHAIN_PROCESS_FLOW.md -->
+<div class="supply-chain-flow-module">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 mb-0">Supply Chain & Production Process Flow</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="#" route="grower-intake-grid" class="btn btn-outline-primary me-1"><i class="fas fa-truck-loading me-1"></i>Grower Intake</a>
+            <a href="#" route="stock-management-grid" class="btn btn-outline-primary me-1"><i class="fas fa-warehouse me-1"></i>Stock</a>
+            <a href="#" route="oil-production-grid" class="btn btn-outline-primary"><i class="fas fa-oil-can me-1"></i>Oil Production</a>
+        </div>
+    </div>
+    <p class="text-muted mb-4">Grower/supplier intake → warehouse raws → production → finished product → customers &amp; debtors. Document types: <strong>GRV</strong> (Goods Receiving Voucher), <strong>IBT</strong> (Internal Transfer), <strong>INV</strong> (Inventory).</p>
+
+    <!-- Process flow diagram (Mermaid) -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-project-diagram me-2"></i>Process Flow Diagram</h5>
+        </div>
+        <div class="card-body">
+            <div class="mermaid" id="supplyChainMermaid">
+flowchart TB
+    subgraph Intake
+        GI[Grower Intake - NIS for Kernel]
+        SI[Supplier Intake - Oil Kernel for Oil & Protein]
+    end
+
+    subgraph Receiving
+        QC[Quality Check Receiving Doc]
+    end
+
+    subgraph WHR["W/House Raws"]
+        NIS[NIS = R NIL]
+        OILK[OIL KERNEL R YES]
+    end
+
+    subgraph Processing
+        PROC[PROCESSED]
+        USK[USK - Sound Kernel Recovered]
+        PROD[PRODUCTION]
+    end
+
+    subgraph WHF["W/House Finished Product"]
+        KR[KERNEL R YES]
+        OPR[OIL PROTEIN R YES]
+    end
+
+    subgraph Outbound
+        KC[KERNEL CUSTOMERS]
+        FOPC[FEED + OIL + PROTEIN CUSTOMERS]
+        D1[DEBTORS]
+        D2[DEBTORS]
+    end
+
+    GI --> QC
+    QC -->|IBT| NIS
+    QC -->|IBT| PROC
+    SI -->|GRV/INV| OILK
+
+    NIS -->|IBT| PROD
+    OILK -->|IBT| PROD
+
+    PROC -->|BATCH # WORK TICKET| USK
+    USK -->|GRV| KR
+    USK -->|INV| KC
+    KC --> D1
+
+    PROD -->|GRV| OPR
+    PROD --> OILCOS[Oil Cosmetic]
+    PROD --> OILF[Oil Food]
+    PROD --> PROT[Protein]
+    PROD --> FEED[Feed]
+
+    KR -->|INV| KC
+    OPR -->|INV| FOPC
+    FOPC --> D2
+            </div>
+        </div>
+    </div>
+
+    <!-- Document types reference -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Document & Movement Types</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm table-bordered mb-0">
+                <thead><tr><th>Code</th><th>Meaning</th><th>Use in flow</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>GRV</strong></td><td>Goods Receiving Voucher</td><td>Supplier → W/House Raws; USK → W/House Finished; Production → W/House Finished</td></tr>
+                    <tr><td><strong>IBT</strong></td><td>Internal Transfer</td><td>Grower QC → W/House Raws & PROCESSED; W/House Raws → PRODUCTION</td></tr>
+                    <tr><td><strong>INV</strong></td><td>Inventory</td><td>Supplier → W/House Raws; USK/Finished → Customers → DEBTORS</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Implementation checklist -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Implementation Checklist</h5>
+        </div>
+        <div class="card-body">
+            <ul class="list-group list-group-flush" id="supplyChainChecklist">
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="form-check me-2"><input class="form-check-input" type="checkbox" id="chk-grower" disabled></span>
+                    <span><strong>Grower Intake:</strong> Screen + Quality Check Receiving Doc; IBT to W/House Raws (NIS = R NIL) and to PROCESSED.</span>
+                    <a href="#" route="grower-intake-grid" class="btn btn-sm btn-outline-primary ms-auto">Open</a>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="form-check me-2"><input class="form-check-input" type="checkbox" id="chk-supplier" disabled></span>
+                    <span><strong>Supplier Intake:</strong> Screen + GRV/INV to W/House Raws (OIL KERNEL R YES).</span>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="form-check me-2"><input class="form-check-input" type="checkbox" id="chk-whraws" disabled></span>
+                    <span><strong>W/House Raws:</strong> Two stock types (NIS = R NIL, OIL KERNEL R YES); IBT out to PRODUCTION.</span>
+                    <a href="#" route="stock-management-grid" class="btn btn-sm btn-outline-primary ms-auto">Open</a>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="form-check me-2"><input class="form-check-input" type="checkbox" id="chk-processed" disabled></span>
+                    <span><strong>PROCESSED:</strong> Link to BATCH # / Work Ticket; flow to USK.</span>
+                    <a href="#" route="kernel-production-grid" class="btn btn-sm btn-outline-primary ms-auto">Open</a>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="form-check me-2"><input class="form-check-input" type="checkbox" id="chk-usk" disabled></span>
+                    <span><strong>USK:</strong> GRV to W/House Finished (KERNEL R YES); INV to KERNEL CUSTOMERS and DEBTORS.</span>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="form-check me-2"><input class="form-check-input" type="checkbox" id="chk-production" disabled></span>
+                    <span><strong>PRODUCTION:</strong> Input from W/House Raws (IBT); outputs Oil Cosmetic, Oil Food, Protein, Feed; GRV to W/House Finished (OIL PROTEIN R YES).</span>
+                    <a href="#" route="oil-production-grid" class="btn btn-sm btn-outline-primary ms-auto">Open</a>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="form-check me-2"><input class="form-check-input" type="checkbox" id="chk-whfinished" disabled></span>
+                    <span><strong>W/House Finished Product:</strong> Two sections (KERNEL R YES, OIL PROTEIN R YES); INV to respective customer streams and DEBTORS.</span>
+                    <a href="#" route="stock-management-grid" class="btn btn-sm btn-outline-primary ms-auto">Open</a>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="form-check me-2"><input class="form-check-input" type="checkbox" id="chk-customers" disabled></span>
+                    <span><strong>Customers & Debtors:</strong> Kernel vs Feed/Oil/Protein customer types and debtor linkage.</span>
+                    <a href="#" route="crm-grid" class="btn btn-sm btn-outline-primary ms-auto">Open</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

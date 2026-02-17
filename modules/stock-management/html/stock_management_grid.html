@@ -655,13 +655,13 @@
  </div>
 </div>
 
-<!-- Stock Take Modal -->
-<div class="modal fade" id="stockTakeModal" tabindex="-1" aria-labelledby="stockTakeModalLabel" aria-hidden="true">
+<!-- Stock Take Modal (hidden on load; only shown when user clicks Stock Take) -->
+<div class="modal fade" id="stockTakeModal" tabindex="-1" aria-labelledby="stockTakeModalLabel" aria-hidden="true" style="display: none;">
     <div class="modal-dialog modal-fullscreen">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="stockTakeModalLabel">Stock Take - Physical Count</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" id="stockTakeModalCloseBtn" aria-label="Close"></button>
             </div>
             <div class="modal-body" style="max-height: calc(100vh - 200px); overflow-y: auto;">
                 <form id="stockTakeForm">
@@ -774,7 +774,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" id="stockTakeModalCancelBtn">Cancel</button>
                 <button type="button" class="btn btn-success" id="completeStockTakeBtn">
                     <i class="fas fa-check me-1"></i>Complete Stock Take
                 </button>

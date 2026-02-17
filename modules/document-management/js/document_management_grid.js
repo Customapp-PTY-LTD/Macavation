@@ -1,37 +1,60 @@
 /**
  * Document Management Grid Module
+ * Pattern: IIFE, single global _documentManagementGrid, arrow methods, initHandlers, jQuery.
  */
-var _documentManagementGrid = function () {
+var _documentManagementGrid = (function () {
+    'use strict';
+
     return {
         documents: [],
-        init: function () {
-            this.setupEventListeners();
-            this.loadDocuments();
+
+        init: () => {
+            const scope = _documentManagementGrid;
+            scope.initHandlers();
+            scope.loadDocuments();
         },
-        setupEventListeners: function () {
-            const scope = this;
-            $('#uploadDocBtn').on('click', function () {
-                Swal.fire('Info', 'Document upload coming soon', 'info');
+
+        initHandlers: () => {
+            const scope = _documentManagementGrid;
+            $('#uploadDocBtn').on('click', () => {
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'Document upload coming soon', 'info');
+                else alert('Document upload coming soon');
+            });
+            $(document).on('click', '[data-document-action][data-document-id]', function (e) {
+                e.preventDefault();
+                const action = $(this).data('document-action');
+                const docId = $(this).data('document-id');
+                if (action === 'view') scope.viewDocument(docId);
+                else if (action === 'download') scope.downloadDocument(docId);
             });
         },
-        loadDocuments: async function () {
+
+        loadDocuments: async () => {
+            const scope = _documentManagementGrid;
             try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getDocuments) {
+                    scope.documents = [];
+                    scope.renderDocuments();
+                    return;
+                }
                 const documents = await dataFunctions.getDocuments().catch(() => []);
-                this.documents = documents || [];
-                this.renderDocuments();
+                scope.documents = documents || [];
+                scope.renderDocuments();
             } catch (error) {
                 console.error('Error loading documents:', error);
-                this.showError('Unable to load documents. Please try again later.');
+                scope.showError('Unable to load documents. Please try again later.');
             }
         },
-        renderDocuments: function () {
+
+        renderDocuments: () => {
+            const scope = _documentManagementGrid;
             const tbody = $('#documentsTableBody');
             tbody.empty();
-            if (this.documents.length === 0) {
+            if (scope.documents.length === 0) {
                 tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No documents found. Click "Upload Document" to add one.</td></tr>');
                 return;
             }
-            this.documents.forEach(doc => {
+            scope.documents.forEach(doc => {
                 const row = `<tr>
                     <td>${doc.document_name || 'N/A'}</td>
                     <td>${doc.document_type || 'N/A'}</td>
@@ -39,28 +62,31 @@ var _documentManagementGrid = function () {
                     <td>${doc.uploaded_by_name || 'N/A'}</td>
                     <td>${doc.uploaded_at || 'N/A'}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="documentManagementGrid.viewDocument('${doc.id}')"><i class="fas fa-eye"></i></button>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="documentManagementGrid.downloadDocument('${doc.id}')"><i class="fas fa-download"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-document-action="view" data-document-id="${doc.id}"><i class="fas fa-eye"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-document-action="download" data-document-id="${doc.id}"><i class="fas fa-download"></i></button>
                     </td>
                 </tr>`;
                 tbody.append(row);
             });
         },
-        viewDocument: function (docId) {
-            Swal.fire('Info', 'Document viewer coming soon', 'info');
+
+        viewDocument: (docId) => {
+            if (typeof Swal !== 'undefined') Swal.fire('Info', 'Document viewer coming soon', 'info');
+            else alert('Document viewer coming soon');
         },
-        downloadDocument: function (docId) {
-            Swal.fire('Info', 'Document download is under development', 'info');
+
+        downloadDocument: (docId) => {
+            if (typeof Swal !== 'undefined') Swal.fire('Info', 'Document download is under development', 'info');
+            else alert('Document download is under development');
         },
-        showError: function (message) {
-            Swal.fire({ icon: 'error', title: 'Error', text: message });
+
+        showError: (message) => {
+            if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: message });
+            else alert('Error: ' + message);
         }
     };
-}();
-const documentManagementGrid = _documentManagementGrid;
-function initializeDocumentManagementGrid() {
-    if (typeof documentManagementGrid !== 'undefined') {
-        documentManagementGrid.init();
-    }
-}
+})();
 
+function initializeDocumentManagementGrid() {
+    if (typeof _documentManagementGrid !== 'undefined') _documentManagementGrid.init();
+}

@@ -139,6 +139,17 @@
                 "css/kernel_production_grid.css"
             ]
         },
+        "kernel-dispatch-grid": {
+            "description": "Kernel Dispatch",
+            "path": "kernel-dispatch",
+            "html": "html/kernel_dispatch_grid.html",
+            "js": [
+                "js/kernel_dispatch_grid.js"
+            ],
+            "css": [
+                "css/kernel_dispatch_grid.css"
+            ]
+        },
         "quality-assurance-grid": {
             "description": "Quality Assurance & Food Safety",
             "path": "quality-assurance",
@@ -152,6 +163,28 @@
         },
         "stock-management-grid": {
             "description": "Stock Management",
+            "path": "stock-management",
+            "html": "html/stock_management_grid.html",
+            "js": [
+                "js/stock_management_grid.js"
+            ],
+            "css": [
+                "css/stock_management_grid.css"
+            ]
+        },
+        "stock-management-kernel": {
+            "description": "Stock (Kernel)",
+            "path": "stock-management",
+            "html": "html/stock_management_grid.html",
+            "js": [
+                "js/stock_management_grid.js"
+            ],
+            "css": [
+                "css/stock_management_grid.css"
+            ]
+        },
+        "stock-management-oil": {
+            "description": "Stock (Oil & Protein)",
             "path": "stock-management",
             "html": "html/stock_management_grid.html",
             "js": [

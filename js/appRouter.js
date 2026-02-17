@@ -358,6 +358,11 @@ var _appRouter = function () {
                         initializeKernelProductionGrid();
                     }
                 },
+                'kernel-dispatch-grid': () => {
+                    if (typeof initializeKernelDispatchGrid === 'function') {
+                        initializeKernelDispatchGrid();
+                    }
+                },
                 'data-import-grid': () => {
                     if (typeof initializeDataImportGrid === 'function') {
                         initializeDataImportGrid();
@@ -369,6 +374,16 @@ var _appRouter = function () {
                     }
                 },
                 'stock-management-grid': () => {
+                    if (typeof initializeStockManagementGrid === 'function') {
+                        initializeStockManagementGrid();
+                    }
+                },
+                'stock-management-kernel': () => {
+                    if (typeof initializeStockManagementGrid === 'function') {
+                        initializeStockManagementGrid();
+                    }
+                },
+                'stock-management-oil': () => {
                     if (typeof initializeStockManagementGrid === 'function') {
                         initializeStockManagementGrid();
                     }
