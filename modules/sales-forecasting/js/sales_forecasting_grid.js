@@ -1,80 +1,107 @@
 /**
  * Sales Forecasting Grid Module
+ * Follows company module pattern: IIFE, arrow methods, scope = _salesForecastingGrid for same-module calls.
  */
 var _salesForecastingGrid = function () {
+    'use strict';
+
     return {
         forecasts: [],
-        init: function () {
-            this.setupEventListeners();
-            this.loadForecasts();
+
+        init: async () => {
+            const scope = _salesForecastingGrid;
+            await scope.waitForReady();
+            scope.setupEventListeners();
+            await scope.loadForecasts();
         },
-        setupEventListeners: function () {
-            const scope = this;
-            $('#addForecastBtn').on('click', function () {
-                Swal.fire('Info', 'New forecast form coming soon', 'info');
+
+        waitForReady: () => {
+            return new Promise(function (resolve) {
+                if (typeof $ !== 'undefined') {
+                    $(document).ready(resolve);
+                } else if (document.readyState === 'complete') {
+                    resolve();
+                } else {
+                    document.addEventListener('DOMContentLoaded', resolve);
+                }
             });
         },
-        loadForecasts: async function () {
+
+        setupEventListeners: () => {
+            const scope = _salesForecastingGrid;
+            if (typeof $ === 'undefined') return;
+            $('#addForecastBtn').on('click', function () {
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'New forecast form coming soon', 'info');
+            });
+        },
+
+        loadForecasts: async () => {
+            const scope = _salesForecastingGrid;
             try {
-                const forecasts = await dataFunctions.getSalesForecasts().catch(() => []);
-                this.forecasts = forecasts || [];
-                this.renderForecasts();
+                var forecasts = await dataFunctions.getSalesForecasts().catch(function () { return []; });
+                scope.forecasts = forecasts || [];
+                scope.renderForecasts();
             } catch (error) {
                 console.error('Error loading forecasts:', error);
-                this.showError('Unable to load sales forecasts. Please try again later.');
+                scope.showError('Unable to load sales forecasts. Please try again later.');
             }
         },
-        renderForecasts: function () {
-            const tbody = $('#forecastsTableBody');
+
+        renderForecasts: () => {
+            const scope = _salesForecastingGrid;
+            if (typeof $ === 'undefined') return;
+            var tbody = $('#forecastsTableBody');
             tbody.empty();
-            if (this.forecasts.length === 0) {
+            if (scope.forecasts.length === 0) {
                 tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No sales forecasts found. Click "New Forecast" to create one.</td></tr>');
                 return;
             }
-            this.forecasts.forEach(forecast => {
-                const row = `<tr>
-                    <td>${forecast.forecast_period || 'N/A'}</td>
-                    <td>${forecast.product_type || 'N/A'}</td>
-                    <td>${forecast.forecasted_quantity_kg || '0'}</td>
-                    <td>${forecast.confidence_level || 'N/A'}</td>
-                    <td><span class="badge bg-info">${forecast.status || 'draft'}</span></td>
-                    <td><button class="btn btn-sm btn-outline-primary" onclick="salesForecastingGrid.viewForecast('${forecast.id}')"><i class="fas fa-eye"></i></button></td>
-                </tr>`;
+            scope.forecasts.forEach(function (forecast) {
+                var row = '<tr><td>' + (forecast.forecast_period || 'N/A') + '</td><td>' + (forecast.product_type || 'N/A') + '</td><td>' + (forecast.forecasted_quantity_kg || '0') + '</td><td>' + (forecast.confidence_level || 'N/A') + '</td><td><span class="badge bg-info">' + (forecast.status || 'draft') + '</span></td><td><button class="btn btn-sm btn-outline-primary" onclick="salesForecastingGrid.viewForecast(\'' + (forecast.id || '') + '\')"><i class="fas fa-eye"></i></button></td></tr>';
                 tbody.append(row);
             });
         },
-        viewForecast: function (forecastId) {
-            Swal.fire('Info', 'Forecast details view is under development', 'info');
+
+        viewForecast: (forecastId) => {
+            if (typeof Swal !== 'undefined') Swal.fire('Info', 'Forecast details view is under development', 'info');
         },
-        showError: function (message) {
-            Swal.fire({ icon: 'error', title: 'Error', text: message });
+
+        showError: (message) => {
+            if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: message });
         },
-        exportForecasts: function () {
-            if (!this.forecasts || this.forecasts.length === 0) {
-                Swal.fire('Info', 'No forecasts to export', 'info');
+
+        exportForecasts: () => {
+            const scope = _salesForecastingGrid;
+            if (!scope.forecasts || scope.forecasts.length === 0) {
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'No forecasts to export', 'info');
                 return;
             }
-            
-            const columns = [
+            var columns = [
                 { key: 'forecast_period', label: 'Period' },
                 { key: 'product_type', label: 'Product Type' },
                 { key: 'forecasted_quantity_kg', label: 'Forecasted Quantity (kg)' },
                 { key: 'confidence_level', label: 'Confidence Level' },
                 { key: 'status', label: 'Status' }
             ];
-            
             if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
-                exportUtils.exportToCSV(this.forecasts, 'sales_forecasts', columns);
+                exportUtils.exportToCSV(scope.forecasts, 'sales_forecasts', columns);
             } else {
-                Swal.fire('Error', 'Export utility not available', 'error');
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Export utility not available', 'error');
             }
         }
     };
 }();
-const salesForecastingGrid = _salesForecastingGrid;
+
+window.salesForecastingGrid = _salesForecastingGrid;
+
 function initializeSalesForecastingGrid() {
-    if (typeof salesForecastingGrid !== 'undefined') {
-        salesForecastingGrid.init();
+    if (typeof _salesForecastingGrid !== 'undefined') {
+        if (typeof $ !== 'undefined') {
+            $(document).ready(function () { _salesForecastingGrid.init(); });
+        } else if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () { _salesForecastingGrid.init(); });
+        } else {
+            _salesForecastingGrid.init();
+        }
     }
 }
-
