@@ -1,0 +1,143 @@
+<div class="modal-dialog modal-xl">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="oilProductionModalLabel">Oil Production Sheet</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="oilProductionForm">
+                <input type="hidden" id="oilBatchId">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="productionDate" class="form-label required">Date</label>
+                        <input type="date" class="form-control" id="productionDate" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="shift" class="form-label required">Shift</label>
+                        <select class="form-select" id="shift" required>
+                            <option value="">Select Shift</option>
+                            <option value="Day Shift">Day Shift</option>
+                            <option value="Night Shift">Night Shift</option>
+                            <option value="D-shift">D-shift</option>
+                            <option value="1pm">1pm</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="shiftSupervisor" class="form-label required">Shift Supervisor</label>
+                        <input type="text" class="form-control" id="shiftSupervisor" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="supervisorSignature" class="form-label">Signature</label>
+                        <input type="text" class="form-control" id="supervisorSignature">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="batchNumber" class="form-label required">Batch Number of Product Produced</label>
+                        <input type="text" class="form-control" id="batchNumber" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="productName" class="form-label required">Name of Product Produced</label>
+                        <input type="text" class="form-control" id="productName" value="Food grade oil" required>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">IBC Information</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4"><label for="startOilBN" class="form-label">Start Oil BN</label><input type="text" class="form-control" id="startOilBN"></div>
+                            <div class="col-md-2"><label for="startOilLitre" class="form-label">Litre</label><input type="number" class="form-control" id="startOilLitre" step="0.01"></div>
+                            <div class="col-md-3"><label for="ibc1BN" class="form-label">IBC 1 BN</label><input type="text" class="form-control" id="ibc1BN"></div>
+                            <div class="col-md-3"><label for="ibc1Litre" class="form-label">Litre</label><input type="number" class="form-control" id="ibc1Litre" step="0.01"></div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-3"><label for="ibc2BN" class="form-label">IBC 2 BN</label><input type="text" class="form-control" id="ibc2BN"></div>
+                            <div class="col-md-3"><label for="ibc2Litre" class="form-label">Litre</label><input type="number" class="form-control" id="ibc2Litre" step="0.01"></div>
+                            <div class="col-md-3"><label for="ibc3BN" class="form-label">IBC 3 BN</label><input type="text" class="form-control" id="ibc3BN"></div>
+                            <div class="col-md-3"><label for="ibc3Litre" class="form-label">Litre</label><input type="number" class="form-control" id="ibc3Litre" step="0.01"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Raw Material Traceability</h6>
+                        <button type="button" class="btn btn-sm btn-primary" id="addRawMaterialRow"><i class="fas fa-plus"></i> Add Row</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="rawMaterialTable">
+                                <thead>
+                                    <tr>
+                                        <th>Batch Number of Raw Material</th>
+                                        <th>Weight of Raw Material In (kg)</th>
+                                        <th>Weight of Oil Out (kg)</th>
+                                        <th>Weight of Cake Out (kg)</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rawMaterialTableBody">
+                                    <tr>
+                                        <td><input type="text" class="form-control form-control-sm" name="rawMaterialBatch"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="rawMaterialIn" step="0.01"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="oilOut" step="0.01"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="cakeOut" step="0.01"></td>
+                                        <td><button type="button" class="btn btn-sm btn-danger removeRow"><i class="fas fa-times"></i></button></td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th>Total</th>
+                                        <th id="totalRawMaterialIn">0</th>
+                                        <th id="totalOilOut">0</th>
+                                        <th id="totalCakeOut">0</th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Recipe</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm">
+                                    <thead><tr><th>Description</th><th>Quantity</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>Oil Kernel</td><td><input type="number" class="form-control form-control-sm" id="recipeOilKernel" step="0.01" value="0"></td></tr>
+                                        <tr><td>Cracker Dust</td><td><input type="number" class="form-control form-control-sm" id="recipeCrackerDust" step="0.01" value="0"></td></tr>
+                                        <tr><td>Kernel Dust</td><td><input type="number" class="form-control form-control-sm" id="recipeKernelDust" step="0.01" value="0"></td></tr>
+                                        <tr><td>Crush</td><td><input type="number" class="form-control form-control-sm" id="recipeCrush" step="0.01" value="0"></td></tr>
+                                        <tr><td>Cake</td><td><input type="number" class="form-control form-control-sm" id="recipeCake" step="0.01" value="0"></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="recipeNotes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="recipeNotes" rows="5"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Waste Tracking</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4"><label for="generalWaste" class="form-label">General Waste Total (kg)</label><input type="number" class="form-control" id="generalWaste" step="0.01"></div>
+                            <div class="col-md-4"><label for="floorWaste" class="form-label">Floor Waste Total (kg)</label><input type="number" class="form-control" id="floorWaste" step="0.01"></div>
+                            <div class="col-md-4"><label for="productWaste" class="form-label">Total Product Waste (kg)</label><input type="number" class="form-control" id="productWaste" step="0.01"></div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6"><label for="oilFromFilter" class="form-label">Oil from Filter + Hydraulic Press Total (kg)</label><input type="number" class="form-control" id="oilFromFilter" step="0.01"></div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveOilProductionBtn"><i class="fas fa-save me-1"></i>Save Production Sheet</button>
+        </div>
+    </div>
+</div>

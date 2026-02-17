@@ -290,6 +290,13 @@
                 "css/oil_production_grid.css"
             ]
         },
+        "oil-production-sheet-modal": {
+            "description": "Oil Production Sheet modal (add/edit)",
+            "path": "modal-oil-production",
+            "html": "html/modal_oil_production_sheet.html",
+            "js": ["js/modal_oil_production_sheet.js"],
+            "css": []
+        },
         "financial-management-grid": {
             "description": "Financial Management",
             "path": "financial-management",
