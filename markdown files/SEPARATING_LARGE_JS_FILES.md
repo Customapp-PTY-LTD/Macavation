@@ -43,20 +43,11 @@ initHandlers: () => {
 
 In HTML, use `id="addUserSubmitBtn"` (or similar) on the button instead of `onclick="submitUserForm()"`.
 
-**Date formatting example** (use a shared helper or replicate in each module):
+**Date formatting**: Use the shared helper in `js/common.js`. Display all dates in **dd/mm/yyyy** (e.g. 17/02/2025):
 
-```javascript
-// Format Date or ISO string as dd/mm/yyyy
-function formatDateDDMMYYYY(value) {
-    if (!value) return '';
-    const d = value instanceof Date ? value : new Date(value);
-    if (isNaN(d.getTime())) return '';
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-}
-```
+- **Reference**: `_common.formatDateDDMMYYYY(value)` — defined in `js/common.js`, available wherever common is loaded.
+- **Usage**: `(typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(dateValue) : dateValue) || 'N/A'` for safe use in modules.
+- **Example**: `_common.formatDateDDMMYYYY(trans.transaction_date)` in table cells, exports, etc.
 
 When adding or refactoring module JS, apply these first. Splitting into multiple files is only required when the file is large or has multiple distinct features (see “When to Split” below).
 

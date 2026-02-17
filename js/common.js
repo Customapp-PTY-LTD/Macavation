@@ -117,6 +117,17 @@ var _common = {
         return new Date(fullYear, month - 1, day);
     },
 
+    // Format Date or ISO string as dd/mm/yyyy (use for display; see SEPARATING_LARGE_JS_FILES.md)
+    formatDateDDMMYYYY: function (value) {
+        if (!value) return '';
+        const d = value instanceof Date ? value : new Date(value);
+        if (isNaN(d.getTime())) return '';
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    },
+
     // Extract gender from SA ID number
     extractGenderFromId: function (idNumber) {
         if (!this.isValidSAIdNumber(idNumber)) {

@@ -349,9 +349,7 @@ var _appRouter = function () {
                     }
                 },
                 'grower-intake-grid': () => {
-                    if (typeof initializeGrowerIntakeGrid === 'function') {
-                        initializeGrowerIntakeGrid();
-                    }
+                    if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.init) _growerIntakeGrid.init();
                 },
                 'kernel-production-grid': () => {
                     if (typeof initializeKernelProductionGrid === 'function') {
@@ -359,9 +357,7 @@ var _appRouter = function () {
                     }
                 },
                 'kernel-dispatch-grid': () => {
-                    if (typeof initializeKernelDispatchGrid === 'function') {
-                        initializeKernelDispatchGrid();
-                    }
+                    if (typeof _kernelDispatchGrid !== 'undefined' && _kernelDispatchGrid.init) _kernelDispatchGrid.init();
                 },
                 'data-import-grid': () => {
                     if (typeof initializeDataImportGrid === 'function') {
@@ -399,9 +395,7 @@ var _appRouter = function () {
                     }
                 },
                 'financial-management-grid': () => {
-                    if (typeof initializeFinancialManagementGrid === 'function') {
-                        initializeFinancialManagementGrid();
-                    }
+                    if (typeof _financialManagementGrid !== 'undefined' && _financialManagementGrid.init) _financialManagementGrid.init();
                 },
                 'amanda-dashboard': () => {
                     if (typeof initializeAmandaDashboard === 'function') {
@@ -409,9 +403,7 @@ var _appRouter = function () {
                     }
                 },
                 'executive-dashboard': () => {
-                    if (typeof initializeExecutiveDashboard === 'function') {
-                        initializeExecutiveDashboard();
-                    }
+                    if (typeof _executiveDashboard !== 'undefined' && _executiveDashboard.init) _executiveDashboard.init();
                 },
                 'document-management-grid': () => {
                     if (typeof initializeDocumentManagementGrid === 'function') {
