@@ -155,6 +155,13 @@
                 "css/crm_grid.css"
             ]
         },
+        "crm-contact-modal": {
+            "description": "CRM Add/Edit Contact Modal",
+            "path": "modal-crm-contact",
+            "html": "html/modal_crm_contact.html",
+            "js": ["js/modal_crm_contact.js"],
+            "css": []
+        },
         "grower-intake-grid": {
             "description": "Grower Intake Management",
             "path": "grower-intake",

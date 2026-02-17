@@ -368,6 +368,11 @@ var _appRouter = function () {
                         initializeCrmGrid();
                     }
                 },
+                'crm-contact-modal': () => {
+                    if (typeof _modal_crm_contact !== 'undefined' && _modal_crm_contact.init) {
+                        _modal_crm_contact.init();
+                    }
+                },
                 'grower-intake-grid': () => {
                     if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.init) _growerIntakeGrid.init();
                 },

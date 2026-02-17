@@ -14,7 +14,6 @@ var _crmGrid = function () {
         oilProcessors: [],
         kernelCustomers: [],
         currentContactType: 'nis_supplier',
-        editingContact: null,
         searchTimeout: null,
         importData: null,
         importWorkbook: null,
@@ -22,19 +21,19 @@ var _crmGrid = function () {
         init: async () => {
             const scope = _crmGrid;
             console.log('[CRM] Initializing CRM Grid module...');
+            var modalContainers = document.querySelectorAll('.modal[route-name]');
+            var loadPromises = [];
+            modalContainers.forEach(function (el) {
+                var routeName = el.getAttribute('route-name');
+                if (routeName && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                    loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: '#' + el.id }));
+                }
+            });
+            if (loadPromises.length) await Promise.all(loadPromises);
+            if (typeof _modal_crm_contact !== 'undefined' && _modal_crm_contact.init) _modal_crm_contact.init();
             scope.setupEventListeners();
-            scope.initHandlers();
             await scope.loadContacts();
-            await scope.loadAccountManagers();
             console.log('[CRM] CRM Grid module initialized');
-        },
-
-        initHandlers: () => {
-            const scope = _crmGrid;
-            const addCommBtn = document.getElementById('crmAddCommunicationBtn');
-            if (addCommBtn) addCommBtn.addEventListener('click', () => scope.addCommunication());
-            const createQuoteBtn = document.getElementById('crmCreateQuoteBtn');
-            if (createQuoteBtn) createQuoteBtn.addEventListener('click', () => scope.createQuote());
         },
 
         setupEventListeners: () => {
@@ -77,21 +76,6 @@ var _crmGrid = function () {
                 const checked = $(this).is(':checked');
                 // If importing all sheets, disable manual type selection
                 $('#importContactType').prop('disabled', checked);
-            });
-
-            // Contact type change - show/hide type-specific sections
-            $('#contactType').on('change', function () {
-                const type = $(this).val();
-                if (type === 'oil_processor') {
-                    $('#oilProcessorRatesSection').show();
-                    $('#kernelCustomerPreferencesSection').hide();
-                } else if (type === 'kernel_customer') {
-                    $('#oilProcessorRatesSection').hide();
-                    $('#kernelCustomerPreferencesSection').show();
-                } else {
-                    $('#oilProcessorRatesSection').hide();
-                    $('#kernelCustomerPreferencesSection').hide();
-                }
             });
 
             // NIS Suppliers filters
@@ -154,7 +138,7 @@ var _crmGrid = function () {
 
             // Add contact button
             $('#addContactBtn').on('click', function () {
-                scope.showAddContactModal();
+                if (typeof _modal_crm_contact !== 'undefined' && _modal_crm_contact.show) _modal_crm_contact.show(null, scope.currentContactType);
             });
 
             // Edit contact
@@ -167,26 +151,6 @@ var _crmGrid = function () {
             $(document).on('click', '.delete-contact-btn', function () {
                 const contactId = $(this).data('contact-id');
                 scope.deleteContact(contactId);
-            });
-
-            // Save contact form
-            $('#saveContactBtn').on('click', function () {
-                scope.saveContact();
-            });
-
-            // Modal events
-            $('#contactModal').on('hidden.bs.modal', function () {
-                scope.clearForm();
-            });
-
-            // Ensure long modal content is scrollable (theme-safe)
-            $('#contactModal').on('shown.bs.modal', function () {
-                scope.ensureContactModalScrollable();
-            });
-            $(window).on('resize', function () {
-                if ($('#contactModal').hasClass('show')) {
-                    scope.ensureContactModalScrollable();
-                }
             });
         },
 
@@ -456,63 +420,6 @@ var _crmGrid = function () {
             });
         },
 
-        loadAccountManagers: async () => {
-            const scope = _crmGrid;
-            try {
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.getUsers) {
-                    console.error('dataFunctions.getUsers not available');
-                    return;
-                }
-                let users = [];
-
-                try {
-                    users = await dataFunctions.getUsers();
-                } catch (error) {
-                    if (error.message && error.message.includes('token')) {
-                        console.warn('Authentication required for account managers');
-                        return;
-                    }
-                    throw error;
-                }
-                
-                const select = $('#accountManagerId');
-                let html = '<option value="">Select Account Manager</option>';
-                
-                if (users && Array.isArray(users)) {
-                    users.forEach(user => {
-                        const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email;
-                        html += `<option value="${user.id}">${name}</option>`;
-                    });
-                }
-                
-                select.html(html);
-            } catch (error) {
-                console.error('Error loading account managers:', error);
-            }
-        },
-
-        showAddContactModal: () => {
-            const scope = _crmGrid;
-            $('#contactModalLabel').text('Add New Contact');
-            $('#contactId').val('');
-            scope.clearForm();
-
-            // Set contact type based on current tab
-            $('#contactType').val(scope.currentContactType);
-            if (scope.currentContactType === 'oil_processor') {
-                $('#oilProcessorRatesSection').show();
-                $('#kernelCustomerPreferencesSection').hide();
-            } else if (scope.currentContactType === 'kernel_customer') {
-                $('#oilProcessorRatesSection').hide();
-                $('#kernelCustomerPreferencesSection').show();
-            } else {
-                $('#oilProcessorRatesSection').hide();
-                $('#kernelCustomerPreferencesSection').hide();
-            }
-            
-            $('#contactModal').modal('show');
-        },
-
         editContact: async (contactId) => {
             const scope = _crmGrid;
             try {
@@ -521,180 +428,10 @@ var _crmGrid = function () {
                     return;
                 }
                 const contact = await dataFunctions.getContactById(contactId);
-
-                if (contact) {
-                    scope.editingContact = contact;
-                    scope.populateForm(contact);
-                    $('#contactModalLabel').text('Edit Contact');
-                    $('#contactModal').modal('show');
-                }
+                if (contact && typeof _modal_crm_contact !== 'undefined' && _modal_crm_contact.show) _modal_crm_contact.show(contact);
             } catch (error) {
                 console.error('Error loading contact:', error);
                 scope.showError('Error loading contact: ' + error.message);
-            }
-        },
-
-        populateForm: (contact) => {
-            $('#contactId').val(contact.id || '');
-            $('#contactType').val(contact.contact_type || '');
-            $('#companyName').val(contact.company_name || '');
-            $('#tradingName').val(contact.trading_name || '');
-            $('#status').val(contact.status || 'active');
-            $('#keyAccount').prop('checked', contact.key_account || false);
-            $('#primaryContactName').val(contact.primary_contact_name || '');
-            $('#primaryContactEmail').val(contact.primary_contact_email || '');
-            $('#primaryContactPhone').val(contact.primary_contact_phone || '');
-            $('#primaryContactMobile').val(contact.primary_contact_mobile || '');
-            $('#secondaryContactName').val(contact.secondary_contact_name || '');
-            $('#secondaryContactPhone').val(contact.secondary_contact_phone || '');
-            $('#secondaryContactMobile').val(contact.secondary_contact_mobile || '');
-            $('#secondaryContactEmail').val(contact.secondary_contact_email || '');
-            $('#physicalArea').val(contact.physical_area || '');
-            $('#physicalCity').val(contact.physical_city || '');
-            $('#physicalProvince').val(contact.physical_province || '');
-            $('#physicalPostalCode').val(contact.physical_postal_code || '');
-            $('#preferredStyles').val(contact.preferred_styles || '');
-            $('#notes').val(contact.notes || '');
-            
-            // Oil processor rates
-            if (contact.contact_type === 'oil_processor') {
-                $('#oilProcessorRatesSection').show();
-                $('#rateCrudeKernel').val(contact.rate_crude_kernel || '');
-                $('#rateFoodKernel').val(contact.rate_food_kernel || '');
-                $('#rateKernelDust').val(contact.rate_kernel_dust || '');
-                $('#rateCrackerDust').val(contact.rate_cracker_dust || '');
-                $('#rateCrush').val(contact.rate_crush || '');
-            } else {
-                $('#oilProcessorRatesSection').hide();
-            }
-            
-            // Kernel customer preferences
-            if (contact.contact_type === 'kernel_customer') {
-                $('#kernelCustomerPreferencesSection').show();
-            } else {
-                $('#kernelCustomerPreferencesSection').hide();
-            }
-        },
-
-        saveContact: async () => {
-            const scope = _crmGrid;
-            try {
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.createContact) {
-                    scope.showError('Data functions not available');
-                    return;
-                }
-                const form = $('#contactForm')[0];
-                if (!form.checkValidity()) {
-                    form.reportValidity();
-                    return;
-                }
-
-                const contactData = {
-                    contact_type: $('#contactType').val(),
-                    company_name: $('#companyName').val(),
-                    trading_name: $('#tradingName').val(),
-                    status: $('#status').val(),
-                    key_account: $('#keyAccount').is(':checked'),
-                    primary_contact_name: $('#primaryContactName').val(),
-                    primary_contact_email: $('#primaryContactEmail').val(),
-                    primary_contact_phone: $('#primaryContactPhone').val(),
-                    primary_contact_mobile: $('#primaryContactMobile').val(),
-                    secondary_contact_name: $('#secondaryContactName').val() || null,
-                    secondary_contact_phone: $('#secondaryContactPhone').val() || null,
-                    secondary_contact_mobile: $('#secondaryContactMobile').val() || null,
-                    secondary_contact_email: $('#secondaryContactEmail').val() || null,
-                    preferred_styles: $('#preferredStyles').val() || null,
-                    physical_area: $('#physicalArea').val() || null,
-                    physical_city: $('#physicalCity').val() || null,
-                    physical_province: $('#physicalProvince').val() || null,
-                    physical_postal_code: $('#physicalPostalCode').val() || null,
-                    notes: $('#notes').val() || null
-                };
-
-                // Add rates for oil processors
-                if (contactData.contact_type === 'oil_processor') {
-                    contactData.rate_crude_kernel = $('#rateCrudeKernel').val() ? parseFloat($('#rateCrudeKernel').val()) : null;
-                    contactData.rate_food_kernel = $('#rateFoodKernel').val() ? parseFloat($('#rateFoodKernel').val()) : null;
-                    contactData.rate_kernel_dust = $('#rateKernelDust').val() ? parseFloat($('#rateKernelDust').val()) : null;
-                    contactData.rate_cracker_dust = $('#rateCrackerDust').val() ? parseFloat($('#rateCrackerDust').val()) : null;
-                    contactData.rate_crush = $('#rateCrush').val() ? parseFloat($('#rateCrush').val()) : null;
-                }
-
-                const contactId = $('#contactId').val();
-                let result;
-
-                // Map to database function parameters
-                const params = {
-                    contact_type: contactData.contact_type,
-                    company_name: contactData.company_name,
-                    trading_name: contactData.trading_name || null,
-                    primary_contact_name: contactData.primary_contact_name || null,
-                    primary_contact_email: contactData.primary_contact_email || null,
-                    primary_contact_phone: contactData.primary_contact_phone || null,
-                    primary_contact_mobile: contactData.primary_contact_mobile || null,
-                    secondary_contact_name: contactData.secondary_contact_name || null,
-                    secondary_contact_phone: contactData.secondary_contact_phone || null,
-                    secondary_contact_mobile: contactData.secondary_contact_mobile || null,
-                    secondary_contact_email: contactData.secondary_contact_email || null,
-                    preferred_styles: contactData.preferred_styles || null,
-                    physical_area: contactData.physical_area || null,
-                    physical_city: contactData.physical_city || null,
-                    physical_province: contactData.physical_province || null,
-                    physical_postal_code: contactData.physical_postal_code || null,
-                    account_manager_id: $('#accountManagerId').val() || null,
-                    status: contactData.status || 'active',
-                    key_account: contactData.key_account || false,
-                    notes: contactData.notes || null
-                };
-
-                // Add rates for oil processors
-                if (contactData.contact_type === 'oil_processor') {
-                    params.rate_crude_kernel = contactData.rate_crude_kernel || null;
-                    params.rate_food_kernel = contactData.rate_food_kernel || null;
-                    params.rate_kernel_dust = contactData.rate_kernel_dust || null;
-                    params.rate_cracker_dust = contactData.rate_cracker_dust || null;
-                    params.rate_crush = contactData.rate_crush || null;
-                }
-
-                try {
-                    if (contactId) {
-                        result = await dataFunctions.updateContact(contactId, params);
-                    } else {
-                        console.log('[CRM] Creating contact with params:', params);
-                        result = await dataFunctions.createContact(params);
-                        console.log('[CRM] Create result:', result);
-                    }
-
-                    if (result && result.success !== false) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success',
-                            text: contactId ? 'Contact updated successfully' : 'Contact created successfully',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                        $('#contactModal').modal('hide');
-                        scope.loadContacts(true);
-                    } else {
-                        const errorMsg = result?.error || result?.message || 'Failed to save contact';
-                        console.error('[CRM] Save failed:', result);
-                        throw new Error(errorMsg);
-                    }
-                } catch (error) {
-                    console.error('[CRM] Error saving contact:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to save contact: ' + (error.message || error)
-                    });
-                }
-            } catch (error) {
-                console.error('Error saving contact:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to save contact: ' + error.message
-                });
             }
         },
 
@@ -1229,35 +966,6 @@ var _crmGrid = function () {
             const cleaned = String(value).replace(/[R\s,]/g, '');
             const parsed = parseFloat(cleaned);
             return isNaN(parsed) ? null : parsed;
-        },
-
-        clearForm: () => {
-            const scope = _crmGrid;
-            const form = document.getElementById('contactForm');
-            if (form) form.reset();
-            $('#contactId').val('');
-            scope.editingContact = null;
-            $('#oilProcessorRatesSection').hide();
-            $('#kernelCustomerPreferencesSection').hide();
-        },
-
-        ensureContactModalScrollable: () => {
-            const modalEl = document.getElementById('contactModal');
-            if (!modalEl) return;
-
-            const bodyEl = modalEl.querySelector('.modal-body');
-            if (!bodyEl) return;
-
-            const headerEl = modalEl.querySelector('.modal-header');
-            const footerEl = modalEl.querySelector('.modal-footer');
-
-            const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
-            const footerH = footerEl ? footerEl.getBoundingClientRect().height : 0;
-            const verticalPadding = 32; // ~1rem top + 1rem bottom
-
-            const maxH = Math.max(200, window.innerHeight - headerH - footerH - verticalPadding);
-            bodyEl.style.overflowY = 'auto';
-            bodyEl.style.maxHeight = `${maxH}px`;
         },
 
         showError: (message) => {
