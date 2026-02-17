@@ -82,7 +82,7 @@
 
         body {
             font-family: var(--phoenix-font-sans-serif);
-            background: var(--phoenix-body-bg, var(--macadamia-cream));
+            background: #FFFFFF;
         }
 
         /* Navbar Styling */
@@ -246,7 +246,17 @@
 
         /* Main Content */
         .main-content {
-            background: var(--macadamia-cream);
+            background: #FFFFFF;
+        }
+
+        /* Remove blue/bar line above main content (navbar shadow or border) */
+        .navbar {
+            border-bottom: none !important;
+            box-shadow: none !important;
+        }
+        .container-fluid.mt-navbar,
+        .main-content {
+            border-top: none !important;
         }
 
         /* Page Headers */

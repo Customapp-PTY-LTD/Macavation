@@ -41,7 +41,13 @@ var _growerIntakeGrid = function () {
 
             if (!scope._handlersBound) {
                 scope._handlersBound = true;
-                $(document).on('click', '.js-view-sample', function () {
+                $(document).on('click', '.js-view-sample', function (e) {
+                    e.preventDefault();
+                    const id = $(this).data('id');
+                    if (id) scope.viewSample(id);
+                });
+                $(document).on('click', '.js-grower-intake-row', function (e) {
+                    if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
                     const id = $(this).data('id');
                     if (id) scope.viewSample(id);
                 });
@@ -112,24 +118,24 @@ var _growerIntakeGrid = function () {
                 return;
             }
 
-            const formatDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY) ? _common.formatDateDDMMYYYY : (v) => v || '';
+            const displayDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
+                ? (v) => (_common.formatDateDDMMYYYY(v) || 'N/A')
+                : (v) => (v ? (String(v).split ? String(v).split('T')[0] : v) : 'N/A');
 
             scope.filteredSamples.forEach(sample => {
-                const row = `
-                    <tr>
-                        <td>${sample.submission_number || 'N/A'}</td>
-                        <td>${sample.grower_name || 'N/A'}</td>
-                        <td>${formatDate(sample.delivery_date) || 'N/A'}</td>
-                        <td>${sample.wet_nut_in_shell_kg || '0'}</td>
-                        <td>${sample.moisture_content_percentage || '0'}%</td>
-                        <td><span class="badge bg-info">${sample.status || 'pending'}</span></td>
-                        <td>
-                            <button type="button" class="btn btn-sm btn-outline-primary js-view-sample" data-id="${sample.id}">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
+                const actionsCell = '<div class="dropdown">' +
+                    '<button class="btn btn-sm btn-outline-secondary" type="button" id="sampleActions' + sample.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
+                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="sampleActions' + sample.id + '">' +
+                    '<a class="dropdown-item js-view-sample" href="#" data-id="' + sample.id + '"><i class="fas fa-eye me-2"></i>View</a>' +
+                    '</ul></div>';
+                const row = '<tr class="js-grower-intake-row" data-id="' + sample.id + '">' +
+                    '<td>' + (sample.submission_number || 'N/A') + '</td>' +
+                    '<td>' + (sample.grower_name || 'N/A') + '</td>' +
+                    '<td>' + displayDate(sample.delivery_date) + '</td>' +
+                    '<td>' + (sample.wet_nut_in_shell_kg || '0') + '</td>' +
+                    '<td>' + (sample.moisture_content_percentage || '0') + '%</td>' +
+                    '<td><span class="badge bg-info">' + (sample.status || 'pending') + '</span></td>' +
+                    '<td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
         },

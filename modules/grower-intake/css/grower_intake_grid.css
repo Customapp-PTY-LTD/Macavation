@@ -1,4 +1,36 @@
-/* Grower Intake Grid Module Styles */
+/* Grower Intake Grid Module Styles – see docs/MODULE_UI_PATTERNS.md */
 .module-content { min-height: 400px; }
 #samplesTable th { border-top: none; font-weight: 600; }
+
+/* Clickable row: submission number looks clickable */
+#samplesTable tbody tr.js-grower-intake-row { cursor: pointer; }
+
+#samplesTable .js-grower-intake-row td:first-child {
+    color: var(--phoenix-primary);
+    font-weight: 500;
+}
+
+#samplesTable .js-grower-intake-row:hover td:first-child {
+    text-decoration: underline;
+}
+
+/* Actions column: center-aligned, square three horizontal dots button */
+#samplesTable td:last-child {
+    text-align: center;
+}
+
+#samplesTable td:last-child .dropdown {
+    display: inline-block;
+}
+
+#samplesTable td:last-child .dropdown .btn {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+}
 
