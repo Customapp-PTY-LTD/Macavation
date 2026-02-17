@@ -69,6 +69,13 @@
                 "css/roles_grid.css"
             ]
         },
+        "role-modal": {
+            "description": "Add/Edit Role Modal",
+            "path": "modal-role",
+            "html": "html/modal_role.html",
+            "js": ["js/modal_role.js"],
+            "css": []
+        },
         "role-permissions-grid": {
             "description": "Database Role Permissions Management",
             "path": "role-permissions",

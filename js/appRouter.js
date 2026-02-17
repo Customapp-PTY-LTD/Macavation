@@ -318,6 +318,11 @@ var _appRouter = function () {
                         initializeRolesGrid();
                     }
                 },
+                'role-modal': () => {
+                    if (typeof _modal_role !== 'undefined' && _modal_role.init) {
+                        _modal_role.init();
+                    }
+                },
                 'test-scenarios-grid': () => {
                     if (typeof testScenariosGrid !== 'undefined' && typeof testScenariosGrid.init === 'function') {
                         testScenariosGrid.init();

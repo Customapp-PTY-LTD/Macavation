@@ -119,81 +119,8 @@
     </nav>
 </div>
 
-<!-- Add/Edit Role Modal -->
-<div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="roleModalLabel">Add New Role</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="roleForm">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-section">
-                                <h5>Role Information</h5>
-                                <div class="mb-3">
-                                    <label for="roleName" class="form-label required">Role Name</label>
-                                    <input type="text" class="form-control" id="roleName" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="roleDescription" class="form-label">Description</label>
-                                    <textarea class="form-control" id="roleDescription" rows="3"></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="isActive" checked>
-                                        <label class="form-check-label" for="isActive">
-                                            Active Role
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="cboPermissionLevel" class="form-label required">Permission Level</label>
-                                    <select class="form-select" id="cboPermissionLevel" required>
-                                        <option value="">Select Level</option>
-                                        <option value="1">Level 1 - Basic</option>
-                                        <option value="2">Level 2 - Standard</option>
-                                        <option value="3">Level 3 - Advanced</option>
-                                        <option value="4">Level 4 - Admin</option>
-                                        <option value="5">Level 5 - Super Admin</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-section">
-                                <h5>Role Settings</h5>
-                                <div class="mb-3">
-                                    <label for="cboStatus" class="form-label required">Status</label>
-                                    <select class="form-select" id="cboStatus" required>
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="txtPermissionsPreview" class="form-label">Permissions Preview</label>
-                                    <div id="permissionsPreview" class="form-control"
-                                        style="min-height: 100px; background-color: var(--phoenix-light);">
-                                        <small class="text-muted">Select a permission level to see available
-                                            permissions</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveRoleBtn">
-                    <i class="fas fa-save me-1"></i>Save Role
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Add/Edit Role Modal (content loaded by router via route-name) -->
+<div class="modal fade" id="roleModal" tabindex="-1" role="dialog" aria-labelledby="roleModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" route-name="role-modal"></div>
 
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">

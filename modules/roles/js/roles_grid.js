@@ -18,12 +18,21 @@ var _rolesGrid = function () {
         filteredRoles: [],
         currentPage: 1,
         itemsPerPage: 10,
-        editingRole: null,
         searchDebounceToken: 0,
 
         init: async () => {
             const scope = _rolesGrid;
             await scope.waitForReady();
+            var modalContainers = document.querySelectorAll('.modal[route-name]');
+            var loadPromises = [];
+            modalContainers.forEach(function (el) {
+                var routeName = el.getAttribute('route-name');
+                if (routeName && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                    loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: '#' + el.id }));
+                }
+            });
+            if (loadPromises.length) await Promise.all(loadPromises);
+            if (typeof _modal_role !== 'undefined' && _modal_role.init) _modal_role.init();
             scope.setupEventListeners();
             await scope.loadRoles();
         },
@@ -59,7 +68,7 @@ var _rolesGrid = function () {
             });
 
             $('#addRoleBtn').on('click', function () {
-                scope.showAddRoleModal();
+                if (typeof _modal_role !== 'undefined' && _modal_role.show) _modal_role.show();
             });
 
             $(document).on('click', '.role-name-link', function (e) {
@@ -74,14 +83,6 @@ var _rolesGrid = function () {
                 const scope = _rolesGrid;
                 var roleId = $(this).data('role-id');
                 scope.deleteRole(roleId);
-            });
-
-            $('#saveRoleBtn').on('click', function () {
-                scope.saveRole();
-            });
-
-            $('#roleModal').on('hidden.bs.modal', function () {
-                scope.clearForm();
             });
         },
 
@@ -153,30 +154,14 @@ var _rolesGrid = function () {
             $('#pagination').html(paginationHtml);
         },
 
-        showAddRoleModal: () => {
+        editRole: (roleId) => {
             const scope = _rolesGrid;
-            scope.editingRole = null;
-            scope.clearForm();
-            $('#roleModalLabel').text('Add Role');
-            $('#roleModal').modal('show');
-        },
-
-        editRole: async (roleId) => {
-            const scope = _rolesGrid;
-            try {
-                var role = scope.roles.find(function (r) { return r.id === roleId; });
-                if (!role) {
-                    scope.showError('Role not found');
-                    return;
-                }
-                scope.editingRole = role;
-                scope.populateForm(role);
-                $('#roleModalLabel').text('Edit Role');
-                $('#roleModal').modal('show');
-            } catch (error) {
-                console.error('Error editing role:', error);
-                scope.showError('Error loading role details: ' + error.message);
+            var role = scope.roles.find(function (r) { return r.id === roleId; });
+            if (!role) {
+                scope.showError('Role not found');
+                return;
             }
+            if (typeof _modal_role !== 'undefined' && _modal_role.show) _modal_role.show(role);
         },
 
         deleteRole: (roleId) => {
@@ -204,45 +189,6 @@ var _rolesGrid = function () {
                     }
                 }
             });
-        },
-
-        saveRole: async () => {
-            const scope = _rolesGrid;
-            try {
-                var formData = {
-                    role_name: $('#roleName').val().trim(),
-                    description: $('#roleDescription').val().trim(),
-                    is_active: $('#isActive').is(':checked')
-                };
-                if (!formData.role_name) {
-                    scope.showError('Role name is required');
-                    return;
-                }
-                if (scope.editingRole) {
-                    await dataFunctions.updateRole(scope.editingRole.id, formData);
-                    scope.showSuccess('Role updated successfully');
-                } else {
-                    await dataFunctions.createRole(formData);
-                    scope.showSuccess('Role created successfully');
-                }
-                $('#roleModal').modal('hide');
-                scope.loadRoles();
-            } catch (error) {
-                console.error('Error saving role:', error);
-                scope.showError('Error saving role: ' + error.message);
-            }
-        },
-
-        populateForm: (role) => {
-            $('#roleName').val(role.role_name || '');
-            $('#roleDescription').val(role.description || '');
-            $('#isActive').prop('checked', role.is_active);
-        },
-
-        clearForm: () => {
-            const scope = _rolesGrid;
-            $('#roleForm')[0].reset();
-            scope.editingRole = null;
         },
 
         showLoading: () => {
