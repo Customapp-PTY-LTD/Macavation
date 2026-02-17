@@ -130,14 +130,67 @@
             "html": "html/kernel_production_grid.html",
             "js": [
                 "js/kernel_production_grid.js",
-                "js/kernel_production_stages.js",
-                "js/kernel_production_job_card.js",
-                "js/kernel_production_end_sample.js",
                 "js/kernel_production_batch_actions.js"
             ],
             "css": [
                 "css/kernel_production_grid.css"
             ]
+        },
+        "kernel-job-card-modal": {
+            "description": "Kernel Job Card Modal",
+            "path": "modal-kernel-job-card",
+            "html": "html/modal_kernel_job_card.html",
+            "js": ["js/modal_kernel_job_card.js"],
+            "css": ["css/modal_kernel_job_card.css"]
+        },
+        "production-stages-modal": {
+            "description": "Production Stages Modal",
+            "path": "modal-production-stages",
+            "html": "html/modal_production_stages.html",
+            "js": ["js/modal_production_stages.js"],
+            "css": ["css/modal_production_stages.css"]
+        },
+        "batch-summary-modal": {
+            "description": "Batch Summary Modal",
+            "path": "modal-batch-summary",
+            "html": "html/modal_batch_summary.html",
+            "js": ["js/modal_batch_summary.js"],
+            "css": ["css/modal_batch_summary.css"]
+        },
+        "production-stages-view-modal": {
+            "description": "Production Stages View Modal",
+            "path": "modal-production-stages-view",
+            "html": "html/modal_production_stages_view.html",
+            "js": ["js/modal_production_stages_view.js"],
+            "css": ["css/modal_production_stages_view.css"]
+        },
+        "job-card-view-modal": {
+            "description": "Job Card View Modal",
+            "path": "modal-job-card-view",
+            "html": "html/modal_job_card_view.html",
+            "js": ["js/modal_job_card_view.js"],
+            "css": ["css/modal_job_card_view.css"]
+        },
+        "end-sample-modal": {
+            "description": "End Sample Modal",
+            "path": "modal-end-sample",
+            "html": "html/modal_end_sample.html",
+            "js": ["js/modal_end_sample.js"],
+            "css": ["css/modal_end_sample.css"]
+        },
+        "end-sample-view-modal": {
+            "description": "End Sample View Modal",
+            "path": "modal-end-sample-view",
+            "html": "html/modal_end_sample_view.html",
+            "js": ["js/modal_end_sample_view.js"],
+            "css": ["css/modal_end_sample_view.css"]
+        },
+        "batch-history-modal": {
+            "description": "Batch History Modal",
+            "path": "modal-batch-history",
+            "html": "html/modal_batch_history.html",
+            "js": ["js/modal_batch_history.js"],
+            "css": ["css/modal_batch_history.css"]
         },
         "kernel-dispatch-grid": {
             "description": "Kernel Dispatch",

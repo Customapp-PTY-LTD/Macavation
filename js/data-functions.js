@@ -1347,13 +1347,13 @@ var _dataFunctions = function () {
         },
 
         createKernelProductionDay: async function (batchId, token = null) {
-            const result = await this.callFunction('create_kernel_production_day', { p_production_batch_id: batchId }, token, { useCache: false });
+            const result = await this.callFunction('create_kernel_production_day', { p_batch_id: batchId }, token, { useCache: false });
             this.clearCachePattern('kernel_production');
             return result;
         },
 
         getKernelProductionDays: async function (batchId, token = null) {
-            const raw = await this.callFunction('get_kernel_production_days', { p_production_batch_id: batchId }, token, { useCache: false });
+            const raw = await this.callFunction('get_kernel_production_days', { p_batch_id: batchId }, token, { useCache: false });
             if (Array.isArray(raw)) return raw;
             if (raw && Array.isArray(raw.data)) return raw.data;
             if (raw && Array.isArray(raw.get_kernel_production_days)) return raw.get_kernel_production_days;
@@ -1378,7 +1378,7 @@ var _dataFunctions = function () {
         },
 
         getKernelProductionStagesByDay: async function (dayId, token = null) {
-            return await this.callFunction('get_kernel_production_stages_by_day', { p_kernel_production_day_id: dayId }, token, { useCache: false });
+            return await this.callFunction('get_kernel_production_stages_by_day', { p_day_id: dayId }, token, { useCache: false });
         },
 
         saveKernelProductionStages: async function (payload, token = null) {
@@ -1388,7 +1388,7 @@ var _dataFunctions = function () {
         },
 
         finishKernelBatchProduction: async function (batchId, token = null) {
-            const result = await this.callFunction('finish_kernel_batch_production', { p_production_batch_id: batchId }, token, { useCache: false });
+            const result = await this.callFunction('finish_kernel_batch_production', { p_batch_id: batchId }, token, { useCache: false });
             this.clearCachePattern('kernel_production');
             this.clearCachePattern('production_batches');
             return result;

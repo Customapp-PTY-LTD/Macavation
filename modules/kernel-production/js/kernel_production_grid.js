@@ -56,10 +56,27 @@ var _kernelProductionGrid = function () {
             console.log('[Kernel Production] Initializing grid...');
             scope.bindEvents();
             scope.loadBatches();
-            if (typeof _kernelProductionStages !== 'undefined' && _kernelProductionStages.init) _kernelProductionStages.init();
-            if (typeof _kernelProductionJobCard !== 'undefined' && _kernelProductionJobCard.init) _kernelProductionJobCard.init();
-            if (typeof _kernelProductionEndSample !== 'undefined' && _kernelProductionEndSample.init) _kernelProductionEndSample.init();
-            if (typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.init) _kernelProductionBatchActions.init();
+            // Modal pattern: load modal content into empty containers, then init child modules (they bind to modal DOM)
+            const loadPromises = [];
+            $('.modal[route-name]').each((index, el) => {
+                const routeName = $(el).attr('route-name');
+                const elementSelector = '#' + $(el).attr('id');
+                if (routeName && elementSelector && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                    loadPromises.push(_appRouter.loadContent({ routeName, elementSelector }));
+                }
+            });
+            Promise.all(loadPromises).then(() => {
+                if (typeof _modal_production_stages !== 'undefined' && _modal_production_stages.init) _modal_production_stages.init();
+                if (typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.init) _modal_kernel_job_card.init();
+                if (typeof _modal_end_sample !== 'undefined' && _modal_end_sample.init) _modal_end_sample.init();
+                if (typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.init) _kernelProductionBatchActions.init();
+            }).catch((err) => {
+                console.error('[Kernel Production] Error loading modals:', err);
+                if (typeof _modal_production_stages !== 'undefined' && _modal_production_stages.init) _modal_production_stages.init();
+                if (typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.init) _modal_kernel_job_card.init();
+                if (typeof _modal_end_sample !== 'undefined' && _modal_end_sample.init) _modal_end_sample.init();
+                if (typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.init) _kernelProductionBatchActions.init();
+            });
         },
 
         bindEvents: () => {
@@ -85,27 +102,27 @@ var _kernelProductionGrid = function () {
                 e.preventDefault();
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
-                const productionStagesId = $(this).data('production-stages-id');
-                if (typeof _kernelProductionStages === 'undefined') {
-                    console.warn('[Kernel Production] Stages module not loaded');
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Production stages not loaded. Please refresh the page.', 'error');
+                if (typeof _modal_production_stages === 'undefined') {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Production modal not loaded. Please refresh the page.', 'error');
                     return;
                 }
-                if (typeof _kernelProductionStages.init === 'function') _kernelProductionStages.init();
-                if (productionStagesId && _kernelProductionStages.showProductionStagesViewModal) {
-                    _kernelProductionStages.showProductionStagesViewModal(productionStagesId);
-                } else if (batchId && _kernelProductionStages.showProductionStagesModalForBatch) {
-                    _kernelProductionStages.showProductionStagesModalForBatch(batchId);
+                if (!batchId) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found.', 'error');
+                    return;
+                }
+                if (typeof _modal_production_stages.init === 'function') _modal_production_stages.init();
+                if (_modal_production_stages.showProductionStagesModalForBatch) {
+                    _modal_production_stages.showProductionStagesModalForBatch(batchId);
                 }
             });
             $(document).on('click', '.js-end-sample-batch', function (e) {
                 e.preventDefault();
                 const batchId = $(this).data('batch-id');
                 const packingSampleId = $(this).data('packing-sample-id');
-                if (packingSampleId && typeof _kernelProductionEndSample !== 'undefined' && _kernelProductionEndSample.showEndSampleViewModal) {
-                    _kernelProductionEndSample.showEndSampleViewModal(packingSampleId);
-                } else if (batchId && typeof _kernelProductionEndSample !== 'undefined' && _kernelProductionEndSample.showEndSampleModal) {
-                    _kernelProductionEndSample.showEndSampleModal(batchId);
+                if (packingSampleId && typeof _modal_end_sample_view !== 'undefined' && _modal_end_sample_view.show) {
+                    _modal_end_sample_view.show(packingSampleId);
+                } else if (batchId && typeof _modal_end_sample !== 'undefined' && _modal_end_sample.show) {
+                    _modal_end_sample.show(batchId);
                 }
             });
             $(document).on('click', '.js-release-to-stock', function (e) {
@@ -118,25 +135,25 @@ var _kernelProductionGrid = function () {
             $(document).on('click', '.js-batch-history', function (e) {
                 e.preventDefault();
                 const batchId = $(this).data('batch-id');
-                if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.showBatchHistory) {
-                    _kernelProductionBatchActions.showBatchHistory(batchId);
+                if (batchId && typeof _modal_batch_history !== 'undefined' && _modal_batch_history.show) {
+                    _modal_batch_history.show(batchId);
                 }
             });
             $(document).on('click', '#batchesTableBody tr.js-batch-row', function (e) {
                 if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
                 const batchId = $(this).data('batch-id');
-                if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.showBatchHistory) {
-                    _kernelProductionBatchActions.showBatchHistory(batchId);
+                if (batchId && typeof _modal_batch_history !== 'undefined' && _modal_batch_history.show) {
+                    _modal_batch_history.show(batchId);
                 }
             });
             $(document).on('click', '.js-job-card-batch', function (e) {
                 e.preventDefault();
                 const batchId = $(this).data('batch-id');
                 const jobCardId = $(this).data('job-card-id');
-                if (jobCardId && typeof _kernelProductionJobCard !== 'undefined' && _kernelProductionJobCard.showJobCardViewModal) {
-                    _kernelProductionJobCard.showJobCardViewModal(jobCardId);
-                } else if (batchId && typeof _kernelProductionJobCard !== 'undefined' && _kernelProductionJobCard.showJobCardModalForBatch) {
-                    _kernelProductionJobCard.showJobCardModalForBatch(batchId);
+                if (jobCardId && typeof _modal_job_card_view !== 'undefined' && _modal_job_card_view.show) {
+                    _modal_job_card_view.show(jobCardId);
+                } else if (batchId && typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.showJobCardModalForBatch) {
+                    _modal_kernel_job_card.showJobCardModalForBatch(batchId);
                 }
             });
         },
