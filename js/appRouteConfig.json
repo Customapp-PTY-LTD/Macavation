@@ -138,6 +138,24 @@
                 "css/grower_intake_grid.css"
             ]
         },
+        "supplier-intake-grid": {
+            "description": "Supplier Intake - Oil & Protein",
+            "path": "supplier-intake",
+            "html": "html/supplier_intake_grid.html",
+            "js": [
+                "js/supplier_intake_grid.js"
+            ],
+            "css": [
+                "css/supplier_intake_grid.css"
+            ]
+        },
+        "new-batch-modal": {
+            "description": "Supplier Intake - New batch of product modal",
+            "path": "modal-supplier-new-batch",
+            "html": "html/modal_new_batch.html",
+            "js": ["js/modal_new_batch.js"],
+            "css": []
+        },
         "kernel-production-grid": {
             "description": "Kernel Production Workflow",
             "path": "kernel-production",

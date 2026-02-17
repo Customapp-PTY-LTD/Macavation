@@ -351,6 +351,12 @@ var _appRouter = function () {
                 'grower-intake-grid': () => {
                     if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.init) _growerIntakeGrid.init();
                 },
+                'supplier-intake-grid': () => {
+                    if (typeof initializeSupplierIntakeGrid === 'function') initializeSupplierIntakeGrid();
+                },
+                'new-batch-modal': () => {
+                    if (typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.init) _modal_supplier_new_batch.init();
+                },
                 'kernel-production-grid': () => {
                     if (typeof initializeKernelProductionGrid === 'function') {
                         initializeKernelProductionGrid();
