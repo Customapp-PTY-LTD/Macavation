@@ -333,6 +333,9 @@ var _appRouter = function () {
                         testScenariosGrid.init();
                     }
                 },
+                'test-scenario-modal': () => {
+                    if (typeof _modal_test_scenario !== 'undefined' && _modal_test_scenario.init) _modal_test_scenario.init();
+                },
                 'test-data-grid': () => {
                     if (typeof testDataGrid !== 'undefined' && typeof testDataGrid.init === 'function') {
                         testDataGrid.init();

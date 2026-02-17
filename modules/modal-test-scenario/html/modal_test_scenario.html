@@ -1,0 +1,172 @@
+<div class="modal-dialog modal-xl">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="scenarioModalLabel">Add New Test Scenario</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="scenarioForm">
+                <ul class="nav nav-tabs mb-3" id="scenarioTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">Details</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="test-steps-tab" data-bs-toggle="tab" data-bs-target="#test-steps" type="button" role="tab">Test Steps</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="test-data-tab" data-bs-toggle="tab" data-bs-target="#test-data" type="button" role="tab">Test Data</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="metadata-tab" data-bs-toggle="tab" data-bs-target="#metadata" type="button" role="tab">Metadata</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="scenarioTabContent">
+                    <div class="tab-pane fade show active" id="details" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="scenarioCode" class="form-label required">Scenario Code</label>
+                                    <input type="text" class="form-control" id="scenarioCode" placeholder="e.g., TC-AUTH-001" required>
+                                    <small class="form-text text-muted">Unique identifier for the test scenario</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="scenarioName" class="form-label required">Scenario Name</label>
+                                    <input type="text" class="form-control" id="scenarioName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="moduleName" class="form-label required">Module Name</label>
+                                    <input type="text" class="form-control" id="moduleName" list="moduleList" required>
+                                    <datalist id="moduleList"></datalist>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="featureName" class="form-label">Feature Name</label>
+                                    <input type="text" class="form-control" id="featureName">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="testType" class="form-label">Test Type</label>
+                                    <select class="form-select" id="testType">
+                                        <option value="functional">Functional</option>
+                                        <option value="security">Security</option>
+                                        <option value="e2e">E2E</option>
+                                        <option value="integration">Integration</option>
+                                        <option value="performance">Performance</option>
+                                        <option value="usability">Usability</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="severityLevel" class="form-label">Severity Level</label>
+                                    <select class="form-select" id="severityLevel">
+                                        <option value="critical">Critical</option>
+                                        <option value="high">High</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="low">Low</option>
+                                        <option value="info">Info</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="severityDescription" class="form-label">Severity Description</label>
+                                    <textarea class="form-control" id="severityDescription" rows="2"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="cboRole" class="form-label">Role</label>
+                                    <select class="form-select" id="cboRole">
+                                        <option value="">Select Role</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="preconditions" class="form-label">Preconditions</label>
+                                    <textarea class="form-control" id="preconditions" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="expectedResult" class="form-label required">Expected Result</label>
+                                    <textarea class="form-control" id="expectedResult" rows="3" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" id="description" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="test-steps" role="tabpanel">
+                        <div class="mb-3">
+                            <label class="form-label">Test Steps (JSON Format)</label>
+                            <textarea class="form-control font-monospace" id="testSteps" rows="10" placeholder='[{"step": 1, "action": "Click login button", "expected": "Login form appears"}]'></textarea>
+                            <small class="form-text text-muted">Enter test steps as JSON array. Each step should have: step (number), action (string), expected (string)</small>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Example:</strong> <code>[{"step": 1, "action": "Navigate to login page", "expected": "Login form is visible"}]</code>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="test-data" role="tabpanel">
+                        <div class="mb-3">
+                            <label for="testDataDescription" class="form-label">Test Data Description</label>
+                            <textarea class="form-control" id="testDataDescription" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Test Data (JSON Format)</label>
+                            <textarea class="form-control font-monospace" id="testData" rows="10" placeholder='{"username": "testuser", "password": "testpass"}'></textarea>
+                            <small class="form-text text-muted">Enter test data as JSON object</small>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="metadata" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Tags (JSON Array)</label>
+                                    <textarea class="form-control font-monospace" id="tags" rows="5" placeholder='["critical", "smoke", "regression"]'></textarea>
+                                    <small class="form-text text-muted">Enter tags as JSON array of strings</small>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isAutomated">
+                                        <label class="form-check-label" for="isAutomated">Is Automated</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="automationScriptPath" class="form-label">Automation Script Path</label>
+                                    <input type="text" class="form-control" id="automationScriptPath" placeholder="e.g., e2e/tests/auth/login.spec.ts">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                        <label class="form-check-label" for="isActive">Active</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isDeprecated">
+                                        <label class="form-check-label" for="isDeprecated">Deprecated</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="deprecatedReason" class="form-label">Deprecated Reason</label>
+                                    <textarea class="form-control" id="deprecatedReason" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveScenarioBtn">
+                <i class="fas fa-save me-1"></i>Save Scenario
+            </button>
+        </div>
+    </div>
+</div>

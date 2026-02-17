@@ -18,17 +18,36 @@ var _testScenariosGrid = function () {
         filteredScenarios: [],
         currentPage: 1,
         itemsPerPage: 20,
-        editingScenario: null,
         searchDebounceToken: 0,
         currentFilters: {},
 
         init: async () => {
             const scope = _testScenariosGrid;
             await scope.waitForReady();
-            scope.setupEventListeners();
-            await scope.loadScenarios();
-            await scope.loadRolesForDropdown();
-            scope.loadModulesForFilter();
+            var loadPromises = [];
+            if (typeof document !== 'undefined' && document.querySelectorAll) {
+                document.querySelectorAll('.modal[route-name]').forEach(function (el) {
+                    var routeName = el.getAttribute('route-name');
+                    var id = el.id;
+                    if (routeName && id && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                        loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: '#' + id }));
+                    }
+                });
+            }
+            if (loadPromises.length > 0) {
+                Promise.all(loadPromises).then(function () {
+                    if (typeof _modal_test_scenario !== 'undefined' && _modal_test_scenario.init) _modal_test_scenario.init();
+                    scope.setupEventListeners();
+                    scope.loadScenarios();
+                    scope.loadRolesForDropdown();
+                    scope.loadModulesForFilter();
+                });
+            } else {
+                scope.setupEventListeners();
+                await scope.loadScenarios();
+                await scope.loadRolesForDropdown();
+                scope.loadModulesForFilter();
+            }
         },
 
         waitForReady: () => {
@@ -76,14 +95,43 @@ var _testScenariosGrid = function () {
             });
 
             $('#addScenarioBtn').on('click', function () {
-                scope.showAddScenarioModal();
+                if (typeof _modal_test_scenario !== 'undefined' && _modal_test_scenario.show) _modal_test_scenario.show();
             });
 
             $(document).on('click', '.scenario-code-link, .scenario-name-link', function (e) {
                 e.preventDefault();
                 const scope = _testScenariosGrid;
                 const scenarioId = $(this).data('scenario-id');
-                if (scenarioId) scope.editScenario(scenarioId);
+                if (!scenarioId) return;
+                dataFunctions.getTestScenarioById(scenarioId).then(function (scenario) {
+                    if (!scenario || (Array.isArray(scenario) && scenario.length === 0)) {
+                        scope.showError('Test scenario not found');
+                        return;
+                    }
+                    var scenarioData = Array.isArray(scenario) ? scenario[0] : scenario;
+                    if (typeof _modal_test_scenario !== 'undefined' && _modal_test_scenario.show) _modal_test_scenario.show(scenarioData);
+                }).catch(function (error) {
+                    console.error('Error editing scenario:', error);
+                    scope.showError('Error loading scenario details: ' + error.message);
+                });
+            });
+
+            $(document).on('click', '.edit-scenario-btn', function (e) {
+                e.preventDefault();
+                const scope = _testScenariosGrid;
+                const scenarioId = $(this).data('scenario-id');
+                if (!scenarioId) return;
+                dataFunctions.getTestScenarioById(scenarioId).then(function (scenario) {
+                    if (!scenario || (Array.isArray(scenario) && scenario.length === 0)) {
+                        scope.showError('Test scenario not found');
+                        return;
+                    }
+                    var scenarioData = Array.isArray(scenario) ? scenario[0] : scenario;
+                    if (typeof _modal_test_scenario !== 'undefined' && _modal_test_scenario.show) _modal_test_scenario.show(scenarioData);
+                }).catch(function (error) {
+                    console.error('Error editing scenario:', error);
+                    scope.showError('Error loading scenario details: ' + error.message);
+                });
             });
 
             $(document).on('click', '.delete-scenario-btn', function () {
@@ -92,13 +140,6 @@ var _testScenariosGrid = function () {
                 scope.deleteScenario(scenarioId);
             });
 
-            $('#saveScenarioBtn').on('click', function () {
-                scope.saveScenario();
-            });
-
-            $('#scenarioModal').on('hidden.bs.modal', function () {
-                scope.clearForm();
-            });
         },
 
         loadScenarios: async (forceRefresh) => {
@@ -130,17 +171,14 @@ var _testScenariosGrid = function () {
                     console.warn('No roles found');
                     return;
                 }
-                const roleSelects = ['cboRole', 'filterRole'];
-                roleSelects.forEach(function (selectId) {
-                    const select = document.getElementById(selectId);
-                    if (select) {
-                        var html = selectId === 'filterRole' ? '<option value="">All Roles</option>' : '<option value="">Select Role</option>';
-                        roles.forEach(function (role) {
-                            html += '<option value="' + role.id + '">' + scope.escapeHtml(role.role_name) + '</option>';
-                        });
-                        select.innerHTML = html;
-                    }
-                });
+                const select = document.getElementById('filterRole');
+                if (select) {
+                    var html = '<option value="">All Roles</option>';
+                    roles.forEach(function (role) {
+                        html += '<option value="' + role.id + '">' + scope.escapeHtml(role.role_name) + '</option>';
+                    });
+                    select.innerHTML = html;
+                }
             } catch (error) {
                 console.error('Error loading roles:', error);
             }
@@ -271,7 +309,7 @@ var _testScenariosGrid = function () {
                     '<td>' + automatedBadge + '</td>' +
                     '<td>' + statusBadge + '</td>' +
                     '<td><div class="btn-group btn-group-sm" role="group">' +
-                    '<button type="button" class="btn btn-outline-primary" onclick="testScenariosGrid.editScenario(\'' + scope.escapeHtml(scenario.id) + '\')" title="Edit"><i class="fas fa-edit"></i></button>' +
+                    '<button type="button" class="btn btn-outline-primary edit-scenario-btn" data-scenario-id="' + scope.escapeHtml(scenario.id) + '" title="Edit"><i class="fas fa-edit"></i></button>' +
                     '<button type="button" class="btn btn-outline-danger delete-scenario-btn" data-scenario-id="' + scope.escapeHtml(scenario.id) + '" title="Delete"><i class="fas fa-trash"></i></button>' +
                     '</div></td></tr>';
             });
@@ -314,162 +352,6 @@ var _testScenariosGrid = function () {
                 paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + (scope.currentPage + 1) + '">Next</a></li>';
             }
             $('#pagination').html(paginationHtml);
-        },
-
-        showAddScenarioModal: async () => {
-            const scope = _testScenariosGrid;
-            scope.editingScenario = null;
-            scope.clearForm();
-            await scope.loadRolesForDropdown();
-            $('#scenarioModalLabel').text('Add New Test Scenario');
-            $('#scenarioModal').modal('show');
-        },
-
-        editScenario: async (scenarioId) => {
-            const scope = _testScenariosGrid;
-            try {
-                var scenario = await dataFunctions.getTestScenarioById(scenarioId);
-                if (!scenario || (Array.isArray(scenario) && scenario.length === 0)) {
-                    scope.showError('Test scenario not found');
-                    return;
-                }
-                var scenarioData = Array.isArray(scenario) ? scenario[0] : scenario;
-                scope.editingScenario = scenarioData;
-                await scope.loadRolesForDropdown();
-                await delay(200);
-                scope.populateForm(scenarioData);
-
-                $('#scenarioModalLabel').text('Edit Test Scenario');
-                $('#scenarioModal').modal('show');
-            } catch (error) {
-                console.error('Error editing scenario:', error);
-                scope.showError('Error loading scenario details: ' + error.message);
-            }
-        },
-
-        populateForm: (scenario) => {
-            $('#scenarioCode').val(scenario.scenario_code || '');
-            $('#scenarioName').val(scenario.scenario_name || '');
-            $('#moduleName').val(scenario.module_name || '');
-            $('#featureName').val(scenario.feature_name || '');
-            $('#testType').val(scenario.test_type || 'functional');
-            $('#severityLevel').val(scenario.severity_level || 'medium');
-            $('#severityDescription').val(scenario.severity_description || '');
-            $('#cboRole').val(scenario.role_id || '');
-            $('#preconditions').val(scenario.preconditions || '');
-            $('#expectedResult').val(scenario.expected_result || '');
-            $('#description').val(scenario.description || '');
-            $('#testSteps').val(scenario.test_steps ? JSON.stringify(scenario.test_steps, null, 2) : '[]');
-            $('#testData').val(scenario.test_data ? JSON.stringify(scenario.test_data, null, 2) : '{}');
-            $('#testDataDescription').val(scenario.test_data_description || '');
-            $('#tags').val(scenario.tags ? JSON.stringify(scenario.tags, null, 2) : '[]');
-            $('#isAutomated').prop('checked', scenario.is_automated || false);
-            $('#automationScriptPath').val(scenario.automation_script_path || '');
-            $('#isActive').prop('checked', scenario.is_active !== false);
-            $('#isDeprecated').prop('checked', scenario.is_deprecated || false);
-            $('#deprecatedReason').val(scenario.deprecated_reason || '');
-        },
-
-        clearForm: () => {
-            const scope = _testScenariosGrid;
-            $('#scenarioForm')[0].reset();
-            $('#testSteps').val('[]');
-            $('#testData').val('{}');
-            $('#tags').val('[]');
-            $('#isActive').prop('checked', true);
-            $('#isDeprecated').prop('checked', false);
-            scope.editingScenario = null;
-        },
-
-        saveScenario: async () => {
-            const scope = _testScenariosGrid;
-            try {
-                var testSteps = [];
-                var testData = {};
-                var tags = [];
-                try {
-                    if ($('#testSteps').val().trim()) {
-                        testSteps = JSON.parse($('#testSteps').val());
-                    }
-                } catch (e) {
-                    scope.showError('Invalid JSON in Test Steps field');
-                    return;
-                }
-                try {
-                    if ($('#testData').val().trim()) {
-                        testData = JSON.parse($('#testData').val());
-                    }
-                } catch (e) {
-                    scope.showError('Invalid JSON in Test Data field');
-                    return;
-                }
-                try {
-                    if ($('#tags').val().trim()) {
-                        tags = JSON.parse($('#tags').val());
-                    }
-                } catch (e) {
-                    scope.showError('Invalid JSON in Tags field');
-                    return;
-                }
-
-                var formData = {
-                    scenario_code: $('#scenarioCode').val().trim(),
-                    scenario_name: $('#scenarioName').val().trim(),
-                    module_name: $('#moduleName').val().trim(),
-                    feature_name: $('#featureName').val().trim() || null,
-                    test_type: $('#testType').val(),
-                    severity_level: $('#severityLevel').val(),
-                    severity_description: $('#severityDescription').val().trim() || null,
-                    role_id: $('#cboRole').val() || null,
-                    preconditions: $('#preconditions').val().trim() || null,
-                    expected_result: $('#expectedResult').val().trim(),
-                    description: $('#description').val().trim() || null,
-                    test_steps: testSteps,
-                    test_data: testData,
-                    test_data_description: $('#testDataDescription').val().trim() || null,
-                    tags: tags,
-                    is_automated: $('#isAutomated').is(':checked'),
-                    automation_script_path: $('#automationScriptPath').val().trim() || null,
-                    is_active: $('#isActive').is(':checked'),
-                    is_deprecated: $('#isDeprecated').is(':checked'),
-                    deprecated_reason: $('#deprecatedReason').val().trim() || null
-                };
-
-                if (!formData.scenario_code) {
-                    scope.showError('Scenario Code is required');
-                    return;
-                }
-                if (!formData.scenario_name) {
-                    scope.showError('Scenario Name is required');
-                    return;
-                }
-                if (!formData.module_name) {
-                    scope.showError('Module Name is required');
-                    return;
-                }
-                if (!formData.expected_result) {
-                    scope.showError('Expected Result is required');
-                    return;
-                }
-
-                var result;
-                if (scope.editingScenario) {
-                    result = await dataFunctions.updateTestScenario(scope.editingScenario.id, formData);
-                } else {
-                    result = await dataFunctions.createTestScenario(formData);
-                }
-
-                if (result && result.success) {
-                    scope.showSuccess(result.message || 'Test scenario saved successfully');
-                    $('#scenarioModal').modal('hide');
-                    scope.loadScenarios(true);
-                } else {
-                    scope.showError((result && result.message) || 'Error saving test scenario');
-                }
-            } catch (error) {
-                console.error('Error saving scenario:', error);
-                scope.showError('Error saving test scenario: ' + error.message);
-            }
         },
 
         deleteScenario: (scenarioId) => {

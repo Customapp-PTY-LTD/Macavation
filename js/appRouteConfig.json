@@ -469,6 +469,13 @@
                 "css/test_scenarios_grid.css"
             ]
         },
+        "test-scenario-modal": {
+            "description": "Add/Edit Test Scenario Modal",
+            "path": "modal-test-scenario",
+            "html": "html/modal_test_scenario.html",
+            "js": ["js/modal_test_scenario.js"],
+            "css": []
+        },
         "test-data-grid": {
             "description": "Test Data Management",
             "path": "test-data",
