@@ -60,18 +60,27 @@ var _adminGrid = function () {
                 }
 
                 scope.setupFormHandlers();
-                scope.initHandlers();
+
+                // Modal pattern: load modal content into empty containers, then init modal modules
+                var loadPromises = [];
+                $('.modal[route-name]').each(function (index, el) {
+                    var routeName = $(el).attr('route-name');
+                    var elementSelector = '#' + $(el).attr('id');
+                    if (routeName && elementSelector && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                        loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: elementSelector }));
+                    }
+                });
+                Promise.all(loadPromises).then(function () {
+                    if (typeof _modal_admin_add_user !== 'undefined' && _modal_admin_add_user.init) _modal_admin_add_user.init();
+                    if (typeof _modal_admin_add_role !== 'undefined' && _modal_admin_add_role.init) _modal_admin_add_role.init();
+                }).catch(function (err) {
+                    console.error('[Admin] Error loading modals:', err);
+                    if (typeof _modal_admin_add_user !== 'undefined' && _modal_admin_add_user.init) _modal_admin_add_user.init();
+                    if (typeof _modal_admin_add_role !== 'undefined' && _modal_admin_add_role.init) _modal_admin_add_role.init();
+                });
             } catch (error) {
                 console.error('Error initializing Admin Grid:', error);
             }
-        },
-
-        initHandlers: () => {
-            const scope = _adminGrid;
-            const userBtn = document.getElementById('addUserSubmitBtn');
-            if (userBtn) userBtn.addEventListener('click', () => scope.submitUserForm());
-            const roleBtn = document.getElementById('addRoleSubmitBtn');
-            if (roleBtn) roleBtn.addEventListener('click', () => scope.submitRoleForm());
         },
 
         handleTabSwitch: (targetId) => {
@@ -168,6 +177,7 @@ var _adminGrid = function () {
                 scope.renderUsersTable(scope.data.users);
                 scope.updateUserStats(scope.data.users);
                 scope.updateRoleFilter();
+                // Role dropdown in Add User modal is filled by modal_admin_add_user.init()
             } catch (error) {
                 console.error('Error loading users:', error);
                 const errorMessage = error.message || error.toString() || '';
@@ -314,7 +324,6 @@ var _adminGrid = function () {
 
                 scope.renderRolesTable(scope.data.roles);
                 scope.renderRoleDefinitions(scope.data.roles);
-                scope.updateRoleSelects(scope.data.roles);
             } catch (error) {
                 console.error('Error loading roles:', error);
                 const errorMessage = error.message || error.toString() || '';
@@ -328,7 +337,6 @@ var _adminGrid = function () {
                     scope.data.roles = [];
                     scope.renderRolesTable(scope.data.roles);
                     scope.renderRoleDefinitions(scope.data.roles);
-                    scope.updateRoleSelects(scope.data.roles);
                 } else {
                     scope.showNotification('Failed to load roles. Please try again later.', 'error');
                 }
@@ -392,21 +400,6 @@ var _adminGrid = function () {
             }).join('');
         },
 
-        updateRoleSelects: (roles) => {
-            const selectIds = ['userRoleSelect'];
-            selectIds.forEach((selectId) => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    const currentValue = select.value;
-                    select.innerHTML = '<option value="">Select role...</option>' +
-                        roles.filter((r) => r.is_active).map((role) =>
-                            `<option value="${role.id}">${role.role_name}</option>`
-                        ).join('');
-                    if (currentValue) select.value = currentValue;
-                }
-            });
-        },
-
         setupFormHandlers: () => {
             const scope = _adminGrid;
 
@@ -448,77 +441,6 @@ var _adminGrid = function () {
                     scope.manageRolePermissions(manageRolePermsBtn.getAttribute('data-admin-manage-role-perms'));
                 }
             });
-        },
-
-        submitUserForm: async () => {
-            const scope = _adminGrid;
-            try {
-                const form = document.getElementById('addUserForm');
-                if (!form) return;
-
-                const formData = new FormData(form);
-                const userData = {
-                    first_name: formData.get('first_name'),
-                    last_name: formData.get('last_name'),
-                    email: formData.get('email'),
-                    phone_number: formData.get('phone_number') || null,
-                    role_id: formData.get('role_id'),
-                    is_active: formData.get('is_active') === 'true'
-                };
-
-                if (typeof dataFunctions !== 'undefined' && dataFunctions.createUser) {
-                    const result = await dataFunctions.createUser(userData);
-                    if (result && result.success) {
-                        scope.showNotification('User created successfully', 'success');
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
-                        if (modal) modal.hide();
-                        form.reset();
-                        await scope.loadUsers();
-                        await scope.loadSummary();
-                    } else {
-                        scope.showNotification('Failed to create user', 'error');
-                    }
-                } else {
-                    scope.showNotification('User creation not available', 'error');
-                }
-            } catch (error) {
-                console.error('Error submitting user form:', error);
-                _adminGrid.showNotification('Error creating user: ' + error.message, 'error');
-            }
-        },
-
-        submitRoleForm: async () => {
-            const scope = _adminGrid;
-            try {
-                const form = document.getElementById('addRoleForm');
-                if (!form) return;
-
-                const formData = new FormData(form);
-                const roleData = {
-                    role_name: formData.get('role_name'),
-                    description: formData.get('description') || null,
-                    is_active: formData.get('is_active') === 'true'
-                };
-
-                if (typeof dataFunctions !== 'undefined' && dataFunctions.createRole) {
-                    const result = await dataFunctions.createRole(roleData);
-                    if (result && result.success) {
-                        scope.showNotification('Role created successfully', 'success');
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('addRoleModal'));
-                        if (modal) modal.hide();
-                        form.reset();
-                        await scope.loadRoles();
-                        await scope.loadSummary();
-                    } else {
-                        scope.showNotification('Failed to create role', 'error');
-                    }
-                } else {
-                    scope.showNotification('Role creation not available', 'error');
-                }
-            } catch (error) {
-                console.error('Error submitting role form:', error);
-                scope.showNotification('Error creating role: ' + error.message, 'error');
-            }
         },
 
         editUser: (userId) => {

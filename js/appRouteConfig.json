@@ -102,6 +102,20 @@
                 "css/admin_grid.css"
             ]
         },
+        "add-user-modal": {
+            "description": "Admin Add User Modal",
+            "path": "modal-admin-add-user",
+            "html": "html/modal_admin_add_user.html",
+            "js": ["js/modal_admin_add_user.js"],
+            "css": []
+        },
+        "add-role-modal": {
+            "description": "Admin Add Role Modal",
+            "path": "modal-admin-add-role",
+            "html": "html/modal_admin_add_role.html",
+            "js": ["js/modal_admin_add_role.js"],
+            "css": []
+        },
         "crm-grid": {
             "description": "Customer Relationship Management",
             "path": "crm",
