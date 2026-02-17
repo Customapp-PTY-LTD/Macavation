@@ -253,14 +253,15 @@ var _kernelProductionGrid = function () {
                 const step = batch.current_step != null ? batch.current_step : 1;
                 const productionAndSampleDone = (batch.hasJobCard || batch.hasProductionStages) && batch.hasPackingSample;
                 const canReleaseToStock = productionAndSampleDone || batch.status === 'completed' || step >= 17;
-                const receivedDate = batch.received_date ? (batch.received_date.toString().split ? batch.received_date.toString().split('T')[0] : batch.received_date) : 'N/A';
+                const receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
+                    ? (_common.formatDateDDMMYYYY(batch.received_date) || 'N/A')
+                    : (batch.received_date ? (batch.received_date.toString().split ? batch.received_date.toString().split('T')[0] : batch.received_date) : 'N/A');
                 const productionStagesId = batch.productionDays && batch.productionDays[0] && batch.productionDays[0].kernel_production_stages_id ? batch.productionDays[0].kernel_production_stages_id : '';
                 const productionLabel = batch.productionFinishedAt ? '&#10003; Production' : 'Production';
                 const endSampleLabel = batch.hasPackingSample && batch.packingSampleId ? '&#10003; End sample' : 'End sample';
                 const jobCardLabel = batch.hasJobCard && batch.jobCardId ? '&#10003; Job Card' : 'Job Card';
                 const jobCardItem = '<a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '" data-job-card-id="' + (batch.jobCardId || '') + '">' + jobCardLabel + '</a>';
                 let menuItems = [
-                    '<a class="dropdown-item js-batch-history" href="#" data-batch-id="' + batch.id + '">History</a>',
                     '<a class="dropdown-item js-production-batch" href="#" data-batch-id="' + batch.id + '" data-production-stages-id="' + productionStagesId + '">' + productionLabel + '</a>',
                     '<a class="dropdown-item js-end-sample-batch" href="#" data-batch-id="' + batch.id + '" data-packing-sample-id="' + (batch.packingSampleId || '') + '">' + endSampleLabel + '</a>',
                     jobCardItem
@@ -277,7 +278,7 @@ var _kernelProductionGrid = function () {
                     actionsCell = '<button type="button" class="btn btn-sm btn-outline-secondary js-production-batch" data-batch-id="' + batch.id + '" data-production-stages-id="' + productionStagesId + '">' + productionLabel + '</button>';
                 } else {
                     actionsCell = '<div class="dropdown">' +
-                        '<button class="btn btn-sm btn-outline-secondary" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis-v"></i></button>' +
+                        '<button class="btn btn-sm btn-outline-secondary" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
                         '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="batchActions' + batch.id + '">' + menuItems.join('') + '</ul></div>';
                 }
                 const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + statusToTitleCase(batch.status || 'in_production') + '</span></td><td>' + actionsCell + '</td></tr>';

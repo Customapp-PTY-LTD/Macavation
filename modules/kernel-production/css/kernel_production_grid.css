@@ -3,6 +3,36 @@
 #batchesTable th { border-top: none; font-weight: 600; }
 #batchesTable tbody tr.js-batch-row { cursor: pointer; }
 
+/* Batch number looks clickable to emphasize row is clickable */
+#batchesTable .js-batch-row td:first-child {
+    color: var(--phoenix-primary);
+    font-weight: 500;
+}
+
+#batchesTable .js-batch-row:hover td:first-child {
+    text-decoration: underline;
+}
+
+/* Actions column: center-aligned, square three horizontal dots button */
+#batchesTable td:last-child {
+    text-align: center;
+}
+
+#batchesTable td:last-child .dropdown {
+    display: inline-block;
+}
+
+#batchesTable td:last-child .dropdown .btn {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+}
+
 /* Batch History Modal – vertical timeline */
 .batch-history-timeline {
     position: relative;
