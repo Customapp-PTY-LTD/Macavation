@@ -1,0 +1,113 @@
+<div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="oilLotModalLabel">Add Oil Stock Lot</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="oilLotForm">
+                <input type="hidden" id="oilLotId">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="oilLotLocation" class="form-label required">Location</label>
+                        <select id="oilLotLocation" class="form-select" required>
+                            <option value="">Select</option>
+                            <option value="801">801</option>
+                            <option value="850">850</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="oilLotCategory" class="form-label required">Category</label>
+                        <select id="oilLotCategory" class="form-select" required>
+                            <option value="">Select</option>
+                            <option value="raw_material">Raw Material</option>
+                            <option value="finished_good">Finished Good</option>
+                            <option value="sold">Sold</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="oilLotStatus" class="form-label">Status</label>
+                        <select id="oilLotStatus" class="form-select">
+                            <option value="on_hand">On Hand</option>
+                            <option value="hold">Hold</option>
+                            <option value="dispatched">Dispatched</option>
+                            <option value="sold">Sold</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="oilLotCounterpartyType" class="form-label">Supplier/Customer Type</label>
+                        <select id="oilLotCounterpartyType" class="form-select">
+                            <option value="">Select</option>
+                            <option value="supplier">Supplier</option>
+                            <option value="customer">Customer</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="oilLotCounterpartyName" class="form-label">Supplier/Customer</label>
+                        <input type="text" class="form-control" id="oilLotCounterpartyName" placeholder="e.g., Global Macadamias (Pty) Ltd">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="oilLotPoRef" class="form-label">PO Reference</label>
+                        <input type="text" class="form-control" id="oilLotPoRef" placeholder="e.g., APOC 50303-24">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="oilLotBatchNumber" class="form-label">Batch #</label>
+                        <input type="text" class="form-control" id="oilLotBatchNumber" placeholder="e.g., BN 1.24.346">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="oilLotProductCode" class="form-label">Product Code</label>
+                        <input type="text" class="form-control" id="oilLotProductCode" placeholder="e.g., ZRNMKD">
+                    </div>
+                    <div class="col-md-8">
+                        <label for="oilLotProductDescription" class="form-label">Product Description</label>
+                        <input type="text" class="form-control" id="oilLotProductDescription" placeholder="e.g., ZRNMKD - Kernel Dust">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="oilLotGrade" class="form-label">Grade</label>
+                        <input type="text" class="form-control" id="oilLotGrade" placeholder="e.g., 24P / Crude Cosmetic">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="oilLotFfa" class="form-label">FFA (%)</label>
+                        <input type="number" class="form-control" id="oilLotFfa" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="oilLotUnits" class="form-label">Units</label>
+                        <input type="number" class="form-control" id="oilLotUnits" step="1" placeholder="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="oilLotKg" class="form-label required">Kilograms</label>
+                        <input type="number" class="form-control" id="oilLotKg" step="0.01" placeholder="0.00" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="oilLotVolume" class="form-label">Volume</label>
+                        <input type="number" class="form-control" id="oilLotVolume" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="oilLotDeliveryDate" class="form-label">Delivery Date</label>
+                        <input type="date" class="form-control" id="oilLotDeliveryDate">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="oilLotManufactureDate" class="form-label">Manufacture Date</label>
+                        <input type="date" class="form-control" id="oilLotManufactureDate">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="oilLotBbDate" class="form-label">BB Date</label>
+                        <input type="date" class="form-control" id="oilLotBbDate">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="oilLotCoaStatus" class="form-label">COA Status</label>
+                        <input type="text" class="form-control" id="oilLotCoaStatus" placeholder="e.g., Received">
+                    </div>
+                    <div class="col-12">
+                        <label for="oilLotNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="oilLotNotes" rows="3"></textarea>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveOilLotBtn"><i class="fas fa-save me-1"></i>Save Oil Lot</button>
+        </div>
+    </div>
+</div>

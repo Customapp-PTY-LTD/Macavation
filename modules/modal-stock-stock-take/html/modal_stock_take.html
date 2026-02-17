@@ -1,0 +1,109 @@
+<div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="stockTakeModalLabel">Stock Take - Physical Count</h5>
+            <button type="button" class="btn-close btn-close-white" id="stockTakeModalCloseBtn" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" style="max-height: calc(100vh - 200px); overflow-y: auto;">
+            <form id="stockTakeForm">
+                <input type="hidden" id="stockTakeId">
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Stock Take Information</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="stockTakeDate" class="form-label required">Stock Take Date</label>
+                                <input type="date" class="form-control" id="stockTakeDate" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="stockTakeLocation" class="form-label">Location</label>
+                                <input type="text" class="form-control" id="stockTakeLocation" placeholder="e.g., Location 800">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="stockTakeType" class="form-label">Stock Take Type</label>
+                                <select class="form-select" id="stockTakeType">
+                                    <option value="full">Full Stock Take</option>
+                                    <option value="partial">Partial Stock Take</option>
+                                    <option value="cycle">Cycle Count</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="stockTakeNotes" class="form-label">Notes</label>
+                                <input type="text" class="form-control" id="stockTakeNotes">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Stock Items Count</h6>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-info me-2" id="loadSystemStockBtn"><i class="fas fa-sync"></i> Load System Stock</button>
+                            <button type="button" class="btn btn-sm btn-primary" id="addStockTakeItemRow"><i class="fas fa-plus"></i> Add Item</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered" id="stockTakeTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Number</th>
+                                        <th>Description</th>
+                                        <th>Unit of Measure</th>
+                                        <th>Bin Location</th>
+                                        <th>System Quantity</th>
+                                        <th>Physical Quantity</th>
+                                        <th>Variance</th>
+                                        <th>Variance %</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stockTakeTableBody">
+                                    <tr>
+                                        <td><input type="text" class="form-control form-control-sm" name="stockNumber"></td>
+                                        <td><input type="text" class="form-control form-control-sm" name="description"></td>
+                                        <td><input type="text" class="form-control form-control-sm" name="unitOfMeasure"></td>
+                                        <td><input type="text" class="form-control form-control-sm" name="binLocation"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="systemQuantity" step="0.01" readonly></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="physicalQuantity" step="0.01"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="variance" step="0.01" readonly></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="variancePercentage" step="0.01" readonly></td>
+                                        <td><button type="button" class="btn btn-sm btn-danger removeStockTakeRow"><i class="fas fa-times"></i></button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Variance Summary</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="form-label">Total Items Counted</label>
+                                <input type="text" class="form-control" id="totalItemsCounted" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Items with Variance</label>
+                                <input type="text" class="form-control" id="itemsWithVariance" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Total System Value</label>
+                                <input type="text" class="form-control" id="totalSystemValue" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Total Physical Value</label>
+                                <input type="text" class="form-control" id="totalPhysicalValue" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="stockTakeModalCancelBtn">Cancel</button>
+            <button type="button" class="btn btn-success" id="completeStockTakeBtn"><i class="fas fa-check me-1"></i>Complete Stock Take</button>
+            <button type="button" class="btn btn-primary" id="saveStockTakeBtn"><i class="fas fa-save me-1"></i>Save Stock Take</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,90 @@
+<div class="modal-dialog modal-xl">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="rawMaterialIssuedModalLabel">Raw Material Stock Issued</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="rawMaterialIssuedForm">
+                <input type="hidden" id="stockIssuedId">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="issuedShift" class="form-label required">Shift</label>
+                        <select class="form-select" id="issuedShift" required>
+                            <option value="">Select Shift</option>
+                            <option value="Day Shift">Day Shift</option>
+                            <option value="Night Shift">Night Shift</option>
+                            <option value="D-shift">D-shift</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Raw Material Stock Issued</h6>
+                        <button type="button" class="btn btn-sm btn-primary" id="addIssuedItemRow"><i class="fas fa-plus"></i> Add Item</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="issuedItemsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Best Before</th>
+                                        <th>Production Date</th>
+                                        <th>Product Description</th>
+                                        <th>Batch Details</th>
+                                        <th>Quantity Required (kg)</th>
+                                        <th>Total Issued (kg)</th>
+                                        <th>Issued By</th>
+                                        <th>Issued To Department</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="issuedItemsTableBody">
+                                    <tr>
+                                        <td><input type="date" class="form-control form-control-sm" name="issueDate"></td>
+                                        <td><input type="date" class="form-control form-control-sm" name="bestBefore"></td>
+                                        <td><input type="date" class="form-control form-control-sm" name="productionDate"></td>
+                                        <td>
+                                            <select class="form-select form-select-sm" name="productDescription">
+                                                <option value="">Select Product</option>
+                                                <option value="Shell">Shell</option>
+                                                <option value="Kernel">Kernel</option>
+                                                <option value="Kernel Dust">Kernel Dust</option>
+                                                <option value="Cracker Dust">Cracker Dust</option>
+                                                <option value="cracker">cracker</option>
+                                            </select>
+                                        </td>
+                                        <td><input type="text" class="form-control form-control-sm" name="batchDetails"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="quantityRequired" step="0.01"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="totalIssued" step="0.01"></td>
+                                        <td>
+                                            <select class="form-select form-select-sm" name="issuedBy">
+                                                <option value="">Select User</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm" name="issuedToDept">
+                                                <option value="">Select Department</option>
+                                                <option value="Crude Oil Dept.">Crude Oil Dept.</option>
+                                                <option value="Kernel Production">Kernel Production</option>
+                                                <option value="Oil Production">Oil Production</option>
+                                                <option value="Packing">Packing</option>
+                                                <option value="Quality Assurance">Quality Assurance</option>
+                                            </select>
+                                        </td>
+                                        <td><button type="button" class="btn btn-sm btn-danger removeIssuedRow"><i class="fas fa-times"></i></button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveRawMaterialIssuedBtn"><i class="fas fa-save me-1"></i>Save Stock Issued</button>
+        </div>
+    </div>
+</div>

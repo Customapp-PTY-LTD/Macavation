@@ -268,6 +268,41 @@
                 "css/stock_management_grid.css"
             ]
         },
+        "oil-lot-modal": {
+            "description": "Oil Stock Lot Modal",
+            "path": "modal-stock-oil-lot",
+            "html": "html/modal_oil_lot.html",
+            "js": ["js/modal_oil_lot.js"],
+            "css": []
+        },
+        "import-oil-lots-modal": {
+            "description": "Import Oil Lots Modal",
+            "path": "modal-stock-import-oil-lots",
+            "html": "html/modal_import_oil_lots.html",
+            "js": ["js/modal_import_oil_lots.js"],
+            "css": []
+        },
+        "receiving-checklist-modal": {
+            "description": "Receiving Checklist Modal",
+            "path": "modal-stock-receiving-checklist",
+            "html": "html/modal_receiving_checklist.html",
+            "js": ["js/modal_receiving_checklist.js"],
+            "css": []
+        },
+        "raw-material-issued-modal": {
+            "description": "Raw Material Issued Modal",
+            "path": "modal-stock-raw-material-issued",
+            "html": "html/modal_raw_material_issued.html",
+            "js": ["js/modal_raw_material_issued.js"],
+            "css": []
+        },
+        "stock-take-modal": {
+            "description": "Stock Take Modal",
+            "path": "modal-stock-stock-take",
+            "html": "html/modal_stock_take.html",
+            "js": ["js/modal_stock_take.js"],
+            "css": []
+        },
         "sales-forecasting-grid": {
             "description": "Sales Forecasting",
             "path": "sales-forecasting",

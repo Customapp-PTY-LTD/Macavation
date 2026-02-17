@@ -384,6 +384,21 @@ var _appRouter = function () {
                         initializeStockManagementGrid();
                     }
                 },
+                'oil-lot-modal': () => {
+                    if (typeof _modal_stock_oil_lot !== 'undefined' && _modal_stock_oil_lot.init) _modal_stock_oil_lot.init();
+                },
+                'import-oil-lots-modal': () => {
+                    if (typeof _modal_stock_import_oil_lots !== 'undefined' && _modal_stock_import_oil_lots.init) _modal_stock_import_oil_lots.init();
+                },
+                'receiving-checklist-modal': () => {
+                    if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.init) _modal_stock_receiving_checklist.init();
+                },
+                'raw-material-issued-modal': () => {
+                    if (typeof _modal_stock_raw_material_issued !== 'undefined' && _modal_stock_raw_material_issued.init) _modal_stock_raw_material_issued.init();
+                },
+                'stock-take-modal': () => {
+                    if (typeof _modal_stock_stock_take !== 'undefined' && _modal_stock_stock_take.init) _modal_stock_stock_take.init();
+                },
                 'sales-forecasting-grid': () => {
                     if (typeof initializeSalesForecastingGrid === 'function') {
                         initializeSalesForecastingGrid();
