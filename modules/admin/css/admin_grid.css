@@ -10,7 +10,7 @@
 
 /* Summary Cards */
 .card {
-    border-radius: 10px;
+    border-radius: var(--phoenix-border-radius);
     box-shadow: var(--phoenix-box-shadow);
     transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
     background-color: var(--phoenix-card-bg);
@@ -64,9 +64,9 @@
     transition: width 0.6s ease, background-color 0.3s ease;
 }
 
-/* Tables */
+/* Tables – sharp corners */
 .table-responsive {
-    border-radius: 8px;
+    border-radius: 0;
 }
 
 .table thead th {

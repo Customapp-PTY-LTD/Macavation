@@ -3,7 +3,7 @@
 /* Auth Container - Full height centering */
 .auth-container {
     min-height: 100vh;
-    background: #314d91;
+    background: var(--phoenix-primary);
     position: relative;
 }
 
@@ -80,8 +80,8 @@
 }
 
 .form-control:focus {
-    border-color: #314d91;
-    box-shadow: 0 0 0 0.2rem rgba(49, 77, 145, 0.25);
+    border-color: var(--phoenix-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--phoenix-primary-rgb), 0.25);
     background: white;
 }
 
@@ -93,7 +93,7 @@
 
 /* Primary Button */
 .btn-primary {
-    background: #314d91;
+    background: var(--phoenix-primary);
     border: none;
     border-radius: 0.5rem;
     padding: 0.75rem 1.5rem;
@@ -102,30 +102,30 @@
 }
 
 .btn-primary:hover {
-    background: #5a7dc6;
+    background: var(--phoenix-dark);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(49, 77, 145, 0.3);
+    box-shadow: 0 8px 20px rgba(var(--phoenix-primary-rgb), 0.3);
 }
 
 /* Checkbox Styling */
 .form-check-input:checked {
-    background-color: #314d91;
-    border-color: #314d91;
+    background-color: var(--phoenix-primary);
+    border-color: var(--phoenix-primary);
 }
 
 .form-check-input:focus {
-    border-color: #314d91;
-    box-shadow: 0 0 0 0.2rem rgba(49, 77, 145, 0.25);
+    border-color: var(--phoenix-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--phoenix-primary-rgb), 0.25);
 }
 
 /* Links */
 .text-decoration-none {
-    color: #314d91;
+    color: var(--phoenix-primary);
     transition: color 0.3s ease;
 }
 
 .text-decoration-none:hover {
-    color: #5a7dc6;
+    color: var(--phoenix-dark);
 }
 
 /* Responsive Design */
@@ -212,7 +212,7 @@
 
 /* Additional Enhancements */
 .auth-card .text-center h3 {
-    color: #314d91;
+    color: var(--phoenix-primary);
     font-weight: 700;
 }
 

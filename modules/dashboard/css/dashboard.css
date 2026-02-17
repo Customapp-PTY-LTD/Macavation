@@ -7,7 +7,7 @@
 
 /* Stats Cards */
 .stat-card {
-    border-radius: 12px;
+    border-radius: var(--phoenix-border-radius);
     border: none;
     box-shadow: var(--phoenix-box-shadow);
     transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s ease;
@@ -27,12 +27,14 @@
     font-weight: 600;
     padding: 1rem 1.25rem;
     transition: background 0.3s ease;
+    border-radius: 0;
 }
 
 .stat-card .card-body {
     padding: 1.5rem;
     background-color: var(--phoenix-card-bg);
     color: var(--phoenix-text-color);
+    border-radius: 0;
 }
 
 .stat-value {
@@ -88,7 +90,7 @@
     cursor: pointer;
     transition: all 0.3s ease;
     border: 2px solid var(--phoenix-border-color);
-    border-radius: 12px;
+    border-radius: var(--phoenix-border-radius);
     height: 100%;
     background-color: var(--phoenix-card-bg);
 }

@@ -62,7 +62,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito+Sans:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
 
     <style>
@@ -81,8 +81,8 @@
         }
 
         body {
-            font-family: 'Nunito Sans', sans-serif;
-            background: var(--macadamia-cream);
+            font-family: var(--phoenix-font-sans-serif);
+            background: var(--phoenix-body-bg, var(--macadamia-cream));
         }
 
         /* Navbar Styling */
@@ -108,13 +108,95 @@
         .navbar .dropdown-menu {
             background: white;
             border: 1px solid var(--macadamia-kernel);
-            border-radius: 12px;
+            border-radius: 0;
             box-shadow: 0 10px 40px var(--shadow-warm);
         }
 
         .navbar .dropdown-item:hover {
             background: var(--macadamia-cream);
             color: var(--forest-deep);
+        }
+
+        /* User icon: no arrow/caret next to profile circle */
+        .navbar .user-dropdown-toggle.dropdown-toggle::after {
+            display: none;
+        }
+
+        /* User dropdown card – bigger, sharp corners */
+        .user-dropdown-card {
+            min-width: 320px;
+            padding: 0;
+            border-radius: 0 !important;
+        }
+
+        .user-dropdown-card .dropdown-header {
+            border-radius: 0;
+        }
+
+        .user-dropdown-profile {
+            width: 100%;
+        }
+
+        .user-dropdown-avatar-wrap {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .user-dropdown-avatar-wrap:hover .user-dropdown-change-pic {
+            opacity: 1;
+        }
+
+        /* Single slot: image and placeholder stacked so only one circle shows */
+        .user-dropdown-avatar-slot {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+        }
+
+        .user-dropdown-avatar-slot .user-dropdown-avatar,
+        .user-dropdown-avatar-slot #userProfilePlaceholder {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .user-dropdown-avatar-slot .user-dropdown-avatar {
+            object-fit: cover;
+        }
+
+        .user-dropdown-avatar-slot #userProfilePlaceholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-dropdown-change-pic {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--forest-deep);
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+
+        .user-dropdown-info {
+            background: var(--macadamia-cream);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0;
+        }
+
+        .user-dropdown-signout {
+            background: #dc3545 !important;
+            border: none !important;
+            color: #fff !important;
+            border-radius: 0 !important;
+            font-weight: 500;
+        }
+
+        .user-dropdown-signout:hover {
+            background: #bb2d3b !important;
+            color: #fff !important;
         }
 
         /* Sidebar Styling */
@@ -261,7 +343,7 @@
         /* Dropdown Header */
         .dropdown-header {
             background: var(--macadamia-cream);
-            border-radius: 8px 8px 0 0;
+            border-radius: 0;
             margin: -0.5rem -0.5rem 0.5rem -0.5rem;
             padding: 1rem !important;
         }
@@ -301,14 +383,17 @@
             background: var(--forest-light);
         }
 
-        /* Tables */
+        /* Tables – sharp corners */
         .table {
             background: white;
-            border-radius: 12px;
+            border-radius: 0 !important;
             overflow: hidden;
         }
 
-        .table thead th {
+        .table thead th,
+        .table thead th:first-child,
+        .table thead th:last-child {
+            border-radius: 0 !important;
             background: var(--forest-deep);
             color: white;
             font-weight: 600;
@@ -348,21 +433,29 @@
             color: var(--macadamia-dark) !important;
         }
 
-        /* Modal Styling */
+        /* Modal Styling – sharp corners, primary header, primary font */
         .modal-content {
-            border-radius: 20px;
+            border-radius: 0 !important;
             border: none;
             overflow: hidden;
         }
 
         .modal-header {
-            background: linear-gradient(135deg, var(--forest-deep) 0%, var(--forest-light) 100%);
-            color: white;
+            background: var(--phoenix-primary) !important;
+            color: #2d2d2d;
             border: none;
+            border-radius: 0 !important;
+            font-family: var(--phoenix-font-brand);
+        }
+
+        .modal-header .modal-title {
+            color: #2d2d2d !important;
+            font-family: var(--phoenix-font-brand);
         }
 
         .modal-header .btn-close {
-            filter: brightness(0) invert(1);
+            filter: none;
+            opacity: 0.8;
         }
 
         .modal-body {
@@ -397,46 +490,51 @@
 
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button"
-                            data-bs-toggle="dropdown">
-                            <div class="avatar avatar-sm me-2">
+                        <a class="nav-link dropdown-toggle user-dropdown-toggle d-flex align-items-center p-0" href="#" role="button"
+                            data-bs-toggle="dropdown" aria-label="User menu">
+                            <div class="avatar avatar-sm">
                                 <div
                                     class="avatar-name rounded-circle bg-light text-primary d-flex align-items-center justify-content-center">
                                     <i class="fas fa-user"></i>
                                 </div>
                             </div>
-                            <span id="userDisplayName">Loading...</span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li class="dropdown-header">
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm me-2">
-                                        <div
-                                            class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
-                                            <i class="fas fa-user"></i>
+                        <ul class="dropdown-menu dropdown-menu-end user-dropdown-card">
+                            <li class="dropdown-header py-3">
+                                <div class="user-dropdown-profile text-center">
+                                    <input type="file" id="profilePictureInput" accept="image/*" class="d-none">
+                                    <label for="profilePictureInput" class="user-dropdown-avatar-wrap d-inline-block mb-2">
+                                        <div class="user-dropdown-avatar-slot">
+                                            <img id="userProfileImage" src="" alt="Profile" class="user-dropdown-avatar rounded-circle d-none">
+                                            <div id="userProfilePlaceholder" class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                                                <i class="fas fa-user fa-2x"></i>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold" id="userDisplayNameDropdown">Loading...</div>
-                                        <small class="text-muted" id="userRoleDisplay">Administrator</small>
-                                    </div>
+                                        <span class="user-dropdown-change-pic"><i class="fas fa-camera me-1"></i>Change picture</span>
+                                    </label>
+                                    <div class="fw-bold fs-6" id="userDisplayNameDropdown">Loading...</div>
+                                    <small id="userRoleDisplay" class="text-muted">Administrator</small>
                                 </div>
                             </li>
-                            <!-- <li>
-                                <hr class="dropdown-divider">
+                            <li class="px-3 pb-2">
+                                <div class="user-dropdown-info small">
+                                    <div class="d-flex flex-wrap gap-2 mb-1"><span class="text-muted">Name:</span><span id="userInfoName">—</span></div>
+                                    <div class="d-flex flex-wrap gap-2 mb-1"><span class="text-muted">Email:</span><span id="userInfoEmail">—</span></div>
+                                    <div class="d-flex flex-wrap gap-2 mb-1"><span class="text-muted">Username:</span><span id="userInfoUsername">—</span></div>
+                                    <div class="d-flex flex-wrap gap-2 mb-1"><span class="text-muted">Role:</span><span id="userInfoRole">—</span></div>
+                                </div>
                             </li>
-                            <li><a class="dropdown-item" href="#" onclick="showProfile()">
-                                    <i class="fas fa-user me-2"></i>Profile
-                                </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="showSettings()">
-                                    <i class="fas fa-cog me-2"></i>Settings
-                                </a></li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li> -->
-                            <li><a class="dropdown-item text-danger" href="#" onclick="signOut()">
+                            <li class="dropdown-divider my-0"></li>
+                            <li class="px-3 py-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm w-100" style="border-radius: 0;" onclick="showChangePassword()">
+                                    <i class="fas fa-key me-2"></i>Change password
+                                </button>
+                            </li>
+                            <li class="px-3 pb-3 pt-1">
+                                <button type="button" class="btn btn-danger btn-sm w-100 user-dropdown-signout" onclick="signOut()">
                                     <i class="fas fa-sign-out-alt me-2"></i>Sign Out
-                                </a></li>
+                                </button>
+                            </li>
                         </ul>
                     </li>
                 </ul>
@@ -921,6 +1019,8 @@
 
             // Load and display user information
             updateUserDisplay();
+            initProfilePicture();
+            initProfilePictureInput();
 
             // Initialize role-based menu filtering
             if (typeof menuFilter !== 'undefined') {
@@ -981,6 +1081,12 @@
                 // Update navbar display name
                 updateUserNameDisplay(displayName);
 
+                // Populate user-friendly info in dropdown (no backend/ID fields)
+                const setEl = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text || '—'; };
+                setEl('userInfoName', displayName);
+                setEl('userInfoEmail', user.email);
+                setEl('userInfoUsername', user.username);
+
                 // Update role display
                 const roleDisplay = document.getElementById('userRoleDisplay');
                 if (roleDisplay) {
@@ -989,9 +1095,8 @@
                         if (!roleName) {
                             roleName = 'User';
                         }
-                        
                         roleDisplay.textContent = roleName;
-                        
+                        setEl('userInfoRole', roleName);
                         // Add a badge or styling based on role type
                         if (roleName.startsWith('PWA ')) {
                             roleDisplay.className = 'badge bg-info text-white';
@@ -1092,6 +1197,83 @@
 
             if (dropdownNameDiv) {
                 dropdownNameDiv.textContent = name;
+            }
+        }
+
+        /** Load saved profile picture from localStorage into dropdown and navbar avatar */
+        function initProfilePicture() {
+            const dataUrl = localStorage.getItem('user_profile_image');
+            const img = document.getElementById('userProfileImage');
+            const placeholder = document.getElementById('userProfilePlaceholder');
+            if (!dataUrl) return;
+            if (img && placeholder) {
+                img.src = dataUrl;
+                img.classList.remove('d-none');
+                placeholder.classList.add('d-none');
+            }
+            var navAvatar = document.querySelector('.navbar .nav-item.dropdown .avatar .avatar-name');
+            if (navAvatar && navAvatar.parentElement) {
+                var navImg = navAvatar.parentElement.querySelector('img.navbar-profile-img');
+                if (!navImg) {
+                    navImg = document.createElement('img');
+                    navImg.className = 'navbar-profile-img rounded-circle';
+                    navImg.alt = 'Profile';
+                    navImg.style.width = navImg.style.height = '100%';
+                    navImg.style.objectFit = 'cover';
+                    navAvatar.parentElement.insertBefore(navImg, navAvatar);
+                    navAvatar.classList.add('d-none');
+                }
+                navImg.src = dataUrl;
+            }
+        }
+
+        /** Handle change profile picture: file input change -> preview and save to localStorage */
+        function initProfilePictureInput() {
+            const input = document.getElementById('profilePictureInput');
+            const img = document.getElementById('userProfileImage');
+            const placeholder = document.getElementById('userProfilePlaceholder');
+            if (!input || !img || !placeholder) return;
+            input.addEventListener('change', function () {
+                const file = this.files && this.files[0];
+                if (!file || !file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = function () {
+                    const dataUrl = reader.result;
+                    localStorage.setItem('user_profile_image', dataUrl);
+                    img.src = dataUrl;
+                    img.classList.remove('d-none');
+                    placeholder.classList.add('d-none');
+                    var navPlace = document.querySelector('.navbar .avatar .avatar-name');
+                    var navImg = document.querySelector('.navbar .navbar-profile-img');
+                    if (navPlace && navPlace.parentElement) {
+                        if (!navImg) {
+                            navImg = document.createElement('img');
+                            navImg.className = 'navbar-profile-img rounded-circle';
+                            navImg.alt = 'Profile';
+                            navImg.style.width = navImg.style.height = '100%';
+                            navImg.style.objectFit = 'cover';
+                            navPlace.parentElement.insertBefore(navImg, navPlace);
+                            navPlace.classList.add('d-none');
+                        }
+                        navImg.src = dataUrl;
+                    }
+                };
+                reader.readAsDataURL(file);
+                this.value = '';
+            });
+        }
+
+        /** Change password – open modal or redirect (placeholder: alert for now) */
+        function showChangePassword() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Change password',
+                    text: 'Password change can be done from the User Management area or your identity provider.',
+                    icon: 'info',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert('Change password is available from User Management or your identity provider.');
             }
         }
 

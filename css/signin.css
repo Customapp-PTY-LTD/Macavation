@@ -385,28 +385,32 @@ body::before {
     font-size: 0.9rem;
 }
 
-/* Modal Styling */
+/* Modal Styling – sharp corners, primary header, primary font */
 .modal-content {
-    border-radius: 20px;
+    border-radius: 0 !important;
     border: none;
     overflow: hidden;
 }
 
 .modal-header {
-    background: linear-gradient(135deg, var(--forest-deep) 0%, var(--forest-light) 100%);
-    color: white;
+    background: var(--phoenix-primary) !important;
+    color: #2d2d2d;
     padding: 1.25rem 1.5rem;
     border: none;
+    border-radius: 0 !important;
+    font-family: var(--phoenix-font-brand);
 }
 
 .modal-header .modal-title {
-    font-family: 'Tahoma', sans-serif;
+    font-family: var(--phoenix-font-brand);
     font-size: 1.5rem;
     font-weight: 600;
+    color: #2d2d2d !important;
 }
 
 .modal-header .btn-close {
-    filter: brightness(0) invert(1);
+    filter: none;
+    opacity: 0.8;
 }
 
 .modal-body {

@@ -277,7 +277,7 @@ var _kernelProductionGrid = function () {
                     actionsCell = '<button type="button" class="btn btn-sm btn-outline-secondary js-production-batch" data-batch-id="' + batch.id + '" data-production-stages-id="' + productionStagesId + '">' + productionLabel + '</button>';
                 } else {
                     actionsCell = '<div class="dropdown">' +
-                        '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false">Actions</button>' +
+                        '<button class="btn btn-sm btn-outline-secondary" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis-v"></i></button>' +
                         '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="batchActions' + batch.id + '">' + menuItems.join('') + '</ul></div>';
                 }
                 const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + statusToTitleCase(batch.status || 'in_production') + '</span></td><td>' + actionsCell + '</td></tr>';
