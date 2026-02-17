@@ -1,280 +1,257 @@
 /**
  * Roles Grid Module
- * Handles role management functionality with Supabase integration
+ * Handles role management functionality with Supabase integration.
+ * Follows company module pattern: IIFE, arrow methods, scope = _rolesGrid for same-module calls.
  */
 
 var _rolesGrid = function () {
+    'use strict';
+
+    function delay(ms) {
+        return new Promise(function (resolve) {
+            setTimeout(resolve, ms);
+        });
+    }
+
     return {
         roles: [],
         filteredRoles: [],
         currentPage: 1,
         itemsPerPage: 10,
         editingRole: null,
-        searchTimeout: null,
+        searchDebounceToken: 0,
 
-        init: function () {
-            this.setupEventListeners();
-            this.loadRoles();
+        init: async () => {
+            const scope = _rolesGrid;
+            await scope.waitForReady();
+            scope.setupEventListeners();
+            await scope.loadRoles();
         },
 
-        setupEventListeners: function () {
-            const scope = this;
+        waitForReady: () => {
+            return new Promise(function (resolve) {
+                $(document).ready(resolve);
+            });
+        },
 
-            // Search functionality
+        setupEventListeners: () => {
+            const scope = _rolesGrid;
+
             $('#searchInput').on('input', function () {
-                clearTimeout(scope.searchTimeout);
-                scope.searchTimeout = setTimeout(() => {
-                    scope.filterRoles();
-                }, 300);
+                var token = ++scope.searchDebounceToken;
+                delay(300).then(function () {
+                    if (token === scope.searchDebounceToken) scope.filterRoles();
+                });
             });
 
-            // Filter functionality
             $('#filterStatus').on('change', function () {
                 scope.filterRoles();
             });
 
-            // Pagination
             $(document).on('click', '.pagination .page-link', function (e) {
                 e.preventDefault();
-                const page = parseInt($(this).data('page'));
+                const scope = _rolesGrid;
+                var page = parseInt($(this).data('page'), 10);
                 if (page && page !== scope.currentPage) {
                     scope.currentPage = page;
                     scope.renderRoles();
                 }
             });
 
-            // Add role button
             $('#addRoleBtn').on('click', function () {
                 scope.showAddRoleModal();
             });
 
-            // Edit role (click on role name)
             $(document).on('click', '.role-name-link', function (e) {
                 e.preventDefault();
-                console.log('Role name link clicked');
-                const roleId = $(this).data('role-id');
-                console.log('Role ID:', roleId);
-                if (!roleId) {
-                    console.error('No role ID found');
-                    return;
-                }
+                const scope = _rolesGrid;
+                var roleId = $(this).data('role-id');
+                if (!roleId) return;
                 scope.editRole(roleId);
             });
 
-            // Delete role
             $(document).on('click', '.delete-role-btn', function () {
-                const roleId = $(this).data('role-id');
+                const scope = _rolesGrid;
+                var roleId = $(this).data('role-id');
                 scope.deleteRole(roleId);
             });
 
-            // Save role form
             $('#saveRoleBtn').on('click', function () {
                 scope.saveRole();
             });
 
-            // Modal events
             $('#roleModal').on('hidden.bs.modal', function () {
                 scope.clearForm();
             });
         },
 
-        loadRoles: async function () {
+        loadRoles: async () => {
+            const scope = _rolesGrid;
             try {
-                this.showLoading();
-                const roles = await dataFunctions.getRoles();
-                this.roles = roles;
-                this.filteredRoles = roles;
-                this.renderRoles();
-                this.hideLoading();
+                scope.showLoading();
+                var roles = await dataFunctions.getRoles();
+                scope.roles = roles || [];
+                scope.filteredRoles = scope.roles;
+                scope.renderRoles();
+                scope.hideLoading();
             } catch (error) {
                 console.error('Error loading roles:', error);
-                this.showError('Error loading roles: ' + error.message);
-                this.hideLoading();
+                scope.showError('Error loading roles: ' + error.message);
+                scope.hideLoading();
             }
         },
 
-        filterRoles: function () {
-            const searchTerm = $('#searchInput').val().toLowerCase();
-            const statusFilter = $('#filterStatus').val();
-
-            this.filteredRoles = this.roles.filter(role => {
-                const matchesSearch = !searchTerm ||
+        filterRoles: () => {
+            const scope = _rolesGrid;
+            var searchTerm = $('#searchInput').val().toLowerCase();
+            var statusFilter = $('#filterStatus').val();
+            scope.filteredRoles = scope.roles.filter(function (role) {
+                var matchesSearch = !searchTerm ||
                     (role.role_name && role.role_name.toLowerCase().includes(searchTerm)) ||
                     (role.description && role.description.toLowerCase().includes(searchTerm));
-
-                const matchesStatus = !statusFilter || role.is_active.toString() === statusFilter;
-
+                var matchesStatus = !statusFilter || String(role.is_active) === statusFilter;
                 return matchesSearch && matchesStatus;
             });
-
-            this.currentPage = 1;
-            this.renderRoles();
+            scope.currentPage = 1;
+            scope.renderRoles();
         },
 
-        renderRoles: function () {
-            const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-            const endIndex = startIndex + this.itemsPerPage;
-            const rolesToShow = this.filteredRoles.slice(startIndex, endIndex);
-
-            const rolesHtml = rolesToShow.map(role => `
-                    <tr>
-                        <td>
-                        <a href="#" class="role-name-link text-decoration-none" data-role-id="${role.id}">
-                            ${this.escapeHtml(role.role_name)}
-                        </a>
-                        </td>
-                    <td>${this.escapeHtml(role.description || '')}</td>
-                        <td>
-                        <span class="badge bg-info">${role.users_count || 0}</span>
-                        </td>
-                        <td>
-                        <button class="btn btn-sm btn-outline-danger delete-role-btn" data-role-id="${role.id}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                        </td>
-                    </tr>
-            `).join('');
-
+        renderRoles: () => {
+            const scope = _rolesGrid;
+            var startIndex = (scope.currentPage - 1) * scope.itemsPerPage;
+            var endIndex = startIndex + scope.itemsPerPage;
+            var rolesToShow = scope.filteredRoles.slice(startIndex, endIndex);
+            var rolesHtml = rolesToShow.map(function (role) {
+                return '<tr><td><a href="#" class="role-name-link text-decoration-none" data-role-id="' + scope.escapeHtml(role.id) + '">' + scope.escapeHtml(role.role_name) + '</a></td><td>' + scope.escapeHtml(role.description || '') + '</td><td><span class="badge bg-info">' + (role.users_count || 0) + '</span></td><td><button class="btn btn-sm btn-outline-danger delete-role-btn" data-role-id="' + scope.escapeHtml(role.id) + '"><i class="fas fa-trash"></i></button></td></tr>';
+            }).join('');
             $('#rolesTableBody').html(rolesHtml);
-            this.renderPagination();
+            scope.renderPagination();
         },
 
-        renderPagination: function () {
-            const totalPages = Math.ceil(this.filteredRoles.length / this.itemsPerPage);
-
+        renderPagination: () => {
+            const scope = _rolesGrid;
+            var totalPages = Math.ceil(scope.filteredRoles.length / scope.itemsPerPage);
             if (totalPages <= 1) {
                 $('#pagination').empty();
                 return;
             }
-
-            let paginationHtml = '<nav><ul class="pagination justify-content-center">';
-
-            // Previous button
-            if (this.currentPage > 1) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${this.currentPage - 1}">Previous</a></li>`;
+            var paginationHtml = '<nav><ul class="pagination justify-content-center">';
+            if (scope.currentPage > 1) {
+                paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + (scope.currentPage - 1) + '">Previous</a></li>';
             }
-
-            // Page numbers
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === this.currentPage) {
-                    paginationHtml += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+            for (var i = 1; i <= totalPages; i++) {
+                if (i === scope.currentPage) {
+                    paginationHtml += '<li class="page-item active"><span class="page-link">' + i + '</span></li>';
                 } else {
-                    paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+                    paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + i + '">' + i + '</a></li>';
                 }
             }
-
-            // Next button
-            if (this.currentPage < totalPages) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${this.currentPage + 1}">Next</a></li>`;
+            if (scope.currentPage < totalPages) {
+                paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + (scope.currentPage + 1) + '">Next</a></li>';
             }
-
             paginationHtml += '</ul></nav>';
             $('#pagination').html(paginationHtml);
         },
 
-        showAddRoleModal: function () {
-            this.editingRole = null;
-            this.clearForm();
+        showAddRoleModal: () => {
+            const scope = _rolesGrid;
+            scope.editingRole = null;
+            scope.clearForm();
             $('#roleModalLabel').text('Add Role');
             $('#roleModal').modal('show');
         },
 
-        editRole: async function (roleId) {
+        editRole: async (roleId) => {
+            const scope = _rolesGrid;
             try {
-                const role = this.roles.find(r => r.id === roleId);
+                var role = scope.roles.find(function (r) { return r.id === roleId; });
                 if (!role) {
-                    this.showError('Role not found');
+                    scope.showError('Role not found');
                     return;
                 }
-
-                this.editingRole = role;
-                this.populateForm(role);
+                scope.editingRole = role;
+                scope.populateForm(role);
                 $('#roleModalLabel').text('Edit Role');
                 $('#roleModal').modal('show');
             } catch (error) {
                 console.error('Error editing role:', error);
-                this.showError('Error loading role details: ' + error.message);
+                scope.showError('Error loading role details: ' + error.message);
             }
         },
 
-        deleteRole: function (roleId) {
-            const role = this.roles.find(r => r.id === roleId);
+        deleteRole: (roleId) => {
+            const scope = _rolesGrid;
+            var role = scope.roles.find(function (r) { return r.id === roleId; });
             if (!role) return;
-
             Swal.fire({
                 title: 'Are you sure?',
-                text: `Do you want to deactivate "${role.role_name}"?`,
+                text: 'Do you want to deactivate "' + (role.role_name || '') + '"?',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Yes, deactivate!'
-            }).then(async (result) => {
+            }).then(async function (result) {
                 if (result.isConfirmed) {
+                    const scope = _rolesGrid;
                     try {
                         await dataFunctions.deactivateRole(roleId);
-                        this.showSuccess('Role deactivated successfully');
-                        this.loadRoles();
+                        scope.showSuccess('Role deactivated successfully');
+                        scope.loadRoles();
                     } catch (error) {
                         console.error('Error deactivating role:', error);
-                        this.showError('Error deactivating role: ' + error.message);
+                        scope.showError('Error deactivating role: ' + error.message);
                     }
                 }
             });
         },
 
-        saveRole: async function () {
+        saveRole: async () => {
+            const scope = _rolesGrid;
             try {
-                const formData = {
+                var formData = {
                     role_name: $('#roleName').val().trim(),
                     description: $('#roleDescription').val().trim(),
                     is_active: $('#isActive').is(':checked')
                 };
-
-                // Validation
                 if (!formData.role_name) {
-                    this.showError('Role name is required');
+                    scope.showError('Role name is required');
                     return;
                 }
-
-                if (this.editingRole) {
-                    // Update existing role
-                    await dataFunctions.updateRole(this.editingRole.id, formData);
-                    this.showSuccess('Role updated successfully');
+                if (scope.editingRole) {
+                    await dataFunctions.updateRole(scope.editingRole.id, formData);
+                    scope.showSuccess('Role updated successfully');
                 } else {
-                    // Create new role
                     await dataFunctions.createRole(formData);
-                    this.showSuccess('Role created successfully');
+                    scope.showSuccess('Role created successfully');
                 }
-
                 $('#roleModal').modal('hide');
-                this.loadRoles();
+                scope.loadRoles();
             } catch (error) {
                 console.error('Error saving role:', error);
-                this.showError('Error saving role: ' + error.message);
+                scope.showError('Error saving role: ' + error.message);
             }
         },
 
-        populateForm: function (role) {
-            $('#roleName').val(role.role_name);
-            $('#roleDescription').val(role.description);
+        populateForm: (role) => {
+            $('#roleName').val(role.role_name || '');
+            $('#roleDescription').val(role.description || '');
             $('#isActive').prop('checked', role.is_active);
         },
 
-        clearForm: function () {
+        clearForm: () => {
+            const scope = _rolesGrid;
             $('#roleForm')[0].reset();
-            this.editingRole = null;
+            scope.editingRole = null;
         },
 
-        showLoading: function () {
+        showLoading: () => {
             $('#rolesTableBody').html('<tr><td colspan="4" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>');
         },
 
-        hideLoading: function () {
-            // Loading will be replaced by renderRoles
-        },
+        hideLoading: () => {},
 
-        showError: function (message) {
+        showError: (message) => {
             if (typeof _common !== 'undefined' && _common.showToastMessage) {
                 _common.showToastMessage(message, 'error');
             } else {
@@ -282,7 +259,7 @@ var _rolesGrid = function () {
             }
         },
 
-        showSuccess: function (message) {
+        showSuccess: (message) => {
             if (typeof _common !== 'undefined' && _common.showToastMessage) {
                 _common.showToastMessage(message, 'success');
             } else {
@@ -290,40 +267,45 @@ var _rolesGrid = function () {
             }
         },
 
-        escapeHtml: function (text) {
+        escapeHtml: (text) => {
             if (!text) return '';
-            const div = document.createElement('div');
+            var div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         },
 
-        search: function () {
-            this.filterRoles();
+        search: () => {
+            _rolesGrid.filterRoles();
         },
 
-        applyFilters: function () {
-            this.filterRoles();
+        applyFilters: () => {
+            _rolesGrid.filterRoles();
         },
 
-        clearFilters: function () {
+        clearFilters: () => {
+            const scope = _rolesGrid;
             $('#searchInput').val('');
             $('#filterStatus').val('');
-            this.filterRoles();
+            scope.filterRoles();
         }
-    }
+    };
 }();
 
-// Initialize roles grid when module is loaded
 function initializeRolesGrid() {
-    if (typeof dataFunctions !== 'undefined') {
-        _rolesGrid.init();
-    } else {
-        // Wait for dataFunctions to be available
-        setTimeout(initializeRolesGrid, 100);
+    var maxWait = 5000;
+    var start = Date.now();
+    function tryInit() {
+        if (typeof dataFunctions !== 'undefined') {
+            _rolesGrid.init();
+            return;
+        }
+        if (Date.now() - start < maxWait) {
+            setTimeout(tryInit, 50);
+        }
     }
+    tryInit();
 }
 
-// Auto-initialize if DOM is ready
 $(document).ready(function () {
     initializeRolesGrid();
 });
