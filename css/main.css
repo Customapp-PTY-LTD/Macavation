@@ -328,6 +328,7 @@ h1, h2, h3, h4, h5, h6,
 
 .sidebar.collapsed {
     width: 70px;
+    overflow-x: hidden;
 }
 
 .sidebar.collapsed .nav-link {
@@ -402,8 +403,9 @@ h1, h2, h3, h4, h5, h6,
     border: none !important;
 }
 
+/* When sidebar is collapsed, do not show floating submenu panels (removes brown boxes) */
 .sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) > .collapse.show {
-    display: block !important;
+    display: none !important;
 }
 
 .sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) > .collapse ul {

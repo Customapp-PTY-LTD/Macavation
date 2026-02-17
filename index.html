@@ -65,418 +65,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito+Sans:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
 
-    <style>
-        :root {
-            /* Macadamia-inspired color palette */
-            --macadamia-cream: #F5F0E8;
-            --macadamia-shell: #8B7355;
-            --macadamia-kernel: #E8DCC8;
-            --macadamia-dark: #4A3728;
-            --forest-deep: #2D4A3E;
-            --forest-light: #4A7C59;
-            --earth-rich: #6B4423;
-            --gold-accent: #C9A962;
-            --gold-light: #E8D4A8;
-            --shadow-warm: rgba(74, 55, 40, 0.15);
-        }
-
-        body {
-            font-family: var(--phoenix-font-sans-serif);
-            background: #FFFFFF;
-        }
-
-        /* Navbar Styling */
-        .navbar {
-            background: linear-gradient(135deg, var(--forest-deep) 0%, var(--macadamia-dark) 100%) !important;
-            box-shadow: 0 4px 20px var(--shadow-warm);
-        }
-
-        .navbar-brand span {
-            font-family: 'Tahoma', sans-serif;
-            font-size: 1.5rem;
-            letter-spacing: 1px;
-        }
-
-        .navbar .nav-link {
-            color: rgba(255, 255, 255, 0.9) !important;
-        }
-
-        .navbar .nav-link:hover {
-            color: var(--gold-light) !important;
-        }
-
-        .navbar .dropdown-menu {
-            background: white;
-            border: 1px solid var(--macadamia-kernel);
-            border-radius: 0;
-            box-shadow: 0 10px 40px var(--shadow-warm);
-        }
-
-        .navbar .dropdown-item:hover {
-            background: var(--macadamia-cream);
-            color: var(--forest-deep);
-        }
-
-        /* User icon: no arrow/caret next to profile circle */
-        .navbar .user-dropdown-toggle.dropdown-toggle::after {
-            display: none;
-        }
-
-        /* User dropdown card – bigger, sharp corners */
-        .user-dropdown-card {
-            min-width: 320px;
-            padding: 0;
-            border-radius: 0 !important;
-        }
-
-        .user-dropdown-card .dropdown-header {
-            border-radius: 0;
-        }
-
-        .user-dropdown-profile {
-            width: 100%;
-        }
-
-        .user-dropdown-avatar-wrap {
-            cursor: pointer;
-            position: relative;
-        }
-
-        .user-dropdown-avatar-wrap:hover .user-dropdown-change-pic {
-            opacity: 1;
-        }
-
-        /* Single slot: image and placeholder stacked so only one circle shows */
-        .user-dropdown-avatar-slot {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            margin: 0 auto;
-        }
-
-        .user-dropdown-avatar-slot .user-dropdown-avatar,
-        .user-dropdown-avatar-slot #userProfilePlaceholder {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .user-dropdown-avatar-slot .user-dropdown-avatar {
-            object-fit: cover;
-        }
-
-        .user-dropdown-avatar-slot #userProfilePlaceholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .user-dropdown-change-pic {
-            display: block;
-            font-size: 0.75rem;
-            color: var(--forest-deep);
-            margin-top: 4px;
-            opacity: 0.8;
-        }
-
-        .user-dropdown-info {
-            background: var(--macadamia-cream);
-            padding: 0.5rem 0.75rem;
-            border-radius: 0;
-        }
-
-        .user-dropdown-signout {
-            background: #dc3545 !important;
-            border: none !important;
-            color: #fff !important;
-            border-radius: 0 !important;
-            font-weight: 500;
-        }
-
-        .user-dropdown-signout:hover {
-            background: #bb2d3b !important;
-            color: #fff !important;
-        }
-
-        /* Sidebar Styling */
-        /* All sidebar nav items start hidden; menu-filter.js shows them by role */
-        #sidebarMenu .nav-item {
-            display: none;
-        }
-        .sidebar {
-            background: linear-gradient(180deg, var(--forest-deep) 0%, var(--macadamia-dark) 100%) !important;
-            border-right: none !important;
-            box-shadow: 4px 0 20px var(--shadow-warm);
-        }
-
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.85) !important;
-            border-radius: 8px;
-            margin: 2px 8px;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar .nav-link:hover {
-            background: rgba(255, 255, 255, 0.1) !important;
-            color: var(--gold-light) !important;
-        }
-
-        .sidebar .nav-link.active {
-            background: rgba(201, 169, 98, 0.2) !important;
-            color: var(--gold-light) !important;
-        }
-
-        .sidebar .collapse .nav-link {
-            padding-left: 1rem;
-            font-size: 0.9rem;
-        }
-
-        .sidebar-footer {
-            border-color: rgba(255, 255, 255, 0.1) !important;
-        }
-
-        .sidebar-footer .btn-link {
-            color: rgba(255, 255, 255, 0.7) !important;
-        }
-
-        .sidebar-footer .btn-link:hover {
-            color: var(--gold-light) !important;
-        }
-
-        /* Main Content */
-        .main-content {
-            background: #FFFFFF;
-        }
-
-        /* Remove blue/bar line above main content (navbar shadow or border) */
-        .navbar {
-            border-bottom: none !important;
-            box-shadow: none !important;
-        }
-        .container-fluid.mt-navbar,
-        .main-content {
-            border-top: none !important;
-        }
-
-        /* Page Headers */
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6 {
-            font-family: 'Tahoma', sans-serif;
-            color: var(--macadamia-dark);
-        }
-
-        /* Cards */
-        .card {
-            background: white;
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px var(--shadow-warm);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px var(--shadow-warm);
-        }
-
-        .card.border-primary {
-            border-left-color: var(--forest-deep) !important;
-        }
-
-        .card.border-success {
-            border-left-color: var(--forest-light) !important;
-        }
-
-        .card.border-info {
-            border-left-color: var(--gold-accent) !important;
-        }
-
-        .card.border-warning {
-            border-left-color: var(--earth-rich) !important;
-        }
-
-        .text-primary {
-            color: var(--forest-deep) !important;
-        }
-
-        .text-success {
-            color: var(--forest-light) !important;
-        }
-
-        .text-info {
-            color: var(--gold-accent) !important;
-        }
-
-        .text-warning {
-            color: var(--earth-rich) !important;
-        }
-
-        /* Buttons */
-        .btn-primary {
-            background: linear-gradient(135deg, var(--forest-deep) 0%, var(--forest-light) 100%);
-            border: none;
-            border-radius: 10px;
-            padding: 0.6rem 1.5rem;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(45, 74, 62, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(45, 74, 62, 0.4);
-            background: linear-gradient(135deg, var(--forest-light) 0%, var(--forest-deep) 100%);
-        }
-
-        .btn-outline-secondary {
-            border: 2px solid var(--macadamia-shell);
-            color: var(--macadamia-shell);
-            border-radius: 10px;
-        }
-
-        .btn-outline-secondary:hover {
-            background: var(--macadamia-shell);
-            color: white;
-        }
-
-        /* Avatar */
-        .avatar-name {
-            background: var(--gold-accent) !important;
-            color: var(--macadamia-dark) !important;
-        }
-
-        /* Dropdown Header */
-        .dropdown-header {
-            background: var(--macadamia-cream);
-            border-radius: 0;
-            margin: -0.5rem -0.5rem 0.5rem -0.5rem;
-            padding: 1rem !important;
-        }
-
-        /* SweetAlert Customization */
-        .swal2-popup {
-            border-radius: 20px !important;
-            font-family: 'Nunito Sans', sans-serif !important;
-        }
-
-        .swal2-title {
-            font-family: 'Tahoma', sans-serif !important;
-            color: var(--macadamia-dark) !important;
-        }
-
-        .swal2-confirm {
-            background: linear-gradient(135deg, var(--forest-deep) 0%, var(--forest-light) 100%) !important;
-            border-radius: 10px !important;
-        }
-
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--macadamia-cream);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--macadamia-shell);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--forest-light);
-        }
-
-        /* Tables – sharp corners */
-        .table {
-            background: white;
-            border-radius: 0 !important;
-            overflow: hidden;
-        }
-
-        .table thead th,
-        .table thead th:first-child,
-        .table thead th:last-child {
-            border-radius: 0 !important;
-            background: var(--forest-deep);
-            color: white;
-            font-weight: 600;
-            border: none;
-        }
-
-        .table tbody tr:hover {
-            background: var(--macadamia-cream);
-        }
-
-        /* Form Controls */
-        .form-control,
-        .form-select {
-            border: 2px solid var(--macadamia-kernel);
-            border-radius: 10px;
-            padding: 0.6rem 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus,
-        .form-select:focus {
-            border-color: var(--forest-light);
-            box-shadow: 0 0 0 4px rgba(74, 124, 89, 0.1);
-        }
-
-        /* Badges */
-        .badge.bg-primary {
-            background: var(--forest-deep) !important;
-        }
-
-        .badge.bg-success {
-            background: var(--forest-light) !important;
-        }
-
-        .badge.bg-warning {
-            background: var(--gold-accent) !important;
-            color: var(--macadamia-dark) !important;
-        }
-
-        /* Modal Styling – sharp corners, primary header, primary font */
-        .modal-content {
-            border-radius: 0 !important;
-            border: none;
-            overflow: hidden;
-        }
-
-        .modal-header {
-            background: var(--phoenix-primary) !important;
-            color: #2d2d2d;
-            border: none;
-            border-radius: 0 !important;
-            font-family: var(--phoenix-font-brand);
-        }
-
-        .modal-header .modal-title {
-            color: #2d2d2d !important;
-            font-family: var(--phoenix-font-brand);
-        }
-
-        .modal-header .btn-close {
-            filter: none;
-            opacity: 0.8;
-        }
-
-        .modal-body {
-            background: var(--macadamia-cream);
-        }
-
-        .modal-footer {
-            background: white;
-            border-top: 1px solid var(--macadamia-kernel);
-        }
-    </style>
+    <link href="css/index.css" rel="stylesheet">
 </head>
 
 <body>
@@ -561,36 +150,36 @@
                     <div class="flex-grow-1 pt-3">
                         <ul class="nav flex-column gap-1">
                             <li class="nav-item">
-                                <a class="nav-link" href="#" route="dashboard">
+                                <a class="nav-link" href="#" route="dashboard" title="Dashboard">
                                     <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="#" route="my-day">
+                                <a class="nav-link" href="#" route="my-day" title="My Day">
                                     <i class="fas fa-calendar-day me-2"></i>My Day
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="#" route="amanda-dashboard">
+                                <a class="nav-link" href="#" route="amanda-dashboard" title="Material Journey Dashboard">
                                     <i class="fas fa-chart-line me-2"></i>Material Journey Dashboard
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="#" route="executive-dashboard">
+                                <a class="nav-link" href="#" route="executive-dashboard" title="Executive Dashboard">
                                     <i class="fas fa-chart-bar me-2"></i>Executive Dashboard
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#crmCollapse" aria-expanded="false"
-                                    aria-controls="crmCollapse">
+                                    aria-controls="crmCollapse" title="CRM">
                                     <i class="fas fa-address-book me-2"></i>CRM
                                     <i class="fas fa-chevron-down ms-auto"></i>
                                 </a>
                                 <div class="collapse" id="crmCollapse">
                                     <ul class="nav flex-column ms-3">
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="crm-grid">
+                                            <a class="nav-link" href="#" route="crm-grid" title="Contacts">
                                                 <i class="fas fa-building me-2"></i>Contacts
                                             </a>
                                         </li>
@@ -601,29 +190,29 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#kernelCollapse" aria-expanded="false"
-                                    aria-controls="kernelCollapse">
+                                    aria-controls="kernelCollapse" title="Kernel">
                                     <svg class="kernel-nav-icon me-2" aria-hidden="true" width="1em" height="1em" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><ellipse cx="12" cy="12" rx="10" ry="9" fill="currentColor"/><ellipse cx="8.5" cy="8" rx="3.5" ry="3" fill="currentColor" opacity="0.45"/></svg>Kernel
                                     <i class="fas fa-chevron-down ms-auto"></i>
                                 </a>
                                 <div class="collapse" id="kernelCollapse">
                                     <ul class="nav flex-column ms-3">
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="grower-intake-grid">
+                                            <a class="nav-link" href="#" route="grower-intake-grid" title="Grower Intake">
                                                 <i class="fas fa-truck-loading me-2"></i>Grower Intake
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="kernel-production-grid">
+                                            <a class="nav-link" href="#" route="kernel-production-grid" title="Kernel Production">
                                                 <i class="fas fa-cogs me-2"></i>Kernel Production
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="stock-management-kernel">
+                                            <a class="nav-link" href="#" route="stock-management-kernel" title="Stock (Kernel)">
                                                 <i class="fas fa-warehouse me-2"></i>Stock (Kernel)
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="kernel-dispatch-grid">
+                                            <a class="nav-link" href="#" route="kernel-dispatch-grid" title="Kernel Dispatch">
                                                 <i class="fas fa-box me-2"></i>Kernel Dispatch
                                             </a>
                                         </li>
@@ -634,29 +223,29 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#oilCollapse" aria-expanded="false"
-                                    aria-controls="oilCollapse">
+                                    aria-controls="oilCollapse" title="Oil &amp; Protein">
                                     <i class="fas fa-oil-can me-2"></i>Oil &amp; Protein
                                     <i class="fas fa-chevron-down ms-auto"></i>
                                 </a>
                                 <div class="collapse" id="oilCollapse">
                                     <ul class="nav flex-column ms-3">
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="supplier-intake-grid">
+                                            <a class="nav-link" href="#" route="supplier-intake-grid" title="Supplier Intake">
                                                 <i class="fas fa-dolly me-2"></i>Supplier Intake
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="oil-production-grid">
+                                            <a class="nav-link" href="#" route="oil-production-grid" title="Oil Production">
                                                 <i class="fas fa-industry me-2"></i>Oil Production
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="stock-management-oil">
+                                            <a class="nav-link" href="#" route="stock-management-oil" title="Stock (Oil &amp; Protein)">
                                                 <i class="fas fa-warehouse me-2"></i>Stock (Oil &amp; Protein)
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="oil-dispatch-grid">
+                                            <a class="nav-link" href="#" route="oil-dispatch-grid" title="Oil &amp; Protein Dispatch">
                                                 <i class="fas fa-box-open me-2"></i>Oil &amp; Protein Dispatch
                                             </a>
                                         </li>
@@ -666,14 +255,14 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#qualityCollapse" aria-expanded="false"
-                                    aria-controls="qualityCollapse">
+                                    aria-controls="qualityCollapse" title="Quality">
                                     <i class="fas fa-check-circle me-2"></i>Quality
                                     <i class="fas fa-chevron-down ms-auto"></i>
                                 </a>
                                 <div class="collapse" id="qualityCollapse">
                                     <ul class="nav flex-column ms-3">
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="quality-assurance-grid">
+                                            <a class="nav-link" href="#" route="quality-assurance-grid" title="Quality Assurance">
                                                 <i class="fas fa-flask me-2"></i>Quality Assurance
                                             </a>
                                         </li>
@@ -683,19 +272,19 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#businessCollapse" aria-expanded="false"
-                                    aria-controls="businessCollapse">
+                                    aria-controls="businessCollapse" title="Business">
                                     <i class="fas fa-briefcase me-2"></i>Business
                                     <i class="fas fa-chevron-down ms-auto"></i>
                                 </a>
                                 <div class="collapse" id="businessCollapse">
                                     <ul class="nav flex-column ms-3">
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="sales-forecasting-grid">
+                                            <a class="nav-link" href="#" route="sales-forecasting-grid" title="Sales Forecasting">
                                                 <i class="fas fa-chart-line me-2"></i>Sales Forecasting
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="financial-management-grid">
+                                            <a class="nav-link" href="#" route="financial-management-grid" title="Financial Management">
                                                 <i class="fas fa-money-bill-wave me-2"></i>Financial Management
                                             </a>
                                         </li>
@@ -703,12 +292,12 @@
                                 </div>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="#" route="document-management-grid">
+                                <a class="nav-link" href="#" route="document-management-grid" title="Document Management">
                                     <i class="fas fa-file-alt me-2"></i>Document Management
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="#" route="palladium-integration-grid">
+                                <a class="nav-link" href="#" route="palladium-integration-grid" title="Palladium Integration">
                                     <i class="fas fa-sync-alt me-2"></i>Palladium Integration
                                 </a>
                             </li>
@@ -716,29 +305,29 @@
                             <li class="nav-item" id="userManagementMenuItem">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#userManagementCollapse" aria-expanded="false"
-                                    aria-controls="userManagementCollapse">
+                                    aria-controls="userManagementCollapse" title="User Management">
                                     <i class="fas fa-users me-2"></i>User Management
                                     <i class="fas fa-chevron-right ms-auto"></i>
                                 </a>
                                 <div class="collapse" id="userManagementCollapse">
                                     <ul class="nav flex-column ms-3">
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="users-grid">
+                                            <a class="nav-link" href="#" route="users-grid" title="Users">
                                                 <i class="fas fa-user me-2"></i>Users
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="roles-grid">
+                                            <a class="nav-link" href="#" route="roles-grid" title="Roles">
                                                 <i class="fas fa-user-tag me-2"></i>Roles
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="role-permissions-grid">
+                                            <a class="nav-link" href="#" route="role-permissions-grid" title="Database Role Permissions">
                                                 <i class="fas fa-key me-2"></i>Database Role Permissions
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="role-features-grid">
+                                            <a class="nav-link" href="#" route="role-features-grid" title="Role Features">
                                                 <i class="fas fa-cog me-2"></i>Role Features
                                             </a>
                                         </li>
@@ -747,7 +336,7 @@
                             </li>
                             <!-- System Administration - Must be after User Management -->
                             <li class="nav-item" id="systemAdminMenuItem">
-                                <a class="nav-link" href="#" route="admin-grid">
+                                <a class="nav-link" href="#" route="admin-grid" title="System Administration">
                                     <i class="fas fa-cog me-2"></i>System Administration
                                 </a>
                             </li>
@@ -755,19 +344,19 @@
                             <li class="nav-item" id="testScenariosMenuItem" style="display: none;">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#testManagementCollapse" aria-expanded="false"
-                                    aria-controls="testManagementCollapse">
+                                    aria-controls="testManagementCollapse" title="Test Management">
                                     <i class="fas fa-clipboard-list me-2"></i>Test Management
                                     <i class="fas fa-chevron-right ms-auto"></i>
                                 </a>
                                 <div class="collapse" id="testManagementCollapse">
                                     <ul class="nav flex-column ms-3">
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="test-scenarios-grid">
+                                            <a class="nav-link" href="#" route="test-scenarios-grid" title="Test Scenarios">
                                                 <i class="fas fa-clipboard-list me-2"></i>Test Scenarios
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#" route="test-data-grid">
+                                            <a class="nav-link" href="#" route="test-data-grid" title="Test Data">
                                                 <i class="fas fa-database me-2"></i>Test Data
                                             </a>
                                         </li>
@@ -925,591 +514,7 @@
     
     <script src="js/appRouter.js?v=20260107b"></script>
     <script src="js/app.js"></script>
-
-    <script>
-        // Ensure Bootstrap tabs work even in sandboxed preview environments by manually triggering Tab.show
-        (function ensureBootstrapTabsWork() {
-            if (typeof bootstrap === 'undefined' || !bootstrap.Tab) return;
-            let bound = false;
-            const bind = () => {
-                if (bound) return;
-                bound = true;
-                document.addEventListener('click', function (e) {
-                    const toggleEl = e.target.closest('a[data-bs-toggle="tab"], button[data-bs-toggle="tab"]');
-                    if (!toggleEl) return;
-                    // Prevent default only for anchors to avoid page jump
-                    if (toggleEl.tagName === 'A') e.preventDefault();
-                    try {
-                        const instance = bootstrap.Tab.getOrCreateInstance(toggleEl);
-                        instance.show();
-                    } catch (err) {
-                        console.warn('[Tabs] Fallback activation failed:', err);
-                    }
-                }, true);
-            };
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', bind);
-            } else {
-                bind();
-            }
-        })();
-
-        // Service Worker registration temporarily disabled to stabilize local/preview behavior
-        (function () {
-            const originStr = typeof location !== 'undefined' ? String(location.origin) : '';
-            const isVsCodeWebview = originStr.startsWith('vscode-webview://');
-            const isLocalDev = /localhost|127\.0\.0\.1/.test(location.hostname);
-            const disableParam = new URLSearchParams(location.search).get('disableSW') === '1';
-
-            // Always unregister in local/sandbox/webview or when explicitly disabled
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations()
-                    .then(regs => regs.forEach(r => r.unregister()))
-                    .catch(() => {});
-            }
-            console.log('[PWA] Service Worker registration disabled (local/dev).');
-        })();
-
-        // Initialize application
-        document.addEventListener('DOMContentLoaded', function () {
-            // Clear any stuck modal state that could block clicks (e.g. body overlay)
-            document.body.classList.remove('modal-open');
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
-            document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.remove(); });
-
-            // Ensure Bootstrap dropdowns and collapses work (explicit init if data-api missed)
-            if (typeof bootstrap !== 'undefined') {
-                document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (el) {
-                    try { bootstrap.Dropdown.getOrCreateInstance(el); } catch (e) { }
-                });
-                document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function (el) {
-                    try { bootstrap.Collapse.getOrCreateInstance(el); } catch (e) { }
-                });
-            }
-
-            // Emergency: ensure ESC always force-closes stuck modals/backdrops
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && typeof window.forceCloseAllModals === 'function') {
-                    try { window.forceCloseAllModals(); } catch (err) { console.warn('ESC panic close failed', err); }
-                }
-            }, true);
-
-            // Initialize offline services first
-            if (typeof offlineDetector !== 'undefined') {
-                offlineDetector.init();
-            }
-            
-            if (typeof offlineSync !== 'undefined') {
-                offlineSync.init();
-            }
-
-            // Check authentication first
-            const isAuthenticated = (typeof dataFunctions !== 'undefined' && dataFunctions.isAuthenticated()) ||
-                (typeof authService !== 'undefined' && authService.isAuthenticated());
-
-            if (!isAuthenticated) {
-                // Get cc parameter from localStorage or URL
-                const ccParam = localStorage.getItem('client_guid') ||
-                    new URLSearchParams(window.location.search).get('cc') ||
-                    '9e1d961a-bfc2-469d-8526-8af75f536656';
-
-                // Redirect to signin with cc parameter
-                const signinUrl = `signin.html?cc=${encodeURIComponent(ccParam)}`;
-                window.location.href = signinUrl;
-                return;
-            }
-
-            try {
-                // Initialize sidebar collapse behavior
-                initializeSidebarCollapse();
-
-            // Initialize sidebar toggle
-            initializeSidebarToggle();
-
-            // Load and display user information
-            updateUserDisplay();
-            initProfilePicture();
-            initProfilePictureInput();
-
-            // Initialize role-based menu filtering
-            if (typeof menuFilter !== 'undefined') {
-                // Wait a bit for DOM to be ready
-                setTimeout(() => {
-                    menuFilter.init();
-                }, 500);
-            }
-
-            // Ensure User Management menu is collapsed by default
-            const userManagementCollapse = document.getElementById('userManagementCollapse');
-            if (userManagementCollapse) {
-                // Remove 'show' class if it exists (ensures collapsed state)
-                userManagementCollapse.classList.remove('show');
-                // Ensure aria-expanded is false
-                const userManagementToggle = document.querySelector('[data-bs-target="#userManagementCollapse"]');
-                if (userManagementToggle) {
-                    userManagementToggle.setAttribute('aria-expanded', 'false');
-                }
-                var systemAdminItem = document.getElementById('systemAdminMenuItem');
-                var userManagementItem = document.getElementById('userManagementMenuItem');
-                if (systemAdminItem && userManagementItem && userManagementItem.nextElementSibling !== systemAdminItem) {
-                    systemAdminItem.insertAdjacentElement('beforebegin', userManagementItem);
-                }
-            }
-            } catch (err) {
-                console.error('[Index init] Sidebar/display init error:', err);
-            }
-        });
-
-        /**
-         * Update user display in navbar
-         */
-        function updateUserDisplay() {
-            try {
-                const userInfoStr = localStorage.getItem('user_info');
-                if (!userInfoStr) {
-                    console.warn('No user info found in localStorage');
-                    updateUserNameDisplay('User');
-                    return;
-                }
-
-                const user = JSON.parse(userInfoStr);
-
-                // Determine display name (prefer full_name, then first_name + last_name, then email, then username)
-                let displayName = 'User';
-                if (user.full_name) {
-                    displayName = user.full_name;
-                } else if (user.first_name || user.last_name) {
-                    displayName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
-                    if (!displayName) displayName = 'User';
-                } else if (user.email) {
-                    displayName = user.email.split('@')[0]; // Use email username part
-                } else if (user.username) {
-                    displayName = user.username;
-                }
-
-                // Update navbar display name
-                updateUserNameDisplay(displayName);
-
-                // Populate user-friendly info in dropdown (no backend/ID fields)
-                const setEl = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text || '—'; };
-                setEl('userInfoName', displayName);
-                setEl('userInfoEmail', user.email);
-                setEl('userInfoUsername', user.username);
-
-                // Update role display
-                const roleDisplay = document.getElementById('userRoleDisplay');
-                if (roleDisplay) {
-                    // Function to update role display
-                    const updateRoleDisplay = (roleName) => {
-                        if (!roleName) {
-                            roleName = 'User';
-                        }
-                        roleDisplay.textContent = roleName;
-                        setEl('userInfoRole', roleName);
-                        // Add a badge or styling based on role type
-                        if (roleName.startsWith('PWA ')) {
-                            roleDisplay.className = 'badge bg-info text-white';
-                        } else if (roleName === 'admin' || roleName === 'super_user') {
-                            roleDisplay.className = 'badge bg-success text-white';
-                        } else {
-                            roleDisplay.className = 'text-muted';
-                        }
-                    };
-                    
-                    // Get role name from user object - check multiple possible fields
-                    let roleName = null;
-                    
-                    // Try different possible locations for role information
-                    if (user.role_name) {
-                        roleName = user.role_name;
-                    } else if (user.role) {
-                        // If role is a string, use it directly
-                        if (typeof user.role === 'string') {
-                            roleName = user.role;
-                        } 
-                        // If role is an object, extract the name
-                        else if (typeof user.role === 'object' && user.role !== null) {
-                            roleName = user.role.role_name || user.role.name || null;
-                        }
-                    }
-                    
-                    // If we found a role, display it immediately
-                    if (roleName) {
-                        updateRoleDisplay(roleName);
-                    } else {
-                        // No role found in user object, try to fetch it (async, no delay)
-                        updateRoleDisplay('Loading...');
-                        const userId = user.id || user.user_id;
-                        if (typeof dataFunctions !== 'undefined' && userId) {
-                            (async function () {
-                                try {
-                                    const userData = await dataFunctions.getUserById(userId);
-                                    if (userData && userData.role_name) {
-                                        user.role_name = userData.role_name;
-                                        localStorage.setItem('user_info', JSON.stringify(user));
-                                        updateRoleDisplay(userData.role_name);
-                                        if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
-                                        return;
-                                    }
-                                    if (user.role_id) {
-                                        const roles = await dataFunctions.getRoles();
-                                        if (roles && Array.isArray(roles)) {
-                                            const userRole = roles.find(r => r.id === user.role_id);
-                                            if (userRole && userRole.role_name) {
-                                                user.role_name = userRole.role_name;
-                                                localStorage.setItem('user_info', JSON.stringify(user));
-                                                updateRoleDisplay(userRole.role_name);
-                                                if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
-                                                return;
-                                            }
-                                        }
-                                    }
-                                    const users = await dataFunctions.getUsers();
-                                    if (users && Array.isArray(users)) {
-                                        const currentUser = users.find(u => u.id === userId || u.email === user.email);
-                                        if (currentUser && (currentUser.role_name || currentUser.role)) {
-                                            const foundRole = currentUser.role_name || currentUser.role;
-                                            user.role_name = foundRole;
-                                            localStorage.setItem('user_info', JSON.stringify(user));
-                                            updateRoleDisplay(foundRole);
-                                            if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
-                                            return;
-                                        }
-                                    }
-                                    updateRoleDisplay('User');
-                                } catch (error) {
-                                    console.warn('Could not fetch role name:', error);
-                                    updateRoleDisplay('User');
-                                }
-                            })();
-                        } else {
-                            updateRoleDisplay('User');
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading user info:', error);
-                updateUserNameDisplay('User');
-            }
-        }
-
-        /**
-         * Update user name display in navbar and dropdown
-         */
-        function updateUserNameDisplay(name) {
-            const displayNameSpan = document.getElementById('userDisplayName');
-            const dropdownNameDiv = document.getElementById('userDisplayNameDropdown');
-
-            if (displayNameSpan) {
-                displayNameSpan.textContent = name;
-            }
-
-            if (dropdownNameDiv) {
-                dropdownNameDiv.textContent = name;
-            }
-        }
-
-        /** Load saved profile picture from localStorage into dropdown and navbar avatar */
-        function initProfilePicture() {
-            const dataUrl = localStorage.getItem('user_profile_image');
-            const img = document.getElementById('userProfileImage');
-            const placeholder = document.getElementById('userProfilePlaceholder');
-            if (!dataUrl) return;
-            if (img && placeholder) {
-                img.src = dataUrl;
-                img.classList.remove('d-none');
-                placeholder.classList.add('d-none');
-            }
-            var navAvatar = document.querySelector('.navbar .nav-item.dropdown .avatar .avatar-name');
-            if (navAvatar && navAvatar.parentElement) {
-                var navImg = navAvatar.parentElement.querySelector('img.navbar-profile-img');
-                if (!navImg) {
-                    navImg = document.createElement('img');
-                    navImg.className = 'navbar-profile-img rounded-circle';
-                    navImg.alt = 'Profile';
-                    navImg.style.width = navImg.style.height = '100%';
-                    navImg.style.objectFit = 'cover';
-                    navAvatar.parentElement.insertBefore(navImg, navAvatar);
-                    navAvatar.classList.add('d-none');
-                }
-                navImg.src = dataUrl;
-            }
-        }
-
-        /** Handle change profile picture: file input change -> preview and save to localStorage */
-        function initProfilePictureInput() {
-            const input = document.getElementById('profilePictureInput');
-            const img = document.getElementById('userProfileImage');
-            const placeholder = document.getElementById('userProfilePlaceholder');
-            if (!input || !img || !placeholder) return;
-            input.addEventListener('change', function () {
-                const file = this.files && this.files[0];
-                if (!file || !file.type.startsWith('image/')) return;
-                const reader = new FileReader();
-                reader.onload = function () {
-                    const dataUrl = reader.result;
-                    localStorage.setItem('user_profile_image', dataUrl);
-                    img.src = dataUrl;
-                    img.classList.remove('d-none');
-                    placeholder.classList.add('d-none');
-                    var navPlace = document.querySelector('.navbar .avatar .avatar-name');
-                    var navImg = document.querySelector('.navbar .navbar-profile-img');
-                    if (navPlace && navPlace.parentElement) {
-                        if (!navImg) {
-                            navImg = document.createElement('img');
-                            navImg.className = 'navbar-profile-img rounded-circle';
-                            navImg.alt = 'Profile';
-                            navImg.style.width = navImg.style.height = '100%';
-                            navImg.style.objectFit = 'cover';
-                            navPlace.parentElement.insertBefore(navImg, navPlace);
-                            navPlace.classList.add('d-none');
-                        }
-                        navImg.src = dataUrl;
-                    }
-                };
-                reader.readAsDataURL(file);
-                this.value = '';
-            });
-        }
-
-        /** Change password – open modal or redirect (placeholder: alert for now) */
-        function showChangePassword() {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Change password',
-                    text: 'Password change can be done from the User Management area or your identity provider.',
-                    icon: 'info',
-                    confirmButtonText: 'OK'
-                });
-            } else {
-                alert('Change password is available from User Management or your identity provider.');
-            }
-        }
-
-        // Initialize sidebar collapse behavior
-        function initializeSidebarCollapse() {
-            const userManagementToggle = document.querySelector('[data-bs-target="#userManagementCollapse"]');
-            const userManagementCollapse = document.getElementById('userManagementCollapse');
-            const sidebar = document.getElementById('sidebarMenu');
-
-            if (userManagementToggle && userManagementCollapse) {
-                // Add click handler to prevent default link behavior
-                userManagementToggle.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
-
-                // Close panel when clicking outside
-                document.addEventListener('click', function (e) {
-                    if (sidebar && sidebar.classList.contains('collapsed')) {
-                        const isClickInside = userManagementCollapse.contains(e.target) ||
-                            userManagementToggle.contains(e.target);
-                        if (!isClickInside && userManagementCollapse.classList.contains('show')) {
-                            const bsCollapse = bootstrap.Collapse.getInstance(userManagementCollapse);
-                            if (bsCollapse) {
-                                bsCollapse.hide();
-                            }
-                        }
-                    }
-                });
-
-                // Listen for collapse events to update chevron icon and position submenu
-                userManagementCollapse.addEventListener('show.bs.collapse', function () {
-                    const chevron = userManagementToggle.querySelector('.fa-chevron-right, .fa-chevron-down');
-                    if (chevron) {
-                        chevron.classList.remove('fa-chevron-right');
-                        chevron.classList.add('fa-chevron-down');
-                    }
-
-                    // Position submenu panel when sidebar is collapsed
-                    if (sidebar && sidebar.classList.contains('collapsed')) {
-                        const navItem = userManagementToggle.closest('.nav-item');
-                        if (navItem) {
-                            const navItemRect = navItem.getBoundingClientRect();
-                            // Position the panel to align with the User Management button
-                            userManagementCollapse.style.top = navItemRect.top + 'px';
-                            userManagementCollapse.style.left = '70px';
-                            userManagementCollapse.style.position = 'fixed';
-                        }
-                    } else {
-                        // Reset positioning when sidebar is expanded
-                        userManagementCollapse.style.top = '';
-                        userManagementCollapse.style.left = '';
-                        userManagementCollapse.style.position = '';
-                    }
-                });
-
-                userManagementCollapse.addEventListener('hide.bs.collapse', function () {
-                    const chevron = userManagementToggle.querySelector('.fa-chevron-right, .fa-chevron-down');
-                    if (chevron) {
-                        chevron.classList.remove('fa-chevron-down');
-                        chevron.classList.add('fa-chevron-right');
-                    }
-                    // Reset positioning
-                    userManagementCollapse.style.top = '';
-                    userManagementCollapse.style.left = '';
-                    userManagementCollapse.style.position = '';
-                });
-            }
-
-            // Initialize active state management
-            initializeActiveStates();
-        }
-
-        // Initialize active state management for sidebar (only for collapse toggles; route links are handled by appRouter)
-        function initializeActiveStates() {
-            const navLinks = document.querySelectorAll('.sidebar .nav-link');
-            const sidebar = document.getElementById('sidebarMenu');
-            const userManagementCollapse = document.getElementById('userManagementCollapse');
-
-            navLinks.forEach(link => {
-                if (link.hasAttribute('route')) return;
-                link.addEventListener('click', function (e) {
-                    // Remove active class from all links
-                    navLinks.forEach(l => l.classList.remove('active'));
-
-                    // Add active class to clicked link
-                    this.classList.add('active');
-
-                    // If this is a sub-link, also expand the parent
-                    const parentCollapse = this.closest('.collapse');
-                    if (parentCollapse) {
-                        const parentToggle = document.querySelector(`[data-bs-target="#${parentCollapse.id}"]`);
-                        if (parentToggle && !parentCollapse.classList.contains('show')) {
-                            parentToggle.click();
-                        }
-                    }
-
-                    // If sidebar is collapsed and this is a submenu item, close the panel
-                    if (sidebar && sidebar.classList.contains('collapsed') &&
-                        userManagementCollapse &&
-                        this.closest('#userManagementCollapse')) {
-                        const bsCollapse = bootstrap.Collapse.getInstance(userManagementCollapse);
-                        if (bsCollapse) {
-                            bsCollapse.hide();
-                        }
-                    }
-                });
-            });
-        }
-
-        // Initialize sidebar toggle
-        function initializeSidebarToggle() {
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebar = document.getElementById('sidebarMenu');
-            const mainContent = document.querySelector('.main-content');
-            const userManagementCollapse = document.getElementById('userManagementCollapse');
-
-            if (sidebarToggle && sidebar && mainContent) {
-                sidebarToggle.addEventListener('click', function () {
-                    const wasCollapsed = sidebar.classList.contains('collapsed');
-
-                    sidebar.classList.toggle('collapsed');
-                    mainContent.classList.toggle('sidebar-collapsed');
-
-                    // If expanding from collapsed state and User Management panel is open, reset positioning to show inline
-                    if (wasCollapsed && userManagementCollapse && userManagementCollapse.classList.contains('show')) {
-                        // Reset positioning so it shows inline instead of as a panel
-                        userManagementCollapse.style.top = '';
-                        userManagementCollapse.style.left = '';
-                        userManagementCollapse.style.position = '';
-                        // Keep it open so items show inline
-                    }
-                });
-            }
-        }
-
-        // Module loading function is defined in app.js
-
-        // Test function to verify navigation is working
-        function testNavigation() {
-            console.log('Navigation test clicked!');
-            alert('Navigation is working!');
-        }
-
-        // Navigation functions
-        function showProfile() {
-            Swal.fire({
-                icon: 'info',
-                title: 'Profile Management',
-                text: 'Profile management will be implemented.',
-                confirmButtonColor: '#0d6efd'
-            });
-        }
-
-        function showSettings() {
-            Swal.fire({
-                icon: 'info',
-                title: 'Settings',
-                text: 'Settings page will be implemented.',
-                confirmButtonColor: '#0d6efd'
-            });
-        }
-
-        function signOut() {
-            Swal.fire({
-                title: 'Sign Out',
-                text: 'Are you sure you want to sign out?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, sign out!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Store last active page before logout (check sessionStorage first, then use current route)
-                    const lastActivePage = sessionStorage.getItem('lastActivePage') ||
-                        (typeof _appRouter !== 'undefined' && _appRouter.currentRoute) ||
-                        'dashboard';
-                    localStorage.setItem('lastActivePage', lastActivePage);
-
-                    // Get cc parameter from localStorage (stored as client_guid during sign-in)
-                    const ccParam = localStorage.getItem('client_guid');
-
-                    // Use authService if available, otherwise handle manually
-                    if (typeof authService !== 'undefined' && typeof authService.signOut === 'function') {
-                        authService.signOut();
-                    } else {
-                        localStorage.removeItem('lambda_token');
-                        localStorage.removeItem('user_info');
-
-                        // Preserve cc parameter in redirect
-                        const signinUrl = ccParam ? `signin.html?cc=${encodeURIComponent(ccParam)}` : 'signin.html';
-                        window.location.href = signinUrl;
-                    }
-                }
-            });
-        }
-
-        // Control menu visibility based on user permissions (run after dataFunctions is ready)
-        function updateMenuVisibility() {
-            const testManagementMenuItem = document.getElementById('testScenariosMenuItem');
-            if (testManagementMenuItem && typeof dataFunctions !== 'undefined') {
-                testManagementMenuItem.style.display = dataFunctions.canAccessTestManagement() ? 'block' : 'none';
-            }
-        }
-
-        // Wait for dataFunctions then update menu visibility (no delays; use await)
-        async function initMenuVisibilityWhenReady() {
-            try {
-                if (typeof waitForDataFunctions === 'function') {
-                    await waitForDataFunctions();
-                }
-                if (typeof dataFunctions !== 'undefined' && dataFunctions.isAuthenticated()) {
-                    updateMenuVisibility();
-                }
-            } catch (e) {
-                console.warn('[Menu visibility] init skipped:', e);
-            }
-        }
-
-        // Update menu visibility when page loads (after dataFunctions is ready)
-        document.addEventListener('DOMContentLoaded', function () {
-            initMenuVisibilityWhenReady();
-        });
-    </script>
+    <script src="js/index.js"></script>
 </body>
 
 </html>
