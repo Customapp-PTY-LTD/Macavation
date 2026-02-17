@@ -4,6 +4,40 @@ This guide describes how to split a large, monolithic JS file into smaller modul
 
 ---
 
+## Basic Standards (All Module JS Files)
+
+These apply to **every** module JS file. Not every file needs to be split; all should follow these conventions.
+
+| Standard | Requirement |
+|----------|-------------|
+| **Module shape** | One IIFE that **returns a single object**. No loose global functions or separate `scope` object. |
+| **Methods** | Use **arrow-function methods** on the returned object: `methodName: () => { ... }` or `methodName: (arg) => { ... }`. |
+| **Global name** | One global variable per module, matching the file (e.g. `_adminGrid` for `admin_grid.js`). Use leading `_` for internal modules. |
+| **Same-module calls** | In any method that calls another method on the same module, set `const scope = _moduleName` at the start, then call `scope.otherMethod()`. |
+| **Cross-module calls** | Always guard: `if (typeof _otherModule !== 'undefined' && _otherModule.method) _otherModule.method();` |
+| **Timing** | Prefer **async/await** and helpers (`delay(ms)`, `waitForElement(selector, maxMs)`) instead of raw `setTimeout` at call sites. |
+| **Entry init** | The entry module owns page-level init (load data, bind events); it may call feature modules’ `init()` after. |
+| **Dates** | Display all dates in **dd/mm/yyyy** format (e.g. 17/02/2025). Use a small helper or consistent formatting so users see the same format everywhere. |
+
+**Date formatting example** (use a shared helper or replicate in each module):
+
+```javascript
+// Format Date or ISO string as dd/mm/yyyy
+function formatDateDDMMYYYY(value) {
+    if (!value) return '';
+    const d = value instanceof Date ? value : new Date(value);
+    if (isNaN(d.getTime())) return '';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+```
+
+When adding or refactoring module JS, apply these first. Splitting into multiple files is only required when the file is large or has multiple distinct features (see “When to Split” below).
+
+---
+
 ## 1. When to Split
 
 Consider splitting when a file:
