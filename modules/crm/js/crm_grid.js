@@ -1,9 +1,13 @@
 /**
  * CRM Grid Module
  * Handles NIS Suppliers, Oil Processors, and Kernel Customers management
+ * Pattern: IIFE, single global _crmGrid, arrow methods, const scope for same-module calls.
  */
-
 var _crmGrid = function () {
+    'use strict';
+
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
     return {
         contacts: [],
         nisSuppliers: [],
@@ -15,16 +19,26 @@ var _crmGrid = function () {
         importData: null,
         importWorkbook: null,
 
-        init: function () {
+        init: async () => {
+            const scope = _crmGrid;
             console.log('[CRM] Initializing CRM Grid module...');
-            this.setupEventListeners();
-            this.loadContacts();
-            this.loadAccountManagers();
+            scope.setupEventListeners();
+            scope.initHandlers();
+            await scope.loadContacts();
+            await scope.loadAccountManagers();
             console.log('[CRM] CRM Grid module initialized');
         },
 
-        setupEventListeners: function () {
-            const scope = this;
+        initHandlers: () => {
+            const scope = _crmGrid;
+            const addCommBtn = document.getElementById('crmAddCommunicationBtn');
+            if (addCommBtn) addCommBtn.addEventListener('click', () => scope.addCommunication());
+            const createQuoteBtn = document.getElementById('crmCreateQuoteBtn');
+            if (createQuoteBtn) createQuoteBtn.addEventListener('click', () => scope.createQuote());
+        },
+
+        setupEventListeners: () => {
+            const scope = _crmGrid;
 
             // Tab switching
             $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
@@ -176,67 +190,76 @@ var _crmGrid = function () {
             });
         },
 
-        loadContacts: async function (forceRefresh = false) {
+        loadContacts: async (forceRefresh = false) => {
+            const scope = _crmGrid;
             try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getContacts) {
+                    console.error('dataFunctions.getContacts not available');
+                    return;
+                }
                 const startTime = performance.now();
                 let contacts = [];
-                
+
                 try {
                     contacts = await dataFunctions.getContacts(null, forceRefresh);
                 } catch (error) {
                     if (error.message && error.message.includes('token')) {
                         console.warn('Authentication required for contacts');
-                        this.contacts = [];
-                        this.separateContactsByType();
-                        this.renderCurrentTab();
+                        scope.contacts = [];
+                        scope.separateContactsByType();
+                        scope.renderCurrentTab();
                         return;
                     }
                     throw error;
                 }
-                
+
                 const loadTime = performance.now() - startTime;
                 console.log(`[Performance] Contacts loaded in ${loadTime.toFixed(2)}ms`);
-                
-                this.contacts = contacts || [];
-                this.separateContactsByType();
-                this.renderCurrentTab();
+
+                scope.contacts = contacts || [];
+                scope.separateContactsByType();
+                scope.renderCurrentTab();
             } catch (error) {
                 console.error('Error loading contacts:', error);
-                this.showError('Error loading contacts: ' + error.message);
+                scope.showError('Error loading contacts: ' + error.message);
             }
         },
 
-        separateContactsByType: function () {
-            this.nisSuppliers = this.contacts.filter(c => c.contact_type === 'nis_supplier');
-            this.oilProcessors = this.contacts.filter(c => c.contact_type === 'oil_processor');
-            this.kernelCustomers = this.contacts.filter(c => c.contact_type === 'kernel_customer');
+        separateContactsByType: () => {
+            const scope = _crmGrid;
+            scope.nisSuppliers = scope.contacts.filter(c => c.contact_type === 'nis_supplier');
+            scope.oilProcessors = scope.contacts.filter(c => c.contact_type === 'oil_processor');
+            scope.kernelCustomers = scope.contacts.filter(c => c.contact_type === 'kernel_customer');
         },
 
-        loadContactsByType: function (contactType) {
-            this.currentContactType = contactType;
-            this.renderCurrentTab();
+        loadContactsByType: (contactType) => {
+            const scope = _crmGrid;
+            scope.currentContactType = contactType;
+            scope.renderCurrentTab();
         },
 
-        renderCurrentTab: function () {
-            switch (this.currentContactType) {
+        renderCurrentTab: () => {
+            const scope = _crmGrid;
+            switch (scope.currentContactType) {
                 case 'nis_supplier':
-                    this.renderNISSuppliers();
+                    scope.renderNISSuppliers();
                     break;
                 case 'oil_processor':
-                    this.renderOilProcessors();
+                    scope.renderOilProcessors();
                     break;
                 case 'kernel_customer':
-                    this.renderKernelCustomers();
+                    scope.renderKernelCustomers();
                     break;
             }
         },
 
-        filterNISSuppliers: function () {
+        filterNISSuppliers: () => {
+            const scope = _crmGrid;
             const searchTerm = $('#nisSearchInput').val().toLowerCase();
             const provinceFilter = $('#nisFilterProvince').val();
             const statusFilter = $('#nisFilterStatus').val();
 
-            let filtered = this.nisSuppliers.filter(contact => {
+            let filtered = scope.nisSuppliers.filter(contact => {
                 const matchesSearch = !searchTerm ||
                     (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
                     (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
@@ -245,18 +268,19 @@ var _crmGrid = function () {
 
                 const matchesProvince = !provinceFilter || contact.physical_province === provinceFilter;
                 const matchesStatus = !statusFilter || contact.status === statusFilter;
-                
+
                 return matchesSearch && matchesProvince && matchesStatus;
             });
 
-            this.renderNISSuppliers(filtered);
+            scope.renderNISSuppliers(filtered);
         },
 
-        filterOilProcessors: function () {
+        filterOilProcessors: () => {
+            const scope = _crmGrid;
             const searchTerm = $('#oilSearchInput').val().toLowerCase();
             const provinceFilter = $('#oilFilterProvince').val();
 
-            let filtered = this.oilProcessors.filter(contact => {
+            let filtered = scope.oilProcessors.filter(contact => {
                 const matchesSearch = !searchTerm ||
                     (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
                     (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
@@ -267,14 +291,15 @@ var _crmGrid = function () {
                 return matchesSearch && matchesProvince;
             });
 
-            this.renderOilProcessors(filtered);
+            scope.renderOilProcessors(filtered);
         },
 
-        filterKernelCustomers: function () {
+        filterKernelCustomers: () => {
+            const scope = _crmGrid;
             const searchTerm = $('#customerSearchInput').val().toLowerCase();
             const provinceFilter = $('#customerFilterProvince').val();
 
-            let filtered = this.kernelCustomers.filter(contact => {
+            let filtered = scope.kernelCustomers.filter(contact => {
                 const matchesSearch = !searchTerm ||
                     (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
                     (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
@@ -285,11 +310,12 @@ var _crmGrid = function () {
                 return matchesSearch && matchesProvince;
             });
 
-            this.renderKernelCustomers(filtered);
+            scope.renderKernelCustomers(filtered);
         },
 
-        renderNISSuppliers: function (suppliers = null) {
-            const data = suppliers || this.nisSuppliers;
+        renderNISSuppliers: (suppliers = null) => {
+            const scope = _crmGrid;
+            const data = suppliers || scope.nisSuppliers;
             const tbody = $('#nisSuppliersTableBody');
             tbody.empty();
 
@@ -332,8 +358,9 @@ var _crmGrid = function () {
             });
         },
 
-        renderOilProcessors: function (processors = null) {
-            const data = processors || this.oilProcessors;
+        renderOilProcessors: (processors = null) => {
+            const scope = _crmGrid;
+            const data = processors || scope.oilProcessors;
             const tbody = $('#oilProcessorsTableBody');
             tbody.empty();
 
@@ -385,8 +412,9 @@ var _crmGrid = function () {
             });
         },
 
-        renderKernelCustomers: function (customers = null) {
-            const data = customers || this.kernelCustomers;
+        renderKernelCustomers: (customers = null) => {
+            const scope = _crmGrid;
+            const data = customers || scope.kernelCustomers;
             const tbody = $('#kernelCustomersTableBody');
             tbody.empty();
 
@@ -428,10 +456,15 @@ var _crmGrid = function () {
             });
         },
 
-        loadAccountManagers: async function () {
+        loadAccountManagers: async () => {
+            const scope = _crmGrid;
             try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getUsers) {
+                    console.error('dataFunctions.getUsers not available');
+                    return;
+                }
                 let users = [];
-                
+
                 try {
                     users = await dataFunctions.getUsers();
                 } catch (error) {
@@ -458,17 +491,18 @@ var _crmGrid = function () {
             }
         },
 
-        showAddContactModal: function () {
+        showAddContactModal: () => {
+            const scope = _crmGrid;
             $('#contactModalLabel').text('Add New Contact');
             $('#contactId').val('');
-            this.clearForm();
-            
+            scope.clearForm();
+
             // Set contact type based on current tab
-            $('#contactType').val(this.currentContactType);
-            if (this.currentContactType === 'oil_processor') {
+            $('#contactType').val(scope.currentContactType);
+            if (scope.currentContactType === 'oil_processor') {
                 $('#oilProcessorRatesSection').show();
                 $('#kernelCustomerPreferencesSection').hide();
-            } else if (this.currentContactType === 'kernel_customer') {
+            } else if (scope.currentContactType === 'kernel_customer') {
                 $('#oilProcessorRatesSection').hide();
                 $('#kernelCustomerPreferencesSection').show();
             } else {
@@ -479,23 +513,28 @@ var _crmGrid = function () {
             $('#contactModal').modal('show');
         },
 
-        editContact: async function (contactId) {
+        editContact: async (contactId) => {
+            const scope = _crmGrid;
             try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getContactById) {
+                    scope.showError('Data functions not available');
+                    return;
+                }
                 const contact = await dataFunctions.getContactById(contactId);
-                
+
                 if (contact) {
-                    this.editingContact = contact;
-                    this.populateForm(contact);
+                    scope.editingContact = contact;
+                    scope.populateForm(contact);
                     $('#contactModalLabel').text('Edit Contact');
                     $('#contactModal').modal('show');
                 }
             } catch (error) {
                 console.error('Error loading contact:', error);
-                this.showError('Error loading contact: ' + error.message);
+                scope.showError('Error loading contact: ' + error.message);
             }
         },
 
-        populateForm: function (contact) {
+        populateForm: (contact) => {
             $('#contactId').val(contact.id || '');
             $('#contactType').val(contact.contact_type || '');
             $('#companyName').val(contact.company_name || '');
@@ -537,8 +576,13 @@ var _crmGrid = function () {
             }
         },
 
-        saveContact: async function () {
+        saveContact: async () => {
+            const scope = _crmGrid;
             try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.createContact) {
+                    scope.showError('Data functions not available');
+                    return;
+                }
                 const form = $('#contactForm')[0];
                 if (!form.checkValidity()) {
                     form.reportValidity();
@@ -630,7 +674,7 @@ var _crmGrid = function () {
                             showConfirmButton: false
                         });
                         $('#contactModal').modal('hide');
-                        this.loadContacts(true);
+                        scope.loadContacts(true);
                     } else {
                         const errorMsg = result?.error || result?.message || 'Failed to save contact';
                         console.error('[CRM] Save failed:', result);
@@ -654,7 +698,8 @@ var _crmGrid = function () {
             }
         },
 
-        deleteContact: async function (contactId) {
+        deleteContact: async (contactId) => {
+            const scope = _crmGrid;
             const result = await Swal.fire({
                 title: 'Are you sure?',
                 text: 'This will deactivate the contact. This action can be undone.',
@@ -667,44 +712,50 @@ var _crmGrid = function () {
 
             if (result.isConfirmed) {
                 try {
+                    if (typeof dataFunctions === 'undefined' || !dataFunctions.deleteContact) {
+                        scope.showError('Data functions not available');
+                        return;
+                    }
                     await dataFunctions.deleteContact(contactId);
-                    Swal.fire('Deactivated!', 'Contact has been deactivated.', 'success');
-                    this.loadContacts(true);
+                    if (typeof Swal !== 'undefined') Swal.fire('Deactivated!', 'Contact has been deactivated.', 'success');
+                    scope.loadContacts(true);
                 } catch (error) {
                     console.error('Error deleting contact:', error);
-                    Swal.fire('Error!', 'Failed to deactivate contact: ' + error.message, 'error');
+                    if (typeof Swal !== 'undefined') Swal.fire('Error!', 'Failed to deactivate contact: ' + error.message, 'error');
                 }
             }
         },
 
-        showImportModal: function () {
+        showImportModal: () => {
+            const scope = _crmGrid;
             $('#importContactsModal').modal('show');
             $('#importExcelFile').val('');
             $('#importPreview').hide();
             $('#processImportBtn').prop('disabled', true);
-            this.importData = null;
-            this.importWorkbook = null;
+            scope.importData = null;
+            scope.importWorkbook = null;
             $('#importAllSheets').prop('checked', false);
             $('#importContactType').prop('disabled', false);
         },
 
-        handleFileSelect: async function (file) {
+        handleFileSelect: async (file) => {
+            const scope = _crmGrid;
             if (!file) return;
 
             try {
                 console.log('[CRM Import] Parsing file:', file.name);
                 // Parse workbook (for multi-sheet import) + keep first sheet as default preview
-                const workbook = await this.parseExcelWorkbook(file);
-                this.importWorkbook = workbook;
+                const workbook = await scope.parseExcelWorkbook(file);
+                scope.importWorkbook = workbook;
                 console.log('[CRM Import] Workbook loaded, sheets:', workbook?.SheetNames);
 
                 const firstSheetName = workbook?.SheetNames?.[0];
-                const data = firstSheetName ? this.sheetToRows(workbook, firstSheetName) : [];
-                this.importData = data;
+                const data = firstSheetName ? scope.sheetToRows(workbook, firstSheetName) : [];
+                scope.importData = data;
                 console.log('[CRM Import] First sheet data rows:', data?.length);
                 
                 if (data && data.length > 0) {
-                    this.showImportPreview(data);
+                    scope.showImportPreview(data);
                     $('#processImportBtn').prop('disabled', false);
                 } else {
                     Swal.fire('Error', 'No data found in Excel file', 'error');
@@ -715,7 +766,7 @@ var _crmGrid = function () {
             }
         },
 
-        parseExcelWorkbook: function (file) {
+        parseExcelWorkbook: (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = function (e) {
@@ -732,18 +783,19 @@ var _crmGrid = function () {
             });
         },
 
-        sheetToRows: function (workbook, sheetName) {
+        sheetToRows: (workbook, sheetName) => {
             const sheet = workbook?.Sheets?.[sheetName];
             if (!sheet) return [];
             return XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false });
         },
 
-        normalizeSheetName: function (name) {
+        normalizeSheetName: (name) => {
             return String(name || '').trim().toLowerCase();
         },
 
-        detectContactTypeForSheet: function (sheetName) {
-            const n = this.normalizeSheetName(sheetName);
+        detectContactTypeForSheet: (sheetName) => {
+            const scope = _crmGrid;
+            const n = scope.normalizeSheetName(sheetName);
             // Match common variations in your workbook tabs
             // NIS Suppliers can be "Nut in Shell Suppliers - Current (Past 2 Years)" or "Nut in Shell Suppliers - Inactive"
             if (n.includes('nut in shell') || n.includes('nis') || (n.includes('supplier') && !n.includes('oil'))) {
@@ -754,7 +806,8 @@ var _crmGrid = function () {
             return null;
         },
 
-        mapRowsToContacts: function (contactType, importData, isInactive) {
+        mapRowsToContacts: (contactType, importData, isInactive) => {
+            const scope = _crmGrid;
             const headers = importData[0] || [];
             const rows = importData.slice(1);
 
@@ -762,51 +815,51 @@ var _crmGrid = function () {
                 const contact = { contact_type: contactType };
 
                 if (contactType === 'nis_supplier') {
-                    contact.company_name = this.getColumnValue(row, headers, 'Supplier Name');
-                    contact.physical_province = this.getColumnValue(row, headers, 'Province');
-                    contact.physical_area = this.getColumnValue(row, headers, 'Area');
-                    contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
-                    contact.secondary_contact_name = this.getColumnValue(row, headers, 'Contact #2');
-                    contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
-                    contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
-                    contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
-                    contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
+                    contact.company_name = scope.getColumnValue(row, headers, 'Supplier Name');
+                    contact.physical_province = scope.getColumnValue(row, headers, 'Province');
+                    contact.physical_area = scope.getColumnValue(row, headers, 'Area');
+                    contact.primary_contact_name = scope.getColumnValue(row, headers, 'Contact #1');
+                    contact.secondary_contact_name = scope.getColumnValue(row, headers, 'Contact #2');
+                    contact.primary_contact_mobile = scope.getColumnValue(row, headers, 'Cell #1');
+                    contact.secondary_contact_mobile = scope.getColumnValue(row, headers, 'Cell #2');
+                    contact.primary_contact_email = scope.getColumnValue(row, headers, 'Email #1');
+                    contact.secondary_contact_email = scope.getColumnValue(row, headers, 'Email #2');
                     // Try both "Note/s" and "Notes" column names
-                    contact.notes = this.getColumnValue(row, headers, 'Note/s') || this.getColumnValue(row, headers, 'Notes');
+                    contact.notes = scope.getColumnValue(row, headers, 'Note/s') || scope.getColumnValue(row, headers, 'Notes');
                     contact.status = isInactive ? 'inactive' : 'active';
                 } else if (contactType === 'oil_processor') {
                     // Oil Processors sheet has contact info in one table and rates in another
                     // We'll map from the "Oil Kernel Suppliers" table (contact info)
-                    contact.company_name = this.getColumnValue(row, headers, 'Supplier Name');
-                    contact.physical_province = this.getColumnValue(row, headers, 'Province');
-                    contact.physical_area = this.getColumnValue(row, headers, 'Area');
-                    contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
-                    contact.secondary_contact_name = this.getColumnValue(row, headers, 'Contact #2');
-                    contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1');
-                    contact.secondary_contact_mobile = this.getColumnValue(row, headers, 'Cell #2');
-                    contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1');
-                    contact.secondary_contact_email = this.getColumnValue(row, headers, 'Email #2');
+                    contact.company_name = scope.getColumnValue(row, headers, 'Supplier Name');
+                    contact.physical_province = scope.getColumnValue(row, headers, 'Province');
+                    contact.physical_area = scope.getColumnValue(row, headers, 'Area');
+                    contact.primary_contact_name = scope.getColumnValue(row, headers, 'Contact #1');
+                    contact.secondary_contact_name = scope.getColumnValue(row, headers, 'Contact #2');
+                    contact.primary_contact_mobile = scope.getColumnValue(row, headers, 'Cell #1');
+                    contact.secondary_contact_mobile = scope.getColumnValue(row, headers, 'Cell #2');
+                    contact.primary_contact_email = scope.getColumnValue(row, headers, 'Email #1');
+                    contact.secondary_contact_email = scope.getColumnValue(row, headers, 'Email #2');
                     // Try both "Note/s" and "Notes" column names
-                    contact.notes = this.getColumnValue(row, headers, 'Note/s') || this.getColumnValue(row, headers, 'Notes');
+                    contact.notes = scope.getColumnValue(row, headers, 'Note/s') || scope.getColumnValue(row, headers, 'Notes');
                     
                     // Try to get rates from same row (if rates table is merged) or from separate rates lookup
-                    contact.rate_crude_kernel = this.parseRate(this.getColumnValue(row, headers, 'Crude Kernel Rate/kg'));
-                    contact.rate_food_kernel = this.parseRate(this.getColumnValue(row, headers, 'Food Kernel Rate/kg'));
-                    contact.rate_kernel_dust = this.parseRate(this.getColumnValue(row, headers, 'Kernel Dust Rate/kg'));
-                    contact.rate_cracker_dust = this.parseRate(this.getColumnValue(row, headers, 'Cracker Dust Rate/kg'));
-                    contact.rate_crush = this.parseRate(this.getColumnValue(row, headers, 'Crush Rate/kg'));
+                    contact.rate_crude_kernel = scope.parseRate(scope.getColumnValue(row, headers, 'Crude Kernel Rate/kg'));
+                    contact.rate_food_kernel = scope.parseRate(scope.getColumnValue(row, headers, 'Food Kernel Rate/kg'));
+                    contact.rate_kernel_dust = scope.parseRate(scope.getColumnValue(row, headers, 'Kernel Dust Rate/kg'));
+                    contact.rate_cracker_dust = scope.parseRate(scope.getColumnValue(row, headers, 'Cracker Dust Rate/kg'));
+                    contact.rate_crush = scope.parseRate(scope.getColumnValue(row, headers, 'Crush Rate/kg'));
                     contact.status = 'active';
                 } else if (contactType === 'kernel_customer') {
                     // Kernel Customers sheet: Customer Name, Province, Area, Contact #1, Note/s (preferred styles)
-                    contact.company_name = this.getColumnValue(row, headers, 'Customer Name');
-                    contact.physical_province = this.getColumnValue(row, headers, 'Province');
-                    contact.physical_area = this.getColumnValue(row, headers, 'Area');
-                    contact.primary_contact_name = this.getColumnValue(row, headers, 'Contact #1');
+                    contact.company_name = scope.getColumnValue(row, headers, 'Customer Name');
+                    contact.physical_province = scope.getColumnValue(row, headers, 'Province');
+                    contact.physical_area = scope.getColumnValue(row, headers, 'Area');
+                    contact.primary_contact_name = scope.getColumnValue(row, headers, 'Contact #1');
                     // Cell #1 and Email #1 might not exist in this sheet, so make them optional
-                    contact.primary_contact_mobile = this.getColumnValue(row, headers, 'Cell #1') || null;
-                    contact.primary_contact_email = this.getColumnValue(row, headers, 'Email #1') || null;
+                    contact.primary_contact_mobile = scope.getColumnValue(row, headers, 'Cell #1') || null;
+                    contact.primary_contact_email = scope.getColumnValue(row, headers, 'Email #1') || null;
                     // Note/s or Notes column contains preferred styles (e.g., "Style SP", "Style 5 & 6 - Small")
-                    const notes = this.getColumnValue(row, headers, 'Note/s') || this.getColumnValue(row, headers, 'Notes');
+                    const notes = scope.getColumnValue(row, headers, 'Note/s') || scope.getColumnValue(row, headers, 'Notes');
                     if (notes) {
                         // Extract preferred styles - usually everything before " - " or the whole note
                         const stylesMatch = notes.match(/^(Style\s+[^-\n]+|.*?)(?:\s*-\s*|$)/i);
@@ -821,7 +874,7 @@ var _crmGrid = function () {
             }).filter(c => c.company_name);
         },
 
-        parseExcelFile: function (file) {
+        parseExcelFile: (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = function (e) {
@@ -840,7 +893,8 @@ var _crmGrid = function () {
             });
         },
 
-        showImportPreview: function (data) {
+        showImportPreview: (data) => {
+            const scope = _crmGrid;
             const preview = $('#importPreview');
             const table = $('#importPreviewTable');
             const thead = table.find('thead');
@@ -872,12 +926,17 @@ var _crmGrid = function () {
             preview.show();
         },
 
-        processImport: async function () {
+        processImport: async () => {
+            const scope = _crmGrid;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.createContact) {
+                scope.showError('Data functions not available');
+                return;
+            }
             console.log('[CRM Import] ========== STARTING IMPORT ==========');
-            console.log('[CRM Import] importData?', !!this.importData, 'length:', this.importData?.length);
-            console.log('[CRM Import] importWorkbook?', !!this.importWorkbook);
+            console.log('[CRM Import] importData?', !!scope.importData, 'length:', scope.importData?.length);
+            console.log('[CRM Import] importWorkbook?', !!scope.importWorkbook);
             
-            if (!this.importData || this.importData.length < 2) {
+            if (!scope.importData || scope.importData.length < 2) {
                 console.error('[CRM Import] ERROR: No data to import');
                 Swal.fire('Error', 'No data to import. Please select a file first.', 'error');
                 return;
@@ -900,24 +959,24 @@ var _crmGrid = function () {
 
                 let importBatches = [];
                 if (importAll) {
-                    if (!this.importWorkbook || !this.importWorkbook.SheetNames || this.importWorkbook.SheetNames.length === 0) {
+                    if (!scope.importWorkbook || !scope.importWorkbook.SheetNames || scope.importWorkbook.SheetNames.length === 0) {
                         console.error('[CRM Import] ERROR: Workbook not loaded');
                         Swal.fire('Error', 'Workbook not loaded. Please re-select the file.', 'error');
                         return;
                     }
 
-                    console.log('[CRM Import] Found sheets:', this.importWorkbook.SheetNames);
+                    console.log('[CRM Import] Found sheets:', scope.importWorkbook.SheetNames);
 
-                    this.importWorkbook.SheetNames.forEach(sheetName => {
+                    scope.importWorkbook.SheetNames.forEach(sheetName => {
                         console.log(`[CRM Import] --- Processing sheet: "${sheetName}" ---`);
-                        const contactType = this.detectContactTypeForSheet(sheetName);
+                        const contactType = scope.detectContactTypeForSheet(sheetName);
                         console.log(`[CRM Import]   → Detected type: ${contactType}`);
                         if (!contactType) {
                             console.warn(`[CRM Import]   → SKIPPED (no matching type)`);
                             return;
                         }
                         
-                        let data = this.sheetToRows(this.importWorkbook, sheetName);
+                        let data = scope.sheetToRows(scope.importWorkbook, sheetName);
                         console.log(`[CRM Import]   → Parsed ${data?.length || 0} rows`);
                         if (data && data.length > 0) {
                             console.log(`[CRM Import]   → Headers:`, data[0]);
@@ -938,7 +997,7 @@ var _crmGrid = function () {
                         // Special handling for Oil Processors: merge contact table with rates table
                         if (contactType === 'oil_processor') {
                             console.log(`[CRM Import]   → Merging Oil Processor tables...`);
-                            data = this.mergeOilProcessorTables(data);
+                            data = scope.mergeOilProcessorTables(data);
                             console.log(`[CRM Import]   → After merge: ${data?.length || 0} rows`);
                         }
                         
@@ -949,7 +1008,7 @@ var _crmGrid = function () {
                     console.log(`[CRM Import] Total batches to import: ${importBatches.length}`);
 
                     if (!importBatches.length) {
-                        const sheetList = this.importWorkbook.SheetNames.join(', ');
+                        const sheetList = scope.importWorkbook.SheetNames.join(', ');
                         console.error('[CRM Import] ERROR: No matching sheets found');
                         Swal.fire('Error', `No matching sheets found in: ${sheetList}<br><br>Expected names like "NIS Suppliers", "Oil Processors", "Kernel Customers".`, 'error');
                         return;
@@ -962,7 +1021,7 @@ var _crmGrid = function () {
                         Swal.fire('Error', 'Please select a contact type (or enable Import all sheets)', 'error');
                         return;
                     }
-                    importBatches = [{ sheetName: 'Selected Sheet', contactType, importData: this.importData }];
+                    importBatches = [{ sheetName: 'Selected Sheet', contactType, importData: scope.importData }];
                 }
 
                 // Import contacts in batches
@@ -975,7 +1034,7 @@ var _crmGrid = function () {
                 
                 for (const batch of importBatches) {
                     console.log(`[CRM Import] ===== BATCH: ${batch.sheetName} (${batch.contactType}) =====`);
-                    const mappedContacts = this.mapRowsToContacts(batch.contactType, batch.importData, batch.isInactive);
+                    const mappedContacts = scope.mapRowsToContacts(batch.contactType, batch.importData, batch.isInactive);
                     console.log(`[CRM Import] Mapped ${mappedContacts.length} contacts`);
                     
                     let ok = 0;
@@ -1010,25 +1069,29 @@ var _crmGrid = function () {
                     console.error('[CRM Import] Failed contacts:', errors);
                 }
 
-                Swal.fire({
-                    icon: successCount > 0 ? 'success' : 'error',
-                    title: 'Import Complete',
-                    html: `${successCount} contacts imported successfully${errorCount > 0 ? `<br>${errorCount} contacts failed to import` : ''}` +
-                        (perSheet.length > 1 ? `<hr class="my-2"/>` + perSheet.map(s => `<div><strong>${s.sheetName}</strong> (${s.contactType}): ${s.ok} OK${s.fail ? `, ${s.fail} failed` : ''}</div>`).join('') : '') +
-                        (errors.length > 0 && errors.length <= 5 ? `<hr class="my-2"/><small>Errors: ${errors.map(e => `${e.company}: ${e.error}`).join('<br>')}</small>` : ''),
-                    timer: successCount > 0 ? 3000 : undefined
-                });
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: successCount > 0 ? 'success' : 'error',
+                        title: 'Import Complete',
+                        html: `${successCount} contacts imported successfully${errorCount > 0 ? `<br>${errorCount} contacts failed to import` : ''}` +
+                            (perSheet.length > 1 ? `<hr class="my-2"/>` + perSheet.map(s => `<div><strong>${s.sheetName}</strong> (${s.contactType}): ${s.ok} OK${s.fail ? `, ${s.fail} failed` : ''}</div>`).join('') : '') +
+                            (errors.length > 0 && errors.length <= 5 ? `<hr class="my-2"/><small>Errors: ${errors.map(e => `${e.company}: ${e.error}`).join('<br>')}</small>` : ''),
+                        timer: successCount > 0 ? 3000 : undefined
+                    });
+                }
 
                 $('#importContactsModal').modal('hide');
-                this.loadContacts(true);
+                scope.loadContacts(true);
             } catch (error) {
                 console.error('[CRM Import] FATAL ERROR:', error);
                 console.error('[CRM Import] Stack:', error.stack);
-                Swal.fire('Error', 'Failed to import contacts: ' + error.message, 'error');
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Failed to import contacts: ' + error.message, 'error');
+                else scope.showError('Failed to import contacts: ' + error.message);
             }
         },
 
-        mergeOilProcessorTables: function (allRows) {
+        mergeOilProcessorTables: (allRows) => {
+            const scope = _crmGrid;
             // Oil Processors sheet has two tables: "Oil Kernel Suppliers" and "Rates"
             // Find where "Rates" table starts (look for "Rates" in first column or "Crude Kernel Rate/kg" header)
             let ratesStartIndex = -1;
@@ -1070,16 +1133,16 @@ var _crmGrid = function () {
             const ratesHeaders = ratesRows[ratesHeaderIndex] || [];
             for (let i = ratesHeaderIndex + 1; i < ratesRows.length; i++) {
                 const row = ratesRows[i] || [];
-                const supplierName = this.getColumnValue(row, ratesHeaders, 'Supplier Name');
+                const supplierName = scope.getColumnValue(row, ratesHeaders, 'Supplier Name');
                 if (!supplierName) continue;
                 
                 // Store raw rate values (with R prefix if present) for merging
                 ratesMap[supplierName.toLowerCase().trim()] = {
-                    'rate_crude_kernel': this.getColumnValue(row, ratesHeaders, 'Crude Kernel Rate/kg') || '',
-                    'rate_food_kernel': this.getColumnValue(row, ratesHeaders, 'Food Kernel Rate/kg') || '',
-                    'rate_kernel_dust': this.getColumnValue(row, ratesHeaders, 'Kernel Dust Rate/kg') || '',
-                    'rate_cracker_dust': this.getColumnValue(row, ratesHeaders, 'Cracker Dust Rate/kg') || '',
-                    'rate_crush': this.getColumnValue(row, ratesHeaders, 'Crush Rate/kg') || ''
+                    'rate_crude_kernel': scope.getColumnValue(row, ratesHeaders, 'Crude Kernel Rate/kg') || '',
+                    'rate_food_kernel': scope.getColumnValue(row, ratesHeaders, 'Food Kernel Rate/kg') || '',
+                    'rate_kernel_dust': scope.getColumnValue(row, ratesHeaders, 'Kernel Dust Rate/kg') || '',
+                    'rate_cracker_dust': scope.getColumnValue(row, ratesHeaders, 'Cracker Dust Rate/kg') || '',
+                    'rate_crush': scope.getColumnValue(row, ratesHeaders, 'Crush Rate/kg') || ''
                 };
             }
             
@@ -1098,7 +1161,7 @@ var _crmGrid = function () {
             // Merge data rows
             for (let i = 1; i < contactRows.length; i++) {
                 const row = contactRows[i] || [];
-                const supplierName = this.getColumnValue(row, contactHeaders, 'Supplier Name');
+                const supplierName = scope.getColumnValue(row, contactHeaders, 'Supplier Name');
                 const rates = supplierName ? ratesMap[supplierName.toLowerCase().trim()] : null;
                 
                 const mergedRow = [...row];
@@ -1142,7 +1205,7 @@ var _crmGrid = function () {
             return mergedRows;
         },
 
-        getColumnValue: function (row, headers, columnName) {
+        getColumnValue: (row, headers, columnName) => {
             // Try exact match first
             let index = headers.findIndex(h => h && h.toString().trim() === columnName);
             
@@ -1160,7 +1223,7 @@ var _crmGrid = function () {
             return index >= 0 && row[index] ? String(row[index]).trim() : null;
         },
 
-        parseRate: function (value) {
+        parseRate: (value) => {
             if (!value) return null;
             // Remove R symbol and parse
             const cleaned = String(value).replace(/[R\s,]/g, '');
@@ -1168,15 +1231,17 @@ var _crmGrid = function () {
             return isNaN(parsed) ? null : parsed;
         },
 
-        clearForm: function () {
-            $('#contactForm')[0].reset();
+        clearForm: () => {
+            const scope = _crmGrid;
+            const form = document.getElementById('contactForm');
+            if (form) form.reset();
             $('#contactId').val('');
-            this.editingContact = null;
+            scope.editingContact = null;
             $('#oilProcessorRatesSection').hide();
             $('#kernelCustomerPreferencesSection').hide();
         },
 
-        ensureContactModalScrollable: function () {
+        ensureContactModalScrollable: () => {
             const modalEl = document.getElementById('contactModal');
             if (!modalEl) return;
 
@@ -1195,22 +1260,26 @@ var _crmGrid = function () {
             bodyEl.style.maxHeight = `${maxH}px`;
         },
 
-        showError: function (message) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: message
-            });
+        showError: (message) => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'error', title: 'Error', text: message });
+            } else {
+                console.error('Error:', message);
+            }
+        },
+
+        addCommunication: () => {
+            if (typeof _common !== 'undefined' && _common.showInfoToast) _common.showInfoToast('Add communication coming soon');
+            else if (typeof Swal !== 'undefined') Swal.fire('Info', 'Add communication coming soon', 'info');
+            else console.log('Add communication coming soon');
+        },
+
+        createQuote: () => {
+            if (typeof _common !== 'undefined' && _common.showInfoToast) _common.showInfoToast('Create quote coming soon');
+            else if (typeof Swal !== 'undefined') Swal.fire('Info', 'Create quote coming soon', 'info');
+            else console.log('Create quote coming soon');
         }
     };
 }();
 
-// Global instance
-const crmGrid = _crmGrid;
-
-// Initialize function for router
-function initializeCrmGrid() {
-    if (typeof crmGrid !== 'undefined') {
-        crmGrid.init();
-    }
-}
+_crmGrid.init();
