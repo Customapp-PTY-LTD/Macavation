@@ -17,7 +17,30 @@ These apply to **every** module JS file. Not every file needs to be split; all s
 | **Cross-module calls** | Always guard: `if (typeof _otherModule !== 'undefined' && _otherModule.method) _otherModule.method();` |
 | **Timing** | Prefer **async/await** and helpers (`delay(ms)`, `waitForElement(selector, maxMs)`) instead of raw `setTimeout` at call sites. |
 | **Entry init** | The entry module owns page-level init (load data, bind events); it may call feature modules’ `init()` after. |
+| **Init at end** | At the end of the module file, just call **`_moduleName.init();`**. No wrapper function, no checks. The script is loaded by the route; when it runs, init runs. Infrastructure handles load order. |
+| **Button / form handlers** | Use an **`initHandlers`** method (or similar) that attaches click/submit handlers to the relevant buttons or forms by **id** or selector. Call `initHandlers` from `init` (after the DOM / tables / buttons are loaded). Do not rely on global functions or inline `onclick` in HTML; attach in JS. |
 | **Dates** | Display all dates in **dd/mm/yyyy** format (e.g. 17/02/2025). Use a small helper or consistent formatting so users see the same format everywhere. |
+
+**Init-at-end example** (see `modules/amanda-dashboard/js/amanda_dashboard.js`):
+
+```javascript
+}();
+_amandaDashboard.init();
+```
+
+**initHandlers example** (call from `init` after setupFormHandlers / when DOM is ready; see `modules/admin/js/admin_grid.js`):
+
+```javascript
+initHandlers: () => {
+    const scope = _adminGrid;
+    const userBtn = document.getElementById('addUserSubmitBtn');
+    if (userBtn) userBtn.addEventListener('click', () => scope.submitUserForm());
+    const roleBtn = document.getElementById('addRoleSubmitBtn');
+    if (roleBtn) roleBtn.addEventListener('click', () => scope.submitRoleForm());
+},
+```
+
+In HTML, use `id="addUserSubmitBtn"` (or similar) on the button instead of `onclick="submitUserForm()"`.
 
 **Date formatting example** (use a shared helper or replicate in each module):
 

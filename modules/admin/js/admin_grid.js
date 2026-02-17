@@ -60,9 +60,18 @@ var _adminGrid = function () {
                 }
 
                 scope.setupFormHandlers();
+                scope.initHandlers();
             } catch (error) {
                 console.error('Error initializing Admin Grid:', error);
             }
+        },
+
+        initHandlers: () => {
+            const scope = _adminGrid;
+            const userBtn = document.getElementById('addUserSubmitBtn');
+            if (userBtn) userBtn.addEventListener('click', () => scope.submitUserForm());
+            const roleBtn = document.getElementById('addRoleSubmitBtn');
+            if (roleBtn) roleBtn.addEventListener('click', () => scope.submitRoleForm());
         },
 
         handleTabSwitch: (targetId) => {
@@ -566,15 +575,4 @@ var _adminGrid = function () {
     };
 }();
 
-// Router entry point (unchanged contract)
-var initializeAdminGrid = function () {
-    if (typeof _adminGrid !== 'undefined' && _adminGrid.init) {
-        return _adminGrid.init();
-    }
-};
-
-// Form submit buttons call these by name from HTML
-if (typeof window !== 'undefined') {
-    window.submitUserForm = function () { return _adminGrid.submitUserForm(); };
-    window.submitRoleForm = function () { return _adminGrid.submitRoleForm(); };
-}
+_adminGrid.init();

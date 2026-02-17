@@ -1,52 +1,66 @@
 /**
  * Material Journey Dashboard Module - Material Journey Tracking
+ * Pattern: IIFE, single global _amandaDashboard, arrow methods, const scope for same-module calls.
  */
 var _amandaDashboard = function () {
+    'use strict';
+
     return {
         batches: [],
         alerts: [],
-        init: function () {
-            this.setupEventListeners();
-            this.loadData();
+
+        init: async () => {
+            const scope = _amandaDashboard;
+            scope.setupEventListeners();
+            await scope.loadData();
         },
-        setupEventListeners: function () {
-            const scope = this;
-            $('#refreshBtn').on('click', function () {
-                scope.loadData(true); // Force refresh
-            });
+
+        setupEventListeners: () => {
+            const scope = _amandaDashboard;
+            $('#refreshBtn').off('click').on('click', () => scope.loadData(true));
         },
-        loadData: async function (forceRefresh = false) {
+
+        loadData: async (forceRefresh = false) => {
+            const scope = _amandaDashboard;
             try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getProductionBatches || !dataFunctions.getDashboardAlerts) {
+                    console.error('dataFunctions or dashboard methods not available');
+                    return;
+                }
                 const startTime = performance.now();
-                // Load batches and alerts in parallel (both use cache)
                 const [batches, alerts] = await Promise.all([
                     dataFunctions.getProductionBatches(null, forceRefresh).catch(() => []),
                     dataFunctions.getDashboardAlerts(null, forceRefresh).catch(() => [])
                 ]);
                 const loadTime = performance.now() - startTime;
                 console.log(`[Performance] Dashboard data loaded in ${loadTime.toFixed(2)}ms`);
-                
-                this.batches = batches || [];
-                this.alerts = alerts || [];
-                this.renderDashboard();
+
+                scope.batches = batches || [];
+                scope.alerts = alerts || [];
+                scope.renderDashboard();
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
             }
         },
-        renderDashboard: function () {
-            this.renderAlerts();
-            this.renderBatches();
+
+        renderDashboard: () => {
+            const scope = _amandaDashboard;
+            scope.renderAlerts();
+            scope.renderBatches();
         },
-        renderAlerts: function () {
+
+        renderAlerts: () => {
+            const scope = _amandaDashboard;
             const alertsSection = $('#alertsSection');
-            if (this.alerts.length === 0) {
+            if (!alertsSection.length) return;
+            if (scope.alerts.length === 0) {
                 alertsSection.html('<p class="text-muted mb-0">No active alerts</p>');
                 return;
             }
             let html = '<div class="list-group">';
-            this.alerts.forEach(alert => {
+            scope.alerts.forEach((alert) => {
                 const severityClass = alert.severity === 'critical' ? 'list-group-item-danger' :
-                                    alert.severity === 'warning' ? 'list-group-item-warning' : 'list-group-item-info';
+                    alert.severity === 'warning' ? 'list-group-item-warning' : 'list-group-item-info';
                 html += `<div class="list-group-item ${severityClass}">
                     <h6 class="mb-1">${alert.alert_title || 'Alert'}</h6>
                     <p class="mb-1">${alert.alert_message || ''}</p>
@@ -56,14 +70,17 @@ var _amandaDashboard = function () {
             html += '</div>';
             alertsSection.html(html);
         },
-        renderBatches: function () {
+
+        renderBatches: () => {
+            const scope = _amandaDashboard;
             const cardsContainer = $('#materialJourneyCards');
+            if (!cardsContainer.length) return;
             cardsContainer.empty();
-            if (this.batches.length === 0) {
+            if (scope.batches.length === 0) {
                 cardsContainer.html('<div class="col-12"><p class="text-muted text-center">No batches in system</p></div>');
                 return;
             }
-            this.batches.forEach(batch => {
+            scope.batches.forEach((batch) => {
                 const card = `<div class="col-md-6 col-lg-4 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
@@ -82,10 +99,7 @@ var _amandaDashboard = function () {
         }
     };
 }();
-const amandaDashboard = _amandaDashboard;
-function initializeAmandaDashboard() {
-    if (typeof amandaDashboard !== 'undefined') {
-        amandaDashboard.init();
-    }
-}
 
+var initializeAmandaDashboard = function () {
+    return _amandaDashboard.init();
+};
