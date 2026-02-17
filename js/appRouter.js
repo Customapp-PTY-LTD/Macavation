@@ -375,6 +375,11 @@ var _appRouter = function () {
                         initializeQualityAssuranceGrid();
                     }
                 },
+                'quality-test-modal': () => {
+                    if (typeof _modal_quality_test !== 'undefined' && _modal_quality_test.init) {
+                        _modal_quality_test.init();
+                    }
+                },
                 'stock-management-grid': () => {
                     if (typeof initializeStockManagementGrid === 'function') {
                         initializeStockManagementGrid();

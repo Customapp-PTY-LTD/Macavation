@@ -253,6 +253,13 @@
                 "css/quality_assurance_grid.css"
             ]
         },
+        "quality-test-modal": {
+            "description": "Quality Test Modal (New/Edit)",
+            "path": "modal-quality-test",
+            "html": "html/modal_quality_test.html",
+            "js": ["js/modal_quality_test.js"],
+            "css": []
+        },
         "stock-management-grid": {
             "description": "Stock Management",
             "path": "stock-management",

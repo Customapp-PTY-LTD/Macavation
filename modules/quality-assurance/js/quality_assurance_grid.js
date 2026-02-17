@@ -19,9 +19,18 @@ var _qualityAssuranceGrid = function () {
         init: async () => {
             const scope = _qualityAssuranceGrid;
             await scope.waitForReady();
+            var modalContainers = document.querySelectorAll('.modal[route-name]');
+            var loadPromises = [];
+            modalContainers.forEach(function (el) {
+                var routeName = el.getAttribute('route-name');
+                if (routeName && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                    loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: '#' + el.id }));
+                }
+            });
+            if (loadPromises.length) await Promise.all(loadPromises);
+            if (typeof _modal_quality_test !== 'undefined' && _modal_quality_test.init) _modal_quality_test.init();
             scope.setupEventListeners();
             await scope.loadTests();
-            await scope.loadUsers();
         },
 
         waitForReady: () => {
@@ -34,15 +43,7 @@ var _qualityAssuranceGrid = function () {
             const scope = _qualityAssuranceGrid;
 
             $('#addTestBtn').on('click', function () {
-                scope.showAddTestModal();
-            });
-
-            $('#saveTestBtn').on('click', function () {
-                scope.saveTest();
-            });
-
-            $('#qualityTestModal').on('hidden.bs.modal', function () {
-                scope.clearForm();
+                if (typeof _modal_quality_test !== 'undefined' && _modal_quality_test.show) _modal_quality_test.show();
             });
 
             $('#searchTestsInput').on('input', function () {
@@ -117,140 +118,11 @@ var _qualityAssuranceGrid = function () {
             });
         },
 
-        loadUsers: async () => {
-            const scope = _qualityAssuranceGrid;
-            try {
-                var users = await dataFunctions.getUsers();
-                var select = $('#testedBy');
-                var html = '<option value="">Select Tester</option>';
-                if (users && Array.isArray(users)) {
-                    users.forEach(function (user) {
-                        var name = user.email || user.username || 'Unknown';
-                        html += '<option value="' + (user.id || '') + '">' + scope.escapeHtml(name) + '</option>';
-                    });
-                }
-                select.html(html);
-            } catch (error) {
-                console.error('Error loading users:', error);
-            }
-        },
-
-        showAddTestModal: () => {
-            const scope = _qualityAssuranceGrid;
-            $('#qualityTestModalLabel').text('New Quality Test');
-            $('#testId').val('');
-            scope.clearForm();
-            var today = new Date().toISOString().split('T')[0];
-            $('#testDate').val(today);
-            $('#basic-info-tab').tab('show');
-            var qualityModal = document.getElementById('qualityTestModal');
-            if (qualityModal && typeof bootstrap !== 'undefined') {
-                var modal = new bootstrap.Modal(qualityModal);
-                modal.show();
-            } else if (!qualityModal) {
-                console.error('Quality test modal element not found!');
-            }
-        },
-
-        clearForm: () => {
-            $('#qualityTestForm')[0].reset();
-            $('#testId').val('');
-            $('#moisturePass, #ffaPass, #peroxidePass, #tasteTestPass, #smellTestPass, #appearanceTestPass').prop('checked', false);
-        },
-
-        saveTest: async () => {
-            const scope = _qualityAssuranceGrid;
-            try {
-                var form = $('#qualityTestForm')[0];
-                if (!form.checkValidity()) {
-                    form.reportValidity();
-                    return;
-                }
-                var userInfo = localStorage.getItem('user_info');
-                var testedBy = null;
-                if (userInfo) {
-                    try {
-                        var user = JSON.parse(userInfo);
-                        testedBy = user.id || $('#testedBy').val() || null;
-                    } catch (e) {
-                        testedBy = $('#testedBy').val() || null;
-                    }
-                } else {
-                    testedBy = $('#testedBy').val() || null;
-                }
-                var testData = {
-                    p_test_number: $('#testNumber').val(),
-                    p_test_type: $('#testType').val(),
-                    p_product_type: $('#productType').val() || null,
-                    p_test_date: $('#testDate').val(),
-                    p_batch_number: $('#batchNumber').val() || null,
-                    p_sample_reference: $('#sampleReference').val() || null,
-                    p_style: $('#style').val() || null,
-                    p_moisture_percentage: $('#moisturePercentage').val() ? parseFloat($('#moisturePercentage').val(), 10) : null,
-                    p_moisture_method: $('#moistureMethod').val() || null,
-                    p_moisture_pass: $('#moisturePass').is(':checked') || null,
-                    p_ffa_percentage: $('#ffaPercentage').val() ? parseFloat($('#ffaPercentage').val(), 10) : null,
-                    p_ffa_method: $('#ffaMethod').val() || null,
-                    p_ffa_pass: $('#ffaPass').is(':checked') || null,
-                    p_peroxide_value: $('#peroxideValue').val() ? parseFloat($('#peroxideValue').val(), 10) : null,
-                    p_peroxide_method: $('#peroxideMethod').val() || null,
-                    p_peroxide_pass: $('#peroxidePass').is(':checked') || null,
-                    p_taste_test_result: $('#tasteTestResult').val() || null,
-                    p_taste_test_notes: $('#tasteTestNotes').val() || null,
-                    p_taste_test_pass: $('#tasteTestPass').is(':checked') || null,
-                    p_smell_test_result: $('#smellTestResult').val() || null,
-                    p_smell_test_notes: $('#smellTestNotes').val() || null,
-                    p_smell_test_pass: $('#smellTestPass').is(':checked') || null,
-                    p_appearance_test_result: $('#appearanceTestResult').val() || null,
-                    p_appearance_test_notes: $('#appearanceTestNotes').val() || null,
-                    p_appearance_test_pass: $('#appearanceTestPass').is(':checked') || null,
-                    p_overall_result: $('#overallResult').val() || 'pending',
-                    p_overall_notes: $('#overallNotes').val() || null,
-                    p_tested_by: testedBy,
-                    p_status: $('#testStatus').val() || 'pending'
-                };
-                var testId = $('#testId').val();
-                var result;
-                if (testId) {
-                    var updatePayload = { p_test_id: testId };
-                    for (var key in testData) { if (testData.hasOwnProperty(key)) updatePayload[key] = testData[key]; }
-                    result = await dataFunctions.callFunction('update_quality_test_simple', updatePayload);
-                } else {
-                    result = await dataFunctions.callFunction('create_quality_test_simple', testData);
-                }
-                if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success',
-                            text: testId ? 'Quality test updated successfully' : 'Quality test created successfully',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    }
-                    var qualityModal = document.getElementById('qualityTestModal');
-                    if (qualityModal && typeof bootstrap !== 'undefined') {
-                        var modal = bootstrap.Modal.getInstance(qualityModal);
-                        if (modal) modal.hide();
-                    }
-                    scope.loadTests(true);
-                } else {
-                    throw new Error((result && result.error) || (result && result.message) || 'Failed to save quality test');
-                }
-            } catch (error) {
-                console.error('Error saving quality test:', error);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to save quality test: ' + error.message
-                    });
-                }
-            }
-        },
-
         viewTest: (testId) => {
-            if (typeof Swal !== 'undefined') Swal.fire('Info', 'Test details view coming soon', 'info');
+            const scope = _qualityAssuranceGrid;
+            var test = (scope.filteredTests || scope.tests || []).find(function (t) { return t.id === testId; });
+            if (typeof _modal_quality_test !== 'undefined' && _modal_quality_test.show) _modal_quality_test.show(test);
+            else if (typeof Swal !== 'undefined') Swal.fire('Info', 'Test details view coming soon', 'info');
         },
 
         exportTests: () => {
