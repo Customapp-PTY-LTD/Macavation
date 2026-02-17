@@ -217,6 +217,13 @@
                 "css/kernel_dispatch_grid.css"
             ]
         },
+        "kernel-dispatch-modal": {
+            "description": "Kernel Dispatch batch modal",
+            "path": "modal-kernel-dispatch",
+            "html": "html/modal_kernel_dispatch.html",
+            "js": ["js/modal_kernel_dispatch.js"],
+            "css": []
+        },
         "quality-assurance-grid": {
             "description": "Quality Assurance & Food Safety",
             "path": "quality-assurance",

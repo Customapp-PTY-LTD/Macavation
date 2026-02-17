@@ -33,25 +33,5 @@
     </div>
 </div>
 
-<!-- Dispatch batch modal -->
-<div class="modal fade" id="kernelDispatchModal" tabindex="-1" aria-labelledby="kernelDispatchModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="kernelDispatchModalLabel">Dispatch batch</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p class="mb-2">Record INV to customer. Batch will be marked as dispatched.</p>
-                <div class="mb-3">
-                    <label for="dispatchBatchRef" class="form-label">Customer / reference (optional)</label>
-                    <input type="text" class="form-control" id="dispatchBatchRef" placeholder="Customer or INV reference">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="confirmDispatchBtn"><i class="fas fa-truck me-1"></i>Confirm dispatch</button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Dispatch batch modal (content loaded by app router from modal-kernel-dispatch) -->
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="kernelDispatchModal" role="dialog" route-name="kernel-dispatch-modal" tabindex="-1" aria-labelledby="kernelDispatchModalLabel" aria-hidden="true"></div>
