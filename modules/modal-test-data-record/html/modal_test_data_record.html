@@ -1,0 +1,77 @@
+<div class="modal-dialog modal-xl">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="recordModalLabel">Add New Record</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="recordForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="recordDataSetId" class="form-label required">Data Set</label>
+                            <select class="form-select" id="recordDataSetId" required>
+                                <option value="">Select Data Set</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="recordEntityType" class="form-label required">Entity Type</label>
+                            <select class="form-select" id="recordEntityType" required>
+                                <option value="">Select Type</option>
+                                <option value="user">User</option>
+                                <option value="contact">Contact</option>
+                                <option value="production_batch">Production Batch</option>
+                                <option value="sample_submission">Sample Submission</option>
+                                <option value="stock_item">Stock Item</option>
+                                <option value="oil_batch">Oil Batch</option>
+                                <option value="quality_test">Quality Test</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="recordDataKey" class="form-label required">Data Key</label>
+                            <input type="text" class="form-control" id="recordDataKey" required>
+                            <small class="form-text text-muted">Unique identifier for this record within the data set</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="recordEntityId" class="form-label">Entity ID (UUID)</label>
+                            <input type="text" class="form-control" id="recordEntityId" placeholder="Optional: UUID of existing entity">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="recordPurpose" class="form-label">Purpose</label>
+                            <input type="text" class="form-control" id="recordPurpose" placeholder="e.g., login, create, update">
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="recordCleanupRequired" checked>
+                                <label class="form-check-label" for="recordCleanupRequired">
+                                    Cleanup Required
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label for="recordDataValue" class="form-label required">Data Value (JSON)</label>
+                            <textarea class="form-control font-monospace" id="recordDataValue" rows="12" required placeholder='{"username": "testuser", "email": "test@example.com"}'></textarea>
+                            <small class="form-text text-muted">Enter test data as JSON object</small>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Example:</strong> <code>{"username": "testuser", "email": "test@example.com", "role": "admin"}</code>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveRecordBtn">
+                <i class="fas fa-save me-1"></i>Save Record
+            </button>
+        </div>
+    </div>
+</div>

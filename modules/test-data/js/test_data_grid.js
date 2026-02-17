@@ -20,8 +20,6 @@ var _testDataGrid = function () {
         filteredRecords: [],
         currentPage: 1,
         itemsPerPage: 20,
-        editingDataSet: null,
-        editingRecord: null,
         searchDebounceToken: 0,
         currentFilters: {},
         activeTab: 'data-sets',
@@ -33,9 +31,29 @@ var _testDataGrid = function () {
                 scope.showAccessDenied();
                 return;
             }
-            scope.setupEventListeners();
-            await scope.loadDataSets();
-            scope.loadModulesForFilter();
+            var loadPromises = [];
+            if (typeof document !== 'undefined' && document.querySelectorAll) {
+                document.querySelectorAll('.modal[route-name]').forEach(function (el) {
+                    var routeName = el.getAttribute('route-name');
+                    var id = el.id;
+                    if (routeName && id && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                        loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: '#' + id }));
+                    }
+                });
+            }
+            if (loadPromises.length > 0) {
+                Promise.all(loadPromises).then(function () {
+                    if (typeof _modal_test_data_set !== 'undefined' && _modal_test_data_set.init) _modal_test_data_set.init();
+                    if (typeof _modal_test_data_record !== 'undefined' && _modal_test_data_record.init) _modal_test_data_record.init();
+                    scope.setupEventListeners();
+                    scope.loadDataSets();
+                    scope.loadModulesForFilter();
+                });
+            } else {
+                scope.setupEventListeners();
+                await scope.loadDataSets();
+                scope.loadModulesForFilter();
+            }
         },
 
         waitForReady: () => {
@@ -117,17 +135,27 @@ var _testDataGrid = function () {
             });
 
             $('#addDataSetBtn').on('click', function () {
-                scope.showAddDataSetModal();
+                if (typeof _modal_test_data_set !== 'undefined' && _modal_test_data_set.show) _modal_test_data_set.show();
             });
 
             $('#addRecordBtn').on('click', function () {
-                scope.showAddRecordModal();
+                if (typeof _modal_test_data_record !== 'undefined' && _modal_test_data_record.show) _modal_test_data_record.show();
             });
 
             $(document).on('click', '.edit-data-set-btn', function () {
                 const scope = _testDataGrid;
                 var setId = $(this).data('set-id');
-                scope.editDataSet(setId);
+                dataFunctions.getTestDataSetById(setId).then(function (dataSet) {
+                    if (!dataSet || (Array.isArray(dataSet) && dataSet.length === 0)) {
+                        scope.showError('Data set not found');
+                        return;
+                    }
+                    var setData = Array.isArray(dataSet) ? dataSet[0] : dataSet;
+                    if (typeof _modal_test_data_set !== 'undefined' && _modal_test_data_set.show) _modal_test_data_set.show(setData);
+                }).catch(function (error) {
+                    console.error('Error editing data set:', error);
+                    scope.showError('Error loading data set details: ' + error.message);
+                });
             });
 
             $(document).on('click', '.view-records-btn', function () {
@@ -145,7 +173,21 @@ var _testDataGrid = function () {
             $(document).on('click', '.edit-record-btn', function () {
                 const scope = _testDataGrid;
                 var recordId = $(this).data('record-id');
-                scope.editRecord(recordId);
+                if (!dataFunctions.canAccessTestManagement()) {
+                    scope.showError('You do not have permission to edit test data records.');
+                    return;
+                }
+                dataFunctions.getTestDataRecordById(recordId).then(function (record) {
+                    if (!record || (Array.isArray(record) && record.length === 0)) {
+                        scope.showError('Record not found');
+                        return;
+                    }
+                    var recordData = Array.isArray(record) ? record[0] : record;
+                    if (typeof _modal_test_data_record !== 'undefined' && _modal_test_data_record.show) _modal_test_data_record.show(recordData);
+                }).catch(function (error) {
+                    console.error('Error editing record:', error);
+                    scope.showError('Error loading record details: ' + error.message);
+                });
             });
 
             $(document).on('click', '.delete-record-btn', function () {
@@ -154,21 +196,6 @@ var _testDataGrid = function () {
                 scope.deleteRecord(recordId);
             });
 
-            $('#saveDataSetBtn').on('click', function () {
-                scope.saveDataSet();
-            });
-
-            $('#saveRecordBtn').on('click', function () {
-                scope.saveRecord();
-            });
-
-            $('#dataSetModal').on('hidden.bs.modal', function () {
-                scope.clearDataSetForm();
-            });
-
-            $('#recordModal').on('hidden.bs.modal', function () {
-                scope.clearRecordForm();
-            });
         },
 
         loadDataSets: async (forceRefresh) => {
@@ -227,17 +254,14 @@ var _testDataGrid = function () {
                 'sales-forecasting', 'financial-management', 'user-management',
                 'dashboard', 'document-management', 'palladium-integration'
             ];
-            var moduleSelects = ['filterModule', 'setModule'];
-            moduleSelects.forEach(function (selectId) {
-                var select = document.getElementById(selectId);
-                if (select) {
-                    var html = selectId === 'setModule' ? '' : '<option value="">All Modules</option>';
-                    modules.forEach(function (mod) {
-                        html += '<option value="' + mod + '">' + scope.escapeHtml(mod) + '</option>';
-                    });
-                    select.innerHTML = html;
-                }
-            });
+            var select = document.getElementById('filterModule');
+            if (select) {
+                var html = '<option value="">All Modules</option>';
+                modules.forEach(function (mod) {
+                    html += '<option value="' + mod + '">' + scope.escapeHtml(mod) + '</option>';
+                });
+                select.innerHTML = html;
+            }
         },
 
         populateDataSetSelectors: () => {
@@ -468,103 +492,6 @@ var _testDataGrid = function () {
             $('#pagination').html(paginationHtml);
         },
 
-        showAddDataSetModal: () => {
-            const scope = _testDataGrid;
-            scope.editingDataSet = null;
-            scope.clearDataSetForm();
-            $('#dataSetModalLabel').text('Add New Data Set');
-            $('#dataSetModal').modal('show');
-        },
-
-        editDataSet: async (setId) => {
-            const scope = _testDataGrid;
-            try {
-                var dataSet = await dataFunctions.getTestDataSetById(setId);
-                if (!dataSet || (Array.isArray(dataSet) && dataSet.length === 0)) {
-                    scope.showError('Data set not found');
-                    return;
-                }
-                var setData = Array.isArray(dataSet) ? dataSet[0] : dataSet;
-                scope.editingDataSet = setData;
-                scope.populateDataSetForm(setData);
-                $('#dataSetModalLabel').text('Edit Data Set');
-                $('#dataSetModal').modal('show');
-            } catch (error) {
-                console.error('Error editing data set:', error);
-                scope.showError('Error loading data set details: ' + error.message);
-            }
-        },
-
-        populateDataSetForm: (dataSet) => {
-            $('#setName').val(dataSet.set_name || '');
-            $('#setModule').val(dataSet.module || '');
-            $('#setDescription').val(dataSet.description || '');
-            $('#setScenarioIds').val(dataSet.test_scenario_ids ? JSON.stringify(dataSet.test_scenario_ids, null, 2) : '[]');
-            $('#setIsActive').prop('checked', dataSet.is_active !== false);
-        },
-
-        clearDataSetForm: () => {
-            const scope = _testDataGrid;
-            $('#dataSetForm')[0].reset();
-            $('#setScenarioIds').val('[]');
-            $('#setIsActive').prop('checked', true);
-            scope.editingDataSet = null;
-        },
-
-        saveDataSet: async () => {
-            const scope = _testDataGrid;
-            if (!dataFunctions.canAccessTestManagement()) {
-                scope.showError('You do not have permission to modify test data sets.');
-                return;
-            }
-            try {
-                var scenarioIds = [];
-                try {
-                    if ($('#setScenarioIds').val().trim()) {
-                        scenarioIds = JSON.parse($('#setScenarioIds').val());
-                    }
-                } catch (e) {
-                    scope.showError('Invalid JSON in Scenario IDs field');
-                    return;
-                }
-                var formData = {
-                    set_name: $('#setName').val().trim(),
-                    module: $('#setModule').val().trim(),
-                    description: $('#setDescription').val().trim() || null,
-                    test_scenario_ids: scenarioIds.length > 0 ? scenarioIds : null,
-                    is_active: $('#setIsActive').is(':checked')
-                };
-                if (!formData.set_name) {
-                    scope.showError('Set Name is required');
-                    return;
-                }
-                if (!formData.module) {
-                    scope.showError('Module is required');
-                    return;
-                }
-                var result;
-                if (scope.editingDataSet) {
-                    result = await dataFunctions.updateTestDataSet(scope.editingDataSet.id, formData);
-                } else {
-                    result = await dataFunctions.createTestDataSet(formData);
-                }
-                if (result && result.success) {
-                    scope.showSuccess(result.message || 'Data set saved successfully');
-                    $('#dataSetModal').modal('hide');
-                    scope.loadDataSets(true);
-                } else {
-                    scope.showError((result && result.message) || 'Error saving data set');
-                }
-            } catch (error) {
-                console.error('Error saving data set:', error);
-                if (error.message && (error.message.indexOf('403') !== -1 || error.message.toLowerCase().indexOf('permission') !== -1 || error.message.toLowerCase().indexOf('forbidden') !== -1)) {
-                    scope.showError('You do not have permission to modify test data sets.');
-                } else {
-                    scope.showError('Error saving data set: ' + error.message);
-                }
-            }
-        },
-
         deleteDataSet: (setId) => {
             const scope = _testDataGrid;
             if (!dataFunctions.canAccessTestManagement()) {
@@ -609,118 +536,6 @@ var _testDataGrid = function () {
             $('#records-tab').tab('show');
             $('#recordDataSetSelect').val(setId);
             scope.loadRecords(setId);
-        },
-
-        showAddRecordModal: () => {
-            const scope = _testDataGrid;
-            scope.editingRecord = null;
-            scope.clearRecordForm();
-            scope.populateDataSetSelectors();
-            $('#recordModalLabel').text('Add New Record');
-            $('#recordModal').modal('show');
-        },
-
-        editRecord: async (recordId) => {
-            const scope = _testDataGrid;
-            if (!dataFunctions.canAccessTestManagement()) {
-                scope.showError('You do not have permission to edit test data records.');
-                return;
-            }
-            try {
-                var record = await dataFunctions.getTestDataRecordById(recordId);
-                if (!record || (Array.isArray(record) && record.length === 0)) {
-                    scope.showError('Record not found');
-                    return;
-                }
-                var recordData = Array.isArray(record) ? record[0] : record;
-                scope.editingRecord = recordData;
-                scope.populateDataSetSelectors();
-                await delay(200);
-                scope.populateRecordForm(recordData);
-                $('#recordModalLabel').text('Edit Record');
-                $('#recordModal').modal('show');
-            } catch (error) {
-                console.error('Error editing record:', error);
-                scope.showError('Error loading record details: ' + error.message);
-            }
-        },
-
-        populateRecordForm: (record) => {
-            $('#recordDataSetId').val(record.data_set_id || '');
-            $('#recordEntityType').val(record.entity_type || '');
-            $('#recordDataKey').val(record.data_key || '');
-            $('#recordEntityId').val(record.entity_id || '');
-            $('#recordPurpose').val(record.purpose || '');
-            $('#recordCleanupRequired').prop('checked', record.cleanup_required !== false);
-            $('#recordDataValue').val(record.data_value ? JSON.stringify(record.data_value, null, 2) : '{}');
-        },
-
-        clearRecordForm: () => {
-            const scope = _testDataGrid;
-            $('#recordForm')[0].reset();
-            $('#recordDataValue').val('{}');
-            $('#recordCleanupRequired').prop('checked', true);
-            scope.editingRecord = null;
-        },
-
-        saveRecord: async () => {
-            const scope = _testDataGrid;
-            if (!dataFunctions.canAccessTestManagement()) {
-                scope.showError('You do not have permission to modify test data records.');
-                return;
-            }
-            try {
-                var dataValue = {};
-                try {
-                    if ($('#recordDataValue').val().trim()) {
-                        dataValue = JSON.parse($('#recordDataValue').val());
-                    }
-                } catch (e) {
-                    scope.showError('Invalid JSON in Data Value field');
-                    return;
-                }
-                var formData = {
-                    data_set_id: $('#recordDataSetId').val(),
-                    entity_type: $('#recordEntityType').val(),
-                    data_key: $('#recordDataKey').val().trim(),
-                    entity_id: $('#recordEntityId').val().trim() || null,
-                    data_value: dataValue,
-                    purpose: $('#recordPurpose').val().trim() || null,
-                    cleanup_required: $('#recordCleanupRequired').is(':checked')
-                };
-                if (!formData.data_set_id) {
-                    scope.showError('Data Set is required');
-                    return;
-                }
-                if (!formData.entity_type) {
-                    scope.showError('Entity Type is required');
-                    return;
-                }
-                if (!formData.data_key) {
-                    scope.showError('Data Key is required');
-                    return;
-                }
-                var result;
-                if (scope.editingRecord) {
-                    result = await dataFunctions.updateTestDataRecord(scope.editingRecord.id, formData);
-                } else {
-                    result = await dataFunctions.createTestDataRecord(formData);
-                }
-                if (result && result.success) {
-                    scope.showSuccess(result.message || 'Record saved successfully');
-                    $('#recordModal').modal('hide');
-                    scope.loadRecords();
-                } else {
-                    scope.showError((result && result.message) || 'Error saving record');
-                }
-            } catch (error) {
-                console.error('Error saving record:', error);
-                if (error.message && (error.message.indexOf('403') !== -1 || error.message.toLowerCase().indexOf('permission') !== -1 || error.message.toLowerCase().indexOf('forbidden') !== -1)) {
-                    scope.showError('You do not have permission to modify test data records.');
-                } else {
-                    scope.showError('Error saving record: ' + error.message);
-                }
-            }
         },
 
         deleteRecord: (recordId) => {

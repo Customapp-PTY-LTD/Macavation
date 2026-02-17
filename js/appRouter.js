@@ -338,6 +338,12 @@ var _appRouter = function () {
                         testDataGrid.init();
                     }
                 },
+                'test-data-set-modal': () => {
+                    if (typeof _modal_test_data_set !== 'undefined' && _modal_test_data_set.init) _modal_test_data_set.init();
+                },
+                'test-data-record-modal': () => {
+                    if (typeof _modal_test_data_record !== 'undefined' && _modal_test_data_record.init) _modal_test_data_record.init();
+                },
                 'role-permissions-grid': () => {
                     if (typeof initializeRolePermissionsGrid === 'function') {
                         initializeRolePermissionsGrid();
