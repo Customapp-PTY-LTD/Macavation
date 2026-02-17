@@ -173,7 +173,7 @@
             ]
         },
         "stock-management-kernel": {
-            "description": "Stock (Kernel)",
+            "description": "Stock (Kernel) - NIS = R NIL, KERNEL R YES",
             "path": "stock-management",
             "html": "html/stock_management_grid.html",
             "js": [
