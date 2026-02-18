@@ -91,7 +91,7 @@ var _oilProductionGrid = function () {
             var tbody = $('#oilBatchesTableBody');
             tbody.empty();
             if (scope.batches.length === 0) {
-                tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="far fa-info-circle me-2"></i>No oil production batches found. Click "New Oil Production Sheet" to create one.</td></tr>');
+                tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No oil production batches found. Click "New Oil Production Sheet" to create one.</td></tr>');
                 return;
             }
             scope.batches.forEach(function (batch) {

@@ -457,6 +457,11 @@ var _appRouter = function () {
                         initializeOilProductionGrid();
                     }
                 },
+                'oil-dispatch-grid': () => {
+                    if (typeof initializeOilDispatchGrid === 'function') {
+                        initializeOilDispatchGrid();
+                    }
+                },
                 'financial-management-grid': () => {
                     if (typeof _financialManagementGrid !== 'undefined' && _financialManagementGrid.init) _financialManagementGrid.init();
                 },

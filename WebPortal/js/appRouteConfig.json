@@ -277,6 +277,13 @@
             "js": ["js/modal_kernel_dispatch.js"],
             "css": []
         },
+        "oil-dispatch-grid": {
+            "description": "Oil & Protein Dispatch",
+            "path": "oil-dispatch",
+            "html": "html/oil_dispatch_grid.html",
+            "js": ["js/oil_dispatch_grid.js"],
+            "css": ["css/oil_dispatch_grid.css"]
+        },
         "quality-assurance-grid": {
             "description": "Quality Assurance & Food Safety",
             "path": "quality-assurance",
