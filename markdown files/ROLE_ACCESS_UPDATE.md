@@ -114,6 +114,8 @@ To verify all users have access:
 - Users without proper permissions will still get 403 errors for restricted operations
 - This change only affects **UI visibility**, not **actual data access**
 
+**Ensuring all users can use the app:** To avoid 403 errors for any authenticated user, ensure **all roles** have EXECUTE on data functions. Apply the migration **`20260218000001_grant_all_data_functions_to_all_roles.sql`** (see `markdown files/RBAC_TROUBLESHOOTING.md`). That migration grants EXECUTE on all app data functions to every role in the `roles` table, so all users have access to data functions regardless of role.
+
 To fully restrict access, you would also need to:
 1. Review backend permissions in the Lambda proxy
 2. Check role_permissions table settings

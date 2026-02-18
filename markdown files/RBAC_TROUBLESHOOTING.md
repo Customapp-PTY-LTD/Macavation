@@ -43,9 +43,9 @@ All **data functions** (listed below) have `EXECUTE` permissions for **every use
 - ✅ `KP Data Admin`
 - ✅ All PWA roles (PWA Production, PWA Quality Assurance, PWA Grower Intake, PWA Document Management, PWA Field Operations, PWA Finance, PWA Sales, PWA Stock Management)
 
-### Data functions – completely public (all roles)
+### Data functions – all users have access
 
-**Macavation Supabase:** Migration `grant_all_functions_execute_to_all_roles_public` makes **every** function in `role_permissions` executable by **every** active role. No role is excluded: admin, super_user, KP Data Admin, and all PWA roles can EXECUTE all 128+ database functions. This is the “completely public” RBAC setup.
+**Macavation Supabase:** Migration `20260218000001_grant_all_data_functions_to_all_roles` (file: `20260218000001_grant_all_data_functions_to_all_roles.sql`) makes **every** function in `role_permissions` executable by **every** active role. No role is excluded: admin, super_user, KP Data Admin, and all PWA roles can EXECUTE all 128+ database functions. This is the “completely public” RBAC setup. This ensures all users have access to data functions; after applying the migration, have users log out and log back in.
 
 Earlier migrations (still valid on other projects or for reference):
 - **Auth / user (all roles):** `get_user_by_id`, `get_user_with_permissions`, `get_roles`, `get_users`
@@ -101,7 +101,7 @@ If you see **"Could not fetch role name: Error: Access denied: operation EXECUTE
 - **`get_roles`** – used when resolving role name from `role_id`.
 - **`get_user_with_permissions`** – used by auth-service for full user/role info.
 
-On the **Macavation** Supabase project, migration `grant_get_user_by_id_and_get_roles_to_all_roles` grants EXECUTE on these three functions to every active role (admin, super_user, KP Data Admin, and all PWA roles). After applying it, **log out and log back in** so the new permissions are used.
+Apply **`20260218000001_grant_all_data_functions_to_all_roles.sql`** so that every role has EXECUTE on `get_user_by_id`, `get_roles`, `get_user_with_permissions`, and all other data functions. After applying, **log out and log back in** so the new permissions are used.
 
 ### Solution 4: Verify Database Permissions (Admin Only)
 
