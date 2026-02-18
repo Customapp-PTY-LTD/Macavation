@@ -1,0 +1,33 @@
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+            <h5 class="modal-title" id="sendToDispatchModalLabel"><i class="fas fa-truck me-2"></i>Send to Dispatch</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="sendToDispatchForm">
+                <div class="mb-3">
+                    <label for="dispatchBuyer" class="form-label required">Buyer</label>
+                    <input type="text" class="form-control" id="dispatchBuyer" placeholder="Buyer or customer name" required>
+                    <small class="text-muted">Or select from contacts below</small>
+                </div>
+                <div class="mb-3">
+                    <label for="dispatchBuyerContact" class="form-label">Buyer (from contacts)</label>
+                    <select class="form-select" id="dispatchBuyerContact">
+                        <option value="">— Select contact —</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="dispatchDeliveryDate" class="form-label required">Date of delivery</label>
+                    <input type="date" class="form-control" id="dispatchDeliveryDate" required>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="dispatchModalSelectBoxesBtn">
+                <i class="fas fa-check-square me-1"></i>Next: Select boxes
+            </button>
+        </div>
+    </div>
+</div>

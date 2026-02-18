@@ -40,10 +40,12 @@ body {
 }
 
 .navbar-brand span {
-    font-family: 'Tahoma', sans-serif;
+    font-family: "Futura PT", "Futura", "Century Gothic", sans-serif;
+    font-weight: 700;
     font-size: 1.5rem;
     letter-spacing: 1px;
-    color: var(--macadamia-dark) !important;
+    text-transform: uppercase;
+    color: #FF005E !important;
 }
 
 .navbar .nav-link {
@@ -169,9 +171,9 @@ body {
 }
 
 .sidebar {
-    background: var(--macadamia-cream) !important;
-    border: 1px solid var(--macadamia-kernel);
-    border-right: 1px solid var(--macadamia-kernel);
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: 4px 0 20px var(--shadow-warm);
 }
 
@@ -180,7 +182,7 @@ body {
         left: 1rem !important;
         top: calc(70px + 1rem) !important;
         height: calc(100vh - 70px - 2rem) !important;
-        border: 1px solid var(--macadamia-kernel) !important;
+        border: 1px solid rgba(0, 0, 0, 0.08) !important;
         border-radius: 5px;
         box-shadow: 0 10px 40px var(--shadow-warm);
     }
@@ -203,12 +205,12 @@ body {
 }
 
 .sidebar .nav-link:hover {
-    background: rgba(139, 115, 85, 0.12) !important;
+    background: var(--macadamia-cream) !important;
     color: var(--macadamia-dark) !important;
 }
 
 .sidebar .nav-link.active {
-    background: rgba(139, 115, 85, 0.18) !important;
+    background: var(--macadamia-cream) !important;
     color: var(--macadamia-dark) !important;
 }
 
@@ -226,17 +228,17 @@ body {
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link:hover {
-    background: rgba(139, 115, 85, 0.12) !important;
+    background: var(--macadamia-cream) !important;
     color: var(--macadamia-dark) !important;
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link[aria-expanded="true"] {
-    background: rgba(139, 115, 85, 0.12) !important;
+    background: var(--macadamia-cream) !important;
     color: var(--macadamia-dark) !important;
 }
 
 .sidebar-footer {
-    border-color: var(--macadamia-kernel) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
 }
 
 .sidebar-footer .btn-link {
@@ -245,7 +247,7 @@ body {
 
 .sidebar-footer .btn-link:hover {
     color: var(--macadamia-dark) !important;
-    background: rgba(139, 115, 85, 0.1) !important;
+    background: var(--macadamia-cream) !important;
 }
 
 /* Side nav scrollbar: left-aligned, only visible on hover (space reserved so buttons don't shift) */
@@ -267,7 +269,7 @@ body {
 }
 
 .sidebar .flex-grow-1:hover::-webkit-scrollbar-track {
-    background: rgba(139, 115, 85, 0.08);
+    background: rgba(139, 115, 85, 0.06);
 }
 
 .sidebar .flex-grow-1::-webkit-scrollbar-thumb {
