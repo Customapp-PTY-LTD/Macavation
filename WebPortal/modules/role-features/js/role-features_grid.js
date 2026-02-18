@@ -73,18 +73,26 @@ var _roleFeaturesGrid = function () {
                 if (typeof _modal_role_feature !== 'undefined' && _modal_role_feature.show) _modal_role_feature.show();
             });
 
-            $(document).on('click', '.feature-name-link', function (e) {
-                e.preventDefault();
-                const scope = _roleFeaturesGrid;
+            $('#exportFeaturesBtn').on('click', function () { _roleFeaturesGrid.exportFeatures(); });
+            $('#refreshFeaturesBtn').on('click', function () { _roleFeaturesGrid.refreshFeatures(); });
+            $('#clearFiltersBtn').on('click', function () { _roleFeaturesGrid.clearFilters(); });
+
+            $(document).on('click', '#featuresTableBody tr.js-feature-row', function (e) {
+                if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
                 var featureId = $(this).data('feature-id');
-                if (!featureId) return;
-                scope.editFeature(featureId);
+                if (featureId) _roleFeaturesGrid.editFeature(featureId);
             });
 
-            $(document).on('click', '.delete-feature-btn', function () {
-                const scope = _roleFeaturesGrid;
+            $(document).on('click', '.js-feature-edit', function (e) {
+                e.preventDefault();
                 var featureId = $(this).data('feature-id');
-                scope.deleteFeature(featureId);
+                if (featureId) _roleFeaturesGrid.editFeature(featureId);
+            });
+
+            $(document).on('click', '.js-feature-delete', function (e) {
+                e.preventDefault();
+                var featureId = $(this).data('feature-id');
+                if (featureId) _roleFeaturesGrid.deleteFeature(featureId);
             });
         },
 
@@ -196,19 +204,34 @@ var _roleFeaturesGrid = function () {
             var endIndex = startIndex + scope.itemsPerPage;
             var featuresToShow = scope.filteredFeatures.slice(startIndex, endIndex);
 
+            var featuresHtml = '';
             if (featuresToShow.length === 0) {
-                var emptyMessage = scope.filteredFeatures.length === 0 && scope.features.length === 0
-                    ? '<tr><td colspan="6" class="text-center py-4"><div class="text-muted"><i class="fas fa-info-circle me-2"></i>No role features found. Role features functionality is not yet implemented. Please use role_permissions for access control.</div></td></tr>'
-                    : '<tr><td colspan="6" class="text-center py-4"><div class="text-muted">No features match your search criteria.</div></td></tr>';
-                $('#featuresTableBody').html(emptyMessage);
-                $('#pagination').empty();
-                return;
+                var isEmpty = scope.filteredFeatures.length === 0;
+                featuresHtml = '<tr><td colspan="6" class="text-center text-muted py-4">' +
+                    '<i class="fas fa-info-circle me-2"></i>' +
+                    (isEmpty ? 'No role features found.' : 'No features match your search.') +
+                    '</td></tr>';
+            } else {
+                featuresHtml = featuresToShow.map(function (feature) {
+                    var featureId = scope.escapeHtml(feature.id);
+                    var dateStr = scope.formatDate(feature.created_at, 'datetime');
+                    var actionsCell = '<td>' +
+                        '<div class="dropdown">' +
+                        '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">' +
+                        '<i class="fas fa-ellipsis"></i></button>' +
+                        '<ul class="dropdown-menu dropdown-menu-end">' +
+                        '<li><a class="dropdown-item js-feature-edit" href="#" data-feature-id="' + featureId + '">Edit</a></li>' +
+                        '<li><a class="dropdown-item js-feature-delete text-danger" href="#" data-feature-id="' + featureId + '">Delete</a></li>' +
+                        '</ul></div></td>';
+                    return '<tr class="js-feature-row" data-feature-id="' + featureId + '">' +
+                        '<td>' + scope.escapeHtml(feature.feature_name || '') + '</td>' +
+                        '<td>' + scope.escapeHtml(feature.role_name || 'No Role') + '</td>' +
+                        '<td>' + scope.escapeHtml(feature.value || feature.feature_value || '') + '</td>' +
+                        '<td>' + scope.escapeHtml(feature.feature_description || '') + '</td>' +
+                        '<td>' + scope.escapeHtml(dateStr) + '</td>' +
+                        actionsCell + '</tr>';
+                }).join('');
             }
-
-            var featuresHtml = featuresToShow.map(function (feature) {
-                var dateStr = scope.formatDate(feature.created_at, 'datetime');
-                return '<tr><td><a href="#" class="feature-name-link text-decoration-none" data-feature-id="' + scope.escapeHtml(feature.id) + '">' + scope.escapeHtml(feature.feature_name) + '</a></td><td>' + scope.escapeHtml(feature.role_name || 'No Role') + '</td><td>' + scope.escapeHtml(feature.value || feature.feature_value || '') + '</td><td>' + scope.escapeHtml(feature.feature_description || '') + '</td><td>' + scope.escapeHtml(dateStr) + '</td><td><button class="btn btn-sm btn-outline-danger delete-feature-btn" data-feature-id="' + scope.escapeHtml(feature.id) + '"><i class="fas fa-trash"></i></button></td></tr>';
-            }).join('');
             $('#featuresTableBody').html(featuresHtml);
             scope.renderPagination();
         },
@@ -220,21 +243,32 @@ var _roleFeaturesGrid = function () {
                 $('#pagination').empty();
                 return;
             }
-            var paginationHtml = '<nav><ul class="pagination justify-content-center">';
-            if (scope.currentPage > 1) {
-                paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + (scope.currentPage - 1) + '">Previous</a></li>';
+            var current = scope.currentPage;
+            var paginationHtml = '';
+            paginationHtml += '<li class="page-item' + (current <= 1 ? ' disabled' : '') + '">';
+            paginationHtml += current <= 1 ? '<span class="page-link">Previous</span>' : '<a class="page-link" href="#" data-page="' + (current - 1) + '">Previous</a>';
+            paginationHtml += '</li>';
+            var delta = 2;
+            var left = Math.max(1, current - delta);
+            var right = Math.min(totalPages, current + delta);
+            if (left > 1) {
+                paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>';
+                if (left > 2) paginationHtml += '<li class="page-item disabled"><span class="page-link">…</span></li>';
             }
-            for (var i = 1; i <= totalPages; i++) {
-                if (i === scope.currentPage) {
+            for (var i = left; i <= right; i++) {
+                if (i === current) {
                     paginationHtml += '<li class="page-item active"><span class="page-link">' + i + '</span></li>';
                 } else {
                     paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + i + '">' + i + '</a></li>';
                 }
             }
-            if (scope.currentPage < totalPages) {
-                paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + (scope.currentPage + 1) + '">Next</a></li>';
+            if (right < totalPages) {
+                if (right < totalPages - 1) paginationHtml += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+                paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + totalPages + '">' + totalPages + '</a></li>';
             }
-            paginationHtml += '</ul></nav>';
+            paginationHtml += '<li class="page-item' + (current >= totalPages ? ' disabled' : '') + '">';
+            paginationHtml += current >= totalPages ? '<span class="page-link">Next</span>' : '<a class="page-link" href="#" data-page="' + (current + 1) + '">Next</a>';
+            paginationHtml += '</li>';
             $('#pagination').html(paginationHtml);
         },
 
@@ -276,7 +310,7 @@ var _roleFeaturesGrid = function () {
         },
 
         showLoading: () => {
-            $('#featuresTableBody').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>');
+            $('#featuresTableBody').html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading features...</td></tr>');
         },
 
         hideLoading: () => {},
