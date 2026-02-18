@@ -44,6 +44,22 @@ var _oilProductionGrid = function () {
                 e.preventDefault();
                 if (typeof _modal_oil_production_sheet !== 'undefined' && _modal_oil_production_sheet.show) _modal_oil_production_sheet.show();
             });
+            $('#exportOilBatchesBtn').off('click').on('click', function () { scope.exportBatches(); });
+            $(document).on('click', '#oilBatchesTableBody tr.js-oil-batch-row', function (e) {
+                if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
+                var batchId = $(this).data('batch-id');
+                if (batchId && scope.editBatch) scope.editBatch(batchId);
+            });
+            $(document).on('click', '.js-oil-batch-view', function (e) {
+                e.preventDefault();
+                var batchId = $(this).data('batch-id');
+                if (batchId && scope.viewBatch) scope.viewBatch(batchId);
+            });
+            $(document).on('click', '.js-oil-batch-edit', function (e) {
+                e.preventDefault();
+                var batchId = $(this).data('batch-id');
+                if (batchId && scope.editBatch) scope.editBatch(batchId);
+            });
         },
 
         loadBatches: async (forceRefresh) => {
@@ -75,22 +91,26 @@ var _oilProductionGrid = function () {
             var tbody = $('#oilBatchesTableBody');
             tbody.empty();
             if (scope.batches.length === 0) {
-                tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No oil production batches found. Click "New Oil Production Sheet" to create one.</td></tr>');
+                tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="far fa-info-circle me-2"></i>No oil production batches found. Click "New Oil Production Sheet" to create one.</td></tr>');
                 return;
             }
             scope.batches.forEach(function (batch) {
                 var dateStr = scope.formatDate(batch.production_date);
-                var row = '<tr>' +
+                var bid = scope.escapeHtml(String(batch.id));
+                var actionsCell = '<div class="dropdown">' +
+                    '<button class="btn btn-sm btn-outline-secondary" type="button" id="oilBatchActions' + bid + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
+                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="oilBatchActions' + bid + '">' +
+                    '<a class="dropdown-item js-oil-batch-view" href="#" data-batch-id="' + bid + '">View</a>' +
+                    '<a class="dropdown-item js-oil-batch-edit" href="#" data-batch-id="' + bid + '">Edit</a>' +
+                    '</ul></div>';
+                var row = '<tr class="js-oil-batch-row" data-batch-id="' + bid + '">' +
+                    '<td>' + scope.escapeHtml(batch.batch_number || 'N/A') + '</td>' +
                     '<td>' + scope.escapeHtml(dateStr || 'N/A') + '</td>' +
                     '<td>' + scope.escapeHtml(batch.shift || 'N/A') + '</td>' +
-                    '<td>' + scope.escapeHtml(batch.batch_number || 'N/A') + '</td>' +
                     '<td>' + scope.escapeHtml(batch.product_name || 'N/A') + '</td>' +
                     '<td>' + scope.escapeHtml(String(batch.total_oil_litre || '0')) + '</td>' +
                     '<td><span class="badge bg-info">' + scope.escapeHtml(batch.status || 'pending') + '</span></td>' +
-                    '<td>' +
-                    '<button class="btn btn-sm btn-outline-primary" onclick="oilProductionGrid.viewBatch(\'' + scope.escapeHtml(batch.id) + '\')"><i class="fas fa-eye"></i></button> ' +
-                    '<button class="btn btn-sm btn-outline-secondary" onclick="oilProductionGrid.editBatch(\'' + scope.escapeHtml(batch.id) + '\')"><i class="fas fa-edit"></i></button>' +
-                    '</td></tr>';
+                    '<td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
         },

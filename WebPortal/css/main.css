@@ -411,108 +411,120 @@ h1, h2, h3, h4, h5, h6,
     overflow-x: hidden;
 }
 
-.sidebar.collapsed .nav-link {
-    justify-content: center;
-    padding: 0.65rem 0.5rem;
-    text-align: center;
+/* Collapsed: flex chain so scroll area gets a fixed height and can scroll */
+.sidebar.collapsed .d-flex.flex-column.h-100 {
+    min-height: 0 !important;
 }
 
-.sidebar.collapsed .nav-link i {
-    margin-right: 0 !important;
-    margin-left: 0 !important;
+/* Collapsed: ensure LTR so all main menu icons are visible (index.css uses rtl for scrollbar) */
+.sidebar.collapsed .flex-grow-1,
+.sidebar.collapsed .flex-grow-1 > ul {
+    direction: ltr !important;
 }
 
-.sidebar.collapsed .nav-link .fa-chevron-down {
+/* Scrollable area when collapsed: take remaining height and scroll so all main menu icons are reachable */
+.sidebar.collapsed .flex-grow-1 {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Visible scrollbar when collapsed so user can scroll to see all icons */
+.sidebar.collapsed .flex-grow-1::-webkit-scrollbar {
+    width: 5px;
+}
+.sidebar.collapsed .flex-grow-1::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 3px;
+}
+.sidebar.collapsed .flex-grow-1::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar.collapsed .flex-grow-1 > ul.nav {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* When collapsed, show all 14 main menu icons (override #sidebarMenu .nav-item and menu-filter) */
+#sidebarMenu.sidebar.collapsed .flex-grow-1 > ul > .nav-item {
+    display: list-item !important;
+}
+
+/* Main menu links: one row per icon only; hide all text so only icons appear when collapsed */
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    min-height: 2.5rem !important;
+    padding: 0.4rem 0.5rem 0.4rem 0.75rem !important;
+    margin: 0 !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+}
+
+/* Main icon only: fixed size and column so no overlay */
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link > i:first-of-type {
+    width: 1.375rem !important;
+    min-width: 1.375rem !important;
+    margin: 0 !important;
+    font-size: 1.125rem !important;
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link .fa-chevron-down,
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link .fa-chevron-right {
     display: none !important;
 }
 
-.sidebar.collapsed .collapse .nav-link {
-    padding-left: 1.25rem !important;
-    padding-right: 1rem !important;
-    font-size: 0.9rem;
-    white-space: nowrap;
-    margin: 0.1rem 0 !important;
-    color: rgba(255, 255, 255, 0.7) !important;
-    text-align: left !important;
-    justify-content: flex-start !important;
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link:not([data-bs-toggle="collapse"])::after {
+    content: '' !important;
+    display: none !important;
 }
 
-.sidebar.collapsed .collapse .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    color: #fff !important;
+/* Chevron for expandable items: fixed position so it doesn’t overlay the icon */
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link[data-bs-toggle="collapse"] {
+    position: relative !important;
+    padding-right: 1.5rem !important;
 }
 
-.sidebar.collapsed .collapse .nav-link i {
-    font-size: 0.9rem;
-    margin-right: 0.75rem !important;
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link[data-bs-toggle="collapse"]::after {
+    content: '\f054';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute !important;
+    right: 0.4rem !important;
+    top: 50% !important;
+    transform: translateY(-50%);
+    font-size: 0.6rem !important;
+    opacity: 0.75;
+    transition: transform 0.3s ease;
 }
 
-/* Hide text content in collapsed sidebar */
-.sidebar.collapsed .nav-link::after {
-    content: '';
-}
-
-/* Hide all text nodes and non-icon elements when collapsed */
-.sidebar.collapsed .nav-link {
-    font-size: 0;
-}
-
-.sidebar.collapsed .nav-link i {
-    font-size: 1rem;
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link[data-bs-toggle="collapse"][aria-expanded="true"]::after {
+    transform: translateY(-50%) rotate(90deg);
+    opacity: 1;
 }
 
 .sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) {
     position: static;
 }
 
-/* When sidebar is collapsed, hide inline submenu and show as panel */
+/* Submenus under chevron: remain hidden when collapsed */
 .sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) > .collapse {
-    position: fixed !important;
-    left: 70px !important;
-    top: auto !important;
-    background-color: var(--theme-sidebar-bg) !important;
-    min-width: 220px !important;
-    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.25) !important;
-    border-radius: 0 !important;
-    padding: 0.5rem 0 !important;
-    z-index: 102 !important;
     display: none !important;
-    margin-left: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    border: none !important;
 }
 
-/* When sidebar is collapsed, do not show floating submenu panels (removes brown boxes) */
 .sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) > .collapse.show {
     display: none !important;
-}
-
-.sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) > .collapse ul {
-    margin: 0 !important;
-    padding: 0 !important;
-    list-style: none !important;
-    margin-left: 0 !important;
-}
-
-.sidebar.collapsed .nav-link[data-bs-toggle="collapse"] {
-    position: relative;
-}
-
-.sidebar.collapsed .nav-link[data-bs-toggle="collapse"]::after {
-    content: '\f054';
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    position: absolute;
-    right: 0.5rem;
-    font-size: 0.75rem;
-    transition: transform 0.3s ease;
-    opacity: 0.7;
-}
-
-.sidebar.collapsed .nav-link[data-bs-toggle="collapse"][aria-expanded="true"]::after {
-    transform: rotate(90deg);
-    opacity: 1;
 }
 
 /* Sidebar Footer */
