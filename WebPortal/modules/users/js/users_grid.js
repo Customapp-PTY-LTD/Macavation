@@ -73,18 +73,26 @@ var _usersGrid = function () {
                 if (typeof _modal_user !== 'undefined' && _modal_user.show) _modal_user.show();
             });
 
-            $(document).on('click', '.user-name-link', function (e) {
-                e.preventDefault();
-                const scope = _usersGrid;
+            $('#exportUsersBtn').on('click', function () { _usersGrid.exportUsers(); });
+            $('#refreshUsersBtn').on('click', function () { _usersGrid.refreshUsers(); });
+            $('#clearFiltersBtn').on('click', function () { _usersGrid.clearFilters(); });
+
+            $(document).on('click', '#usersTableBody tr.js-user-row', function (e) {
+                if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
                 const userId = $(this).data('user-id');
-                if (!userId) return;
-                scope.editUser(userId);
+                if (userId) _usersGrid.editUser(userId);
             });
 
-            $(document).on('click', '.delete-user-btn', function () {
-                const scope = _usersGrid;
+            $(document).on('click', '.js-user-edit', function (e) {
+                e.preventDefault();
                 const userId = $(this).data('user-id');
-                scope.deleteUser(userId);
+                if (userId) _usersGrid.editUser(userId);
+            });
+
+            $(document).on('click', '.js-user-deactivate', function (e) {
+                e.preventDefault();
+                const userId = $(this).data('user-id');
+                if (userId) _usersGrid.deleteUser(userId);
             });
         },
 
@@ -156,21 +164,35 @@ var _usersGrid = function () {
             const endIndex = startIndex + scope.itemsPerPage;
             const usersToShow = scope.filteredUsers.slice(startIndex, endIndex);
 
-            const usersHtml = usersToShow.map(function (user) {
-                const avatarHtml = scope.generateAvatar(user);
-                const rawName = (user.first_name || '') + ' ' + (user.last_name || '');
-                const fullName = rawName.trim() || user.username || 'Unknown User';
-                return (
-                    '<tr>' +
-                    '<td><input type="checkbox" class="user-checkbox" data-user-id="' + scope.escapeHtml(user.id) + '"></td>' +
-                    '<td><div class="d-flex align-items-center">' + avatarHtml +
-                    '<a href="#" class="user-name-link text-decoration-none ms-2" data-user-id="' + scope.escapeHtml(user.id) + '">' + scope.escapeHtml(fullName) + '</a></div></td>' +
-                    '<td>' + scope.escapeHtml(user.email || '') + '</td>' +
-                    '<td>' + scope.escapeHtml(user.role_name || 'No Role') + '</td>' +
-                    '<td><button class="btn btn-sm btn-outline-danger delete-user-btn" data-user-id="' + scope.escapeHtml(user.id) + '"><i class="fas fa-trash"></i></button></td>' +
-                    '</tr>'
-                );
-            }).join('');
+            let usersHtml = '';
+            if (usersToShow.length === 0) {
+                const isEmpty = scope.filteredUsers.length === 0;
+                usersHtml = '<tr><td colspan="4" class="text-center text-muted py-4">' +
+                    '<i class="fas fa-info-circle me-2"></i>' +
+                    (isEmpty ? 'No users found.' : 'No users match your search.') +
+                    '</td></tr>';
+            } else {
+                usersHtml = usersToShow.map(function (user) {
+                    const avatarHtml = scope.generateAvatar(user);
+                    const rawName = (user.first_name || '') + ' ' + (user.last_name || '');
+                    const fullName = rawName.trim() || user.username || 'Unknown User';
+                    const userId = scope.escapeHtml(user.id);
+                    const actionsCell = '<td>' +
+                        '<div class="dropdown">' +
+                        '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">' +
+                        '<i class="fas fa-ellipsis"></i></button>' +
+                        '<ul class="dropdown-menu dropdown-menu-end">' +
+                        '<li><a class="dropdown-item js-user-edit" href="#" data-user-id="' + userId + '">Edit</a></li>' +
+                        '<li><a class="dropdown-item js-user-deactivate text-danger" href="#" data-user-id="' + userId + '">Deactivate</a></li>' +
+                        '</ul></div></td>';
+                    return '<tr class="js-user-row" data-user-id="' + userId + '">' +
+                        '<td><div class="d-flex align-items-center">' + avatarHtml +
+                        '<span class="ms-2">' + scope.escapeHtml(fullName) + '</span></div></td>' +
+                        '<td>' + scope.escapeHtml(user.email || '') + '</td>' +
+                        '<td>' + scope.escapeHtml(user.role_name || 'No Role') + '</td>' +
+                        actionsCell + '</tr>';
+                }).join('');
+            }
 
             $('#usersTableBody').html(usersHtml);
             scope.renderPagination();
@@ -260,7 +282,7 @@ var _usersGrid = function () {
         },
 
         showLoading: () => {
-            $('#usersTableBody').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>');
+            $('#usersTableBody').html('<tr><td colspan="4" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading users...</td></tr>');
         },
 
         hideLoading: () => {},
