@@ -58,10 +58,11 @@ var _modal_production_stages = function () {
                 e.preventDefault();
                 scope.finishBatchProduction();
             });
-            $(document).on('change input', '#ps_crack_start1, #ps_crack_end1, #ps_crack_start2, #ps_crack_end2', function () {
-                var id = this.id;
-                if (id === 'ps_crack_start1' || id === 'ps_crack_end1') scope.updateCrackTimeSpentRow(1);
-                if (id === 'ps_crack_start2' || id === 'ps_crack_end2') scope.updateCrackTimeSpentRow(2);
+            $(document).on('change input', '#ps_crack_start1, #ps_crack_end1', function () {
+                scope.updateCrackTimeSpentRow(1);
+            });
+            $(document).on('change input', '#ps_wash_waste_saltpepper, #ps_wash_waste_shellfines, #ps_wash_waste_compost', function () {
+                scope.updateWashWasteTotal();
             });
             $('#productionStagesModal').off('shown.bs.modal').on('shown.bs.modal', function () {
                 var container = document.getElementById('productionStagesModal');
@@ -129,8 +130,7 @@ var _modal_production_stages = function () {
         updateCrackTotalTime: () => {
             const scope = _modal_production_stages;
             var m1 = scope.parseTimeSpentToMinutes($('#ps_crack_timespent1').val());
-            var m2 = scope.parseTimeSpentToMinutes($('#ps_crack_timespent2').val());
-            var totalM = m1 + m2;
+            var totalM = m1;
             var h = Math.floor(totalM / 60);
             var m = totalM % 60;
             var totalEl = $('#ps_crack_totaltime');
@@ -138,6 +138,14 @@ var _modal_production_stages = function () {
             else if (h === 0) totalEl.val(m + 'm');
             else if (m === 0) totalEl.val(h + 'h');
             else totalEl.val(h + 'h ' + m + 'm');
+        },
+
+        updateWashWasteTotal: () => {
+            var a = parseFloat($('#ps_wash_waste_saltpepper').val()) || 0;
+            var b = parseFloat($('#ps_wash_waste_shellfines').val()) || 0;
+            var c = parseFloat($('#ps_wash_waste_compost').val()) || 0;
+            var total = a + b + c;
+            $('#ps_wash_waste_total').val(total === 0 ? '' : total);
         },
 
         getProductionStagesSectionData: (prefix) => {
@@ -172,6 +180,7 @@ var _modal_production_stages = function () {
                 }
                 }
             });
+            if (prefix === 'wash') scope.updateWashWasteTotal();
         },
 
         ensureSelectHasOption: (selectEl, value) => {
@@ -192,7 +201,7 @@ var _modal_production_stages = function () {
 
         populateProductionGrowerSelects: (selectedGrowerName) => {
             const scope = _modal_production_stages;
-            var ids = ['ps_crack_grower', 'ps_sort_grower', 'ps_pack_grower'];
+            var ids = ['ps_sort_grower', 'ps_pack_grower'];
             var html = '<option value="">Select grower</option>';
             var p = dataFunctions.getContacts && dataFunctions.getContacts();
             return p ? p.then(function (contacts) {
@@ -545,7 +554,6 @@ var _modal_production_stages = function () {
             scope.clearProductionStagesForm();
             var dateVal = batch.received_date ? (batch.received_date.toString().split('T')[0]) : (new Date().toISOString().split('T')[0]);
             $('#ps_crack_date').val(fromISO(dateVal));
-            $('#ps_crack_batch1').val(batch.batch_number || '');
             var days = batch.productionDays && batch.productionDays.length ? batch.productionDays : [];
             var loadDays = days.length === 0 && dataFunctions.getKernelProductionDays ? dataFunctions.getKernelProductionDays(batchId) : Promise.resolve(days);
             loadDays.then(function (raw) {
