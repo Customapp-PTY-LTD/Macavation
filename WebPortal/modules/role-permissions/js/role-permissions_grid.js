@@ -54,7 +54,7 @@ var _rolePermissionsGrid = function () {
                 });
             });
 
-            $('#filterRole, #filterObjectType, #filterOperation, #filterStatus').on('change', function () {
+            $('#filterRole, #filterObjectType, #filterPermission, #filterStatus').on('change', function () {
                 scope.filterPermissions();
             });
 
@@ -72,18 +72,26 @@ var _rolePermissionsGrid = function () {
                 if (typeof _modal_role_permission !== 'undefined' && _modal_role_permission.show) _modal_role_permission.show();
             });
 
-            $(document).on('click', '.object-name-link', function (e) {
-                e.preventDefault();
-                const scope = _rolePermissionsGrid;
+            $('#exportPermissionsBtn').on('click', function () { _rolePermissionsGrid.exportPermissions(); });
+            $('#refreshPermissionsBtn').on('click', function () { _rolePermissionsGrid.refreshPermissions(); });
+            $('#clearFiltersBtn').on('click', function () { _rolePermissionsGrid.clearFilters(); });
+
+            $(document).on('click', '#permissionsTableBody tr.js-permission-row', function (e) {
+                if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
                 var permissionId = $(this).data('permission-id');
-                if (!permissionId) return;
-                scope.editPermission(permissionId);
+                if (permissionId) _rolePermissionsGrid.editPermission(permissionId);
             });
 
-            $(document).on('click', '.delete-permission-btn', function () {
-                const scope = _rolePermissionsGrid;
+            $(document).on('click', '.js-permission-edit', function (e) {
+                e.preventDefault();
                 var permissionId = $(this).data('permission-id');
-                scope.deletePermission(permissionId);
+                if (permissionId) _rolePermissionsGrid.editPermission(permissionId);
+            });
+
+            $(document).on('click', '.js-permission-delete', function (e) {
+                e.preventDefault();
+                var permissionId = $(this).data('permission-id');
+                if (permissionId) _rolePermissionsGrid.deletePermission(permissionId);
             });
         },
 
@@ -129,7 +137,7 @@ var _rolePermissionsGrid = function () {
                     searchTerm: $('#searchInput').val().trim() || null,
                     roleId: $('#filterRole').val() || null,
                     objectType: $('#filterObjectType').val() || null,
-                    operation: $('#filterOperation').val() || null,
+                    operation: $('#filterPermission').val() || null,
                     isActive: $('#filterStatus').val() ? ($('#filterStatus').val() === 'active') : null
                 };
                 Object.keys(filters).forEach(function (key) {
@@ -153,9 +161,33 @@ var _rolePermissionsGrid = function () {
             var startIndex = (scope.currentPage - 1) * scope.itemsPerPage;
             var endIndex = startIndex + scope.itemsPerPage;
             var permissionsToShow = scope.filteredPermissions.slice(startIndex, endIndex);
-            var permissionsHtml = permissionsToShow.map(function (permission) {
-                return '<tr><td><a href="#" class="object-name-link text-decoration-none" data-permission-id="' + scope.escapeHtml(permission.id) + '">' + scope.escapeHtml(permission.object_name) + '</a></td><td>' + scope.escapeHtml(permission.role_name || 'No Role') + '</td><td>' + scope.escapeHtml(permission.object_type || '') + '</td><td>' + scope.escapeHtml(permission.operation || '') + '</td><td><button class="btn btn-sm btn-outline-danger delete-permission-btn" data-permission-id="' + scope.escapeHtml(permission.id) + '"><i class="fas fa-trash"></i></button></td></tr>';
-            }).join('');
+
+            var permissionsHtml = '';
+            if (permissionsToShow.length === 0) {
+                var isEmpty = scope.filteredPermissions.length === 0;
+                permissionsHtml = '<tr><td colspan="5" class="text-center text-muted py-4">' +
+                    '<i class="fas fa-info-circle me-2"></i>' +
+                    (isEmpty ? 'No permissions found.' : 'No permissions match your search.') +
+                    '</td></tr>';
+            } else {
+                permissionsHtml = permissionsToShow.map(function (permission) {
+                    var permId = scope.escapeHtml(permission.id);
+                    var actionsCell = '<td>' +
+                        '<div class="dropdown">' +
+                        '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">' +
+                        '<i class="fas fa-ellipsis"></i></button>' +
+                        '<ul class="dropdown-menu dropdown-menu-end">' +
+                        '<li><a class="dropdown-item js-permission-edit" href="#" data-permission-id="' + permId + '">Edit</a></li>' +
+                        '<li><a class="dropdown-item js-permission-delete text-danger" href="#" data-permission-id="' + permId + '">Delete</a></li>' +
+                        '</ul></div></td>';
+                    return '<tr class="js-permission-row" data-permission-id="' + permId + '">' +
+                        '<td>' + scope.escapeHtml(permission.object_name || '') + '</td>' +
+                        '<td>' + scope.escapeHtml(permission.role_name || 'No Role') + '</td>' +
+                        '<td>' + scope.escapeHtml(permission.object_type || '') + '</td>' +
+                        '<td>' + scope.escapeHtml(permission.operation || '') + '</td>' +
+                        actionsCell + '</tr>';
+                }).join('');
+            }
             $('#permissionsTableBody').html(permissionsHtml);
             scope.renderPagination();
         },
@@ -167,21 +199,34 @@ var _rolePermissionsGrid = function () {
                 $('#pagination').empty();
                 return;
             }
-            var paginationHtml = '<nav><ul class="pagination justify-content-center">';
-            if (scope.currentPage > 1) {
-                paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + (scope.currentPage - 1) + '">Previous</a></li>';
+            var current = scope.currentPage;
+            var paginationHtml = '';
+
+            paginationHtml += '<li class="page-item' + (current <= 1 ? ' disabled' : '') + '">';
+            paginationHtml += current <= 1 ? '<span class="page-link">Previous</span>' : '<a class="page-link" href="#" data-page="' + (current - 1) + '">Previous</a>';
+            paginationHtml += '</li>';
+
+            var delta = 2;
+            var left = Math.max(1, current - delta);
+            var right = Math.min(totalPages, current + delta);
+            if (left > 1) {
+                paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>';
+                if (left > 2) paginationHtml += '<li class="page-item disabled"><span class="page-link">…</span></li>';
             }
-            for (var i = 1; i <= totalPages; i++) {
-                if (i === scope.currentPage) {
+            for (var i = left; i <= right; i++) {
+                if (i === current) {
                     paginationHtml += '<li class="page-item active"><span class="page-link">' + i + '</span></li>';
                 } else {
                     paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + i + '">' + i + '</a></li>';
                 }
             }
-            if (scope.currentPage < totalPages) {
-                paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + (scope.currentPage + 1) + '">Next</a></li>';
+            if (right < totalPages) {
+                if (right < totalPages - 1) paginationHtml += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+                paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + totalPages + '">' + totalPages + '</a></li>';
             }
-            paginationHtml += '</ul></nav>';
+            paginationHtml += '<li class="page-item' + (current >= totalPages ? ' disabled' : '') + '">';
+            paginationHtml += current >= totalPages ? '<span class="page-link">Next</span>' : '<a class="page-link" href="#" data-page="' + (current + 1) + '">Next</a>';
+            paginationHtml += '</li>';
             $('#pagination').html(paginationHtml);
         },
 
@@ -223,7 +268,7 @@ var _rolePermissionsGrid = function () {
         },
 
         showLoading: () => {
-            $('#permissionsTableBody').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>');
+            $('#permissionsTableBody').html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading permissions...</td></tr>');
         },
 
         hideLoading: () => {},
@@ -264,7 +309,7 @@ var _rolePermissionsGrid = function () {
             $('#searchInput').val('');
             $('#filterRole').val('');
             $('#filterObjectType').val('');
-            $('#filterOperation').val('');
+            $('#filterPermission').val('');
             $('#filterStatus').val('');
             scope.filterPermissions();
         },
