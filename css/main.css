@@ -39,11 +39,11 @@
     --theme-navbar-gradient: linear-gradient(135deg, #927325, #B0DCE7);
     --theme-accent: #B0DCE7;
     
-    /* Static Variables – Cut-throat / boxy (sharp corners) */
-    --phoenix-border-radius: 0;
-    --phoenix-radius-sm: 0;
-    --phoenix-radius-md: 0;
-    --phoenix-radius-lg: 0;
+    /* Static Variables – slightly sharp corners (5px) */
+    --phoenix-border-radius: 5px;
+    --phoenix-radius-sm: 4px;
+    --phoenix-radius-md: 5px;
+    --phoenix-radius-lg: 6px;
     --phoenix-box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     --phoenix-box-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
     --phoenix-transition: all 0.15s ease-in-out;
@@ -90,7 +90,7 @@
     border-radius: var(--phoenix-border-radius) !important;
 }
 
-/* All cards and their parts – sharp corners everywhere */
+/* All cards and their parts – consistent radius */
 .card,
 .card .card-header,
 .card .card-footer,
@@ -102,17 +102,17 @@
 .module-card,
 .dashboard-container .card,
 [class*="-card"] {
-    border-radius: 0 !important;
+    border-radius: var(--phoenix-border-radius) !important;
 }
 .card .card-header:first-child,
 .card .card-img-top:first-child {
-    border-top-left-radius: 0 !important;
-    border-top-right-radius: 0 !important;
+    border-top-left-radius: var(--phoenix-border-radius) !important;
+    border-top-right-radius: var(--phoenix-border-radius) !important;
 }
 .card .card-footer:last-child,
 .card .card-img-bottom:last-child {
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
+    border-bottom-left-radius: var(--phoenix-border-radius) !important;
+    border-bottom-right-radius: var(--phoenix-border-radius) !important;
 }
 
 /* All input boxes – sharp corners */
@@ -131,13 +131,13 @@ select,
     border-radius: 0 !important;
 }
 
-/* All buttons – sharp corners (except .rounded-pill) */
+/* All buttons – consistent radius (except .rounded-pill) */
 button,
 .btn:not(.rounded-pill),
 .btn-sm:not(.rounded-pill),
 .btn-lg:not(.rounded-pill),
 .btn-group .btn {
-    border-radius: 0 !important;
+    border-radius: var(--phoenix-border-radius) !important;
 }
 
 /* All tables and table headers – sharp corners */
@@ -158,12 +158,12 @@ thead th,
     border-top-right-radius: 0 !important;
 }
 
-/* All dropdowns – sharp corners */
+/* All dropdowns – consistent radius */
 .dropdown-menu,
 .dropdown-menu .dropdown-header,
 .dropdown-menu .dropdown-item:first-child,
 .dropdown-menu .dropdown-item:last-child {
-    border-radius: 0 !important;
+    border-radius: var(--phoenix-border-radius) !important;
 }
 
 /* All modals – sharp corners (header and content) */

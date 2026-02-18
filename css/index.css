@@ -15,7 +15,7 @@
 
 body {
     font-family: var(--phoenix-font-sans-serif);
-    background: #FFFFFF;
+    background: #F5F5F5;
 }
 
 /* Navbar Styling – white header */
@@ -57,7 +57,7 @@ body {
 .navbar .dropdown-menu {
     background: white;
     border: 1px solid var(--macadamia-kernel);
-    border-radius: 0;
+    border-radius: 5px;
     box-shadow: 0 10px 40px var(--shadow-warm);
 }
 
@@ -85,15 +85,15 @@ body {
     margin-right: 0.75rem;
 }
 
-/* User dropdown card – bigger, sharp corners */
+/* User dropdown card – bigger, consistent radius */
 .user-dropdown-card {
     min-width: 320px;
     padding: 0;
-    border-radius: 0 !important;
+    border-radius: 5px !important;
 }
 
 .user-dropdown-card .dropdown-header {
-    border-radius: 0;
+    border-radius: 5px;
 }
 
 .user-dropdown-profile {
@@ -146,14 +146,14 @@ body {
 .user-dropdown-info {
     background: var(--macadamia-cream);
     padding: 0.5rem 0.75rem;
-    border-radius: 0;
+    border-radius: 5px;
 }
 
 .user-dropdown-signout {
     background: #dc3545 !important;
     border: none !important;
     color: #fff !important;
-    border-radius: 0 !important;
+    border-radius: 5px !important;
     font-weight: 500;
 }
 
@@ -169,9 +169,9 @@ body {
 }
 
 .sidebar {
-    background: #ffffff !important;
-    border: 2px solid var(--forest-deep);
-    border-right: 2px solid var(--forest-deep);
+    background: var(--macadamia-cream) !important;
+    border: 1px solid var(--macadamia-kernel);
+    border-right: 1px solid var(--macadamia-kernel);
     box-shadow: 4px 0 20px var(--shadow-warm);
 }
 
@@ -180,8 +180,8 @@ body {
         left: 1rem !important;
         top: calc(70px + 1rem) !important;
         height: calc(100vh - 70px - 2rem) !important;
-        border: 2px solid var(--forest-deep) !important;
-        border-radius: 12px;
+        border: 1px solid var(--macadamia-kernel) !important;
+        border-radius: 5px;
         box-shadow: 0 10px 40px var(--shadow-warm);
     }
 
@@ -191,25 +191,25 @@ body {
 
     .sidebar.collapsed {
         width: 70px !important;
-        border-radius: 12px;
+        border-radius: 5px;
     }
 }
 
 .sidebar .nav-link {
     color: var(--macadamia-dark) !important;
-    border-radius: 8px;
+    border-radius: 5px;
     margin: 2px 8px;
     transition: all 0.3s ease;
 }
 
 .sidebar .nav-link:hover {
-    background: rgba(45, 74, 62, 0.08) !important;
-    color: var(--forest-deep) !important;
+    background: rgba(139, 115, 85, 0.12) !important;
+    color: var(--macadamia-dark) !important;
 }
 
 .sidebar .nav-link.active {
-    background: rgba(45, 74, 62, 0.12) !important;
-    color: var(--forest-deep) !important;
+    background: rgba(139, 115, 85, 0.18) !important;
+    color: var(--macadamia-dark) !important;
 }
 
 .sidebar .collapse .nav-link {
@@ -218,8 +218,25 @@ body {
     color: var(--earth-rich) !important;
 }
 
+/* User Management: same as other side nav items (no constant background) */
+.sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link {
+    font-weight: 500;
+    color: var(--macadamia-dark) !important;
+    background-color: transparent !important;
+}
+
+.sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link:hover {
+    background: rgba(139, 115, 85, 0.12) !important;
+    color: var(--macadamia-dark) !important;
+}
+
+.sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link[aria-expanded="true"] {
+    background: rgba(139, 115, 85, 0.12) !important;
+    color: var(--macadamia-dark) !important;
+}
+
 .sidebar-footer {
-    border-color: rgba(45, 74, 62, 0.2) !important;
+    border-color: var(--macadamia-kernel) !important;
 }
 
 .sidebar-footer .btn-link {
@@ -227,13 +244,49 @@ body {
 }
 
 .sidebar-footer .btn-link:hover {
-    color: var(--forest-deep) !important;
-    background: rgba(45, 74, 62, 0.06) !important;
+    color: var(--macadamia-dark) !important;
+    background: rgba(139, 115, 85, 0.1) !important;
+}
+
+/* Side nav scrollbar: left-aligned, only visible on hover (space reserved so buttons don't shift) */
+.sidebar .flex-grow-1 {
+    direction: rtl;
+}
+
+.sidebar .flex-grow-1 > ul {
+    direction: ltr;
+}
+
+.sidebar .flex-grow-1::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar .flex-grow-1::-webkit-scrollbar-track {
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+.sidebar .flex-grow-1:hover::-webkit-scrollbar-track {
+    background: rgba(139, 115, 85, 0.08);
+}
+
+.sidebar .flex-grow-1::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+.sidebar .flex-grow-1:hover::-webkit-scrollbar-thumb {
+    background: var(--macadamia-shell);
+}
+
+.sidebar .flex-grow-1::-webkit-scrollbar-thumb:hover {
+    background: var(--macadamia-dark);
 }
 
 /* Main content */
 .main-content {
-    background: #FFFFFF;
+    background: transparent;
 }
 
 @media (min-width: 768px) {
@@ -268,7 +321,7 @@ h6 {
 .card {
     background: white;
     border: none;
-    border-radius: 16px;
+    border-radius: 5px;
     box-shadow: 0 4px 20px var(--shadow-warm);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -314,7 +367,7 @@ h6 {
 .btn-primary {
     background: linear-gradient(135deg, var(--forest-deep) 0%, var(--forest-light) 100%);
     border: none;
-    border-radius: 10px;
+    border-radius: 5px;
     padding: 0.6rem 1.5rem;
     font-weight: 600;
     box-shadow: 0 4px 15px rgba(45, 74, 62, 0.3);
@@ -330,7 +383,7 @@ h6 {
 .btn-outline-secondary {
     border: 2px solid var(--macadamia-shell);
     color: var(--macadamia-shell);
-    border-radius: 10px;
+    border-radius: 5px;
 }
 
 .btn-outline-secondary:hover {
@@ -347,14 +400,14 @@ h6 {
 /* Dropdown Header */
 .dropdown-header {
     background: var(--macadamia-cream);
-    border-radius: 0;
+    border-radius: 5px;
     margin: -0.5rem -0.5rem 0.5rem -0.5rem;
     padding: 1rem !important;
 }
 
 /* SweetAlert Customization */
 .swal2-popup {
-    border-radius: 20px !important;
+    border-radius: 5px !important;
     font-family: 'Nunito Sans', sans-serif !important;
 }
 
@@ -365,7 +418,7 @@ h6 {
 
 .swal2-confirm {
     background: linear-gradient(135deg, var(--forest-deep) 0%, var(--forest-light) 100%) !important;
-    border-radius: 10px !important;
+    border-radius: 5px !important;
 }
 
 /* Scrollbar Styling */
@@ -412,7 +465,7 @@ h6 {
 .form-control,
 .form-select {
     border: 2px solid var(--macadamia-kernel);
-    border-radius: 10px;
+    border-radius: 5px;
     padding: 0.6rem 1rem;
     transition: all 0.3s ease;
 }
@@ -437,9 +490,9 @@ h6 {
     color: var(--macadamia-dark) !important;
 }
 
-/* Modal Styling – sharp corners, primary header, primary font */
+/* Modal Styling – consistent radius, primary header, primary font */
 .modal-content {
-    border-radius: 0 !important;
+    border-radius: 5px !important;
     border: none;
     overflow: hidden;
 }
@@ -448,7 +501,7 @@ h6 {
     background: var(--phoenix-primary) !important;
     color: #2d2d2d;
     border: none;
-    border-radius: 0 !important;
+    border-radius: 5px !important;
     font-family: var(--phoenix-font-brand);
 }
 
