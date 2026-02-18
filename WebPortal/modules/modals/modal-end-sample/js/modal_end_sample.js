@@ -52,13 +52,21 @@ var _modal_end_sample = function () {
                 supervisor_signed_by: $('#endSampleSupervisorSigned').val() || null,
                 nut_plant_manager_signed_by: $('#endSampleNutPlantManagerSigned').val() || null
             };
-            (dataFunctions.createKernelPackingSample && dataFunctions.createKernelPackingSample(data)).then((result) => {
+            var createPromise = (typeof dataFunctions !== 'undefined' && dataFunctions.createKernelPackingSample)
+                ? dataFunctions.createKernelPackingSample(data)
+                : Promise.reject(new Error('Save not available: dataFunctions.createKernelPackingSample is missing'));
+            createPromise.then((result) => {
                 if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'End sample saved.', timer: 2000, showConfirmButton: false });
-                    var modalEl = document.getElementById('endSampleModal');
-                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                    else $('#endSampleModal').modal('hide');
-                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                    var updatePromise = (typeof dataFunctions !== 'undefined' && dataFunctions.updateProductionBatch)
+                        ? dataFunctions.updateProductionBatch(batchId, { status: 'release_ready' })
+                        : Promise.resolve();
+                    updatePromise.then(() => {
+                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'End sample saved. Batch is now release ready.', timer: 2000, showConfirmButton: false });
+                        var modalEl = document.getElementById('endSampleModal');
+                        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                        else $('#endSampleModal').modal('hide');
+                        if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                    });
                 } else {
                     throw new Error(result && result.error ? result.error : 'Save failed');
                 }

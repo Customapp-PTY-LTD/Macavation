@@ -29,6 +29,7 @@ DECLARE
         'get_executive_kpis', 'get_sales_forecasts', 'get_oil_production_sheets', 'get_oil_production_weekly_summary',
         'create_kernel_job_card', 'create_kernel_production_day', 'get_kernel_production_days', 'get_kernel_production_days_list',
         'get_kernel_production_stages', 'get_kernel_production_stages_by_day', 'save_kernel_production_stages', 'finish_kernel_batch_production',
+        'get_kernel_packing_samples', 'get_kernel_packing_sample', 'create_kernel_packing_sample',
         'create_stock_take', 'get_stock_takes',
         'get_receiving_checklists', 'get_receiving_checklist', 'get_receiving_checklist_by_id', 'create_receiving_checklist', 'update_receiving_checklist',
         'get_raw_material_issued', 'get_financial_transactions', 'get_documents',

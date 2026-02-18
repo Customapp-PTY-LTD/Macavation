@@ -488,6 +488,15 @@ var _modal_production_stages = function () {
             }
             p.then(function (result) {
                 if (result && result.success !== false) {
+                    if (typeof dataFunctions !== 'undefined' && dataFunctions.updateProductionBatch) {
+                        return dataFunctions.updateProductionBatch(batchId, { status: 'awaiting_test' }).then(function () {
+                            if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Batch production marked as finished. Status: Awaiting test.', 'success');
+                            var modalEl = document.getElementById('productionStagesModal');
+                            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                            else $('#productionStagesModal').modal('hide');
+                            if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                        });
+                    }
                     if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Batch production marked as finished.', 'success');
                     var modalEl = document.getElementById('productionStagesModal');
                     if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
@@ -578,6 +587,9 @@ var _modal_production_stages = function () {
                         $('#productionStagesDayId').val(newDayId);
                         scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
                         scope.setProductionStagesTabsVisibility(true);
+                        if (batch.status === 'awaiting_production' && typeof dataFunctions !== 'undefined' && dataFunctions.updateProductionBatch) {
+                            dataFunctions.updateProductionBatch(batchId, { status: 'in_production' }).catch(function () {});
+                        }
                         return scope.populateProductionGrowerSelects(batch.grower_name || '');
                     });
                 }

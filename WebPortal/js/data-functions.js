@@ -1409,6 +1409,32 @@ var _dataFunctions = function () {
             this.clearCachePattern('production_batches');
             return result;
         },
+
+        getKernelPackingSamples: async function (token = null, forceRefresh = false) {
+            const raw = await this.callFunction('get_kernel_packing_samples', {}, token, {
+                cacheKey: 'kernel_packing_samples_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && Array.isArray(raw.get_kernel_packing_samples)) return raw.get_kernel_packing_samples;
+            return [];
+        },
+
+        getKernelPackingSample: async function (packingSampleId, token = null) {
+            if (!packingSampleId) return null;
+            return await this.callFunction('get_kernel_packing_sample', { p_id: packingSampleId }, token, { useCache: false });
+        },
+
+        createKernelPackingSample: async function (data, token = null) {
+            const result = await this.callFunction('create_kernel_packing_sample', data, token, { useCache: false });
+            this.clearCachePattern('kernel_packing');
+            this.clearCachePattern('kernel_production');
+            this.clearCachePattern('production_batches');
+            return result;
+        },
         
         // Stock Take Functions
         createStockTake: async function (stockTakeData, token = null) {

@@ -241,9 +241,9 @@ var _growerIntakeGrid = function () {
             const scope = _growerIntakeGrid;
             if (!batchId) return;
             try {
-                const result = await dataFunctions.updateProductionBatch(batchId, { status: 'in_production', stage: 'production' });
+                const result = await dataFunctions.updateProductionBatch(batchId, { status: 'awaiting_production', stage: 'production' });
                 if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in Kernel Production. Complete Production and End sample, then Release to stock.', timer: 2500, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in Kernel Production (awaiting production). Start production, then complete and run tests to release to stock.', timer: 2500, showConfirmButton: false });
                     scope.loadIntakeBatches(true);
                 } else {
                     throw new Error(result && result.error ? result.error : 'Update failed');

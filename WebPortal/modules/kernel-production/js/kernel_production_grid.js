@@ -43,6 +43,22 @@ var _kernelProductionGrid = function () {
         ).join(' ');
     };
 
+    /**
+     * Derive display status from actual production data, not just DB status.
+     * Batches with no production days/history show "Awaiting production"; only batches with real production data show "In production".
+     * Returns { label: string, filterValue: string }.
+     */
+    const getBatchDisplayStatus = (batch) => {
+        const hasProductionData = (batch.productionDays && batch.productionDays.length > 0) || !!batch.jobCardId;
+        const productionFinished = !!batch.productionFinishedAt;
+        const hasEndSample = !!batch.hasPackingSample;
+
+        if (productionFinished && hasEndSample) return { label: 'Release ready', filterValue: 'release_ready' };
+        if (productionFinished) return { label: 'Awaiting test', filterValue: 'awaiting_test' };
+        if (hasProductionData) return { label: 'In production', filterValue: 'in_production' };
+        return { label: 'Awaiting production', filterValue: 'awaiting_production' };
+    };
+
     return {
         batches: [],
         filteredBatches: [],
@@ -163,11 +179,13 @@ var _kernelProductionGrid = function () {
             const searchTerm = ($('#searchBatchesInput').val() || '').toLowerCase();
             const statusFilter = $('#filterBatchStatus').val();
             scope.filteredBatches = scope.batches.filter((batch) => {
+                const displayStatus = getBatchDisplayStatus(batch);
                 const matchesSearch = !searchTerm ||
                     (batch.batch_number && batch.batch_number.toLowerCase().indexOf(searchTerm) >= 0) ||
                     (batch.grower_name && batch.grower_name.toLowerCase().indexOf(searchTerm) >= 0) ||
-                    (batch.status && batch.status.toLowerCase().indexOf(searchTerm) >= 0);
-                const matchesStatus = !statusFilter || batch.status === statusFilter;
+                    (batch.status && batch.status.toLowerCase().indexOf(searchTerm) >= 0) ||
+                    (displayStatus.label && displayStatus.label.toLowerCase().indexOf(searchTerm) >= 0);
+                const matchesStatus = !statusFilter || displayStatus.filterValue === statusFilter;
                 return matchesSearch && matchesStatus;
             });
             scope.renderBatches();
@@ -182,7 +200,7 @@ var _kernelProductionGrid = function () {
             }
             const startTime = performance.now();
             dataFunctions.getProductionBatches(null, forceRefresh, { batch_type: 'kernel' }).then((allBatches) => {
-                const productionStatuses = ['in_production', 'receiving', 'cracking', 'drying', 'sorting_dry', 'packing', 'completed'];
+                const productionStatuses = ['awaiting_production', 'in_production', 'receiving', 'cracking', 'drying', 'sorting_dry', 'packing', 'awaiting_test', 'release_ready', 'completed'];
                 const batches = (allBatches || []).filter((b) =>
                     productionStatuses.indexOf(b.status) >= 0 && b.status !== 'in_finished_stock'
                 );
@@ -251,8 +269,7 @@ var _kernelProductionGrid = function () {
             }
             scope.filteredBatches.forEach((batch) => {
                 const step = batch.current_step != null ? batch.current_step : 1;
-                const productionAndSampleDone = (batch.hasJobCard || batch.hasProductionStages) && batch.hasPackingSample;
-                const canReleaseToStock = productionAndSampleDone || batch.status === 'completed' || step >= 17;
+                const canReleaseToStock = batch.status === 'release_ready' || batch.status === 'completed' || (batch.productionFinishedAt && batch.hasPackingSample);
                 const receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
                     ? (_common.formatDateDDMMYYYY(batch.received_date) || 'N/A')
                     : (batch.received_date ? (batch.received_date.toString().split ? batch.received_date.toString().split('T')[0] : batch.received_date) : 'N/A');
@@ -281,7 +298,8 @@ var _kernelProductionGrid = function () {
                         '<button class="btn btn-sm btn-outline-secondary" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
                         '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="batchActions' + batch.id + '">' + menuItems.join('') + '</ul></div>';
                 }
-                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + statusToTitleCase(batch.status || 'in_production') + '</span></td><td>' + actionsCell + '</td></tr>';
+                const displayStatus = getBatchDisplayStatus(batch);
+                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td><span class="badge bg-info">' + displayStatus.label + '</span></td><td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
         },
