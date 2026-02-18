@@ -1,43 +1,112 @@
-/* Grower Intake Grid Module – UI_DESIGN_INSTRUCTIONS.md, INSTRUCTIONS-DROPDOWNS-IN-TABLES.md (Approach A: body-mounted) */
+/* Grower Intake Grid Module – UI_DESIGN_INSTRUCTIONS.md, responsive for tablet + phone */
 .module-content { min-height: 400px; }
 
 #intakeBatchesTable th { border-top: none; font-weight: 600; }
 
-#intakeBatchesTable tbody tr.js-intake-batch-row { cursor: pointer; }
+#intakeBatchesTable tbody tr.js-intake-batch-row { cursor: default; }
 
-/* First column (batch number) looks clickable */
 #intakeBatchesTable .js-intake-batch-row td:first-child {
-    color: var(--phoenix-primary);
+    color: var(--phoenix-primary, #0d6efd);
     font-weight: 500;
 }
 
-#intakeBatchesTable .js-intake-batch-row:hover td:first-child {
-    text-decoration: underline;
+/* Table scroll container: smooth horizontal scroll on touch devices (iPad) */
+.intake-table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+}
+@media (min-width: 768px) {
+    .intake-table-responsive { margin-left: 0; margin-right: 0; }
 }
 
-/* Actions column: center-aligned, square ellipsis button (body-mounted dropdown) */
-#intakeBatchesTable td:last-child {
-    text-align: center;
+#intakeBatchesTable {
+    margin-bottom: 0;
+    min-width: 520px; /* Prevents squashing; scroll on narrow viewports */
 }
 
-#intakeBatchesTable td:last-child .js-intake-batch-actions {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    display: inline-flex;
+/* Stage 1 and Actions: compact, consistent button sizing */
+.intake-stage1-buttons,
+.intake-actions-cell {
+    white-space: nowrap;
+}
+.intake-stage1-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
     align-items: center;
-    justify-content: center;
-    border-radius: 0.25rem;
-    background-color: #5c636a;
-    border: 1px solid #495057;
-    color: #fff;
 }
-#intakeBatchesTable td:last-child .js-intake-batch-actions:hover {
-    background-color: #495057;
-    border-color: #343a40;
-    color: #fff;
+.intake-step-btn {
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.6rem;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: center;
+    min-height: 2rem;
 }
-#intakeBatchesTable td:last-child .js-intake-batch-actions i {
-    color: inherit;
+.intake-step-btn .intake-btn-text {
+    display: inline;
+}
+.intake-col-stage1 { width: 1%; white-space: nowrap; }
+.intake-col-actions { width: 1%; text-align: center; }
+.intake-col-batch { min-width: 8rem; }
+.intake-col-date { min-width: 5.5rem; }
+
+/* ----- Tablet (iPad portrait ~768px and below) ----- */
+@media (max-width: 1024px) {
+    #intakeBatchesTable {
+        font-size: 0.875rem;
+        min-width: 480px;
+    }
+    #intakeBatchesTable th,
+    #intakeBatchesTable td {
+        padding: 0.4rem 0.5rem;
+        vertical-align: middle;
+    }
+    .intake-step-btn {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.5rem;
+        min-height: 1.85rem;
+    }
+    .intake-stage1-buttons { gap: 0.25rem; }
+    .intake-instruction { font-size: 0.875rem; }
+}
+
+/* ----- Phone ----- */
+@media (max-width: 767px) {
+    .module-content .card-body { padding: 0.5rem !important; }
+    #intakeBatchesTable {
+        font-size: 0.8125rem;
+        min-width: 420px;
+    }
+    #intakeBatchesTable th,
+    #intakeBatchesTable td {
+        padding: 0.35rem 0.4rem;
+    }
+    .intake-step-btn {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.4rem;
+        min-height: 1.75rem;
+    }
+    .intake-step-btn i { margin-right: 0.2rem !important; }
+    .intake-col-batch { min-width: 7rem; }
+    .intake-col-date { min-width: 4.5rem; }
+    .intake-instruction { font-size: 0.8125rem; margin-bottom: 0.5rem !important; }
+}
+
+/* Very small phones: shorten button labels via CSS (keep icons + one word) */
+@media (max-width: 480px) {
+    .intake-step-btn .intake-btn-text {
+        display: none;
+    }
+    .intake-step-btn[title]::after {
+        content: attr(title);
+        display: none; /* rely on native tooltip */
+    }
+    .intake-step-btn {
+        padding: 0.4rem 0.5rem;
+        min-width: 2.25rem;
+    }
+    #intakeBatchesTable { min-width: 360px; }
 }

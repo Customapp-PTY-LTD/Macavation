@@ -39,19 +39,20 @@
         </div>
     </div>
 
+    <p class="text-muted mb-3 intake-instruction">Stage 1: Complete Receiving checklist for each batch (box becomes a tick); then Batch test / Batch sample (enabled after checklist). Release to production is only enabled once both forms are completed.</p>
     <div class="card mb-4 border-primary">
-        <div class="card-body">
-            <div class="table-responsive">
+        <div class="card-body p-2 p-md-3">
+            <div class="table-responsive intake-table-responsive">
                 <table class="table table-hover" id="intakeBatchesTable">
                     <thead>
                         <tr>
-                            <th>Batch number</th>
-                            <th>Grower / supplier</th>
-                            <th>Received date</th>
-                            <th>Wet NIS (kg)</th>
-                            <th>Stage 1 steps</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th class="intake-col-batch">Batch number</th>
+                            <th class="intake-col-grower d-none d-md-table-cell">Grower / supplier</th>
+                            <th class="intake-col-date">Received date</th>
+                            <th class="intake-col-wet d-none d-sm-table-cell">Wet NIS (kg)</th>
+                            <th class="intake-col-stage1">Stage 1 steps</th>
+                            <th class="intake-col-status">Status</th>
+                            <th class="intake-col-actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="intakeBatchesTableBody"></tbody>
