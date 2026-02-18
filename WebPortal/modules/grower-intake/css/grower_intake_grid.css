@@ -1,28 +1,5 @@
-/* Grower Intake Grid Module – UI_DESIGN_INSTRUCTIONS.md, INSTRUCTIONS-DROPDOWNS-IN-TABLES.md */
+/* Grower Intake Grid Module – UI_DESIGN_INSTRUCTIONS.md, INSTRUCTIONS-DROPDOWNS-IN-TABLES.md (Approach A: body-mounted) */
 .module-content { min-height: 400px; }
-
-/* Dropdown overflow and z-index – allow menu to show above table (Approach B) */
-.table-responsive:has(#intakeBatchesTable) {
-    overflow-x: auto;
-    overflow-y: visible !important;
-}
-#intakeBatchesTable,
-#intakeBatchesTable tbody,
-#intakeBatchesTable tr,
-#intakeBatchesTable td {
-    overflow: visible !important;
-}
-#intakeBatchesTable .dropdown-menu {
-    z-index: 1060 !important;
-    position: absolute !important;
-}
-#intakeBatchesTable .dropdown {
-    position: relative !important;
-}
-.card-body:has(#intakeBatchesTable),
-.card-body:has(.table-responsive) {
-    overflow: visible !important;
-}
 
 #intakeBatchesTable th { border-top: none; font-weight: 600; }
 
@@ -38,16 +15,12 @@
     text-decoration: underline;
 }
 
-/* Actions column: center-aligned, square ellipsis button */
+/* Actions column: center-aligned, square ellipsis button (body-mounted dropdown) */
 #intakeBatchesTable td:last-child {
     text-align: center;
 }
 
-#intakeBatchesTable td:last-child .dropdown {
-    display: inline-block;
-}
-
-#intakeBatchesTable td:last-child .dropdown .btn {
+#intakeBatchesTable td:last-child .js-intake-batch-actions {
     width: 2rem;
     height: 2rem;
     min-width: 2rem;

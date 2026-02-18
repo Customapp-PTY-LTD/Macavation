@@ -16,6 +16,7 @@ var _growerIntakeGrid = function () {
 
         init: () => {
             const scope = _growerIntakeGrid;
+            scope.setupBodyMountedDropdown();
             scope.bindEvents();
             scope.loadIntakeBatches(true);
             const loadPromises = [];
@@ -38,6 +39,104 @@ var _growerIntakeGrid = function () {
             });
         },
 
+        setupBodyMountedDropdown: () => {
+            const scope = _growerIntakeGrid;
+            let globalDropdown = null;
+
+            const getDropdown = () => {
+                if (globalDropdown) return globalDropdown;
+                const existing = document.querySelector('.custom-dropdown-menu');
+                if (existing) { globalDropdown = existing; return globalDropdown; }
+                globalDropdown = document.createElement('div');
+                globalDropdown.className = 'custom-dropdown-menu';
+                globalDropdown.style.cssText = 'position:fixed;z-index:2147483647;background:white;border:1px solid rgba(0,0,0,0.15);border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,0.2);min-width:180px;padding:8px 0;display:none;font-size:14px;pointer-events:auto;';
+                document.body.appendChild(globalDropdown);
+                return globalDropdown;
+            };
+
+            const hideDropdown = () => {
+                const el = document.querySelector('.custom-dropdown-menu');
+                if (el) el.style.display = 'none';
+            };
+
+            $(document).off('click.growerIntakeDropdown').on('click.growerIntakeDropdown', (e) => {
+                const button = e.target.closest('button.js-intake-batch-actions');
+                if (button && $(button).closest('#intakeBatchesTable').length) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const batchId = button.getAttribute('data-batch-id');
+                    const checklistId = button.getAttribute('data-receiving-checklist-id') || '';
+                    const sampleId = button.getAttribute('data-sample-submission-id') || '';
+                    const checklistDone = !!checklistId;
+                    const sampleDone = !!sampleId;
+                    const sampleEnabled = checklistDone;
+                    const canRelease = checklistDone && sampleDone;
+
+                    const checklistLabel = checklistDone ? '&#10003; Receiving checklist' : 'Receiving checklist';
+                    const sampleLabel = sampleDone ? '&#10003; Batch sample' : (sampleEnabled ? 'New batch sample' : 'Batch sample');
+                    const releaseLabel = 'Release to production';
+
+                    const parts = [];
+                    parts.push('<a href="#" class="dropdown-item-intake-checklist" style="display:block;padding:8px 16px;text-decoration:none;color:#212529;"><i class="fas fa-clipboard-check me-2"></i>' + checklistLabel + '</a>');
+                    if (sampleDone) {
+                        parts.push('<a href="#" class="dropdown-item-intake-sample-view" style="display:block;padding:8px 16px;text-decoration:none;color:#212529;"><i class="fas fa-vial me-2"></i>' + sampleLabel + '</a>');
+                    } else if (sampleEnabled) {
+                        parts.push('<a href="#" class="dropdown-item-intake-sample-submit" style="display:block;padding:8px 16px;text-decoration:none;color:#212529;"><i class="fas fa-vial me-2"></i>' + sampleLabel + '</a>');
+                    } else {
+                        parts.push('<span style="display:block;padding:8px 16px;color:#6c757d;cursor:not-allowed;"><i class="fas fa-vial me-2"></i>' + sampleLabel + '</span>');
+                    }
+                    parts.push('<hr style="margin:4px 0;border-top:1px solid #eee;">');
+                    if (canRelease) {
+                        parts.push('<a href="#" class="dropdown-item-intake-release" style="display:block;padding:8px 16px;text-decoration:none;color:#212529;"><i class="fas fa-arrow-right me-2"></i>' + releaseLabel + '</a>');
+                    } else {
+                        parts.push('<span style="display:block;padding:8px 16px;color:#6c757d;cursor:not-allowed;"><i class="fas fa-arrow-right me-2"></i>' + releaseLabel + '</span>');
+                    }
+
+                    const dropdown = getDropdown();
+                    dropdown.innerHTML = parts.join('');
+                    dropdown.dataset.batchId = batchId;
+                    dropdown.dataset.checklistId = checklistId;
+                    dropdown.dataset.sampleId = sampleId;
+
+                    const rect = button.getBoundingClientRect();
+                    let top = rect.bottom + 5;
+                    let left = rect.left;
+                    if (left + 180 > window.innerWidth) left = rect.right - 180;
+                    if (top + 150 > window.innerHeight) top = rect.top - 150;
+                    left = Math.max(10, left);
+                    top = Math.max(10, top);
+                    dropdown.style.left = left + 'px';
+                    dropdown.style.top = top + 'px';
+                    dropdown.style.display = 'block';
+
+                    dropdown.querySelectorAll('a').forEach((link) => {
+                        link.addEventListener('mouseenter', function () { this.style.backgroundColor = '#f8f9fa'; });
+                        link.addEventListener('mouseleave', function () { this.style.backgroundColor = 'transparent'; });
+                        link.addEventListener('click', function (ev) {
+                            ev.preventDefault();
+                            hideDropdown();
+                            const bid = dropdown.dataset.batchId;
+                            const cid = dropdown.dataset.checklistId || null;
+                            const sid = dropdown.dataset.sampleId;
+                            if (this.classList.contains('dropdown-item-intake-checklist') && typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.show) {
+                                _modal_grower_receiving_checklist.show(bid, cid || undefined);
+                            } else if (this.classList.contains('dropdown-item-intake-sample-view') && sid) {
+                                scope.viewSample(sid);
+                            } else if (this.classList.contains('dropdown-item-intake-sample-submit') && typeof _modal_grower_link_sample_to_batch !== 'undefined' && _modal_grower_link_sample_to_batch.show) {
+                                _modal_grower_link_sample_to_batch.show(bid);
+                            } else if (this.classList.contains('dropdown-item-intake-release') && bid) {
+                                scope.moveBatchToRawStock(bid);
+                            }
+                        });
+                    });
+                } else if (!$(e.target).closest('.custom-dropdown-menu').length && !$(e.target).closest('button.js-intake-batch-actions').length) {
+                    hideDropdown();
+                }
+            });
+
+            $(window).off('scroll.growerIntakeDropdown resize.growerIntakeDropdown').on('scroll.growerIntakeDropdown resize.growerIntakeDropdown', () => hideDropdown());
+        },
+
         bindEvents: () => {
             const scope = _growerIntakeGrid;
             $('#addSampleBtn').off('click').on('click', () => scope.showAddSampleModal());
@@ -58,46 +157,13 @@ var _growerIntakeGrid = function () {
                 scope.filterIntakeBatches();
             });
 
-            $(document).on('click', '.js-move-batch-to-raw', (e) => {
-                e.preventDefault();
-                const id = $(e.currentTarget).data('batch-id');
-                if (id) scope.moveBatchToRawStock(id);
-            });
             $(document).on('click', '#intakeBatchesTableBody tr.js-intake-batch-row', (e) => {
-                if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
+                if ($(e.target).closest('.custom-dropdown-menu').length || $(e.target).closest('button.js-intake-batch-actions').length) return;
                 const batchId = $(e.currentTarget).data('batch-id');
                 const checklistId = $(e.currentTarget).data('receiving-checklist-id') || null;
                 if (batchId && typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.show) {
                     _modal_grower_receiving_checklist.show(batchId, checklistId || undefined);
                 }
-            });
-            $(document).on('click', '.js-batch-receiving-checklist', (e) => {
-                e.preventDefault();
-                const batchId = $(e.currentTarget).data('batch-id');
-                const checklistId = $(e.currentTarget).data('receiving-checklist-id') || null;
-                if (batchId && typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.show) {
-                    _modal_grower_receiving_checklist.show(batchId, checklistId || undefined);
-                } else if (!batchId && typeof Swal !== 'undefined') {
-                    Swal.fire('Error', 'Batch not found.', 'error');
-                } else if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', 'Receiving checklist modal not loaded. Please refresh the page.', 'error');
-                }
-            });
-            $(document).on('click', '.js-batch-sample-submission', (e) => {
-                e.preventDefault();
-                const batchId = $(e.currentTarget).data('batch-id');
-                if (batchId && typeof _modal_grower_link_sample_to_batch !== 'undefined' && _modal_grower_link_sample_to_batch.show) {
-                    _modal_grower_link_sample_to_batch.show(batchId);
-                } else if (!batchId && typeof Swal !== 'undefined') {
-                    Swal.fire('Error', 'Batch not found.', 'error');
-                } else if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', 'Link sample modal not loaded. Please refresh the page.', 'error');
-                }
-            });
-            $(document).on('click', '.js-batch-sample-view', (e) => {
-                e.preventDefault();
-                const sampleId = $(e.currentTarget).data('sample-submission-id');
-                if (sampleId) scope.viewSample(sampleId);
             });
         },
 
@@ -218,24 +284,8 @@ var _growerIntakeGrid = function () {
                 const sampleLabel = sampleDone ? '&#10003; Batch sample' : (sampleEnabled ? 'New batch sample' : 'Batch sample');
                 const releaseLabel = 'Release to production';
 
-                const menuItems = [
-                    '<a class="dropdown-item js-batch-receiving-checklist" href="#" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + checklistId + '">' + checklistLabel + '</a>'
-                ];
-                if (sampleDone) {
-                    menuItems.push('<a class="dropdown-item js-batch-sample-view" href="#" data-batch-id="' + b.id + '" data-sample-submission-id="' + sampleId + '">' + sampleLabel + '</a>');
-                } else if (sampleEnabled) {
-                    menuItems.push('<a class="dropdown-item js-batch-sample-submission" href="#" data-batch-id="' + b.id + '">' + sampleLabel + '</a>');
-                } else {
-                    menuItems.push('<span class="dropdown-item text-muted">' + sampleLabel + '</span>');
-                }
-                const canRelease = checklistDone && sampleDone;
-                menuItems.push(canRelease
-                    ? '<a class="dropdown-item js-move-batch-to-raw" href="#" data-batch-id="' + b.id + '">' + releaseLabel + '</a>'
-                    : '<span class="dropdown-item text-muted">' + releaseLabel + '</span>');
-
-                const actionsCell = '<div class="dropdown position-static">' +
-                    '<button class="btn btn-sm btn-outline-secondary" type="button" id="intakeBatchActions' + b.id + '" data-bs-toggle="dropdown" data-bs-auto-close="true" data-row-id="' + b.id + '" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
-                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="intakeBatchActions' + b.id + '">' + menuItems.join('') + '</ul></div>';
+                /* Body-mounted dropdown: button only, no menu in cell (INSTRUCTIONS-DROPDOWNS-IN-TABLES) */
+                const actionsCell = '<button type="button" class="btn btn-sm btn-outline-secondary js-intake-batch-actions" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + checklistId + '" data-sample-submission-id="' + sampleId + '" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>';
 
                 const stage1Badges = '<span class="badge ' + (checklistDone ? 'bg-success' : 'bg-secondary') + ' me-1">Checklist ' + (checklistDone ? '&#10003;' : '○') + '</span>' +
                     '<span class="badge ' + (sampleDone ? 'bg-success' : 'bg-secondary') + '">Sample ' + (sampleDone ? '&#10003;' : '○') + '</span>';
