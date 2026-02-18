@@ -1,1 +1,54 @@
 /* Modal: Production Stages – optional overrides (logic in modules/kernel-production/js) */
+
+/* Tab file-paper look: gap between tabs; no bottom radius; active tab same white as card; tab borders macadamia cream brown */
+#productionStagesModal .production-stages-nav-tabs {
+    margin-bottom: 0;
+    border-bottom: 1px solid #b8a078;
+    background-color: var(--macavation-modal-body-bg);
+    padding-left: 0.25rem;
+    padding-top: 0.25rem;
+    gap: 0.35rem;
+}
+#productionStagesModal .production-stages-nav-tabs .nav-item {
+    margin-bottom: 0;
+}
+#productionStagesModal .production-stages-nav-tabs .nav-link {
+    border: 1px solid #b8a078;
+    border-bottom: none;
+    border-top-left-radius: var(--phoenix-border-radius) !important;
+    border-top-right-radius: var(--phoenix-border-radius) !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin-bottom: -1px;
+    background-color: var(--macavation-modal-body-bg);
+    color: var(--phoenix-text-color);
+}
+#productionStagesModal .production-stages-nav-tabs .nav-link:hover {
+    background-color: var(--phoenix-light);
+    border-color: #b8a078;
+    border-bottom: none;
+}
+#productionStagesModal .production-stages-nav-tabs .nav-link.active {
+    background-color: var(--phoenix-card-bg) !important;
+    border-color: #b8a078;
+    border-bottom: 1px solid var(--phoenix-card-bg);
+    color: var(--phoenix-text-color);
+}
+#productionStagesModal #productionStagesTabContent {
+    padding-top: 0;
+    background-color: var(--macavation-modal-body-bg);
+}
+#productionStagesModal #productionStagesTabContent .tab-pane {
+    padding-top: 0;
+}
+
+/* No footer: hide any .modal-footer and keep actions in body */
+#productionStagesModal .modal-footer {
+    display: none !important;
+}
+
+/* Action buttons at bottom of body (not in footer): padding so left button respects rounded edges */
+#productionStagesModal .modal-body-actions {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}

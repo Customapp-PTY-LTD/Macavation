@@ -4,11 +4,13 @@
             <h5 class="modal-title" id="batchSummaryModalLabel">Batch summary</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body" id="batchSummaryBody" style="max-height: calc(100vh - 180px); overflow-y: auto;">
-            <p class="text-muted mb-0">Loading…</p>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <div class="modal-body">
+            <div id="batchSummaryBody" style="max-height: calc(100vh - 180px); overflow-y: auto;">
+                <p class="text-muted mb-0">Loading…</p>
+            </div>
+            <div class="modal-body-actions d-flex justify-content-end align-items-center mt-4 pt-3 border-top">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>

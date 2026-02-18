@@ -3,6 +3,20 @@
  * Logic moved from modules/kernel-production/js/kernel_production_stages.js.
  * Grid only routes here via _modal_production_stages.showProductionStagesModalForBatch(batchId).
  */
+var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+function toISO(dateStr) {
+    if (!dateStr || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(dateStr).trim())) return dateStr || null;
+    var parts = String(dateStr).trim().split('/');
+    return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+}
+function fromISO(isoStr) {
+    if (!isoStr) return '';
+    var s = String(isoStr).split('T')[0];
+    var parts = s.split('-');
+    if (parts.length !== 3) return isoStr;
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+}
+
 var _modal_production_stages = function () {
     'use strict';
     return {
@@ -48,6 +62,18 @@ var _modal_production_stages = function () {
                 var id = this.id;
                 if (id === 'ps_crack_start1' || id === 'ps_crack_end1') scope.updateCrackTimeSpentRow(1);
                 if (id === 'ps_crack_start2' || id === 'ps_crack_end2') scope.updateCrackTimeSpentRow(2);
+            });
+            $('#productionStagesModal').off('shown.bs.modal').on('shown.bs.modal', function () {
+                var container = document.getElementById('productionStagesModal');
+                var inputs = container ? container.querySelectorAll('.flatpickr-date') : [];
+                var todayPlaceholder = fromISO(new Date().toISOString().split('T')[0]);
+                inputs.forEach(function (el) {
+                    if (el._flatpickr) return;
+                    if (typeof flatpickr !== 'undefined') {
+                        flatpickr(el, FLATPICKR_DDMMYYYY);
+                        if (!el.value && todayPlaceholder) el.placeholder = todayPlaceholder;
+                    }
+                });
             });
             $('#productionStagesModal').off('hidden.bs.modal').on('hidden.bs.modal', function () {
                 var batchId = $('#productionStagesBatchId').val();
@@ -120,6 +146,10 @@ var _modal_production_stages = function () {
                 var el = this;
                 var key = el.id.replace(new RegExp('^ps_' + prefix + '_'), '');
                 var val = el.type === 'checkbox' ? el.checked : (el.value || '');
+                if (el.classList && el.classList.contains('flatpickr-date') && val) {
+                    val = toISO(val);
+                    if (val == null) val = '';
+                }
                 out[key] = val;
             });
             return out;
@@ -133,10 +163,13 @@ var _modal_production_stages = function () {
                 if (el) {
                     if (el.type === 'checkbox') {
                         el.checked = v === true || v === 'true' || v === '1' || v === 1;
-                    } else {
-                        if (el.tagName === 'SELECT' && v != null && v !== '') scope.ensureSelectHasOption(el, String(v));
+} else {
+                    if (el.tagName === 'SELECT' && v != null && v !== '') scope.ensureSelectHasOption(el, String(v));
+                    else if (el.classList && el.classList.contains('flatpickr-date'))
+                        el.value = v != null && v !== '' ? fromISO(String(v)) : '';
+                    else
                         el.value = v != null && v !== '' ? String(v) : '';
-                    }
+                }
                 }
             });
         },
@@ -239,7 +272,10 @@ var _modal_production_stages = function () {
                     (formData && typeof formData === 'object' && Object.keys(formData).length > 0);
                 var label = action === 'crack' ? 'Cracking' : action === 'wash' ? 'Washing' : action === 'sort' ? 'Sorting' : action === 'pack' ? 'Packing' : 'Summary';
                 var $tab = $('#tab-' + (action === 'crack' ? 'cracking' : action === 'wash' ? 'washing' : action === 'sort' ? 'sorting' : action === 'pack' ? 'packing' : 'summary'));
-                if ($tab.length) $tab.text(hasData ? label + ' ✓' : label);
+                var $label = $tab.find('.production-tab-label');
+                if ($label.length) {
+                    $label.text(label);
+                }
             });
         },
 
@@ -508,7 +544,7 @@ var _modal_production_stages = function () {
             $('#productionStagesDayId').val('');
             scope.clearProductionStagesForm();
             var dateVal = batch.received_date ? (batch.received_date.toString().split('T')[0]) : (new Date().toISOString().split('T')[0]);
-            $('#ps_crack_date').val(dateVal);
+            $('#ps_crack_date').val(fromISO(dateVal));
             $('#ps_crack_batch1').val(batch.batch_number || '');
             var days = batch.productionDays && batch.productionDays.length ? batch.productionDays : [];
             var loadDays = days.length === 0 && dataFunctions.getKernelProductionDays ? dataFunctions.getKernelProductionDays(batchId) : Promise.resolve(days);

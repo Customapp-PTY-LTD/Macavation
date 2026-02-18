@@ -15,7 +15,7 @@ Use the **same border radius** everywhere for a consistent look:
 
 - **Token:** `var(--phoenix-border-radius)` (theme value, typically **5px**).
 - **Buttons:** All `.btn` (except `.rounded-pill`) use this radius.
-- **Modals:** `.modal-content` and its first `.modal-header` / last `.modal-footer` use this radius so the dialog has rounded corners.
+- **Modals:** `.modal-content` and its first `.modal-header` and `.modal-body` use this radius so the dialog has rounded corners (footer is often omitted; see Modals section).
 - **Inputs:** `.form-control`, `.form-select`, `input`, `textarea`, `.input-group-text`, and floating labels use this radius so form fields match buttons and modals.
 
 This is enforced in `WebPortal/css/main.css`. Do not override to `border-radius: 0` for modals or inputs unless a specific component (e.g. table action ellipsis button) intentionally uses square corners.
@@ -41,7 +41,13 @@ Modal header and body styling is **global** in `WebPortal/css/main.css` and appl
 - **Background:** Body grey (`var(--macavation-modal-body-bg)`).
 - **Text:** `var(--phoenix-text-color)` for readability.
 
+**Footer and actions:**
+- **Prefer no footer.** Put primary actions (Save, Submit, etc.) **inside the body** in a block with class **`.modal-body-actions`** at the bottom of the scrollable content (e.g. `d-flex flex-wrap align-items-center mt-4 pt-3 border-top gap-2`). Close via the header X only when there is no footer.
+- **If a footer is used** (e.g. for Cancel + Save): Cancel uses red (`#dc3545`) on the left; primary button has no focus glow. These rules are in `main.css` under `.modal-content .modal-footer` and `.modal-content .modal-body .modal-body-actions`.
+
 **Modal title copy:** Keep the `.modal-title` to **one or two words** (e.g. “Receiving Checklist”). Avoid long or contextual suffixes like “(edit)” or “(for this batch)” in the header; handle context in the body or leave the title short.
+
+**Modals with tabs (e.g. Production Stages):** Use a file-paper tab look: tabs with gap between them, **no** bottom border radius on tab buttons (so the active tab meets the content), tab borders in macadamia cream brown (`#b8a078`). Action buttons live in `.modal-body-actions` **inside** the scrollable body so they scroll with the content. See `modules/modals/modal-production-stages/` for reference.
 
 ---
 
@@ -70,7 +76,7 @@ Modal header and body styling is **global** in `WebPortal/css/main.css` and appl
 ## 2. Button spacing and toolbar
 
 - **Toolbar:** Use `btn-toolbar` with `mb-2 mb-md-0 ms-auto` so buttons sit on the right and have consistent bottom margin.
-- **Between icon and label:** Use `me-1` on the icon so there is a small gap before the text (e.g. `<i class="fas fa-download me-1"></i>Export`).
+- **Between icon and label:** Use `me-1` on the icon so there is a small gap before the text. Prefer **regular (lined)** icons: `far` not `fas` (e.g. `<i class="far fa-chart-bar me-1"></i>Export`).
 - **Button styles:** Prefer `btn btn-outline-secondary` for secondary actions (e.g. Export, Clear) and `btn btn-primary` or `btn btn-sm btn-primary` for primary actions (e.g. Create).
 - **Filter row:** Use `row g-3` for the filter row so all form groups (search, selects, buttons) have even spacing. For a button that should align with inputs, put it in a column with `d-flex align-items-end` so the button baseline lines up with the last line of the inputs.
 
@@ -88,7 +94,7 @@ Example filter row:
     </div>
     <div class="col-md-2 d-flex align-items-end">
         <button type="button" class="btn btn-outline-secondary w-100" id="clearFiltersBtn">
-            <i class="fas fa-times me-1"></i>Clear
+            <i class="far fa-times me-1"></i>Clear
         </button>
     </div>
 </div>
@@ -190,7 +196,7 @@ Example:
 ```html
 <tr>
     <td colspan="6" class="text-center text-muted py-4">
-        <i class="fas fa-info-circle me-2"></i>No records found.
+        <i class="far fa-info-circle me-2"></i>No records found.
     </td>
 </tr>
 ```
@@ -204,12 +210,13 @@ Use `py-4` for vertical padding so the empty state is easy to see.
 | Area              | Do |
 |-------------------|----|
 | Border radius     | Buttons, modals (`.modal-content`), and inputs (`.form-control`, `.form-select`) all use `var(--phoenix-border-radius)` (e.g. 5px) |
-| Modals            | Universal in `main.css`: header white bg, pink title text, uppercase, centered, no border, navbar-matching shadow; body grey (`--macavation-modal-body-bg`); title 1–2 words |
+| Modals            | Universal in `main.css`: header white bg, pink title text, uppercase, centered, no border, navbar-matching shadow; body grey (`--macavation-modal-body-bg`); **no footer** — put actions in `.modal-body-actions` inside body; title 1–2 words; tab modals use file-paper look (macadamia border, no bottom radius on tabs) |
 | Layout            | `.module-content` → header row (`pt-3 pb-2 mb-3 border-bottom`) → cards (`mb-3` / `mb-4`) |
 | Buttons           | `btn-toolbar mb-2 mb-md-0 ms-auto`; icon + `me-1` + label; `btn-outline-secondary` / `btn-primary` |
 | Filters           | Card with `row g-3`; button column with `d-flex align-items-end` |
 | Table             | `table-responsive` → `table table-hover`; first column = identifier, last = Actions |
 | Clickable row     | Row class (e.g. `js-batch-row`), `cursor: pointer`, first cell styled with primary color + underline on hover |
+| Icons             | Use `far` (regular/lined) not `fas` (solid/filled) — e.g. `class="far fa-chart-bar"` |
 | Actions           | One dropdown per row, centered; square 2rem icon button with `fa-ellipsis` |
 | Empty state       | Full colspan row, `text-center text-muted py-4`, optional icon |
 

@@ -199,7 +199,8 @@ body {
 }
 
 .sidebar .nav-link {
-    color: #666 !important;
+    color: #2c2c2c !important;
+    font-weight: 500 !important;
     border-radius: 5px;
     margin: 2px 8px;
     transition: all 0.3s ease;
@@ -218,7 +219,8 @@ body {
 .sidebar .collapse .nav-link {
     padding-left: 1rem;
     font-size: 0.9rem;
-    color: #6a6a6a !important;
+    color: #2c2c2c !important;
+    font-weight: 500 !important;
 }
 
 .sidebar .collapse .nav-link:hover {
@@ -227,8 +229,8 @@ body {
 
 /* User Management: same as other side nav items (no constant background) */
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link {
-    font-weight: 500;
-    color: #666 !important;
+    font-weight: 500 !important;
+    color: #2c2c2c !important;
     background-color: transparent !important;
 }
 

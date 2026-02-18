@@ -28,5 +28,16 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0;
+    border-radius: 0.25rem;
+    background-color: #5c636a;
+    border: 1px solid #495057;
+    color: #fff;
+}
+#intakeBatchesTable td:last-child .js-intake-batch-actions:hover {
+    background-color: #495057;
+    border-color: #343a40;
+    color: #fff;
+}
+#intakeBatchesTable td:last-child .js-intake-batch-actions i {
+    color: inherit;
 }

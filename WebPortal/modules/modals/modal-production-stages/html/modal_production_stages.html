@@ -1,27 +1,48 @@
-<div class="modal-dialog modal-xl">
+<div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header">
                 <h5 class="modal-title" id="productionStagesModalLabel">Production</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" style="max-height: calc(100vh - 180px); overflow-y: auto;">
+            <div class="modal-body production-stages-modal-body d-flex flex-column" style="max-height: calc(100vh - 180px);">
+                <div class="production-stages-body-scroll flex-grow-1 overflow-auto min-h-0">
                 <input type="hidden" id="productionStagesBatchId" value="">
                 <input type="hidden" id="productionStagesDayId" value="">
                 <div id="productionStagesTabsContainer" style="display: none;">
                 <p class="text-muted small mb-2">Doc no: MP02-27 to MP02-31 Rev 0</p>
-                <ul class="nav nav-tabs mb-3 production-stages-nav-tabs" id="productionStagesTabs" role="tablist">
-                    <li class="nav-item" role="presentation"><button class="nav-link active" id="tab-cracking" data-bs-toggle="tab" data-bs-target="#pane-cracking" type="button" role="tab">Cracking</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-washing" data-bs-toggle="tab" data-bs-target="#pane-washing" type="button" role="tab">Washing</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-sorting" data-bs-toggle="tab" data-bs-target="#pane-sorting" type="button" role="tab">Sorting</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-packing" data-bs-toggle="tab" data-bs-target="#pane-packing" type="button" role="tab">Packing</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-summary" data-bs-toggle="tab" data-bs-target="#pane-summary" type="button" role="tab">Summary</button></li>
+                <ul class="nav nav-tabs production-stages-nav-tabs" id="productionStagesTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-cracking" data-bs-toggle="tab" data-bs-target="#pane-cracking" type="button" role="tab" aria-selected="true">
+                            <span class="production-tab-label">Cracking</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-washing" data-bs-toggle="tab" data-bs-target="#pane-washing" type="button" role="tab" aria-selected="false" tabindex="-1">
+                            <span class="production-tab-label">Washing</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-sorting" data-bs-toggle="tab" data-bs-target="#pane-sorting" type="button" role="tab" aria-selected="false" tabindex="-1">
+                            <span class="production-tab-label">Sorting</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-packing" data-bs-toggle="tab" data-bs-target="#pane-packing" type="button" role="tab" aria-selected="false" tabindex="-1">
+                            <span class="production-tab-label">Packing</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-summary" data-bs-toggle="tab" data-bs-target="#pane-summary" type="button" role="tab" aria-selected="false" tabindex="-1">
+                            <span class="production-tab-label">Summary</span>
+                        </button>
+                    </li>
                 </ul>
                 <div class="tab-content" id="productionStagesTabContent">
                     <!-- Cracking (MP02-27) -->
                     <div class="tab-pane fade show active" id="pane-cracking" role="tabpanel">
-                        <div class="card mb-2"><div class="card-header"><strong>Cracking</strong></div><div class="card-body">
+                        <div class="card mb-2"><div class="card-body"><label class="form-label fw-semibold">Cracking</label>
                             <div class="row g-2 mb-2">
-                                <div class="col-md-2"><label class="form-label">Date</label><input type="date" class="form-control form-control-sm" id="ps_crack_date"></div>
+                                <div class="col-md-2"><label class="form-label">Date</label><input type="text" class="form-control form-control-sm flatpickr-date" id="ps_crack_date" data-input></div>
                                 <div class="col-md-2"><label class="form-label">Grower</label><select class="form-select form-select-sm production-grower-select" id="ps_crack_grower"></select></div>
                                 <div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_crack_batch1"></div>
                                 <div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_crack_batch2"></div>
@@ -61,8 +82,8 @@
                     </div>
                     <!-- Washing (MP02-28) -->
                     <div class="tab-pane fade" id="pane-washing" role="tabpanel">
-                        <div class="card mb-2"><div class="card-header"><strong>Washing</strong></div><div class="card-body">
-                            <div class="row g-2 mb-2"><div class="col-md-2"><label class="form-label">Date</label><input type="date" class="form-control form-control-sm" id="ps_wash_date"></div><div class="col-md-3"><label class="form-label">Grower</label><select class="form-select form-select-sm production-grower-select" id="ps_wash_grower"></select></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_wash_batch1"></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_wash_batch2"></div></div>
+                        <div class="card mb-2"><div class="card-body"><label class="form-label fw-semibold">Washing</label>
+                            <div class="row g-2 mb-2"><div class="col-md-2"><label class="form-label">Date</label><input type="text" class="form-control form-control-sm flatpickr-date" id="ps_wash_date" data-input></div><div class="col-md-3"><label class="form-label">Grower</label><select class="form-select form-select-sm production-grower-select" id="ps_wash_grower"></select></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_wash_batch1"></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_wash_batch2"></div></div>
                             <div class="row g-2 mb-2">
                                 <div class="col-md-3"><label class="form-label">Crates in</label><input type="number" class="form-control form-control-sm" id="ps_wash_crates_in" step="0.01"></div><div class="col-md-3"><label class="form-label">Quantity In</label><input type="number" class="form-control form-control-sm" id="ps_wash_qty_in" step="0.01"></div>
                                 <div class="col-md-3"><label class="form-label">Floater Crates Out</label><input type="number" class="form-control form-control-sm" id="ps_wash_floater_crates" step="0.01"></div><div class="col-md-3"><label class="form-label">Floater Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_wash_floater_qty" step="0.01"></div>
@@ -81,8 +102,8 @@
                     </div>
                     <!-- Sorting (MP02-29) -->
                     <div class="tab-pane fade" id="pane-sorting" role="tabpanel">
-                        <div class="card mb-2"><div class="card-header"><strong>Sorting</strong></div><div class="card-body">
-                            <div class="row g-2 mb-2"><div class="col-md-2"><label class="form-label">Date</label><input type="date" class="form-control form-control-sm" id="ps_sort_date"></div><div class="col-md-3"><label class="form-label">Grower</label><select class="form-select form-select-sm production-grower-select" id="ps_sort_grower"></select></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_sort_batch1"></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_sort_batch2"></div></div>
+                        <div class="card mb-2"><div class="card-body"><label class="form-label fw-semibold">Sorting</label>
+                            <div class="row g-2 mb-2"><div class="col-md-2"><label class="form-label">Date</label><input type="text" class="form-control form-control-sm flatpickr-date" id="ps_sort_date" data-input></div><div class="col-md-3"><label class="form-label">Grower</label><select class="form-select form-select-sm production-grower-select" id="ps_sort_grower"></select></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_sort_batch1"></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_sort_batch2"></div></div>
                             <div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label">Floater Crates In</label><input type="number" class="form-control form-control-sm" id="ps_sort_floater_crates_in" step="0.01"></div><div class="col-md-3"><label class="form-label">Floater Qty In</label><input type="number" class="form-control form-control-sm" id="ps_sort_floater_qty_in" step="0.01"></div></div>
                             <table class="table table-sm table-bordered mb-2"><thead><tr><th>Style</th><th>Crates Out</th><th>Quantity Out</th></tr></thead><tbody>
                                 <tr><td>0</td><td><input type="number" class="form-control form-control-sm" id="ps_sort_style0_crates" step="0.01"></td><td><input type="number" class="form-control form-control-sm" id="ps_sort_style0_qty" step="0.01"></td></tr>
@@ -110,8 +131,8 @@
                     </div>
                     <!-- Packing (MP02-30) -->
                     <div class="tab-pane fade" id="pane-packing" role="tabpanel">
-                        <div class="card mb-2"><div class="card-header"><strong>Packing</strong></div><div class="card-body">
-                            <div class="row g-2 mb-2"><div class="col-md-2"><label class="form-label">Date</label><input type="date" class="form-control form-control-sm" id="ps_pack_date"></div><div class="col-md-3"><label class="form-label">Grower</label><select class="form-select form-select-sm production-grower-select" id="ps_pack_grower"></select></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_pack_batch1"></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_pack_batch2"></div></div>
+                        <div class="card mb-2"><div class="card-body"><label class="form-label fw-semibold">Packing</label>
+                            <div class="row g-2 mb-2"><div class="col-md-2"><label class="form-label">Date</label><input type="text" class="form-control form-control-sm flatpickr-date" id="ps_pack_date" data-input></div><div class="col-md-3"><label class="form-label">Grower</label><select class="form-select form-select-sm production-grower-select" id="ps_pack_grower"></select></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_pack_batch1"></div><div class="col-md-2"><label class="form-label">Batch #</label><input type="text" class="form-control form-control-sm" id="ps_pack_batch2"></div></div>
                             <table class="table table-sm table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Quantity</th></tr></thead><tbody>
                                 <tr><td>SP</td><td><input type="number" class="form-control form-control-sm" id="ps_pack_sk_sp_cartons" step="0.01"></td><td><input type="number" class="form-control form-control-sm" id="ps_pack_sk_sp_qty" step="0.01"></td></tr>
                                 <tr><td>0</td><td><input type="number" class="form-control form-control-sm" id="ps_pack_sk_0_cartons" step="0.01"></td><td><input type="number" class="form-control form-control-sm" id="ps_pack_sk_0_qty" step="0.01"></td></tr>
@@ -133,7 +154,7 @@
                     </div>
                     <!-- Summary (MP02-31) -->
                     <div class="tab-pane fade" id="pane-summary" role="tabpanel">
-                        <div class="card mb-2"><div class="card-header"><strong>Summary</strong></div><div class="card-body">
+                        <div class="card mb-2"><div class="card-body"><label class="form-label fw-semibold">Summary</label>
                             <div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label">Cracking Time</label><input type="text" class="form-control form-control-sm" id="ps_sum_crack_time"></div><div class="col-md-3"><label class="form-label">Cracking Quantity</label><input type="number" class="form-control form-control-sm" id="ps_sum_crack_qty" step="0.01"></div><div class="col-md-2"><label class="form-label">Wholes</label><input type="number" class="form-control form-control-sm" id="ps_sum_wholes" step="0.01"></div><div class="col-md-2"><label class="form-label">Uncracks</label><input type="number" class="form-control form-control-sm" id="ps_sum_uncracks" step="0.01"></div><div class="col-md-2"><label class="form-label">Shell Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_shell_waste" step="0.01"></div></div>
                             <div class="row g-2 mb-2"><strong class="col-12">Washing</strong><div class="col-md-3"><label class="form-label">Quantity In</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_qty_in" step="0.01"></div><div class="col-md-3"><label class="form-label">Floater Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_floater_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Sinker Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_sinker_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Total Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_total_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Salt &amp; Pepper Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_saltpepper" step="0.01"></div><div class="col-md-3"><label class="form-label">Shell Fines Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_shellfines" step="0.01"></div><div class="col-md-3"><label class="form-label">Compost Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_wash_compost" step="0.01"></div></div>
                             <div class="row g-2 mb-2"><strong class="col-12">Sorting</strong><div class="col-md-3"><label class="form-label">Floater Qty In</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_floater_in" step="0.01"></div><div class="col-md-3"><label class="form-label">Sound Kernel Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_sound_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Sinker Qty In</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_sinker_in" step="0.01"></div><div class="col-md-3"><label class="form-label">Butter Low Oil Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_butterlow_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Butter High Qty Out</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_butterhigh_qty" step="0.01"></div><div class="col-md-3"><label class="form-label">Oil Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_oil_waste" step="0.01"></div><div class="col-md-3"><label class="form-label">Compost Waste</label><input type="number" class="form-control form-control-sm" id="ps_sum_sort_compost_waste" step="0.01"></div></div>
@@ -142,13 +163,13 @@
                     </div>
                 </div>
                 </div>
+                <div class="modal-body-actions d-flex justify-content-between align-items-center mt-4 pt-3 border-top gap-2">
+                    <button type="button" class="btn btn-primary" id="saveProductionStagesBtnSingle"><i class="fas fa-save me-1"></i>Save Production</button>
+                    <button type="button" class="btn btn-outline-info" id="batchSummaryBtn"><i class="fas fa-calculator me-1"></i>Batch summary</button>
+                    <button type="button" class="btn btn-success" id="finishBatchProductionBtn"><i class="fas fa-flag-checkered me-1"></i>Finish batch production</button>
+                </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveProductionStagesBtnSingle"><i class="fas fa-save me-1"></i>Save Production</button>
-                <button type="button" class="btn btn-outline-info" id="batchSummaryBtn"><i class="fas fa-calculator me-1"></i>Batch summary</button>
-                <button type="button" class="btn btn-success" id="finishBatchProductionBtn"><i class="fas fa-flag-checkered me-1"></i>Finish batch production</button>
             </div>
         </div>
     </div>
