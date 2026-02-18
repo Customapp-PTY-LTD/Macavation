@@ -47,10 +47,14 @@ var _modal_admin_add_user = function () {
             var form = document.getElementById('addUserForm');
             if (!form) return;
             var formData = new FormData(form);
+            var emailRaw = (formData.get('email') || '').toString().trim();
+            var email = emailRaw.toLowerCase();
+            var emailInput = form.querySelector('[name="email"]');
+            if (emailInput) emailInput.value = email;
             var userData = {
                 first_name: formData.get('first_name'),
                 last_name: formData.get('last_name'),
-                email: formData.get('email'),
+                email: email,
                 phone_number: formData.get('phone_number') || null,
                 role_id: formData.get('role_id'),
                 is_active: formData.get('is_active') === 'true'

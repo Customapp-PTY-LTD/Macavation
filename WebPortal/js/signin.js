@@ -144,7 +144,8 @@ var _signin = function () {
             const clientGUID = getClientGUID();
             const emailEl = document.getElementById('email');
             const passwordEl = document.getElementById('password');
-            const email = emailEl ? emailEl.value : '';
+            const email = (emailEl ? emailEl.value : '').trim().toLowerCase();
+            if (emailEl) emailEl.value = email;
             const password = passwordEl ? passwordEl.value : '';
 
             scope.showLoading();
@@ -170,7 +171,6 @@ var _signin = function () {
                 if (typeof localStorage !== 'undefined') {
                     localStorage.setItem('lambda_token', authResult.token);
                     localStorage.setItem('user_info', JSON.stringify(authResult.user));
-                    debugger
                     localStorage.setItem('client_guid', clientGUID);
                 }
 
@@ -258,7 +258,7 @@ var _signin = function () {
                 console.warn('[Sign-in] Swal not available for forgot password');
                 return;
             }
-            const { value: email } = await Swal.fire({
+            const { value: emailRaw } = await Swal.fire({
                 title: 'Reset Password',
                 text: 'Enter your email address to receive a password reset link',
                 input: 'email',
@@ -272,6 +272,7 @@ var _signin = function () {
                 }
             });
 
+            const email = (emailRaw || '').trim().toLowerCase();
             if (!email) return;
 
             if (!sbClient) {
@@ -307,7 +308,9 @@ var _signin = function () {
             e.preventDefault();
 
             const clientGUID = getClientGUID();
-            const email = (document.getElementById('signupEmail') || {}).value || '';
+            const signupEmailEl = document.getElementById('signupEmail');
+            const email = ((signupEmailEl && signupEmailEl.value) || '').trim().toLowerCase();
+            if (signupEmailEl) signupEmailEl.value = email;
             const password = (document.getElementById('signupPassword') || {}).value || '';
             const confirmPassword = (document.getElementById('signupConfirmPassword') || {}).value || '';
             const fullName = (document.getElementById('signupFullName') || {}).value || '';
