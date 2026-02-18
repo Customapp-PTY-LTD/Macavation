@@ -56,6 +56,11 @@ var _modal_grower_receiving_checklist = (function () {
             var addRowBtn = document.getElementById('growerAddReceivedItemRow');
             if (addRowBtn) addRowBtn.addEventListener('click', () => scope.addReceivedItemRow());
             $(document).on('click', '.growerRemoveItemRow', function () { $(this).closest('tr').remove(); });
+            $(document).on('change', '#' + CONTAINER_ID + ' select[name="growerDescription"]', function () {
+                var val = $(this).val();
+                var titleText = val === 'NIS' ? 'Harvested Date' : val === 'Kernel' ? 'Manufactured Date' : 'Manufactured Date or Harvested Date';
+                $(this).closest('tr').find('input[name="growerManufacturedDate"]').attr('title', titleText);
+            });
             var container = document.getElementById(CONTAINER_ID);
             if (container && typeof $ !== 'undefined') {
                 $(container).on('shown.bs.modal', () => initFlatpickrInModal());
@@ -133,34 +138,22 @@ var _modal_grower_receiving_checklist = (function () {
             var tbody = $('#growerReceivedItemsTableBody');
             tbody.find('tr:not(:first)').remove();
             var firstRow = tbody.find('tr:first');
-            firstRow.find('input[name="growerReference"]').val('');
-            firstRow.find('input[name="growerDescription"]').val('');
-            firstRow.find('input[name="growerBatch"]').val('');
+            firstRow.find('select[name="growerDescription"]').val('');
             firstRow.find('input[name="growerCartonBags"]').val('1');
             firstRow.find('input[name="growerQuantity"]').val('');
             firstRow.find('input[name="growerManufacturedDate"]').val('');
-            firstRow.find('input[name="growerBestBeforeDate"]').val('');
 
             if (Array.isArray(items) && items.length) {
                 items.forEach(function (it, i) {
                     if (i === 0) {
-                        firstRow.find('input[name="growerReference"]').val(it.reference || '');
-                        firstRow.find('input[name="growerDescription"]').val(it.description || '');
-                        firstRow.find('input[name="growerBatch"]').val(it.batch || '');
+                        firstRow.find('select[name="growerDescription"]').val(it.description || '');
                         firstRow.find('input[name="growerCartonBags"]').val(it.carton_bags != null ? it.carton_bags : 1);
                         firstRow.find('input[name="growerQuantity"]').val(it.quantity_kg != null ? it.quantity_kg : '');
                         firstRow.find('input[name="growerManufacturedDate"]').val(fromISO(it.manufactured_date || ''));
-                        firstRow.find('input[name="growerBestBeforeDate"]').val(fromISO(it.best_before_date || ''));
+                        var titleText = it.description === 'NIS' ? 'Harvested Date' : it.description === 'Kernel' ? 'Manufactured Date' : 'Manufactured Date or Harvested Date';
+                        firstRow.find('input[name="growerManufacturedDate"]').attr('title', titleText);
                     } else {
-                        scope.addReceivedItemRow();
-                        var row = $('#growerReceivedItemsTableBody tr').eq(i);
-                        row.find('input[name="growerReference"]').val(it.reference || '');
-                        row.find('input[name="growerDescription"]').val(it.description || '');
-                        row.find('input[name="growerBatch"]').val(it.batch || '');
-                        row.find('input[name="growerCartonBags"]').val(it.carton_bags != null ? it.carton_bags : 1);
-                        row.find('input[name="growerQuantity"]').val(it.quantity_kg != null ? it.quantity_kg : '');
-                        row.find('input[name="growerManufacturedDate"]').val(fromISO(it.manufactured_date || ''));
-                        row.find('input[name="growerBestBeforeDate"]').val(fromISO(it.best_before_date || ''));
+                        scope.appendReceivedItemRow(it.description || '', it.quantity_kg != null ? it.quantity_kg : '', fromISO(it.manufactured_date || ''));
                     }
                 });
             }
@@ -176,14 +169,60 @@ var _modal_grower_receiving_checklist = (function () {
             var supplierIdEl = document.getElementById('growerReceivingChecklistSupplierId');
             if (supplierIdEl) supplierIdEl.value = '';
             $('#growerReceivedItemsTableBody tr:not(:first)').remove();
+            $('#growerReceivedItemsTableBody tr:first select[name="growerDescription"]').val('');
             $('#growerReceivedItemsTableBody tr:first input').val('');
             $('#growerReceivedItemsTableBody tr:first input[name="growerCartonBags"]').val('1');
         },
 
         addReceivedItemRow: () => {
+            const scope = _modal_grower_receiving_checklist;
+            if (typeof $ === 'undefined' || typeof Swal === 'undefined') return;
+            var todayPlaceholder = getTodayPlaceholder();
+            Swal.fire({
+                title: 'Add Bag',
+                html: '<label class="form-label">Weight (Kgs)</label><input id="growerAddBagWeight" type="number" step="0.01" class="form-control mb-2" placeholder="Weight (Kgs)">' +
+                    '<label class="form-label">Description</label><select id="growerAddBagDescription" class="form-select mb-2"><option value="">Select</option><option value="NIS">NIS</option><option value="Kernel">Kernel</option></select>' +
+                    '<label id="growerAddBagDateLabel" class="form-label">Harvested Date</label><input id="growerAddBagDate" type="text" class="form-control flatpickr-date" placeholder="' + todayPlaceholder + '">',
+                showCancelButton: true,
+                confirmButtonText: 'Add',
+                preConfirm: () => {
+                    var weightEl = document.getElementById('growerAddBagWeight');
+                    var descEl = document.getElementById('growerAddBagDescription');
+                    var dateEl = document.getElementById('growerAddBagDate');
+                    var weight = weightEl ? weightEl.value : '';
+                    var desc = descEl ? descEl.value : '';
+                    var dateVal = dateEl ? dateEl.value : '';
+                    if (!weight || !desc) {
+                        Swal.showValidationMessage('Please enter Weight (Kgs) and select Description.');
+                        return false;
+                    }
+                    return { weight: weight, description: desc, date: dateVal };
+                },
+                didOpen: () => {
+                    var descEl = document.getElementById('growerAddBagDescription');
+                    var labelEl = document.getElementById('growerAddBagDateLabel');
+                    var dateEl = document.getElementById('growerAddBagDate');
+                    if (descEl && labelEl) {
+                        descEl.addEventListener('change', function () {
+                            labelEl.textContent = this.value === 'NIS' ? 'Harvested Date' : this.value === 'Kernel' ? 'Manufactured Date' : 'Date';
+                        });
+                    }
+                    if (dateEl && typeof flatpickr !== 'undefined' && !dateEl._flatpickr) flatpickr(dateEl, FLATPICKR_DDMMYYYY);
+                }
+            }).then(function (result) {
+                if (result && result.isConfirmed && result.value) {
+                    scope.appendReceivedItemRow(result.value.description, result.value.weight, result.value.date);
+                }
+            });
+        },
+
+        appendReceivedItemRow: (description, quantityKg, dateStr) => {
             if (typeof $ === 'undefined') return;
             var todayPlaceholder = getTodayPlaceholder();
-            var newRow = '<tr><td><input type="text" class="form-control form-control-sm" name="growerReference"></td><td><input type="text" class="form-control form-control-sm" name="growerDescription"></td><td><input type="text" class="form-control form-control-sm" name="growerBatch"></td><td><input type="number" class="form-control form-control-sm" name="growerCartonBags" value="1"></td><td><input type="number" class="form-control form-control-sm" name="growerQuantity" step="0.01"></td><td><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate" placeholder="' + todayPlaceholder + '"></td><td><input type="text" class="form-control form-control-sm flatpickr-date" name="growerBestBeforeDate" placeholder="' + todayPlaceholder + '"></td><td><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td></tr>';
+            var descSelected = description === 'NIS' ? ' selected' : '';
+            var kernelSelected = description === 'Kernel' ? ' selected' : '';
+            var titleText = description === 'NIS' ? 'Harvested Date' : description === 'Kernel' ? 'Manufactured Date' : 'Manufactured Date or Harvested Date';
+            var newRow = '<tr><td class="align-middle"><select class="form-select form-select-sm" name="growerDescription"><option value="">Select</option><option value="NIS"' + descSelected + '>NIS</option><option value="Kernel"' + kernelSelected + '>Kernel</option></select></td><td class="align-middle"><input type="number" class="form-control form-control-sm" name="growerCartonBags" value="1"></td><td class="align-middle"><input type="number" class="form-control form-control-sm" name="growerQuantity" step="0.01" value="' + (quantityKg ? String(quantityKg).replace(/"/g, '&quot;') : '') + '"></td><td class="align-middle"><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate" placeholder="' + todayPlaceholder + '" value="' + (dateStr ? String(dateStr).replace(/"/g, '&quot;') : '') + '" title="' + titleText.replace(/"/g, '&quot;') + '"></td><td class="align-middle"><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td></tr>';
             var $row = $(newRow).appendTo('#growerReceivedItemsTableBody');
             $row.find('.flatpickr-date').each(function () {
                 if (typeof flatpickr !== 'undefined' && !this._flatpickr) flatpickr(this, FLATPICKR_DDMMYYYY);
@@ -214,19 +253,14 @@ var _modal_grower_receiving_checklist = (function () {
                 var receivedItems = [];
                 $('#growerReceivedItemsTableBody tr').each(function () {
                     var $row = $(this);
-                    var ref = $row.find('input[name="growerReference"]').val();
-                    var desc = $row.find('input[name="growerDescription"]').val();
-                    var batch = $row.find('input[name="growerBatch"]').val();
+                    var desc = $row.find('select[name="growerDescription"]').val() || $row.find('input[name="growerDescription"]').val();
                     var qty = $row.find('input[name="growerQuantity"]').val();
-                    if (ref || desc || batch || qty) {
+                    if (desc || qty) {
                         receivedItems.push({
-                            reference: ref || null,
                             description: desc || null,
-                            batch: batch || null,
                             carton_bags: $row.find('input[name="growerCartonBags"]').val() ? parseInt($row.find('input[name="growerCartonBags"]').val(), 10) : null,
                             quantity_kg: qty ? parseFloat(qty) : null,
-                            manufactured_date: toISO($row.find('input[name="growerManufacturedDate"]').val()) || null,
-                            best_before_date: toISO($row.find('input[name="growerBestBeforeDate"]').val()) || null
+                            manufactured_date: toISO($row.find('input[name="growerManufacturedDate"]').val()) || null
                         });
                     }
                 });

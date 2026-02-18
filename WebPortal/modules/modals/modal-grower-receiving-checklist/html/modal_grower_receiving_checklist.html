@@ -85,32 +85,26 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label fw-semibold mb-0">Received Items</label>
-                            <button type="button" class="btn btn-sm btn-primary" id="growerAddReceivedItemRow"><i class="fas fa-plus"></i> Add Item</button>
+                            <button type="button" class="btn btn-sm btn-primary" id="growerAddReceivedItemRow"><i class="fas fa-plus"></i> Add Bag</button>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm" id="growerReceivedItemsTable">
                                 <thead>
                                     <tr>
-                                        <th>Reference</th>
                                         <th>Description</th>
-                                        <th>Batch</th>
                                         <th>Carton/Bulk Bags</th>
-                                        <th>Quantity (kg)</th>
-                                        <th>Manufactured Date</th>
-                                        <th>Best Before Date</th>
+                                        <th>Weight (Kgs)</th>
+                                        <th>Date</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="growerReceivedItemsTableBody">
                                     <tr>
-                                        <td><input type="text" class="form-control form-control-sm" name="growerReference"></td>
-                                        <td><input type="text" class="form-control form-control-sm" name="growerDescription"></td>
-                                        <td><input type="text" class="form-control form-control-sm" name="growerBatch"></td>
-                                        <td><input type="number" class="form-control form-control-sm" name="growerCartonBags" value="1"></td>
-                                        <td><input type="number" class="form-control form-control-sm" name="growerQuantity" step="0.01"></td>
-                                        <td><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate"></td>
-                                        <td><input type="text" class="form-control form-control-sm flatpickr-date" name="growerBestBeforeDate"></td>
-                                        <td><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td>
+                                        <td class="align-middle"><select class="form-select form-select-sm" name="growerDescription"><option value="">Select</option><option value="NIS">NIS</option><option value="Kernel">Kernel</option></select></td>
+                                        <td class="align-middle"><input type="number" class="form-control form-control-sm" name="growerCartonBags" value="1"></td>
+                                        <td class="align-middle"><input type="number" class="form-control form-control-sm" name="growerQuantity" step="0.01"></td>
+                                        <td class="align-middle"><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate" title="Manufactured Date or Harvested Date"></td>
+                                        <td class="align-middle"><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td>
                                     </tr>
                                 </tbody>
                             </table>
