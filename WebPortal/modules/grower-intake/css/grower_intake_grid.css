@@ -1,29 +1,53 @@
-/* Grower Intake Grid Module Styles – see docs/MODULE_UI_PATTERNS.md */
+/* Grower Intake Grid Module – UI_DESIGN_INSTRUCTIONS.md, INSTRUCTIONS-DROPDOWNS-IN-TABLES.md */
 .module-content { min-height: 400px; }
-#samplesTable th { border-top: none; font-weight: 600; }
 
-/* Clickable row: submission number looks clickable */
-#samplesTable tbody tr.js-grower-intake-row { cursor: pointer; }
+/* Dropdown overflow and z-index – allow menu to show above table (Approach B) */
+.table-responsive:has(#intakeBatchesTable) {
+    overflow-x: auto;
+    overflow-y: visible !important;
+}
+#intakeBatchesTable,
+#intakeBatchesTable tbody,
+#intakeBatchesTable tr,
+#intakeBatchesTable td {
+    overflow: visible !important;
+}
+#intakeBatchesTable .dropdown-menu {
+    z-index: 1060 !important;
+    position: absolute !important;
+}
+#intakeBatchesTable .dropdown {
+    position: relative !important;
+}
+.card-body:has(#intakeBatchesTable),
+.card-body:has(.table-responsive) {
+    overflow: visible !important;
+}
 
-#samplesTable .js-grower-intake-row td:first-child {
+#intakeBatchesTable th { border-top: none; font-weight: 600; }
+
+#intakeBatchesTable tbody tr.js-intake-batch-row { cursor: pointer; }
+
+/* First column (batch number) looks clickable */
+#intakeBatchesTable .js-intake-batch-row td:first-child {
     color: var(--phoenix-primary);
     font-weight: 500;
 }
 
-#samplesTable .js-grower-intake-row:hover td:first-child {
+#intakeBatchesTable .js-intake-batch-row:hover td:first-child {
     text-decoration: underline;
 }
 
-/* Actions column: center-aligned, square three horizontal dots button */
-#samplesTable td:last-child {
+/* Actions column: center-aligned, square ellipsis button */
+#intakeBatchesTable td:last-child {
     text-align: center;
 }
 
-#samplesTable td:last-child .dropdown {
+#intakeBatchesTable td:last-child .dropdown {
     display: inline-block;
 }
 
-#samplesTable td:last-child .dropdown .btn {
+#intakeBatchesTable td:last-child .dropdown .btn {
     width: 2rem;
     height: 2rem;
     min-width: 2rem;
@@ -33,4 +57,3 @@
     justify-content: center;
     border-radius: 0;
 }
-

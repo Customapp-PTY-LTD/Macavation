@@ -1,71 +1,121 @@
 /**
  * Grower Intake Grid Module
- * Handles sample submissions and main run documents
+ * Route-only modal pattern: parent loads modal content, routes to modals; modals own logic.
+ * See MODAL_PATTERN_INSTRUCTIONS.md, SEPARATING_LARGE_JS_FILES.md
  */
-
 var _growerIntakeGrid = function () {
+    'use strict';
+
     return {
         samples: [],
         filteredSamples: [],
         intakeBatches: [],
+        filteredIntakeBatches: [],
         currentPage: 1,
         itemsPerPage: 20,
-        searchTimeout: null,
 
-        init: function () {
-            this.setupEventListeners();
-            this.loadIntakeBatches(true);
+        init: () => {
+            const scope = _growerIntakeGrid;
+            scope.bindEvents();
+            scope.loadIntakeBatches(true);
+            const loadPromises = [];
+            $('.modal[route-name]').each((index, el) => {
+                const routeName = $(el).attr('route-name');
+                const elementSelector = '#' + $(el).attr('id');
+                if (routeName && elementSelector && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                    loadPromises.push(_appRouter.loadContent({ routeName, elementSelector }));
+                }
+            });
+            Promise.all(loadPromises).then(() => {
+                if (typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.init) _modal_grower_receiving_checklist.init();
+                if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.init) _modal_grower_create_kernel_batch.init();
+                if (typeof _modal_grower_link_sample_to_batch !== 'undefined' && _modal_grower_link_sample_to_batch.init) _modal_grower_link_sample_to_batch.init();
+            }).catch((err) => {
+                console.error('[Grower Intake] Error loading modals:', err);
+                if (typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.init) _modal_grower_receiving_checklist.init();
+                if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.init) _modal_grower_create_kernel_batch.init();
+                if (typeof _modal_grower_link_sample_to_batch !== 'undefined' && _modal_grower_link_sample_to_batch.init) _modal_grower_link_sample_to_batch.init();
+            });
         },
 
-        setupEventListeners: function () {
-            const scope = this;
-            $('#addSampleBtn').on('click', function () {
-                scope.showAddSampleModal();
+        bindEvents: () => {
+            const scope = _growerIntakeGrid;
+            $('#addSampleBtn').off('click').on('click', () => scope.showAddSampleModal());
+            $('#createKernelBatchBtn').off('click').on('click', () => {
+                if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.show) {
+                    _modal_grower_create_kernel_batch.show();
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Create batch modal not loaded. Please refresh the page.', 'error');
+                }
+            });
+            $('#exportIntakeBatchesBtn').off('click').on('click', () => scope.exportIntakeBatches());
+
+            $('#searchIntakeBatchesInput').on('input', () => scope.filterIntakeBatches());
+            $('#filterIntakeBatchStatus').on('change', () => scope.filterIntakeBatches());
+            $('#clearIntakeBatchFiltersBtn').on('click', () => {
+                $('#searchIntakeBatchesInput').val('');
+                $('#filterIntakeBatchStatus').val('');
+                scope.filterIntakeBatches();
             });
 
-            // Kernel batch journey
-            $('#createKernelBatchBtn').on('click', function () { scope.showCreateKernelBatchModal(); });
-            $('#saveCreateKernelBatchBtn').on('click', function () { scope.saveCreateKernelBatch(); });
-            $(document).on('click', '.js-move-batch-to-raw', function () {
-                const id = $(this).data('batch-id');
+            $(document).on('click', '.js-move-batch-to-raw', (e) => {
+                e.preventDefault();
+                const id = $(e.currentTarget).data('batch-id');
                 if (id) scope.moveBatchToRawStock(id);
             });
-            $(document).on('click', '.js-batch-receiving-checklist', function () {
-                const batchId = $(this).data('batch-id');
-                const checklistId = $(this).data('receiving-checklist-id') || null;
-                if (batchId) scope.openReceivingChecklistForBatch(batchId, checklistId);
+            $(document).on('click', '#intakeBatchesTableBody tr.js-intake-batch-row', (e) => {
+                if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
+                const batchId = $(e.currentTarget).data('batch-id');
+                const checklistId = $(e.currentTarget).data('receiving-checklist-id') || null;
+                if (batchId && typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.show) {
+                    _modal_grower_receiving_checklist.show(batchId, checklistId || undefined);
+                }
             });
-            $(document).on('click', '.js-batch-sample-submission', function () {
-                const id = $(this).data('batch-id');
-                if (id) scope.openSampleSubmissionForBatch(id);
+            $(document).on('click', '.js-batch-receiving-checklist', (e) => {
+                e.preventDefault();
+                const batchId = $(e.currentTarget).data('batch-id');
+                const checklistId = $(e.currentTarget).data('receiving-checklist-id') || null;
+                if (batchId && typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.show) {
+                    _modal_grower_receiving_checklist.show(batchId, checklistId || undefined);
+                } else if (!batchId && typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Batch not found.', 'error');
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Receiving checklist modal not loaded. Please refresh the page.', 'error');
+                }
             });
-            $(document).on('click', '.js-batch-sample-view', function () {
-                const sampleId = $(this).data('sample-submission-id');
+            $(document).on('click', '.js-batch-sample-submission', (e) => {
+                e.preventDefault();
+                const batchId = $(e.currentTarget).data('batch-id');
+                if (batchId && typeof _modal_grower_link_sample_to_batch !== 'undefined' && _modal_grower_link_sample_to_batch.show) {
+                    _modal_grower_link_sample_to_batch.show(batchId);
+                } else if (!batchId && typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Batch not found.', 'error');
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Link sample modal not loaded. Please refresh the page.', 'error');
+                }
+            });
+            $(document).on('click', '.js-batch-sample-view', (e) => {
+                e.preventDefault();
+                const sampleId = $(e.currentTarget).data('sample-submission-id');
                 if (sampleId) scope.viewSample(sampleId);
             });
-            $('#linkSampleToBatchBtn').on('click', function () { scope.linkSampleToBatch(); });
         },
-        filterSamples: function () {
-            const searchTerm = $('#searchSamplesInput').val().toLowerCase();
+
+        filterSamples: () => {
+            const scope = _growerIntakeGrid;
+            const searchTerm = ($('#searchSamplesInput').val() || '').toLowerCase();
             const statusFilter = $('#filterSampleStatus').val();
             const dateFilter = $('#filterSampleDate').val();
-            
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
             const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-            
-            this.filteredSamples = this.samples.filter(sample => {
-                // Search filter
-                const matchesSearch = !searchTerm || 
-                    (sample.submission_number && sample.submission_number.toLowerCase().includes(searchTerm)) ||
-                    (sample.grower_name && sample.grower_name.toLowerCase().includes(searchTerm)) ||
-                    (sample.status && sample.status.toLowerCase().includes(searchTerm));
-                
-                // Status filter
+            scope.filteredSamples = scope.samples.filter((sample) => {
+                const matchesSearch = !searchTerm ||
+                    (sample.submission_number && sample.submission_number.toLowerCase().indexOf(searchTerm) >= 0) ||
+                    (sample.grower_name && sample.grower_name.toLowerCase().indexOf(searchTerm) >= 0) ||
+                    (sample.status && sample.status.toLowerCase().indexOf(searchTerm) >= 0);
                 const matchesStatus = !statusFilter || sample.status === statusFilter;
-                
-                // Date filter
                 let matchesDate = true;
                 if (dateFilter && sample.delivery_date) {
                     const deliveryDate = new Date(sample.delivery_date);
@@ -73,328 +123,211 @@ var _growerIntakeGrid = function () {
                     else if (dateFilter === 'week') matchesDate = deliveryDate >= weekAgo;
                     else if (dateFilter === 'month') matchesDate = deliveryDate >= monthAgo;
                 }
-                
                 return matchesSearch && matchesStatus && matchesDate;
             });
-            
-            this.renderSamples();
+            scope.renderSamples();
         },
 
-        loadSamples: async function (forceRefresh = false) {
+        loadSamples: async (forceRefresh = false) => {
+            const scope = _growerIntakeGrid;
             try {
-                const startTime = performance.now();
                 const samples = await dataFunctions.getSampleSubmissions(null, forceRefresh);
-                const loadTime = performance.now() - startTime;
-                console.log(`[Performance] Sample submissions loaded in ${loadTime.toFixed(2)}ms`);
-                
-                this.samples = samples || [];
-                this.filteredSamples = this.samples;
-                this.renderSamples();
+                scope.samples = samples || [];
+                scope.filteredSamples = scope.samples;
+                scope.renderSamples();
             } catch (error) {
                 console.error('Error loading samples:', error);
-                this.showError('Error loading samples: ' + error.message);
+                scope.showError('Error loading samples: ' + error.message);
             }
         },
 
-        renderSamples: function () {
+        renderSamples: () => {
+            const scope = _growerIntakeGrid;
             const tbody = $('#samplesTableBody');
+            if (!tbody.length) return;
             tbody.empty();
-
-            if (this.filteredSamples.length === 0) {
-                if (this.samples.length === 0) {
+            if (scope.filteredSamples.length === 0) {
+                if (scope.samples.length === 0) {
                     tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No sample submissions found. Click "New Sample Submission" to create one.</td></tr>');
                 } else {
                     tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No samples match your search criteria. Try adjusting your filters.</td></tr>');
                 }
                 return;
             }
-
-            this.filteredSamples.forEach(sample => {
-                const row = `
-                    <tr>
-                        <td>${sample.submission_number || 'N/A'}</td>
-                        <td>${sample.grower_name || 'N/A'}</td>
-                        <td>${sample.delivery_date || 'N/A'}</td>
-                        <td>${sample.wet_nut_in_shell_kg || '0'}</td>
-                        <td>${sample.moisture_content_percentage || '0'}%</td>
-                        <td><span class="badge bg-info">${sample.status || 'pending'}</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary" onclick="growerIntakeGrid.viewSample('${sample.id}')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
+            scope.filteredSamples.forEach((sample) => {
+                const row = '<tr><td>' + (sample.submission_number || 'N/A') + '</td><td>' + (sample.grower_name || 'N/A') + '</td><td>' + ((typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(sample.delivery_date) : sample.delivery_date) || 'N/A') + '</td><td>' + (sample.wet_nut_in_shell_kg || '0') + '</td><td>' + (sample.moisture_content_percentage || '0') + '%</td><td><span class="badge bg-info">' + (sample.status || 'pending') + '</span></td><td><button class="btn btn-sm btn-outline-primary js-view-sample" data-sample-id="' + sample.id + '"><i class="fas fa-eye"></i></button></td></tr>';
                 tbody.append(row);
+            });
+            tbody.find('.js-view-sample').on('click', function () {
+                const sampleId = $(this).data('sample-id');
+                if (sampleId) scope.viewSample(sampleId);
             });
         },
 
-        loadIntakeBatches: async function (forceRefresh) {
+        filterIntakeBatches: () => {
+            const scope = _growerIntakeGrid;
+            const searchTerm = ($('#searchIntakeBatchesInput').val() || '').toLowerCase();
+            const statusFilter = $('#filterIntakeBatchStatus').val();
+            scope.filteredIntakeBatches = scope.intakeBatches.filter((b) => {
+                const matchesSearch = !searchTerm ||
+                    (b.batch_number && b.batch_number.toLowerCase().indexOf(searchTerm) >= 0) ||
+                    (b.grower_name && b.grower_name.toLowerCase().indexOf(searchTerm) >= 0);
+                const matchesStatus = !statusFilter || b.status === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+            scope.renderIntakeBatches();
+        },
+
+        loadIntakeBatches: async (forceRefresh) => {
+            const scope = _growerIntakeGrid;
             try {
                 const all = await dataFunctions.getProductionBatches(null, forceRefresh, { batch_type: 'kernel' });
-                this.intakeBatches = (all || []).filter(function (b) {
-                    return ['receiving', 'intake_received', 'quality_pending', 'quality_approved'].indexOf(b.status) >= 0;
-                });
-                this.renderIntakeBatches();
+                scope.intakeBatches = (all || []).filter((b) =>
+                    ['receiving', 'intake_received', 'quality_pending', 'quality_approved'].indexOf(b.status) >= 0
+                );
+                scope.filterIntakeBatches();
             } catch (e) {
                 console.error('Error loading intake batches:', e);
-                this.intakeBatches = [];
-                this.renderIntakeBatches();
+                scope.intakeBatches = [];
+                scope.filterIntakeBatches();
             }
         },
 
-        renderIntakeBatches: function () {
+        renderIntakeBatches: () => {
+            const scope = _growerIntakeGrid;
             const tbody = $('#intakeBatchesTableBody');
-            if (!tbody.length) {
-                // DOM may not be ready yet (e.g. right after route load); retry once
-                const scope = this;
-                setTimeout(function () { scope.renderIntakeBatches(); }, 150);
-                return;
-            }
+            if (!tbody.length) return;
             tbody.empty();
-            if (!this.intakeBatches.length) {
-                tbody.html('<tr><td colspan="7" class="text-center text-muted py-3">No kernel batches in intake. Create one to start the journey.</td></tr>');
+            if (scope.filteredIntakeBatches.length === 0) {
+                if (scope.intakeBatches.length === 0) {
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No kernel batches in intake. Create one to start the journey.</td></tr>');
+                } else {
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
+                }
                 return;
             }
-            const scope = this;
-            this.intakeBatches.forEach(function (b) {
-                const receivedDate = b.received_date ? (b.received_date.toString().split('T')[0]) : '';
+            scope.filteredIntakeBatches.forEach((b) => {
+                const receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(b.received_date) : b.received_date) || 'N/A';
                 const checklistDone = !!(b.receiving_checklist_id || b.receivingChecklistId);
                 const sampleDone = !!(b.sample_submission_id || b.sampleSubmissionId);
                 const sampleEnabled = checklistDone;
-                var checklistBtn = checklistDone
-                    ? '<button type="button" class="btn btn-sm btn-success d-inline-flex align-items-center js-batch-receiving-checklist" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + (b.receiving_checklist_id || b.receivingChecklistId || '') + '" title="Edit Receiving checklist"><i class="fas fa-check me-1"></i>Checklist</button>'
-                    : '<button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center js-batch-receiving-checklist" data-batch-id="' + b.id + '" title="Complete Receiving checklist"><i class="fas fa-clipboard-check me-1"></i>Receiving checklist</button>';
-                var sampleId = b.sample_submission_id || b.sampleSubmissionId || '';
-                var sampleBtn = sampleDone
-                    ? '<button type="button" class="btn btn-sm btn-success d-inline-flex align-items-center js-batch-sample-view" data-batch-id="' + b.id + '" data-sample-submission-id="' + sampleId + '" title="View sample submission"><i class="fas fa-check me-1"></i>Sample</button>'
-                    : (!sampleEnabled
-                        ? '<button type="button" class="btn btn-sm btn-outline-secondary disabled d-inline-flex align-items-center" disabled title="Complete checklist first"><i class="fas fa-vial me-1"></i>New batch sample</button>'
-                        : '<button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center js-batch-sample-submission" data-batch-id="' + b.id + '" title="New sample submission"><i class="fas fa-vial me-1"></i>New batch sample</button>');
-                const stepsHtml = '<div class="d-flex align-items-center flex-wrap gap-2">' +
-                    checklistBtn + sampleBtn + '</div>';
-                var canRelease = checklistDone && sampleDone;
-                var moveBtn = canRelease
-                    ? '<button type="button" class="btn btn-sm btn-success js-move-batch-to-raw" data-batch-id="' + b.id + '" title="Release to production">Release to production</button>'
-                    : '<button type="button" class="btn btn-sm btn-secondary" disabled title="Complete Receiving checklist and Batch test/sample first">Release to production</button>';
-                const row = '<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + receivedDate + '</td><td>' + (b.wet_nis_received_kg || '') + '</td><td>' + stepsHtml + '</td><td><span class="badge bg-info">' + (b.status || '') + '</span></td><td>' + moveBtn + '</td></tr>';
+                const checklistId = b.receiving_checklist_id || b.receivingChecklistId || '';
+                const sampleId = b.sample_submission_id || b.sampleSubmissionId || '';
+
+                const checklistLabel = checklistDone ? '&#10003; Receiving checklist' : 'Receiving checklist';
+                const sampleLabel = sampleDone ? '&#10003; Batch sample' : (sampleEnabled ? 'New batch sample' : 'Batch sample');
+                const releaseLabel = 'Release to production';
+
+                const menuItems = [
+                    '<a class="dropdown-item js-batch-receiving-checklist" href="#" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + checklistId + '">' + checklistLabel + '</a>'
+                ];
+                if (sampleDone) {
+                    menuItems.push('<a class="dropdown-item js-batch-sample-view" href="#" data-batch-id="' + b.id + '" data-sample-submission-id="' + sampleId + '">' + sampleLabel + '</a>');
+                } else if (sampleEnabled) {
+                    menuItems.push('<a class="dropdown-item js-batch-sample-submission" href="#" data-batch-id="' + b.id + '">' + sampleLabel + '</a>');
+                } else {
+                    menuItems.push('<span class="dropdown-item text-muted">' + sampleLabel + '</span>');
+                }
+                const canRelease = checklistDone && sampleDone;
+                menuItems.push(canRelease
+                    ? '<a class="dropdown-item js-move-batch-to-raw" href="#" data-batch-id="' + b.id + '">' + releaseLabel + '</a>'
+                    : '<span class="dropdown-item text-muted">' + releaseLabel + '</span>');
+
+                const actionsCell = '<div class="dropdown position-static">' +
+                    '<button class="btn btn-sm btn-outline-secondary" type="button" id="intakeBatchActions' + b.id + '" data-bs-toggle="dropdown" data-bs-auto-close="true" data-row-id="' + b.id + '" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
+                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="intakeBatchActions' + b.id + '">' + menuItems.join('') + '</ul></div>';
+
+                const stage1Badges = '<span class="badge ' + (checklistDone ? 'bg-success' : 'bg-secondary') + ' me-1">Checklist ' + (checklistDone ? '&#10003;' : '○') + '</span>' +
+                    '<span class="badge ' + (sampleDone ? 'bg-success' : 'bg-secondary') + '">Sample ' + (sampleDone ? '&#10003;' : '○') + '</span>';
+
+                const row = '<tr class="js-intake-batch-row" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + checklistId + '">' +
+                    '<td>' + (b.batch_number || '') + '</td>' +
+                    '<td>' + (b.grower_name || '') + '</td>' +
+                    '<td>' + receivedDate + '</td>' +
+                    '<td>' + (b.wet_nis_received_kg || '') + '</td>' +
+                    '<td>' + stage1Badges + '</td>' +
+                    '<td><span class="badge bg-info">' + (b.status || '') + '</span></td>' +
+                    '<td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
         },
 
-        openReceivingChecklistForBatch: function (batchId, existingChecklistId) {
-            var batchIdEl = document.getElementById('receivingChecklistBatchId');
-            if (batchIdEl) batchIdEl.value = batchId || '';
-            if (existingChecklistId && typeof window.showReceivingChecklistModalForEdit === 'function') {
-                window.showReceivingChecklistModalForEdit(existingChecklistId, batchId);
-            } else if (typeof window.showReceivingChecklistModal === 'function') {
-                window.showReceivingChecklistModal();
-            } else {
-                var el = document.getElementById('receivingChecklistModal');
-                if (el && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    bootstrap.Modal.getOrCreateInstance(el).show();
-                } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                    $('#receivingChecklistModal').modal('show');
-                }
-            }
-        },
-
-        openSampleSubmissionForBatch: async function (batchId) {
-            this._sampleForBatchId = batchId;
-            var modal = document.getElementById('linkSampleToBatchModal');
-            if (!modal) return;
-            if (!this.samples || this.samples.length === 0) {
-                try { await this.loadSamples(true); } catch (e) { console.error(e); }
-            }
-            var sel = document.getElementById('linkSampleToBatchSelect');
-            if (sel) {
-                sel.innerHTML = '<option value="">Select a sample to link…</option>';
-                var scope = this;
-                (this.samples || []).forEach(function (s) {
-                    var opt = document.createElement('option');
-                    opt.value = s.id;
-                    opt.textContent = (s.submission_number || s.id) + ' – ' + (s.grower_name || '');
-                    sel.appendChild(opt);
-                });
-            }
-            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                bootstrap.Modal.getOrCreateInstance(modal).show();
-            } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                $(modal).modal('show');
-            }
-        },
-
-        linkSampleToBatch: async function () {
-            var batchId = this._sampleForBatchId;
-            var sel = document.getElementById('linkSampleToBatchSelect');
-            var sampleId = sel && sel.value ? sel.value : null;
-            if (!batchId || !sampleId) {
-                Swal.fire('Please select a sample to link to this batch.', '', 'info');
-                return;
-            }
-            try {
-                var result = await dataFunctions.updateProductionBatch(batchId, { sample_submission_id: sampleId });
-                if (result && result.success !== false) {
-                    var modal = document.getElementById('linkSampleToBatchModal');
-                    if (modal && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                        var inst = bootstrap.Modal.getInstance(modal);
-                        if (inst) inst.hide();
-                    } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                        $('#linkSampleToBatchModal').modal('hide');
-                    }
-                    this._sampleForBatchId = null;
-                    Swal.fire({ icon: 'success', title: 'Linked', text: 'Sample linked to batch.', timer: 2000, showConfirmButton: false });
-                    this.loadIntakeBatches(true);
-                } else {
-                    throw new Error(result && result.error ? result.error : 'Update failed');
-                }
-            } catch (e) {
-                console.error(e);
-                Swal.fire('Error', e.message || 'Failed to link sample', 'error');
-            }
-        },
-
-        showCreateKernelBatchModal: async function () {
-
-            const today = new Date().toISOString().split('T')[0];
-            $('#intakeBatchReceivedDate').val(today);
-            $('#intakeBatchNumber').val('BATCH-' + new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-001');
-            $('#intakeBatchWetNis').val('');
-            try {
-                const contacts = await dataFunctions.getContacts();
-                const sel = $('#intakeBatchGrower');
-                sel.html('<option value="">Select (optional)</option>');
-                if (contacts && contacts.length) {
-                    contacts.forEach(function (c) {
-                        const name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
-                        sel.append('<option value="' + c.id + '">' + name + '</option>');
-                    });
-                }
-            } catch (e) { console.error(e); }
-            const modal = document.getElementById('createKernelBatchModal');
-            if (modal && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                new bootstrap.Modal(modal).show();
-            } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                $('#createKernelBatchModal').modal('show');
-                debugger;
-            }
-        },
-
-        saveCreateKernelBatch: async function () {
-            const form = document.getElementById('createKernelBatchForm');
-            if (!form || !form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-            const batchNumber = $('#intakeBatchNumber').val();
-            const receivedDate = $('#intakeBatchReceivedDate').val();
-            const wetNis = parseFloat($('#intakeBatchWetNis').val(), 10);
-            const supplierId = $('#intakeBatchGrower').val() || null;
-            if (!batchNumber || !receivedDate || !wetNis || wetNis <= 0) {
-                Swal.fire('Error', 'Batch number, received date and wet NIS (kg) are required.', 'error');
-                return;
-            }
-            try {
-                const createResult = await dataFunctions.createProductionBatch({
-                    p_batch_number: batchNumber,
-                    p_received_date: receivedDate,
-                    p_wet_nis_received_kg: wetNis,
-                    p_supplier_id: supplierId || undefined,
-                    p_grower_name: undefined,
-                    p_batch_type: 'kernel',
-                    p_status: 'receiving',
-                    p_current_step: 1
-                });
-                // Support direct { id }, { data: { id } }, or RPC-wrapped shape
-                const id = (createResult && createResult.id) ||
-                    (createResult && createResult.data && createResult.data.id) ||
-                    (createResult && createResult.create_production_batch_simple && createResult.create_production_batch_simple.id);
-                if (createResult && createResult.success === false && createResult.error) {
-                    Swal.fire('Error', createResult.error, 'error');
-                    return;
-                }
-                if (!id) {
-                    throw new Error(createResult && createResult.error ? createResult.error : 'Create failed: no batch id returned');
-                }
-                await dataFunctions.updateProductionBatch(id, { status: 'intake_received', stage: 'intake' });
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('createKernelBatchModal'));
-                    if (modal) modal.hide();
-                } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                    $('#createKernelBatchModal').modal('hide');
-                }
-                Swal.fire({ icon: 'success', title: 'Batch created', text: 'Kernel batch is in intake. Complete Stage 1 steps then move to raw stock when ready.', timer: 2500, showConfirmButton: false });
-                await this.loadIntakeBatches(true);
-            } catch (e) {
-                console.error(e);
-                const msg = e.message || '';
-                const isRbacDenied = msg.includes('operation EXECUTE is not allowed') || msg.includes('Access denied');
-                if (isRbacDenied) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Permission denied',
-                        html: 'Creating a batch was blocked by the server. <strong>Ask an admin</strong> to either set the Lambda env <code>SUPABASE_URL</code> to the project where permissions were granted, or run the EXECUTE grants on the database the server uses. See <strong>BluePrint/RBAC_GUIDE.md</strong> or <strong>LAMBDA_ENV_REQUIRED.md</strong>.'
-                    });
-                } else {
-                    Swal.fire('Error', msg || 'Failed to create batch', 'error');
-                }
-            }
-        },
-
-        moveBatchToRawStock: async function (batchId) {
+        moveBatchToRawStock: async (batchId) => {
+            const scope = _growerIntakeGrid;
             if (!batchId) return;
             try {
                 const result = await dataFunctions.updateProductionBatch(batchId, { status: 'in_production', stage: 'production' });
                 if (result && result.success !== false) {
-                    Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in Kernel Production. Complete Production and End sample, then Release to stock.', timer: 2500, showConfirmButton: false });
-                    this.loadIntakeBatches(true);
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in Kernel Production. Complete Production and End sample, then Release to stock.', timer: 2500, showConfirmButton: false });
+                    scope.loadIntakeBatches(true);
                 } else {
                     throw new Error(result && result.error ? result.error : 'Update failed');
                 }
             } catch (e) {
                 console.error(e);
-                Swal.fire('Error', e.message || 'Failed to release batch', 'error');
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release batch', 'error');
             }
         },
 
-        showAddSampleModal: function () {
-            Swal.fire('Info', 'Sample submission form coming soon', 'info');
+        showAddSampleModal: () => {
+            if (typeof Swal !== 'undefined') Swal.fire('Info', 'Sample submission form coming soon', 'info');
         },
 
-        viewSample: async function (sampleId) {
+        viewSample: async (sampleId) => {
+            const scope = _growerIntakeGrid;
             if (!sampleId) return;
-            var sample = (this.samples || []).find(function (s) { return s.id === sampleId; });
+            let sample = (scope.samples || []).find((s) => s.id === sampleId);
             if (!sample) {
                 try {
-                    await this.loadSamples(true);
-                    sample = (this.samples || []).find(function (s) { return s.id === sampleId; });
+                    await scope.loadSamples(true);
+                    sample = (scope.samples || []).find((s) => s.id === sampleId);
                 } catch (e) { console.error(e); }
             }
             if (!sample) {
-                Swal.fire('Info', 'Sample not found.', 'info');
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'Sample not found.', 'info');
                 return;
             }
-            var html = '<div class="text-start small">' +
+            const html = '<div class="text-start small">' +
                 '<p><strong>Submission:</strong> ' + (sample.submission_number || '—') + '</p>' +
                 '<p><strong>Grower:</strong> ' + (sample.grower_name || '—') + '</p>' +
-                '<p><strong>Delivery date:</strong> ' + (sample.delivery_date || '—') + '</p>' +
+                '<p><strong>Delivery date:</strong> ' + ((typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(sample.delivery_date) : sample.delivery_date) || 'N/A') + '</p>' +
                 '<p><strong>Wet NIS (kg):</strong> ' + (sample.wet_nut_in_shell_kg != null ? sample.wet_nut_in_shell_kg : '—') + '</p>' +
                 '<p><strong>Moisture %:</strong> ' + (sample.moisture_content_percentage != null ? sample.moisture_content_percentage : '—') + '</p>' +
                 '<p><strong>Status:</strong> ' + (sample.status || '—') + '</p>' +
                 '</div>';
-            Swal.fire({ title: 'Sample submission', html: html, confirmButtonText: 'OK', width: '400px' });
+            if (typeof Swal !== 'undefined') Swal.fire({ title: 'Sample submission', html, confirmButtonText: 'OK', width: '400px' });
         },
 
-        showError: function (message) {
-            Swal.fire({ icon: 'error', title: 'Error', text: message });
+        showError: (message) => {
+            if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: message });
         },
-        
-        exportSamples: function () {
-            if (!this.samples || this.samples.length === 0) {
-                Swal.fire('Info', 'No samples to export', 'info');
+
+        exportIntakeBatches: () => {
+            const scope = _growerIntakeGrid;
+            if (!scope.intakeBatches || scope.intakeBatches.length === 0) {
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'No batches to export', 'info');
                 return;
             }
-            
+            const columns = [
+                { key: 'batch_number', label: 'Batch Number' },
+                { key: 'grower_name', label: 'Grower / supplier' },
+                { key: 'received_date', label: 'Received Date' },
+                { key: 'wet_nis_received_kg', label: 'Wet NIS (kg)' },
+                { key: 'status', label: 'Status' }
+            ];
+            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                exportUtils.exportToCSV(scope.intakeBatches, 'grower_intake_batches', columns);
+            } else if (typeof Swal !== 'undefined') {
+                Swal.fire('Error', 'Export utility not available', 'error');
+            }
+        },
+
+        exportSamples: () => {
+            const scope = _growerIntakeGrid;
+            if (!scope.samples || scope.samples.length === 0) {
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'No samples to export', 'info');
+                return;
+            }
             const columns = [
                 { key: 'submission_number', label: 'Submission Number' },
                 { key: 'grower_name', label: 'Grower' },
@@ -403,13 +336,11 @@ var _growerIntakeGrid = function () {
                 { key: 'moisture_content_percentage', label: 'Moisture %' },
                 { key: 'status', label: 'Status' }
             ];
-            
             if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
-                exportUtils.exportToCSV(this.samples, 'sample_submissions', columns);
-            } else {
+                exportUtils.exportToCSV(scope.samples, 'sample_submissions', columns);
+            } else if (typeof Swal !== 'undefined') {
                 Swal.fire('Error', 'Export utility not available', 'error');
             }
         }
     };
 }();
-growerIntakeGrid.init();

@@ -1441,6 +1441,17 @@ var _dataFunctions = function () {
                 forceRefresh: forceRefresh
             });
         },
+
+        getReceivingChecklist: async function (checklistId, token = null) {
+            if (!checklistId) return null;
+            try {
+                var result = await this.callFunction('get_receiving_checklist_by_id', { p_id: checklistId }, token);
+                if (result) return result;
+            } catch (e) { /* fallback below */ }
+            var all = await this.getReceivingChecklists(token, true);
+            var found = (all || []).filter(function (r) { return r.id === checklistId; })[0];
+            return found ? { checklist: found, received_items: found.received_items || found.receivedItems || [] } : null;
+        },
         
         // Raw Material Issued Functions (cached for 1 minute)
         getRawMaterialIssued: async function (token = null, forceRefresh = false) {

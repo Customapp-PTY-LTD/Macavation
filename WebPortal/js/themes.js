@@ -36,7 +36,7 @@ const ThemeManager = {
                 '--theme-sidebar-text': 'rgba(255, 255, 255, 0.8)',
                 '--theme-sidebar-active': '#40916c',
                 '--theme-sidebar-hover': 'rgba(64, 145, 108, 0.15)',
-                '--theme-navbar-gradient': 'linear-gradient(135deg, #2d6a4f, #40916c)',
+                '--theme-navbar-gradient': '#008950',
                 '--theme-accent': '#95d5b2'
             }
         },

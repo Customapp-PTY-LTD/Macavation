@@ -70,21 +70,6 @@ var _offlineDetector = function () {
             console.log('[Offline Detector] Gone offline');
             this.isOnline = false;
             this.showOfflineIndicator();
-
-            // Show notification
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Offline Mode',
-                    html: `
-                        <p>You are currently offline. Your data will be saved locally and synced when you're back online.</p>
-                        <p class="text-muted small mt-2">You can continue working normally.</p>
-                    `,
-                    timer: 5000,
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK'
-                });
-            }
         },
 
         /**

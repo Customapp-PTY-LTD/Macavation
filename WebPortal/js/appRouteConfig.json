@@ -167,8 +167,7 @@
             "path": "grower-intake",
             "html": "html/grower_intake_grid.html",
             "js": [
-                "js/grower_intake_grid.js",
-                "js/receiving_checklist_shared.js"
+                "js/grower_intake_grid.js"
             ],
             "css": [
                 "css/grower_intake_grid.css"
@@ -348,6 +347,27 @@
             "path": "modals/modal-stock-receiving-checklist",
             "html": "html/modal_receiving_checklist.html",
             "js": ["js/modal_receiving_checklist.js"],
+            "css": []
+        },
+        "grower-receiving-checklist-modal": {
+            "description": "Grower Intake Receiving Checklist Modal",
+            "path": "modals/modal-grower-receiving-checklist",
+            "html": "html/modal_grower_receiving_checklist.html",
+            "js": ["js/modal_grower_receiving_checklist.js"],
+            "css": []
+        },
+        "grower-create-kernel-batch-modal": {
+            "description": "Grower Intake Create Kernel Batch Modal",
+            "path": "modals/modal-grower-create-kernel-batch",
+            "html": "html/modal_grower_create_kernel_batch.html",
+            "js": ["js/modal_grower_create_kernel_batch.js"],
+            "css": []
+        },
+        "grower-link-sample-to-batch-modal": {
+            "description": "Grower Intake Link Sample to Batch Modal",
+            "path": "modals/modal-grower-link-sample-to-batch",
+            "html": "html/modal_grower_link_sample_to_batch.html",
+            "js": ["js/modal_grower_link_sample_to_batch.js"],
             "css": []
         },
         "raw-material-issued-modal": {

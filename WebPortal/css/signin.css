@@ -4,8 +4,8 @@
     --macadamia-shell: #8B7355;
     --macadamia-kernel: #E8DCC8;
     --macadamia-dark: #4A3728;
-    --forest-deep: #2D4A3E;
-    --forest-light: #4A7C59;
+    --forest-deep: #008950;
+    --forest-light: #008950;
     --earth-rich: #6B4423;
     --gold-accent: #C9A962;
     --gold-light: #E8D4A8;
@@ -35,7 +35,7 @@ body::before {
     right: 0;
     bottom: 0;
     background:
-        radial-gradient(ellipse at 20% 20%, rgba(74, 124, 89, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 20%, rgba(0, 137, 80, 0.08) 0%, transparent 50%),
         radial-gradient(ellipse at 80% 80%, rgba(107, 68, 35, 0.06) 0%, transparent 50%),
         radial-gradient(ellipse at 60% 30%, rgba(201, 169, 98, 0.05) 0%, transparent 40%);
     pointer-events: none;
@@ -78,7 +78,7 @@ body::before {
     overflow: hidden;
     box-shadow:
         0 25px 80px var(--shadow-warm),
-        0 10px 30px rgba(45, 74, 62, 0.08);
+        0 10px 30px rgba(0, 137, 80, 0.08);
     animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -97,7 +97,7 @@ body::before {
 /* Left Panel - Branding */
 .brand-panel {
     flex: 1;
-    background: linear-gradient(135deg, var(--forest-deep) 0%, var(--macadamia-dark) 100%);
+    background: #008950;
     padding: 3rem;
     display: flex;
     flex-direction: column;
@@ -116,7 +116,7 @@ body::before {
     height: 200%;
     background:
         radial-gradient(circle at 30% 70%, rgba(201, 169, 98, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 70% 30%, rgba(74, 124, 89, 0.2) 0%, transparent 40%);
+        radial-gradient(circle at 70% 30%, rgba(0, 137, 80, 0.2) 0%, transparent 40%);
     animation: shimmer 15s ease-in-out infinite;
 }
 
@@ -337,7 +337,7 @@ body::before {
 .btn-primary {
     width: 100%;
     padding: 1rem;
-    background: linear-gradient(135deg, var(--forest-deep) 0%, var(--forest-light) 100%);
+    background: #008950;
     border: none;
     border-radius: 12px;
     color: white;
@@ -346,12 +346,12 @@ body::before {
     letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(45, 74, 62, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 137, 80, 0.3);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(45, 74, 62, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 137, 80, 0.4);
 }
 
 .btn-primary:active {
@@ -513,7 +513,7 @@ body::before {
 }
 
 .swal2-confirm {
-    background: linear-gradient(135deg, var(--forest-deep) 0%, var(--forest-light) 100%) !important;
+    background: #008950 !important;
     border-radius: 10px !important;
 }
 
