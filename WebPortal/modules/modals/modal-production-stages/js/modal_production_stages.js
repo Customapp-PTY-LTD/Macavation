@@ -64,6 +64,9 @@ var _modal_production_stages = function () {
             $(document).on('change input', '#ps_wash_waste_saltpepper, #ps_wash_waste_shellfines, #ps_wash_waste_compost', function () {
                 scope.updateWashWasteTotal();
             });
+            $(document).on('change input', '#ps_crack_timespent1', function () {
+                scope.syncCrackTimeToSummary();
+            });
             $('#productionStagesModal').off('shown.bs.modal').on('shown.bs.modal', function () {
                 var container = document.getElementById('productionStagesModal');
                 var inputs = container ? container.querySelectorAll('.flatpickr-date') : [];
@@ -125,6 +128,7 @@ var _modal_production_stages = function () {
             var spent = scope.computeTimeSpent(startVal, endVal);
             $('#ps_crack_timespent' + rowNum).val(spent);
             scope.updateCrackTotalTime();
+            scope.syncCrackTimeToSummary();
         },
 
         updateCrackTotalTime: () => {
@@ -146,6 +150,11 @@ var _modal_production_stages = function () {
             var c = parseFloat($('#ps_wash_waste_compost').val()) || 0;
             var total = a + b + c;
             $('#ps_wash_waste_total').val(total === 0 ? '' : total);
+        },
+
+        syncCrackTimeToSummary: () => {
+            var val = $('#ps_crack_timespent1').val();
+            $('#ps_sum_crack_time').val(val != null && val !== '' ? val : '');
         },
 
         getProductionStagesSectionData: (prefix) => {
@@ -201,7 +210,7 @@ var _modal_production_stages = function () {
 
         populateProductionGrowerSelects: (selectedGrowerName) => {
             const scope = _modal_production_stages;
-            var ids = ['ps_sort_grower', 'ps_pack_grower'];
+            var ids = [];
             var html = '<option value="">Select grower</option>';
             var p = dataFunctions.getContacts && dataFunctions.getContacts();
             return p ? p.then(function (contacts) {
@@ -340,6 +349,7 @@ var _modal_production_stages = function () {
                     scope.setProductionStagesSectionData('sort', s.sorting_data);
                     scope.setProductionStagesSectionData('pack', s.packing_data);
                     scope.setProductionStagesSectionData('sum', s.summary_data);
+                    scope.syncCrackTimeToSummary();
                 } else {
                     scope.clearProductionStagesForm();
                 }
