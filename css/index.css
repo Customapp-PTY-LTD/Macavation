@@ -18,24 +18,40 @@ body {
     background: #FFFFFF;
 }
 
-/* Navbar Styling */
+/* Navbar Styling – white header */
 .navbar {
-    background: linear-gradient(135deg, var(--forest-deep) 0%, var(--macadamia-dark) 100%) !important;
-    box-shadow: 0 4px 20px var(--shadow-warm);
+    background: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.navbar .container-fluid {
+    position: relative;
+}
+
+.navbar-brand {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.navbar-brand:hover {
+    transform: translateX(-50%) translateY(-1px);
 }
 
 .navbar-brand span {
     font-family: 'Tahoma', sans-serif;
     font-size: 1.5rem;
     letter-spacing: 1px;
+    color: var(--macadamia-dark) !important;
 }
 
 .navbar .nav-link {
-    color: rgba(255, 255, 255, 0.9) !important;
+    color: var(--macadamia-dark) !important;
 }
 
 .navbar .nav-link:hover {
-    color: var(--gold-light) !important;
+    color: var(--forest-deep) !important;
 }
 
 .navbar .dropdown-menu {
@@ -53,6 +69,20 @@ body {
 /* User icon: no arrow/caret next to profile circle */
 .navbar .user-dropdown-toggle.dropdown-toggle::after {
     display: none;
+}
+
+/* Profile icon in header: slightly bigger, pushed in from the right */
+.navbar .navbar-profile-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.navbar .navbar-profile-avatar .avatar-name {
+    font-size: 1rem;
+}
+
+.navbar .navbar-nav.ms-auto {
+    margin-right: 0.75rem;
 }
 
 /* User dropdown card – bigger, sharp corners */
@@ -132,61 +162,92 @@ body {
     color: #fff !important;
 }
 
-/* Sidebar Styling */
+/* Sidebar Styling – floating card (collapse still works) */
 /* All sidebar nav items start hidden; menu-filter.js shows them by role */
 #sidebarMenu .nav-item {
     display: none;
 }
+
 .sidebar {
-    background: linear-gradient(180deg, var(--forest-deep) 0%, var(--macadamia-dark) 100%) !important;
-    border-right: none !important;
+    background: #ffffff !important;
+    border: 2px solid var(--forest-deep);
+    border-right: 2px solid var(--forest-deep);
     box-shadow: 4px 0 20px var(--shadow-warm);
 }
 
+@media (min-width: 768px) {
+    .sidebar {
+        left: 1rem !important;
+        top: calc(70px + 1rem) !important;
+        height: calc(100vh - 70px - 2rem) !important;
+        border: 2px solid var(--forest-deep) !important;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px var(--shadow-warm);
+    }
+
+    #sidebarMenu.sidebar::before {
+        display: none;
+    }
+
+    .sidebar.collapsed {
+        width: 70px !important;
+        border-radius: 12px;
+    }
+}
+
 .sidebar .nav-link {
-    color: rgba(255, 255, 255, 0.85) !important;
+    color: var(--macadamia-dark) !important;
     border-radius: 8px;
     margin: 2px 8px;
     transition: all 0.3s ease;
 }
 
 .sidebar .nav-link:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: var(--gold-light) !important;
+    background: rgba(45, 74, 62, 0.08) !important;
+    color: var(--forest-deep) !important;
 }
 
 .sidebar .nav-link.active {
-    background: rgba(201, 169, 98, 0.2) !important;
-    color: var(--gold-light) !important;
+    background: rgba(45, 74, 62, 0.12) !important;
+    color: var(--forest-deep) !important;
 }
 
 .sidebar .collapse .nav-link {
     padding-left: 1rem;
     font-size: 0.9rem;
+    color: var(--earth-rich) !important;
 }
 
 .sidebar-footer {
-    border-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(45, 74, 62, 0.2) !important;
 }
 
 .sidebar-footer .btn-link {
-    color: rgba(255, 255, 255, 0.7) !important;
+    color: var(--macadamia-dark) !important;
 }
 
 .sidebar-footer .btn-link:hover {
-    color: var(--gold-light) !important;
+    color: var(--forest-deep) !important;
+    background: rgba(45, 74, 62, 0.06) !important;
 }
 
-/* Main Content */
+/* Main content */
 .main-content {
     background: #FFFFFF;
 }
 
-/* Remove blue/bar line above main content (navbar shadow or border) */
-.navbar {
-    border-bottom: none !important;
-    box-shadow: none !important;
+@media (min-width: 768px) {
+    .main-content {
+        margin-left: calc(300px + 2rem) !important;
+        width: calc(100% - 300px - 2rem) !important;
+    }
+
+    .main-content.sidebar-collapsed {
+        margin-left: calc(70px + 2rem) !important;
+        width: calc(100% - 70px - 2rem) !important;
+    }
 }
+
 .container-fluid.mt-navbar,
 .main-content {
     border-top: none !important;

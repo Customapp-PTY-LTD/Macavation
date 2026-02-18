@@ -70,12 +70,11 @@
 
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="#" route="users-grid">
-                <i class="fas fa-seedling me-2 text-light"></i>
-                <span class="fw-bold">Macavation</span>
-                <small class="ms-2 text-light opacity-75">Macadamia Excellence</small>
+                <i class="fas fa-seedling me-2 text-primary"></i>
+                <span class="fw-bold text-dark">Macavation</span>
             </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -91,7 +90,7 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle user-dropdown-toggle d-flex align-items-center p-0" href="#" role="button"
                             data-bs-toggle="dropdown" aria-label="User menu">
-                            <div class="avatar avatar-sm">
+                            <div class="avatar avatar-sm navbar-profile-avatar">
                                 <div
                                     class="avatar-name rounded-circle bg-light text-primary d-flex align-items-center justify-content-center">
                                     <i class="fas fa-user"></i>
@@ -365,8 +364,8 @@
                             </li>
                         </ul>
                     </div>
-                    <div class="sidebar-footer p-3 border-top border-secondary">
-                        <button class="btn btn-link text-light w-100 text-start p-2" type="button" id="sidebarToggle"
+                    <div class="sidebar-footer p-3 border-top border-secondary sidebar-footer-inner">
+                        <button class="btn btn-link w-100 text-start p-2" type="button" id="sidebarToggle"
                             title="Toggle Sidebar">
                             <i class="fas fa-chevron-left me-2"></i><span class="toggle-text">Collapse</span>
                         </button>
