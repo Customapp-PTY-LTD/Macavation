@@ -178,6 +178,9 @@ var _modal_grower_receiving_checklist = (function () {
             const scope = _modal_grower_receiving_checklist;
             if (typeof $ === 'undefined' || typeof Swal === 'undefined') return;
             var todayPlaceholder = getTodayPlaceholder();
+            var lastRow = $('#growerReceivedItemsTableBody tr:last');
+            var lastDescription = lastRow.length ? (lastRow.find('select[name="growerDescription"]').val() || '') : '';
+            var lastDate = lastRow.length ? (lastRow.find('input[name="growerManufacturedDate"]').val() || '') : '';
             Swal.fire({
                 title: 'Add Bag',
                 html: '<label class="form-label">Weight (Kgs)</label><input id="growerAddBagWeight" type="number" step="0.01" class="form-control mb-2" placeholder="Weight (Kgs)">' +
@@ -185,6 +188,7 @@ var _modal_grower_receiving_checklist = (function () {
                     '<label id="growerAddBagDateLabel" class="form-label">Harvested Date</label><input id="growerAddBagDate" type="text" class="form-control flatpickr-date" placeholder="' + todayPlaceholder + '">',
                 showCancelButton: true,
                 confirmButtonText: 'Add',
+                focusConfirm: false,
                 preConfirm: () => {
                     var weightEl = document.getElementById('growerAddBagWeight');
                     var descEl = document.getElementById('growerAddBagDescription');
@@ -199,17 +203,36 @@ var _modal_grower_receiving_checklist = (function () {
                     return { weight: weight, description: desc, date: dateVal };
                 },
                 didOpen: () => {
+                    /* Deactivate Bootstrap 5 modal focus trap so user can click/type in SweetAlert Weight field */
+                    var modalEl = document.getElementById(CONTAINER_ID);
+                    if (modalEl && typeof bootstrap !== 'undefined') {
+                        var modalInst = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInst && modalInst._focustrap) modalInst._focustrap.deactivate();
+                    }
                     var descEl = document.getElementById('growerAddBagDescription');
                     var labelEl = document.getElementById('growerAddBagDateLabel');
                     var dateEl = document.getElementById('growerAddBagDate');
+                    var weightEl = document.getElementById('growerAddBagWeight');
+                    if (descEl) {
+                        descEl.value = lastDescription || '';
+                        if (labelEl) labelEl.textContent = lastDescription === 'NIS' ? 'Harvested Date' : lastDescription === 'Kernel' ? 'Manufactured Date' : 'Date';
+                    }
+                    if (dateEl) dateEl.value = lastDate || '';
                     if (descEl && labelEl) {
                         descEl.addEventListener('change', function () {
                             labelEl.textContent = this.value === 'NIS' ? 'Harvested Date' : this.value === 'Kernel' ? 'Manufactured Date' : 'Date';
                         });
                     }
                     if (dateEl && typeof flatpickr !== 'undefined' && !dateEl._flatpickr) flatpickr(dateEl, FLATPICKR_DDMMYYYY);
+                    if (weightEl) setTimeout(function () { weightEl.focus(); }, 100);
                 }
             }).then(function (result) {
+                /* Reactivate Bootstrap 5 modal focus trap after Add Bag dialog closes */
+                var modalEl = document.getElementById(CONTAINER_ID);
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    var modalInst = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInst && modalInst._focustrap) modalInst._focustrap.activate();
+                }
                 if (result && result.isConfirmed && result.value) {
                     scope.appendReceivedItemRow(result.value.description, result.value.weight, result.value.date);
                 }
