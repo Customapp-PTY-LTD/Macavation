@@ -115,7 +115,7 @@
     border-bottom-right-radius: var(--phoenix-border-radius) !important;
 }
 
-/* All input boxes – sharp corners */
+/* All input boxes – same radius as buttons for consistency */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select,
@@ -128,7 +128,7 @@ select,
 .input-group-text,
 .form-floating > .form-control,
 .form-floating > .form-select {
-    border-radius: 0 !important;
+    border-radius: var(--phoenix-border-radius) !important;
 }
 
 /* All buttons – consistent radius (except .rounded-pill) */
@@ -166,12 +166,17 @@ thead th,
     border-radius: var(--phoenix-border-radius) !important;
 }
 
-/* All modals – sharp corners (header and content) */
-.modal-content,
-.modal-header {
-    border-radius: 0 !important;
-    border-top-left-radius: 0 !important;
-    border-top-right-radius: 0 !important;
+/* All modals – same radius as buttons (header and content) */
+.modal-content {
+    border-radius: var(--phoenix-border-radius) !important;
+}
+.modal-content .modal-header:first-child {
+    border-top-left-radius: var(--phoenix-border-radius) !important;
+    border-top-right-radius: var(--phoenix-border-radius) !important;
+}
+.modal-content .modal-footer:last-child {
+    border-bottom-left-radius: var(--phoenix-border-radius) !important;
+    border-bottom-right-radius: var(--phoenix-border-radius) !important;
 }
 
 /* ============================================

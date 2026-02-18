@@ -9,6 +9,19 @@ Reference module: **kernel-production** (`modules/kernel-production`). Use these
 
 ---
 
+## Border radius (buttons, modals, inputs)
+
+Use the **same border radius** everywhere for a consistent look:
+
+- **Token:** `var(--phoenix-border-radius)` (theme value, typically **5px**).
+- **Buttons:** All `.btn` (except `.rounded-pill`) use this radius.
+- **Modals:** `.modal-content` and its first `.modal-header` / last `.modal-footer` use this radius so the dialog has rounded corners.
+- **Inputs:** `.form-control`, `.form-select`, `input`, `textarea`, `.input-group-text`, and floating labels use this radius so form fields match buttons and modals.
+
+This is enforced in `WebPortal/css/main.css`. Do not override to `border-radius: 0` for modals or inputs unless a specific component (e.g. table action ellipsis button) intentionally uses square corners.
+
+---
+
 ## 1. Page structure
 
 - Wrap all module content in a single **`.module-content`** container.
@@ -167,6 +180,7 @@ Use `py-4` for vertical padding so the empty state is easy to see.
 
 | Area              | Do |
 |-------------------|----|
+| Border radius     | Buttons, modals (`.modal-content`), and inputs (`.form-control`, `.form-select`) all use `var(--phoenix-border-radius)` (e.g. 5px) |
 | Layout            | `.module-content` → header row (`pt-3 pb-2 mb-3 border-bottom`) → cards (`mb-3` / `mb-4`) |
 | Buttons           | `btn-toolbar mb-2 mb-md-0 ms-auto`; icon + `me-1` + label; `btn-outline-secondary` / `btn-primary` |
 | Filters           | Card with `row g-3`; button column with `d-flex align-items-end` |
