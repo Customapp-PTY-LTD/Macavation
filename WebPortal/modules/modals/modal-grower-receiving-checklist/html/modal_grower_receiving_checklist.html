@@ -1,7 +1,7 @@
 <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="growerReceivingChecklistModalLabel">Incoming Receiving Checklist</h5>
+            <h5 class="modal-title" id="growerReceivingChecklistModalLabel">Receiving Checklist</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -9,41 +9,53 @@
                 <input type="hidden" id="growerReceivingId">
                 <input type="hidden" id="growerReceivingChecklistBatchId" value="">
                 <div class="card mb-3">
-                    <div class="card-header"><h6 class="mb-0">Vehicle &amp; Receiving Checks</h6></div>
                     <div class="card-body">
+                        <label class="form-label fw-semibold">Vehicle &amp; Receiving Checks</label>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Is the vehicle clean?</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerVehicleClean" id="growerVehicleCleanYes" value="Yes"><label class="form-check-label" for="growerVehicleCleanYes">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerVehicleClean" id="growerVehicleCleanNo" value="No"><label class="form-check-label" for="growerVehicleCleanNo">No</label></div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleClean" id="growerVehicleCleanYes" value="Yes"><label class="form-check-label" for="growerVehicleCleanYes">Yes</label></div>
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleClean" id="growerVehicleCleanNo" value="No"><label class="form-check-label" for="growerVehicleCleanNo">No</label></div>
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Vehicle fully enclosed?</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerVehicleEnclosed" id="growerVehicleEnclosedYes" value="Yes"><label class="form-check-label" for="growerVehicleEnclosedYes">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerVehicleEnclosed" id="growerVehicleEnclosedNo" value="No"><label class="form-check-label" for="growerVehicleEnclosedNo">No</label></div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleEnclosed" id="growerVehicleEnclosedYes" value="Yes"><label class="form-check-label" for="growerVehicleEnclosedYes">Yes</label></div>
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerVehicleEnclosed" id="growerVehicleEnclosedNo" value="No"><label class="form-check-label" for="growerVehicleEnclosedNo">No</label></div>
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Any hazard substances noted on truck?</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerHazardSubstances" id="growerHazardSubstancesYes" value="Yes"><label class="form-check-label" for="growerHazardSubstancesYes">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerHazardSubstances" id="growerHazardSubstancesNo" value="No"><label class="form-check-label" for="growerHazardSubstancesNo">No</label></div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerHazardSubstances" id="growerHazardSubstancesYes" value="Yes"><label class="form-check-label" for="growerHazardSubstancesYes">Yes</label></div>
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerHazardSubstances" id="growerHazardSubstancesNo" value="No"><label class="form-check-label" for="growerHazardSubstancesNo">No</label></div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Any signs of pest infestations?</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerPestInfestations" id="growerPestInfestationsYes" value="Yes"><label class="form-check-label" for="growerPestInfestationsYes">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerPestInfestations" id="growerPestInfestationsNo" value="No"><label class="form-check-label" for="growerPestInfestationsNo">No</label></div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPestInfestations" id="growerPestInfestationsYes" value="Yes"><label class="form-check-label" for="growerPestInfestationsYes">Yes</label></div>
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPestInfestations" id="growerPestInfestationsNo" value="No"><label class="form-check-label" for="growerPestInfestationsNo">No</label></div>
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Pallets received are in good condition</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerPalletsCondition" id="growerPalletsConditionYes" value="Yes"><label class="form-check-label" for="growerPalletsConditionYes">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerPalletsCondition" id="growerPalletsConditionNo" value="No"><label class="form-check-label" for="growerPalletsConditionNo">No</label></div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPalletsCondition" id="growerPalletsConditionYes" value="Yes"><label class="form-check-label" for="growerPalletsConditionYes">Yes</label></div>
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerPalletsCondition" id="growerPalletsConditionNo" value="No"><label class="form-check-label" for="growerPalletsConditionNo">No</label></div>
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Are raw materials received in good condition?</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerRawMaterialsCondition" id="growerRawMaterialsConditionYes" value="Yes"><label class="form-check-label" for="growerRawMaterialsConditionYes">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="growerRawMaterialsCondition" id="growerRawMaterialsConditionNo" value="No"><label class="form-check-label" for="growerRawMaterialsConditionNo">No</label></div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerRawMaterialsCondition" id="growerRawMaterialsConditionYes" value="Yes"><label class="form-check-label" for="growerRawMaterialsConditionYes">Yes</label></div>
+                                        <div class="form-check mb-0"><input class="form-check-input" type="radio" name="growerRawMaterialsCondition" id="growerRawMaterialsConditionNo" value="No"><label class="form-check-label" for="growerRawMaterialsConditionNo">No</label></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -54,12 +66,12 @@
                     </div>
                 </div>
                 <div class="card mb-3">
-                    <div class="card-header"><h6 class="mb-0">Receiving Information</h6></div>
                     <div class="card-body">
+                        <label class="form-label fw-semibold">Receiving Information</label>
                         <div class="row">
                             <div class="col-md-4">
                                 <label for="growerDateReceived" class="form-label required">Date Received</label>
-                                <input type="date" class="form-control" id="growerDateReceived" required>
+                                <input type="text" class="form-control flatpickr-date" id="growerDateReceived" data-input required>
                             </div>
                             <div class="col-md-4">
                                 <label for="growerDeliveryNoteRef" class="form-label required">Delivery Note Reference/Number</label>
@@ -75,11 +87,11 @@
                     </div>
                 </div>
                 <div class="card mb-3">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Received Items</h6>
-                        <button type="button" class="btn btn-sm btn-primary" id="growerAddReceivedItemRow"><i class="fas fa-plus"></i> Add Item</button>
-                    </div>
                     <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-semibold mb-0">Received Items</label>
+                            <button type="button" class="btn btn-sm btn-primary" id="growerAddReceivedItemRow"><i class="fas fa-plus"></i> Add Item</button>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-sm" id="growerReceivedItemsTable">
                                 <thead>
@@ -101,8 +113,8 @@
                                         <td><input type="text" class="form-control form-control-sm" name="growerBatch"></td>
                                         <td><input type="number" class="form-control form-control-sm" name="growerCartonBags" value="1"></td>
                                         <td><input type="number" class="form-control form-control-sm" name="growerQuantity" step="0.01"></td>
-                                        <td><input type="date" class="form-control form-control-sm" name="growerManufacturedDate"></td>
-                                        <td><input type="date" class="form-control form-control-sm" name="growerBestBeforeDate"></td>
+                                        <td><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate"></td>
+                                        <td><input type="text" class="form-control form-control-sm flatpickr-date" name="growerBestBeforeDate"></td>
                                         <td><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td>
                                     </tr>
                                 </tbody>
@@ -110,11 +122,10 @@
                         </div>
                     </div>
                 </div>
+                <div class="modal-body-actions d-flex justify-content-end align-items-center mt-4 pt-3 border-top">
+                    <button type="button" class="btn btn-primary" id="growerSaveReceivingChecklistBtn"><i class="fas fa-save me-1"></i>Save Receiving Checklist</button>
+                </div>
             </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="growerSaveReceivingChecklistBtn"><i class="fas fa-save me-1"></i>Save Receiving Checklist</button>
         </div>
     </div>
 </div>

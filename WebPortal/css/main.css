@@ -60,6 +60,10 @@
     /* Typography */
     --phoenix-font-sans-serif: "Helvetica Neue", "Helvetica", Arial, sans-serif;
     --phoenix-font-brand: "Helvetica Neue", "Helvetica", Arial, sans-serif;
+
+    /* Macavation brand (navbar + modals) */
+    --macavation-pink: #FF005E;
+    --macavation-modal-body-bg: #F5F5F5;
 }
 
 /* ============================================
@@ -177,6 +181,77 @@ thead th,
 .modal-content .modal-footer:last-child {
     border-bottom-left-radius: var(--phoenix-border-radius) !important;
     border-bottom-right-radius: var(--phoenix-border-radius) !important;
+}
+
+/* All modals – universal header (centered, white bg, pink text, brand font, shadow like main navbar) and body (body grey) */
+.modal-content .modal-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background-color: #fff !important;
+    color: var(--macavation-pink) !important;
+    font-family: "Inter", var(--phoenix-font-brand) !important;
+    font-weight: 700;
+    border: none !important;
+    padding: 1rem 3rem;
+}
+.modal-content .modal-header .modal-title {
+    font-family: "Inter", var(--phoenix-font-brand) !important;
+    font-weight: 700;
+    color: var(--macavation-pink) !important;
+    margin: 0;
+    text-transform: uppercase;
+}
+.modal-content .modal-header .btn-close {
+    position: absolute;
+    right: 1rem;
+    opacity: 0.7;
+}
+.modal-content .modal-header .btn-close:hover {
+    opacity: 1;
+}
+.modal-content .modal-body {
+    background-color: var(--macavation-modal-body-bg) !important;
+    color: var(--phoenix-text-color);
+}
+
+/* Modal footer: Cancel on far left (red), Save/Add primary with no glow */
+.modal-content .modal-footer {
+    justify-content: space-between;
+}
+.modal-content .modal-footer .btn-secondary {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #fff !important;
+}
+.modal-content .modal-footer .btn-secondary:hover {
+    background-color: #bb2d3b !important;
+    border-color: #b02a37 !important;
+    color: #fff !important;
+}
+.modal-content .modal-footer .btn-primary,
+.modal-content .modal-footer .btn-primary:focus,
+.modal-content .modal-footer .btn-primary:hover {
+    box-shadow: none !important;
+}
+
+/* Modal body actions (when footer is removed: buttons in body) – same red Cancel, no glow on primary */
+.modal-content .modal-body .modal-body-actions .btn-secondary {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #fff !important;
+}
+.modal-content .modal-body .modal-body-actions .btn-secondary:hover {
+    background-color: #bb2d3b !important;
+    border-color: #b02a37 !important;
+    color: #fff !important;
+}
+.modal-content .modal-body .modal-body-actions .btn-primary,
+.modal-content .modal-body .modal-body-actions .btn-primary:focus,
+.modal-content .modal-body .modal-body-actions .btn-primary:hover {
+    box-shadow: none !important;
 }
 
 /* ============================================

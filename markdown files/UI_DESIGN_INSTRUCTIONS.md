@@ -22,6 +22,29 @@ This is enforced in `WebPortal/css/main.css`. Do not override to `border-radius:
 
 ---
 
+## Modals (universal)
+
+Modal header and body styling is **global** in `WebPortal/css/main.css` and applies to all modals. Do not add per-modal CSS that overrides these.
+
+**CSS variables (in `:root`):**
+- `--macavation-pink: #FF005E` — brand pink for modal title and navbar accent.
+- `--macavation-modal-body-bg: #F5F5F5` — body grey for modal content area.
+
+**Modal header (`.modal-content .modal-header`):**
+- **Background:** White (`#fff`).
+- **Title text:** Macavation pink (`var(--macavation-pink)`), font `"Inter", var(--phoenix-font-brand)`, `font-weight: 700`, **capital letters** (`text-transform: uppercase`).
+- **Layout:** Centered (`justify-content: center`, `text-align: center`). Close button remains absolutely positioned on the right.
+- **Border:** None (`border: none`).
+- **Shadow:** Same as main navbar — `0 1px 3px rgba(0, 0, 0, 0.08)` — so the header bar matches the app header.
+
+**Modal body (`.modal-content .modal-body`):**
+- **Background:** Body grey (`var(--macavation-modal-body-bg)`).
+- **Text:** `var(--phoenix-text-color)` for readability.
+
+**Modal title copy:** Keep the `.modal-title` to **one or two words** (e.g. “Receiving Checklist”). Avoid long or contextual suffixes like “(edit)” or “(for this batch)” in the header; handle context in the body or leave the title short.
+
+---
+
 ## 1. Page structure
 
 - Wrap all module content in a single **`.module-content`** container.
@@ -181,6 +204,7 @@ Use `py-4` for vertical padding so the empty state is easy to see.
 | Area              | Do |
 |-------------------|----|
 | Border radius     | Buttons, modals (`.modal-content`), and inputs (`.form-control`, `.form-select`) all use `var(--phoenix-border-radius)` (e.g. 5px) |
+| Modals            | Universal in `main.css`: header white bg, pink title text, uppercase, centered, no border, navbar-matching shadow; body grey (`--macavation-modal-body-bg`); title 1–2 words |
 | Layout            | `.module-content` → header row (`pt-3 pb-2 mb-3 border-bottom`) → cards (`mb-3` / `mb-4`) |
 | Buttons           | `btn-toolbar mb-2 mb-md-0 ms-auto`; icon + `me-1` + label; `btn-outline-secondary` / `btn-primary` |
 | Filters           | Card with `row g-3`; button column with `d-flex align-items-end` |

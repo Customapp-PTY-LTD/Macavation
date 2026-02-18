@@ -1,45 +1,85 @@
 /**
  * Modal: Grower Intake Receiving Checklist (with batch linking).
  * Parent calls show(batchId) or show(batchId, checklistId) for edit.
- * Uses container id: growerReceivingChecklistModal
+ * Uses container id: growerReceivingChecklistModal.
+ * Date inputs use Flatpickr (dd/mm/yyyy); API expects ISO (yyyy-mm-dd).
  */
 var _modal_grower_receiving_checklist = (function () {
     'use strict';
 
     var CONTAINER_ID = 'growerReceivingChecklistModal';
+    var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
 
-    var api = {
-        init: function () {
-            var scope = api;
+    function toISO(dateStr) {
+        if (!dateStr || typeof dateStr !== 'string') return null;
+        dateStr = dateStr.trim();
+        if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) return dateStr.indexOf('-') === 4 ? dateStr : null;
+        var parts = dateStr.split('/');
+        return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+    }
+
+    function fromISO(isoStr) {
+        if (!isoStr) return '';
+        var s = typeof isoStr === 'string' ? isoStr.trim() : String(isoStr);
+        if (s.indexOf('T') >= 0) s = s.split('T')[0];
+        var parts = s.split('-');
+        if (parts.length !== 3) return s;
+        return parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+
+    function getTodayPlaceholder() {
+        return fromISO(new Date().toISOString().split('T')[0]);
+    }
+
+    function initFlatpickrInModal() {
+        var container = document.getElementById(CONTAINER_ID);
+        if (!container || typeof flatpickr === 'undefined') return;
+        var todayPlaceholder = getTodayPlaceholder();
+        var inputs = container.querySelectorAll('.flatpickr-date');
+        inputs.forEach(function (el) {
+            if (!el.placeholder) el.placeholder = todayPlaceholder;
+            if (el._flatpickr) return;
+            flatpickr(el, FLATPICKR_DDMMYYYY);
+        });
+    }
+
+    return {
+        init: () => {
+            const scope = _modal_grower_receiving_checklist;
+            scope.initHandlers();
+        },
+
+        initHandlers: () => {
+            const scope = _modal_grower_receiving_checklist;
             var saveBtn = document.getElementById('growerSaveReceivingChecklistBtn');
-            if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); scope.save(); });
+            if (saveBtn) saveBtn.addEventListener('click', (e) => { e.preventDefault(); scope.save(); });
             var addRowBtn = document.getElementById('growerAddReceivedItemRow');
-            if (addRowBtn) addRowBtn.addEventListener('click', function () { scope.addReceivedItemRow(); });
+            if (addRowBtn) addRowBtn.addEventListener('click', () => scope.addReceivedItemRow());
             $(document).on('click', '.growerRemoveItemRow', function () { $(this).closest('tr').remove(); });
             var container = document.getElementById(CONTAINER_ID);
             if (container && typeof $ !== 'undefined') {
-                $(container).on('hidden.bs.modal', function () { scope.clearForm(); });
+                $(container).on('shown.bs.modal', () => initFlatpickrInModal());
+                $(container).on('hidden.bs.modal', () => scope.clearForm());
             }
         },
 
-        show: async function (batchId, checklistId) {
+        show: async (batchId, checklistId) => {
+            const scope = _modal_grower_receiving_checklist;
             var batchIdEl = document.getElementById('growerReceivingChecklistBatchId');
             if (batchIdEl) batchIdEl.value = batchId || '';
 
             var labelEl = document.getElementById('growerReceivingChecklistModalLabel');
-            if (labelEl) {
-                labelEl.textContent = checklistId ? 'Incoming Receiving Checklist (edit)' : (batchId ? 'Incoming Receiving checklist (for this batch)' : 'Incoming Receiving Checklist');
-            }
+            if (labelEl) labelEl.textContent = 'Receiving Checklist';
 
-            api.clearForm();
+            scope.clearForm();
             if (batchIdEl) batchIdEl.value = batchId || '';
 
             var receivingIdEl = document.getElementById('growerReceivingId');
             if (receivingIdEl) receivingIdEl.value = '';
 
-            var today = new Date().toISOString().split('T')[0];
+            var todayISO = new Date().toISOString().split('T')[0];
             var dateEl = document.getElementById('growerDateReceived');
-            if (dateEl) dateEl.value = today;
+            if (dateEl) dateEl.value = fromISO(todayISO);
 
             try {
                 if (typeof dataFunctions !== 'undefined' && dataFunctions.getContacts) {
@@ -64,7 +104,7 @@ var _modal_grower_receiving_checklist = (function () {
                 try {
                     var raw = await dataFunctions.getReceivingChecklist(checklistId);
                     var payload = (raw && (raw.checklist || raw.received_items !== undefined)) ? raw : (raw && raw.data) ? raw.data : raw;
-                    if (payload) api.loadIntoForm(payload);
+                    if (payload) scope.loadIntoForm(payload);
                 } catch (e) {
                     console.error('Error loading receiving checklist for edit:', e);
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: 'Could not load checklist: ' + (e.message || e) });
@@ -77,14 +117,15 @@ var _modal_grower_receiving_checklist = (function () {
             else if (typeof $ !== 'undefined' && $.fn.modal) $('#' + CONTAINER_ID).modal('show');
         },
 
-        loadIntoForm: function (payload) {
+        loadIntoForm: (payload) => {
+            const scope = _modal_grower_receiving_checklist;
             if (typeof $ === 'undefined' || !payload) return;
             var checklist = payload.checklist || payload;
             var items = payload.received_items || [];
             if (!checklist) return;
 
             document.getElementById('growerReceivingId').value = checklist.id || '';
-            document.getElementById('growerDateReceived').value = checklist.date_received || '';
+            document.getElementById('growerDateReceived').value = fromISO(checklist.date_received || '');
             document.getElementById('growerDeliveryNoteRef').value = checklist.delivery_note_ref || '';
             document.getElementById('growerSupplierDetails').value = checklist.supplier_id || '';
             $('input[name="growerVehicleClean"][value="' + (checklist.vehicle_clean || '') + '"]').prop('checked', true);
@@ -114,24 +155,24 @@ var _modal_grower_receiving_checklist = (function () {
                         firstRow.find('input[name="growerBatch"]').val(it.batch || '');
                         firstRow.find('input[name="growerCartonBags"]').val(it.carton_bags != null ? it.carton_bags : 1);
                         firstRow.find('input[name="growerQuantity"]').val(it.quantity_kg != null ? it.quantity_kg : '');
-                        firstRow.find('input[name="growerManufacturedDate"]').val(it.manufactured_date || '');
-                        firstRow.find('input[name="growerBestBeforeDate"]').val(it.best_before_date || '');
+                        firstRow.find('input[name="growerManufacturedDate"]').val(fromISO(it.manufactured_date || ''));
+                        firstRow.find('input[name="growerBestBeforeDate"]').val(fromISO(it.best_before_date || ''));
                     } else {
-                        api.addReceivedItemRow();
+                        scope.addReceivedItemRow();
                         var row = $('#growerReceivedItemsTableBody tr').eq(i);
                         row.find('input[name="growerReference"]').val(it.reference || '');
                         row.find('input[name="growerDescription"]').val(it.description || '');
                         row.find('input[name="growerBatch"]').val(it.batch || '');
                         row.find('input[name="growerCartonBags"]').val(it.carton_bags != null ? it.carton_bags : 1);
                         row.find('input[name="growerQuantity"]').val(it.quantity_kg != null ? it.quantity_kg : '');
-                        row.find('input[name="growerManufacturedDate"]').val(it.manufactured_date || '');
-                        row.find('input[name="growerBestBeforeDate"]').val(it.best_before_date || '');
+                        row.find('input[name="growerManufacturedDate"]').val(fromISO(it.manufactured_date || ''));
+                        row.find('input[name="growerBestBeforeDate"]').val(fromISO(it.best_before_date || ''));
                     }
                 });
             }
         },
 
-        clearForm: function () {
+        clearForm: () => {
             if (typeof $ === 'undefined') return;
             var form = document.getElementById('growerReceivingChecklistForm');
             if (form) form.reset();
@@ -143,13 +184,17 @@ var _modal_grower_receiving_checklist = (function () {
             $('#growerReceivedItemsTableBody tr:first input[name="growerCartonBags"]').val('1');
         },
 
-        addReceivedItemRow: function () {
+        addReceivedItemRow: () => {
             if (typeof $ === 'undefined') return;
-            var newRow = '<tr><td><input type="text" class="form-control form-control-sm" name="growerReference"></td><td><input type="text" class="form-control form-control-sm" name="growerDescription"></td><td><input type="text" class="form-control form-control-sm" name="growerBatch"></td><td><input type="number" class="form-control form-control-sm" name="growerCartonBags" value="1"></td><td><input type="number" class="form-control form-control-sm" name="growerQuantity" step="0.01"></td><td><input type="date" class="form-control form-control-sm" name="growerManufacturedDate"></td><td><input type="date" class="form-control form-control-sm" name="growerBestBeforeDate"></td><td><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td></tr>';
-            $('#growerReceivedItemsTableBody').append(newRow);
+            var todayPlaceholder = getTodayPlaceholder();
+            var newRow = '<tr><td><input type="text" class="form-control form-control-sm" name="growerReference"></td><td><input type="text" class="form-control form-control-sm" name="growerDescription"></td><td><input type="text" class="form-control form-control-sm" name="growerBatch"></td><td><input type="number" class="form-control form-control-sm" name="growerCartonBags" value="1"></td><td><input type="number" class="form-control form-control-sm" name="growerQuantity" step="0.01"></td><td><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate" placeholder="' + todayPlaceholder + '"></td><td><input type="text" class="form-control form-control-sm flatpickr-date" name="growerBestBeforeDate" placeholder="' + todayPlaceholder + '"></td><td><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td></tr>';
+            var $row = $(newRow).appendTo('#growerReceivedItemsTableBody');
+            $row.find('.flatpickr-date').each(function () {
+                if (typeof flatpickr !== 'undefined' && !this._flatpickr) flatpickr(this, FLATPICKR_DDMMYYYY);
+            });
         },
 
-        hide: function () {
+        hide: () => {
             var modalEl = document.getElementById(CONTAINER_ID);
             if (modalEl && typeof bootstrap !== 'undefined') {
                 var inst = bootstrap.Modal.getInstance(modalEl);
@@ -159,7 +204,8 @@ var _modal_grower_receiving_checklist = (function () {
             }
         },
 
-        save: async function () {
+        save: async () => {
+            const scope = _modal_grower_receiving_checklist;
             try {
                 if (typeof dataFunctions === 'undefined') return;
 
@@ -183,14 +229,15 @@ var _modal_grower_receiving_checklist = (function () {
                             batch: batch || null,
                             carton_bags: $row.find('input[name="growerCartonBags"]').val() ? parseInt($row.find('input[name="growerCartonBags"]').val(), 10) : null,
                             quantity_kg: qty ? parseFloat(qty) : null,
-                            manufactured_date: $row.find('input[name="growerManufacturedDate"]').val() || null,
-                            best_before_date: $row.find('input[name="growerBestBeforeDate"]').val() || null
+                            manufactured_date: toISO($row.find('input[name="growerManufacturedDate"]').val()) || null,
+                            best_before_date: toISO($row.find('input[name="growerBestBeforeDate"]').val()) || null
                         });
                     }
                 });
 
+                var dateReceivedVal = $('#growerDateReceived').val();
                 var receivingData = {
-                    p_date_received: $('#growerDateReceived').val(),
+                    p_date_received: toISO(dateReceivedVal) || dateReceivedVal,
                     p_delivery_note_ref: $('#growerDeliveryNoteRef').val(),
                     p_supplier_id: $('#growerSupplierDetails').val(),
                     p_vehicle_clean: $('input[name="growerVehicleClean"]:checked').val() || null,
@@ -247,7 +294,7 @@ var _modal_grower_receiving_checklist = (function () {
 
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: receivingId ? 'Receiving checklist updated.' : 'Receiving checklist created.', timer: 2000, showConfirmButton: false });
                     if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.loadIntakeBatches) _growerIntakeGrid.loadIntakeBatches(true);
-                    api.hide();
+                    scope.hide();
                 } else {
                     throw new Error(result && (result.error || result.message)) || 'Failed to save';
                 }
@@ -257,5 +304,5 @@ var _modal_grower_receiving_checklist = (function () {
             }
         }
     };
-    return api;
 })();
+_modal_grower_receiving_checklist.init();
