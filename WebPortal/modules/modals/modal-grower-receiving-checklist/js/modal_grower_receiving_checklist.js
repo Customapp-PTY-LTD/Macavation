@@ -81,23 +81,16 @@ var _modal_grower_receiving_checklist = (function () {
             var dateEl = document.getElementById('growerDateReceived');
             if (dateEl) dateEl.value = fromISO(todayISO);
 
-            try {
-                if (typeof dataFunctions !== 'undefined' && dataFunctions.getContacts) {
-                    var contacts = await dataFunctions.getContacts();
-                    var select = document.getElementById('growerSupplierDetails');
-                    if (select) {
-                        var html = '<option value="">Select Supplier</option>';
-                        if (contacts && Array.isArray(contacts)) {
-                            contacts.forEach(function (c) {
-                                var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
-                                html += '<option value="' + c.id + '">' + name + '</option>';
-                            });
-                        }
-                        select.innerHTML = html;
-                    }
+            var supplierIdEl = document.getElementById('growerReceivingChecklistSupplierId');
+            if (supplierIdEl) supplierIdEl.value = '';
+            if (batchId && typeof dataFunctions !== 'undefined' && dataFunctions.getProductionBatches) {
+                try {
+                    var batches = await dataFunctions.getProductionBatches(null, false, { batch_type: 'kernel' });
+                    var batch = (batches || []).find(function (b) { return b.id === batchId; });
+                    if (batch && batch.supplier_id && supplierIdEl) supplierIdEl.value = batch.supplier_id;
+                } catch (err) {
+                    console.error('Error loading batch for supplier:', err);
                 }
-            } catch (err) {
-                console.error('Error loading suppliers:', err);
             }
 
             if (checklistId) {
@@ -127,7 +120,8 @@ var _modal_grower_receiving_checklist = (function () {
             document.getElementById('growerReceivingId').value = checklist.id || '';
             document.getElementById('growerDateReceived').value = fromISO(checklist.date_received || '');
             document.getElementById('growerDeliveryNoteRef').value = checklist.delivery_note_ref || '';
-            document.getElementById('growerSupplierDetails').value = checklist.supplier_id || '';
+            var supplierIdEl = document.getElementById('growerReceivingChecklistSupplierId');
+            if (supplierIdEl) supplierIdEl.value = checklist.supplier_id || '';
             $('input[name="growerVehicleClean"][value="' + (checklist.vehicle_clean || '') + '"]').prop('checked', true);
             $('input[name="growerVehicleEnclosed"][value="' + (checklist.vehicle_enclosed || '') + '"]').prop('checked', true);
             $('input[name="growerHazardSubstances"][value="' + (checklist.hazard_substances || '') + '"]').prop('checked', true);
@@ -179,6 +173,8 @@ var _modal_grower_receiving_checklist = (function () {
             document.getElementById('growerReceivingId').value = '';
             var batchIdEl = document.getElementById('growerReceivingChecklistBatchId');
             if (batchIdEl) batchIdEl.value = '';
+            var supplierIdEl = document.getElementById('growerReceivingChecklistSupplierId');
+            if (supplierIdEl) supplierIdEl.value = '';
             $('#growerReceivedItemsTableBody tr:not(:first)').remove();
             $('#growerReceivedItemsTableBody tr:first input').val('');
             $('#growerReceivedItemsTableBody tr:first input[name="growerCartonBags"]').val('1');
@@ -236,10 +232,11 @@ var _modal_grower_receiving_checklist = (function () {
                 });
 
                 var dateReceivedVal = $('#growerDateReceived').val();
+                var supplierIdVal = $('#growerReceivingChecklistSupplierId').val();
                 var receivingData = {
                     p_date_received: toISO(dateReceivedVal) || dateReceivedVal,
                     p_delivery_note_ref: $('#growerDeliveryNoteRef').val(),
-                    p_supplier_id: $('#growerSupplierDetails').val(),
+                    p_supplier_id: supplierIdVal || null,
                     p_vehicle_clean: $('input[name="growerVehicleClean"]:checked').val() || null,
                     p_vehicle_enclosed: $('input[name="growerVehicleEnclosed"]:checked').val() || null,
                     p_hazard_substances: $('input[name="growerHazardSubstances"]:checked').val() || null,

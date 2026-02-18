@@ -8,6 +8,7 @@
             <form id="growerReceivingChecklistForm">
                 <input type="hidden" id="growerReceivingId">
                 <input type="hidden" id="growerReceivingChecklistBatchId" value="">
+                <input type="hidden" id="growerReceivingChecklistSupplierId" value="">
                 <div class="card mb-3">
                     <div class="card-body">
                         <label class="form-label fw-semibold">Vehicle &amp; Receiving Checks</label>
@@ -69,19 +70,13 @@
                     <div class="card-body">
                         <label class="form-label fw-semibold">Receiving Information</label>
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label for="growerDateReceived" class="form-label required">Date Received</label>
                                 <input type="text" class="form-control flatpickr-date" id="growerDateReceived" data-input required>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label for="growerDeliveryNoteRef" class="form-label required">Delivery Note Reference/Number</label>
                                 <input type="text" class="form-control" id="growerDeliveryNoteRef" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="growerSupplierDetails" class="form-label required">Supplier Details</label>
-                                <select class="form-select" id="growerSupplierDetails" required>
-                                    <option value="">Select Supplier</option>
-                                </select>
                             </div>
                         </div>
                     </div>

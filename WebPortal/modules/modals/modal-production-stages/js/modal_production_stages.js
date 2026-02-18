@@ -192,7 +192,7 @@ var _modal_production_stages = function () {
 
         populateProductionGrowerSelects: (selectedGrowerName) => {
             const scope = _modal_production_stages;
-            var ids = ['ps_crack_grower', 'ps_wash_grower', 'ps_sort_grower', 'ps_pack_grower'];
+            var ids = ['ps_crack_grower', 'ps_sort_grower', 'ps_pack_grower'];
             var html = '<option value="">Select grower</option>';
             var p = dataFunctions.getContacts && dataFunctions.getContacts();
             return p ? p.then(function (contacts) {
