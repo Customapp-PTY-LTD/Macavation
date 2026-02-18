@@ -71,18 +71,26 @@ var _rolesGrid = function () {
                 if (typeof _modal_role !== 'undefined' && _modal_role.show) _modal_role.show();
             });
 
-            $(document).on('click', '.role-name-link', function (e) {
-                e.preventDefault();
-                const scope = _rolesGrid;
+            $('#exportRolesBtn').on('click', function () { _rolesGrid.exportRoles(); });
+            $('#refreshRolesBtn').on('click', function () { _rolesGrid.refreshRoles(); });
+            $('#clearFiltersBtn').on('click', function () { _rolesGrid.clearFilters(); });
+
+            $(document).on('click', '#rolesTableBody tr.js-role-row', function (e) {
+                if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
                 var roleId = $(this).data('role-id');
-                if (!roleId) return;
-                scope.editRole(roleId);
+                if (roleId) _rolesGrid.editRole(roleId);
             });
 
-            $(document).on('click', '.delete-role-btn', function () {
-                const scope = _rolesGrid;
+            $(document).on('click', '.js-role-edit', function (e) {
+                e.preventDefault();
                 var roleId = $(this).data('role-id');
-                scope.deleteRole(roleId);
+                if (roleId) _rolesGrid.editRole(roleId);
+            });
+
+            $(document).on('click', '.js-role-deactivate', function (e) {
+                e.preventDefault();
+                var roleId = $(this).data('role-id');
+                if (roleId) _rolesGrid.deleteRole(roleId);
             });
         },
 
@@ -122,9 +130,32 @@ var _rolesGrid = function () {
             var startIndex = (scope.currentPage - 1) * scope.itemsPerPage;
             var endIndex = startIndex + scope.itemsPerPage;
             var rolesToShow = scope.filteredRoles.slice(startIndex, endIndex);
-            var rolesHtml = rolesToShow.map(function (role) {
-                return '<tr><td><a href="#" class="role-name-link text-decoration-none" data-role-id="' + scope.escapeHtml(role.id) + '">' + scope.escapeHtml(role.role_name) + '</a></td><td>' + scope.escapeHtml(role.description || '') + '</td><td><span class="badge bg-info">' + (role.users_count || 0) + '</span></td><td><button class="btn btn-sm btn-outline-danger delete-role-btn" data-role-id="' + scope.escapeHtml(role.id) + '"><i class="fas fa-trash"></i></button></td></tr>';
-            }).join('');
+
+            var rolesHtml = '';
+            if (rolesToShow.length === 0) {
+                var isEmpty = scope.filteredRoles.length === 0;
+                rolesHtml = '<tr><td colspan="4" class="text-center text-muted py-4">' +
+                    '<i class="fas fa-info-circle me-2"></i>' +
+                    (isEmpty ? 'No roles found.' : 'No roles match your search.') +
+                    '</td></tr>';
+            } else {
+                rolesHtml = rolesToShow.map(function (role) {
+                    var roleId = scope.escapeHtml(role.id);
+                    var actionsCell = '<td>' +
+                        '<div class="dropdown">' +
+                        '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">' +
+                        '<i class="fas fa-ellipsis"></i></button>' +
+                        '<ul class="dropdown-menu dropdown-menu-end">' +
+                        '<li><a class="dropdown-item js-role-edit" href="#" data-role-id="' + roleId + '">Edit</a></li>' +
+                        '<li><a class="dropdown-item js-role-deactivate text-danger" href="#" data-role-id="' + roleId + '">Deactivate</a></li>' +
+                        '</ul></div></td>';
+                    return '<tr class="js-role-row" data-role-id="' + roleId + '">' +
+                        '<td>' + scope.escapeHtml(role.role_name || '') + '</td>' +
+                        '<td>' + scope.escapeHtml(role.description || '') + '</td>' +
+                        '<td><span class="badge bg-info">' + (role.users_count != null ? role.users_count : 0) + '</span></td>' +
+                        actionsCell + '</tr>';
+                }).join('');
+            }
             $('#rolesTableBody').html(rolesHtml);
             scope.renderPagination();
         },
@@ -192,7 +223,7 @@ var _rolesGrid = function () {
         },
 
         showLoading: () => {
-            $('#rolesTableBody').html('<tr><td colspan="4" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>');
+            $('#rolesTableBody').html('<tr><td colspan="4" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading roles...</td></tr>');
         },
 
         hideLoading: () => {},
@@ -233,6 +264,29 @@ var _rolesGrid = function () {
             $('#searchInput').val('');
             $('#filterStatus').val('');
             scope.filterRoles();
+        },
+
+        refreshRoles: () => {
+            _rolesGrid.loadRoles();
+        },
+
+        exportRoles: () => {
+            const scope = _rolesGrid;
+            if (!scope.roles || scope.roles.length === 0) {
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'No roles to export', 'info');
+                return;
+            }
+            var columns = [
+                { key: 'role_name', label: 'Role Name' },
+                { key: 'description', label: 'Description' },
+                { key: 'users_count', label: 'Users Count' },
+                { key: 'is_active', label: 'Active' }
+            ];
+            if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                exportUtils.exportToCSV(scope.roles, 'roles', columns);
+            } else {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Export utility not available', 'error');
+            }
         }
     };
 }();
