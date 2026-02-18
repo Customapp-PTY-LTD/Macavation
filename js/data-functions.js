@@ -120,6 +120,22 @@ var _dataFunctions = function () {
             };
         },
 
+
+        /**
+         * Update production batch status/step (move batch along journey)
+         */
+        updateProductionBatch: async function (batchId, params, token = null) {
+            var payload = { p_batch_id: batchId };
+            if (params.status !== undefined) payload.p_status = params.status;
+            if (params.current_step !== undefined) payload.p_current_step = params.current_step;
+            if (params.stage !== undefined) payload.p_stage = params.stage;
+            if (params.receiving_checklist_id !== undefined && params.receiving_checklist_id !== null) payload.p_receiving_checklist_id = params.receiving_checklist_id;
+            if (params.sample_submission_id !== undefined && params.sample_submission_id !== null) payload.p_sample_submission_id = params.sample_submission_id;
+            var result = await this.callFunction('update_production_batch', payload, token, { useCache: false });
+            this.clearCachePattern('production_batches');
+            return result;
+        },
+
         /**
          * Get current authentication token
          */
