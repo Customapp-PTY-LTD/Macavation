@@ -7,6 +7,9 @@
         <div class="modal-body">
             <!-- Step 1: Buyer and delivery details -->
             <div id="sendToDispatchStep1">
+                <div id="sendToDispatchStep1BatchSummary" class="alert alert-light border mb-3 py-2 small" style="display: none;">
+                    <strong>Batch:</strong> <span id="sendToDispatchStep1BatchLabel">—</span>
+                </div>
                 <form id="sendToDispatchForm">
                     <div class="mb-3">
                         <label for="dispatchBuyer" class="form-label required">Buyer</label>
@@ -21,12 +24,19 @@
                     </div>
                     <div class="mb-3">
                         <label for="dispatchDeliveryDate" class="form-label required">Date of delivery</label>
-                        <input type="date" class="form-control" id="dispatchDeliveryDate" required>
+                        <input type="text" class="form-control flatpickr-date" id="dispatchDeliveryDate" data-input required placeholder="dd/mm/yyyy">
                     </div>
                 </form>
             </div>
             <!-- Step 2: Select boxes by style -->
             <div id="sendToDispatchStep2" style="display: none;">
+                <div id="sendToDispatchStep2Context" class="alert alert-light border mb-3 py-2 small">
+                    <strong>Batch:</strong> <span id="sendToDispatchStep2BatchLabel">—</span>
+                    <span class="mx-2">|</span>
+                    <strong>Buyer:</strong> <span id="sendToDispatchStep2BuyerLabel">—</span>
+                    <span class="mx-2">|</span>
+                    <strong>Delivery:</strong> <span id="sendToDispatchStep2DeliveryLabel">—</span>
+                </div>
                 <p class="text-muted small mb-3">Enter quantity (kg) per style. You can also add or remove boxes by clicking cells in the table after confirming.</p>
                 <div class="table-responsive mb-3">
                     <table class="table table-sm table-bordered">

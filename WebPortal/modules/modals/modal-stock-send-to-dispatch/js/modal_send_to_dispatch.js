@@ -7,6 +7,21 @@ var _modal_stock_send_to_dispatch = (function () {
 
     var STYLE_KEYS = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
 
+    var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+
+    function deliveryDateToISO(displayStr) {
+        if (!displayStr || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(displayStr.trim())) return null;
+        var parts = displayStr.trim().split('/');
+        return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+    }
+
+    function deliveryDateFromISO(isoStr) {
+        if (!isoStr) return '';
+        var parts = String(isoStr).split('T')[0].split('-');
+        if (parts.length !== 3) return isoStr;
+        return parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+
     function computeTotalsByStyle(batches) {
         var totals = {};
         STYLE_KEYS.forEach(function (k) { totals[k] = 0; });
@@ -94,6 +109,22 @@ var _modal_stock_send_to_dispatch = (function () {
                     e.target.classList.remove('is-invalid');
                 }
             });
+            if (typeof $ !== 'undefined') {
+                $(document).on('shown.bs.modal', '#sendToDispatchModal', function () {
+                    var container = document.getElementById('sendToDispatchModal');
+                    var inputs = container ? container.querySelectorAll('.flatpickr-date') : [];
+                    inputs.forEach(function (el) {
+                        if (el._flatpickr) return;
+                        if (typeof flatpickr !== 'undefined') {
+                            flatpickr(el, FLATPICKR_DDMMYYYY);
+                        }
+                    });
+                    var deliveryInput = document.getElementById('dispatchDeliveryDate');
+                    if (deliveryInput && deliveryInput._flatpickr) {
+                        deliveryInput._flatpickr.setDate(new Date());
+                    }
+                });
+            }
         },
 
         clearInvalidHighlights: function () {
@@ -134,7 +165,7 @@ var _modal_stock_send_to_dispatch = (function () {
             if (footer2) footer2.style.display = 'none';
         },
 
-        showStep2: function (totalsByStyle) {
+        showStep2: function (totalsByStyle, details) {
             var step1 = document.getElementById('sendToDispatchStep1');
             var step2 = document.getElementById('sendToDispatchStep2');
             var footer1 = document.getElementById('sendToDispatchStep1Footer');
@@ -146,6 +177,13 @@ var _modal_stock_send_to_dispatch = (function () {
 
             api._step2TotalsByStyle = totalsByStyle || {};
             api.clearInvalidHighlights();
+            var d = details || api._pendingDetails || {};
+            var batchLabelEl = document.getElementById('sendToDispatchStep2BatchLabel');
+            var buyerLabelEl = document.getElementById('sendToDispatchStep2BuyerLabel');
+            var deliveryLabelEl = document.getElementById('sendToDispatchStep2DeliveryLabel');
+            if (batchLabelEl) batchLabelEl.textContent = d.batch_number || d.batch_id || '—';
+            if (buyerLabelEl) buyerLabelEl.textContent = d.buyer_name || '—';
+            if (deliveryLabelEl) deliveryLabelEl.textContent = (d.delivery_date ? deliveryDateFromISO(d.delivery_date) : '') || '—';
             STYLE_KEYS.forEach(function (styleKey) {
                 var availableEl = document.querySelector('.dispatch-available[data-style-key="' + styleKey.replace(/"/g, '\\"') + '"]');
                 var inputEl = document.querySelector('.js-dispatch-qty[data-style-key="' + styleKey.replace(/"/g, '\\"') + '"]');
@@ -161,16 +199,28 @@ var _modal_stock_send_to_dispatch = (function () {
             });
         },
 
-        show: function () {
+        show: function (selectedBatch) {
+            api._selectedBatch = selectedBatch && typeof selectedBatch === 'object' ? selectedBatch : null;
             api.showStep1();
             api.clearInvalidHighlights();
+            var batchSummary = document.getElementById('sendToDispatchStep1BatchSummary');
+            var batchLabel = document.getElementById('sendToDispatchStep1BatchLabel');
+            if (batchSummary && batchLabel) {
+                if (api._selectedBatch && (api._selectedBatch.batch_number || api._selectedBatch.id)) {
+                    batchLabel.textContent = api._selectedBatch.batch_number || api._selectedBatch.id;
+                    batchSummary.style.display = '';
+                } else {
+                    batchSummary.style.display = 'none';
+                }
+            }
             var buyerInput = document.getElementById('dispatchBuyer');
             var buyerSelect = document.getElementById('dispatchBuyerContact');
             var deliveryInput = document.getElementById('dispatchDeliveryDate');
             if (buyerInput) buyerInput.value = '';
-            if (deliveryInput) {
-                var today = new Date().toISOString().split('T')[0];
-                deliveryInput.value = today;
+            if (deliveryInput && deliveryInput._flatpickr) {
+                deliveryInput._flatpickr.setDate(new Date());
+            } else if (deliveryInput) {
+                deliveryInput.value = '';
             }
             if (buyerSelect) {
                 buyerSelect.innerHTML = '<option value="">— Select contact —</option>';
@@ -213,8 +263,9 @@ var _modal_stock_send_to_dispatch = (function () {
                 }
                 return;
             }
-            var deliveryDate = deliveryInput && deliveryInput.value ? deliveryInput.value : null;
-            if (!deliveryDate) {
+            var deliveryDisplay = deliveryInput && deliveryInput.value ? deliveryInput.value.trim() : null;
+            var deliveryDateISO = deliveryDisplay ? deliveryDateToISO(deliveryDisplay) : null;
+            if (!deliveryDateISO) {
                 if (typeof Swal !== 'undefined' && Swal.fire) {
                     Swal.fire('Validation', 'Please select the delivery date.', 'warning').then(function () {
                         api.highlightInvalidFields({ step1Ids: ['dispatchDeliveryDate'] });
@@ -225,11 +276,13 @@ var _modal_stock_send_to_dispatch = (function () {
             var details = {
                 buyer_name: buyerName,
                 buyer_contact_id: (buyerSelect && buyerSelect.value) ? buyerSelect.value : null,
-                delivery_date: deliveryDate
+                delivery_date: deliveryDateISO,
+                batch_number: (api._selectedBatch && api._selectedBatch.batch_number) ? api._selectedBatch.batch_number : null,
+                batch_id: (api._selectedBatch && api._selectedBatch.id) ? api._selectedBatch.id : null
             };
 
             var scope = typeof _stockManagementGrid !== 'undefined' ? _stockManagementGrid : null;
-            var batches = scope && scope.kernelFinishedBatches ? scope.kernelFinishedBatches : [];
+            var batches = api._selectedBatch ? [api._selectedBatch] : (scope && scope.kernelFinishedBatches ? scope.kernelFinishedBatches : []);
             var totalsByStyle = computeTotalsByStyle(batches);
             var totalAvailable = 0;
             STYLE_KEYS.forEach(function (k) { totalAvailable += totalsByStyle[k] || 0; });
@@ -241,7 +294,7 @@ var _modal_stock_send_to_dispatch = (function () {
             }
 
             api._pendingDetails = details;
-            api.showStep2(totalsByStyle);
+            api.showStep2(totalsByStyle, details);
         },
 
         getDetailsFromStep1Form: function () {
@@ -249,12 +302,13 @@ var _modal_stock_send_to_dispatch = (function () {
             var buyerSelect = document.getElementById('dispatchBuyerContact');
             var deliveryInput = document.getElementById('dispatchDeliveryDate');
             var buyerName = (buyerInput && buyerInput.value && buyerInput.value.trim()) ? buyerInput.value.trim() : null;
-            var deliveryDate = deliveryInput && deliveryInput.value ? deliveryInput.value : null;
-            if (!buyerName || !deliveryDate) return null;
+            var deliveryDisplay = deliveryInput && deliveryInput.value ? deliveryInput.value.trim() : null;
+            var deliveryDateISO = deliveryDisplay ? deliveryDateToISO(deliveryDisplay) : null;
+            if (!buyerName || !deliveryDateISO) return null;
             return {
                 buyer_name: buyerName,
                 buyer_contact_id: (buyerSelect && buyerSelect.value) ? buyerSelect.value : null,
-                delivery_date: deliveryDate
+                delivery_date: deliveryDateISO
             };
         },
 
@@ -314,7 +368,7 @@ var _modal_stock_send_to_dispatch = (function () {
             }
 
             var scope = typeof _stockManagementGrid !== 'undefined' ? _stockManagementGrid : null;
-            var batches = scope && scope.kernelFinishedBatches ? scope.kernelFinishedBatches : [];
+            var batches = api._selectedBatch ? [api._selectedBatch] : (scope && scope.kernelFinishedBatches ? scope.kernelFinishedBatches : []);
             var lines = allocateLines(batches, requestedByStyle);
             if (lines.length === 0) {
                 if (typeof Swal !== 'undefined' && Swal.fire) {

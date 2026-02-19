@@ -19,6 +19,8 @@ var _stockManagementGrid = function () {
         oilSummary: [],
         kernelRawBatches: [],
         kernelFinishedBatches: [],
+        selectedDispatchBatchId: null,
+        selectedDispatchBatch: null,
         dispatchSelectionMode: false,
         dispatchSelectedLines: [],
         dispatchOrderDetails: {},
@@ -127,7 +129,30 @@ var _stockManagementGrid = function () {
                     if (typeof _modal_stock_raw_material_issued !== 'undefined' && _modal_stock_raw_material_issued.show) _modal_stock_raw_material_issued.show();
                 });
                 $('#sendToDispatchBtn').off('click').on('click', function () {
-                    if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show();
+                    var scope = _stockManagementGrid;
+                    if (!scope.selectedDispatchBatchId || !scope.selectedDispatchBatch) {
+                        if (typeof Swal !== 'undefined' && Swal.fire) {
+                            Swal.fire('Validation', 'Please select a batch first (use the Select column in the table), then click Send to Dispatch.', 'warning');
+                        }
+                        return;
+                    }
+                    if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show(scope.selectedDispatchBatch);
+                });
+                $(document).on('change', '.js-dispatch-batch-select', function () {
+                    var scope = _stockManagementGrid;
+                    var $this = $(this);
+                    var table = $('#kernelStockByStyleTable');
+                    if ($this.prop('checked')) {
+                        table.find('.js-dispatch-batch-select').not(this).prop('checked', false);
+                        var val = $this.val();
+                        scope.selectedDispatchBatchId = val || null;
+                        scope.selectedDispatchBatch = (val && scope.kernelFinishedBatches && scope.kernelFinishedBatches.length)
+                            ? scope.kernelFinishedBatches.find(function (b) { return (b.id || '') === val; }) || null
+                            : null;
+                    } else {
+                        scope.selectedDispatchBatchId = null;
+                        scope.selectedDispatchBatch = null;
+                    }
                 });
                 $('#exportStockBtn').off('click').on('click', function () { scope.exportStock(); });
                 $('#addStockBtn').off('click').on('click', function () {
@@ -357,7 +382,11 @@ var _stockManagementGrid = function () {
                 // Prefer remaining_by_style (available to dispatch) when present
                 var cells = (b.remaining_by_style && typeof b.remaining_by_style === 'object') ? b.remaining_by_style : null;
                 if (cells == null) cells = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
-                var row = '<tr><td>' + (b.batch_number || '') + '</td>';
+                var batchId = (b.id || '');
+                var batchNum = (b.batch_number || '');
+                var checked = (scope.selectedDispatchBatchId === batchId) ? ' checked' : '';
+                var tip = 'Select this batch for Send to Dispatch. Click again to unselect.';
+                var row = '<tr><td class="text-center"><input type="checkbox" class="form-check-input js-dispatch-batch-select" value="' + (batchId.replace(/"/g, '&quot;')) + '" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" aria-label="Select batch ' + (batchNum ? batchNum.replace(/"/g, '&quot;') : '') + ' for dispatch" title="' + tip.replace(/"/g, '&quot;') + '"' + checked + '></td><td>' + batchNum + '</td>';
                 ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'].forEach(function (k) {
                     var val = cells[k] != null ? cells[k] : (b['yield_' + k] != null ? b['yield_' + k] : 0);
                     if (typeof val === 'number') totals[k] += val;
@@ -373,6 +402,10 @@ var _stockManagementGrid = function () {
                 var k = $(this).data('style');
                 $(this).text(totals[k] != null ? totals[k] : 0);
             });
+            if (scope.selectedDispatchBatchId && !batches.some(function (b) { return (b.id || '') === scope.selectedDispatchBatchId; })) {
+                scope.selectedDispatchBatchId = null;
+                scope.selectedDispatchBatch = null;
+            }
         },
 
         releaseBatchToProduction: function (batchId) {
@@ -392,8 +425,8 @@ var _stockManagementGrid = function () {
         toggleDispatchSelectionMode: function () {
             var scope = _stockManagementGrid;
             if (!scope.dispatchSelectionMode && (!scope.dispatchOrderDetails || !scope.dispatchOrderDetails.buyer_name)) {
-                if (typeof Swal !== 'undefined') Swal.fire('Info', 'Please fill in dispatch details first. Click "Send to Dispatch" to enter buyer and delivery date.', 'info');
-                if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show();
+                if (typeof Swal !== 'undefined') Swal.fire('Info', 'Please select a batch, then click "Send to Dispatch" to enter buyer and delivery date.', 'info');
+                if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show(scope.selectedDispatchBatch || undefined);
                 return;
             }
             scope.dispatchSelectionMode = !scope.dispatchSelectionMode;
@@ -498,7 +531,9 @@ var _stockManagementGrid = function () {
                     }
                     var summary = document.getElementById('dispatchSelectedSummary');
                     if (summary) summary.style.display = 'none';
-                    scope.renderKernelStockByStyle();
+                    setTimeout(function () {
+                        scope.loadKernelBatches(true);
+                    }, 300);
                 } else throw new Error(result && result.error ? result.error : 'Failed to create dispatch order');
             }).catch(function (e) {
                 console.error(e);

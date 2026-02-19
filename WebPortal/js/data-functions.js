@@ -1477,7 +1477,9 @@ var _dataFunctions = function () {
                 p_buyer_contact_id: payload.buyer_contact_id || null,
                 p_lines: Array.isArray(payload.lines) ? payload.lines : []
             };
-            return await this.callFunction('create_kernel_dispatch_order_simple', params, token, { useCache: false });
+            const result = await this.callFunction('create_kernel_dispatch_order_simple', params, token, { useCache: false });
+            this.clearCachePattern('production_batches');
+            return result;
         },
 
         // Stock Take Functions
