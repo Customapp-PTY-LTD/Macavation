@@ -1420,7 +1420,7 @@ var _dataFunctions = function () {
         },
 
         saveKernelProductionStages: async function (payload, token = null) {
-            // Map to Postgres function params (p_ prefix) so schema cache finds the function
+            // Map frontend keys to DB function params (p_ prefix) so PostgREST finds the function
             const params = {
                 p_kernel_production_day_id: payload.kernel_production_day_id,
                 p_batch_number: payload.batch_number != null ? payload.batch_number : null,

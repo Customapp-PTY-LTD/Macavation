@@ -17,6 +17,18 @@ function fromISO(isoStr) {
     return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
+/** Return YYYY-MM-DD from stages (cracking_data.date || washing_data.date || ...) or null. Used to match save date to production day. */
+function getStagesEffectiveDate(stages) {
+    if (!stages || typeof stages !== 'object') return null;
+    var c = (stages.cracking_data && typeof stages.cracking_data === 'object') ? stages.cracking_data : {};
+    var w = (stages.washing_data && typeof stages.washing_data === 'object') ? stages.washing_data : {};
+    var s = (stages.sorting_data && typeof stages.sorting_data === 'object') ? stages.sorting_data : {};
+    var p = (stages.packing_data && typeof stages.packing_data === 'object') ? stages.packing_data : {};
+    var raw = c.date || w.date || s.date || p.date;
+    if (raw && typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw)) return raw;
+    return null;
+}
+
 /**
  * Derive summary_data from the four stage blobs (Cracking/Washing/Sorting/Packing).
  * Used on save so Summary is always computed; also for timeline snippets.
@@ -575,28 +587,93 @@ var _modal_production_stages = function () {
             var sorting_data = scope.getProductionStagesSectionData('sort');
             var packing_data = scope.getProductionStagesSectionData('pack');
             var summary_data = deriveSummaryFromStages(cracking_data, washing_data, sorting_data, packing_data);
-            var payload = {
-                kernel_production_day_id: dayId,
-                batch_number: batchNumber,
-                grower_name: growerName,
-                cracking_data: cracking_data,
-                washing_data: washing_data,
-                sorting_data: sorting_data,
-                packing_data: packing_data,
-                summary_data: summary_data
+            var stagesPayload = { cracking_data: cracking_data, washing_data: washing_data, sorting_data: sorting_data, packing_data: packing_data };
+            var effectiveSaveDate = getStagesEffectiveDate(stagesPayload);
+
+            function doSave(targetDayId) {
+                var payload = {
+                    kernel_production_day_id: targetDayId,
+                    batch_number: batchNumber,
+                    grower_name: growerName,
+                    cracking_data: cracking_data,
+                    washing_data: washing_data,
+                    sorting_data: sorting_data,
+                    packing_data: packing_data,
+                    summary_data: summary_data
+                };
+                return (dataFunctions.saveKernelProductionStages && dataFunctions.saveKernelProductionStages(payload)).then(function () {
+                    scope.modalProductionDayStages = { cracking_data: cracking_data, washing_data: washing_data, sorting_data: sorting_data, packing_data: packing_data, summary_data: summary_data };
+                    scope.updateProductionActionButtonTicks();
+                    scope.clearProductionStagesDraft(batchId);
+                    if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved for this day.', 'success');
+                    return (dataFunctions.getKernelProductionDays && dataFunctions.getKernelProductionDays(batchId)) || Promise.resolve([]);
+                }).then(function (raw) {
+                    var days = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
+                    scope.modalProductionDays = days;
+                    scope.renderProductionDaysList(days);
+                    scope.setProductionDayActive(targetDayId);
+                });
+            }
+
+            // Save to the day that matches the form date (across all days), or create a new day if no day has that date.
+            var checkAndSave = function () {
+                if (!effectiveSaveDate) {
+                    return doSave(dayId);
+                }
+                var daysPromise = (dataFunctions.getKernelProductionDays && dataFunctions.getKernelProductionDays(batchId)) || Promise.resolve([]);
+                return daysPromise
+                    .then(function (daysRaw) {
+                        var days = Array.isArray(daysRaw) ? daysRaw : (daysRaw && daysRaw.data ? daysRaw.data : []);
+                        if (!days.length) return { targetDayId: dayId, days: days };
+                        var getStages = dataFunctions.getKernelProductionStagesByDay && dataFunctions.getKernelProductionStagesByDay;
+                        if (!getStages) return { targetDayId: dayId, days: days };
+                        return Promise.all(days.map(function (d) {
+                            var did = d.id || d.kernel_production_day_id;
+                            return getStages(did).then(function (raw) {
+                                var stages = raw && typeof raw === 'object' && raw.get_kernel_production_stages_by_day != null
+                                    ? raw.get_kernel_production_stages_by_day
+                                    : (Array.isArray(raw) ? raw[0] : raw);
+                                var dayDate = getStagesEffectiveDate(stages);
+                                return { dayId: did, day: d, dayDate: dayDate };
+                            }).catch(function () { return { dayId: did, day: d, dayDate: null }; });
+                        })).then(function (dayInfos) {
+                            var match = dayInfos.filter(function (info) { return info.dayDate === effectiveSaveDate; })[0];
+                            var targetDayId = match ? match.dayId : null;
+                            if (targetDayId) {
+                                scope.modalProductionDays = days;
+                                scope.renderProductionDaysList(days);
+                                $('#productionStagesDayId').val(targetDayId);
+                                scope.setProductionDayActive(targetDayId);
+                                return { targetDayId: targetDayId, days: days };
+                            }
+                            var currentInfo = dayInfos.filter(function (info) { return info.dayId === dayId; })[0];
+                            var currentDayDate = currentInfo ? currentInfo.dayDate : null;
+                            if (currentDayDate !== null && currentDayDate === effectiveSaveDate) return { targetDayId: dayId, days: days };
+                            if (typeof dataFunctions.createKernelProductionDay !== 'function') return { targetDayId: dayId, days: days };
+                            return dataFunctions.createKernelProductionDay(batchId).then(function (result) {
+                                var inner = (result && result.create_kernel_production_day) ? result.create_kernel_production_day : result;
+                                if (!inner || inner.success === false) throw new Error(inner && inner.error ? inner.error : 'Failed to create production day');
+                                var newDayId = inner.id;
+                                var dayNum = inner.day_number != null ? inner.day_number : (days.length + 1);
+                                var newDays = days.concat([{ id: newDayId, day_number: dayNum, kernel_production_stages_id: null }]);
+                                scope.modalProductionDays = newDays;
+                                scope.renderProductionDaysList(newDays);
+                                $('#productionStagesDayId').val(newDayId);
+                                scope.setProductionDayActive(newDayId);
+                                return { targetDayId: newDayId, days: newDays };
+                            });
+                        });
+                    })
+                    .then(function (out) {
+                        var target = out && out.targetDayId ? out.targetDayId : dayId;
+                        return doSave(target);
+                    })
+                    .catch(function (err) {
+                        return doSave(dayId);
+                    });
             };
-            (dataFunctions.saveKernelProductionStages && dataFunctions.saveKernelProductionStages(payload)).then(function () {
-                scope.modalProductionDayStages = { cracking_data: cracking_data, washing_data: washing_data, sorting_data: sorting_data, packing_data: packing_data, summary_data: summary_data };
-                scope.updateProductionActionButtonTicks();
-                scope.clearProductionStagesDraft(batchId);
-                if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved for this day.', 'success');
-                return (dataFunctions.getKernelProductionDays && dataFunctions.getKernelProductionDays(batchId)) || Promise.resolve([]);
-            }).then(function (raw) {
-                var days = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
-                scope.modalProductionDays = days;
-                scope.renderProductionDaysList(days);
-                scope.setProductionDayActive(dayId);
-            }).catch(function (e) {
+
+            checkAndSave().catch(function (e) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save production stages', 'error');
             });
         },
