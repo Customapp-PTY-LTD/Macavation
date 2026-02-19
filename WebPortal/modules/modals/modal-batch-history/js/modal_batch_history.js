@@ -60,6 +60,16 @@ function getProductionDayDate(stages) {
     return null;
 }
 
+/** Unwrap API response to stages object (cracking_data, washing_data, ...). */
+function unwrapStages(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    if (raw.cracking_data !== undefined || raw.washing_data !== undefined) return raw;
+    if (raw.get_kernel_production_stages_by_day != null) return raw.get_kernel_production_stages_by_day;
+    if (raw.get_kernel_production_stages != null) return raw.get_kernel_production_stages;
+    if (Array.isArray(raw) && raw[0]) return unwrapStages(raw[0]);
+    return raw;
+}
+
 
 var _modal_batch_history = function () {
     'use strict';
@@ -137,16 +147,43 @@ var _modal_batch_history = function () {
                         var p = stagesId && dataFunctions.getKernelProductionStages
                             ? dataFunctions.getKernelProductionStages(stagesId)
                             : (dayId && dataFunctions.getKernelProductionStagesByDay ? dataFunctions.getKernelProductionStagesByDay(dayId) : Promise.resolve(null));
-                        return p.then(function (stages) {
-                            var dayNum = d.day_number != null ? d.day_number : (days.indexOf(d) + 1);
+                        return p.then(function (rawStages) {
+                            var stages = unwrapStages(rawStages);
                             var dateStr = getProductionDayDate(stages);
-                            var dateDisplay = dateStr ? ('Day ' + dayNum + ' (' + formatStageDate(dateStr) + ')') : ('Day ' + dayNum);
                             var snippets = stages ? getStageSummarySnippets(stages.cracking_data, stages.washing_data, stages.sorting_data, stages.packing_data) : [];
+                            return { type: 'production', date: dateStr, stages: stages, snippets: snippets };
+                        });
+                    });
+                    return Promise.all(stagePromises).then(function (entries) {
+                        var byDate = {};
+                        entries.forEach(function (e) {
+                            var d = e.date || '';
+                            if (!byDate[d]) byDate[d] = [];
+                            byDate[d].push(e);
+                        });
+                        var sortedDates = Object.keys(byDate).filter(function (d) { return d !== ''; }).sort();
+                        var noDate = byDate[''];
+                        if (noDate && noDate.length) sortedDates.push('');
+                        var result = [];
+                        sortedDates.forEach(function (dateStr, idx) {
+                            var group = byDate[dateStr] || [];
+                            var merged = [];
+                            var seen = {};
+                            group.forEach(function (e) {
+                                (e.snippets || []).forEach(function (line) {
+                                    if (line && !seen[line]) {
+                                        seen[line] = true;
+                                        merged.push(line);
+                                    }
+                                });
+                            });
+                            var dayNum = idx + 1;
+                            var dateDisplay = dateStr ? ('Day ' + dayNum + ' (' + formatStageDate(dateStr) + ')') : ('Day ' + dayNum);
                             var bodyHtml = '<div class="small">';
                             bodyHtml += '<p class="mb-1"><strong>Date:</strong> ' + dateDisplay + '</p>';
-                            if (snippets.length > 0) {
+                            if (merged.length > 0) {
                                 bodyHtml += '<ul class="mb-0 ps-3">';
-                                snippets.forEach(function (line) {
+                                merged.forEach(function (line) {
                                     bodyHtml += '<li>' + line + '</li>';
                                 });
                                 bodyHtml += '</ul>';
@@ -154,10 +191,10 @@ var _modal_batch_history = function () {
                                 bodyHtml += '<p class="text-muted mb-0">No stage data recorded for this day.</p>';
                             }
                             bodyHtml += '</div>';
-                            return { type: 'production', title: 'Production — Day ' + dayNum, bodyHtml: bodyHtml, date: dateStr, dayNumber: dayNum };
+                            result.push({ type: 'production', title: 'Production — Day ' + dayNum, bodyHtml: bodyHtml, date: dateStr || null, dayNumber: dayNum });
                         });
+                        return result;
                     });
-                    return Promise.all(stagePromises);
                 }).catch(function () {
                     return [];
                 });
