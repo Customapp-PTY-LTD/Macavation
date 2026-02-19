@@ -151,6 +151,16 @@ var _kernelProductionGrid = function () {
                     _kernelProductionBatchActions.releaseBatchToStock(batchId);
                 }
             });
+            $(document).on('click', '.js-release-to-stock-disabled', function (e) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Release to stock',
+                        text: 'Complete Production, then complete End sample for this batch. Release to stock will become available when the batch is release-ready or completed.'
+                    });
+                }
+            });
             $(document).on('click', '.js-batch-history', function (e) {
                 e.preventDefault();
                 const batchId = $(this).data('batch-id');
@@ -289,7 +299,7 @@ var _kernelProductionGrid = function () {
                 if (canReleaseToStock) {
                     menuItems.push('<a class="dropdown-item js-release-to-stock" href="#" data-batch-id="' + batch.id + '">Release to stock</a>');
                 } else {
-                    menuItems.push('<span class="dropdown-item text-muted">Release to stock</span>');
+                    menuItems.push('<span class="dropdown-item text-muted js-release-to-stock-disabled" role="button" tabindex="0">Release to stock</span>');
                 }
                 // TEMPORARY: KP Data Admin sees only Production button. Remove when replacing with real auth.
                 const isKpDataAdmin = typeof ROLE_FEATURE !== 'undefined' && ROLE_FEATURE.isKpDataAdmin && ROLE_FEATURE.isKpDataAdmin();

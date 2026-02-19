@@ -68,7 +68,8 @@ var _kernelDispatchGrid = function () {
             const formatDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY) ? _common.formatDateDDMMYYYY : (v) => v || '';
             scope.batches.forEach((b) => {
                 const dateStr = formatDate(b.received_date) || (b.received_date || '');
-                tbody.append('<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + dateStr + '</td><td>' + (b.wet_nis_received_kg || '') + '</td><td><button type="button" class="btn btn-sm btn-success js-dispatch-batch" data-batch-id="' + b.id + '"><i class="fas fa-truck me-1"></i>Dispatch</button></td></tr>');
+                const displayKg = b.remaining_kg != null ? b.remaining_kg : (b.wet_nis_received_kg != null ? b.wet_nis_received_kg : '');
+                tbody.append('<tr><td>' + (b.batch_number || '') + '</td><td>' + (b.grower_name || '') + '</td><td>' + dateStr + '</td><td>' + displayKg + '</td><td><button type="button" class="btn btn-sm btn-success js-dispatch-batch" data-batch-id="' + b.id + '"><i class="fas fa-truck me-1"></i>Dispatch</button></td></tr>');
             });
         }
     };

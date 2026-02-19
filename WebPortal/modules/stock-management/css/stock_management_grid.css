@@ -5,3 +5,9 @@
 /* Oil stock tables */
 #oilLotsTable th { white-space: nowrap; }
 #oilLotsTable td { vertical-align: middle; }
+
+/* Selected for dispatch summary (Kernel) */
+.dispatch-selected-summary .card { border-width: 1px; }
+.dispatch-selected-summary .card-header { font-weight: 600; }
+.dispatch-selected-summary #dispatchSelectedList .table th { white-space: nowrap; }
+.dispatch-selected-summary #dispatchSelectedList .table td { vertical-align: middle; }

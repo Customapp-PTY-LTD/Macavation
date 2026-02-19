@@ -49,11 +49,29 @@ var _stockManagementGrid = function () {
                 return delay(100);
             }).then(function () {
                 var stockTakeBtn = document.getElementById('stockTakeBtn');
+                var stream = document.getElementById('filterStockStream') ? document.getElementById('filterStockStream').value : 'kernel';
                 if (stockTakeBtn) {
                     scope.setupEventListeners();
                     scope.loadStockItems();
-                    scope.toggleKernelBatchJourney(document.getElementById('filterStockStream') ? document.getElementById('filterStockStream').value : 'kernel');
+                    scope.toggleKernelBatchJourney(stream);
                     if (document.getElementById('oilLotsTableBody')) scope.loadOilLotsAndSummary();
+                    if (stream === 'kernel' && typeof Swal !== 'undefined' && Swal.fire) {
+                        try {
+                            if (localStorage.getItem('kernel_dispatch_draft')) {
+                                Swal.fire({
+                                    title: 'Restore draft?',
+                                    text: 'You have a saved dispatch selection. Restore it?',
+                                    icon: 'question',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Restore',
+                                    cancelButtonText: 'No'
+                                }).then(function (r) {
+                                    if (r.isConfirmed && scope.restoreDispatchDraft) scope.restoreDispatchDraft();
+                                    else if (scope.clearDispatchDraft) scope.clearDispatchDraft();
+                                });
+                            }
+                        } catch (e) {}
+                    }
                 } else {
                     console.warn('[Stock Management] Buttons not found after modal load');
                 }
@@ -204,6 +222,57 @@ var _stockManagementGrid = function () {
             if (summary) summary.style.display = '';
         },
 
+        hasDispatchDraft: function () {
+            var scope = _stockManagementGrid;
+            var hasDetails = scope.dispatchOrderDetails && (scope.dispatchOrderDetails.buyer_name || scope.dispatchOrderDetails.delivery_date);
+            return !!(hasDetails && scope.dispatchSelectedLines && scope.dispatchSelectedLines.length > 0);
+        },
+
+        saveDispatchDraft: function () {
+            var scope = _stockManagementGrid;
+            try {
+                localStorage.setItem('kernel_dispatch_draft', JSON.stringify({
+                    dispatchOrderDetails: scope.dispatchOrderDetails || {},
+                    dispatchSelectedLines: scope.dispatchSelectedLines || [],
+                    savedAt: new Date().toISOString()
+                }));
+            } catch (e) { console.warn('[Stock Management] Could not save dispatch draft', e); }
+        },
+
+        clearDispatchDraft: function () {
+            try {
+                localStorage.removeItem('kernel_dispatch_draft');
+            } catch (e) {}
+        },
+
+        restoreDispatchDraft: function () {
+            var scope = _stockManagementGrid;
+            var json;
+            try {
+                json = localStorage.getItem('kernel_dispatch_draft');
+            } catch (e) { return; }
+            if (!json) return;
+            var draft;
+            try {
+                draft = JSON.parse(json);
+            } catch (e) { return; }
+            if (!draft || !draft.dispatchOrderDetails || !Array.isArray(draft.dispatchSelectedLines)) return;
+            scope.dispatchOrderDetails = draft.dispatchOrderDetails;
+            scope.dispatchSelectedLines = draft.dispatchSelectedLines;
+            scope.dispatchSelectionMode = true;
+            var selectBtn = document.getElementById('selectBoxesBtn');
+            if (selectBtn) {
+                selectBtn.classList.add('btn-primary');
+                selectBtn.classList.remove('btn-outline-primary');
+                selectBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Stop selecting';
+            }
+            scope.renderKernelStockByStyle();
+            scope.renderDispatchSelectedList();
+            var summary = document.getElementById('dispatchSelectedSummary');
+            if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
+            scope.clearDispatchDraft();
+        },
+
         filterStockItems: function () {
             var scope = _stockManagementGrid;
             var searchTerm = $('#searchStockInput').val().toLowerCase();
@@ -285,7 +354,9 @@ var _stockManagementGrid = function () {
             var batches = scope.kernelFinishedBatches || [];
             var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
             batches.forEach(function (b) {
-                var cells = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
+                // Prefer remaining_by_style (available to dispatch) when present
+                var cells = (b.remaining_by_style && typeof b.remaining_by_style === 'object') ? b.remaining_by_style : null;
+                if (cells == null) cells = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
                 var row = '<tr><td>' + (b.batch_number || '') + '</td>';
                 ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'].forEach(function (k) {
                     var val = cells[k] != null ? cells[k] : (b['yield_' + k] != null ? b['yield_' + k] : 0);
@@ -369,25 +440,29 @@ var _stockManagementGrid = function () {
         renderDispatchSelectedList: function () {
             var scope = _stockManagementGrid;
             var listEl = document.getElementById('dispatchSelectedList');
+            var totalLabel = document.getElementById('dispatchSelectedTotalLabel');
             if (!listEl) return;
             if (scope.dispatchSelectedLines.length === 0) {
-                listEl.innerHTML = '<span class="text-muted">No boxes selected. Click cells in the table to select.</span>';
+                listEl.innerHTML = '<p class="text-muted small mb-0">No boxes selected. Click cells in the table above or use Send to Dispatch → Next: Select boxes to add by style.</p>';
+                if (totalLabel) totalLabel.textContent = 'Total: 0 kg';
                 return;
             }
             var batches = scope.kernelFinishedBatches || [];
             var batchMap = {};
             batches.forEach(function (b) { batchMap[b.id] = b; });
-            var html = '<ul class="list-unstyled mb-0">';
             var totalKg = 0;
+            var html = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0 align-middle">' +
+                '<thead class="table-light"><tr><th>Batch</th><th>Style</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>';
             scope.dispatchSelectedLines.forEach(function (line) {
                 var batch = batchMap[line.production_batch_id || line.batch_id];
                 var batchNum = batch ? batch.batch_number : (line.production_batch_id || line.batch_id);
                 var qty = parseFloat(line.quantity_kg) || 0;
                 totalKg += qty;
-                html += '<li><span class="badge bg-secondary me-1">' + batchNum + '</span> Style ' + (line.style || '') + ': ' + qty + ' kg</li>';
+                html += '<tr><td><span class="badge bg-primary">' + (batchNum || '—') + '</span></td><td>' + (line.style || '—') + '</td><td class="text-end">' + qty + '</td></tr>';
             });
-            html += '</ul><div class="mt-2 fw-bold">Total: ' + totalKg.toFixed(1) + ' kg</div>';
+            html += '</tbody></table></div>';
             listEl.innerHTML = html;
+            if (totalLabel) totalLabel.textContent = 'Total: ' + totalKg.toFixed(1) + ' kg';
         },
 
         submitDispatchOrder: function () {
@@ -414,6 +489,7 @@ var _stockManagementGrid = function () {
                     scope.dispatchSelectedLines = [];
                     scope.dispatchOrderDetails = {};
                     scope.dispatchSelectionMode = false;
+                    scope.clearDispatchDraft();
                     var selectBtn = document.getElementById('selectBoxesBtn');
                     if (selectBtn) {
                         selectBtn.classList.remove('btn-primary');

@@ -1,1 +1,56 @@
-/* Supplier Intake module */
+/* Supplier Intake – follows UI_DESIGN_INSTRUCTIONS.md */
+.module-content { min-height: 400px; }
+
+#supplierIntakeBatchesTable th { border-top: none; font-weight: 600; }
+
+/* Clickable row */
+#supplierIntakeBatchesTable tbody tr.js-supplier-intake-row { cursor: pointer; }
+
+/* First column (Batch #) as primary link */
+#supplierIntakeBatchesTable .js-supplier-intake-row td:first-child {
+    color: var(--phoenix-primary);
+    font-weight: 500;
+}
+#supplierIntakeBatchesTable .js-supplier-intake-row:hover td:first-child {
+    text-decoration: underline;
+}
+
+/* Actions column: centered, single dropdown with ellipsis */
+#supplierIntakeBatchesTable td:last-child { text-align: center; }
+#supplierIntakeBatchesTable td:last-child .dropdown { display: inline-block; }
+#supplierIntakeBatchesTable td:last-child .dropdown .btn {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+}
+#supplierIntakeBatchesTable td:last-child .dropdown .btn i { color: inherit; }
+
+/* Prevent dropdown from being clipped */
+.supplier-intake-grid-card .table-responsive { overflow: visible; }
+.supplier-intake-grid-card .card-body { overflow: visible; }
+.supplier-intake-grid-card #supplierIntakeBatchesTable {
+    min-width: 720px;
+    overflow: visible !important;
+}
+.supplier-intake-grid-card #supplierIntakeBatchesTable tbody tr td { overflow: visible; }
+
+/* Ensure Actions dropdown menu and items are visible */
+#supplierIntakeBatchesTable .dropdown-menu {
+    z-index: 1060;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+#supplierIntakeBatchesTable .dropdown-item {
+    color: #212529;
+    display: block;
+    padding: 0.5rem 1rem;
+}
+#supplierIntakeBatchesTable .dropdown-item:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+    color: #212529;
+}

@@ -1207,6 +1207,28 @@ var _dataFunctions = function () {
             });
         },
 
+        /**
+         * Get supplier intake batches (Oil & Protein). Used by Supplier Intake module.
+         * @param {string} status - e.g. 'supplier_intake' to filter by status
+         * @param {string|null} token - auth token (optional)
+         * @param {boolean} forceRefresh - bypass cache
+         * @returns {Promise<Array>} list of supplier intake batch records
+         */
+        getSupplierIntakeBatches: async function (status, token = null, forceRefresh = false) {
+            const params = { p_status: status || null };
+            const cacheKey = 'supplier_intake_batches_list' + (status ? '_' + status : '');
+            const raw = await this.callFunction('get_supplier_intake_batches', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && raw.get_supplier_intake_batches && Array.isArray(raw.get_supplier_intake_batches)) return raw.get_supplier_intake_batches;
+            return [];
+        },
+
         // Quality Assurance Functions (cached for 1 minute)
         getQualityTests: async function (token = null, forceRefresh = false) {
             return await this.callFunction('get_quality_tests', {}, token, {
@@ -1398,7 +1420,18 @@ var _dataFunctions = function () {
         },
 
         saveKernelProductionStages: async function (payload, token = null) {
-            const result = await this.callFunction('save_kernel_production_stages', payload, token, { useCache: false });
+            // Map to Postgres function params (p_ prefix) so schema cache finds the function
+            const params = {
+                p_kernel_production_day_id: payload.kernel_production_day_id,
+                p_batch_number: payload.batch_number != null ? payload.batch_number : null,
+                p_grower_name: payload.grower_name != null ? payload.grower_name : null,
+                p_cracking_data: payload.cracking_data != null ? payload.cracking_data : {},
+                p_washing_data: payload.washing_data != null ? payload.washing_data : {},
+                p_sorting_data: payload.sorting_data != null ? payload.sorting_data : {},
+                p_packing_data: payload.packing_data != null ? payload.packing_data : {},
+                p_summary_data: payload.summary_data != null ? payload.summary_data : {}
+            };
+            const result = await this.callFunction('save_kernel_production_stages', params, token, { useCache: false });
             this.clearCachePattern('kernel_production');
             return result;
         },
@@ -1435,7 +1468,18 @@ var _dataFunctions = function () {
             this.clearCachePattern('production_batches');
             return result;
         },
-        
+
+        createKernelDispatchOrder: async function (payload, token = null) {
+            const params = {
+                p_buyer_name: payload.buyer_name || null,
+                p_delivery_date: payload.delivery_date || null,
+                p_best_before_date: payload.best_before_date || null,
+                p_buyer_contact_id: payload.buyer_contact_id || null,
+                p_lines: Array.isArray(payload.lines) ? payload.lines : []
+            };
+            return await this.callFunction('create_kernel_dispatch_order_simple', params, token, { useCache: false });
+        },
+
         // Stock Take Functions
         createStockTake: async function (stockTakeData, token = null) {
             return await this.callFunction('create_stock_take', stockTakeData, token, { useCache: false });
@@ -1471,7 +1515,7 @@ var _dataFunctions = function () {
         getReceivingChecklist: async function (checklistId, token = null) {
             if (!checklistId) return null;
             try {
-                var result = await this.callFunction('get_receiving_checklist_by_id', { p_id: checklistId }, token);
+                var result = await this.callFunction('get_receiving_checklist', { p_id: checklistId }, token);
                 if (result) return result;
             } catch (e) { /* fallback below */ }
             var all = await this.getReceivingChecklists(token, true);

@@ -285,6 +285,9 @@ var _appRouter = function () {
             if (result.errors.length === 0) {
                 result.success = true;
             }
+            if (result.success && elementSelector === _appRouter.contentContainer) {
+                _appRouter.currentRoute = routeName;
+            }
 
             // Initialize module after loading with a small delay to ensure scripts are executed
             setTimeout(() => {
@@ -583,8 +586,46 @@ var _appRouter = function () {
 
         },
         promptOnFormExit: async (routeName) => {
-            const jotFormIframes = ['#quote-frame', '#appointment-frame', '#ownrecord-frame', '#record-frame', '#proposal-frame', '#uploadinformation-frame'];
+            var doNavigate = function () {
+                sessionStorage.setItem('lastActivePage', routeName);
+                localStorage.setItem('lastActivePage', routeName);
+                _appRouter.currentRoute = routeName;
+                return _appRouter.loadContent({
+                    routeName: routeName,
+                    elementSelector: _appRouter.contentContainer
+                });
+            };
 
+            var isLeavingStockKernel = _appRouter.currentRoute === 'stock-management-kernel';
+            if (isLeavingStockKernel && typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.hasDispatchDraft && _stockManagementGrid.hasDispatchDraft()) {
+                const result = await Swal.fire({
+                    title: 'Save dispatch selection?',
+                    text: 'You have entered dispatch details and selected boxes. Save as draft before leaving?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: 'Save as draft',
+                    denyButtonText: 'Discard',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#3085d6',
+                    denyButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    backdrop: 'rgb(245 247 250 / 40%)'
+                });
+                if (result.isConfirmed) {
+                    if (_stockManagementGrid.saveDispatchDraft) _stockManagementGrid.saveDispatchDraft();
+                    await doNavigate();
+                    return;
+                }
+                if (result.isDenied) {
+                    if (_stockManagementGrid.clearDispatchDraft) _stockManagementGrid.clearDispatchDraft();
+                    await doNavigate();
+                    return;
+                }
+                return;
+            }
+
+            const jotFormIframes = ['#quote-frame', '#appointment-frame', '#ownrecord-frame', '#record-frame', '#proposal-frame', '#uploadinformation-frame'];
             var isIframeVisible = jotFormIframes.some(id => $(id).is(':visible'));
 
             if (isIframeVisible) {
@@ -601,23 +642,11 @@ var _appRouter = function () {
                 });
 
                 if (result.isConfirmed) {
-                    sessionStorage.setItem('lastActivePage', routeName);
-                    await _appRouter.loadContent({
-                        routeName: routeName,
-                        elementSelector: _appRouter.contentContainer
-                    });
+                    await doNavigate();
                 }
             }
             else {
-                // If no form or iframe is displayed, navigate directly
-                sessionStorage.setItem('lastActivePage', routeName);
-                localStorage.setItem('lastActivePage', routeName);
-                _appRouter.currentRoute = routeName;
-                
-                await _appRouter.loadContent({
-                    routeName: routeName,
-                    elementSelector: _appRouter.contentContainer
-                });
+                await doNavigate();
             }
         },
         getEnvironment: () => {
