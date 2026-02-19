@@ -60,6 +60,66 @@ function getProductionDayDate(stages) {
     return null;
 }
 
+/** Latest (most recent) date in stages. Used to group a record so packing on 21st appears under Day 3 (21/02), not under an earlier date. */
+function getProductionDayDateLatest(stages) {
+    if (!stages) return null;
+    var c = stages.cracking_data || {};
+    var w = stages.washing_data || {};
+    var s = stages.sorting_data || {};
+    var p = stages.packing_data || {};
+    var dates = [c.date, w.date, s.date, p.date].filter(function (raw) {
+        return raw && typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw);
+    });
+    if (dates.length === 0) return null;
+    dates.sort();
+    return dates[dates.length - 1];
+}
+
+/** Snippets only for sections whose date matches forDate (so each day card shows only activities logged for that date). */
+function getStageSummarySnippetsForDate(cracking_data, washing_data, sorting_data, packing_data, forDate) {
+    if (!forDate || forDate === '') return getStageSummarySnippets(cracking_data, washing_data, sorting_data, packing_data);
+    var c = cracking_data || {};
+    var w = washing_data || {};
+    var s = sorting_data || {};
+    var p = packing_data || {};
+    var n = function (v) { var x = parseFloat(v); return isNaN(x) ? null : x; };
+    var parts = [];
+    if (c.date === forDate) {
+        var crackTime = (c.timespent1 || c.totaltime || '').toString().trim();
+        var crackQty = n(c.totalqty);
+        if (crackTime || crackQty != null) parts.push('Cracking: ' + (crackTime ? crackTime + (crackQty != null ? ', ' : '') : '') + (crackQty != null ? crackQty + ' kg' : ''));
+    }
+    if (w.date === forDate) {
+        var washIn = n(w.qty_in);
+        var washOut = n(w.total_qty);
+        if (washIn != null || washOut != null) parts.push('Washing: ' + (washIn != null ? washIn + ' kg in' : '') + (washIn != null && washOut != null ? ' → ' : '') + (washOut != null ? washOut + ' kg out' : ''));
+    }
+    if (s.date === forDate) {
+        var sortSound = n(s.sound_qty);
+        var sortButter = n(s.butterhigh_qty);
+        if (sortSound != null || sortButter != null) {
+            var sp = [];
+            if (sortSound != null) sp.push('Sound ' + sortSound + ' kg');
+            if (sortButter != null) sp.push('Butter ' + sortButter + ' kg');
+            parts.push('Sorting: ' + sp.join(', '));
+        }
+    }
+    if (p.date === forDate) {
+        var packSk = n(p.sk_total_qty);
+        var packBt = n(p.bt_total_qty);
+        var packTot = n(p.totals_qty);
+        if (packSk != null || packBt != null || packTot != null) {
+            var pp = [];
+            if (packSk != null) pp.push('SK ' + packSk + ' kg');
+            if (packBt != null) pp.push('Butter ' + packBt + ' kg');
+            if (packTot != null && (packSk == null && packBt == null)) pp.push(packTot + ' kg');
+            if (packTot != null && (packSk != null || packBt != null)) pp.push('Total ' + packTot + ' kg');
+            parts.push('Packing: ' + pp.join(', '));
+        }
+    }
+    return parts;
+}
+
 /** Unwrap API response to stages object (cracking_data, washing_data, ...). */
 function unwrapStages(raw) {
     if (!raw || typeof raw !== 'object') return null;
@@ -149,9 +209,8 @@ var _modal_batch_history = function () {
                             : (dayId && dataFunctions.getKernelProductionStagesByDay ? dataFunctions.getKernelProductionStagesByDay(dayId) : Promise.resolve(null));
                         return p.then(function (rawStages) {
                             var stages = unwrapStages(rawStages);
-                            var dateStr = getProductionDayDate(stages);
-                            var snippets = stages ? getStageSummarySnippets(stages.cracking_data, stages.washing_data, stages.sorting_data, stages.packing_data) : [];
-                            return { type: 'production', date: dateStr, stages: stages, snippets: snippets };
+                            var dateStr = getProductionDayDateLatest(stages) || getProductionDayDate(stages);
+                            return { type: 'production', date: dateStr, stages: stages };
                         });
                     });
                     return Promise.all(stagePromises).then(function (entries) {
@@ -170,7 +229,10 @@ var _modal_batch_history = function () {
                             var merged = [];
                             var seen = {};
                             group.forEach(function (e) {
-                                (e.snippets || []).forEach(function (line) {
+                                var snippets = e.stages
+                                    ? getStageSummarySnippetsForDate(e.stages.cracking_data, e.stages.washing_data, e.stages.sorting_data, e.stages.packing_data, dateStr)
+                                    : [];
+                                snippets.forEach(function (line) {
                                     if (line && !seen[line]) {
                                         seen[line] = true;
                                         merged.push(line);
@@ -200,14 +262,37 @@ var _modal_batch_history = function () {
                 });
             }
 
-            Promise.all([samplePromise, checklistPromise, productionPromise]).then(function (results) {
+            var jobCardPromise = Promise.resolve(null);
+            if (batch && batch.batch_number && dataFunctions.getKernelJobCards) {
+                jobCardPromise = (dataFunctions.getKernelJobCard && batch.jobCardId ? dataFunctions.getKernelJobCard(batch.jobCardId) : dataFunctions.getKernelJobCards(null, true)).then(function (jcOrList) {
+                    var jc = jcOrList && jcOrList.batch_number ? jcOrList : (Array.isArray(jcOrList) ? (jcOrList.filter(function (c) { return c.batch_number === batch.batch_number; })[0]) : null);
+                    if (!jc) return null;
+                    var fmt = function (v) { return v != null && v !== '' ? (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(2)) : String(v)) : '—'; };
+                    var fmtDate = function (d) {
+                        if (!d) return '—';
+                        var s = typeof d === 'string' ? d : (d.toString && d.toString());
+                        return s.indexOf('T') >= 0 ? s.split('T')[0] : s;
+                    };
+                    var html = '<div class="small">';
+                    html += '<p class="mb-1"><strong>Batch:</strong> ' + fmt(jc.batch_number) + ' &nbsp; <strong>Received:</strong> ' + fmtDate(jc.received_date) + '</p>';
+                    html += '<p class="mb-1"><strong>Total weight (kg):</strong> ' + fmt(jc.total_weight_kg) + ' &nbsp; <strong>Supplier:</strong> ' + fmt(jc.supplier_name) + '</p>';
+                    html += '<p class="mb-1"><strong>Packing:</strong> ' + fmtDate(jc.packing_start_date) + ' – ' + fmtDate(jc.packing_completion_date) + '</p>';
+                    html += '<p class="mb-1"><strong>Sound kernel:</strong> ' + fmt(jc.sound_kernel_total_cartons) + ' cartons, ' + fmt(jc.sound_kernel_total_kg) + ' kg &nbsp; <strong>Butter grade:</strong> ' + fmt(jc.butter_grade_total_cartons) + ' cartons, ' + fmt(jc.butter_grade_total_kg) + ' kg</p>';
+                    html += '<p class="mb-0"><strong>Status:</strong> ' + fmt(jc.status) + '</p></div>';
+                    return { type: 'job_card', title: 'Job Card', bodyHtml: html, date: jc.packing_completion_date || jc.received_date || null };
+                }).catch(function () { return null; });
+            }
+
+            Promise.all([samplePromise, checklistPromise, productionPromise, jobCardPromise]).then(function (results) {
                 var sampleEntry = results[0];
                 var checklistEntry = results[1];
                 var productionEntries = results[2] || [];
+                var jobCardEntry = results[3];
                 entries = [];
                 if (sampleEntry) entries.push(sampleEntry);
                 if (checklistEntry) entries.push(checklistEntry);
                 productionEntries.forEach(function (e) { entries.push(e); });
+                if (jobCardEntry) entries.push(jobCardEntry);
                 entries.reverse();
 
                 var statusLabel = '';

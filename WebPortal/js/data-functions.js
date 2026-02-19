@@ -1377,11 +1377,48 @@ var _dataFunctions = function () {
         },
         
         // Kernel Production Job Card Functions
+        // DB create_kernel_job_card does not accept p_id or p_production_batch_id; PostgREST requires exact param match.
         createKernelJobCard: async function (jobCardData, token = null) {
-            const result = await this.callFunction('create_kernel_job_card', jobCardData, token, { useCache: false });
-            // Invalidate stock cache
+            const allowedKeys = [
+                'p_batch_number', 'p_received_date', 'p_total_weight_kg', 'p_supplier_id', 'p_supplier_name',
+                'p_removed_pre_sizer_kg', 'p_balance_kg', 'p_receiving_moisture_percentage', 'p_packing_moisture_percentage', 'p_removed_moisture_percentage',
+                'p_packing_start_date', 'p_packing_completion_date', 'p_best_before_date',
+                'p_sound_kernel_styles', 'p_sound_kernel_total_cartons', 'p_sound_kernel_total_kg',
+                'p_butter_grade_styles', 'p_butter_grade_total_cartons', 'p_butter_grade_total_kg',
+                'p_waste_oil_kernel_kg', 'p_waste_salt_pepper_kg', 'p_waste_shell_fines_kg', 'p_waste_compost_kg', 'p_waste_shell_kg',
+                'p_mass_balance_in_kg', 'p_mass_balance_out_kg', 'p_mass_balance_percentage', 'p_auto_update_stock'
+            ];
+            const payload = {};
+            if (jobCardData && typeof jobCardData === 'object') {
+                allowedKeys.forEach(function (k) {
+                    if (Object.prototype.hasOwnProperty.call(jobCardData, k)) payload[k] = jobCardData[k];
+                });
+            }
+            const result = await this.callFunction('create_kernel_job_card', payload, token, { useCache: false });
             this.clearCachePattern('stock_items');
+            this.clearCachePattern('kernel_job_card');
+            this.clearCachePattern('kernel_production');
             return result;
+        },
+
+        getKernelJobCards: async function (token = null, forceRefresh = false) {
+            const raw = await this.callFunction('get_kernel_job_cards', {}, token, {
+                cacheKey: 'kernel_job_cards',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && raw.get_kernel_job_cards) return Array.isArray(raw.get_kernel_job_cards) ? raw.get_kernel_job_cards : [];
+            return [];
+        },
+
+        getKernelJobCard: async function (jobCardId, token = null) {
+            const raw = await this.callFunction('get_kernel_job_card', { p_id: jobCardId }, token, { useCache: false });
+            if (raw && (raw.batch_number || raw.id)) return raw;
+            if (raw && raw.get_kernel_job_card) return raw.get_kernel_job_card;
+            return raw;
         },
 
         createKernelProductionDay: async function (batchId, token = null) {
