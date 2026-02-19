@@ -64,6 +64,9 @@ var _kernelProductionGrid = function () {
         filteredBatches: [],
         searchDebounceToken: 0,
 
+        /** Same derived status as in the grid table (for use by batch history modal etc.). */
+        getBatchDisplayStatus: getBatchDisplayStatus,
+
         init: () => {
             const scope = _kernelProductionGrid;
             if (typeof _app !== 'undefined' && typeof _app.checkSession === 'function' && !_app.checkSession()) {

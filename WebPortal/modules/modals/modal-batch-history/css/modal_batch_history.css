@@ -1,1 +1,16 @@
-/* Modal: Batch History (logic in modules/kernel-production/js/kernel_production_batch_actions.js) */
+/* Modal: Batch History (logic in modal_batch_history.js) */
+
+.batch-history-timeline__block-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.batch-history-timeline__status-badge {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.35em 0.75em;
+    background-color: var(--phoenix-info, #0dcaf0);
+    color: #fff;
+}

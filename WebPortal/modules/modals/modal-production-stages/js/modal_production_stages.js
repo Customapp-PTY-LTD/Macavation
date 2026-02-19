@@ -17,6 +17,44 @@ function fromISO(isoStr) {
     return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
+/**
+ * Derive summary_data from the four stage blobs (Cracking/Washing/Sorting/Packing).
+ * Used on save so Summary is always computed; also for timeline snippets.
+ * Field mapping: see Summary tab IDs (ps_sum_*) in modal_production_stages.html.
+ */
+function deriveSummaryFromStages(cracking_data, washing_data, sorting_data, packing_data) {
+    var c = cracking_data || {};
+    var w = washing_data || {};
+    var s = sorting_data || {};
+    var p = packing_data || {};
+    var num = function (v) { var n = parseFloat(v); return isNaN(n) ? '' : n; };
+    var str = function (v) { return v != null && v !== '' ? String(v) : ''; };
+    return {
+        crack_time: str(c.timespent1 || c.totaltime),
+        crack_qty: num(c.totalqty),
+        wholes: num(c.avg_wholes),
+        uncracks: num(c.avg_uncracks),
+        shell_waste: num(c.shell_total),
+        wash_qty_in: num(w.qty_in),
+        wash_floater_qty: num(w.floater_qty),
+        wash_sinker_qty: num(w.sinker_qty),
+        wash_total_qty: num(w.total_qty),
+        wash_saltpepper: num(w.waste_saltpepper),
+        wash_shellfines: num(w.waste_shellfines),
+        wash_compost: num(w.waste_compost),
+        sort_floater_in: num(s.floater_qty_in),
+        sort_sound_qty: num(s.sound_qty),
+        sort_sinker_in: num(s.sinker_qty_in),
+        sort_butterlow_qty: num(s.butterlow_qty),
+        sort_butterhigh_qty: num(s.butterhigh_qty),
+        sort_oil_waste: num(s.oil_qty),
+        sort_compost_waste: num(s.compost_qty),
+        pack_sound_qty: num(p.sk_total_qty),
+        pack_unsound_qty: num(p.bt_total_qty),
+        pack_total_qty: num(p.totals_qty)
+    };
+}
+
 var _modal_production_stages = function () {
     'use strict';
     return {
@@ -27,8 +65,7 @@ var _modal_production_stages = function () {
             crack: { section: 'crack', paneId: 'pane-cracking', dataKey: 'cracking_data' },
             wash: { section: 'wash', paneId: 'pane-washing', dataKey: 'washing_data' },
             sort: { section: 'sort', paneId: 'pane-sorting', dataKey: 'sorting_data' },
-            pack: { section: 'pack', paneId: 'pane-packing', dataKey: 'packing_data' },
-            sum: { section: 'sum', paneId: 'pane-summary', dataKey: 'summary_data' }
+            pack: { section: 'pack', paneId: 'pane-packing', dataKey: 'packing_data' }
         },
 
         init: () => {
@@ -237,12 +274,16 @@ var _modal_production_stages = function () {
             const scope = _modal_production_stages;
             var batchId = $('#productionStagesBatchId').val();
             if (!batchId) return;
+            var crack = scope.getProductionStagesSectionData('crack');
+            var wash = scope.getProductionStagesSectionData('wash');
+            var sort = scope.getProductionStagesSectionData('sort');
+            var pack = scope.getProductionStagesSectionData('pack');
             var draft = {
-                cracking_data: scope.getProductionStagesSectionData('crack'),
-                washing_data: scope.getProductionStagesSectionData('wash'),
-                sorting_data: scope.getProductionStagesSectionData('sort'),
-                packing_data: scope.getProductionStagesSectionData('pack'),
-                summary_data: scope.getProductionStagesSectionData('sum')
+                cracking_data: crack,
+                washing_data: wash,
+                sorting_data: sort,
+                packing_data: pack,
+                summary_data: deriveSummaryFromStages(crack, wash, sort, pack)
             };
             try { localStorage.setItem('kernelProduction_draft_' + batchId, JSON.stringify(draft)); } catch (err) {}
         },
@@ -265,10 +306,11 @@ var _modal_production_stages = function () {
             if (draft.washing_data) scope.setProductionStagesSectionData('wash', draft.washing_data);
             if (draft.sorting_data) scope.setProductionStagesSectionData('sort', draft.sorting_data);
             if (draft.packing_data) scope.setProductionStagesSectionData('pack', draft.packing_data);
-            if (draft.summary_data) scope.setProductionStagesSectionData('sum', draft.summary_data);
+            if (draft.summary_data) scope.modalProductionDayStages = scope.modalProductionDayStages || {};
+            if (draft.summary_data) scope.modalProductionDayStages.summary_data = draft.summary_data;
         },
 
-        tabIdToSection: { 'tab-cracking': 'crack', 'tab-washing': 'wash', 'tab-sorting': 'sort', 'tab-packing': 'pack', 'tab-summary': 'sum' },
+        tabIdToSection: { 'tab-cracking': 'crack', 'tab-washing': 'wash', 'tab-sorting': 'sort', 'tab-packing': 'pack' },
         currentTabSection: 'crack',
 
         setProductionStagesTabsVisibility: (visible) => {
@@ -283,13 +325,13 @@ var _modal_production_stages = function () {
         updateProductionActionButtonTicks: () => {
             const scope = _modal_production_stages;
             scope.modalProductionDayStages = scope.modalProductionDayStages || {};
-            ['crack', 'wash', 'sort', 'pack', 'sum'].forEach(function (action) {
+            ['crack', 'wash', 'sort', 'pack'].forEach(function (action) {
                 var data = scope.modalProductionDayStages[scope.productionActionMap[action].dataKey];
                 var formData = scope.getProductionStagesSectionData(scope.productionActionMap[action].section);
                 var hasData = (data && typeof data === 'object' && Object.keys(data).length > 0) ||
                     (formData && typeof formData === 'object' && Object.keys(formData).length > 0);
                 var label = action === 'crack' ? 'Cracking' : action === 'wash' ? 'Washing' : action === 'sort' ? 'Sorting' : action === 'pack' ? 'Packing' : 'Summary';
-                var $tab = $('#tab-' + (action === 'crack' ? 'cracking' : action === 'wash' ? 'washing' : action === 'sort' ? 'sorting' : action === 'pack' ? 'packing' : 'summary'));
+                var $tab = $('#tab-' + (action === 'crack' ? 'cracking' : action === 'wash' ? 'washing' : action === 'sort' ? 'sorting' : 'packing'));
                 var $label = $tab.find('.production-tab-label');
                 if ($label.length) {
                     $label.text(label);
@@ -336,20 +378,22 @@ var _modal_production_stages = function () {
             if (!dayId && !stagesId) return Promise.resolve();
             var p = stagesId ? dataFunctions.getKernelProductionStages(stagesId) : (dayId ? dataFunctions.getKernelProductionStagesByDay(dayId) : Promise.resolve(null));
             return p.then(function (s) {
+                var crack = (s && s.cracking_data) ? s.cracking_data : {};
+                var wash = (s && s.washing_data) ? s.washing_data : {};
+                var sort = (s && s.sorting_data) ? s.sorting_data : {};
+                var pack = (s && s.packing_data) ? s.packing_data : {};
                 scope.modalProductionDayStages = {
-                    cracking_data: (s && s.cracking_data) ? s.cracking_data : {},
-                    washing_data: (s && s.washing_data) ? s.washing_data : {},
-                    sorting_data: (s && s.sorting_data) ? s.sorting_data : {},
-                    packing_data: (s && s.packing_data) ? s.packing_data : {},
-                    summary_data: (s && s.summary_data) ? s.summary_data : {}
+                    cracking_data: crack,
+                    washing_data: wash,
+                    sorting_data: sort,
+                    packing_data: pack,
+                    summary_data: s ? deriveSummaryFromStages(crack, wash, sort, pack) : {}
                 };
                 if (s) {
-                    scope.setProductionStagesSectionData('crack', s.cracking_data);
-                    scope.setProductionStagesSectionData('wash', s.washing_data);
-                    scope.setProductionStagesSectionData('sort', s.sorting_data);
-                    scope.setProductionStagesSectionData('pack', s.packing_data);
-                    scope.setProductionStagesSectionData('sum', s.summary_data);
-                    scope.syncCrackTimeToSummary();
+                    scope.setProductionStagesSectionData('crack', crack);
+                    scope.setProductionStagesSectionData('wash', wash);
+                    scope.setProductionStagesSectionData('sort', sort);
+                    scope.setProductionStagesSectionData('pack', pack);
                 } else {
                     scope.clearProductionStagesForm();
                 }
@@ -530,7 +574,7 @@ var _modal_production_stages = function () {
             var washing_data = scope.getProductionStagesSectionData('wash');
             var sorting_data = scope.getProductionStagesSectionData('sort');
             var packing_data = scope.getProductionStagesSectionData('pack');
-            var summary_data = scope.getProductionStagesSectionData('sum');
+            var summary_data = deriveSummaryFromStages(cracking_data, washing_data, sorting_data, packing_data);
             var payload = {
                 kernel_production_day_id: dayId,
                 batch_number: batchNumber,
@@ -612,7 +656,7 @@ var _modal_production_stages = function () {
                 var doRestoreTab = function () {
                     var savedTab = null;
                     try { savedTab = localStorage.getItem('kernelProduction_lastTab_' + batchId); } catch (err) {}
-                    var tabNames = ['cracking', 'washing', 'sorting', 'packing', 'summary'];
+                    var tabNames = ['cracking', 'washing', 'sorting', 'packing'];
                     if (savedTab && tabNames.indexOf(savedTab) !== -1) {
                         var tabBtn = document.getElementById('tab-' + savedTab);
                         if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) bootstrap.Tab.getOrCreateInstance(tabBtn).show();

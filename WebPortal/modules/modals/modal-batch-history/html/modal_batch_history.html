@@ -1,28 +1,15 @@
 <div class="modal-dialog modal-lg">
     <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="batchHistoryModalLabel">Grower Intake history</h5>
+            <h5 class="modal-title" id="batchHistoryModalLabel">Batch history</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
             <p class="text-muted small mb-4" id="batchHistoryBatchInfo">Batch: —</p>
             <div class="batch-history-timeline">
                 <div class="batch-history-timeline__line" aria-hidden="true"></div>
-                <div class="batch-history-timeline__entries">
-                    <div class="batch-history-timeline__entry">
-                        <div class="batch-history-timeline__node"></div>
-                        <div class="batch-history-timeline__block">
-                            <h6 class="batch-history-timeline__block-title">Batch test / sample</h6>
-                            <div class="batch-history-timeline__block-body" id="batchHistorySampleBody"><p class="text-muted mb-0">Loading…</p></div>
-                        </div>
-                    </div>
-                    <div class="batch-history-timeline__entry">
-                        <div class="batch-history-timeline__node"></div>
-                        <div class="batch-history-timeline__block">
-                            <h6 class="batch-history-timeline__block-title">Receiving checklist</h6>
-                            <div class="batch-history-timeline__block-body" id="batchHistoryChecklistBody"><p class="text-muted mb-0">Loading…</p></div>
-                        </div>
-                    </div>
+                <div class="batch-history-timeline__entries" id="batchHistoryTimelineEntries">
+                    <p class="text-muted mb-0">Loading…</p>
                 </div>
             </div>
         </div>
