@@ -8,6 +8,13 @@ var _adminGrid = function () {
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+    function escapeHtml(text) {
+        if (text == null || text === '') return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     return {
         data: {
             users: [],
@@ -204,7 +211,7 @@ var _adminGrid = function () {
             if (!tbody) return;
 
             if (!users || users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No users found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-users me-2"></i>No users found</td></tr>';
                 return;
             }
 
@@ -214,24 +221,28 @@ var _adminGrid = function () {
                     ? '<span class="badge bg-success">Active</span>'
                     : '<span class="badge bg-secondary">Inactive</span>';
                 const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never';
+                const name = escapeHtml((user.first_name || '') + ' ' + (user.last_name || '').trim() || 'User');
+                const phone = user.phone_number ? escapeHtml(user.phone_number) : '';
+                const email = escapeHtml(user.email || '');
                 return `
-        <tr>
+        <tr class="js-admin-user-row" data-user-id="${escapeHtml(String(user.id))}">
             <td>
-                <strong>${user.first_name} ${user.last_name}</strong>
-                ${user.phone_number ? `<br><small class="text-muted">${user.phone_number}</small>` : ''}
+                <strong>${name}</strong>
+                ${phone ? `<br><small class="text-muted">${phone}</small>` : ''}
             </td>
-            <td>${user.email}</td>
+            <td>${email}</td>
             <td>${roleBadge}</td>
             <td>${statusBadge}</td>
-            <td><small class="text-muted">${lastLogin}</small></td>
+            <td><small class="text-muted">${escapeHtml(lastLogin)}</small></td>
             <td>
-                <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-outline-primary" data-admin-edit-user="${user.id}" title="Edit">
-                        <i class="bi bi-pencil"></i>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions">
+                        <i class="fas fa-ellipsis"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-secondary" data-admin-manage-user-perms="${user.id}" title="Permissions">
-                        <i class="bi bi-key"></i>
-                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-admin-edit-user="${escapeHtml(String(user.id))}"><i class="fas fa-pen me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#" data-admin-manage-user-perms="${escapeHtml(String(user.id))}"><i class="fas fa-key me-2"></i>Permissions</a></li>
+                    </ul>
                 </div>
             </td>
         </tr>
@@ -349,7 +360,7 @@ var _adminGrid = function () {
             if (!tbody) return;
 
             if (!roles || roles.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No roles found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-shield-alt me-2"></i>No roles found</td></tr>';
                 return;
             }
 
@@ -358,20 +369,23 @@ var _adminGrid = function () {
                 const statusBadge = role.is_active
                     ? '<span class="badge bg-success">Active</span>'
                     : '<span class="badge bg-secondary">Inactive</span>';
+                const roleName = escapeHtml(role.role_name || '');
+                const desc = escapeHtml(role.description || 'No description');
                 return `
-            <tr>
-                <td><strong>${role.role_name}</strong></td>
-                <td><small class="text-muted">${role.description || 'No description'}</small></td>
+            <tr class="js-admin-role-row" data-role-id="${escapeHtml(String(role.id))}">
+                <td><strong>${roleName}</strong></td>
+                <td><small class="text-muted">${desc}</small></td>
                 <td><span class="badge bg-info">${userCount} users</span></td>
                 <td>${statusBadge}</td>
                 <td>
-                    <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-outline-primary" data-admin-edit-role="${role.id}" title="Edit">
-                            <i class="bi bi-pencil"></i>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions">
+                            <i class="fas fa-ellipsis"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary" data-admin-manage-role-perms="${role.id}" title="Permissions">
-                            <i class="bi bi-key"></i>
-                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" data-admin-edit-role="${escapeHtml(String(role.id))}"><i class="fas fa-pen me-2"></i>Edit</a></li>
+                            <li><a class="dropdown-item" href="#" data-admin-manage-role-perms="${escapeHtml(String(role.id))}"><i class="fas fa-key me-2"></i>Permissions</a></li>
+                        </ul>
                     </div>
                 </td>
             </tr>
@@ -417,28 +431,42 @@ var _adminGrid = function () {
             }
 
             document.addEventListener('click', (e) => {
-                const editUserBtn = e.target.closest('[data-admin-edit-user]');
-                if (editUserBtn) {
-                    e.preventDefault();
-                    scope.editUser(editUserBtn.getAttribute('data-admin-edit-user'));
+                if (e.target.closest('.dropdown-toggle, .dropdown-menu')) {
+                    const editUser = e.target.closest('[data-admin-edit-user]');
+                    if (editUser) {
+                        e.preventDefault();
+                        scope.editUser(editUser.getAttribute('data-admin-edit-user'));
+                        return;
+                    }
+                    const manageUserPerms = e.target.closest('[data-admin-manage-user-perms]');
+                    if (manageUserPerms) {
+                        e.preventDefault();
+                        scope.manageUserPermissions(manageUserPerms.getAttribute('data-admin-manage-user-perms'));
+                        return;
+                    }
+                    const editRole = e.target.closest('[data-admin-edit-role]');
+                    if (editRole) {
+                        e.preventDefault();
+                        scope.editRole(editRole.getAttribute('data-admin-edit-role'));
+                        return;
+                    }
+                    const manageRolePerms = e.target.closest('[data-admin-manage-role-perms]');
+                    if (manageRolePerms) {
+                        e.preventDefault();
+                        scope.manageRolePermissions(manageRolePerms.getAttribute('data-admin-manage-role-perms'));
+                    }
                     return;
                 }
-                const manageUserPermsBtn = e.target.closest('[data-admin-manage-user-perms]');
-                if (manageUserPermsBtn) {
-                    e.preventDefault();
-                    scope.manageUserPermissions(manageUserPermsBtn.getAttribute('data-admin-manage-user-perms'));
+                const userRow = e.target.closest('tr.js-admin-user-row');
+                if (userRow) {
+                    const id = userRow.getAttribute('data-user-id');
+                    if (id) scope.editUser(id);
                     return;
                 }
-                const editRoleBtn = e.target.closest('[data-admin-edit-role]');
-                if (editRoleBtn) {
-                    e.preventDefault();
-                    scope.editRole(editRoleBtn.getAttribute('data-admin-edit-role'));
-                    return;
-                }
-                const manageRolePermsBtn = e.target.closest('[data-admin-manage-role-perms]');
-                if (manageRolePermsBtn) {
-                    e.preventDefault();
-                    scope.manageRolePermissions(manageRolePermsBtn.getAttribute('data-admin-manage-role-perms'));
+                const roleRow = e.target.closest('tr.js-admin-role-row');
+                if (roleRow) {
+                    const id = roleRow.getAttribute('data-role-id');
+                    if (id) scope.editRole(id);
                 }
             });
         },

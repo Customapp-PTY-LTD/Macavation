@@ -76,6 +76,7 @@
     text-transform: uppercase;
     font-size: 0.85rem;
     letter-spacing: 0.5px;
+    border-top: none;
     border-bottom: 2px solid var(--phoenix-border-color);
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
@@ -91,6 +92,39 @@
 .table tbody td {
     vertical-align: middle;
     color: var(--phoenix-text-color);
+}
+
+/* Clickable rows – Admin tables */
+#adminUsersTable tbody tr.js-admin-user-row,
+#adminRolesTable tbody tr.js-admin-role-row {
+    cursor: pointer;
+}
+
+#adminUsersTable tbody tr.js-admin-user-row td:first-child,
+#adminRolesTable tbody tr.js-admin-role-row td:first-child {
+    color: var(--phoenix-primary);
+}
+
+#adminUsersTable tbody tr.js-admin-user-row:hover td:first-child,
+#adminRolesTable tbody tr.js-admin-role-row:hover td:first-child {
+    text-decoration: underline;
+}
+
+#adminUsersTable tbody tr.js-admin-user-row td:last-child,
+#adminRolesTable tbody tr.js-admin-role-row td:last-child {
+    text-align: center;
+    white-space: nowrap;
+}
+
+#adminUsersTable .dropdown-toggle,
+#adminRolesTable .dropdown-toggle {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
 }
 
 /* Badges */
@@ -120,49 +154,6 @@
 
 .badge.bg-success {
     background-color: var(--phoenix-success) !important;
-}
-
-/* Button Groups */
-.btn-group .btn-sm {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    min-width: 36px;
-    transition: all 0.3s ease;
-}
-
-.btn-group .btn-outline-primary,
-.btn-group .btn-outline-secondary {
-    border-width: 2px;
-    font-weight: 600;
-}
-
-.btn-group .btn-outline-primary {
-    border-color: var(--phoenix-primary);
-    color: var(--phoenix-primary);
-    background-color: rgba(var(--phoenix-primary-rgb), 0.1);
-}
-
-.btn-group .btn-outline-primary:hover {
-    background-color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(var(--phoenix-primary-rgb), 0.3);
-}
-
-.btn-group .btn-outline-secondary {
-    border-color: var(--phoenix-secondary);
-    color: var(--phoenix-secondary);
-    background-color: rgba(var(--phoenix-secondary-rgb), 0.1);
-}
-
-.btn-group .btn-outline-secondary:hover {
-    background-color: var(--phoenix-secondary);
-    border-color: var(--phoenix-secondary);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(var(--phoenix-secondary-rgb), 0.3);
 }
 
 /* Action Buttons - Enhanced Visibility */
@@ -201,31 +192,6 @@
 .btn-sm i {
     font-size: 1rem;
     line-height: 1;
-}
-
-/* Modal Styling */
-.modal-header {
-    background-color: var(--phoenix-light);
-    border-bottom: 2px solid var(--phoenix-border-color);
-    transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.modal-title {
-    color: var(--phoenix-text-color);
-    font-weight: 600;
-    transition: color 0.3s ease;
-}
-
-.modal-body {
-    padding: 1.5rem;
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
-}
-
-.modal-footer {
-    background-color: var(--phoenix-light);
-    border-top: 1px solid var(--phoenix-border-color);
-    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Form Elements */
@@ -299,15 +265,6 @@
     
     .table {
         font-size: 0.875rem;
-    }
-    
-    .btn-group {
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .btn-group .btn {
-        margin-bottom: 0.25rem;
     }
 }
 
