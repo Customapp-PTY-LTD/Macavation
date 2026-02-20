@@ -50,9 +50,8 @@ var _stockManagementGrid = function () {
                 if (typeof _modal_stock_import_oil_lots !== 'undefined' && _modal_stock_import_oil_lots.init) _modal_stock_import_oil_lots.init();
                 return delay(100);
             }).then(function () {
-                var stockTakeBtn = document.getElementById('stockTakeBtn');
                 var stream = document.getElementById('filterStockStream') ? document.getElementById('filterStockStream').value : 'kernel';
-                if (stockTakeBtn) {
+                if (document.getElementById('exportStockBtn')) {
                     scope.setupEventListeners();
                     scope.loadStockItems();
                     scope.toggleKernelBatchJourney(stream);
@@ -75,7 +74,7 @@ var _stockManagementGrid = function () {
                         } catch (e) {}
                     }
                 } else {
-                    console.warn('[Stock Management] Buttons not found after modal load');
+                    console.warn('[Stock Management] Toolbar not found after modal load');
                 }
             }).catch(function (err) {
                 console.error('[Stock Management] Error loading modals:', err);
@@ -121,10 +120,6 @@ var _stockManagementGrid = function () {
             console.log('[Stock Management] Setting up event listeners...');
 
             if (typeof $ !== 'undefined') {
-                $('#stockTakeBtn').off('click').on('click', function (e) {
-                    e.preventDefault();
-                    if (e.originalEvent && e.originalEvent.isTrusted && typeof _modal_stock_stock_take !== 'undefined' && _modal_stock_stock_take.show) _modal_stock_stock_take.show();
-                });
                 $('#rawMaterialIssuedBtn').off('click').on('click', function () {
                     if (typeof _modal_stock_raw_material_issued !== 'undefined' && _modal_stock_raw_material_issued.show) _modal_stock_raw_material_issued.show();
                 });
@@ -155,11 +150,6 @@ var _stockManagementGrid = function () {
                     }
                 });
                 $('#exportStockBtn').off('click').on('click', function () { scope.exportStock(); });
-                $('#addStockBtn').off('click').on('click', function () {
-                    if (typeof Swal !== 'undefined') Swal.fire('Info', 'New stock item form coming soon', 'info');
-                });
-
-                $('#selectBoxesBtn').off('click').on('click', function () { scope.toggleDispatchSelectionMode(); });
                 $('#sendDispatchBtn').off('click').on('click', function () { scope.submitDispatchOrder(); });
                 $(document).on('click', '.js-dispatch-selectable', function () {
                     if (scope.dispatchSelectionMode) scope.onDispatchCellClick(this);

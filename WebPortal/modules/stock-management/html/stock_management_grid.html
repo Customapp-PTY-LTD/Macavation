@@ -1,26 +1,23 @@
 <!-- Stock Management Grid Module - Kernel and Oil & Protein are separate (per supply chain flow). -->
 <div class="module-content">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2" id="stockManagementTitle">Stock Management</h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-primary" id="addStockBtn">
-                <i class="fas fa-plus me-1"></i>New Stock Item
-            </button>
+    <div class="pt-3 pb-2 mb-3 border-bottom">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
+            <h1 class="h2 mb-0" id="stockManagementTitle">Stock Management</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
             <button type="button" class="btn btn-outline-primary d-none" id="addOilLotBtn" data-oil-only="true">
                 <i class="fas fa-plus-circle me-1"></i>Add Oil Lot
             </button>
             <button type="button" class="btn btn-outline-success d-none" id="importOilLotsBtn" data-oil-only="true">
                 <i class="fas fa-file-excel me-1"></i>Import Oil Stock (Excel)
             </button>
-            <button type="button" class="btn btn-secondary" id="stockTakeBtn">
-                <i class="fas fa-clipboard-check me-1"></i>Stock Take
-            </button>
             <button type="button" class="btn btn-outline-secondary" id="exportStockBtn">
                 <i class="fas fa-download me-1"></i>Export
             </button>
+            </div>
         </div>
+        <p class="text-muted mb-0 mt-2 small">Search and filter your stock; track kernel batches by style (totals across the top, yield per style from Production Job Card), select a batch and send to dispatch; or add and import oil lots from Excel (Days Remaining from BB Date)—then export when you're ready.</p>
     </div>
-    
+
     <input type="hidden" id="filterStockStream" value="kernel">
     <!-- Search and Filters (hidden when Kernel Stock - only batch journey / by-style table shown) -->
     <div class="card mb-3" id="mainStockFiltersCard">
@@ -102,16 +99,9 @@
                 <button type="button" class="btn btn-success me-1" id="sendToDispatchBtn">
                     <i class="fas fa-truck me-1"></i>Send to Dispatch
                 </button>
-                <button type="button" class="btn btn-outline-primary" id="selectBoxesBtn">
-                    <i class="fas fa-check-square me-1"></i>Select boxes
-                </button>
             </div>
         </div>
         <div class="card-body">
-            <p class="text-muted small mb-3">Batches released from Grower Intake go to Kernel Production; release to stock from there. Raw (NIS = R NIL) is legacy; finished (KERNEL R YES) are ready for dispatch.</p>
-            <hr class="my-3">
-            <h6 class="text-secondary">Kernel Stock by style</h6>
-            <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with yield quantity per style (from Production Job Card). Use <strong>Select</strong> to choose one batch for Send to Dispatch—click the checkbox again to unselect. Click cells to select boxes when in selection mode.</p>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered" id="kernelStockByStyleTable">
                     <thead>
@@ -157,9 +147,8 @@
 
     <!-- Oil Stock Ledger (hidden when stream = Kernel) -->
     <div class="card mb-3" id="oilStockLedgerCard">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header">
             <h5 class="mb-0">Oil Stock Ledger (801 / 850 / Sold)</h5>
-            <small class="text-muted">801 = OIL KERNEL R YES (raw); 850 = OIL PROTEIN R YES (finished). Supplier/Customer, PO Ref, Batch, Product/Grade, FFA, Units, Kg, Mfg/BB</small>
         </div>
         <div class="card-body">
             <div class="row g-3 mb-3">
@@ -197,7 +186,7 @@
             </div>
 
             <div class="row g-3 mb-3">
-                <div class="col-md-6">
+                <div class="col-12">
                     <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
                         <table class="table table-sm table-bordered mb-0" id="oilSummaryTable">
                             <thead class="table-light">
@@ -209,12 +198,6 @@
                             </thead>
                             <tbody id="oilSummaryTableBody"></tbody>
                         </table>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="alert alert-info mb-0">
-                        <div><strong>Tip:</strong> Use <strong>Import Oil Stock (Excel)</strong> to bring your spreadsheet rows in, then manage/adjust lots here.</div>
-                        <div class="small text-muted">Days Remaining is calculated from BB Date.</div>
                     </div>
                 </div>
             </div>

@@ -1,15 +1,18 @@
 <!-- Grower Intake Grid Module -->
 <div class="module-content">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Grower Intake Management</h1>
-        <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
-            <button type="button" class="btn btn-primary" id="createKernelBatchBtn">
-                <i class="fas fa-plus me-1"></i>Create kernel batch
-            </button>
-            <button type="button" class="btn btn-outline-secondary" id="exportIntakeBatchesBtn">
-                <i class="fas fa-download me-1"></i>Export
-            </button>
+    <div class="pt-3 pb-2 mb-3 border-bottom">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
+            <h1 class="h2 mb-0">Grower Intake Management</h1>
+            <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
+                <button type="button" class="btn btn-primary" id="createKernelBatchBtn">
+                    <i class="fas fa-plus me-1"></i>Create kernel batch
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="exportIntakeBatchesBtn">
+                    <i class="fas fa-download me-1"></i>Export
+                </button>
+            </div>
         </div>
+        <p class="text-muted mb-0 mt-2 small">Stage 1: Complete Receiving checklist for each batch (box becomes a tick); then Batch test / Batch sample (enabled after checklist). Release to production is only enabled once both forms are completed.</p>
     </div>
 
     <!-- Search and Filters -->
@@ -39,7 +42,6 @@
         </div>
     </div>
 
-    <p class="text-muted mb-3 intake-instruction">Stage 1: Complete Receiving checklist for each batch (box becomes a tick); then Batch test / Batch sample (enabled after checklist). Release to production is only enabled once both forms are completed.</p>
     <div class="card mb-4 border-primary">
         <div class="card-body p-2 p-md-3">
             <div class="table-responsive intake-table-responsive">
