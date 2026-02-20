@@ -178,10 +178,7 @@ var _kernelProductionGrid = function () {
             $(document).on('click', '.js-job-card-batch', function (e) {
                 e.preventDefault();
                 const batchId = $(this).data('batch-id');
-                const jobCardId = $(this).data('job-card-id');
-                if (jobCardId && typeof _modal_job_card_view !== 'undefined' && _modal_job_card_view.show) {
-                    _modal_job_card_view.show(jobCardId);
-                } else if (batchId && typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.showJobCardModalForBatch) {
+                if (batchId && typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.showJobCardModalForBatch) {
                     _modal_kernel_job_card.showJobCardModalForBatch(batchId);
                 }
             });
