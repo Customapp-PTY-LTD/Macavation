@@ -7,8 +7,8 @@
     /* Brand Colors */
     --phoenix-primary: #927325;
     --phoenix-primary-rgb: 146, 115, 37;
-    --phoenix-secondary: #CEECEF;
-    --phoenix-secondary-rgb: 206, 236, 239;
+    --phoenix-secondary: #e9ecef;
+    --phoenix-secondary-rgb: 233, 236, 239;
     --phoenix-tertiary: #B0DCE7;
     --phoenix-tertiary-rgb: 176, 220, 231;
     /* Semantic – success green (keep) */
@@ -20,8 +20,8 @@
     --phoenix-warning-rgb: 251, 191, 36;
     --phoenix-danger: #ef4444;
     --phoenix-danger-rgb: 239, 68, 68;
-    --phoenix-light: #CEECEF;
-    --phoenix-light-rgb: 206, 236, 239;
+    --phoenix-light: #e9ecef;
+    --phoenix-light-rgb: 233, 236, 239;
     --phoenix-dark: #6b5519;
     --phoenix-dark-rgb: 107, 85, 25;
     

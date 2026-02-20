@@ -211,7 +211,7 @@ var _adminGrid = function () {
             if (!tbody) return;
 
             if (!users || users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-users me-2"></i>No users found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No users found.</td></tr>';
                 return;
             }
 
@@ -360,7 +360,7 @@ var _adminGrid = function () {
             if (!tbody) return;
 
             if (!roles || roles.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-shield-alt me-2"></i>No roles found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No roles found.</td></tr>';
                 return;
             }
 
@@ -459,12 +459,14 @@ var _adminGrid = function () {
                 }
                 const userRow = e.target.closest('tr.js-admin-user-row');
                 if (userRow) {
+                    if (e.target.closest('.dropdown') || e.target.closest('button') || e.target.closest('.btn')) return;
                     const id = userRow.getAttribute('data-user-id');
                     if (id) scope.editUser(id);
                     return;
                 }
                 const roleRow = e.target.closest('tr.js-admin-role-row');
                 if (roleRow) {
+                    if (e.target.closest('.dropdown') || e.target.closest('button') || e.target.closest('.btn')) return;
                     const id = roleRow.getAttribute('data-role-id');
                     if (id) scope.editRole(id);
                 }
