@@ -17,7 +17,7 @@ function fromISO(isoStr) {
     return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
-/** Return YYYY-MM-DD from stages (cracking_data.date || washing_data.date || ...) or null. Used to match save date to production day. */
+/** Return YYYY-MM-DD from stages (first found: crack, wash, sort, pack). Used when comparing to a single day's date. */
 function getStagesEffectiveDate(stages) {
     if (!stages || typeof stages !== 'object') return null;
     var c = (stages.cracking_data && typeof stages.cracking_data === 'object') ? stages.cracking_data : {};
@@ -27,6 +27,31 @@ function getStagesEffectiveDate(stages) {
     var raw = c.date || w.date || s.date || p.date;
     if (raw && typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw)) return raw;
     return null;
+}
+
+/** Unwrap API response to stages object (cracking_data, washing_data, etc.). */
+function unwrapStages(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    if (raw.cracking_data !== undefined || raw.washing_data !== undefined) return raw;
+    if (raw.get_kernel_production_stages_by_day != null) return raw.get_kernel_production_stages_by_day;
+    if (raw.get_kernel_production_stages != null) return raw.get_kernel_production_stages;
+    if (Array.isArray(raw) && raw[0]) return unwrapStages(raw[0]);
+    return raw;
+}
+
+/** Return the latest (most recent) YYYY-MM-DD in stages. Used to choose which production day to save to when form has multiple dates (e.g. packing on 21st, other sections on 19th/20th). */
+function getStagesLatestDate(stages) {
+    if (!stages || typeof stages !== 'object') return null;
+    var c = (stages.cracking_data && typeof stages.cracking_data === 'object') ? stages.cracking_data : {};
+    var w = (stages.washing_data && typeof stages.washing_data === 'object') ? stages.washing_data : {};
+    var s = (stages.sorting_data && typeof stages.sorting_data === 'object') ? stages.sorting_data : {};
+    var p = (stages.packing_data && typeof stages.packing_data === 'object') ? stages.packing_data : {};
+    var dates = [c.date, w.date, s.date, p.date].filter(function (raw) {
+        return raw && typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw);
+    });
+    if (dates.length === 0) return null;
+    dates.sort();
+    return dates[dates.length - 1];
 }
 
 /**
@@ -491,8 +516,10 @@ var _modal_production_stages = function () {
             var agg = {};
             sections.forEach(function (sec) { agg[sec] = {}; });
             (stagesList || []).forEach(function (s) {
+                var stages = unwrapStages(s);
+                if (!stages) return;
                 sections.forEach(function (sec) {
-                    var data = s[sec];
+                    var data = stages[sec];
                     if (data && typeof data === 'object') {
                         for (var key in data) {
                             var v = data[key];
@@ -502,6 +529,83 @@ var _modal_production_stages = function () {
                 });
             });
             return agg;
+        },
+
+        /**
+         * Build job card payload from batch and all production stages (all days aggregated).
+         * Used when finishing batch production to create the kernel job card from cracking/washing/sorting/packing data.
+         */
+        buildJobCardPayloadFromBatchAndStages: (batchId, batch, stagesList) => {
+            var scope = _modal_production_stages;
+            var unwrapped = (stagesList || []).map(function (s) { return unwrapStages(s); }).filter(Boolean);
+            var agg = scope.aggregateProductionStages(stagesList);
+            var num = function (v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; };
+            var receivedDate = null;
+            if (batch && batch.received_date) {
+                var d = batch.received_date.toString().split('T')[0];
+                if (/^\d{4}-\d{2}-\d{2}$/.test(d)) receivedDate = d;
+            }
+            if (!receivedDate && unwrapped.length) {
+                var crackDates = unwrapped.map(function (s) { return (s.cracking_data && s.cracking_data.date) ? String(s.cracking_data.date).split('T')[0] : null; }).filter(function (d) { return d && /^\d{4}-\d{2}-\d{2}$/.test(d); });
+                if (crackDates.length) { crackDates.sort(); receivedDate = crackDates[0]; }
+            }
+            var packingDates = [];
+            unwrapped.forEach(function (s) {
+                var p = s.packing_data;
+                if (p && p.date) {
+                    var d = String(p.date).split('T')[0];
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) packingDates.push(d);
+                }
+            });
+            packingDates.sort();
+            var packingStart = packingDates.length ? packingDates[0] : null;
+            var packingCompletion = packingDates.length ? packingDates[packingDates.length - 1] : null;
+            var totalWeight = (agg.summary_data && (agg.summary_data.pack_total_qty != null || agg.summary_data.crack_qty != null)) ? (agg.summary_data.pack_total_qty != null ? agg.summary_data.pack_total_qty : agg.summary_data.crack_qty) : null;
+            var p = (agg.packing_data && typeof agg.packing_data === 'object') ? agg.packing_data : {};
+            var soundKernelStyles = [];
+            [
+                { key: 'sk_sp', style: 'SP' }, { key: 'sk_0', style: '0' }, { key: 'sk_1', style: '1' }, { key: 'sk_1s', style: '1S' }, { key: 'sk_4l', style: '4L' }, { key: 'sk_5', style: '5' }, { key: 'sk_6', style: '6' }
+            ].forEach(function (item) {
+                var cartons = num(p[item.key + '_cartons']);
+                var qty = num(p[item.key + '_qty']);
+                if (cartons > 0 || qty > 0) soundKernelStyles.push({ style: item.style, cartons: Math.round(cartons), weight_kg: qty });
+            });
+            var butterGradeStyles = [];
+            [
+                { key: 'bt_78', style: '7/8' }, { key: 'bt_high', style: 'Butter High Oil (Floaters)' }, { key: 'bt_low', style: 'Butter Low Oil (Sinkers)' }
+            ].forEach(function (item) {
+                var cartons = num(p[item.key + '_cartons']);
+                var qty = num(p[item.key + '_qty']);
+                if (cartons > 0 || qty > 0) butterGradeStyles.push({ style: item.style, cartons: Math.round(cartons), weight_kg: qty });
+            });
+            var skTotalCartons = num(p.sk_total_cartons) || soundKernelStyles.reduce(function (sum, r) { return sum + (r.cartons || 0); }, 0);
+            var skTotalKg = num(p.sk_total_qty) || soundKernelStyles.reduce(function (sum, r) { return sum + (r.weight_kg || 0); }, 0);
+            var btTotalCartons = num(p.bt_total_cartons) || butterGradeStyles.reduce(function (sum, r) { return sum + (r.cartons || 0); }, 0);
+            var btTotalKg = num(p.bt_total_qty) || butterGradeStyles.reduce(function (sum, r) { return sum + (r.weight_kg || 0); }, 0);
+            var c = (agg.cracking_data && typeof agg.cracking_data === 'object') ? agg.cracking_data : {};
+            var w = (agg.washing_data && typeof agg.washing_data === 'object') ? agg.washing_data : {};
+            var s = (agg.sorting_data && typeof agg.sorting_data === 'object') ? agg.sorting_data : {};
+            return {
+                p_batch_number: (batch && batch.batch_number) ? String(batch.batch_number) : null,
+                p_received_date: receivedDate,
+                p_production_batch_id: batchId || null,
+                p_total_weight_kg: totalWeight,
+                p_supplier_id: (batch && batch.supplier_id) ? batch.supplier_id : null,
+                p_supplier_name: (batch && batch.grower_name) ? String(batch.grower_name) : null,
+                p_packing_start_date: packingStart,
+                p_packing_completion_date: packingCompletion,
+                p_sound_kernel_styles: soundKernelStyles.length ? JSON.stringify(soundKernelStyles) : null,
+                p_sound_kernel_total_cartons: skTotalCartons ? Math.round(skTotalCartons) : null,
+                p_sound_kernel_total_kg: skTotalKg || null,
+                p_butter_grade_styles: butterGradeStyles.length ? JSON.stringify(butterGradeStyles) : null,
+                p_butter_grade_total_cartons: btTotalCartons ? Math.round(btTotalCartons) : null,
+                p_butter_grade_total_kg: btTotalKg || null,
+                p_waste_shell_kg: (c.shell_total != null && c.shell_total !== '') ? num(c.shell_total) : null,
+                p_waste_salt_pepper_kg: (w.waste_saltpepper != null && w.waste_saltpepper !== '') ? num(w.waste_saltpepper) : null,
+                p_waste_shell_fines_kg: (w.waste_shellfines != null && w.waste_shellfines !== '') ? num(w.waste_shellfines) : null,
+                p_waste_compost_kg: (num(w.waste_compost) + num(s.compost_qty)) > 0 ? num(w.waste_compost) + num(s.compost_qty) : null,
+                p_waste_oil_kernel_kg: (s.oil_qty != null && s.oil_qty !== '') ? num(s.oil_qty) : null
+            };
         },
 
         renderBatchSummaryHtml: (agg, dayCount) => {
@@ -536,31 +640,54 @@ var _modal_production_stages = function () {
             }
         },
 
+        /** Completes the "Finish batch production" action: calls API, updates status to awaiting_test, creates job card from production data, closes modal, refreshes grid. */
         doFinishBatchProduction: (batchId) => {
-            var p = dataFunctions.finishKernelBatchProduction && dataFunctions.finishKernelBatchProduction(batchId);
+            const scope = _modal_production_stages;
+            if (!dataFunctions || typeof dataFunctions.finishKernelBatchProduction !== 'function') {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Finish batch function not available', 'error');
+                return;
+            }
+            var p = dataFunctions.finishKernelBatchProduction(batchId);
             if (!p || typeof p.then !== 'function') {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Finish batch function not available', 'error');
                 return;
             }
             p.then(function (result) {
-                if (result && result.success !== false) {
-                    if (typeof dataFunctions !== 'undefined' && dataFunctions.updateProductionBatch) {
-                        return dataFunctions.updateProductionBatch(batchId, { status: 'awaiting_test' }).then(function () {
-                            if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Batch production marked as finished. Status: Awaiting test.', 'success');
-                            var modalEl = document.getElementById('productionStagesModal');
-                            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                            else $('#productionStagesModal').modal('hide');
-                            if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                var inner = (result && result.finish_kernel_batch_production) ? result.finish_kernel_batch_production : result;
+                if (!inner || inner.success === false) {
+                    throw new Error(inner && inner.error ? inner.error : 'Failed to finish');
+                }
+                var updatePromise = (dataFunctions.updateProductionBatch)
+                    ? dataFunctions.updateProductionBatch(batchId, { status: 'awaiting_test' })
+                    : Promise.resolve();
+                return updatePromise.then(function () {
+                    var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
+                    var daysPromise = (dataFunctions.getKernelProductionDays && batchId) ? dataFunctions.getKernelProductionDays(batchId) : Promise.resolve([]);
+                    return daysPromise.then(function (daysRaw) {
+                        var days = Array.isArray(daysRaw) ? daysRaw : (daysRaw && daysRaw.data ? daysRaw.data : []);
+                        if (days.length === 0) return null;
+                        var stagePromises = days.map(function (d) {
+                            var dayId = d.id || d.kernel_production_day_id;
+                            return (dataFunctions.getKernelProductionStagesByDay && dayId) ? dataFunctions.getKernelProductionStagesByDay(dayId) : Promise.resolve(null);
                         });
-                    }
-                    if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Batch production marked as finished.', 'success');
+                        return Promise.all(stagePromises).then(function (allStages) {
+                            var payload = scope.buildJobCardPayloadFromBatchAndStages(batchId, batch, allStages);
+                            if (payload && payload.p_batch_number && dataFunctions.createKernelJobCard) {
+                                return dataFunctions.createKernelJobCard(payload).then(function () { return true; }).catch(function (err) {
+                                    console.warn('[Kernel Production] Job card create on finish:', err);
+                                    return false;
+                                });
+                            }
+                            return null;
+                        });
+                    });
+                }).then(function () {
+                    if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Batch production marked as finished. Status: Awaiting test.', 'success');
                     var modalEl = document.getElementById('productionStagesModal');
                     if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                    else $('#productionStagesModal').modal('hide');
+                    else if (typeof $ !== 'undefined') $('#productionStagesModal').modal('hide');
                     if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
-                } else {
-                    throw new Error(result && result.error ? result.error : 'Failed to finish');
-                }
+                });
             }).catch(function (e) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to finish batch production', 'error');
             });
@@ -588,7 +715,7 @@ var _modal_production_stages = function () {
             var packing_data = scope.getProductionStagesSectionData('pack');
             var summary_data = deriveSummaryFromStages(cracking_data, washing_data, sorting_data, packing_data);
             var stagesPayload = { cracking_data: cracking_data, washing_data: washing_data, sorting_data: sorting_data, packing_data: packing_data };
-            var effectiveSaveDate = getStagesEffectiveDate(stagesPayload);
+            var effectiveSaveDate = getStagesLatestDate(stagesPayload) || getStagesEffectiveDate(stagesPayload);
 
             function doSave(targetDayId) {
                 var payload = {
