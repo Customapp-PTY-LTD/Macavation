@@ -395,9 +395,9 @@ h1, h2, h3, h4, h5, h6,
     left: 0;
     z-index: 101;
     padding: 0;
-    background-color: var(--theme-sidebar-bg);
-    border-right: none;
-    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.25);
+    background-color: transparent;
+    border-right: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: none;
     transition: all 0.3s ease;
     width: 300px;
     height: calc(100vh - 70px);

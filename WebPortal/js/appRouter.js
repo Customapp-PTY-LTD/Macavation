@@ -714,18 +714,22 @@ var _appRouter = function () {
         },
         loadBreadCrumbs: (containerElement) => {
 
-            const breadCrumbs = JSON.parse(sessionStorage.getItem('breadCrumbs'));
+            const breadCrumbsRaw = sessionStorage.getItem('breadCrumbs');
+            const breadCrumbs = breadCrumbsRaw ? JSON.parse(breadCrumbsRaw) : [];
+
+            const routeParamsRaw = sessionStorage.getItem('routeParams');
+            const routeParamsStore = routeParamsRaw ? JSON.parse(routeParamsRaw) : {};
 
             const breadCrumbsHtml = breadCrumbs.map((routeName, i) => {
 
-
                 const routeConfig = _appRouter.routeConfig[routeName];
+                if (!routeConfig) return '';
 
                 const isLast = breadCrumbs.length === (i + 1);
 
                 let itemLabel = routeConfig.description || routeName;
 
-                const itemParams = JSON.parse(sessionStorage.routeParams)[routeName];
+                const itemParams = routeParamsStore[routeName];
 
                 if (itemParams) {
                     for (let key in itemParams) {

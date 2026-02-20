@@ -1,5 +1,14 @@
 /* Kernel Production Grid Module Styles */
 .module-content { min-height: 400px; }
+
+/* Status filter dropdown – green border */
+#filterBatchStatus.form-select {
+    border-color: var(--forest-deep, #008950);
+}
+#filterBatchStatus.form-select:focus {
+    border-color: var(--forest-deep, #008950);
+    box-shadow: 0 0 0 0.2rem rgba(0, 137, 80, 0.25);
+}
 #batchesTable th { border-top: none; font-weight: 600; }
 #batchesTable tbody tr.js-batch-row { cursor: pointer; }
 
@@ -31,14 +40,14 @@
     align-items: center;
     justify-content: center;
     border-radius: 0.25rem;
-    background-color: #5c636a;
-    border: 1px solid #495057;
-    color: #fff;
+    background-color: transparent;
+    border: 2px solid var(--forest-deep, #008950);
+    color: var(--forest-deep, #008950);
 }
 #batchesTable td:last-child .dropdown .btn:hover,
 #batchesTable td:last-child .dropdown .btn.show {
-    background-color: #495057;
-    border-color: #343a40;
+    background-color: var(--forest-deep, #008950);
+    border-color: var(--forest-deep, #008950);
     color: #fff;
 }
 #batchesTable td:last-child .dropdown .btn i {

@@ -172,10 +172,10 @@ body {
 }
 
 .sidebar {
-    background: #ffffff !important;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-right: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
+    background: transparent !important;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-right: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: none;
 }
 
 @media (min-width: 768px) {
@@ -183,9 +183,9 @@ body {
         left: 1rem !important;
         top: calc(70px + 1rem) !important;
         height: calc(100vh - 70px - 2rem) !important;
-        border: 1px solid rgba(0, 0, 0, 0.08) !important;
+        border: 1px solid rgba(0, 0, 0, 0.15) !important;
         border-radius: 5px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        box-shadow: none;
     }
 
     #sidebarMenu.sidebar::before {
@@ -214,6 +214,11 @@ body {
 .sidebar .nav-link.active {
     background: var(--forest-light-bg) !important;
     color: var(--forest-deep) !important;
+}
+
+.sidebar .nav-link.active::before,
+.sidebar .collapse .nav-link.active::before {
+    background-color: var(--forest-deep) !important;
 }
 
 .sidebar .collapse .nav-link {
@@ -389,14 +394,28 @@ h6 {
     background: #008950;
 }
 
+/* Outline buttons – green border (app-wide) */
+.btn-outline-primary {
+    border: 2px solid var(--forest-deep);
+    color: var(--forest-deep);
+    border-radius: 5px;
+}
+
+.btn-outline-primary:hover {
+    background: var(--forest-deep);
+    border-color: var(--forest-deep);
+    color: white;
+}
+
 .btn-outline-secondary {
-    border: 2px solid var(--macadamia-shell);
-    color: var(--macadamia-shell);
+    border: 2px solid var(--forest-deep);
+    color: var(--forest-deep);
     border-radius: 5px;
 }
 
 .btn-outline-secondary:hover {
-    background: var(--macadamia-shell);
+    background: var(--forest-deep);
+    border-color: var(--forest-deep);
     color: white;
 }
 
