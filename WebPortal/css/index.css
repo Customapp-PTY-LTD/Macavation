@@ -198,8 +198,10 @@ body {
     }
 }
 
+/* Side nav: Bootstrap Phoenix text colour and font */
 .sidebar .nav-link {
-    color: #2c2c2c !important;
+    color: #31374a !important;
+    font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
     font-weight: 500 !important;
     border-radius: 5px;
     margin: 2px 8px;
@@ -207,46 +209,47 @@ body {
 }
 
 .sidebar .nav-link:hover {
-    background: var(--forest-light-bg) !important;
-    color: var(--forest-deep) !important;
+    background: #eff2f6 !important;
+    color: #222834 !important;
 }
 
 .sidebar .nav-link.active {
-    background: var(--forest-light-bg) !important;
-    color: var(--forest-deep) !important;
+    background: rgba(56, 116, 255, 0.1) !important;
+    color: #3874ff !important;
 }
 
 .sidebar .nav-link.active::before,
 .sidebar .collapse .nav-link.active::before {
-    background-color: var(--forest-deep) !important;
+    background-color: #3874ff !important;
 }
 
 .sidebar .collapse .nav-link {
     padding-left: 1rem;
     font-size: 0.9rem;
-    color: #2c2c2c !important;
+    color: #31374a !important;
+    font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
     font-weight: 500 !important;
 }
 
 .sidebar .collapse .nav-link:hover {
-    color: var(--forest-deep) !important;
+    color: #222834 !important;
 }
 
-/* User Management: same as other side nav items (no constant background) */
+/* User Management: same as other side nav items (Phoenix styling) */
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link {
     font-weight: 500 !important;
-    color: #2c2c2c !important;
+    color: #31374a !important;
     background-color: transparent !important;
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link:hover {
-    background: var(--forest-light-bg) !important;
-    color: var(--forest-deep) !important;
+    background: #eff2f6 !important;
+    color: #222834 !important;
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link[aria-expanded="true"] {
-    background: var(--forest-light-bg) !important;
-    color: var(--forest-deep) !important;
+    background: #eff2f6 !important;
+    color: #222834 !important;
 }
 
 .sidebar-footer {
@@ -254,12 +257,13 @@ body {
 }
 
 .sidebar-footer .btn-link {
-    color: #666 !important;
+    color: #525b75 !important;
+    font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
 }
 
 .sidebar-footer .btn-link:hover {
-    color: var(--forest-deep) !important;
-    background: var(--forest-light-bg) !important;
+    color: #222834 !important;
+    background: #eff2f6 !important;
 }
 
 /* Side nav scrollbar: left-aligned, only visible on hover (space reserved so buttons don't shift) */

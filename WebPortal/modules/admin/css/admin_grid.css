@@ -8,8 +8,30 @@
     transition: color 0.3s ease;
 }
 
-/* Summary Cards */
-.card {
+/* Summary Cards – transparent with border (top four only) */
+.admin-summary-cards .card {
+    background-color: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: var(--phoenix-border-radius);
+    box-shadow: none;
+}
+
+.admin-summary-cards .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.admin-summary-cards .card .fs-1 {
+    font-size: 3rem !important;
+}
+
+.admin-summary-cards .admin-card-caption,
+.module-content .admin-card-caption {
+    color: #212529 !important;
+}
+
+/* Other cards in admin (tables, sidebars) keep solid background */
+.module-content .card {
     border-radius: var(--phoenix-border-radius);
     box-shadow: var(--phoenix-box-shadow);
     transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
@@ -17,11 +39,12 @@
     border-color: var(--phoenix-border-color);
 }
 
-.card:hover {
+.module-content .card:hover {
     transform: translateY(-2px);
     box-shadow: var(--phoenix-box-shadow-lg);
 }
 
+/* Summary cards override (transparent + border) comes first so it wins for .admin-summary-cards */
 .card .fs-1 {
     font-size: 3rem !important;
 }
@@ -32,7 +55,7 @@
 }
 
 .nav-tabs .nav-link {
-    color: var(--phoenix-secondary);
+    color: #212529;
     font-weight: 500;
     border: none;
     border-bottom: 3px solid transparent;
@@ -43,7 +66,7 @@
 .nav-tabs .nav-link:hover {
     color: var(--phoenix-primary);
     border-color: transparent;
-    background-color: var(--phoenix-light);
+    background-color: rgba(0, 0, 0, 0.04);
 }
 
 .nav-tabs .nav-link.active {
@@ -64,9 +87,11 @@
     transition: width 0.6s ease, background-color 0.3s ease;
 }
 
-/* Tables – sharp corners */
-.table-responsive {
-    border-radius: 0;
+/* Tables – match UI design instructions (kernel-production pattern) */
+#adminUsersTable th,
+#adminRolesTable th {
+    border-top: none;
+    font-weight: 600;
 }
 
 .table thead th {
@@ -94,37 +119,61 @@
     color: var(--phoenix-text-color);
 }
 
-/* Clickable rows – Admin tables */
+/* Clickable rows – Admin tables (UI design instructions) */
 #adminUsersTable tbody tr.js-admin-user-row,
 #adminRolesTable tbody tr.js-admin-role-row {
     cursor: pointer;
 }
 
-#adminUsersTable tbody tr.js-admin-user-row td:first-child,
-#adminRolesTable tbody tr.js-admin-role-row td:first-child {
-    color: var(--phoenix-primary);
+#adminUsersTable .js-admin-user-row td:first-child,
+#adminRolesTable .js-admin-role-row td:first-child {
+    color: var(--forest-deep, #008950);
+    font-weight: 500;
 }
 
-#adminUsersTable tbody tr.js-admin-user-row:hover td:first-child,
-#adminRolesTable tbody tr.js-admin-role-row:hover td:first-child {
+#adminUsersTable .js-admin-user-row:hover td:first-child,
+#adminRolesTable .js-admin-role-row:hover td:first-child {
     text-decoration: underline;
 }
 
-#adminUsersTable tbody tr.js-admin-user-row td:last-child,
-#adminRolesTable tbody tr.js-admin-role-row td:last-child {
+#adminUsersTable td:last-child,
+#adminRolesTable td:last-child {
     text-align: center;
     white-space: nowrap;
 }
 
-#adminUsersTable .dropdown-toggle,
-#adminRolesTable .dropdown-toggle {
+#adminUsersTable td:last-child .dropdown,
+#adminRolesTable td:last-child .dropdown {
+    display: inline-block;
+}
+
+#adminUsersTable td:last-child .dropdown .btn,
+#adminRolesTable td:last-child .dropdown .btn {
     width: 2rem;
     height: 2rem;
+    min-width: 2rem;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0;
+    background-color: transparent;
+    border: 2px solid var(--forest-deep, #008950);
+    color: var(--forest-deep, #008950);
+}
+
+#adminUsersTable td:last-child .dropdown .btn:hover,
+#adminUsersTable td:last-child .dropdown .btn.show,
+#adminRolesTable td:last-child .dropdown .btn:hover,
+#adminRolesTable td:last-child .dropdown .btn.show {
+    background-color: var(--forest-deep, #008950);
+    border-color: var(--forest-deep, #008950);
+    color: #fff;
+}
+
+#adminUsersTable td:last-child .dropdown .btn i,
+#adminRolesTable td:last-child .dropdown .btn i {
+    color: inherit;
 }
 
 /* Badges */
@@ -160,7 +209,7 @@
 .btn-sm {
     padding: 0.4rem 0.75rem;
     font-size: 0.875rem;
-    border-radius: 6px;
+    border-radius: var(--phoenix-border-radius);
     font-weight: 600;
     min-width: 36px;
     transition: all 0.3s ease;
@@ -205,7 +254,7 @@
 .form-control,
 .form-select {
     border: 1px solid var(--phoenix-border-color);
-    border-radius: 6px;
+    border-radius: var(--phoenix-border-radius);
     padding: 0.5rem 0.75rem;
     background-color: var(--phoenix-card-bg);
     color: var(--phoenix-text-color);
@@ -250,6 +299,23 @@
 /* Empty States */
 .text-muted {
     color: var(--phoenix-secondary) !important;
+}
+
+/* Admin module: light grey text -> black (summary cards, tabs, Role Definitions, etc.) */
+.module-content .text-muted,
+.module-content .card-body small,
+.module-content .card-body .d-flex small,
+.module-content #roleDefinitionsContainer .text-muted,
+.module-content #roleDefinitionsContainer small,
+.module-content #userStatisticsContainer .text-muted,
+.module-content #userStatisticsContainer small,
+.module-content #permissionCategoriesContainer .text-muted,
+.module-content #permissionCategoriesContainer small {
+    color: #212529 !important;
+}
+
+.admin-summary-cards .card-body h6 {
+    color: #212529;
 }
 
 /* Responsive Adjustments */
