@@ -49,7 +49,6 @@ var _dashboard = function () {
                 scope.loadQuickActions();
                 scope.loadAlerts();
                 scope.loadStats();
-                scope.loadModules();
                 scope.loadRecentActivity();
                 if ($('#upcomingTasksList').length) await scope.loadUpcomingTasks();
             } catch (error) {
@@ -74,10 +73,6 @@ var _dashboard = function () {
                 e.preventDefault();
                 const $btn = $(this);
                 scope.handleQuickAction($btn.data('dashboard-route'), $btn.data('dashboard-action'));
-            });
-            $(document).on('click', '[data-dashboard-module-route]', function (e) {
-                e.preventDefault();
-                scope.navigateToModule($(this).data('dashboard-module-route'));
             });
         },
 
@@ -406,98 +401,6 @@ var _dashboard = function () {
             }
         },
 
-        loadModules: () => {
-            const $container = $('#modulesContainer');
-            if (!$container.length) return;
-            const modules = [
-        {
-            icon: 'bi-person-fill',
-            title: 'CRM',
-            description: 'Customer and supplier relationship management',
-            route: 'crm-grid'
-        },
-        {
-            icon: 'bi-truck',
-            title: 'Grower Intake',
-            description: 'Sample submissions and raw material intake',
-            route: 'grower-intake-grid'
-        },
-        {
-            icon: 'bi-box-seam',
-            title: 'Kernel Production',
-            description: '17-step kernel production workflow',
-            route: 'kernel-production-grid'
-        },
-        {
-            icon: 'bi-clipboard-check',
-            title: 'Quality Assurance',
-            description: 'Quality testing and food safety',
-            route: 'quality-assurance-grid'
-        },
-        {
-            icon: 'bi-archive',
-            title: 'Stock Management',
-            description: 'Inventory tracking and stock movements',
-            route: 'stock-management-grid'
-        },
-        {
-            icon: 'bi-graph-up',
-            title: 'Sales Forecasting',
-            description: 'Sales pipeline and forecasting',
-            route: 'sales-forecasting-grid'
-        },
-        {
-            icon: 'bi-droplet-fill',
-            title: 'Oil Production',
-            description: '11-step oil production workflow',
-            route: 'oil-production-grid'
-        },
-        {
-            icon: 'bi-cash-stack',
-            title: 'Financial Management',
-            description: 'Financial transactions and accounting',
-            route: 'financial-management-grid'
-        },
-        {
-            icon: 'bi-file-earmark-text',
-            title: 'Document Management',
-            description: 'Document storage and organization',
-            route: 'document-management-grid'
-        },
-        {
-            icon: 'bi-speedometer2',
-            title: 'Amanda Dashboard',
-            description: 'Material journey tracking dashboard',
-            route: 'amanda-dashboard'
-        },
-        {
-            icon: 'bi-bar-chart',
-            title: 'Executive Dashboard',
-            description: 'Executive reporting and KPIs',
-            route: 'executive-dashboard'
-        },
-        {
-            icon: 'bi-box-arrow-right',
-            title: 'Palladium Integration',
-            description: 'ERP integration and synchronization',
-            route: 'palladium-integration-grid'
-        }
-    ];
-    
-            $container.html(modules.map(module => `
-                <div class="col-lg-3 col-md-6">
-                    <div class="card module-card" data-dashboard-module-route="${module.route}">
-                        <div class="card-body text-center">
-                            <i class="bi ${module.icon} module-icon"></i>
-                            <h5 class="card-title mt-3 fw-bold">${module.title}</h5>
-                            <p class="card-text text-muted">${module.description}</p>
-                            <button class="btn btn-dashboard">Open Module</button>
-                        </div>
-                    </div>
-                </div>
-            `).join(''));
-        },
-
         loadRecentActivity: async () => {
             const scope = _dashboard;
             const $container = $('#recentActivityList');
@@ -612,31 +515,6 @@ var _dashboard = function () {
             }
         },
 
-        navigateToModule: (routeName) => {
-            if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
-                _appRouter.routeTo(routeName);
-            } else if (typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
-                _appRouter.loadContent({
-                    routeName: routeName,
-                    elementSelector: _appRouter.contentContainer || '#content-area'
-                }).then(() => {
-                    $(window).scrollTop(0);
-                    if (typeof sessionStorage !== 'undefined') {
-                        sessionStorage.setItem('lastActivePage', routeName);
-                        localStorage.setItem('lastActivePage', routeName);
-                    }
-                }).catch((error) => console.error('Navigation error:', error));
-            } else if (typeof window.appRouter !== 'undefined' && window.appRouter.loadContent) {
-                window.appRouter.loadContent({
-                    routeName: routeName,
-                    elementSelector: window.appRouter.contentContainer || '#content-area'
-                });
-            } else {
-                console.error('AppRouter not available. Route:', routeName);
-                if (window.location) window.location.hash = '#' + routeName;
-            }
-        },
-
         showErrorMessage: (message) => {
             if (typeof _common !== 'undefined' && _common.showErrorToast) {
                 _common.showErrorToast(message);
@@ -650,5 +528,10 @@ var _dashboard = function () {
     };
 }();
 
-_dashboard.init();
+// Expose for app router: initializeModule('dashboard') calls this when loading dashboard (first load or nav from sidenav).
+window.initializeDashboard = function () {
+    if (typeof _dashboard !== 'undefined' && _dashboard.init) {
+        _dashboard.init();
+    }
+};
 

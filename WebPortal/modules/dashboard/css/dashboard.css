@@ -85,50 +85,6 @@
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Module Cards */
-.module-card {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid var(--phoenix-border-color);
-    border-radius: var(--phoenix-border-radius);
-    height: 100%;
-    background-color: var(--phoenix-card-bg);
-}
-
-.module-card:hover {
-    border-color: var(--phoenix-primary);
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(var(--phoenix-primary-rgb), 0.15);
-}
-
-.module-icon {
-    font-size: 3.5rem;
-    color: var(--phoenix-primary);
-    transition: transform 0.3s ease, color 0.3s ease;
-}
-
-.module-card:hover .module-icon {
-    transform: scale(1.1);
-    color: var(--theme-sidebar-active);
-}
-
-.module-card .card-title {
-    color: var(--phoenix-primary);
-    font-size: 1.15rem;
-    transition: color 0.3s ease;
-}
-
-.module-card .card-text {
-    font-size: 0.9rem;
-    color: var(--phoenix-secondary);
-    transition: color 0.3s ease;
-}
-
-.module-card .card-body {
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
-}
-
 /* Buttons */
 .btn-dashboard {
     background: var(--theme-navbar-gradient);
@@ -345,10 +301,6 @@
 @media (max-width: 768px) {
     .stat-value {
         font-size: 2rem;
-    }
-    
-    .module-icon {
-        font-size: 2.5rem;
     }
     
     .dashboard-container {
