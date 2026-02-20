@@ -139,7 +139,6 @@ var _modal_grower_receiving_checklist = (function () {
             tbody.find('tr:not(:first)').remove();
             var firstRow = tbody.find('tr:first');
             firstRow.find('select[name="growerDescription"]').val('');
-            firstRow.find('input[name="growerCartonBags"]').val('1');
             firstRow.find('input[name="growerQuantity"]').val('');
             firstRow.find('input[name="growerManufacturedDate"]').val('');
 
@@ -147,7 +146,6 @@ var _modal_grower_receiving_checklist = (function () {
                 items.forEach(function (it, i) {
                     if (i === 0) {
                         firstRow.find('select[name="growerDescription"]').val(it.description || '');
-                        firstRow.find('input[name="growerCartonBags"]').val(it.carton_bags != null ? it.carton_bags : 1);
                         firstRow.find('input[name="growerQuantity"]').val(it.quantity_kg != null ? it.quantity_kg : '');
                         firstRow.find('input[name="growerManufacturedDate"]').val(fromISO(it.manufactured_date || ''));
                         var titleText = it.description === 'NIS' ? 'Harvested Date' : it.description === 'Kernel' ? 'Manufactured Date' : 'Manufactured Date or Harvested Date';
@@ -171,7 +169,6 @@ var _modal_grower_receiving_checklist = (function () {
             $('#growerReceivedItemsTableBody tr:not(:first)').remove();
             $('#growerReceivedItemsTableBody tr:first select[name="growerDescription"]').val('');
             $('#growerReceivedItemsTableBody tr:first input').val('');
-            $('#growerReceivedItemsTableBody tr:first input[name="growerCartonBags"]').val('1');
         },
 
         addReceivedItemRow: () => {
@@ -245,7 +242,7 @@ var _modal_grower_receiving_checklist = (function () {
             var descSelected = description === 'NIS' ? ' selected' : '';
             var kernelSelected = description === 'Kernel' ? ' selected' : '';
             var titleText = description === 'NIS' ? 'Harvested Date' : description === 'Kernel' ? 'Manufactured Date' : 'Manufactured Date or Harvested Date';
-            var newRow = '<tr><td class="align-middle"><select class="form-select form-select-sm" name="growerDescription"><option value="">Select</option><option value="NIS"' + descSelected + '>NIS</option><option value="Kernel"' + kernelSelected + '>Kernel</option></select></td><td class="align-middle"><input type="number" class="form-control form-control-sm" name="growerCartonBags" value="1"></td><td class="align-middle"><input type="number" class="form-control form-control-sm" name="growerQuantity" step="0.01" value="' + (quantityKg ? String(quantityKg).replace(/"/g, '&quot;') : '') + '"></td><td class="align-middle"><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate" placeholder="' + todayPlaceholder + '" value="' + (dateStr ? String(dateStr).replace(/"/g, '&quot;') : '') + '" title="' + titleText.replace(/"/g, '&quot;') + '"></td><td class="align-middle"><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td></tr>';
+            var newRow = '<tr><td class="align-middle"><select class="form-select form-select-sm" name="growerDescription"><option value="">Select</option><option value="NIS"' + descSelected + '>NIS</option><option value="Kernel"' + kernelSelected + '>Kernel</option></select></td><td class="align-middle"><input type="number" class="form-control form-control-sm" name="growerQuantity" step="0.01" value="' + (quantityKg ? String(quantityKg).replace(/"/g, '&quot;') : '') + '"></td><td class="align-middle"><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate" placeholder="' + todayPlaceholder + '" value="' + (dateStr ? String(dateStr).replace(/"/g, '&quot;') : '') + '" title="' + titleText.replace(/"/g, '&quot;') + '"></td><td class="align-middle"><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td></tr>';
             var $row = $(newRow).appendTo('#growerReceivedItemsTableBody');
             $row.find('.flatpickr-date').each(function () {
                 if (typeof flatpickr !== 'undefined' && !this._flatpickr) flatpickr(this, FLATPICKR_DDMMYYYY);
@@ -281,7 +278,6 @@ var _modal_grower_receiving_checklist = (function () {
                     if (desc || qty) {
                         receivedItems.push({
                             description: desc || null,
-                            carton_bags: $row.find('input[name="growerCartonBags"]').val() ? parseInt($row.find('input[name="growerCartonBags"]').val(), 10) : null,
                             quantity_kg: qty ? parseFloat(qty) : null,
                             manufactured_date: toISO($row.find('input[name="growerManufacturedDate"]').val()) || null
                         });

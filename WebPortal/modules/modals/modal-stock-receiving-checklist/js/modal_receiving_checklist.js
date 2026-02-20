@@ -52,7 +52,6 @@ var _modal_stock_receiving_checklist = (function () {
             $('#receivingId').val('');
             $('#receivedItemsTableBody tr:not(:first)').remove();
             $('#receivedItemsTableBody tr:first input').val('');
-            $('#receivedItemsTableBody tr:first input[name="cartonBags"]').val('1');
         },
 
         addReceivedItemRow: function () {
@@ -61,7 +60,6 @@ var _modal_stock_receiving_checklist = (function () {
                 '<td><input type="text" class="form-control form-control-sm" name="reference"></td>' +
                 '<td><input type="text" class="form-control form-control-sm" name="description"></td>' +
                 '<td><input type="text" class="form-control form-control-sm" name="batch"></td>' +
-                '<td><input type="number" class="form-control form-control-sm" name="cartonBags" value="1"></td>' +
                 '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01"></td>' +
                 '<td><input type="date" class="form-control form-control-sm" name="manufacturedDate"></td>' +
                 '<td><input type="date" class="form-control form-control-sm" name="bestBeforeDate"></td>' +
@@ -86,7 +84,6 @@ var _modal_stock_receiving_checklist = (function () {
                         var reference = $(this).find('input[name="reference"]').val();
                         var description = $(this).find('input[name="description"]').val();
                         var batch = $(this).find('input[name="batch"]').val();
-                        var cartonBags = $(this).find('input[name="cartonBags"]').val();
                         var quantity = $(this).find('input[name="quantity"]').val();
                         var manufacturedDate = $(this).find('input[name="manufacturedDate"]').val();
                         var bestBeforeDate = $(this).find('input[name="bestBeforeDate"]').val();
@@ -95,7 +92,6 @@ var _modal_stock_receiving_checklist = (function () {
                                 reference: reference || null,
                                 description: description || null,
                                 batch: batch || null,
-                                carton_bags: cartonBags ? parseInt(cartonBags, 10) : null,
                                 quantity_kg: quantity ? parseFloat(quantity) : null,
                                 manufactured_date: manufacturedDate || null,
                                 best_before_date: bestBeforeDate || null
