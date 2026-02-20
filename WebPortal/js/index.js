@@ -106,6 +106,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 systemAdminItem.insertAdjacentElement('beforebegin', userManagementItem);
             }
         }
+
+        var myDayDropdownNav = document.getElementById('myDayDropdownNav');
+        if (myDayDropdownNav && typeof workflowViews !== 'undefined') {
+            myDayDropdownNav.addEventListener('shown.bs.dropdown', function () {
+                var body = document.getElementById('myDayDropdownBody');
+                if (!body) return;
+                workflowViews.getMyDayData().then(function (data) {
+                    body.innerHTML = workflowViews.renderMyDayDropdownSummary(data);
+                }).catch(function () {
+                    body.innerHTML = '<p class="text-muted small mb-0">Unable to load summary.</p>';
+                });
+            });
+        }
+        var myDayViewFullLink = document.getElementById('myDayViewFullLink');
+        if (myDayViewFullLink) {
+            myDayViewFullLink.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
+                    _appRouter.routeTo('my-day');
+                }
+                var menu = document.getElementById('myDayDropdownMenu');
+                if (menu && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                    var toggle = document.getElementById('myDayDropdownToggle');
+                    if (toggle) { var inst = bootstrap.Dropdown.getInstance(toggle); if (inst) inst.hide(); }
+                }
+            });
+        }
     } catch (err) {
         console.error('[Index init] Sidebar/display init error:', err);
     }

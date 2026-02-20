@@ -88,6 +88,26 @@ body {
     margin-right: 0.75rem;
 }
 
+/* My Day header dropdown – icon only, no caret; card-style panel */
+#myDayDropdownToggle.dropdown-toggle::after {
+    display: none;
+}
+
+.my-day-dropdown-card {
+    padding: 0;
+    border-radius: 8px !important;
+    max-height: 85vh;
+}
+
+.my-day-dropdown-card .dropdown-body {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.my-day-summary .recent-activity-summary div {
+    font-size: 0.8rem;
+}
+
 /* User dropdown card – bigger, consistent radius */
 .user-dropdown-card {
     min-width: 320px;

@@ -88,7 +88,32 @@
                     <!-- Navigation items can be added here if needed -->
                 </ul>
 
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item dropdown me-2" id="myDayDropdownNav">
+                        <a class="nav-link d-flex align-items-center p-2 rounded" href="#" role="button" id="myDayDropdownToggle"
+                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="My Day">
+                            <i class="fas fa-calendar-day fa-lg text-primary" title="My Day"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end shadow border-0 my-day-dropdown-card" id="myDayDropdownMenu" style="min-width: 320px; max-width: 380px;">
+                            <div class="px-3 pt-3 pb-2 border-bottom">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-calendar-day fa-2x text-primary me-3"></i>
+                                    <div>
+                                        <h6 class="mb-0 fw-bold">My Day</h6>
+                                        <small class="text-muted">Your day at a glance</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-body p-3" id="myDayDropdownBody">
+                                <div class="text-center text-muted py-3 small">Loading…</div>
+                            </div>
+                            <div class="dropdown-footer px-3 py-2 border-top bg-light">
+                                <a class="btn btn-outline-primary btn-sm w-100" href="#" id="myDayViewFullLink" route="my-day">
+                                    <i class="fas fa-external-link-alt me-1"></i>View full My Day
+                                </a>
+                            </div>
+                        </div>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle user-dropdown-toggle d-flex align-items-center p-0" href="#" role="button"
                             data-bs-toggle="dropdown" aria-label="User menu">
@@ -153,11 +178,6 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="#" route="dashboard" title="Dashboard">
                                     <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" route="my-day" title="My Day">
-                                    <i class="fas fa-calendar-day me-2"></i>My Day
                                 </a>
                             </li>
                             <li class="nav-item">

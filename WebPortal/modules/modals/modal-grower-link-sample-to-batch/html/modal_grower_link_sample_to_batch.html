@@ -1,19 +1,51 @@
-<div class="modal-dialog modal-dialog-centered">
+<div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
         <div class="modal-header">
             <h5 class="modal-title" id="linkSampleToBatchModalLabel">New sample submission</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            <p class="text-muted small mb-3">Link an existing sample submission to this batch. You can create samples in the table above first.</p>
-            <label for="linkSampleToBatchSelect" class="form-label">Sample</label>
-            <select class="form-select" id="linkSampleToBatchSelect">
-                <option value="">Select a sample to link…</option>
-            </select>
+            <p class="text-muted small mb-3">Complete the receiving details for this batch sample (1 x kernel sample in ziplock bag).</p>
+            <div class="border rounded p-2 mb-3 bg-light">
+                <strong>RECEIVING</strong><br>
+                <span class="small">1 x kernel sample in ziplock bag</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-center" style="width: 120px;">Required (please tick)</th>
+                            <th style="width: 140px;">Result</th>
+                            <th class="text-center" style="width: 100px;">UOM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Moisture</td>
+                            <td class="text-center"><input type="checkbox" class="form-check-input" id="sampleMoistureRequired" value="1"></td>
+                            <td><input type="number" class="form-control form-control-sm" id="sampleMoistureResult" step="0.01" placeholder=""></td>
+                            <td class="text-center">%</td>
+                        </tr>
+                        <tr>
+                            <td>Peroxide Value</td>
+                            <td class="text-center"><input type="checkbox" class="form-check-input" id="samplePeroxideRequired" value="1"></td>
+                            <td><input type="number" class="form-control form-control-sm" id="samplePeroxideResult" step="0.01" placeholder=""></td>
+                            <td class="text-center">meqO₂/kg</td>
+                        </tr>
+                        <tr>
+                            <td>Free Fatty Acids</td>
+                            <td class="text-center"><input type="checkbox" class="form-check-input" id="sampleFfaRequired" value="1"></td>
+                            <td><input type="number" class="form-control form-control-sm" id="sampleFfaResult" step="0.01" placeholder=""></td>
+                            <td class="text-center">%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="linkSampleToBatchBtn"><i class="fas fa-link me-1"></i>Link to batch</button>
+            <button type="button" class="btn btn-primary" id="linkSampleToBatchBtn"><i class="fas fa-save me-1"></i>Save sample</button>
         </div>
     </div>
 </div>
