@@ -7,6 +7,9 @@ var _modal_kernel_job_card = function () {
     return {
         init: () => {
             const scope = _modal_kernel_job_card;
+
+            _appRouter.loadBreadCrumbs('#breadcrumb-container');
+
             $('#saveJobCardBtn').off('click').on('click', function (e) {
                 e.preventDefault();
                 scope.saveJobCard();

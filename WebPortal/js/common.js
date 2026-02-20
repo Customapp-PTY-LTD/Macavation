@@ -337,6 +337,50 @@ var _common = {
     },
 
     /**
+     * Upload a file to S3 via the fileupload API (FormData).
+     * See S3-UPLOAD-GUIDE.md for API contract.
+     * @param {Object} params
+     * @param {File} params.file - File object to upload
+     * @param {string} [params.resourceFolder='EFS Assist/PreInspections/'] - S3 resource folder
+     * @param {string} [params.fileId] - Filename / identifier (defaults to file.name)
+     * @returns {Promise<{Success: boolean, LastErrorDescription: string, Data: object}>}
+     */
+    uploadFile: async function (params) {
+        const file = params && params.file;
+        const resourceFolder = (params && params.resourceFolder) || 'Macavation';
+        const fileId = (params && params.fileId) || (file && file.name) || 'upload';
+        const FILE_UPLOAD_URL = 'https://yzz5sh6s74.execute-api.af-south-1.amazonaws.com/v1/fileupload';
+
+        if (!file || !(file instanceof File)) {
+            return { Success: false, LastErrorDescription: 'No file provided', Data: [] };
+        }
+
+        const formdata = new FormData();
+        formdata.append('files', file);
+        formdata.append('resourceFolder', resourceFolder);
+        formdata.append('fileId', fileId);
+        formdata.append('fileSize', String(file.size));
+        formdata.append('chunkCount', '1');
+        formdata.append('chunkIndex', '0');
+
+        try {
+            const response = await fetch(FILE_UPLOAD_URL, {
+                method: 'POST',
+                body: formdata,
+                redirect: 'follow'
+            });
+            const text = await response.text();
+            const result = JSON.parse(text);
+            if (result.error) {
+                return { Success: false, LastErrorDescription: result.error, Data: [] };
+            }
+            return { Success: true, LastErrorDescription: '', Data: result };
+        } catch (err) {
+            return { Success: false, LastErrorDescription: err && err.message ? err.message : 'Upload failed', Data: [] };
+        }
+    },
+
+    /**
      * Force-close any stuck Bootstrap modals/backdrops and restore page scroll.
      * This is a safety hatch for cases where a modal fails to close cleanly and leaves the UI "dark".
      */
