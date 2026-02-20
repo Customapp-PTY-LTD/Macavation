@@ -427,6 +427,46 @@ var _workflowViews = function () {
         },
 
         /**
+         * Render My Day summary for the header dropdown (at-a-glance).
+         */
+        renderMyDayDropdownSummary: function (data) {
+            if (!data) return '<p class="text-muted small mb-0">Unable to load. <a href="#" route="my-day">Open My Day</a></p>';
+            var role = data.role || '';
+            var tasks = data.tasks || [];
+            var dueItems = data.dueItems || [];
+            var watching = data.watching || [];
+            var recentActivity = data.recentActivity || [];
+            var taskCount = Array.isArray(tasks) ? tasks.length : 0;
+            var dueCount = Array.isArray(dueItems) ? dueItems.length : 0;
+            var watchCount = Array.isArray(watching) ? watching.length : 0;
+            var recent = Array.isArray(recentActivity) ? recentActivity.slice(0, 3) : [];
+            var lines = [];
+            lines.push('<div class="my-day-summary mb-2">');
+            if (role) lines.push('<span class="badge bg-primary mb-2">' + (role.replace(/_/g, ' ')) + '</span>');
+            lines.push('<div class="d-flex flex-wrap gap-2 small mb-2">');
+            lines.push('<span class="text-muted"><i class="fas fa-list-check me-1"></i>' + taskCount + ' tasks</span>');
+            lines.push('<span class="text-muted"><i class="fas fa-calendar-check me-1"></i>' + dueCount + ' due</span>');
+            lines.push('<span class="text-muted"><i class="fas fa-eye me-1"></i>' + watchCount + ' watching</span>');
+            lines.push('</div>');
+            if (recent.length > 0) {
+                lines.push('<div class="recent-activity-summary small">');
+                lines.push('<div class="text-muted mb-1">Recent activity</div>');
+                recent.forEach(function (a) {
+                    var desc = (a.description || a.title || '').toString().slice(0, 50);
+                    if ((a.description || a.title || '').length > 50) desc += '…';
+                    var ts = a.activity_timestamp || a.timestamp;
+                    var timeStr = ts ? (function () { var d = new Date(ts); var n = (Date.now() - d) / 60000; if (n < 60) return Math.round(n) + 'm ago'; if (n < 1440) return Math.round(n / 60) + 'h ago'; return Math.round(n / 1440) + 'd ago'; })() : '';
+                    lines.push('<div class="d-flex justify-content-between align-items-start mb-1"><span class="me-2">' + desc + '</span><span class="text-muted">' + timeStr + '</span></div>');
+                });
+                lines.push('</div>');
+            } else {
+                lines.push('<p class="text-muted small mb-0">No recent activity.</p>');
+            }
+            lines.push('</div>');
+            return lines.join('');
+        },
+
+        /**
          * Get time of day greeting
          */
         getTimeOfDay: function () {

@@ -1207,6 +1207,13 @@ var _dataFunctions = function () {
             });
         },
 
+        createSampleSubmissionForBatch: async function (payload, token = null) {
+            const result = await this.callFunction('create_sample_submission_for_batch', payload, token, { useCache: false });
+            this.clearCachePattern('production_batches');
+            this.clearCachePattern('sample_submissions');
+            return result;
+        },
+
         /**
          * Get supplier intake batches (Oil & Protein). Used by Supplier Intake module.
          * @param {string} status - e.g. 'supplier_intake' to filter by status
