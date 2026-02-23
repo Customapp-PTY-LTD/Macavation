@@ -165,7 +165,7 @@ var _modal_stock_send_to_dispatch = (function () {
             if (footer2) footer2.style.display = 'none';
         },
 
-        showStep2: function (totalsByStyle, details) {
+        showStep2: function (details) {
             var step1 = document.getElementById('sendToDispatchStep1');
             var step2 = document.getElementById('sendToDispatchStep2');
             var footer1 = document.getElementById('sendToDispatchStep1Footer');
@@ -175,28 +175,36 @@ var _modal_stock_send_to_dispatch = (function () {
             if (footer1) footer1.style.display = 'none';
             if (footer2) footer2.style.display = '';
 
-            api._step2TotalsByStyle = totalsByStyle || {};
             api.clearInvalidHighlights();
             var d = details || api._pendingDetails || {};
-            var batchLabelEl = document.getElementById('sendToDispatchStep2BatchLabel');
             var buyerLabelEl = document.getElementById('sendToDispatchStep2BuyerLabel');
             var deliveryLabelEl = document.getElementById('sendToDispatchStep2DeliveryLabel');
-            if (batchLabelEl) batchLabelEl.textContent = d.batch_number || d.batch_id || '—';
             if (buyerLabelEl) buyerLabelEl.textContent = d.buyer_name || '—';
             if (deliveryLabelEl) deliveryLabelEl.textContent = (d.delivery_date ? deliveryDateFromISO(d.delivery_date) : '') || '—';
-            STYLE_KEYS.forEach(function (styleKey) {
-                var availableEl = document.querySelector('.dispatch-available[data-style-key="' + styleKey.replace(/"/g, '\\"') + '"]');
-                var inputEl = document.querySelector('.js-dispatch-qty[data-style-key="' + styleKey.replace(/"/g, '\\"') + '"]');
-                var available = totalsByStyle[styleKey] != null ? totalsByStyle[styleKey] : 0;
-                if (availableEl) {
-                    availableEl.textContent = available;
+
+            var scope = typeof _stockManagementGrid !== 'undefined' ? _stockManagementGrid : null;
+            var lines = (scope && scope.dispatchSelectedLines) ? scope.dispatchSelectedLines : [];
+            var reviewEl = document.getElementById('sendToDispatchStep2ReviewBody');
+            if (reviewEl) {
+                if (lines.length === 0) {
+                    reviewEl.innerHTML = '<p class="text-muted small mb-0">No boxes in basket yet. Close this and click quantity cells in the Kernel Stock by style table to add boxes, then open Send to Dispatch again.</p>';
+                } else {
+                    var batches = scope && scope.kernelFinishedBatches ? scope.kernelFinishedBatches : [];
+                    var batchMap = {};
+                    batches.forEach(function (b) { batchMap[b.id] = b; });
+                    var totalKg = 0;
+                    var html = '<table class="table table-sm table-bordered mb-0"><thead class="table-light"><tr><th>Batch</th><th>Style</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>';
+                    lines.forEach(function (line) {
+                        var batch = batchMap[line.production_batch_id || line.batch_id];
+                        var batchNum = batch ? batch.batch_number : (line.production_batch_id || line.batch_id);
+                        var qty = parseFloat(line.quantity_kg) || 0;
+                        totalKg += qty;
+                        html += '<tr><td>' + (batchNum || '—') + '</td><td>' + (line.style || '—') + '</td><td class="text-end">' + qty + '</td></tr>';
+                    });
+                    html += '</tbody></table><p class="small text-muted mt-2 mb-0">Total: ' + totalKg.toFixed(1) + ' kg</p>';
+                    reviewEl.innerHTML = html;
                 }
-                if (inputEl) {
-                    inputEl.value = '';
-                    inputEl.max = available;
-                    inputEl.placeholder = '0';
-                }
-            });
+            }
         },
 
         show: function (selectedBatch) {
@@ -276,25 +284,17 @@ var _modal_stock_send_to_dispatch = (function () {
             var details = {
                 buyer_name: buyerName,
                 buyer_contact_id: (buyerSelect && buyerSelect.value) ? buyerSelect.value : null,
-                delivery_date: deliveryDateISO,
-                batch_number: (api._selectedBatch && api._selectedBatch.batch_number) ? api._selectedBatch.batch_number : null,
-                batch_id: (api._selectedBatch && api._selectedBatch.id) ? api._selectedBatch.id : null
+                delivery_date: deliveryDateISO
             };
 
             var scope = typeof _stockManagementGrid !== 'undefined' ? _stockManagementGrid : null;
-            var batches = api._selectedBatch ? [api._selectedBatch] : (scope && scope.kernelFinishedBatches ? scope.kernelFinishedBatches : []);
-            var totalsByStyle = computeTotalsByStyle(batches);
-            var totalAvailable = 0;
-            STYLE_KEYS.forEach(function (k) { totalAvailable += totalsByStyle[k] || 0; });
-            if (totalAvailable <= 0) {
-                if (typeof Swal !== 'undefined' && Swal.fire) {
-                    Swal.fire('Info', 'No kernel stock available. Release batches to stock from Kernel Production first.', 'info');
-                }
-                return;
+            if (scope) {
+                scope.dispatchOrderDetails = details;
+                if (scope.saveDispatchDraft) scope.saveDispatchDraft();
             }
 
             api._pendingDetails = details;
-            api.showStep2(totalsByStyle, details);
+            api.showStep2(details);
         },
 
         getDetailsFromStep1Form: function () {
@@ -313,79 +313,15 @@ var _modal_stock_send_to_dispatch = (function () {
         },
 
         onConfirmSelection: function () {
-            var requestedByStyle = {};
-            var hasAny = false;
-            STYLE_KEYS.forEach(function (styleKey) {
-                var inputEl = document.querySelector('.js-dispatch-qty[data-style-key="' + styleKey.replace(/"/g, '\\"') + '"]');
-                var val = inputEl ? parseFloat(inputEl.value) : 0;
-                if (isNaN(val) || val < 0) val = 0;
-                requestedByStyle[styleKey] = val;
-                if (val > 0) hasAny = true;
-            });
-            if (!hasAny) {
-                if (typeof Swal !== 'undefined' && Swal.fire) {
-                    Swal.fire('Validation', 'Please enter at least one quantity to dispatch.', 'warning').then(function () {
-                        api.highlightInvalidFields({ step2StyleKeys: STYLE_KEYS });
-                    });
-                }
-                return;
-            }
-
-            var totalsByStyle = api._step2TotalsByStyle || {};
-            var overLimit = [];
-            var overLimitStyleKeys = [];
-            STYLE_KEYS.forEach(function (styleKey) {
-                var requested = requestedByStyle[styleKey] || 0;
-                var available = totalsByStyle[styleKey] != null ? totalsByStyle[styleKey] : 0;
-                if (requested > available) {
-                    overLimit.push(styleKey + ' (requested ' + requested + ' kg, available ' + available + ' kg)');
-                    overLimitStyleKeys.push(styleKey);
-                }
-            });
-            if (overLimit.length > 0) {
-                if (typeof Swal !== 'undefined' && Swal.fire) {
-                    Swal.fire('Validation', 'Quantity exceeds available for: ' + overLimit.join('; ') + '. Please reduce the amount(s).', 'warning').then(function () {
-                        api.highlightInvalidFields({ step2StyleKeys: overLimitStyleKeys });
-                    });
-                }
-                return;
-            }
-
             var details = api._pendingDetails;
             if (!details || !details.buyer_name) {
                 details = api.getDetailsFromStep1Form();
             }
-            if (!details || !details.buyer_name) {
-                if (typeof Swal !== 'undefined' && Swal.fire) {
-                    Swal.fire('Validation', 'Dispatch details missing. Please click Back and re-enter buyer and delivery date in Step 1.', 'warning').then(function () {
-                        api.showStep1();
-                        api.highlightInvalidFields({ step1Ids: ['dispatchBuyer', 'dispatchDeliveryDate'] });
-                    });
-                } else {
-                    api.showStep1();
-                }
-                return;
-            }
-
             var scope = typeof _stockManagementGrid !== 'undefined' ? _stockManagementGrid : null;
-            var batches = api._selectedBatch ? [api._selectedBatch] : (scope && scope.kernelFinishedBatches ? scope.kernelFinishedBatches : []);
-            var lines = allocateLines(batches, requestedByStyle);
-            if (lines.length === 0) {
-                if (typeof Swal !== 'undefined' && Swal.fire) {
-                    Swal.fire('Validation', 'Could not allocate quantities to stock. Check that requested amounts do not exceed available.', 'warning').then(function () {
-                        api.highlightInvalidFields({ step2StyleKeys: STYLE_KEYS });
-                    });
-                }
-                return;
+            if (scope && details && details.buyer_name) {
+                scope.dispatchOrderDetails = details;
+                if (scope.saveDispatchDraft) scope.saveDispatchDraft();
             }
-
-            if (scope.enterDispatchSelectionMode) {
-                scope.enterDispatchSelectionMode(details);
-            }
-            scope.dispatchSelectedLines = lines;
-            scope.renderDispatchSelectedList && scope.renderDispatchSelectedList();
-            var summary = document.getElementById('dispatchSelectedSummary');
-            if (summary) summary.style.display = lines.length > 0 ? '' : 'none';
 
             var modalEl = document.getElementById('sendToDispatchModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {

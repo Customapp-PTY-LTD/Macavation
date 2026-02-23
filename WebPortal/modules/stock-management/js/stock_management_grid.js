@@ -124,35 +124,81 @@ var _stockManagementGrid = function () {
                     if (typeof _modal_stock_raw_material_issued !== 'undefined' && _modal_stock_raw_material_issued.show) _modal_stock_raw_material_issued.show();
                 });
                 $('#sendToDispatchBtn').off('click').on('click', function () {
-                    var scope = _stockManagementGrid;
-                    if (!scope.selectedDispatchBatchId || !scope.selectedDispatchBatch) {
-                        if (typeof Swal !== 'undefined' && Swal.fire) {
-                            Swal.fire('Validation', 'Please select a batch first (use the Select column in the table), then click Send to Dispatch.', 'warning');
-                        }
-                        return;
-                    }
-                    if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show(scope.selectedDispatchBatch);
-                });
-                $(document).on('change', '.js-dispatch-batch-select', function () {
-                    var scope = _stockManagementGrid;
-                    var $this = $(this);
-                    var table = $('#kernelStockByStyleTable');
-                    if ($this.prop('checked')) {
-                        table.find('.js-dispatch-batch-select').not(this).prop('checked', false);
-                        var val = $this.val();
-                        scope.selectedDispatchBatchId = val || null;
-                        scope.selectedDispatchBatch = (val && scope.kernelFinishedBatches && scope.kernelFinishedBatches.length)
-                            ? scope.kernelFinishedBatches.find(function (b) { return (b.id || '') === val; }) || null
-                            : null;
-                    } else {
-                        scope.selectedDispatchBatchId = null;
-                        scope.selectedDispatchBatch = null;
-                    }
+                    if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show();
                 });
                 $('#exportStockBtn').off('click').on('click', function () { scope.exportStock(); });
                 $('#sendDispatchBtn').off('click').on('click', function () { scope.submitDispatchOrder(); });
-                $(document).on('click', '.js-dispatch-selectable', function () {
-                    if (scope.dispatchSelectionMode) scope.onDispatchCellClick(this);
+                $(document).on('click', '#kernelStockByStyleBody .js-dispatch-qty-pick', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var batchId = $(this).data('batch-id');
+                    var style = $(this).data('style');
+                    style = style != null ? String(style) : '';
+                    var qty = parseInt($(this).data('quantity'), 10) || 0;
+                    if (!batchId || style === '') return;
+                    var scope = _stockManagementGrid;
+                    var idx = scope.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && String(l.style) === style; });
+                    if (qty <= 0) {
+                        if (idx >= 0) scope.dispatchSelectedLines.splice(idx, 1);
+                    } else {
+                        var line = { production_batch_id: batchId, style: style, quantity_kg: qty };
+                        if (idx >= 0) scope.dispatchSelectedLines[idx] = line; else scope.dispatchSelectedLines.push(line);
+                    }
+                    scope.renderDispatchSelectedList();
+                    var summary = document.getElementById('dispatchSelectedSummary');
+                    if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
+                    if (scope.saveDispatchDraft) scope.saveDispatchDraft();
+                });
+                $(document).on('click', '#kernelStockByStyleBody .js-dispatch-qty-other', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var batchId = $(this).data('batch-id');
+                    var style = $(this).data('style');
+                    style = style != null ? String(style) : '';
+                    var maxQty = parseInt($(this).data('max-qty'), 10) || 0;
+                    if (!batchId || style === '' || maxQty <= 0) return;
+                    var scope = _stockManagementGrid;
+                    if (typeof Swal === 'undefined') {
+                        var raw = prompt('Enter number of boxes (1 to ' + maxQty + ')');
+                        var num = parseInt(raw, 10);
+                        if (!isNaN(num) && num >= 1 && num <= maxQty) {
+                            var idx = scope.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && String(l.style) === style; });
+                            var line = { production_batch_id: batchId, style: style, quantity_kg: num };
+                            if (idx >= 0) scope.dispatchSelectedLines[idx] = line; else scope.dispatchSelectedLines.push(line);
+                            scope.renderDispatchSelectedList();
+                            var summary = document.getElementById('dispatchSelectedSummary');
+                            if (summary) summary.style.display = 'none';
+                            if (scope.dispatchSelectedLines.length > 0 && summary) summary.style.display = '';
+                            if (scope.saveDispatchDraft) scope.saveDispatchDraft();
+                        }
+                        return;
+                    }
+                    Swal.fire({
+                        title: 'Number of boxes',
+                        html: '<label class="form-label">Enter amount (1 to ' + maxQty + ')</label><input type="number" id="dispatchQtyOtherInput" class="form-control" min="1" max="' + maxQty + '" value="1" step="1">',
+                        showCancelButton: true,
+                        confirmButtonText: 'Add',
+                        focusConfirm: false,
+                        preConfirm: function () {
+                            var input = document.getElementById('dispatchQtyOtherInput');
+                            var num = input ? parseInt(input.value, 10) : NaN;
+                            if (isNaN(num) || num < 1 || num > maxQty) {
+                                Swal.showValidationMessage('Please enter a number between 1 and ' + maxQty + '.');
+                                return false;
+                            }
+                            return num;
+                        }
+                    }).then(function (result) {
+                        if (result && result.isConfirmed && typeof result.value === 'number') {
+                            var idx = scope.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && String(l.style) === style; });
+                            var line = { production_batch_id: batchId, style: style, quantity_kg: result.value };
+                            if (idx >= 0) scope.dispatchSelectedLines[idx] = line; else scope.dispatchSelectedLines.push(line);
+                            scope.renderDispatchSelectedList();
+                            var summary = document.getElementById('dispatchSelectedSummary');
+                            if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
+                            if (scope.saveDispatchDraft) scope.saveDispatchDraft();
+                        }
+                    });
                 });
 
                 $('#searchStockInput').on('input', function () {
@@ -223,24 +269,18 @@ var _stockManagementGrid = function () {
         enterDispatchSelectionMode: function (details) {
             var scope = _stockManagementGrid;
             scope.dispatchOrderDetails = details || {};
-            scope.dispatchSelectedLines = [];
-            scope.dispatchSelectionMode = true;
-            var selectBtn = document.getElementById('selectBoxesBtn');
-            if (selectBtn) {
-                selectBtn.classList.add('btn-primary');
-                selectBtn.classList.remove('btn-outline-primary');
-                selectBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Stop selecting';
-            }
             scope.renderKernelStockByStyle();
             scope.renderDispatchSelectedList();
             var summary = document.getElementById('dispatchSelectedSummary');
-            if (summary) summary.style.display = '';
+            if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
+            if (scope.saveDispatchDraft) scope.saveDispatchDraft();
         },
 
         hasDispatchDraft: function () {
             var scope = _stockManagementGrid;
             var hasDetails = scope.dispatchOrderDetails && (scope.dispatchOrderDetails.buyer_name || scope.dispatchOrderDetails.delivery_date);
-            return !!(hasDetails && scope.dispatchSelectedLines && scope.dispatchSelectedLines.length > 0);
+            var hasLines = scope.dispatchSelectedLines && scope.dispatchSelectedLines.length > 0;
+            return !!(hasDetails || hasLines);
         },
 
         saveDispatchDraft: function () {
@@ -271,21 +311,13 @@ var _stockManagementGrid = function () {
             try {
                 draft = JSON.parse(json);
             } catch (e) { return; }
-            if (!draft || !draft.dispatchOrderDetails || !Array.isArray(draft.dispatchSelectedLines)) return;
-            scope.dispatchOrderDetails = draft.dispatchOrderDetails;
+            if (!draft || !Array.isArray(draft.dispatchSelectedLines)) return;
+            scope.dispatchOrderDetails = draft.dispatchOrderDetails || {};
             scope.dispatchSelectedLines = draft.dispatchSelectedLines;
-            scope.dispatchSelectionMode = true;
-            var selectBtn = document.getElementById('selectBoxesBtn');
-            if (selectBtn) {
-                selectBtn.classList.add('btn-primary');
-                selectBtn.classList.remove('btn-outline-primary');
-                selectBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Stop selecting';
-            }
             scope.renderKernelStockByStyle();
             scope.renderDispatchSelectedList();
             var summary = document.getElementById('dispatchSelectedSummary');
             if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
-            scope.clearDispatchDraft();
         },
 
         filterStockItems: function () {
@@ -368,22 +400,36 @@ var _stockManagementGrid = function () {
             body.empty();
             var batches = scope.kernelFinishedBatches || [];
             var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
+            var styleKeys = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
+            var maxDropdownOptions = 51;
             batches.forEach(function (b) {
-                // Prefer remaining_by_style (available to dispatch) when present
                 var cells = (b.remaining_by_style && typeof b.remaining_by_style === 'object') ? b.remaining_by_style : null;
                 if (cells == null) cells = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
                 var batchId = (b.id || '');
-                var batchNum = (b.batch_number || '');
-                var checked = (scope.selectedDispatchBatchId === batchId) ? ' checked' : '';
-                var tip = 'Select this batch for Send to Dispatch. Click again to unselect.';
-                var row = '<tr><td class="text-center"><input type="checkbox" class="form-check-input js-dispatch-batch-select" value="' + (batchId.replace(/"/g, '&quot;')) + '" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" aria-label="Select batch ' + (batchNum ? batchNum.replace(/"/g, '&quot;') : '') + ' for dispatch" title="' + tip.replace(/"/g, '&quot;') + '"' + checked + '></td><td>' + batchNum + '</td>';
-                ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'].forEach(function (k) {
+                var batchNum = (b.batch_number || '').toString().replace(/"/g, '&quot;');
+                var row = '<tr><td>' + batchNum + '</td>';
+                styleKeys.forEach(function (k) {
                     var val = cells[k] != null ? cells[k] : (b['yield_' + k] != null ? b['yield_' + k] : 0);
                     if (typeof val === 'number') totals[k] += val;
-                    var qty = (typeof val === 'number' && val > 0) ? val : 0;
-                    var selectable = scope.dispatchSelectionMode && qty > 0 ? ' js-dispatch-selectable' : '';
-                    var dataAttrs = qty > 0 ? ' data-batch-id="' + (b.id || '') + '" data-style="' + (k || '') + '" data-quantity="' + qty + '"' : '';
-                    row += '<td class="text-end' + selectable + '"' + dataAttrs + '>' + (val !== 0 && val !== '' ? val : '—') + '</td>';
+                    var qty = (typeof val === 'number' && val > 0) ? Math.floor(val) : 0;
+                    var displayVal = (val !== 0 && val !== '' && val != null) ? val : '—';
+                    if (qty > 0) {
+                        var cellId = 'kcell_' + (batchId + '_' + k).replace(/[^a-zA-Z0-9_-]/g, '_');
+                        var maxOpt = Math.min(qty, maxDropdownOptions - 1);
+                        var menuItems = '<li><a class="dropdown-item js-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="0">0 (clear)</a></li>';
+                        for (var n = 1; n <= maxOpt; n++) {
+                            menuItems += '<li><a class="dropdown-item js-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + n + '">' + n + '</a></li>';
+                        }
+                        if (qty > maxOpt) {
+                            menuItems += '<li><a class="dropdown-item js-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + qty + '">' + qty + ' (max)</a></li>';
+                        }
+                        menuItems += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item js-dispatch-qty-other" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-max-qty="' + qty + '">Other…</a></li>';
+                        row += '<td class="text-end kernel-qty-cell"><div class="dropdown">' +
+                            '<button class="btn btn-sm btn-outline-secondary py-0 px-1 js-kernel-qty-dropdown" type="button" id="' + cellId + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Add boxes">' + displayVal + '</button>' +
+                            '<ul class="dropdown-menu dropdown-menu-end js-kernel-qty-menu" aria-labelledby="' + cellId + '" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-max-qty="' + qty + '">' + menuItems + '</ul></div></td>';
+                    } else {
+                        row += '<td class="text-end">' + displayVal + '</td>';
+                    }
                 });
                 row += '</tr>';
                 body.append(row);
@@ -392,10 +438,6 @@ var _stockManagementGrid = function () {
                 var k = $(this).data('style');
                 $(this).text(totals[k] != null ? totals[k] : 0);
             });
-            if (scope.selectedDispatchBatchId && !batches.some(function (b) { return (b.id || '') === scope.selectedDispatchBatchId; })) {
-                scope.selectedDispatchBatchId = null;
-                scope.selectedDispatchBatch = null;
-            }
         },
 
         releaseBatchToProduction: function (batchId) {
@@ -412,61 +454,13 @@ var _stockManagementGrid = function () {
             });
         },
 
-        toggleDispatchSelectionMode: function () {
-            var scope = _stockManagementGrid;
-            if (!scope.dispatchSelectionMode && (!scope.dispatchOrderDetails || !scope.dispatchOrderDetails.buyer_name)) {
-                if (typeof Swal !== 'undefined') Swal.fire('Info', 'Please select a batch, then click "Send to Dispatch" to enter buyer and delivery date.', 'info');
-                if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show(scope.selectedDispatchBatch || undefined);
-                return;
-            }
-            scope.dispatchSelectionMode = !scope.dispatchSelectionMode;
-            var selectBtn = document.getElementById('selectBoxesBtn');
-            var summary = document.getElementById('dispatchSelectedSummary');
-            if (selectBtn) {
-                if (scope.dispatchSelectionMode) {
-                    selectBtn.classList.add('btn-primary');
-                    selectBtn.classList.remove('btn-outline-primary');
-                    selectBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Stop selecting';
-                } else {
-                    selectBtn.classList.remove('btn-primary');
-                    selectBtn.classList.add('btn-outline-primary');
-                    selectBtn.innerHTML = '<i class="fas fa-check-square me-1"></i>Select boxes';
-                    scope.dispatchSelectedLines = [];
-                }
-            }
-            scope.renderKernelStockByStyle();
-            scope.renderDispatchSelectedList();
-            if (summary) summary.style.display = (scope.dispatchSelectionMode && scope.dispatchSelectedLines.length > 0) ? '' : 'none';
-        },
-
-        onDispatchCellClick: function (cellEl) {
-            var scope = _stockManagementGrid;
-            if (!cellEl) return;
-            var $cell = typeof $ !== 'undefined' ? $(cellEl) : null;
-            var batchId = $cell ? $cell.data('batch-id') : (cellEl.getAttribute && cellEl.getAttribute('data-batch-id'));
-            var style = $cell ? $cell.data('style') : (cellEl.getAttribute && cellEl.getAttribute('data-style'));
-            var qty = parseFloat($cell ? $cell.data('quantity') : (cellEl.getAttribute && cellEl.getAttribute('data-quantity'))) || 0;
-            if (!batchId || !style || qty <= 0) return;
-            var idx = scope.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && l.style === style; });
-            if (idx >= 0) {
-                scope.dispatchSelectedLines.splice(idx, 1);
-                if ($cell) $cell.removeClass('table-success'); else cellEl.classList.remove('table-success');
-            } else {
-                scope.dispatchSelectedLines.push({ production_batch_id: batchId, style: style, quantity_kg: qty });
-                if ($cell) $cell.addClass('table-success'); else cellEl.classList.add('table-success');
-            }
-            scope.renderDispatchSelectedList();
-            var summary = document.getElementById('dispatchSelectedSummary');
-            if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
-        },
-
         renderDispatchSelectedList: function () {
             var scope = _stockManagementGrid;
             var listEl = document.getElementById('dispatchSelectedList');
             var totalLabel = document.getElementById('dispatchSelectedTotalLabel');
             if (!listEl) return;
             if (scope.dispatchSelectedLines.length === 0) {
-                listEl.innerHTML = '<p class="text-muted small mb-0">No boxes selected. Click cells in the table above or use Send to Dispatch → Next: Select boxes to add by style.</p>';
+                listEl.innerHTML = '<p class="text-muted small mb-0">No boxes selected. Click a quantity cell in the table above to choose how many boxes to add from that batch and style.</p>';
                 if (totalLabel) totalLabel.textContent = 'Total: 0 kg';
                 return;
             }
@@ -491,7 +485,20 @@ var _stockManagementGrid = function () {
         submitDispatchOrder: function () {
             var scope = _stockManagementGrid;
             if (!scope.dispatchOrderDetails || !scope.dispatchOrderDetails.buyer_name) {
-                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Please fill in dispatch details first (Send to Dispatch → Next: Select boxes).', 'warning');
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({
+                        title: 'Enter buyer and delivery date',
+                        text: 'Please fill in the buyer and delivery date so we can complete the dispatch.',
+                        icon: 'info',
+                        confirmButtonText: 'OK'
+                    }).then(function (r) {
+                        if (r && r.isConfirmed && typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) {
+                            _modal_stock_send_to_dispatch.show();
+                        }
+                    });
+                } else if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) {
+                    _modal_stock_send_to_dispatch.show();
+                }
                 return;
             }
             if (scope.dispatchSelectedLines.length === 0) {
@@ -511,14 +518,7 @@ var _stockManagementGrid = function () {
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Sent', text: 'Dispatch order created successfully.', timer: 2000, showConfirmButton: false });
                     scope.dispatchSelectedLines = [];
                     scope.dispatchOrderDetails = {};
-                    scope.dispatchSelectionMode = false;
                     scope.clearDispatchDraft();
-                    var selectBtn = document.getElementById('selectBoxesBtn');
-                    if (selectBtn) {
-                        selectBtn.classList.remove('btn-primary');
-                        selectBtn.classList.add('btn-outline-primary');
-                        selectBtn.innerHTML = '<i class="fas fa-check-square me-1"></i>Select boxes';
-                    }
                     var summary = document.getElementById('dispatchSelectedSummary');
                     if (summary) summary.style.display = 'none';
                     setTimeout(function () {
