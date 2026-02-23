@@ -1,9 +1,18 @@
-/* Dashboard Module Styles - Theme Integrated */
+/* Dashboard Module – aligned with UI_DESIGN_INSTRUCTIONS.md (border radius, flat primary, layout) */
 
 .dashboard-container {
     padding: 0;
 }
 
+/* Exceptions card header: flat danger, theme radius */
+.dashboard-container .card-header.dashboard-exceptions-header {
+    background-color: var(--phoenix-danger);
+    color: white;
+    border: none;
+    border-radius: var(--phoenix-border-radius);
+    font-weight: 600;
+    padding: 1rem 1.25rem;
+}
 
 /* Stats Cards */
 .stat-card {
@@ -21,20 +30,20 @@
 }
 
 .stat-card .card-header {
-    background: var(--theme-navbar-gradient);
+    background-color: var(--phoenix-primary);
     color: white;
     border-bottom: none;
     font-weight: 600;
     padding: 1rem 1.25rem;
     transition: background 0.3s ease;
-    border-radius: 0;
+    border-radius: var(--phoenix-border-radius);
 }
 
 .stat-card .card-body {
     padding: 1.5rem;
     background-color: var(--phoenix-card-bg);
     color: var(--phoenix-text-color);
-    border-radius: 0;
+    border-radius: var(--phoenix-border-radius);
 }
 
 .stat-value {
@@ -56,7 +65,7 @@
 .alert-warning-custom {
     background-color: rgba(var(--phoenix-warning-rgb), 0.1);
     border-left: 4px solid var(--phoenix-warning);
-    border-radius: 8px;
+    border-radius: var(--phoenix-border-radius);
     color: var(--phoenix-text-color);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
@@ -64,7 +73,7 @@
 .alert-danger-custom {
     background-color: rgba(var(--phoenix-danger-rgb), 0.1);
     border-left: 4px solid var(--phoenix-danger);
-    border-radius: 8px;
+    border-radius: var(--phoenix-border-radius);
     color: var(--phoenix-text-color);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
@@ -72,7 +81,7 @@
 .alert-info-custom {
     background-color: rgba(var(--phoenix-info-rgb), 0.1);
     border-left: 4px solid var(--phoenix-info);
-    border-radius: 8px;
+    border-radius: var(--phoenix-border-radius);
     color: var(--phoenix-text-color);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
@@ -80,18 +89,18 @@
 .alert-success-custom {
     background-color: rgba(var(--phoenix-success-rgb), 0.1);
     border-left: 4px solid var(--phoenix-success);
-    border-radius: 8px;
+    border-radius: var(--phoenix-border-radius);
     color: var(--phoenix-text-color);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Buttons */
+/* Buttons – flat primary per UI_DESIGN_INSTRUCTIONS.md */
 .btn-dashboard {
-    background: var(--theme-navbar-gradient);
+    background-color: var(--phoenix-primary);
     color: white;
     border: none;
     padding: 0.5rem 1.5rem;
-    border-radius: 8px;
+    border-radius: var(--phoenix-border-radius);
     font-weight: 600;
     transition: all 0.3s ease;
 }
@@ -107,7 +116,7 @@
 .btn-sm {
     padding: 0.4rem 0.75rem;
     font-size: 0.875rem;
-    border-radius: 6px;
+    border-radius: var(--phoenix-border-radius);
     font-weight: 600;
     min-width: 36px;
     transition: all 0.2s ease;
@@ -188,7 +197,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: var(--phoenix-border-radius);
     font-size: 1.25rem;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -251,12 +260,18 @@
     background-color: var(--phoenix-info);
 }
 
-/* Card Header Styles */
+/* Card Header Styles (bg-light sections) */
 .dashboard-container .card-header {
     background-color: var(--phoenix-light);
     border-bottom: 1px solid var(--phoenix-border-color);
     color: var(--phoenix-text-color);
+    border-radius: var(--phoenix-border-radius);
     transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.dashboard-container .card-header:first-child {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
 }
 
 [data-theme-mode="dark"] .dashboard-container .card-header {

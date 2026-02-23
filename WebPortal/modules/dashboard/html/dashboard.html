@@ -1,24 +1,18 @@
-<!-- Dashboard Module -->
-<div class="dashboard-container">
+<!-- Dashboard Module (UI follows UI_DESIGN_INSTRUCTIONS.md) -->
+<div class="dashboard-container module-content">
     <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h2 class="fw-bold mb-0">Dashboard Overview</h2>
-                </div>
-            </div>
-            <p class="text-muted" id="dashboardDate">
-                <span id="currentDate"></span>
-            </p>
-        </div>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 mb-0">Dashboard Overview</h1>
     </div>
+    <p class="text-muted mb-4" id="dashboardDate">
+        <span id="currentDate"></span>
+    </p>
 
     <!-- Exceptions Panel (Exception-First Design) -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-danger text-white">
+                <div class="card-header dashboard-exceptions-header">
                     <h5 class="mb-0 fw-bold">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
                         Exceptions Requiring Attention
@@ -35,30 +29,26 @@
     </div>
 
     <!-- Key Metrics (Context-Aware) -->
-    <div class="row mb-4">
-        <div class="col-12">
+    <div class="card mb-3">
+        <div class="card-body">
             <h4 class="fw-bold mb-3">Operational Metrics</h4>
-        </div>
-        <div id="metricsContainer" class="col-12">
-            <!-- Metrics will be dynamically loaded -->
+            <div id="metricsContainer">
+                <!-- Metrics will be dynamically loaded -->
+            </div>
         </div>
     </div>
 
     <!-- Quick Actions (High-Frequency Tasks) -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0 fw-bold">
-                        <i class="bi bi-lightning-fill me-2"></i>
-                        Quick Actions
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3" id="quickActionsContainer">
-                        <!-- Quick actions will be dynamically loaded -->
-                    </div>
-                </div>
+    <div class="card mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-lightning-fill me-2"></i>
+                Quick Actions
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3" id="quickActionsContainer">
+                <!-- Quick actions will be dynamically loaded -->
             </div>
         </div>
     </div>
@@ -76,8 +66,8 @@
     <!-- Recent Activity & Upcoming Tasks -->
     <div class="row">
         <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
                     <h5 class="mb-0 fw-bold">
                         <i class="bi bi-clock-history me-2"></i>Recent Activity
                     </h5>
@@ -94,8 +84,8 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
                     <h5 class="mb-0 fw-bold">
                         <i class="bi bi-calendar-event me-2"></i>Upcoming Tasks
                     </h5>
