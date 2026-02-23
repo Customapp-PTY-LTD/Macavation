@@ -277,6 +277,13 @@
             "js": ["js/modal_kernel_dispatch.js"],
             "css": []
         },
+        "kernel-dispatch-form-modal": {
+            "description": "Kernel Dispatch inspection and dispatch form",
+            "path": "modals/modal-kernel-dispatch-form",
+            "html": "html/modal_kernel_dispatch_form.html",
+            "js": ["js/modal_kernel_dispatch_form.js"],
+            "css": []
+        },
         "oil-dispatch-grid": {
             "description": "Oil & Protein Dispatch",
             "path": "oil-dispatch",

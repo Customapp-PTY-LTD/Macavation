@@ -1523,6 +1523,51 @@ var _dataFunctions = function () {
             };
             const result = await this.callFunction('create_kernel_dispatch_order_simple', params, token, { useCache: false });
             this.clearCachePattern('production_batches');
+            this.clearCachePattern('kernel_dispatch');
+            return result;
+        },
+
+        getKernelDispatchOrders: async function (token = null, forceRefresh = false) {
+            const raw = await this.callFunction('get_kernel_dispatch_orders', { p_limit: 100, p_offset: 0 }, token, {
+                cacheKey: 'kernel_dispatch_orders_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (raw && raw.success !== false && Array.isArray(raw.data)) return raw.data;
+            if (raw && raw.data) return raw.data;
+            return [];
+        },
+
+        getKernelDispatchOrder: async function (orderId, token = null) {
+            if (!orderId) return null;
+            const raw = await this.callFunction('get_kernel_dispatch_order', { p_order_id: orderId }, token, { useCache: false });
+            if (raw && raw.success !== false && raw.order) return { order: raw.order, lines: raw.lines || [] };
+            return null;
+        },
+
+        saveKernelDispatchRecord: async function (payload, token = null) {
+            const params = {
+                p_dispatch_order_id: payload.dispatch_order_id || null,
+                p_vehicle_clean_yn: payload.vehicle_clean_yn || null,
+                p_vehicle_enclosed_yn: payload.vehicle_enclosed_yn || null,
+                p_hazard_substances_yn: payload.hazard_substances_yn || null,
+                p_pest_infestations_yn: payload.pest_infestations_yn || null,
+                p_pallets_condition_yn: payload.pallets_condition_yn || null,
+                p_truck_bin_locked_yn: payload.truck_bin_locked_yn || null,
+                p_dispatch_person: payload.dispatch_person || null,
+                p_transport_company: payload.transport_company || null,
+                p_delivery_note_number: payload.delivery_note_number || null,
+                p_date_dispatched: payload.date_dispatched || null,
+                p_truck_registration: payload.truck_registration || null,
+                p_driver_name: payload.driver_name || null,
+                p_time_dispatched: payload.time_dispatched || null,
+                p_dispatched_to: payload.dispatched_to || null,
+                p_dispatch_signature: payload.dispatch_signature || null
+            };
+            const result = await this.callFunction('save_kernel_dispatch_record', params, token, { useCache: false });
+            this.clearCachePattern('kernel_dispatch');
+            this.clearCachePattern('production_batches');
             return result;
         },
 
