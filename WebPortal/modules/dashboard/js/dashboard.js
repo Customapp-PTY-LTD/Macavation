@@ -1,12 +1,23 @@
 /**
  * Dashboard Module
- * Main dashboard with farm overview, stats, and quick access
+ * Main entry: reads user role and directs to the correct dashboard (executive, amanda, or default).
+ * All dashboard HTML/JS/CSS live under this module.
  * Pattern: IIFE, single global _dashboard, arrow methods, const scope for same-module calls.
  */
 var _dashboard = function () {
     'use strict';
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    /** Role name (normalized lowercase) -> route name for role-specific dashboards */
+    const roleToDashboardRoute = {
+        'super admin': 'executive-dashboard',
+        'admin': 'executive-dashboard',
+        'executive': 'executive-dashboard',
+        'super_user': 'executive-dashboard',
+        'amanda': 'amanda-dashboard',
+        'material journey': 'amanda-dashboard'
+    };
 
     const routeAddButtonMap = {
         'crm-grid': 'addContactBtn',
@@ -19,6 +30,40 @@ var _dashboard = function () {
 
     return {
         data: null,
+
+        /**
+         * Get current user role (role_name or role from auth/localStorage).
+         * @returns {string} Normalized role name or empty string
+         */
+        getUserRole: () => {
+            if (typeof authService !== 'undefined' && authService.getUserRole) {
+                const r = authService.getUserRole();
+                return (r && String(r).trim()) ? String(r).trim().toLowerCase() : '';
+            }
+            try {
+                const userInfo = localStorage.getItem('user_info');
+                if (!userInfo) return '';
+                const user = JSON.parse(userInfo);
+                const role = user.role_name || user.role || '';
+                return (role && String(role).trim()) ? String(role).trim().toLowerCase() : '';
+            } catch (e) {
+                return '';
+            }
+        },
+
+        /**
+         * If user role maps to a dedicated dashboard route, navigate there and skip default dashboard.
+         * @returns {boolean} true if redirected to another dashboard, false to continue with default
+         */
+        redirectToRoleDashboard: () => {
+            const role = _dashboard.getUserRole();
+            const route = role ? roleToDashboardRoute[role] : null;
+            if (route && typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
+                _appRouter.routeTo(route);
+                return true;
+            }
+            return false;
+        },
 
         init: async () => {
             const scope = _dashboard;
@@ -35,6 +80,10 @@ var _dashboard = function () {
                     if (typeof dataFunctions === 'undefined') {
                         throw new Error('dataFunctions is not available');
                     }
+                }
+
+                if (scope.redirectToRoleDashboard()) {
+                    return;
                 }
 
                 scope.setCurrentDate();

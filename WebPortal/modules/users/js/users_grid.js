@@ -179,7 +179,7 @@ var _usersGrid = function () {
                     const userId = scope.escapeHtml(user.id);
                     const actionsCell = '<td>' +
                         '<div class="dropdown">' +
-                        '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">' +
+                        '<button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">' +
                         '<i class="fas fa-ellipsis"></i></button>' +
                         '<ul class="dropdown-menu dropdown-menu-end">' +
                         '<li><a class="dropdown-item js-user-edit" href="#" data-user-id="' + userId + '">Edit</a></li>' +

@@ -176,6 +176,18 @@
     color: inherit;
 }
 
+#adminUsersTable td:last-child .dropdown .btn::after,
+#adminRolesTable td:last-child .dropdown .btn::after {
+    display: none;
+}
+
+/* Remove dropdown/select arrows in this module */
+.module-content #userRoleFilter.form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
 /* Badges */
 .badge {
     padding: 0.35em 0.65em;

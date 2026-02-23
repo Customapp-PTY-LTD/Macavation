@@ -440,7 +440,7 @@
         },
         "amanda-dashboard": {
             "description": "Material Journey Dashboard - Track material from intake to dispatch",
-            "path": "amanda-dashboard",
+            "path": "dashboard",
             "html": "html/amanda_dashboard.html",
             "js": [
                 "js/amanda_dashboard.js"
@@ -451,7 +451,7 @@
         },
         "executive-dashboard": {
             "description": "Executive Dashboard & Reporting",
-            "path": "executive-dashboard",
+            "path": "dashboard",
             "html": "html/executive_dashboard.html",
             "js": [
                 "js/executive_dashboard.js"

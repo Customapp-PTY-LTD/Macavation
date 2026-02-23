@@ -51,6 +51,19 @@
     border-radius: 0;
 }
 
+#permissionsTable td:last-child .dropdown .btn::after {
+    display: none;
+}
+
+/* Remove dropdown/select arrows in this module */
+.module-content #filterRole.form-select,
+.module-content #filterObjectType.form-select,
+.module-content #filterPermission.form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
 /* Badges */
 .badge {
     font-size: 0.75rem;

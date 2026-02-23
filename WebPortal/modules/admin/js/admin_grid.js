@@ -236,7 +236,7 @@ var _adminGrid = function () {
             <td><small class="text-muted">${escapeHtml(lastLogin)}</small></td>
             <td>
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions" title="Actions">
                         <i class="fas fa-ellipsis"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
@@ -379,7 +379,7 @@ var _adminGrid = function () {
                 <td>${statusBadge}</td>
                 <td>
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions" title="Actions">
                             <i class="fas fa-ellipsis"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">

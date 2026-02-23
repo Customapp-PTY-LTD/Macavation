@@ -229,18 +229,18 @@ body {
 }
 
 .sidebar .nav-link:hover {
-    background: #eff2f6 !important;
-    color: #222834 !important;
+    background: var(--forest-light-bg) !important;
+    color: var(--forest-deep) !important;
 }
 
 .sidebar .nav-link.active {
-    background: rgba(56, 116, 255, 0.1) !important;
-    color: #3874ff !important;
+    background: var(--forest-light-bg) !important;
+    color: var(--forest-deep) !important;
 }
 
 .sidebar .nav-link.active::before,
 .sidebar .collapse .nav-link.active::before {
-    background-color: #3874ff !important;
+    background-color: var(--forest-deep) !important;
 }
 
 .sidebar .collapse .nav-link {
@@ -252,7 +252,13 @@ body {
 }
 
 .sidebar .collapse .nav-link:hover {
-    color: #222834 !important;
+    color: var(--forest-deep) !important;
+    background: var(--forest-light-bg) !important;
+}
+
+.sidebar .collapse .nav-link.active {
+    color: var(--forest-deep) !important;
+    background: var(--forest-light-bg) !important;
 }
 
 /* User Management: same as other side nav items (Phoenix styling) */
@@ -263,13 +269,13 @@ body {
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link:hover {
-    background: #eff2f6 !important;
-    color: #222834 !important;
+    background: var(--forest-light-bg) !important;
+    color: var(--forest-deep) !important;
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link[aria-expanded="true"] {
-    background: #eff2f6 !important;
-    color: #222834 !important;
+    background: var(--forest-light-bg) !important;
+    color: var(--forest-deep) !important;
 }
 
 .sidebar-footer {
@@ -282,8 +288,8 @@ body {
 }
 
 .sidebar-footer .btn-link:hover {
-    color: #222834 !important;
-    background: #eff2f6 !important;
+    color: var(--forest-deep) !important;
+    background: var(--forest-light-bg) !important;
 }
 
 /* Side nav scrollbar: left-aligned, only visible on hover (space reserved so buttons don't shift) */

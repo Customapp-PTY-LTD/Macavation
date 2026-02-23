@@ -1,4 +1,4 @@
-/* Users Grid Module – aligned with UI_DESIGN_INSTRUCTIONS.md / kernel-production */
+/* Users Grid Module – follows UI_DESIGN_INSTRUCTIONS.md and kernel-production reference */
 
 .module-content {
     min-height: 400px;
@@ -49,6 +49,17 @@
     align-items: center;
     justify-content: center;
     border-radius: 0;
+}
+
+#usersTable td:last-child .dropdown .btn::after {
+    display: none;
+}
+
+/* Remove dropdown/select arrows in this module */
+.module-content #filterRole.form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
 }
 
 /* User avatar / initials */

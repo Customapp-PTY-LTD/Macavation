@@ -143,7 +143,7 @@ var _rolesGrid = function () {
                     var roleId = scope.escapeHtml(role.id);
                     var actionsCell = '<td>' +
                         '<div class="dropdown">' +
-                        '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">' +
+                        '<button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">' +
                         '<i class="fas fa-ellipsis"></i></button>' +
                         '<ul class="dropdown-menu dropdown-menu-end">' +
                         '<li><a class="dropdown-item js-role-edit" href="#" data-role-id="' + roleId + '">Edit</a></li>' +
