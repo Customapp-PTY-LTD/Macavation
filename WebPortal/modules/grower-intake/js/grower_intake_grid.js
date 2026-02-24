@@ -260,11 +260,21 @@ var _growerIntakeGrid = function () {
                 var batchNumEscaped = batchNum.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                 var batchNumberCell = '<a href="#" class="intake-batch-number-link js-intake-batch-number-link" role="button" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + (checklistId || '') + '" data-sample-submission-id="' + (sampleId || '') + '">' + batchNumEscaped + '</a>';
 
+                var actualWet = b.wet_nis_received_kg != null ? Number(b.wet_nis_received_kg) : null;
+                var suppliedWet = b.supplied_wet_kg != null ? Number(b.supplied_wet_kg) : null;
+                var wetCellClass = 'intake-col-wet d-none d-sm-table-cell';
+                var wetCellTitle = '';
+                if (suppliedWet != null && actualWet != null && Math.abs(actualWet - suppliedWet) > 0.01) {
+                    wetCellClass += ' intake-wet-variance';
+                    wetCellTitle = ' title="Supplied: ' + suppliedWet + ' kg (differs from actual)"';
+                }
+                var wetCell = '<td class="' + wetCellClass + '"' + wetCellTitle + '>' + (b.wet_nis_received_kg != null && b.wet_nis_received_kg !== '' ? b.wet_nis_received_kg : '') + '</td>';
+
                 const row = '<tr class="js-intake-batch-row" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + checklistId + '">' +
                     '<td class="intake-col-batch">' + batchNumberCell + '</td>' +
                     '<td class="intake-col-grower d-none d-md-table-cell">' + (b.grower_name || '') + '</td>' +
                     '<td class="intake-col-date">' + receivedDate + '</td>' +
-                    '<td class="intake-col-wet d-none d-sm-table-cell">' + (b.wet_nis_received_kg || '') + '</td>' +
+                    wetCell +
                     '<td class="intake-col-stage1">' + stage1Cell + '</td>' +
                     '<td class="intake-col-status"><span class="badge bg-info">' + (b.status || '') + '</span></td>' +
                     '<td class="intake-col-actions">' + actionsCell + '</td></tr>';

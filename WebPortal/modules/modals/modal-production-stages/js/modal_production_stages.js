@@ -76,7 +76,6 @@ function deriveSummaryFromStages(cracking_data, washing_data, sorting_data, pack
         wash_floater_qty: num(w.floater_qty),
         wash_sinker_qty: num(w.sinker_qty),
         wash_total_qty: num(w.total_qty),
-        wash_saltpepper: num(w.waste_saltpepper),
         wash_shellfines: num(w.waste_shellfines),
         wash_compost: num(w.waste_compost),
         sort_floater_in: num(s.floater_qty_in),
@@ -135,7 +134,10 @@ var _modal_production_stages = function () {
             $(document).on('change input', '#ps_crack_start1, #ps_crack_end1', function () {
                 scope.updateCrackTimeSpentRow(1);
             });
-            $(document).on('change input', '#ps_wash_waste_saltpepper, #ps_wash_waste_shellfines, #ps_wash_waste_compost', function () {
+            $(document).on('change input', '#ps_crack_startqty1, #ps_crack_endqty1', function () {
+                scope.updateCrackSiloQty();
+            });
+            $(document).on('change input', '#ps_wash_waste_shellfines, #ps_wash_waste_compost', function () {
                 scope.updateWashWasteTotal();
             });
             $(document).on('change input', '#ps_crack_timespent1', function () {
@@ -205,6 +207,20 @@ var _modal_production_stages = function () {
             scope.syncCrackTimeToSummary();
         },
 
+        updateCrackSiloQty: () => {
+            var startQty = parseFloat($('#ps_crack_startqty1').val(), 10);
+            var endQty = parseFloat($('#ps_crack_endqty1').val(), 10);
+            if (isNaN(startQty)) startQty = 0;
+            if (isNaN(endQty)) endQty = 0;
+            var siloQty = startQty - endQty;
+            var siloEl = $('#ps_crack_silo1');
+            if (siloQty === 0 && ($('#ps_crack_startqty1').val() === '' || $('#ps_crack_endqty1').val() === '')) {
+                siloEl.val('');
+            } else {
+                siloEl.val(siloQty);
+            }
+        },
+
         updateCrackTotalTime: () => {
             const scope = _modal_production_stages;
             var m1 = scope.parseTimeSpentToMinutes($('#ps_crack_timespent1').val());
@@ -219,10 +235,9 @@ var _modal_production_stages = function () {
         },
 
         updateWashWasteTotal: () => {
-            var a = parseFloat($('#ps_wash_waste_saltpepper').val()) || 0;
             var b = parseFloat($('#ps_wash_waste_shellfines').val()) || 0;
             var c = parseFloat($('#ps_wash_waste_compost').val()) || 0;
-            var total = a + b + c;
+            var total = b + c;
             $('#ps_wash_waste_total').val(total === 0 ? '' : total);
         },
 
@@ -264,6 +279,7 @@ var _modal_production_stages = function () {
                 }
             });
             if (prefix === 'wash') scope.updateWashWasteTotal();
+            if (prefix === 'crack') scope.updateCrackSiloQty();
         },
 
         ensureSelectHasOption: (selectEl, value) => {
@@ -601,7 +617,6 @@ var _modal_production_stages = function () {
                 p_butter_grade_total_cartons: btTotalCartons ? Math.round(btTotalCartons) : null,
                 p_butter_grade_total_kg: btTotalKg || null,
                 p_waste_shell_kg: (c.shell_total != null && c.shell_total !== '') ? num(c.shell_total) : null,
-                p_waste_salt_pepper_kg: (w.waste_saltpepper != null && w.waste_saltpepper !== '') ? num(w.waste_saltpepper) : null,
                 p_waste_shell_fines_kg: (w.waste_shellfines != null && w.waste_shellfines !== '') ? num(w.waste_shellfines) : null,
                 p_waste_compost_kg: (num(w.waste_compost) + num(s.compost_qty)) > 0 ? num(w.waste_compost) + num(s.compost_qty) : null,
                 p_waste_oil_kernel_kg: (s.oil_qty != null && s.oil_qty !== '') ? num(s.oil_qty) : null
