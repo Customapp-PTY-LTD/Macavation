@@ -1,46 +1,109 @@
-<div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal-dialog modal-dialog-centered modal-xl">
     <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="linkSampleToBatchModalLabel">New sample submission</h5>
+            <h5 class="modal-title" id="linkSampleToBatchModalLabel">NEW SAMPLE SUBMISSION</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            <p class="text-muted small mb-3">Complete the receiving details for this batch sample (1 x kernel sample in ziplock bag).</p>
-            <div class="border rounded p-2 mb-3 bg-light">
-                <strong>RECEIVING</strong><br>
-                <span class="small">1 x kernel sample in ziplock bag</span>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm">
-                    <thead>
-                        <tr>
-                            <th>Description</th>
-                            <th class="text-center" style="width: 120px;">Required (please tick)</th>
-                            <th style="width: 140px;">Result</th>
-                            <th class="text-center" style="width: 100px;">UOM</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Moisture</td>
-                            <td class="text-center"><input type="checkbox" class="form-check-input" id="sampleMoistureRequired" value="1"></td>
-                            <td><input type="number" class="form-control form-control-sm" id="sampleMoistureResult" step="0.01" placeholder=""></td>
-                            <td class="text-center">%</td>
-                        </tr>
-                        <tr>
-                            <td>Peroxide Value</td>
-                            <td class="text-center"><input type="checkbox" class="form-check-input" id="samplePeroxideRequired" value="1"></td>
-                            <td><input type="number" class="form-control form-control-sm" id="samplePeroxideResult" step="0.01" placeholder=""></td>
-                            <td class="text-center">meqO₂/kg</td>
-                        </tr>
-                        <tr>
-                            <td>Free Fatty Acids</td>
-                            <td class="text-center"><input type="checkbox" class="form-check-input" id="sampleFfaRequired" value="1"></td>
-                            <td><input type="number" class="form-control form-control-sm" id="sampleFfaResult" step="0.01" placeholder=""></td>
-                            <td class="text-center">%</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <ul class="nav nav-tabs mb-3" id="sampleSubmissionTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-ziplock-bag" data-bs-toggle="tab" data-bs-target="#pane-ziplock-bag" type="button" role="tab" aria-controls="pane-ziplock-bag" aria-selected="true">Ziplock bag sample</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-5kg-sample" data-bs-toggle="tab" data-bs-target="#pane-5kg-sample" type="button" role="tab" aria-controls="pane-5kg-sample" aria-selected="false">5kg sample</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="sampleSubmissionTabContent">
+                <!-- Tab 1: Ziplock bag (original form) -->
+                <div class="tab-pane fade show active" id="pane-ziplock-bag" role="tabpanel" aria-labelledby="tab-ziplock-bag">
+                    <p class="text-muted small mb-3">Complete the receiving details for this batch sample (1 x kernel sample in ziplock bag).</p>
+                    <div class="border rounded p-2 mb-3 bg-light">
+                        <strong>RECEIVING</strong><br>
+                        <span class="small">1 x kernel sample in ziplock bag</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-center" style="width: 120px;">Required (please tick)</th>
+                                    <th style="width: 140px;">Result</th>
+                                    <th class="text-center" style="width: 100px;">UOM</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Moisture</td>
+                                    <td class="text-center"><input type="checkbox" class="form-check-input" id="sampleMoistureRequired" value="1"></td>
+                                    <td><input type="number" class="form-control form-control-sm" id="sampleMoistureResult" step="0.01" placeholder=""></td>
+                                    <td class="text-center">%</td>
+                                </tr>
+                                <tr>
+                                    <td>Peroxide Value</td>
+                                    <td class="text-center"><input type="checkbox" class="form-check-input" id="samplePeroxideRequired" value="1"></td>
+                                    <td><input type="number" class="form-control form-control-sm" id="samplePeroxideResult" step="0.01" placeholder=""></td>
+                                    <td class="text-center">meqO₂/kg</td>
+                                </tr>
+                                <tr>
+                                    <td>Free Fatty Acids</td>
+                                    <td class="text-center"><input type="checkbox" class="form-check-input" id="sampleFfaRequired" value="1"></td>
+                                    <td><input type="number" class="form-control form-control-sm" id="sampleFfaResult" step="0.01" placeholder=""></td>
+                                    <td class="text-center">%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: 5kg sample (printed form) -->
+                <div class="tab-pane fade" id="pane-5kg-sample" role="tabpanel" aria-labelledby="tab-5kg-sample">
+                    <p class="text-muted small mb-3">Complete the receiving details for the 5kg sample (crack-out, float test, unsound breakdown).</p>
+
+                    <h6 class="text-uppercase text-dark border-bottom pb-1 mb-2 mt-3">Sample Crack-Out</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered table-sm sample-form-table">
+                            <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th></tr></thead>
+                            <tbody>
+                                <tr><td>Sound Kernel (Pre-Float Test)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleSoundKernelG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Unsound Kernel</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleUnsoundKernelG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Shell</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleShellG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td><strong>Total</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleCrackOutTotalG" step="0.01" readonly placeholder=""></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h6 class="text-uppercase text-dark border-bottom pb-1 mb-2 mt-3">Float Test</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered table-sm sample-form-table">
+                            <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th></tr></thead>
+                            <tbody>
+                                <tr><td>Floating Kernel (Wet)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleFloatingKernelG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Sinking Kernel (Wet)</td><td><input type="number" class="form-control form-control-sm text-end" id="sampleSinkingKernelG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td><strong>Total (Wet)</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleFloatTotalG" step="0.01" readonly placeholder=""></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h6 class="text-uppercase text-dark border-bottom pb-1 mb-2 mt-3">Unsound Kernel Breakdown</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered table-sm sample-form-table">
+                            <thead class="table-light"><tr><th>Description</th><th class="text-end" style="width: 140px;">Weight (g)</th></tr></thead>
+                            <tbody>
+                                <tr><td>Germination</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleGerminationG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Late Stinkbug</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleLateStinkbugG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Early Stinkbug</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleEarlyStinkbugG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Dark Centre</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleDarkCentreG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Mould</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleMouldG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Rotten</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleRottenG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Immature Split</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleImmatureSplitG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Shrivelled</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleShrivelledG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td>Nut Borer</td><td><input type="number" class="form-control form-control-sm text-end js-unsound-weight" id="sampleNutBorerG" step="0.01" min="0" placeholder=""></td></tr>
+                                <tr><td><strong>Total</strong></td><td><input type="number" class="form-control form-control-sm text-end bg-light" id="sampleUnsoundTotalG" step="0.01" readonly placeholder=""></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
