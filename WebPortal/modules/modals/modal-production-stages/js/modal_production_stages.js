@@ -82,7 +82,6 @@ function deriveSummaryFromStages(cracking_data, washing_data, sorting_data, pack
         sort_sound_qty: num(s.sound_qty),
         sort_sinker_in: num(s.sinker_qty_in),
         sort_butterlow_qty: num(s.butterlow_qty),
-        sort_butterhigh_qty: num(s.butterhigh_qty),
         sort_oil_waste: num(s.oil_qty),
         sort_compost_waste: num(s.compost_qty),
         pack_sound_qty: num(p.sk_total_qty),
