@@ -370,9 +370,16 @@ var _stockManagementGrid = function () {
         },
 
         clearDispatchDraft: function () {
+            var scope = _stockManagementGrid;
             try {
                 localStorage.removeItem('kernel_dispatch_draft');
             } catch (e) {}
+            scope.dispatchSelectedLines = [];
+            scope.dispatchOrderDetails = {};
+            scope.renderKernelStockByStyle();
+            scope.renderDispatchSelectedList();
+            var summary = document.getElementById('dispatchSelectedSummary');
+            if (summary) summary.style.display = 'none';
         },
 
         restoreDispatchDraft: function () {

@@ -1,0 +1,155 @@
+<div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="kernelDispatchFormModalLabel">Inspection of Vehicle &amp; Dispatch</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="kernelDispatchFormForm">
+                <input type="hidden" id="kernelDispatchFormOrderId" value="">
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Inspection of Vehicle</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Is the vehicle clean?</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="vehicleClean" id="dispatchVehicleCleanYes" value="Yes">
+                                            <label class="form-check-label" for="dispatchVehicleCleanYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="vehicleClean" id="dispatchVehicleCleanNo" value="No">
+                                            <label class="form-check-label" for="dispatchVehicleCleanNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Vehicle fully enclosed?</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="vehicleEnclosed" id="dispatchVehicleEnclosedYes" value="Yes">
+                                            <label class="form-check-label" for="dispatchVehicleEnclosedYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="vehicleEnclosed" id="dispatchVehicleEnclosedNo" value="No">
+                                            <label class="form-check-label" for="dispatchVehicleEnclosedNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Any hazard substances noted on truck?</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="hazardSubstances" id="dispatchHazardYes" value="Yes">
+                                            <label class="form-check-label" for="dispatchHazardYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="hazardSubstances" id="dispatchHazardNo" value="No">
+                                            <label class="form-check-label" for="dispatchHazardNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Any signs of pest infestations?</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="pestInfestations" id="dispatchPestYes" value="Yes">
+                                            <label class="form-check-label" for="dispatchPestYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="pestInfestations" id="dispatchPestNo" value="No">
+                                            <label class="form-check-label" for="dispatchPestNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Pallets loaded are in good condition and identified</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="palletsCondition" id="dispatchPalletsYes" value="Yes">
+                                            <label class="form-check-label" for="dispatchPalletsYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="palletsCondition" id="dispatchPalletsNo" value="No">
+                                            <label class="form-check-label" for="dispatchPalletsNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Truck bin locked before departing?</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="truckBinLocked" id="dispatchTruckBinYes" value="Yes">
+                                            <label class="form-check-label" for="dispatchTruckBinYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="truckBinLocked" id="dispatchTruckBinNo" value="No">
+                                            <label class="form-check-label" for="dispatchTruckBinNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Dispatch</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="dispatchPerson" class="form-label">Dispatch Person</label>
+                                    <input type="text" class="form-control" id="dispatchPerson" placeholder="Name">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="dispatchTransportCompany" class="form-label">Transport company</label>
+                                    <input type="text" class="form-control" id="dispatchTransportCompany" placeholder="Company name">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="dispatchDeliveryNote" class="form-label">Delivery note / invoice Number</label>
+                                    <input type="text" class="form-control" id="dispatchDeliveryNote" placeholder="Number">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="dispatchDateDispatched" class="form-label">Date dispatched</label>
+                                    <input type="text" class="form-control flatpickr-date" id="dispatchDateDispatched" placeholder="dd/mm/yyyy" data-input>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="dispatchTruckReg" class="form-label">Truck Registration</label>
+                                    <input type="text" class="form-control" id="dispatchTruckReg" placeholder="Registration">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="dispatchDriverName" class="form-label">Driver's name</label>
+                                    <input type="text" class="form-control" id="dispatchDriverName" placeholder="Name">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="dispatchTime" class="form-label">Time</label>
+                                    <input type="time" class="form-control" id="dispatchTime">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="dispatchDispatchedTo" class="form-label">Dispatched to</label>
+                                    <input type="text" class="form-control" id="dispatchDispatchedTo" placeholder="Customer / buyer">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="dispatchSignature" class="form-label">Dispatch signature</label>
+                                    <input type="text" class="form-control" id="dispatchSignature" placeholder="Name">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-success" id="kernelDispatchFormSubmitBtn"><i class="fas fa-truck me-1"></i>Save &amp; dispatch</button>
+        </div>
+    </div>
+</div>
