@@ -64,6 +64,12 @@ var _modal_grower_create_kernel_batch = (function () {
             var wetNis = parseFloat(document.getElementById('intakeBatchWetNis') && document.getElementById('intakeBatchWetNis').value, 10);
             var supplierEl = document.getElementById('intakeBatchGrower');
             var supplierId = supplierEl && supplierEl.value ? supplierEl.value : null;
+            var growerName = null;
+            if (supplierEl && supplierEl.selectedIndex >= 0) {
+                var opt = supplierEl.options[supplierEl.selectedIndex];
+                if (opt && opt.text) growerName = opt.text.trim();
+            }
+            if (growerName === '' || growerName === 'Select (optional)') growerName = null;
 
             if (!batchNumber || !receivedDate || !wetNis || wetNis <= 0) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch number, received date and wet NIS (kg) are required.', 'error');
@@ -76,7 +82,7 @@ var _modal_grower_create_kernel_batch = (function () {
                     p_received_date: receivedDate,
                     p_wet_nis_received_kg: wetNis,
                     p_supplier_id: supplierId || undefined,
-                    p_grower_name: undefined,
+                    p_grower_name: growerName || undefined,
                     p_batch_type: 'kernel',
                     p_status: 'receiving',
                     p_current_step: 1

@@ -24,4 +24,7 @@ dist/
 build/
 *.log
 
+# E2E test results (local artifacts only)
+e2e/test-results/
+
 nul
