@@ -1,9 +1,16 @@
-/* Oil Production Grid Module – follows UI_DESIGN_INSTRUCTIONS.md */
+/* Oil Production Grid – aligned with kernel-production and UI_DESIGN_INSTRUCTIONS.md */
 .module-content { min-height: 400px; }
 
-#oilBatchesTable th { border-top: none; font-weight: 600; }
+/* Status filter dropdown – primary border */
+#filterOilBatchStatus.form-select {
+    border-color: var(--forest-deep, var(--phoenix-primary));
+}
+#filterOilBatchStatus.form-select:focus {
+    border-color: var(--forest-deep, var(--phoenix-primary));
+    box-shadow: 0 0 0 0.2rem rgba(0, 137, 80, 0.25);
+}
 
-/* Clickable row */
+#oilBatchesTable th { border-top: none; font-weight: 600; }
 #oilBatchesTable tbody tr.js-oil-batch-row { cursor: pointer; }
 
 /* First column (batch number) as primary link */
@@ -15,7 +22,7 @@
     text-decoration: underline;
 }
 
-/* Actions column: centered, single dropdown with ellipsis */
+/* Actions column: center-aligned, square ellipsis button (match kernel) */
 #oilBatchesTable td:last-child { text-align: center; }
 #oilBatchesTable td:last-child .dropdown { display: inline-block; }
 #oilBatchesTable td:last-child .dropdown .btn {
@@ -26,31 +33,43 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0;
+    border-radius: var(--phoenix-border-radius, 0.25rem);
+    background-color: transparent;
+    border: 2px solid var(--forest-deep, var(--phoenix-primary));
+    color: var(--forest-deep, var(--phoenix-primary));
+}
+#oilBatchesTable td:last-child .dropdown .btn:hover,
+#oilBatchesTable td:last-child .dropdown .btn.show {
+    background-color: var(--forest-deep, var(--phoenix-primary));
+    border-color: var(--forest-deep, var(--phoenix-primary));
+    color: #fff;
 }
 #oilBatchesTable td:last-child .dropdown .btn i { color: inherit; }
 
-/* Prevent dropdown from being clipped: table and table-responsive must allow overflow */
+/* Prevent dropdown from being clipped */
 .oil-production-grid-card .table-responsive { overflow: visible; }
 .oil-production-grid-card .card-body { overflow: visible; }
 .oil-production-grid-card #oilBatchesTable {
     min-width: 640px;
-    overflow: visible !important; /* override index.css .table { overflow: hidden } */
+    overflow: visible !important;
 }
 .oil-production-grid-card #oilBatchesTable tbody tr td { overflow: visible; }
 
-/* Ensure Actions dropdown menu and items are visible */
+/* Dropdown menu */
 #oilBatchesTable .dropdown-menu {
     z-index: 1060;
-    background-color: #fff;
+    background-color: var(--phoenix-body-bg, #fff);
     border: 1px solid rgba(0, 0, 0, 0.15);
 }
 #oilBatchesTable .dropdown-item {
-    color: #212529;
+    color: var(--phoenix-body-color, #212529);
     display: block;
     padding: 0.5rem 1rem;
 }
 #oilBatchesTable .dropdown-item:hover {
     background-color: rgba(0, 0, 0, 0.08);
     color: #212529;
+}
+#oilBatchesTable .dropdown-item.text-muted {
+    cursor: default;
 }

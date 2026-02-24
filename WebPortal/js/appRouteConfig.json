@@ -189,7 +189,7 @@
             "path": "modals/modal-supplier-new-batch",
             "html": "html/modal_new_batch.html",
             "js": ["js/modal_new_batch.js"],
-            "css": []
+            "css": ["css/modal_new_batch.css"]
         },
         "kernel-production-grid": {
             "description": "Kernel Production Workflow",

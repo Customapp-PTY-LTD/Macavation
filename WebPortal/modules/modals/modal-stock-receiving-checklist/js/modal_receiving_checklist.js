@@ -1,8 +1,46 @@
 /**
  * Modal: Incoming Receiving Checklist. Parent calls show().
+ * Date inputs use Flatpickr (dd/mm/yyyy), same as grower intake; API expects ISO (yyyy-mm-dd).
  */
 var _modal_stock_receiving_checklist = (function () {
     'use strict';
+
+    var CONTAINER_ID = 'receivingChecklistModal';
+    var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+
+    function toISO(dateStr) {
+        if (!dateStr || typeof dateStr !== 'string') return null;
+        dateStr = dateStr.trim();
+        if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) return dateStr.indexOf('-') === 4 ? dateStr : null;
+        var parts = dateStr.split('/');
+        return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+    }
+
+    function fromISO(isoStr) {
+        if (!isoStr) return '';
+        var s = typeof isoStr === 'string' ? isoStr.trim() : String(isoStr);
+        if (s.indexOf('T') >= 0) s = s.split('T')[0];
+        var parts = s.split('-');
+        if (parts.length !== 3) return s;
+        return parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+
+    function getTodayPlaceholder() {
+        return fromISO(new Date().toISOString().split('T')[0]);
+    }
+
+    function initFlatpickrInModal() {
+        var container = document.getElementById(CONTAINER_ID);
+        if (!container || typeof flatpickr === 'undefined') return;
+        var todayPlaceholder = getTodayPlaceholder();
+        var inputs = container.querySelectorAll('.flatpickr-date');
+        inputs.forEach(function (el) {
+            if (!el.placeholder) el.placeholder = todayPlaceholder;
+            if (el._flatpickr) return;
+            flatpickr(el, FLATPICKR_DDMMYYYY);
+        });
+    }
+
     var api = {
         init: function () {
             var scope = api;
@@ -11,15 +49,30 @@ var _modal_stock_receiving_checklist = (function () {
             var addRowBtn = document.getElementById('addReceivedItemRow');
             if (addRowBtn) addRowBtn.addEventListener('click', function () { scope.addReceivedItemRow(); });
             $(document).on('click', '.removeItemRow', function () { $(this).closest('tr').remove(); });
+            var container = document.getElementById(CONTAINER_ID);
+            if (container && typeof $ !== 'undefined') {
+                $(container).on('shown.bs.modal', function () { initFlatpickrInModal(); });
+            }
         },
 
-        show: async function () {
+        show: async function (batch) {
             if (typeof $ !== 'undefined') {
                 $('#receivingChecklistModalLabel').text('Incoming Receiving Checklist');
                 $('#receivingId').val('');
                 api.clearReceivingForm();
-                var today = new Date().toISOString().split('T')[0];
-                $('#dateReceived').val(today);
+                var todayISO = new Date().toISOString().split('T')[0];
+                $('#dateReceived').val(fromISO(todayISO));
+                if (batch) {
+                    if (batch.date_received) {
+                        var d = batch.date_received;
+                        var dateStr = typeof d === 'string' ? d.split('T')[0] : (d && d.toISOString ? d.toISOString().split('T')[0] : '');
+                        if (dateStr) $('#dateReceived').val(fromISO(dateStr));
+                    }
+                    if (batch.delivery_note_ref) {
+                        var noteEl = document.getElementById('deliveryNoteRef');
+                        if (noteEl) noteEl.value = batch.delivery_note_ref;
+                    }
+                }
             }
 
             try {
@@ -31,7 +84,8 @@ var _modal_stock_receiving_checklist = (function () {
                         if (contacts && Array.isArray(contacts)) {
                             contacts.forEach(function (contact) {
                                 var name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
-                                html += '<option value="' + contact.id + '">' + name + '</option>';
+                                var selected = batch && batch.supplier_id && String(contact.id) === String(batch.supplier_id) ? ' selected' : '';
+                                html += '<option value="' + contact.id + '"' + selected + '>' + name + '</option>';
                             });
                         }
                         select.innerHTML = html;
@@ -52,20 +106,27 @@ var _modal_stock_receiving_checklist = (function () {
             $('#receivingId').val('');
             $('#receivedItemsTableBody tr:not(:first)').remove();
             $('#receivedItemsTableBody tr:first input').val('');
+            var todayISO = new Date().toISOString().split('T')[0];
+            $('#dateReceived').val(fromISO(todayISO));
         },
 
         addReceivedItemRow: function () {
             if (typeof $ === 'undefined') return;
+            var todayPlaceholder = getTodayPlaceholder();
             var newRow = '<tr>' +
                 '<td><input type="text" class="form-control form-control-sm" name="reference"></td>' +
                 '<td><input type="text" class="form-control form-control-sm" name="description"></td>' +
                 '<td><input type="text" class="form-control form-control-sm" name="batch"></td>' +
                 '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01"></td>' +
-                '<td><input type="date" class="form-control form-control-sm" name="manufacturedDate"></td>' +
-                '<td><input type="date" class="form-control form-control-sm" name="bestBeforeDate"></td>' +
+                '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="' + todayPlaceholder + '"></td>' +
+                '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="bestBeforeDate" placeholder="' + todayPlaceholder + '"></td>' +
                 '<td><button type="button" class="btn btn-sm btn-danger removeItemRow"><i class="fas fa-times"></i></button></td>' +
                 '</tr>';
-            $('#receivedItemsTableBody').append(newRow);
+            var $row = $(newRow);
+            $('#receivedItemsTableBody').append($row);
+            $row.find('.flatpickr-date').each(function () {
+                if (typeof flatpickr !== 'undefined' && !this._flatpickr) flatpickr(this, FLATPICKR_DDMMYYYY);
+            });
         },
 
         saveReceivingChecklist: async function () {
@@ -85,23 +146,27 @@ var _modal_stock_receiving_checklist = (function () {
                         var description = $(this).find('input[name="description"]').val();
                         var batch = $(this).find('input[name="batch"]').val();
                         var quantity = $(this).find('input[name="quantity"]').val();
-                        var manufacturedDate = $(this).find('input[name="manufacturedDate"]').val();
-                        var bestBeforeDate = $(this).find('input[name="bestBeforeDate"]').val();
+                        var manufacturedDateRaw = $(this).find('input[name="manufacturedDate"]').val();
+                        var bestBeforeDateRaw = $(this).find('input[name="bestBeforeDate"]').val();
+                        var manufacturedDate = manufacturedDateRaw ? (toISO(manufacturedDateRaw) || manufacturedDateRaw) : null;
+                        var bestBeforeDate = bestBeforeDateRaw ? (toISO(bestBeforeDateRaw) || bestBeforeDateRaw) : null;
                         if (reference || description || batch || quantity) {
                             receivedItems.push({
                                 reference: reference || null,
                                 description: description || null,
                                 batch: batch || null,
                                 quantity_kg: quantity ? parseFloat(quantity) : null,
-                                manufactured_date: manufacturedDate || null,
-                                best_before_date: bestBeforeDate || null
+                                manufactured_date: manufacturedDate,
+                                best_before_date: bestBeforeDate
                             });
                         }
                     });
                 }
 
+                var dateReceivedEl = document.getElementById('dateReceived');
+                var dateReceivedValue = dateReceivedEl && dateReceivedEl.value ? (toISO(dateReceivedEl.value) || dateReceivedEl.value) : null;
                 var receivingData = {
-                    p_date_received: document.getElementById('dateReceived') && document.getElementById('dateReceived').value,
+                    p_date_received: dateReceivedValue,
                     p_delivery_note_ref: document.getElementById('deliveryNoteRef') && document.getElementById('deliveryNoteRef').value,
                     p_supplier_id: document.getElementById('supplierDetails') && document.getElementById('supplierDetails').value,
                     p_vehicle_clean: document.querySelector('input[name="vehicleClean"]:checked') && document.querySelector('input[name="vehicleClean"]:checked').value || null,

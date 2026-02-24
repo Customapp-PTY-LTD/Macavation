@@ -106,7 +106,7 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <label for="dateReceived" class="form-label required">Date Received</label>
-                                <input type="date" class="form-control" id="dateReceived" required>
+                                <input type="text" class="form-control flatpickr-date" id="dateReceived" data-input required placeholder="dd/mm/yyyy">
                             </div>
                             <div class="col-md-4">
                                 <label for="deliveryNoteRef" class="form-label required">Delivery Note Reference/Number</label>
@@ -146,8 +146,8 @@
                                         <td><input type="text" class="form-control form-control-sm" name="description"></td>
                                         <td><input type="text" class="form-control form-control-sm" name="batch"></td>
                                         <td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01"></td>
-                                        <td><input type="date" class="form-control form-control-sm" name="manufacturedDate"></td>
-                                        <td><input type="date" class="form-control form-control-sm" name="bestBeforeDate"></td>
+                                        <td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy"></td>
+                                        <td><input type="text" class="form-control form-control-sm flatpickr-date" name="bestBeforeDate" placeholder="dd/mm/yyyy"></td>
                                         <td><button type="button" class="btn btn-sm btn-danger removeItemRow"><i class="fas fa-times"></i></button></td>
                                     </tr>
                                 </tbody>

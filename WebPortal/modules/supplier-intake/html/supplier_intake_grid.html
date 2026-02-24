@@ -1,24 +1,37 @@
-<!-- Supplier Intake: Oil & Protein (UI follows UI_DESIGN_INSTRUCTIONS.md) -->
+<!-- Supplier Intake: Oil & Protein (implementation aligned with grower-intake; UI follows UI_DESIGN_INSTRUCTIONS.md) -->
 <div class="module-content">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Supplier Intake</h1>
-        <div class="btn-toolbar mb-2 mb-md-0 ms-auto">
-            <button type="button" class="btn btn-primary me-2" id="addNewBatchProductBtn">
-                <i class="fas fa-plus me-1"></i>Add new batch of product
-            </button>
-            <button type="button" class="btn btn-outline-secondary" id="receivingChecklistBtn">
-                <i class="fas fa-clipboard-list me-1"></i>Incoming Receiving Checklist
-            </button>
+    <div class="pt-3 pb-2 mb-3 border-bottom">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
+            <h1 class="h2 mb-0">Supplier Intake</h1>
+            <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
+                <button type="button" class="btn btn-primary" id="addNewBatchProductBtn">
+                    <i class="fas fa-plus me-1"></i>Add new batch of product
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="exportSupplierIntakeBtn">
+                    <i class="fas fa-download me-1"></i>Export
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="refreshSupplierIntakeBtn">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
         </div>
+        <p class="text-muted mb-0 mt-2 small">Add batches of oil kernel, cracker dust, kernel dust, crush or cake. Use the Receiving Checklist for incoming goods; batches remain in supplier intake until released to production.</p>
     </div>
 
-    <!-- Filters -->
+    <!-- Search and Filters -->
     <div class="card mb-3">
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4">
                     <label for="searchSupplierIntakeInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchSupplierIntakeInput" placeholder="Search by batch #, supplier, delivery note...">
+                </div>
+                <div class="col-md-3">
+                    <label for="filterSupplierIntakeStatus" class="form-label">Status</label>
+                    <select class="form-select" id="filterSupplierIntakeStatus">
+                        <option value="">All Statuses</option>
+                        <option value="supplier_intake">Supplier intake</option>
+                    </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="button" class="btn btn-outline-secondary w-100" id="clearSupplierIntakeFiltersBtn">
@@ -29,29 +42,26 @@
         </div>
     </div>
 
-    <div class="card mb-4 supplier-intake-grid-card">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Batches in supplier intake</h5>
-            <button type="button" class="btn btn-sm btn-primary" id="refreshSupplierIntakeBtn"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-sm table-hover" id="supplierIntakeBatchesTable">
+    <div class="card mb-4 border-primary">
+        <div class="card-body p-2 p-md-3">
+            <div class="table-responsive supplier-intake-table-responsive">
+                <table class="table table-hover" id="supplierIntakeBatchesTable">
                     <thead>
                         <tr>
-                            <th>Batch #</th>
-                            <th>Product type</th>
-                            <th>Date received</th>
-                            <th>Delivery note / PO</th>
-                            <th>Supplier</th>
-                            <th>Quantity (kg)</th>
-                            <th>Mfg / Best before</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th class="supplier-intake-col-batch">Batch #</th>
+                            <th class="supplier-intake-col-product d-none d-md-table-cell">Product type</th>
+                            <th class="supplier-intake-col-date">Date received</th>
+                            <th class="supplier-intake-col-note d-none d-lg-table-cell">Delivery note / PO</th>
+                            <th class="supplier-intake-col-supplier">Supplier</th>
+                            <th class="supplier-intake-col-qty d-none d-sm-table-cell">Quantity (kg)</th>
+                            <th class="supplier-intake-col-mfg d-none d-lg-table-cell">Mfg / Best before</th>
+                            <th class="supplier-intake-col-receiving">Receiving</th>
+                            <th class="supplier-intake-col-status">Status</th>
+                            <th class="supplier-intake-col-actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="supplierIntakeBatchesTableBody">
-                        <tr><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Loading…</td></tr>
+                        <tr><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Loading…</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -59,8 +69,6 @@
     </div>
 </div>
 
-<!-- New batch of product modal (content loaded by route new-batch-modal) -->
-<div class="modal fade" id="newBatchProductModal" tabindex="-1" role="dialog" aria-labelledby="newBatchProductModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" route-name="new-batch-modal"></div>
-
-<!-- Incoming Receiving Checklist (content loaded by route receiving-checklist-modal) -->
-<div class="modal fade" id="receivingChecklistModal" tabindex="-1" role="dialog" aria-labelledby="receivingChecklistModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" route-name="receiving-checklist-modal"></div>
+<!-- Modal containers (content loaded by app router) -->
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="newBatchProductModal" role="dialog" route-name="new-batch-modal" tabindex="-1" aria-labelledby="newBatchProductModalLabel" aria-hidden="true"></div>
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="receivingChecklistModal" role="dialog" route-name="receiving-checklist-modal" tabindex="-1" aria-labelledby="receivingChecklistModalLabel" aria-hidden="true"></div>

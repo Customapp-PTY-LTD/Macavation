@@ -1,4 +1,4 @@
-<!-- Oil Production Grid Module (UI follows UI_DESIGN_INSTRUCTIONS.md) -->
+<!-- Oil Production Grid Module (implementation aligned with kernel-production; UI follows UI_DESIGN_INSTRUCTIONS.md) -->
 <div class="module-content">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Oil Production Workflow</h1>
@@ -11,6 +11,32 @@
             </button>
         </div>
     </div>
+
+    <!-- Search and Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="searchOilBatchesInput" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="searchOilBatchesInput" placeholder="Search by batch number, product, or status...">
+                </div>
+                <div class="col-md-3">
+                    <label for="filterOilBatchStatus" class="form-label">Status</label>
+                    <select class="form-select" id="filterOilBatchStatus">
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" id="clearOilBatchFiltersBtn">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card mb-4 oil-production-grid-card">
         <div class="card-body">
             <div class="table-responsive">

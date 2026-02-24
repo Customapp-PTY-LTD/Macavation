@@ -1236,6 +1236,83 @@ var _dataFunctions = function () {
             return [];
         },
 
+        /**
+         * Release a supplier intake batch to oil production (updates batch status so it appears in Oil Production).
+         * Tries update_supplier_intake_batch first; falls back to update_production_batch if needed.
+         * @param {string} batchId - UUID id of the supplier intake batch (prefer batch.id from the grid)
+         * @param {object|null} batch - optional batch object { id, batch_number } for backend lookup
+         * @param {string|null} token - auth token (optional)
+         * @returns {Promise<object>} result from backend
+         */
+        releaseSupplierIntakeBatchToOilProduction: async function (batchId, batchOrToken, token = null) {
+            var batch = null;
+            if (batchOrToken && typeof batchOrToken === 'object' && !batchOrToken.substring) {
+                batch = batchOrToken;
+            } else if (batchOrToken && typeof batchOrToken === 'string') {
+                token = batchOrToken;
+            }
+            var isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(batchId));
+            var batchNumber = (batch && batch.batch_number != null) ? String(batch.batch_number) : (!isUuid ? String(batchId) : null);
+            var payload = { p_status: 'oil_production' };
+            if (isUuid) payload.p_batch_id = batchId;
+            if (batchNumber) payload.p_batch_number = batchNumber;
+            var result;
+            try {
+                result = await this.callFunction('update_supplier_intake_batch', payload, token, { useCache: false });
+            } catch (err) {
+                result = await this.updateProductionBatch(batchId, { status: 'oil_production' }, token);
+            }
+            var resolved = result && (result.data !== undefined ? result.data : result);
+            if (resolved && resolved.success !== false) {
+                this.clearCachePattern('supplier_intake');
+                this.clearCachePattern('oil_production');
+                this.clearCachePattern('production_batches');
+                return result;
+            }
+            if (resolved && (resolved.error || '').toLowerCase().indexOf('batch not found') >= 0 && batchNumber) {
+                var list = await this.getSupplierIntakeBatches('supplier_intake', token, true);
+                var found = list && list.find(function (b) {
+                    return (b.batch_number != null && String(b.batch_number) === batchNumber) || (b.id != null && String(b.id) === String(batchId));
+                });
+                if (found && found.id) {
+                    var updateResult = await this.updateProductionBatch(found.id, { status: 'oil_production' }, token);
+                    this.clearCachePattern('supplier_intake');
+                    this.clearCachePattern('oil_production');
+                    this.clearCachePattern('production_batches');
+                    var ok = updateResult && (updateResult.success !== false && (updateResult.data == null || updateResult.data.success !== false));
+                    return ok ? { success: true, id: found.id } : updateResult;
+                }
+            }
+            this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('oil_production');
+            this.clearCachePattern('production_batches');
+            return result;
+        },
+
+        /**
+         * Create a supplier intake batch (oil). Inserts into production_batches with batch_type 'oil', status 'supplier_intake'.
+         * Used by the Supplier Intake "Add new batch" modal.
+         * @param {object} data - { batch_number, quantity_kg, received_date, supplier_id, ... }
+         * @param {string|null} token - auth token (optional)
+         * @returns {Promise<object>} result from create_production_batch_simple
+         */
+        createSupplierIntakeBatch: async function (data, token = null) {
+            var payload = {
+                p_batch_number: data.batch_number || null,
+                p_received_date: data.received_date || data.date_received || null,
+                p_wet_nis_received_kg: data.quantity_kg != null ? data.quantity_kg : data.wet_nis_received_kg,
+                p_supplier_id: data.supplier_id || null,
+                p_batch_type: 'oil',
+                p_status: 'supplier_intake'
+            };
+            if (data.start_date != null) payload.p_start_date = data.start_date;
+            if (data.estimated_completion_date != null) payload.p_estimated_completion_date = data.estimated_completion_date;
+            var result = await this.callFunction('create_production_batch_simple', payload, token, { useCache: false });
+            this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('production_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
         // Quality Assurance Functions (cached for 1 minute)
         getQualityTests: async function (token = null, forceRefresh = false) {
             return await this.callFunction('get_quality_tests', {}, token, {

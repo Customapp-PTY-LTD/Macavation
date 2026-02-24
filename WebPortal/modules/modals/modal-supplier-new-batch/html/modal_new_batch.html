@@ -23,7 +23,7 @@
                             </div>
                             <div class="col-md-3">
                                 <label for="newBatchDateReceived" class="form-label required">Date received</label>
-                                <input type="date" class="form-control" id="newBatchDateReceived" required>
+                                <input type="text" class="form-control flatpickr-date" id="newBatchDateReceived" data-input required placeholder="dd/mm/yyyy">
                             </div>
                             <div class="col-md-3">
                                 <label for="newBatchDeliveryNoteRef" class="form-label">Delivery note reference / PO number</label>
@@ -43,37 +43,85 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Is the vehicle clean?</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchVehicleClean" id="newBatchVehicleCleanYes" value="Yes"><label class="form-check-label" for="newBatchVehicleCleanYes">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchVehicleClean" id="newBatchVehicleCleanNo" value="No"><label class="form-check-label" for="newBatchVehicleCleanNo">No</label></div>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchVehicleClean" id="newBatchVehicleCleanYes" value="Yes">
+                                            <label class="form-check-label" for="newBatchVehicleCleanYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchVehicleClean" id="newBatchVehicleCleanNo" value="No">
+                                            <label class="form-check-label" for="newBatchVehicleCleanNo">No</label>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Vehicle fully enclosed?</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchVehicleEnclosed" value="Yes"><label class="form-check-label">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchVehicleEnclosed" value="No"><label class="form-check-label">No</label></div>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchVehicleEnclosed" id="newBatchVehicleEnclosedYes" value="Yes">
+                                            <label class="form-check-label" for="newBatchVehicleEnclosedYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchVehicleEnclosed" id="newBatchVehicleEnclosedNo" value="No">
+                                            <label class="form-check-label" for="newBatchVehicleEnclosedNo">No</label>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Any hazard substances noted on truck?</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchHazardSubstances" value="Yes"><label class="form-check-label">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchHazardSubstances" value="No"><label class="form-check-label">No</label></div>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchHazardSubstances" id="newBatchHazardSubstancesYes" value="Yes">
+                                            <label class="form-check-label" for="newBatchHazardSubstancesYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchHazardSubstances" id="newBatchHazardSubstancesNo" value="No">
+                                            <label class="form-check-label" for="newBatchHazardSubstancesNo">No</label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Any signs of pest infestations?</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchPestInfestations" value="Yes"><label class="form-check-label">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchPestInfestations" value="No"><label class="form-check-label">No</label></div>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchPestInfestations" id="newBatchPestInfestationsYes" value="Yes">
+                                            <label class="form-check-label" for="newBatchPestInfestationsYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchPestInfestations" id="newBatchPestInfestationsNo" value="No">
+                                            <label class="form-check-label" for="newBatchPestInfestationsNo">No</label>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Pallets received are in good condition</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchPalletsCondition" value="Yes"><label class="form-check-label">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchPalletsCondition" value="No"><label class="form-check-label">No</label></div>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchPalletsCondition" id="newBatchPalletsConditionYes" value="Yes">
+                                            <label class="form-check-label" for="newBatchPalletsConditionYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchPalletsCondition" id="newBatchPalletsConditionNo" value="No">
+                                            <label class="form-check-label" for="newBatchPalletsConditionNo">No</label>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Are raw materials received in good condition?</label>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchRawMaterialsCondition" value="Yes"><label class="form-check-label">Yes</label></div>
-                                    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="newBatchRawMaterialsCondition" value="No"><label class="form-check-label">No</label></div>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchRawMaterialsCondition" id="newBatchRawMaterialsConditionYes" value="Yes">
+                                            <label class="form-check-label" for="newBatchRawMaterialsConditionYes">Yes</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="newBatchRawMaterialsCondition" id="newBatchRawMaterialsConditionNo" value="No">
+                                            <label class="form-check-label" for="newBatchRawMaterialsConditionNo">No</label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -92,8 +140,8 @@
                             <div class="col-md-2"><label for="newBatchBatchNumber" class="form-label">Batch</label><input type="text" class="form-control form-control-sm" id="newBatchBatchNumber"></div>
                             <div class="col-md-2"><label for="newBatchCartonBags" class="form-label">Carton / bulk bags</label><input type="number" class="form-control form-control-sm" id="newBatchCartonBags" value="1" min="1"></div>
                             <div class="col-md-2"><label for="newBatchQuantityKg" class="form-label">Quantity (kg)</label><input type="number" class="form-control form-control-sm" id="newBatchQuantityKg" step="0.01" min="0"></div>
-                            <div class="col-md-2"><label for="newBatchManufacturedDate" class="form-label">Manufactured date</label><input type="date" class="form-control form-control-sm" id="newBatchManufacturedDate"></div>
-                            <div class="col-md-2"><label for="newBatchBestBeforeDate" class="form-label">Best before date</label><input type="date" class="form-control form-control-sm" id="newBatchBestBeforeDate"></div>
+                            <div class="col-md-2"><label for="newBatchManufacturedDate" class="form-label">Manufactured date</label><input type="text" class="form-control form-control-sm flatpickr-date" id="newBatchManufacturedDate" placeholder="dd/mm/yyyy"></div>
+                            <div class="col-md-2"><label for="newBatchBestBeforeDate" class="form-label">Best before date</label><input type="text" class="form-control form-control-sm flatpickr-date" id="newBatchBestBeforeDate" placeholder="dd/mm/yyyy"></div>
                         </div>
                     </div>
                 </div>

@@ -1,21 +1,74 @@
-/* Supplier Intake – follows UI_DESIGN_INSTRUCTIONS.md */
+/* Supplier Intake Grid – aligned with grower-intake and UI_DESIGN_INSTRUCTIONS.md */
 .module-content { min-height: 400px; }
 
 #supplierIntakeBatchesTable th { border-top: none; font-weight: 600; }
 
-/* Clickable row */
 #supplierIntakeBatchesTable tbody tr.js-supplier-intake-row { cursor: pointer; }
 
 /* First column (Batch #) as primary link */
 #supplierIntakeBatchesTable .js-supplier-intake-row td:first-child {
-    color: var(--phoenix-primary);
+    color: var(--phoenix-primary, #0d6efd);
     font-weight: 500;
 }
 #supplierIntakeBatchesTable .js-supplier-intake-row:hover td:first-child {
     text-decoration: underline;
 }
 
+/* Clickable batch number link */
+.supplier-intake-batch-number-link {
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    color: var(--phoenix-primary, #0d6efd);
+}
+.supplier-intake-batch-number-link:hover {
+    text-decoration: underline;
+    color: var(--phoenix-primary, #0d6efd);
+}
+.supplier-intake-col-batch { overflow: visible !important; }
+
+/* Receiving column: checklist button per row (aligned with grower Stage 1 steps) */
+.supplier-intake-receiving-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+    white-space: nowrap;
+}
+.supplier-intake-step-btn {
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.6rem;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: center;
+    min-height: 2rem;
+}
+.supplier-intake-step-btn .supplier-intake-btn-text {
+    display: inline;
+}
+.supplier-intake-col-receiving { width: 1%; white-space: nowrap; }
+
+/* Table scroll container */
+.supplier-intake-table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+}
+@media (min-width: 768px) {
+    .supplier-intake-table-responsive { margin-left: 0; margin-right: 0; }
+}
+
+#supplierIntakeBatchesTable {
+    margin-bottom: 0;
+    min-width: 620px;
+}
+
 /* Actions column: centered, single dropdown with ellipsis */
+.supplier-intake-col-actions { width: 1%; text-align: center; overflow: visible !important; }
+.supplier-intake-col-batch { min-width: 6rem; }
+.supplier-intake-col-date { min-width: 5.5rem; }
+
 #supplierIntakeBatchesTable td:last-child { text-align: center; }
 #supplierIntakeBatchesTable td:last-child .dropdown { display: inline-block; }
 #supplierIntakeBatchesTable td:last-child .dropdown .btn {
@@ -30,27 +83,74 @@
 }
 #supplierIntakeBatchesTable td:last-child .dropdown .btn i { color: inherit; }
 
-/* Prevent dropdown from being clipped */
-.supplier-intake-grid-card .table-responsive { overflow: visible; }
-.supplier-intake-grid-card .card-body { overflow: visible; }
-.supplier-intake-grid-card #supplierIntakeBatchesTable {
-    min-width: 720px;
-    overflow: visible !important;
-}
-.supplier-intake-grid-card #supplierIntakeBatchesTable tbody tr td { overflow: visible; }
-
-/* Ensure Actions dropdown menu and items are visible */
-#supplierIntakeBatchesTable .dropdown-menu {
+/* Dropdown menu (when in table and when moved to body to avoid clipping) */
+#supplierIntakeBatchesTable .dropdown-menu,
+.supplier-intake-actions-menu {
     z-index: 1060;
-    background-color: #fff;
+    background-color: var(--phoenix-body-bg, #fff);
     border: 1px solid rgba(0, 0, 0, 0.15);
 }
 #supplierIntakeBatchesTable .dropdown-item {
-    color: #212529;
+    color: var(--phoenix-body-color, #212529);
     display: block;
     padding: 0.5rem 1rem;
 }
 #supplierIntakeBatchesTable .dropdown-item:hover {
     background-color: rgba(0, 0, 0, 0.08);
-    color: #212529;
+}
+#supplierIntakeBatchesTable .dropdown-item.text-muted,
+.supplier-intake-actions-menu .dropdown-item.text-muted {
+    cursor: default;
+}
+.supplier-intake-actions-menu .dropdown-item {
+    color: var(--phoenix-body-color, #212529);
+    display: block;
+    padding: 0.5rem 1rem;
+}
+.supplier-intake-actions-menu .dropdown-item:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    #supplierIntakeBatchesTable {
+        font-size: 0.875rem;
+        min-width: 480px;
+    }
+    #supplierIntakeBatchesTable th,
+    #supplierIntakeBatchesTable td {
+        padding: 0.4rem 0.5rem;
+        vertical-align: middle;
+    }
+}
+
+@media (max-width: 767px) {
+    .module-content .card-body { padding: 0.5rem !important; }
+    #supplierIntakeBatchesTable {
+        font-size: 0.8125rem;
+        min-width: 520px;
+    }
+    #supplierIntakeBatchesTable th,
+    #supplierIntakeBatchesTable td {
+        padding: 0.35rem 0.4rem;
+    }
+    .supplier-intake-col-batch { min-width: 5rem; }
+    .supplier-intake-col-date { min-width: 4.5rem; }
+    .supplier-intake-step-btn {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.4rem;
+        min-height: 1.75rem;
+    }
+    .supplier-intake-step-btn i { margin-right: 0.2rem !important; }
+}
+
+@media (max-width: 480px) {
+    #supplierIntakeBatchesTable { min-width: 420px; }
+    .supplier-intake-step-btn .supplier-intake-btn-text {
+        display: none;
+    }
+    .supplier-intake-step-btn {
+        padding: 0.4rem 0.5rem;
+        min-width: 2.25rem;
+    }
 }

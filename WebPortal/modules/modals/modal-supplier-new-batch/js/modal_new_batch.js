@@ -1,29 +1,73 @@
 /**
  * Modal: New batch of product (Supplier Intake). Parent calls show(); modal owns init, show, clearForm, save.
+ * Date inputs use Flatpickr (dd/mm/yyyy), same as grower intake; API expects ISO (yyyy-mm-dd).
  */
 var _modal_supplier_new_batch = (function () {
     'use strict';
+
+    var CONTAINER_ID = 'newBatchProductModal';
+    var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+
+    function toISO(dateStr) {
+        if (!dateStr || typeof dateStr !== 'string') return null;
+        dateStr = dateStr.trim();
+        if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) return dateStr.indexOf('-') === 4 ? dateStr : null;
+        var parts = dateStr.split('/');
+        return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+    }
+
+    function fromISO(isoStr) {
+        if (!isoStr) return '';
+        var s = typeof isoStr === 'string' ? isoStr.trim() : String(isoStr);
+        if (s.indexOf('T') >= 0) s = s.split('T')[0];
+        var parts = s.split('-');
+        if (parts.length !== 3) return s;
+        return parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+
+    function getTodayPlaceholder() {
+        return fromISO(new Date().toISOString().split('T')[0]);
+    }
+
+    function initFlatpickrInModal() {
+        var container = document.getElementById(CONTAINER_ID);
+        if (!container || typeof flatpickr === 'undefined') return;
+        var todayPlaceholder = getTodayPlaceholder();
+        var inputs = container.querySelectorAll('.flatpickr-date');
+        inputs.forEach(function (el) {
+            if (!el.placeholder) el.placeholder = todayPlaceholder;
+            if (el._flatpickr) return;
+            flatpickr(el, FLATPICKR_DDMMYYYY);
+        });
+    }
 
     function getRadioValue(name) {
         var el = document.querySelector('input[name="' + name + '"]:checked');
         return el ? el.value : null;
     }
 
+    function getDateValue(el) {
+        if (!el || !el.value) return null;
+        var val = el.value.trim();
+        return toISO(val) || (val.indexOf('-') === 4 ? val : null);
+    }
+
     var api = {
         init: function () {
             var saveBtn = document.getElementById('saveNewBatchProductBtn');
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
-            var modalEl = document.getElementById('newBatchProductModal');
+            var modalEl = document.getElementById(CONTAINER_ID);
             if (modalEl && typeof $ !== 'undefined') {
                 $(modalEl).on('hidden.bs.modal', function () { api.clearForm(); });
+                $(modalEl).on('shown.bs.modal', function () { initFlatpickrInModal(); });
             }
         },
 
         show: async function () {
             api.clearForm();
-            var today = new Date().toISOString().split('T')[0];
+            var todayISO = new Date().toISOString().split('T')[0];
             var dateEl = document.getElementById('newBatchDateReceived');
-            if (dateEl) dateEl.value = today;
+            if (dateEl) dateEl.value = fromISO(todayISO);
 
             try {
                 if (typeof dataFunctions !== 'undefined' && dataFunctions.getContacts) {
@@ -52,9 +96,9 @@ var _modal_supplier_new_batch = (function () {
             if (form) form.reset();
             var cartonEl = document.getElementById('newBatchCartonBags');
             if (cartonEl) cartonEl.value = '1';
-            var today = new Date().toISOString().split('T')[0];
+            var todayISO = new Date().toISOString().split('T')[0];
             var dateEl = document.getElementById('newBatchDateReceived');
-            if (dateEl) dateEl.value = today;
+            if (dateEl) dateEl.value = fromISO(todayISO);
         },
 
         save: async function () {
@@ -68,9 +112,12 @@ var _modal_supplier_new_batch = (function () {
             var supplierDetails = null;
             if (supplierEl && supplierEl.options[supplierEl.selectedIndex]) supplierDetails = supplierEl.options[supplierEl.selectedIndex].text || null;
 
+            var dateReceivedEl = document.getElementById('newBatchDateReceived');
+            var manufacturedEl = document.getElementById('newBatchManufacturedDate');
+            var bestBeforeEl = document.getElementById('newBatchBestBeforeDate');
             var data = {
                 product_type: document.getElementById('newBatchProductType').value,
-                date_received: document.getElementById('newBatchDateReceived').value,
+                date_received: getDateValue(dateReceivedEl) || (dateReceivedEl && dateReceivedEl.value ? dateReceivedEl.value : null),
                 delivery_note_ref: document.getElementById('newBatchDeliveryNoteRef').value || null,
                 supplier_id: supplierId || null,
                 supplier_details: supplierDetails || null,
@@ -86,8 +133,8 @@ var _modal_supplier_new_batch = (function () {
                 batch_number: document.getElementById('newBatchBatchNumber').value || null,
                 carton_bulk_bags: parseInt(document.getElementById('newBatchCartonBags').value, 10) || 1,
                 quantity_kg: parseFloat(document.getElementById('newBatchQuantityKg').value, 10) || null,
-                manufactured_date: document.getElementById('newBatchManufacturedDate').value || null,
-                best_before_date: document.getElementById('newBatchBestBeforeDate').value || null
+                manufactured_date: getDateValue(manufacturedEl) || (manufacturedEl && manufacturedEl.value ? manufacturedEl.value : null),
+                best_before_date: getDateValue(bestBeforeEl) || (bestBeforeEl && bestBeforeEl.value ? bestBeforeEl.value : null)
             };
 
             try {
