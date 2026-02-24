@@ -40,7 +40,7 @@
                             </div>
                             <div class="col-md-3">
                                 <label for="jobCardReceivedDate" class="form-label required">Received Date</label>
-                                <input type="date" class="form-control" id="jobCardReceivedDate" required>
+                                <input type="text" class="form-control flatpickr-date" id="jobCardReceivedDate" data-input placeholder="dd/mm/yyyy" required>
                             </div>
                             <div class="col-md-3">
                                 <label for="jobCardSupplierName" class="form-label">Supplier Name (if not in list)</label>
@@ -105,15 +105,15 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <label for="jobCardPackingStartDate" class="form-label">Start Date</label>
-                                <input type="date" class="form-control" id="jobCardPackingStartDate">
+                                <input type="text" class="form-control flatpickr-date" id="jobCardPackingStartDate" data-input placeholder="dd/mm/yyyy">
                             </div>
                             <div class="col-md-4">
                                 <label for="jobCardPackingCompletionDate" class="form-label">Completion Date</label>
-                                <input type="date" class="form-control" id="jobCardPackingCompletionDate">
+                                <input type="text" class="form-control flatpickr-date" id="jobCardPackingCompletionDate" data-input placeholder="dd/mm/yyyy">
                             </div>
                             <div class="col-md-4">
                                 <label for="jobCardBestBeforeDate" class="form-label">Best Before Date</label>
-                                <input type="date" class="form-control" id="jobCardBestBeforeDate">
+                                <input type="text" class="form-control flatpickr-date" id="jobCardBestBeforeDate" data-input placeholder="dd/mm/yyyy" readonly>
                             </div>
                         </div>
                     </div>
@@ -227,10 +227,6 @@
                             <div class="col-md-3">
                                 <label for="jobCardWasteOilKernel" class="form-label">Oil Kernel (kg)</label>
                                 <input type="number" class="form-control" id="jobCardWasteOilKernel" step="0.01">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="jobCardWasteSaltPepper" class="form-label">Salt & Pepper (kg)</label>
-                                <input type="number" class="form-control" id="jobCardWasteSaltPepper" step="0.01">
                             </div>
                             <div class="col-md-3">
                                 <label for="jobCardWasteShellFines" class="form-label">Shell Fines (kg)</label>

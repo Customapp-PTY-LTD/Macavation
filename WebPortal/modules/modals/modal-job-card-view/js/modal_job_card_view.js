@@ -37,7 +37,7 @@ var _modal_job_card_view = function () {
                 } else {
                     html += '<div class="card mb-2"><div class="card-header py-1"><strong>Butter grade</strong></div><div class="card-body py-2">Total cartons: ' + fmt(jc.butter_grade_total_cartons) + ' &nbsp; Total kg: ' + fmt(jc.butter_grade_total_kg) + '</div></div>';
                 }
-                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Waste (kg)</strong></div><div class="card-body py-2">Oil kernel: ' + fmt(jc.waste_oil_kernel_kg) + ' &nbsp; Salt/pepper: ' + fmt(jc.waste_salt_pepper_kg) + ' &nbsp; Shell fines: ' + fmt(jc.waste_shell_fines_kg) + ' &nbsp; Compost: ' + fmt(jc.waste_compost_kg) + ' &nbsp; Shell: ' + fmt(jc.waste_shell_kg) + '</div></div>';
+                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Waste (kg)</strong></div><div class="card-body py-2">Oil kernel: ' + fmt(jc.waste_oil_kernel_kg) + ' &nbsp; Shell fines: ' + fmt(jc.waste_shell_fines_kg) + ' &nbsp; Compost: ' + fmt(jc.waste_compost_kg) + ' &nbsp; Shell: ' + fmt(jc.waste_shell_kg) + '</div></div>';
                 html += '<div class="card mb-2"><div class="card-header py-1"><strong>Mass balance</strong></div><div class="card-body py-2">In: ' + fmt(jc.mass_balance_in_kg) + ' kg &nbsp; Out: ' + fmt(jc.mass_balance_out_kg) + ' kg &nbsp; Balance: ' + fmt(jc.mass_balance_percentage) + '%</div></div>';
                 html += '<p class="mb-0"><strong>Status:</strong> ' + fmt(jc.status) + '</p></div>';
                 $body.html(html);

@@ -1,7 +1,51 @@
 /**
  * Modal: Kernel Job Card – form, sound kernel/butter grade rows, calculations, save.
- * Logic carried over from modules/kernel-production/js/kernel_production_job_card.js
+ * Packing: Start Date = first production packing date. Best Before Date = Start Date + 18 months (always; never use stored value).
+ * Date inputs follow markdown files/INSTRUCTIONS-DATE-FLATPICKR.md:
+ * - HTML: type="text", class="flatpickr-date", data-input, placeholder dd/mm/yyyy (§3).
+ * - Config: dateFormat 'd/m/Y', allowInput: false, disableMobile: true (§6).
+ * - Init on modal shown (§5.3). Display: dd/mm/yyyy; API: yyyy-mm-dd (§8).
  */
+var JOB_CARD_DATE_IDS = ['jobCardReceivedDate', 'jobCardPackingStartDate', 'jobCardPackingCompletionDate', 'jobCardBestBeforeDate'];
+var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+
+/** §7.1 Convert dd/mm/yyyy → yyyy-mm-dd for API. Pass-through if already ISO. */
+function jobCardToISO(dateStr) {
+    if (!dateStr) return null;
+    var s = String(dateStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(s)) return s.split('T')[0];
+    if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) return null;
+    var parts = s.split('/');
+    return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+}
+
+/** §7.2 Convert yyyy-mm-dd (from API) → dd/mm/yyyy for display. */
+function jobCardFromISO(isoStr) {
+    if (!isoStr) return '';
+    var s = String(isoStr).trim().split('T')[0];
+    var parts = s.split('-');
+    if (parts.length !== 3 || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return isoStr;
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+}
+/** Best Before = 18 MONTHS (not 18 days) after the given ISO date. Returns YYYY-MM-DD or null. */
+function add18MonthsToISO(isoStr) {
+    if (!isoStr) return null;
+    var s = String(isoStr).trim().split('T')[0];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    var parts = s.split('-');
+    var y = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10) - 1; // 0-based
+    var day = parseInt(parts[2], 10);
+    if (isNaN(y) || isNaN(m) || isNaN(day)) return null;
+    m += 18;
+    y += Math.floor(m / 12);
+    m = m % 12;
+    if (m < 0) { m += 12; y -= 1; }
+    var d = new Date(y, m, day);
+    if (isNaN(d.getTime())) return null;
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 var _modal_kernel_job_card = function () {
     'use strict';
     return {
@@ -9,6 +53,47 @@ var _modal_kernel_job_card = function () {
             const scope = _modal_kernel_job_card;
 
             _appRouter.loadBreadCrumbs('#breadcrumb-container');
+
+            $('#kernelJobCardModal').off('shown.bs.modal').on('shown.bs.modal', function () {
+                var container = document.getElementById('kernelJobCardModal');
+                var inputs = container ? container.querySelectorAll('.flatpickr-date') : [];
+                inputs.forEach(function (el) {
+                    if (el._flatpickr) return;
+                    if (typeof flatpickr !== 'undefined') {
+                        var opts = Object.assign({}, FLATPICKR_DDMMYYYY);
+                        if (el.id === 'jobCardPackingStartDate') {
+                            opts.onChange = function () { _modal_kernel_job_card.syncBestBeforeFromStartDate(); };
+                        }
+                        if (el.value && el.value.trim()) {
+                            var iso = jobCardToISO(el.value.trim());
+                            if (iso) opts.defaultDate = iso;
+                        }
+                        var fp = flatpickr(el, opts);
+                        if (el.value && el.value.trim() && fp) {
+                            var v = el.value.trim();
+                            if (/^\d{4}-\d{2}-\d{2}/.test(v)) fp.setDate(v.split('T')[0], false);
+                            else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) fp.setDate(v, false, 'd/m/Y');
+                        }
+                    }
+                });
+                function applyBestBeforeFromStart() {
+                    _modal_kernel_job_card.syncBestBeforeFromStartDate();
+                    var startEl = container ? container.querySelector('#jobCardPackingStartDate') : null;
+                    var bestEl = container ? container.querySelector('#jobCardBestBeforeDate') : null;
+                    if (startEl && bestEl && startEl.value && startEl.value.trim()) {
+                        var startISO = /^\d{4}-\d{2}-\d{2}$/.test(startEl.value.trim()) ? startEl.value.trim() : jobCardToISO(startEl.value.trim());
+                        if (startISO) {
+                            var bestISO = add18MonthsToISO(startISO);
+                            if (bestISO) {
+                                bestEl.value = jobCardFromISO(bestISO);
+                                if (bestEl._flatpickr) bestEl._flatpickr.setDate(bestISO, false);
+                            }
+                        }
+                    }
+                }
+                applyBestBeforeFromStart();
+                requestAnimationFrame(function () { applyBestBeforeFromStart(); });
+            });
 
             $('#saveJobCardBtn').off('click').on('click', function (e) {
                 e.preventDefault();
@@ -27,19 +112,50 @@ var _modal_kernel_job_card = function () {
             $('#jobCardTotalWeight, #jobCardRemovedPreSizer').on('input', function () { scope.calculateBalance(); });
             $('#jobCardReceivingMoisture, #jobCardPackingMoisture').on('input', function () { scope.calculateRemovedMoisture(); });
             $(document).on('input', '#soundKernelTableBody input, #butterGradeTableBody input', function () { scope.calculateJobCardTotals(); });
-            $(document).on('input', '#jobCardWasteOilKernel, #jobCardWasteSaltPepper, #jobCardWasteShellFines, #jobCardWasteCompost, #jobCardWasteShell', function () { scope.calculateMassBalance(); });
+            $(document).on('input', '#jobCardWasteOilKernel, #jobCardWasteShellFines, #jobCardWasteCompost, #jobCardWasteShell', function () { scope.calculateMassBalance(); });
+            $(document).on('change', '#jobCardPackingStartDate', function () { scope.syncBestBeforeFromStartDate(); });
             $('#fillJobCardFromProductionBtn').off('click').on('click', function (e) { e.preventDefault(); scope.fillJobCardFormFromProduction(); });
             $('#kernelJobCardModal').on('hidden.bs.modal', () => scope.clearJobCardForm());
         },
 
+        syncBestBeforeFromStartDate: () => {
+            var $modal = $('#kernelJobCardModal');
+            var startVal = $modal.find('#jobCardPackingStartDate').val();
+            if (!startVal || !startVal.trim()) return;
+            var startISO = /^\d{4}-\d{2}-\d{2}$/.test(startVal.trim()) ? startVal.trim() : jobCardToISO(startVal.trim());
+            if (startISO) {
+                var bestISO = add18MonthsToISO(startISO);
+                if (bestISO) _modal_kernel_job_card.setJobCardField('jobCardBestBeforeDate', bestISO);
+            }
+        },
+
         setJobCardField: (id, value) => {
-            var $el = $('#' + id);
+            var $modal = $('#kernelJobCardModal');
+            var $el = $modal.length ? $modal.find('#' + id) : $('#' + id);
             if (!$el.length) return;
             var el = $el[0];
             if (el.type === 'checkbox') {
                 el.checked = value === true || value === 'true' || value === 1 || value === '1';
             } else {
-                $el.val(value != null && value !== '' ? String(value) : '');
+                var str = value != null && value !== '' ? String(value).trim() : '';
+                if (id === 'jobCardBestBeforeDate') {
+                    var startVal = $modal.find('#jobCardPackingStartDate').val();
+                    if (startVal && startVal.trim()) {
+                        var startISO = /^\d{4}-\d{2}-\d{2}$/.test(startVal.trim()) ? startVal.trim() : jobCardToISO(startVal.trim());
+                        if (startISO) str = add18MonthsToISO(startISO) || str;
+                    }
+                }
+                var displayStr = str;
+                if (JOB_CARD_DATE_IDS.indexOf(id) >= 0 && str) {
+                    if (/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(str)) displayStr = jobCardFromISO(str);
+                    $el.val(displayStr);
+                    if (el._flatpickr) {
+                        if (str) {
+                            if (/^\d{4}-\d{2}-\d{2}/.test(str)) el._flatpickr.setDate(str.split('T')[0], false);
+                            else el._flatpickr.setDate(str, false, 'd/m/Y');
+                        } else el._flatpickr.clear();
+                    }
+                } else $el.val(displayStr);
             }
         },
 
@@ -47,8 +163,15 @@ var _modal_kernel_job_card = function () {
             const scope = _modal_kernel_job_card;
             var fmtDate = function (v) {
                 if (!v) return '';
+                if (typeof v.toISOString === 'function') return v.toISOString().split('T')[0];
                 var s = typeof v === 'string' ? v : (v.toString && v.toString());
                 return s.indexOf('T') >= 0 ? s.split('T')[0] : s;
+            };
+            var toStartISO = function (v) {
+                if (!v) return null;
+                if (typeof v.toISOString === 'function') return v.toISOString().split('T')[0];
+                var s = (typeof v === 'string' ? v : (v.toString && v.toString()) || '').split('T')[0].trim();
+                return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s) ? jobCardToISO(s) : null);
             };
             scope.setJobCardField('jobCardBatchNumber', jc.batch_number);
             scope.setJobCardField('jobCardReceivedDate', fmtDate(jc.received_date));
@@ -62,9 +185,9 @@ var _modal_kernel_job_card = function () {
             scope.setJobCardField('jobCardRemovedMoisture', jc.removed_moisture_percentage);
             scope.setJobCardField('jobCardPackingStartDate', fmtDate(jc.packing_start_date));
             scope.setJobCardField('jobCardPackingCompletionDate', fmtDate(jc.packing_completion_date));
-            scope.setJobCardField('jobCardBestBeforeDate', fmtDate(jc.best_before_date));
+            scope.setJobCardField('jobCardBestBeforeDate', '');
+            scope.syncBestBeforeFromStartDate();
             scope.setJobCardField('jobCardWasteOilKernel', jc.waste_oil_kernel_kg);
-            scope.setJobCardField('jobCardWasteSaltPepper', jc.waste_salt_pepper_kg);
             scope.setJobCardField('jobCardWasteShellFines', jc.waste_shell_fines_kg);
             scope.setJobCardField('jobCardWasteCompost', jc.waste_compost_kg);
             scope.setJobCardField('jobCardWasteShell', jc.waste_shell_kg);
@@ -115,6 +238,10 @@ var _modal_kernel_job_card = function () {
                 var d = pack.date.toString().split('T')[0];
                 scope.setJobCardField('jobCardPackingStartDate', d);
                 scope.setJobCardField('jobCardPackingCompletionDate', d);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                    var bestBefore = add18MonthsToISO(d);
+                    if (bestBefore) scope.setJobCardField('jobCardBestBeforeDate', bestBefore);
+                }
             }
             var totalQty = sum.pack_total_qty || sum.crack_qty;
             if (totalQty != null && totalQty !== '') scope.setJobCardField('jobCardTotalWeight', totalQty);
@@ -134,10 +261,10 @@ var _modal_kernel_job_card = function () {
                 total_weight_kg: payload.p_total_weight_kg,
                 packing_start_date: payload.p_packing_start_date,
                 packing_completion_date: payload.p_packing_completion_date,
+                best_before_date: payload.p_best_before_date,
                 sound_kernel_styles: payload.p_sound_kernel_styles,
                 butter_grade_styles: payload.p_butter_grade_styles,
                 waste_oil_kernel_kg: payload.p_waste_oil_kernel_kg,
-                waste_salt_pepper_kg: payload.p_waste_salt_pepper_kg,
                 waste_shell_fines_kg: payload.p_waste_shell_fines_kg,
                 waste_compost_kg: payload.p_waste_compost_kg,
                 waste_shell_kg: payload.p_waste_shell_kg
@@ -199,7 +326,7 @@ var _modal_kernel_job_card = function () {
             $('#jobCardProductionBatchId').val('');
             $('#fillJobCardFromProductionBtn').hide();
             scope.clearJobCardForm();
-            $('#jobCardReceivedDate').val(new Date().toISOString().split('T')[0]);
+            scope.setJobCardField('jobCardReceivedDate', new Date().toISOString().split('T')[0]);
             var p = dataFunctions.getContacts && dataFunctions.getContacts();
             (p || Promise.resolve([])).then(function (contacts) {
                 var html = '<option value="">Select Supplier</option>';
@@ -228,11 +355,15 @@ var _modal_kernel_job_card = function () {
             $('#jobCardId').val(batch.hasJobCard && batch.jobCardId ? batch.jobCardId : '');
             $('#jobCardProductionBatchId').val(batchId);
             $('#jobCardBatchNumber').val(batch.batch_number || '');
-            $('#jobCardReceivedDate').val(batch.received_date ? batch.received_date.toString().split('T')[0] : '');
+            scope.setJobCardField('jobCardReceivedDate', batch.received_date ? batch.received_date.toString().split('T')[0] : '');
             $('#jobCardSupplierName').val(batch.grower_name || '');
-            if (!batch.received_date) $('#jobCardReceivedDate').val(new Date().toISOString().split('T')[0]);
-            var p = dataFunctions.getContacts && dataFunctions.getContacts();
-            (p || Promise.resolve([])).then(function (contacts) {
+            if (!batch.received_date) scope.setJobCardField('jobCardReceivedDate', new Date().toISOString().split('T')[0]);
+            var getContacts = dataFunctions.getContacts && dataFunctions.getContacts();
+            var getJobCard = (batch.hasJobCard && batch.jobCardId && dataFunctions.getKernelJobCard) ? dataFunctions.getKernelJobCard(batch.jobCardId) : Promise.resolve(null);
+            var getAllStages = (batch.productionDays && batch.productionDays.length && dataFunctions.getKernelProductionStages)
+                ? Promise.all(batch.productionDays.map(function (d) { return dataFunctions.getKernelProductionStages(d.kernel_production_stages_id); }))
+                : Promise.resolve([]);
+            (getContacts || Promise.resolve([])).then(function (contacts) {
                 var html = '<option value="">Select Supplier</option>';
                 if (contacts && Array.isArray(contacts)) {
                     contacts.forEach(function (contact) {
@@ -242,16 +373,26 @@ var _modal_kernel_job_card = function () {
                     });
                 }
                 $('#jobCardSupplier').html(html);
-                if (batch.hasJobCard && batch.jobCardId) {
-                    return (dataFunctions.getKernelJobCard && dataFunctions.getKernelJobCard(batch.jobCardId)) || Promise.resolve(null);
+                return Promise.all([getJobCard, getAllStages]);
+            }).then(function (results) {
+                var jc = results[0];
+                var allStages = Array.isArray(results[1]) ? results[1] : [];
+                var payload = null;
+                if (allStages.length && typeof _modal_production_stages !== 'undefined' && _modal_production_stages.buildJobCardPayloadFromBatchAndStages) {
+                    payload = _modal_production_stages.buildJobCardPayloadFromBatchAndStages(batchId, batch, allStages);
                 }
-                if (batch.productionDays && batch.productionDays[0] && batch.productionDays[0].kernel_production_stages_id) {
-                    return (dataFunctions.getKernelProductionStages && dataFunctions.getKernelProductionStages(batch.productionDays[0].kernel_production_stages_id)) || Promise.resolve(null);
+                if (jc && (jc.batch_number || jc.packing_start_date)) {
+                    scope.populateJobCardFormFromData(jc);
+                    if (payload && payload.p_packing_start_date) {
+                        scope.setJobCardField('jobCardPackingStartDate', payload.p_packing_start_date);
+                        scope.setJobCardField('jobCardPackingCompletionDate', payload.p_packing_completion_date || payload.p_packing_start_date);
+                        scope.setJobCardField('jobCardBestBeforeDate', '');
+                        scope.syncBestBeforeFromStartDate();
+                    }
+                } else if (payload) {
+                    var jcFromPayload = scope.jobCardDataFromPayload(payload);
+                    if (jcFromPayload) scope.populateJobCardFormFromData(jcFromPayload);
                 }
-                return Promise.resolve(null);
-            }).then(function (jcOrStages) {
-                if (jcOrStages && jcOrStages.batch_number) scope.populateJobCardFormFromData(jcOrStages);
-                else if (jcOrStages && jcOrStages.cracking_data) scope.prefillJobCardFromProductionStages(jcOrStages);
             }).then(function () {
                 var modalEl = document.getElementById('kernelJobCardModal');
                 if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -311,11 +452,10 @@ var _modal_kernel_job_card = function () {
             var soundKg = parseFloat($('#soundKernelTotalKg').text()) || 0;
             var butterKg = parseFloat($('#butterGradeTotalKg').text()) || 0;
             var wasteOil = parseFloat($('#jobCardWasteOilKernel').val()) || 0;
-            var wasteSaltPepper = parseFloat($('#jobCardWasteSaltPepper').val()) || 0;
             var wasteShellFines = parseFloat($('#jobCardWasteShellFines').val()) || 0;
             var wasteCompost = parseFloat($('#jobCardWasteCompost').val()) || 0;
             var wasteShell = parseFloat($('#jobCardWasteShell').val()) || 0;
-            var totalOut = soundKg + butterKg + wasteOil + wasteSaltPepper + wasteShellFines + wasteCompost + wasteShell;
+            var totalOut = soundKg + butterKg + wasteOil + wasteShellFines + wasteCompost + wasteShell;
             $('#jobCardMassBalanceIn').val(balance.toFixed(2));
             $('#jobCardMassBalanceOut').val(totalOut.toFixed(2));
             $('#jobCardMassBalancePercentage').val(balance > 0 ? ((totalOut / balance) * 100).toFixed(2) : '0');
@@ -353,12 +493,13 @@ var _modal_kernel_job_card = function () {
                 if (style && (cartons > 0 || weight > 0)) butterGradeStyles.push({ style: style, cartons: cartons, weight_kg: weight });
             });
             var getVal = function (id) { return $('#' + id).val() || null; };
+            var getDateVal = function (id) { var v = getVal(id); return (v && JOB_CARD_DATE_IDS.indexOf(id) >= 0) ? jobCardToISO(v) : v; };
             var getFloat = function (id) { var v = $('#' + id).val(); return v ? parseFloat(v) : null; };
             var getIntText = function (id) { var v = $('#' + id).text(); return v ? parseInt(v, 10) : null; };
             var getFloatText = function (id) { var v = $('#' + id).text(); return v ? parseFloat(v) : null; };
             var jobCardData = {
                 p_batch_number: getVal('jobCardBatchNumber'),
-                p_received_date: getVal('jobCardReceivedDate'),
+                p_received_date: getDateVal('jobCardReceivedDate'),
                 p_production_batch_id: getVal('jobCardProductionBatchId') || null,
                 p_total_weight_kg: getFloat('jobCardTotalWeight'),
                 p_supplier_id: getVal('jobCardSupplier') || null,
@@ -368,9 +509,9 @@ var _modal_kernel_job_card = function () {
                 p_receiving_moisture_percentage: getFloat('jobCardReceivingMoisture'),
                 p_packing_moisture_percentage: getFloat('jobCardPackingMoisture'),
                 p_removed_moisture_percentage: getFloat('jobCardRemovedMoisture'),
-                p_packing_start_date: getVal('jobCardPackingStartDate') || null,
-                p_packing_completion_date: getVal('jobCardPackingCompletionDate') || null,
-                p_best_before_date: getVal('jobCardBestBeforeDate') || null,
+                p_packing_start_date: getDateVal('jobCardPackingStartDate') || null,
+                p_packing_completion_date: getDateVal('jobCardPackingCompletionDate') || null,
+                p_best_before_date: getDateVal('jobCardBestBeforeDate') || null,
                 p_sound_kernel_styles: soundKernelStyles.length ? JSON.stringify(soundKernelStyles) : null,
                 p_sound_kernel_total_cartons: getIntText('soundKernelTotalCartons'),
                 p_sound_kernel_total_kg: getFloatText('soundKernelTotalKg'),
@@ -378,7 +519,6 @@ var _modal_kernel_job_card = function () {
                 p_butter_grade_total_cartons: getIntText('butterGradeTotalCartons'),
                 p_butter_grade_total_kg: getFloatText('butterGradeTotalKg'),
                 p_waste_oil_kernel_kg: getFloat('jobCardWasteOilKernel'),
-                p_waste_salt_pepper_kg: getFloat('jobCardWasteSaltPepper'),
                 p_waste_shell_fines_kg: getFloat('jobCardWasteShellFines'),
                 p_waste_compost_kg: getFloat('jobCardWasteCompost'),
                 p_waste_shell_kg: getFloat('jobCardWasteShell'),

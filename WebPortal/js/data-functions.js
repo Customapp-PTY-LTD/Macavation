@@ -1481,7 +1481,7 @@ var _dataFunctions = function () {
                 'p_packing_start_date', 'p_packing_completion_date', 'p_best_before_date',
                 'p_sound_kernel_styles', 'p_sound_kernel_total_cartons', 'p_sound_kernel_total_kg',
                 'p_butter_grade_styles', 'p_butter_grade_total_cartons', 'p_butter_grade_total_kg',
-                'p_waste_oil_kernel_kg', 'p_waste_salt_pepper_kg', 'p_waste_shell_fines_kg', 'p_waste_compost_kg', 'p_waste_shell_kg',
+                'p_waste_oil_kernel_kg', 'p_waste_shell_fines_kg', 'p_waste_compost_kg', 'p_waste_shell_kg',
                 'p_mass_balance_in_kg', 'p_mass_balance_out_kg', 'p_mass_balance_percentage', 'p_auto_update_stock'
             ];
             const payload = {};
