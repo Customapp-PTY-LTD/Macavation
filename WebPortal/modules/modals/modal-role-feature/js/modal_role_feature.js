@@ -142,3 +142,4 @@ var _modal_role_feature = (function () {
 
     return api;
 })();
+_modal_role_feature.init();

@@ -164,3 +164,4 @@ var _modal_quality_test = (function () {
     };
     return api;
 })();
+_modal_quality_test.init();

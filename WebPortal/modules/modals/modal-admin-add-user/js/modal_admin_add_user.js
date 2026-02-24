@@ -2,19 +2,22 @@
  * Modal: Add User (Admin). Content and behaviour owned by this module.
  * Parent (admin grid) only loads this route into the container and opens the modal.
  */
-var _modal_admin_add_user = function () {
+var _modal_admin_add_user = (function () {
     'use strict';
 
     return {
         init: () => {
             const scope = _modal_admin_add_user;
-            var btn = document.getElementById('addUserSubmitBtn');
-            if (btn) {
-                btn.removeEventListener('click', scope._boundSubmit);
-                scope._boundSubmit = function () { scope.submitUserForm(); };
-                btn.addEventListener('click', scope._boundSubmit);
-            }
             scope.loadRolesForSelect();
+            scope.initHandlers();
+        },
+
+        initHandlers: () => {
+            const scope = _modal_admin_add_user;
+            $('#addUserSubmitBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.submitUserForm();
+            });
         },
 
         loadRolesForSelect: async () => {
@@ -108,4 +111,5 @@ var _modal_admin_add_user = function () {
             }
         }
     };
-}();
+}());
+_modal_admin_add_user.init();

@@ -335,3 +335,4 @@ var _modal_stock_send_to_dispatch = (function () {
     };
     return api;
 })();
+_modal_stock_send_to_dispatch.init();

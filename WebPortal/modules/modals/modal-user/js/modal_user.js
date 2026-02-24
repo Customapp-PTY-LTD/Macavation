@@ -173,3 +173,4 @@ var _modal_user = (function () {
 
     return api;
 })();
+_modal_user.init();

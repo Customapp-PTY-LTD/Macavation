@@ -1,9 +1,11 @@
 /**
  * Modal: Job Card View – read-only display. Logic from modules/kernel-production/js/kernel_production_job_card.js
  */
-var _modal_job_card_view = function () {
+var _modal_job_card_view = (function () {
     'use strict';
     return {
+        init: () => {},
+
         show: (jobCardId) => {
             var $body = $('#jobCardViewBody');
             if (!$body.length) return;
@@ -11,7 +13,11 @@ var _modal_job_card_view = function () {
             var modalEl = document.getElementById('jobCardViewModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#jobCardViewModal').modal('show');
-            (dataFunctions.getKernelJobCard && dataFunctions.getKernelJobCard(jobCardId)).then(function (jc) {
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelJobCard) {
+                $body.html('<p class="text-danger mb-0">Cannot load job card.</p>');
+                return;
+            }
+            dataFunctions.getKernelJobCard(jobCardId).then(function (jc) {
                 if (!jc) { $body.html('<p class="text-muted mb-0">Job card not found.</p>'); return; }
                 var fmt = function (v) { return v != null && v !== '' ? v : '—'; };
                 var html = '<div class="small">';
@@ -46,4 +52,5 @@ var _modal_job_card_view = function () {
             });
         }
     };
-}();
+}());
+_modal_job_card_view.init();

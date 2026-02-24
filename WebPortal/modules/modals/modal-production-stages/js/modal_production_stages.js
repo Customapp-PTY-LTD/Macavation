@@ -109,7 +109,7 @@ function deriveSummaryFromStages(cracking_data, washing_data, sorting_data, pack
     };
 }
 
-var _modal_production_stages = function () {
+var _modal_production_stages = (function () {
     'use strict';
     return {
         modalProductionDays: null,
@@ -941,4 +941,5 @@ var _modal_production_stages = function () {
             });
         }
     };
-}();
+}());
+_modal_production_stages.init();

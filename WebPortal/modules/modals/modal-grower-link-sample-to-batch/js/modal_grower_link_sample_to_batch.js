@@ -294,3 +294,4 @@ var _modal_grower_link_sample_to_batch = (function () {
     };
     return api;
 })();
+_modal_grower_link_sample_to_batch.init();

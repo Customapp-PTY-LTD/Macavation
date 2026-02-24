@@ -146,3 +146,4 @@ var _modal_test_data_record = (function () {
 
     return api;
 })();
+_modal_test_data_record.init();

@@ -283,3 +283,4 @@ var _modal_stock_import_oil_lots = (function () {
     };
     return api;
 })();
+_modal_stock_import_oil_lots.init();

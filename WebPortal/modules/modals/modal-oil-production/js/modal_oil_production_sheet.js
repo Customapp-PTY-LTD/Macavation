@@ -1,13 +1,21 @@
 /**
  * Modal: Oil Production Sheet – add/edit form. Parent (oil-production grid) only loads this route and calls show() or show(batch).
  */
-var _modal_oil_production_sheet = function () {
+var _modal_oil_production_sheet = (function () {
     'use strict';
 
     return {
         init: () => {
             const scope = _modal_oil_production_sheet;
-            $('#saveOilProductionBtn').off('click').on('click', function () { scope.saveProductionSheet(); });
+            scope.initHandlers();
+        },
+
+        initHandlers: () => {
+            const scope = _modal_oil_production_sheet;
+            $('#saveOilProductionBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.saveProductionSheet();
+            });
             $('#addRawMaterialRow').off('click').on('click', function () { scope.addRawMaterialRow(); });
             $(document).on('click', '#oilProductionModal .removeRow', function () {
                 $(this).closest('tr').remove();
@@ -213,4 +221,5 @@ var _modal_oil_production_sheet = function () {
             }
         }
     };
-}();
+}());
+_modal_oil_production_sheet.init();

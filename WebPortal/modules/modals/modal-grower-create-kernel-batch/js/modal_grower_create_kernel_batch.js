@@ -142,3 +142,4 @@ var _modal_grower_create_kernel_batch = (function () {
     };
     return api;
 })();
+_modal_grower_create_kernel_batch.init();

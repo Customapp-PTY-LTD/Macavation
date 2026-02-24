@@ -150,3 +150,4 @@ var _modal_stock_raw_material_issued = (function () {
     };
     return api;
 })();
+_modal_stock_raw_material_issued.init();

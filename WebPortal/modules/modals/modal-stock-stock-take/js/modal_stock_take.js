@@ -303,3 +303,4 @@ var _modal_stock_stock_take = (function () {
     };
     return api;
 })();
+_modal_stock_stock_take.init();

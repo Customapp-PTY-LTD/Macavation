@@ -87,3 +87,4 @@ var _modal_role = (function () {
 
     return api;
 })();
+_modal_role.init();

@@ -2,7 +2,7 @@
  * Modal: Kernel Dispatch – view dispatch order (basket) or confirm single batch.
  * Grid calls showOrder(orderId) to show basket (order + styles/lines).
  */
-var _modal_kernel_dispatch = function () {
+var _modal_kernel_dispatch = (function () {
     'use strict';
 
     var dispatchBatchId = null;
@@ -21,12 +21,15 @@ var _modal_kernel_dispatch = function () {
     return {
         init: () => {
             const scope = _modal_kernel_dispatch;
-            var btn = document.getElementById('confirmDispatchBtn');
-            if (btn) {
-                btn.removeEventListener('click', scope._boundConfirm);
-                scope._boundConfirm = function () { scope.confirmDispatch(); };
-                btn.addEventListener('click', scope._boundConfirm);
-            }
+            scope.initHandlers();
+        },
+
+        initHandlers: () => {
+            const scope = _modal_kernel_dispatch;
+            $('#confirmDispatchBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.confirmDispatch();
+            });
         },
 
         showOrder: async (orderId) => {
@@ -136,4 +139,5 @@ var _modal_kernel_dispatch = function () {
             }
         }
     };
-}();
+}());
+_modal_kernel_dispatch.init();

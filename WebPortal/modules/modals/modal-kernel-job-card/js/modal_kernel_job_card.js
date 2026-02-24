@@ -6,58 +6,66 @@
  * - Config: dateFormat 'd/m/Y', allowInput: false, disableMobile: true (§6).
  * - Init on modal shown (§5.3). Display: dd/mm/yyyy; API: yyyy-mm-dd (§8).
  */
-var DEBUG_BEST_BEFORE = false;
-var JOB_CARD_DATE_IDS = ['jobCardReceivedDate', 'jobCardPackingStartDate', 'jobCardPackingCompletionDate', 'jobCardBestBeforeDate'];
-var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
-
-/** Module state for packing start and best-before (no DOM reads for Best Before). */
-var _jobCardPackingStartISO = null;
-var _jobCardBestBeforeISO = null;
-
-/** §7.1 Convert dd/mm/yyyy → yyyy-mm-dd for API. Pass-through if already ISO. */
-function jobCardToISO(dateStr) {
-    if (!dateStr) return null;
-    var s = String(dateStr).trim();
-    if (/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(s)) return s.split('T')[0];
-    if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) return null;
-    var parts = s.split('/');
-    return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
-}
-
-/** §7.2 Convert yyyy-mm-dd (from API) → dd/mm/yyyy for display. */
-function jobCardFromISO(isoStr) {
-    if (!isoStr) return '';
-    var s = String(isoStr).trim().split('T')[0];
-    var parts = s.split('-');
-    if (parts.length !== 3 || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return isoStr;
-    return parts[2] + '/' + parts[1] + '/' + parts[0];
-}
-/** Best Before = 18 MONTHS (not 18 days) after the given ISO date. Returns YYYY-MM-DD or null. */
-function add18MonthsToISO(isoStr) {
-    if (!isoStr) return null;
-    var s = String(isoStr).trim().split('T')[0];
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-    var parts = s.split('-');
-    var y = parseInt(parts[0], 10);
-    var m = parseInt(parts[1], 10) - 1; // 0-based
-    var day = parseInt(parts[2], 10);
-    if (isNaN(y) || isNaN(m) || isNaN(day)) return null;
-    m += 18;
-    y += Math.floor(m / 12);
-    m = m % 12;
-    if (m < 0) { m += 12; y -= 1; }
-    var d = new Date(y, m, day);
-    if (isNaN(d.getTime())) return null;
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
-var _modal_kernel_job_card = function () {
+var _modal_kernel_job_card = (function () {
     'use strict';
+
+    var DEBUG_BEST_BEFORE = false;
+    var JOB_CARD_DATE_IDS = ['jobCardReceivedDate', 'jobCardPackingStartDate', 'jobCardPackingCompletionDate', 'jobCardBestBeforeDate'];
+    var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+
+    /** Module state for packing start and best-before (no DOM reads for Best Before). */
+    var _jobCardPackingStartISO = null;
+    var _jobCardBestBeforeISO = null;
+
+    /** §7.1 Convert dd/mm/yyyy → yyyy-mm-dd for API. Pass-through if already ISO. */
+    function jobCardToISO(dateStr) {
+        if (!dateStr) return null;
+        var s = String(dateStr).trim();
+        if (/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(s)) return s.split('T')[0];
+        if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) return null;
+        var parts = s.split('/');
+        return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+    }
+
+    /** §7.2 Convert yyyy-mm-dd (from API) → dd/mm/yyyy for display. */
+    function jobCardFromISO(isoStr) {
+        if (!isoStr) return '';
+        var s = String(isoStr).trim().split('T')[0];
+        var parts = s.split('-');
+        if (parts.length !== 3 || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return isoStr;
+        return parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+
+    /** Display date in dd/mm/yyyy; use _common.formatDateDDMMYYYY when available (company standard). */
+    function formatDateForDisplay(isoStr) {
+        if (!isoStr) return '';
+        if (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY) return _common.formatDateDDMMYYYY(isoStr);
+        return jobCardFromISO(isoStr);
+    }
+
+    /** Best Before = 18 MONTHS (not 18 days) after the given ISO date. Returns YYYY-MM-DD or null. */
+    function add18MonthsToISO(isoStr) {
+        if (!isoStr) return null;
+        var s = String(isoStr).trim().split('T')[0];
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+        var parts = s.split('-');
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10) - 1;
+        var day = parseInt(parts[2], 10);
+        if (isNaN(y) || isNaN(m) || isNaN(day)) return null;
+        m += 18;
+        y += Math.floor(m / 12);
+        m = m % 12;
+        if (m < 0) { m += 12; y -= 1; }
+        var d = new Date(y, m, day);
+        if (isNaN(d.getTime())) return null;
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
     return {
         init: () => {
             const scope = _modal_kernel_job_card;
-
-            _appRouter.loadBreadCrumbs('#breadcrumb-container');
+            if (typeof _appRouter !== 'undefined' && _appRouter.loadBreadCrumbs) _appRouter.loadBreadCrumbs('#breadcrumb-container');
 
             $('#kernelJobCardModal').off('shown.bs.modal').on('shown.bs.modal', function () {
                 var container = document.getElementById('kernelJobCardModal');
@@ -71,7 +79,7 @@ var _modal_kernel_job_card = function () {
                             opts.onChange = function (selectedDates) {
                                 _jobCardPackingStartISO = selectedDates[0] ? selectedDates[0].toISOString().split('T')[0] : null;
                                 _jobCardBestBeforeISO = _jobCardPackingStartISO ? add18MonthsToISO(_jobCardPackingStartISO) : null;
-                                _modal_kernel_job_card.syncBestBeforeFromStartDate();
+                                scope.syncBestBeforeFromStartDate();
                             };
                         }
                         if (el.value && el.value.trim()) {
@@ -89,15 +97,19 @@ var _modal_kernel_job_card = function () {
                 function applyBestBeforeFromStart() {
                     if (!_jobCardBestBeforeISO || !container) return;
                     var bestEl = container.querySelector('#jobCardBestBeforeDate');
-                    if (bestEl) bestEl.value = jobCardFromISO(_jobCardBestBeforeISO);
+                    if (bestEl) bestEl.value = formatDateForDisplay(_jobCardBestBeforeISO);
                 }
                 applyBestBeforeFromStart();
                 requestAnimationFrame(function () { applyBestBeforeFromStart(); });
-                requestAnimationFrame(function () {
-                    requestAnimationFrame(applyBestBeforeFromStart);
-                });
+                requestAnimationFrame(function () { requestAnimationFrame(applyBestBeforeFromStart); });
             });
 
+            $('#kernelJobCardModal').on('hidden.bs.modal', () => scope.clearJobCardForm());
+            scope.initHandlers();
+        },
+
+        initHandlers: () => {
+            const scope = _modal_kernel_job_card;
             $('#saveJobCardBtn').off('click').on('click', function (e) {
                 e.preventDefault();
                 scope.saveJobCard();
@@ -117,17 +129,21 @@ var _modal_kernel_job_card = function () {
             $(document).on('input', '#soundKernelTableBody input, #butterGradeTableBody input', function () { scope.calculateJobCardTotals(); });
             $(document).on('input', '#jobCardWasteOilKernel, #jobCardWasteShellFines, #jobCardWasteCompost, #jobCardWasteShell', function () { scope.calculateMassBalance(); });
             $(document).on('change', '#jobCardPackingStartDate', function () { scope.syncBestBeforeFromStartDate(); });
-            $('#fillJobCardFromProductionBtn').off('click').on('click', function (e) { e.preventDefault(); scope.fillJobCardFormFromProduction(); });
-            $('#kernelJobCardModal').on('hidden.bs.modal', () => scope.clearJobCardForm());
+            $('#fillJobCardFromProductionBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.fillJobCardFormFromProduction();
+            });
         },
 
         syncBestBeforeFromStartDate: () => {
+            const scope = _modal_kernel_job_card;
             if (!_jobCardPackingStartISO) return;
             _jobCardBestBeforeISO = add18MonthsToISO(_jobCardPackingStartISO);
-            if (_jobCardBestBeforeISO) _modal_kernel_job_card.setJobCardField('jobCardBestBeforeDate', _jobCardBestBeforeISO);
+            if (_jobCardBestBeforeISO) scope.setJobCardField('jobCardBestBeforeDate', _jobCardBestBeforeISO);
         },
 
         setJobCardField: (id, value) => {
+            const scope = _modal_kernel_job_card;
             var $modal = $('#kernelJobCardModal');
             var $el = $modal.length ? $modal.find('#' + id) : $('#' + id);
             if (!$el.length) return;
@@ -148,7 +164,7 @@ var _modal_kernel_job_card = function () {
                 }
                 var displayStr = str;
                 if (JOB_CARD_DATE_IDS.indexOf(id) >= 0) {
-                    if (str && (/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(str))) displayStr = jobCardFromISO(str);
+                    if (str && (/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(str))) displayStr = formatDateForDisplay(str);
                     if (el._flatpickr) {
                         if (str) {
                             if (/^\d{4}-\d{2}-\d{2}/.test(str)) el._flatpickr.setDate(str.split('T')[0], false);
@@ -168,12 +184,6 @@ var _modal_kernel_job_card = function () {
                 if (typeof v.toISOString === 'function') return v.toISOString().split('T')[0];
                 var s = typeof v === 'string' ? v : (v.toString && v.toString());
                 return s.indexOf('T') >= 0 ? s.split('T')[0] : s;
-            };
-            var toStartISO = function (v) {
-                if (!v) return null;
-                if (typeof v.toISOString === 'function') return v.toISOString().split('T')[0];
-                var s = (typeof v === 'string' ? v : (v.toString && v.toString()) || '').split('T')[0].trim();
-                return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s) ? jobCardToISO(s) : null);
             };
             scope.setJobCardField('jobCardBatchNumber', jc.batch_number);
             scope.setJobCardField('jobCardReceivedDate', fmtDate(jc.received_date));
@@ -252,7 +262,6 @@ var _modal_kernel_job_card = function () {
             scope.calculateJobCardTotals();
         },
 
-        /** Convert job card payload (p_* keys from buildJobCardPayloadFromBatchAndStages) to shape expected by populateJobCardFormFromData. */
         jobCardDataFromPayload: (payload) => {
             if (!payload || typeof payload !== 'object') return null;
             return {
@@ -273,7 +282,6 @@ var _modal_kernel_job_card = function () {
             };
         },
 
-        /** Load all production stages for the current batch, aggregate, and fill the job card form. Used for existing batches whose job card was created before auto-populate. */
         fillJobCardFormFromProduction: () => {
             const scope = _modal_kernel_job_card;
             var batchId = $('#jobCardProductionBatchId').val();
@@ -386,12 +394,8 @@ var _modal_kernel_job_card = function () {
                 if (DEBUG_BEST_BEFORE) console.log('[JobCard BestBefore] data loaded: jc.packing_start_date=', jc && jc.packing_start_date, 'jc.best_before_date=', jc && jc.best_before_date, 'payload.p_packing_start_date=', payload && payload.p_packing_start_date, 'payload.p_best_before_date=', payload && payload.p_best_before_date);
                 if (jc && (jc.batch_number || jc.packing_start_date)) {
                     scope.populateJobCardFormFromData(jc);
-                    if (payload && payload.p_packing_start_date) {
-                        scope.setJobCardField('jobCardPackingStartDate', payload.p_packing_start_date);
-                        scope.setJobCardField('jobCardPackingCompletionDate', payload.p_packing_completion_date || payload.p_packing_start_date);
-                        scope.setJobCardField('jobCardBestBeforeDate', '');
-                        scope.syncBestBeforeFromStartDate();
-                    }
+                    // Do not overwrite job card dates from production payload when we have saved job card data (jc).
+                    // Payload can contain wrong dates from stages (e.g. 20/06/2026); API job card is source of truth.
                 } else if (payload) {
                     var jcFromPayload = scope.jobCardDataFromPayload(payload);
                     if (jcFromPayload) scope.populateJobCardFormFromData(jcFromPayload);
@@ -549,4 +553,5 @@ var _modal_kernel_job_card = function () {
             });
         }
     };
-}();
+}());
+_modal_kernel_job_card.init();

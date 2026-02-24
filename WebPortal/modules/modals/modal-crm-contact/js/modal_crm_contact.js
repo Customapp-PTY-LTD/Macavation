@@ -241,3 +241,4 @@ var _modal_crm_contact = (function () {
     };
     return api;
 })();
+_modal_crm_contact.init();

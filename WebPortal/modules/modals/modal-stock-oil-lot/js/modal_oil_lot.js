@@ -1,7 +1,7 @@
 /**
  * Modal: Add/Edit Oil Stock Lot. Parent (stock-management grid) only loads this route and calls show(lot) or show().
  */
-var _modal_stock_oil_lot = function () {
+var _modal_stock_oil_lot = (function () {
     'use strict';
 
     function setVal(id, v) {
@@ -14,18 +14,20 @@ var _modal_stock_oil_lot = function () {
     }
 
     return {
-        init: function () {
-            var scope = _modal_stock_oil_lot;
-            var btn = document.getElementById('saveOilLotBtn');
-            if (btn) {
-                btn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    scope.saveOilLot();
-                });
-            }
+        init: () => {
+            const scope = _modal_stock_oil_lot;
+            scope.initHandlers();
         },
 
-        show: function (lot) {
+        initHandlers: () => {
+            const scope = _modal_stock_oil_lot;
+            $('#saveOilLotBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.saveOilLot();
+            });
+        },
+
+        show: (lot) => {
             setVal('oilLotId', lot ? lot.id : '');
             setVal('oilLotLocation', lot ? lot.location_code : (getDefault('oilLocationFilter') || ''));
             setVal('oilLotCategory', lot ? lot.stock_category : (getDefault('oilCategoryFilter') || ''));
@@ -58,7 +60,7 @@ var _modal_stock_oil_lot = function () {
             }
         },
 
-        saveOilLot: async function () {
+        saveOilLot: async () => {
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions) return;
 
@@ -121,4 +123,5 @@ var _modal_stock_oil_lot = function () {
             }
         }
     };
-}();
+}());
+_modal_stock_oil_lot.init();

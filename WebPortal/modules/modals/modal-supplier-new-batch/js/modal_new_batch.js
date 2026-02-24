@@ -164,3 +164,4 @@ var _modal_supplier_new_batch = (function () {
     };
     return api;
 })();
+_modal_supplier_new_batch.init();

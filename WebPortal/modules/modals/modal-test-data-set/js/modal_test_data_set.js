@@ -138,3 +138,4 @@ var _modal_test_data_set = (function () {
 
     return api;
 })();
+_modal_test_data_set.init();

@@ -133,3 +133,4 @@ var _modal_role_permission = (function () {
 
     return api;
 })();
+_modal_role_permission.init();

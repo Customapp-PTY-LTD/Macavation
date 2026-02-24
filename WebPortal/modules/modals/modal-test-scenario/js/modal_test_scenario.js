@@ -188,3 +188,4 @@ var _modal_test_scenario = (function () {
 
     return api;
 })();
+_modal_test_scenario.init();

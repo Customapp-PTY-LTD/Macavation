@@ -131,9 +131,11 @@ function unwrapStages(raw) {
 }
 
 
-var _modal_batch_history = function () {
+var _modal_batch_history = (function () {
     'use strict';
     return {
+        init: () => {},
+
         show: (batchId) => {
             var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
             if (!batch) {
@@ -326,4 +328,5 @@ var _modal_batch_history = function () {
             });
         }
     };
-}();
+}());
+_modal_batch_history.init();

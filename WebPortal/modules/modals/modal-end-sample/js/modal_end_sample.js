@@ -1,14 +1,19 @@
 /**
  * Modal: End Sample (PACKING) – form and save. Logic from modules/kernel-production/js/kernel_production_end_sample.js
  */
-var _modal_end_sample = function () {
+var _modal_end_sample = (function () {
     'use strict';
     var labTestPdfUrl = ''; // stored URL after upload
 
     return {
         init: () => {
             const scope = _modal_end_sample;
-            $('#saveEndSampleBtn').off('click').on('click', (e) => {
+            scope.initHandlers();
+        },
+
+        initHandlers: () => {
+            const scope = _modal_end_sample;
+            $('#saveEndSampleBtn').off('click').on('click', function (e) {
                 e.preventDefault();
                 scope.saveEndSample();
             });
@@ -143,4 +148,5 @@ var _modal_end_sample = function () {
             });
         }
     };
-}();
+}());
+_modal_end_sample.init();

@@ -1,9 +1,11 @@
 /**
  * Modal: End Sample View – read-only. Logic from modules/kernel-production/js/kernel_production_end_sample.js
  */
-var _modal_end_sample_view = function () {
+var _modal_end_sample_view = (function () {
     'use strict';
     return {
+        init: () => {},
+
         show: (packingSampleId) => {
             var $body = $('#endSampleViewBody');
             if (!$body.length) return;
@@ -11,7 +13,11 @@ var _modal_end_sample_view = function () {
             var modalEl = document.getElementById('endSampleViewModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#endSampleViewModal').modal('show');
-            (dataFunctions.getKernelPackingSample && dataFunctions.getKernelPackingSample(packingSampleId)).then((ps) => {
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelPackingSample) {
+                $body.html('<p class="text-danger mb-0">Cannot load end sample.</p>');
+                return;
+            }
+            dataFunctions.getKernelPackingSample(packingSampleId).then((ps) => {
                 if (!ps || !ps.id) {
                     $body.html('<p class="text-muted mb-0">End sample not found.</p>');
                     return;
@@ -34,4 +40,5 @@ var _modal_end_sample_view = function () {
             });
         }
     };
-}();
+}());
+_modal_end_sample_view.init();

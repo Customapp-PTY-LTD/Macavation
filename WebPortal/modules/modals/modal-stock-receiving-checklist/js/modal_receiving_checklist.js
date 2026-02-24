@@ -210,3 +210,4 @@ var _modal_stock_receiving_checklist = (function () {
     };
     return api;
 })();
+_modal_stock_receiving_checklist.init();
