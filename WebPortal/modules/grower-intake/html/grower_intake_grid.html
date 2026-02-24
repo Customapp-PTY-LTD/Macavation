@@ -51,7 +51,23 @@
                             <th class="intake-col-batch">Batch number</th>
                             <th class="intake-col-grower d-none d-md-table-cell">Grower / supplier</th>
                             <th class="intake-col-date">Received date</th>
-                            <th class="intake-col-wet d-none d-sm-table-cell">Wet NIS (kg)</th>
+                            <th class="intake-col-wet d-none d-sm-table-cell">
+                                <div class="intake-wet-nis-header">
+                                    <span class="intake-wet-nis-title">Wet NIS (kg)</span>
+                                    <div class="dropdown d-inline-block ms-1">
+                                        <button class="btn btn-sm btn-outline-light border-0 py-0 px-1 intake-wet-nis-dropdown-toggle" type="button" id="intakeWetNisDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Wet NIS display option"><i class="fas fa-chevron-down"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="intakeWetNisDropdownBtn" id="intakeWetNisDropdownMenu">
+                                            <li><a class="dropdown-item js-wet-nis-mode" href="#" data-mode="supplied">Supplied</a></li>
+                                            <li><a class="dropdown-item js-wet-nis-mode" href="#" data-mode="actual">Actual</a></li>
+                                            <li><a class="dropdown-item js-wet-nis-mode" href="#" data-mode="both">Both</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="intake-wet-nis-subheads" id="intakeWetNisSubheads">
+                                    <span class="intake-wet-subhead intake-wet-actual">Actual</span>
+                                    <span class="intake-wet-subhead intake-wet-supplied">Supplied</span>
+                                </div>
+                            </th>
                             <th class="intake-col-stage1">Stage 1 steps</th>
                             <th class="intake-col-status">Status</th>
                             <th class="intake-col-actions">Actions</th>

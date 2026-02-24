@@ -21,7 +21,7 @@ DECLARE
         'get_companies', 'get_company_by_id', 'create_company_simple', 'update_company_simple', 'delete_company',
         'get_dashboard_stats', 'get_dashboard_alerts', 'get_recent_activity',
         'get_contacts', 'get_contact_by_id', 'create_contact_simple', 'update_contact_simple', 'deactivate_contact',
-        'get_production_batches', 'create_production_batch_simple', 'update_production_batch',
+        'get_production_batches', 'create_production_batch_simple', 'update_production_batch', 'update_production_batch_actual_weight',
         'get_sample_submissions', 'get_quality_tests', 'get_quality_test_by_id',
         'create_quality_test_simple', 'update_quality_test_simple',
         'get_stock_items', 'get_oil_stock_lots', 'get_oil_stock_summary',

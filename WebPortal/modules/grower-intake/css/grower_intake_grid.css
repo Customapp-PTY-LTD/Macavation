@@ -3,6 +3,46 @@
 
 #intakeBatchesTable th { border-top: none; font-weight: 600; }
 
+/* Wet NIS (kg) column: header dropdown and Both sub-columns */
+.intake-col-wet {
+    min-width: 6rem;
+}
+.intake-wet-nis-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.intake-wet-nis-title { margin-right: 0.25rem; }
+.intake-wet-nis-dropdown-toggle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.7rem;
+}
+.intake-wet-nis-dropdown-toggle:hover {
+    color: #fff;
+}
+#intakeBatchesTable .intake-wet-nis-header .dropdown-menu {
+    min-width: 8rem;
+}
+.intake-wet-nis-subheads {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.intake-wet-both-cell {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    align-items: center;
+}
+.intake-wet-actual-val,
+.intake-wet-supplied-val {
+    display: block;
+}
+
 #intakeBatchesTable tbody tr.js-intake-batch-row { cursor: default; }
 
 #intakeBatchesTable .js-intake-batch-row td:first-child {

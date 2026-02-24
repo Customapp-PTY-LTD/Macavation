@@ -332,7 +332,6 @@ var _modal_grower_receiving_checklist = (function () {
                     if (batchId && newId && !receivingId) {
                         try {
                             await dataFunctions.updateProductionBatch(batchId, { receiving_checklist_id: newId });
-                            if (batchIdEl) batchIdEl.value = '';
                         } catch (e) {
                             console.error('[Grower Receiving Checklist] Link checklist to batch failed', e);
                             var msg = 'Receiving checklist was saved but could not be linked to the batch.';
@@ -342,8 +341,42 @@ var _modal_grower_receiving_checklist = (function () {
                         if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'Checklist saved, tick not updated', text: 'The checklist was saved but the batch link failed (no id in API response).', timer: 5000, showConfirmButton: true });
                     }
 
+                    if (batchId && typeof dataFunctions.updateProductionBatchActualWeight === 'function') {
+                        var totalActualKg = (receivedItems && receivedItems.length > 0)
+                            ? receivedItems.reduce(function (sum, it) { return sum + (it.quantity_kg != null ? parseFloat(it.quantity_kg) : 0); }, 0)
+                            : 0;
+                        if (isNaN(totalActualKg)) totalActualKg = 0;
+                        console.log('[Grower Receiving Checklist] Updating batch actual weight: batchId=', batchId, 'totalActualKg=', totalActualKg, 'receivedItems=', receivedItems && receivedItems.length);
+                        try {
+                            var actualResult = await dataFunctions.updateProductionBatchActualWeight(batchId, totalActualKg);
+                            var actualResolved = actualResult && (actualResult.data !== undefined ? actualResult.data : actualResult);
+                            if (actualResolved && actualResolved.success === false) {
+                                console.error('[Grower Receiving Checklist] Update batch actual weight failed:', actualResolved.error);
+                                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'Actual weight not saved', text: (actualResolved.error || 'Backend rejected the update.') + ' Run the database migration for grower intake actual weight if you have not already.', timer: 6000, showConfirmButton: true });
+                            } else {
+                                console.log('[Grower Receiving Checklist] Actual weight updated successfully', actualResolved);
+                                if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.setBatchActualWeight) {
+                                    _growerIntakeGrid.setBatchActualWeight(batchId, totalActualKg);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('[Grower Receiving Checklist] Update batch actual weight failed', e);
+                            if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'Actual weight not saved', text: 'Could not save actual weight to the batch. ' + (e.message || '') + ' See browser console (F12) for details.', timer: 6000, showConfirmButton: true });
+                        }
+                    } else if (batchId && (!receivedItems || receivedItems.length === 0)) {
+                        console.warn('[Grower Receiving Checklist] No received items to sum for actual weight; batchId=', batchId);
+                    }
+
+                    if (batchIdEl) batchIdEl.value = '';
+
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: receivingId ? 'Receiving checklist updated.' : 'Receiving checklist created.', timer: 2000, showConfirmButton: false });
-                    if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.loadIntakeBatches) _growerIntakeGrid.loadIntakeBatches(true);
+                    if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.loadIntakeBatches) await _growerIntakeGrid.loadIntakeBatches(true);
+                    // Re-apply actual weight after refetch so the table shows it even if the API didn't return actual_wet_nis_kg yet
+                    var totalActualKgForRefresh = (receivedItems && receivedItems.length > 0)
+                        ? receivedItems.reduce(function (sum, it) { return sum + (it.quantity_kg != null ? parseFloat(it.quantity_kg) : 0); }, 0) : 0;
+                    if (!isNaN(totalActualKgForRefresh) && batchId && typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.setBatchActualWeight) {
+                        _growerIntakeGrid.setBatchActualWeight(batchId, totalActualKgForRefresh);
+                    }
                     scope.hide();
                 } else {
                     throw new Error(result && (result.error || result.message)) || 'Failed to save';

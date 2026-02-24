@@ -13,6 +13,7 @@ var _growerIntakeGrid = function () {
         filteredIntakeBatches: [],
         currentPage: 1,
         itemsPerPage: 20,
+        wetNisDisplayMode: 'both', // 'supplied' | 'actual' | 'both'
 
         init: () => {
             const scope = _growerIntakeGrid;
@@ -56,6 +57,19 @@ var _growerIntakeGrid = function () {
                 $('#searchIntakeBatchesInput').val('');
                 $('#filterIntakeBatchStatus').val('');
                 scope.filterIntakeBatches();
+            });
+
+            $(document).on('click', '#intakeWetNisDropdownMenu .js-wet-nis-mode', function (e) {
+                e.preventDefault();
+                var mode = $(this).data('mode');
+                if (mode && scope.wetNisDisplayMode !== mode) {
+                    scope.wetNisDisplayMode = mode;
+                    scope.renderIntakeBatches();
+                    var subheads = document.getElementById('intakeWetNisSubheads');
+                    if (subheads) {
+                        subheads.classList.toggle('d-none', mode !== 'both');
+                    }
+                }
             });
 
             $(document).on('click', '#intakeBatchesTableBody .js-intake-batch-number-link', function (e) {
@@ -212,6 +226,27 @@ var _growerIntakeGrid = function () {
             }
         },
 
+        /** Update one batch's actual weight in memory and re-render (so table shows new value without waiting for refetch). */
+        setBatchActualWeight: (batchId, actualWetNisKg, suppliedKg) => {
+            const scope = _growerIntakeGrid;
+            const id = (batchId || '').toString().trim();
+            if (!id) return;
+            const idLower = id.toLowerCase();
+            const batch = scope.intakeBatches.find((b) => {
+                if (!b) return false;
+                const bid = (b.id != null ? String(b.id) : '').trim();
+                const bnum = (b.batch_number != null ? String(b.batch_number) : '').trim();
+                return bid.toLowerCase() === idLower || bnum === id;
+            });
+            if (batch) {
+                batch.actual_wet_nis_kg = actualWetNisKg != null ? Number(actualWetNisKg) : null;
+                if (suppliedKg != null) batch.wet_nis_received_kg = Number(suppliedKg);
+                batch.wet_nis_weight_difference_kg = (batch.wet_nis_received_kg != null && batch.actual_wet_nis_kg != null)
+                    ? batch.wet_nis_received_kg - batch.actual_wet_nis_kg : null;
+                scope.filterIntakeBatches();
+            }
+        },
+
         renderIntakeBatches: () => {
             const scope = _growerIntakeGrid;
             const tbody = $('#intakeBatchesTableBody');
@@ -260,11 +295,25 @@ var _growerIntakeGrid = function () {
                 var batchNumEscaped = batchNum.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                 var batchNumberCell = '<a href="#" class="intake-batch-number-link js-intake-batch-number-link" role="button" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + (checklistId || '') + '" data-sample-submission-id="' + (sampleId || '') + '">' + batchNumEscaped + '</a>';
 
+                var suppliedVal = b.wet_nis_received_kg != null ? b.wet_nis_received_kg : '';
+                var actualVal = b.actual_wet_nis_kg != null ? b.actual_wet_nis_kg : '';
+                var wetCellContent;
+                if (scope.wetNisDisplayMode === 'actual') {
+                    wetCellContent = actualVal;
+                } else if (scope.wetNisDisplayMode === 'both') {
+                    wetCellContent = '<div class="intake-wet-both-cell">' +
+                        '<span class="intake-wet-actual-val">' + (actualVal !== '' ? actualVal : '—') + '</span>' +
+                        '<span class="intake-wet-supplied-val">' + (suppliedVal !== '' ? suppliedVal : '—') + '</span>' +
+                        '</div>';
+                } else {
+                    wetCellContent = suppliedVal;
+                }
+
                 const row = '<tr class="js-intake-batch-row" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + checklistId + '">' +
                     '<td class="intake-col-batch">' + batchNumberCell + '</td>' +
                     '<td class="intake-col-grower d-none d-md-table-cell">' + (b.grower_name || '') + '</td>' +
                     '<td class="intake-col-date">' + receivedDate + '</td>' +
-                    '<td class="intake-col-wet d-none d-sm-table-cell">' + (b.wet_nis_received_kg || '') + '</td>' +
+                    '<td class="intake-col-wet d-none d-sm-table-cell">' + wetCellContent + '</td>' +
                     '<td class="intake-col-stage1">' + stage1Cell + '</td>' +
                     '<td class="intake-col-status"><span class="badge bg-info">' + (b.status || '') + '</span></td>' +
                     '<td class="intake-col-actions">' + actionsCell + '</td></tr>';

@@ -50,7 +50,7 @@ All **data functions** (listed below) have `EXECUTE` permissions for **every use
 Earlier migrations (still valid on other projects or for reference):
 - **Auth / user (all roles):** `get_user_by_id`, `get_user_with_permissions`, `get_roles`, `get_users`
 - Dashboard / My Day: `get_workflow_tasks`, `get_watching_items`, `get_due_items`, `get_executive_kpis`, `get_recent_activity_by_role`, `get_active_anomalies`, `get_dashboard_alerts`, `get_dashboard_stats`, `get_recent_activity`, `get_stock_items`
-- Production batches: `get_production_batches`, `create_production_batch_simple`, `update_production_batch`
+- Production batches: `get_production_batches`, `create_production_batch_simple`, `update_production_batch`, `update_production_batch_actual_weight` (Grower Intake Actual weight)
 - Supplier intake: `get_supplier_intake_batches`, `create_supplier_intake_batch`, `get_supplier_intake_batches_by_production_day`, `update_supplier_intake_batch_production_day`
 - Kernel production: `get_kernel_job_card`, `get_kernel_job_cards`, `create_kernel_job_card`, `get_kernel_packing_sample`, `get_kernel_packing_samples`, `create_kernel_packing_sample`, `get_kernel_production_days`, `get_kernel_production_days_list`, `create_kernel_production_day`, `get_kernel_production_stages`, `get_kernel_production_stages_by_day`, `get_kernel_production_stages_list`, `save_kernel_production_stages`, `finish_kernel_batch_production`
 - Supporting: `get_receiving_checklist`, `get_receiving_checklists`, `get_sample_submissions`, `get_contacts`

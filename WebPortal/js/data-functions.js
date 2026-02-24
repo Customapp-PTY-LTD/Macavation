@@ -137,6 +137,18 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Set actual wet NIS weight (sum of bag weights from receiving checklist) and store difference (supplied - actual).
+         * @param {string} batchId - production batch id
+         * @param {number|null} actualWetNisKg - sum of all Weight (Kgs) from receiving checklist bags
+         * @param {string|null} token - auth token (optional)
+         */
+        updateProductionBatchActualWeight: async function (batchId, actualWetNisKg, token = null) {
+            var result = await this.callFunction('update_production_batch_actual_weight', { p_batch_id: batchId, p_actual_wet_nis_kg: actualWetNisKg != null ? actualWetNisKg : null }, token, { useCache: false });
+            this.clearCachePattern('production_batches');
+            return result;
+        },
+
+        /**
          * Get current authentication token
          */
         getToken: function () {
@@ -328,9 +340,9 @@ var _dataFunctions = function () {
                 }
             }
 
-            // Check for pending request to prevent duplicate calls
+            // Check for pending request to prevent duplicate calls (skip when forceRefresh so we get fresh data)
             const requestKey = `${functionName}_${JSON.stringify(params)}`;
-            if (this.cache.pendingRequests.has(requestKey)) {
+            if (!forceRefresh && this.cache.pendingRequests.has(requestKey)) {
                 console.log(`[Dedupe] Waiting for pending request: ${functionName}`);
                 return await this.cache.pendingRequests.get(requestKey);
             }
