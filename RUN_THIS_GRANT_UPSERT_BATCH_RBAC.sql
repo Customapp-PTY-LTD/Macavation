@@ -1,6 +1,6 @@
--- Grant EXECUTE on oil batch flow functions to all roles (Supplier Intake).
--- Aligns with ROLE_ACCESS_UPDATE.md and RBAC_TROUBLESHOOTING.md: all authenticated users can call data functions.
--- Ensures upsert_batch, upsert_oil_batch, get_oil_batches for every role (20260226000007 may not have applied for all).
+-- Run this in Supabase SQL Editor on the project your Lambda uses (e.g. iwxmuemrfopajwvqdiae).
+-- Fixes RBAC 403 for upsert_batch / upsert_oil_batch / get_oil_batches for all roles.
+-- After running: have users log out and log back in.
 
 DO $$
 DECLARE

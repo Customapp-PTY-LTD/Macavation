@@ -22,6 +22,15 @@ DECLARE
         'get_dashboard_stats', 'get_dashboard_alerts', 'get_recent_activity',
         'get_contacts', 'get_contact_by_id', 'create_contact_simple', 'update_contact_simple', 'deactivate_contact',
         'get_production_batches', 'create_production_batch_simple', 'update_production_batch', 'update_production_batch_actual_weight',
+        -- Batches + new oil schema (migrations 20260225–20260226)
+        'upsert_batch', 'upsert_oil_batch', 'get_oil_batches', 'complete_oil_batch',
+        'get_shift_list', 'upsert_shift',
+        'get_product_list', 'upsert_product',
+        'get_oil_bin_list', 'upsert_oil_bin',
+        -- Kernel new schema
+        'get_kernel_batches', 'get_kernel_batch_detail',
+        'upsert_kernel_production', 'upsert_kernel_job_card', 'upsert_kernel_qa',
+        'create_kernel_batch', 'complete_kernel_batch', 'get_kernel_production_history',
         'get_sample_submissions', 'get_quality_tests', 'get_quality_test_by_id',
         'create_quality_test_simple', 'update_quality_test_simple',
         'get_stock_items', 'get_oil_stock_lots', 'get_oil_stock_summary',
