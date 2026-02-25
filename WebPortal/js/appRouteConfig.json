@@ -191,6 +191,13 @@
             "js": ["js/modal_new_batch.js"],
             "css": ["css/modal_new_batch.css"]
         },
+        "supplier-oil-batch-modal": {
+            "description": "Supplier Intake - New oil batch (batches + oil table)",
+            "path": "modals/modal-supplier-oil-batch",
+            "html": "html/modal_supplier_oil_batch.html",
+            "js": ["js/modal_supplier_oil_batch.js"],
+            "css": []
+        },
         "kernel-production-grid": {
             "description": "Kernel Production Workflow",
             "path": "kernel-production",

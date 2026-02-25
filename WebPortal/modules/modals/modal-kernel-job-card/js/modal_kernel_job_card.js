@@ -294,36 +294,33 @@ var _modal_kernel_job_card = (function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found. Refresh the grid and try again.', 'error');
                 return;
             }
-            if (!dataFunctions || typeof dataFunctions.getKernelProductionDays !== 'function') {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Cannot load production data', 'error');
-                return;
-            }
-            var buildPayload = typeof _modal_production_stages !== 'undefined' && _modal_production_stages.buildJobCardPayloadFromBatchAndStages;
-            if (!buildPayload) {
+            if (typeof _modal_production_stages === 'undefined' || !_modal_production_stages.buildJobCardPayloadFromBatchAndStages) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Production stages module not available', 'error');
                 return;
             }
             var loadingMsg = typeof Swal !== 'undefined' && Swal.fire ? Swal.fire({ title: 'Loading…', text: 'Fetching production data…', allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } }) : null;
-            dataFunctions.getKernelProductionDays(batchId).then(function (daysRaw) {
-                var days = Array.isArray(daysRaw) ? daysRaw : (daysRaw && daysRaw.data ? daysRaw.data : []);
-                if (days.length === 0) {
-                    if (loadingMsg && loadingMsg.then) loadingMsg.then(function (s) { if (s && s.isConfirmed !== false && Swal.close) Swal.close(); });
+            dataFunctions.getKernelBatchDetail(batchId).then(function (detail) {
+                var cracking = (detail && Array.isArray(detail.cracking_data)) ? detail.cracking_data : [];
+                var washing  = (detail && Array.isArray(detail.washing_data))  ? detail.washing_data  : [];
+                var sorting  = (detail && Array.isArray(detail.sorting_data))  ? detail.sorting_data  : [];
+                var packing  = (detail && Array.isArray(detail.packing_data))  ? detail.packing_data  : [];
+                var maxLen = Math.max(cracking.length, washing.length, sorting.length, packing.length);
+                if (maxLen === 0) {
+                    if (loadingMsg) loadingMsg.then(function () { if (Swal.close) Swal.close(); });
                     if (typeof Swal !== 'undefined') Swal.fire('Info', 'No production days found for this batch.', 'info');
                     return;
                 }
-                var stagePromises = days.map(function (d) {
-                    var dayId = d.id || d.kernel_production_day_id;
-                    return (dataFunctions.getKernelProductionStagesByDay && dayId) ? dataFunctions.getKernelProductionStagesByDay(dayId) : Promise.resolve(null);
-                });
-                return Promise.all(stagePromises).then(function (allStages) {
-                    var payload = _modal_production_stages.buildJobCardPayloadFromBatchAndStages(batchId, batch, allStages);
-                    var jc = scope.jobCardDataFromPayload(payload);
-                    if (jc) scope.populateJobCardFormFromData(jc);
-                    if (loadingMsg && loadingMsg.then) loadingMsg.then(function (s) { if (s && Swal.close) Swal.close(); });
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Done', text: 'Job card form filled from production data.', timer: 2000, showConfirmButton: false });
-                });
+                var allStages = [];
+                for (var i = 0; i < maxLen; i++) {
+                    allStages.push({ cracking_data: cracking[i] || {}, washing_data: washing[i] || {}, sorting_data: sorting[i] || {}, packing_data: packing[i] || {} });
+                }
+                var payload = _modal_production_stages.buildJobCardPayloadFromBatchAndStages(batchId, batch, allStages);
+                var jc = scope.jobCardDataFromPayload(payload);
+                if (jc) scope.populateJobCardFormFromData(jc);
+                if (loadingMsg) loadingMsg.then(function () { if (Swal.close) Swal.close(); });
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Done', text: 'Job card form filled from production data.', timer: 2000, showConfirmButton: false });
             }).catch(function (e) {
-                if (loadingMsg && loadingMsg.then) loadingMsg.then(function () { if (Swal.close) Swal.close(); });
+                if (loadingMsg) loadingMsg.then(function () { if (Swal.close) Swal.close(); });
                 console.error('[Kernel Job Card] fillJobCardFormFromProduction:', e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to load production data', 'error');
             });
@@ -362,17 +359,16 @@ var _modal_kernel_job_card = (function () {
                 return;
             }
             scope.clearJobCardForm();
-            $('#jobCardId').val(batch.hasJobCard && batch.jobCardId ? batch.jobCardId : '');
+            $('#jobCardId').val('');
             $('#jobCardProductionBatchId').val(batchId);
             $('#jobCardBatchNumber').val(batch.batch_number || '');
-            scope.setJobCardField('jobCardReceivedDate', batch.received_date ? batch.received_date.toString().split('T')[0] : '');
+            scope.setJobCardField('jobCardReceivedDate', batch.received_date ? batch.received_date.toString().split('T')[0] : new Date().toISOString().split('T')[0]);
             $('#jobCardSupplierName').val(batch.grower_name || '');
-            if (!batch.received_date) scope.setJobCardField('jobCardReceivedDate', new Date().toISOString().split('T')[0]);
+
+            // Load contacts + full kernel detail (job_card_data + stage arrays) in parallel
             var getContacts = dataFunctions.getContacts && dataFunctions.getContacts();
-            var getJobCard = (batch.hasJobCard && batch.jobCardId && dataFunctions.getKernelJobCard) ? dataFunctions.getKernelJobCard(batch.jobCardId) : Promise.resolve(null);
-            var getAllStages = (batch.productionDays && batch.productionDays.length && dataFunctions.getKernelProductionStages)
-                ? Promise.all(batch.productionDays.map(function (d) { return dataFunctions.getKernelProductionStages(d.kernel_production_stages_id); }))
-                : Promise.resolve([]);
+            var getDetail = dataFunctions.getKernelBatchDetail(batchId);
+
             (getContacts || Promise.resolve([])).then(function (contacts) {
                 var html = '<option value="">Select Supplier</option>';
                 if (contacts && Array.isArray(contacts)) {
@@ -383,22 +379,30 @@ var _modal_kernel_job_card = (function () {
                     });
                 }
                 $('#jobCardSupplier').html(html);
-                return Promise.all([getJobCard, getAllStages]);
-            }).then(function (results) {
-                var jc = results[0];
-                var allStages = Array.isArray(results[1]) ? results[1] : [];
-                var payload = null;
-                if (allStages.length && typeof _modal_production_stages !== 'undefined' && _modal_production_stages.buildJobCardPayloadFromBatchAndStages) {
-                    payload = _modal_production_stages.buildJobCardPayloadFromBatchAndStages(batchId, batch, allStages);
-                }
-                if (DEBUG_BEST_BEFORE) console.log('[JobCard BestBefore] data loaded: jc.packing_start_date=', jc && jc.packing_start_date, 'jc.best_before_date=', jc && jc.best_before_date, 'payload.p_packing_start_date=', payload && payload.p_packing_start_date, 'payload.p_best_before_date=', payload && payload.p_best_before_date);
+                return getDetail;
+            }).then(function (detail) {
+                var jc = (detail && detail.job_card_data && Object.keys(detail.job_card_data).length) ? detail.job_card_data : null;
                 if (jc && (jc.batch_number || jc.packing_start_date)) {
+                    // Populate from saved job_card_data (source of truth)
                     scope.populateJobCardFormFromData(jc);
-                    // Do not overwrite job card dates from production payload when we have saved job card data (jc).
-                    // Payload can contain wrong dates from stages (e.g. 20/06/2026); API job card is source of truth.
-                } else if (payload) {
-                    var jcFromPayload = scope.jobCardDataFromPayload(payload);
-                    if (jcFromPayload) scope.populateJobCardFormFromData(jcFromPayload);
+                } else if (detail && typeof _modal_production_stages !== 'undefined' && _modal_production_stages.buildJobCardPayloadFromBatchAndStages) {
+                    // No saved job card — pre-fill from production stage arrays
+                    var cracking = Array.isArray(detail.cracking_data) ? detail.cracking_data : [];
+                    var washing  = Array.isArray(detail.washing_data)  ? detail.washing_data  : [];
+                    var sorting  = Array.isArray(detail.sorting_data)  ? detail.sorting_data  : [];
+                    var packing  = Array.isArray(detail.packing_data)  ? detail.packing_data  : [];
+                    var maxLen = Math.max(cracking.length, washing.length, sorting.length, packing.length);
+                    if (maxLen > 0) {
+                        var allStages = [];
+                        for (var i = 0; i < maxLen; i++) {
+                            allStages.push({ cracking_data: cracking[i] || {}, washing_data: washing[i] || {}, sorting_data: sorting[i] || {}, packing_data: packing[i] || {} });
+                        }
+                        var payload = _modal_production_stages.buildJobCardPayloadFromBatchAndStages(batchId, batch, allStages);
+                        if (payload) {
+                            var jcFromPayload = scope.jobCardDataFromPayload(payload);
+                            if (jcFromPayload) scope.populateJobCardFormFromData(jcFromPayload);
+                        }
+                    }
                 }
             }).then(function () {
                 var modalEl = document.getElementById('kernelJobCardModal');
@@ -537,16 +541,24 @@ var _modal_kernel_job_card = (function () {
                 p_auto_update_stock: $('#jobCardAutoUpdateStock').length ? $('#jobCardAutoUpdateStock').prop('checked') : false
             };
             if (getVal('jobCardId')) jobCardData.p_id = getVal('jobCardId');
-            (dataFunctions.createKernelJobCard && dataFunctions.createKernelJobCard(jobCardData)).then(function (result) {
-                if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: 'Job card saved successfully', timer: 2000, showConfirmButton: false });
-                    var modalEl = document.getElementById('kernelJobCardModal');
-                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                    else $('#kernelJobCardModal').modal('hide');
-                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
-                } else {
-                    throw new Error(result && result.error ? result.error : 'Failed to save');
-                }
+            var kernelId = getVal('jobCardProductionBatchId');
+            if (!kernelId) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch ID missing. Please reopen the job card from a batch row.', 'error');
+                return;
+            }
+            // Store job card as flat JSONB object (strip p_ prefix; use field names directly)
+            var jobCardObj = {};
+            Object.keys(jobCardData).forEach(function (k) {
+                jobCardObj[k.replace(/^p_/, '')] = jobCardData[k];
+            });
+            dataFunctions.upsertKernelJobCard(kernelId, jobCardObj).then(function (result) {
+                var inner = (result && result.upsert_kernel_job_card) ? result.upsert_kernel_job_card : result;
+                if (inner && inner.success === false) throw new Error(inner.error || 'Failed to save');
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: 'Job card saved successfully', timer: 2000, showConfirmButton: false });
+                var modalEl = document.getElementById('kernelJobCardModal');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                else $('#kernelJobCardModal').modal('hide');
+                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
             }).catch((e) => {
                 console.error('[Kernel Production] saveJobCard failed:', e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save job card', 'error');

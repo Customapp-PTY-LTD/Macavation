@@ -1,0 +1,153 @@
+<div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="supplierOilBatchModalLabel">New oil batch (intake)</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="supplierOilBatchForm">
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Delivery &amp; supplier</h6></div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <label for="oilIntakeDateReceived" class="form-label required">Date received</label>
+                                <input type="text" class="form-control flatpickr-date" id="oilIntakeDateReceived" data-input required placeholder="dd/mm/yyyy">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="oilIntakeDeliveryNoteRef" class="form-label required">Delivery note / PO number</label>
+                                <input type="text" class="form-control" id="oilIntakeDeliveryNoteRef" required placeholder="e.g. DN12345">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="oilIntakeSupplier" class="form-label required">Supplier</label>
+                                <select class="form-select" id="oilIntakeSupplier" required>
+                                    <option value="">Select supplier</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="oilIntakeSupplierDetails" class="form-label">Supplier details (contact, phone)</label>
+                                <input type="text" class="form-control" id="oilIntakeSupplierDetails" placeholder="Optional">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Vehicle &amp; receiving checks</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Vehicle clean?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakeVehicleClean" id="oilIntakeVehicleCleanYes" value="true">
+                                        <label class="form-check-label" for="oilIntakeVehicleCleanYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakeVehicleClean" id="oilIntakeVehicleCleanNo" value="false">
+                                        <label class="form-check-label" for="oilIntakeVehicleCleanNo">No</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Vehicle fully enclosed?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakeVehicleEnclosed" id="oilIntakeVehicleEnclosedYes" value="true">
+                                        <label class="form-check-label" for="oilIntakeVehicleEnclosedYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakeVehicleEnclosed" id="oilIntakeVehicleEnclosedNo" value="false">
+                                        <label class="form-check-label" for="oilIntakeVehicleEnclosedNo">No</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">No hazardous substances?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakeNoHazards" id="oilIntakeNoHazardsYes" value="true">
+                                        <label class="form-check-label" for="oilIntakeNoHazardsYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakeNoHazards" id="oilIntakeNoHazardsNo" value="false">
+                                        <label class="form-check-label" for="oilIntakeNoHazardsNo">No</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">No pest infestation?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakeNoPest" id="oilIntakeNoPestYes" value="true">
+                                        <label class="form-check-label" for="oilIntakeNoPestYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakeNoPest" id="oilIntakeNoPestNo" value="false">
+                                        <label class="form-check-label" for="oilIntakeNoPestNo">No</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Pallets in good condition?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakePalletsGood" id="oilIntakePalletsGoodYes" value="true">
+                                        <label class="form-check-label" for="oilIntakePalletsGoodYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakePalletsGood" id="oilIntakePalletsGoodNo" value="false">
+                                        <label class="form-check-label" for="oilIntakePalletsGoodNo">No</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Raw materials in good condition?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakeRawMaterialsGood" id="oilIntakeRawMaterialsGoodYes" value="true">
+                                        <label class="form-check-label" for="oilIntakeRawMaterialsGoodYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="oilIntakeRawMaterialsGood" id="oilIntakeRawMaterialsGoodNo" value="false">
+                                        <label class="form-check-label" for="oilIntakeRawMaterialsGoodNo">No</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Product item</h6></div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-md-2">
+                                <label for="oilIntakeItemRef" class="form-label required">Reference / PO</label>
+                                <input type="text" class="form-control form-control-sm" id="oilIntakeItemRef" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="oilIntakeItemDescription" class="form-label required">Description</label>
+                                <input type="text" class="form-control form-control-sm" id="oilIntakeItemDescription" required placeholder="e.g. Raw kernel">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="oilIntakeItemBatch" class="form-label required">Batch</label>
+                                <input type="text" class="form-control form-control-sm" id="oilIntakeItemBatch" required placeholder="e.g. BN 1.26.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="oilIntakeItemCartonBags" class="form-label">Carton / bulk bags</label>
+                                <input type="text" class="form-control form-control-sm" id="oilIntakeItemCartonBags" placeholder="e.g. 50 bags">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="oilIntakeItemQuantity" class="form-label required">Quantity</label>
+                                <input type="number" class="form-control form-control-sm" id="oilIntakeItemQuantity" step="0.01" min="0" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="oilIntakeItemMfgDate" class="form-label">Manufactured date</label>
+                                <input type="text" class="form-control form-control-sm flatpickr-date" id="oilIntakeItemMfgDate" placeholder="dd/mm/yyyy">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="oilIntakeItemBestBefore" class="form-label">Best before date</label>
+                                <input type="text" class="form-control form-control-sm flatpickr-date" id="oilIntakeItemBestBefore" placeholder="dd/mm/yyyy">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="supplierOilBatchSaveBtn"><i class="fas fa-save me-1"></i>Save batch</button>
+        </div>
+    </div>
+</div>

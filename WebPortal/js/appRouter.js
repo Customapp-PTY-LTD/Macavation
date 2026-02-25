@@ -394,6 +394,9 @@ var _appRouter = function () {
                 'new-batch-modal': () => {
                     if (typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.init) _modal_supplier_new_batch.init();
                 },
+                'supplier-oil-batch-modal': () => {
+                    if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.init) _modalSupplierOilBatch.init();
+                },
                 'kernel-production-grid': () => {
                     if (typeof initializeKernelProductionGrid === 'function') {
                         initializeKernelProductionGrid();

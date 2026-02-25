@@ -23,6 +23,8 @@ var _modal_end_sample = (function () {
         },
 
         show: (batchId) => {
+            const scope = _modal_end_sample;
+            // Reset form
             $('#endSampleProductionBatchId').val(batchId || '');
             $('#endSampleMoistureRequired').prop('checked', false);
             $('#endSampleMoistureResult').val('');
@@ -39,9 +41,53 @@ var _modal_end_sample = (function () {
             labTestPdfUrl = '';
             $('#endSampleLabTestPdf').val('');
             $('#endSampleLabTestPdfPreview').empty();
+            // Show modal immediately (fields populate async below)
             var modalEl = document.getElementById('endSampleModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#endSampleModal').modal('show');
+            // Pre-populate from saved qa_data
+            if (batchId && typeof dataFunctions !== 'undefined' && dataFunctions.getKernelBatchDetail) {
+                dataFunctions.getKernelBatchDetail(batchId).then(function (detail) {
+                    var qa = (detail && detail.qa_data && Object.keys(detail.qa_data).length) ? detail.qa_data : null;
+                    if (!qa) return;
+                    scope.populateFromQaData(qa);
+                }).catch(function (e) {
+                    console.error('[End Sample] Failed to load existing data:', e);
+                });
+            }
+        },
+
+        populateFromQaData: (qa) => {
+            $('#endSampleMoistureRequired').prop('checked', !!qa.moisture_required);
+            $('#endSampleMoistureResult').val(qa.moisture_result != null ? qa.moisture_result : '');
+            $('#endSamplePeroxideRequired').prop('checked', !!qa.peroxide_required);
+            $('#endSamplePeroxideResult').val(qa.peroxide_result != null ? qa.peroxide_result : '');
+            $('#endSampleFfaRequired').prop('checked', !!qa.ffa_required);
+            $('#endSampleFfaResult').val(qa.ffa_result != null ? qa.ffa_result : '');
+            $('#endSampleInternalMicroRequired').prop('checked', !!qa.internal_micro_required);
+            $('#endSampleInternalMicroResult').val(qa.internal_micro_result || '');
+            $('#endSampleExternalLabRequired').prop('checked', !!qa.external_lab_required);
+            $('#endSampleExternalLabResult').val(qa.external_lab_result || '');
+            $('#endSampleSupervisorSigned').val(qa.supervisor_signed_by || '');
+            $('#endSampleNutPlantManagerSigned').val(qa.nut_plant_manager_signed_by || '');
+            if (qa.lab_test_pdf_url) {
+                labTestPdfUrl = qa.lab_test_pdf_url;
+                var href = (typeof _common !== 'undefined' && _common.sanitizeHtml) ? _common.sanitizeHtml(labTestPdfUrl) : labTestPdfUrl;
+                var fileName = labTestPdfUrl.split('/').pop() || 'Lab Test PDF';
+                var safeFileName = (typeof _common !== 'undefined' && _common.sanitizeHtml) ? _common.sanitizeHtml(fileName) : fileName;
+                var $previewEl = $('#endSampleLabTestPdfPreview');
+                $previewEl.html(
+                    '<a href="' + href + '" target="_blank" rel="noopener" class="text-primary">' +
+                    '<i class="fas fa-file-pdf me-1"></i>' + safeFileName + '</a> ' +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary ms-1" id="endSampleLabTestPdfRemove" title="Remove">' +
+                    '<i class="fas fa-times"></i></button>'
+                );
+                $('#endSampleLabTestPdfRemove').on('click', function () {
+                    labTestPdfUrl = '';
+                    $('#endSampleLabTestPdf').val('');
+                    $previewEl.empty();
+                });
+            }
         },
 
         handleLabTestPdfSelect: async function (e) {
@@ -103,13 +149,12 @@ var _modal_end_sample = (function () {
         },
 
         saveEndSample: () => {
-            var batchId = $('#endSampleProductionBatchId').val();
-            if (!batchId || !batchId.trim()) {
+            var kernelId = $('#endSampleProductionBatchId').val();
+            if (!kernelId || !kernelId.trim()) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
                 return;
             }
-            var data = {
-                production_batch_id: batchId,
+            var qaData = {
                 moisture_required: $('#endSampleMoistureRequired').prop('checked'),
                 moisture_result: $('#endSampleMoistureResult').val() ? parseFloat($('#endSampleMoistureResult').val()) : null,
                 peroxide_required: $('#endSamplePeroxideRequired').prop('checked'),
@@ -124,24 +169,18 @@ var _modal_end_sample = (function () {
                 supervisor_signed_by: $('#endSampleSupervisorSigned').val() || null,
                 nut_plant_manager_signed_by: $('#endSampleNutPlantManagerSigned').val() || null
             };
-            var createPromise = (typeof dataFunctions !== 'undefined' && dataFunctions.createKernelPackingSample)
-                ? dataFunctions.createKernelPackingSample(data)
-                : Promise.reject(new Error('Save not available: dataFunctions.createKernelPackingSample is missing'));
-            createPromise.then((result) => {
-                if (result && result.success !== false) {
-                    var updatePromise = (typeof dataFunctions !== 'undefined' && dataFunctions.updateProductionBatch)
-                        ? dataFunctions.updateProductionBatch(batchId, { status: 'release_ready' })
-                        : Promise.resolve();
-                    updatePromise.then(() => {
-                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'End sample saved. Batch is now release ready.', timer: 2000, showConfirmButton: false });
-                        var modalEl = document.getElementById('endSampleModal');
-                        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                        else $('#endSampleModal').modal('hide');
-                        if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
-                    });
-                } else {
-                    throw new Error(result && result.error ? result.error : 'Save failed');
-                }
+            if (typeof dataFunctions === 'undefined' || typeof dataFunctions.upsertKernelQa !== 'function') {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Save not available. Please refresh the page.', 'error');
+                return;
+            }
+            dataFunctions.upsertKernelQa(kernelId, qaData).then((result) => {
+                var inner = (result && result.upsert_kernel_qa) ? result.upsert_kernel_qa : result;
+                if (inner && inner.success === false) throw new Error(inner.error || 'Save failed');
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'End sample saved. Batch is now release ready.', timer: 2000, showConfirmButton: false });
+                var modalEl = document.getElementById('endSampleModal');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                else $('#endSampleModal').modal('hide');
+                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
             }).catch((e) => {
                 console.error(e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save end sample', 'error');

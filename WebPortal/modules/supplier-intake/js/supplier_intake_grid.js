@@ -42,10 +42,12 @@ var _supplierIntakeGrid = function () {
             });
             Promise.all(loadPromises).then(() => {
                 if (typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.init) _modal_supplier_new_batch.init();
+                if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.init) _modalSupplierOilBatch.init();
                 if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.init) _modal_stock_receiving_checklist.init();
             }).catch((err) => {
                 console.error('[Supplier Intake] Error loading modals:', err);
                 if (typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.init) _modal_supplier_new_batch.init();
+                if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.init) _modalSupplierOilBatch.init();
                 if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.init) _modal_stock_receiving_checklist.init();
             });
         },
@@ -54,10 +56,10 @@ var _supplierIntakeGrid = function () {
             const scope = _supplierIntakeGrid;
             $('#addNewBatchProductBtn').off('click').on('click', function (e) {
                 e.preventDefault();
-                if (typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.show) {
-                    _modal_supplier_new_batch.show();
+                if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.show) {
+                    _modalSupplierOilBatch.show();
                 } else if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', 'New batch modal not loaded. Please refresh the page.', 'error');
+                    Swal.fire('Error', 'New oil batch modal not loaded. Please refresh the page.', 'error');
                 }
             });
             $('#exportSupplierIntakeBtn').off('click').on('click', () => scope.exportBatches());

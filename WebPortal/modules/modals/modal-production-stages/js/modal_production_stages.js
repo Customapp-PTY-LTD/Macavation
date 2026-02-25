@@ -115,6 +115,9 @@ var _modal_production_stages = (function () {
         modalProductionDays: null,
         modalProductionDayStages: null,
         currentProductionAction: null,
+        currentTabSection: 'crack',
+        /** Cached result of getKernelBatchDetail — avoids repeated DB calls within one modal session. */
+        _loadedKernelDetail: null,
         productionActionMap: {
             crack: { section: 'crack', paneId: 'pane-cracking', dataKey: 'cracking_data' },
             wash: { section: 'wash', paneId: 'pane-washing', dataKey: 'washing_data' },
@@ -446,32 +449,31 @@ var _modal_production_stages = (function () {
 
         loadProductionStagesForDay: (dayId, stagesId) => {
             const scope = _modal_production_stages;
-            if (!dayId && !stagesId) return Promise.resolve();
-            var p = stagesId ? dataFunctions.getKernelProductionStages(stagesId) : (dayId ? dataFunctions.getKernelProductionStagesByDay(dayId) : Promise.resolve(null));
-            return p.then(function (s) {
-                var crack = (s && s.cracking_data) ? s.cracking_data : {};
-                var wash = (s && s.washing_data) ? s.washing_data : {};
-                var sort = (s && s.sorting_data) ? s.sorting_data : {};
-                var pack = (s && s.packing_data) ? s.packing_data : {};
-                scope.modalProductionDayStages = {
-                    cracking_data: crack,
-                    washing_data: wash,
-                    sorting_data: sort,
-                    packing_data: pack,
-                    summary_data: s ? deriveSummaryFromStages(crack, wash, sort, pack) : {}
-                };
-                if (s) {
-                    scope.setProductionStagesSectionData('crack', crack);
-                    scope.setProductionStagesSectionData('wash', wash);
-                    scope.setProductionStagesSectionData('sort', sort);
-                    scope.setProductionStagesSectionData('pack', pack);
-                } else {
-                    scope.clearProductionStagesForm();
-                }
-            }).catch(function () {
-                scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
+            if (dayId == null && stagesId == null) return Promise.resolve();
+            // dayId is now the day index as a string; read from cached kernel detail
+            var idx = parseInt(dayId != null ? dayId : stagesId, 10);
+            var detail = scope._loadedKernelDetail;
+            var crack = (detail && detail.cracking_data && detail.cracking_data[idx]) ? detail.cracking_data[idx] : {};
+            var wash  = (detail && detail.washing_data  && detail.washing_data[idx])  ? detail.washing_data[idx]  : {};
+            var sort  = (detail && detail.sorting_data  && detail.sorting_data[idx])  ? detail.sorting_data[idx]  : {};
+            var pack  = (detail && detail.packing_data  && detail.packing_data[idx])  ? detail.packing_data[idx]  : {};
+            var hasData = Object.keys(crack).length || Object.keys(wash).length || Object.keys(sort).length || Object.keys(pack).length;
+            scope.modalProductionDayStages = {
+                cracking_data: crack,
+                washing_data: wash,
+                sorting_data: sort,
+                packing_data: pack,
+                summary_data: hasData ? deriveSummaryFromStages(crack, wash, sort, pack) : {}
+            };
+            if (hasData) {
+                scope.setProductionStagesSectionData('crack', crack);
+                scope.setProductionStagesSectionData('wash', wash);
+                scope.setProductionStagesSectionData('sort', sort);
+                scope.setProductionStagesSectionData('pack', pack);
+            } else {
                 scope.clearProductionStagesForm();
-            });
+            }
+            return Promise.resolve();
         },
 
         selectProductionDay: (dayId) => {
@@ -492,26 +494,18 @@ var _modal_production_stages = (function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
                 return;
             }
-            if (typeof dataFunctions === 'undefined' || typeof dataFunctions.createKernelProductionDay !== 'function') {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Add production day is not available. Please refresh the page.', 'error');
-                return;
-            }
-            dataFunctions.createKernelProductionDay(batchId).then(function (result) {
-                var inner = (result && result.create_kernel_production_day) ? result.create_kernel_production_day : result;
-                if (!inner || inner.success === false) throw new Error(inner && inner.error ? inner.error : 'Failed to create day');
-                var newDayId = inner.id;
-                var dayNum = inner.day_number != null ? inner.day_number : ((scope.modalProductionDays || []).length + 1);
-                scope.modalProductionDays = scope.modalProductionDays || [];
-                scope.modalProductionDays.push({ id: newDayId, day_number: dayNum, kernel_production_stages_id: null });
-                scope.renderProductionDaysList(scope.modalProductionDays);
-                $('#productionStagesDayId').val(newDayId);
-                scope.clearProductionStagesForm();
-                scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
-                scope.setProductionStagesTabsVisibility(true);
-                scope.setProductionDayActive(newDayId);
-            }).catch(function (e) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to add day', 'error');
-            });
+            // In-memory day allocation — new day is the next available index (no DB write until save).
+            scope.modalProductionDays = scope.modalProductionDays || [];
+            var newIndex = scope.modalProductionDays.length;
+            var newDayId = String(newIndex);
+            var dayNum = newIndex + 1;
+            scope.modalProductionDays.push({ id: newDayId, day_number: dayNum, kernel_production_stages_id: null });
+            scope.renderProductionDaysList(scope.modalProductionDays);
+            $('#productionStagesDayId').val(newDayId);
+            scope.clearProductionStagesForm();
+            scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
+            scope.setProductionStagesTabsVisibility(true);
+            scope.setProductionDayActive(newDayId);
         },
 
         showBatchSummary: () => {
@@ -523,26 +517,28 @@ var _modal_production_stages = (function () {
             var modalEl = document.getElementById('batchSummaryModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#batchSummaryModal').modal('show');
-            var days = scope.modalProductionDays || [];
-            var loadDays = days.length === 0 ? (dataFunctions.getKernelProductionDays && dataFunctions.getKernelProductionDays(batchId)) : Promise.resolve(days);
-            loadDays.then(function (raw) {
-                var list = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
-                if (list.length === 0) {
-                    $body.html('<p class="text-muted mb-0">No production days to summarize. Add days and save data first.</p>');
-                    return;
-                }
-                var promises = list.map(function (d) {
-                    return d.kernel_production_stages_id
-                        ? dataFunctions.getKernelProductionStages(d.kernel_production_stages_id)
-                        : dataFunctions.getKernelProductionStagesByDay(d.id || d.kernel_production_day_id);
+            // Build stages list from cached kernel detail (no extra DB call)
+            var detail = scope._loadedKernelDetail;
+            var cracking = (detail && Array.isArray(detail.cracking_data)) ? detail.cracking_data : [];
+            var washing  = (detail && Array.isArray(detail.washing_data))  ? detail.washing_data  : [];
+            var sorting  = (detail && Array.isArray(detail.sorting_data))  ? detail.sorting_data  : [];
+            var packing  = (detail && Array.isArray(detail.packing_data))  ? detail.packing_data  : [];
+            var maxLen = Math.max(cracking.length, washing.length, sorting.length, packing.length);
+            if (maxLen === 0) {
+                $body.html('<p class="text-muted mb-0">No production days to summarize. Add days and save data first.</p>');
+                return;
+            }
+            var allStages = [];
+            for (var i = 0; i < maxLen; i++) {
+                allStages.push({
+                    cracking_data: cracking[i] || {},
+                    washing_data:  washing[i]  || {},
+                    sorting_data:  sorting[i]  || {},
+                    packing_data:  packing[i]  || {}
                 });
-                return Promise.all(promises).then(function (allStages) {
-                    var agg = scope.aggregateProductionStages(allStages);
-                    $body.html(scope.renderBatchSummaryHtml(agg, list.length));
-                });
-            }).catch(function () {
-                $body.html('<p class="text-muted mb-0">No production days to summarize.</p>');
-            });
+            }
+            var agg = scope.aggregateProductionStages(allStages);
+            $body.html(scope.renderBatchSummaryHtml(agg, maxLen));
         },
 
         aggregateProductionStages: (stagesList) => {
@@ -676,54 +672,48 @@ var _modal_production_stages = (function () {
             }
         },
 
-        /** Completes the "Finish batch production" action: calls API, updates status to awaiting_test, creates job card from production data, closes modal, refreshes grid. */
+        /** Completes the "Finish batch production" action: sets production_finished_at, status→qa, auto-saves job card, closes modal, refreshes grid. */
         doFinishBatchProduction: (batchId) => {
             const scope = _modal_production_stages;
-            if (!dataFunctions || typeof dataFunctions.finishKernelBatchProduction !== 'function') {
+            if (typeof dataFunctions === 'undefined' || typeof dataFunctions.upsertKernelProduction !== 'function') {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Finish batch function not available', 'error');
                 return;
             }
-            var p = dataFunctions.finishKernelBatchProduction(batchId);
-            if (!p || typeof p.then !== 'function') {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Finish batch function not available', 'error');
-                return;
+            var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
+            // Build job card from current loaded stage arrays
+            var detail = scope._loadedKernelDetail;
+            var cracking = (detail && Array.isArray(detail.cracking_data)) ? detail.cracking_data : [];
+            var washing  = (detail && Array.isArray(detail.washing_data))  ? detail.washing_data  : [];
+            var sorting  = (detail && Array.isArray(detail.sorting_data))  ? detail.sorting_data  : [];
+            var packing  = (detail && Array.isArray(detail.packing_data))  ? detail.packing_data  : [];
+            var maxLen = Math.max(cracking.length, washing.length, sorting.length, packing.length);
+            var allStages = [];
+            for (var i = 0; i < maxLen; i++) {
+                allStages.push({ cracking_data: cracking[i] || {}, washing_data: washing[i] || {}, sorting_data: sorting[i] || {}, packing_data: packing[i] || {} });
             }
-            p.then(function (result) {
-                var inner = (result && result.finish_kernel_batch_production) ? result.finish_kernel_batch_production : result;
-                if (!inner || inner.success === false) {
-                    throw new Error(inner && inner.error ? inner.error : 'Failed to finish');
-                }
-                var updatePromise = (dataFunctions.updateProductionBatch)
-                    ? dataFunctions.updateProductionBatch(batchId, { status: 'awaiting_test' })
-                    : Promise.resolve();
-                return updatePromise.then(function () {
-                    var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
-                    var daysPromise = (dataFunctions.getKernelProductionDays && batchId) ? dataFunctions.getKernelProductionDays(batchId) : Promise.resolve([]);
-                    return daysPromise.then(function (daysRaw) {
-                        var days = Array.isArray(daysRaw) ? daysRaw : (daysRaw && daysRaw.data ? daysRaw.data : []);
-                        if (days.length === 0) return null;
-                        var stagePromises = days.map(function (d) {
-                            var dayId = d.id || d.kernel_production_day_id;
-                            return (dataFunctions.getKernelProductionStagesByDay && dayId) ? dataFunctions.getKernelProductionStagesByDay(dayId) : Promise.resolve(null);
-                        });
-                        return Promise.all(stagePromises).then(function (allStages) {
-                            var payload = scope.buildJobCardPayloadFromBatchAndStages(batchId, batch, allStages);
-                            if (payload && payload.p_batch_number && dataFunctions.createKernelJobCard) {
-                                return dataFunctions.createKernelJobCard(payload).then(function () { return true; }).catch(function (err) {
-                                    console.warn('[Kernel Production] Job card create on finish:', err);
-                                    return false;
-                                });
-                            }
-                            return null;
-                        });
+            var jobCardPayload = null;
+            if (allStages.length > 0) {
+                var p = scope.buildJobCardPayloadFromBatchAndStages(batchId, batch, allStages);
+                if (p && p.p_batch_number) {
+                    // Convert p_* payload to flat object for job_card_data JSONB
+                    jobCardPayload = {};
+                    Object.keys(p).forEach(function (k) {
+                        jobCardPayload[k.replace(/^p_/, '')] = p[k];
                     });
-                }).then(function () {
-                    if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Batch production marked as finished. Status: Awaiting test.', 'success');
-                    var modalEl = document.getElementById('productionStagesModal');
-                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                    else if (typeof $ !== 'undefined') $('#productionStagesModal').modal('hide');
-                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
-                });
+                }
+            }
+            dataFunctions.upsertKernelProduction(batchId, {
+                finishProduction: true,
+                jobCardData: jobCardPayload
+            }).then(function (result) {
+                var inner = (result && result.upsert_kernel_production) ? result.upsert_kernel_production : result;
+                if (inner && inner.success === false) throw new Error(inner.error || 'Failed to finish');
+                if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Batch production marked as finished.', 'success');
+                scope._loadedKernelDetail = null;
+                var modalEl = document.getElementById('productionStagesModal');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                else if (typeof $ !== 'undefined') $('#productionStagesModal').modal('hide');
+                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
             }).catch(function (e) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to finish batch production', 'error');
             });
@@ -737,106 +727,53 @@ var _modal_production_stages = (function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
                 return;
             }
-            if (!dayId) {
+            if (dayId == null || dayId === '') {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Select or add a day first, then save.', 'error');
                 return;
             }
-            var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
-            var batchNumber = batch ? (batch.batch_number || '') : '';
-            var growerName = batch ? (batch.grower_name || '') : '';
             scope.persistCurrentTabToStages();
             var cracking_data = scope.getProductionStagesSectionData('crack');
             var washing_data = scope.getProductionStagesSectionData('wash');
             var sorting_data = scope.getProductionStagesSectionData('sort');
             var packing_data = scope.getProductionStagesSectionData('pack');
             var summary_data = deriveSummaryFromStages(cracking_data, washing_data, sorting_data, packing_data);
-            var stagesPayload = { cracking_data: cracking_data, washing_data: washing_data, sorting_data: sorting_data, packing_data: packing_data };
-            var effectiveSaveDate = getStagesLatestDate(stagesPayload) || getStagesEffectiveDate(stagesPayload);
+            var dayIndex = parseInt(dayId, 10);
 
-            function doSave(targetDayId) {
-                var payload = {
-                    kernel_production_day_id: targetDayId,
-                    batch_number: batchNumber,
-                    grower_name: growerName,
-                    cracking_data: cracking_data,
-                    washing_data: washing_data,
-                    sorting_data: sorting_data,
-                    packing_data: packing_data,
-                    summary_data: summary_data
-                };
-                return (dataFunctions.saveKernelProductionStages && dataFunctions.saveKernelProductionStages(payload)).then(function () {
-                    scope.modalProductionDayStages = { cracking_data: cracking_data, washing_data: washing_data, sorting_data: sorting_data, packing_data: packing_data, summary_data: summary_data };
-                    scope.updateProductionActionButtonTicks();
-                    scope.clearProductionStagesDraft(batchId);
-                    if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved for this day.', 'success');
-                    return (dataFunctions.getKernelProductionDays && dataFunctions.getKernelProductionDays(batchId)) || Promise.resolve([]);
-                }).then(function (raw) {
-                    var days = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
-                    scope.modalProductionDays = days;
-                    scope.renderProductionDaysList(days);
-                    scope.setProductionDayActive(targetDayId);
-                });
-            }
-
-            // Save to the day that matches the form date (across all days), or create a new day if no day has that date.
-            var checkAndSave = function () {
-                if (!effectiveSaveDate) {
-                    return doSave(dayId);
+            dataFunctions.upsertKernelProduction(batchId, {
+                dayIndex: dayIndex,
+                crackingData: cracking_data,
+                washingData: washing_data,
+                sortingData: sorting_data,
+                packingData: packing_data
+            }).then(function (result) {
+                var inner = (result && result.upsert_kernel_production) ? result.upsert_kernel_production : result;
+                if (inner && inner.success === false) throw new Error(inner.error || 'Save failed');
+                // Update cached detail so subsequent operations see saved data
+                if (scope._loadedKernelDetail) {
+                    var ensureArr = function (arr) { return Array.isArray(arr) ? arr : []; };
+                    var setIdx = function (arr, idx, val) {
+                        while (arr.length <= idx) arr.push({});
+                        arr[idx] = val;
+                        return arr;
+                    };
+                    scope._loadedKernelDetail.cracking_data = setIdx(ensureArr(scope._loadedKernelDetail.cracking_data), dayIndex, cracking_data);
+                    scope._loadedKernelDetail.washing_data  = setIdx(ensureArr(scope._loadedKernelDetail.washing_data),  dayIndex, washing_data);
+                    scope._loadedKernelDetail.sorting_data  = setIdx(ensureArr(scope._loadedKernelDetail.sorting_data),  dayIndex, sorting_data);
+                    scope._loadedKernelDetail.packing_data  = setIdx(ensureArr(scope._loadedKernelDetail.packing_data),  dayIndex, packing_data);
                 }
-                var daysPromise = (dataFunctions.getKernelProductionDays && dataFunctions.getKernelProductionDays(batchId)) || Promise.resolve([]);
-                return daysPromise
-                    .then(function (daysRaw) {
-                        var days = Array.isArray(daysRaw) ? daysRaw : (daysRaw && daysRaw.data ? daysRaw.data : []);
-                        if (!days.length) return { targetDayId: dayId, days: days };
-                        var getStages = dataFunctions.getKernelProductionStagesByDay && dataFunctions.getKernelProductionStagesByDay;
-                        if (!getStages) return { targetDayId: dayId, days: days };
-                        return Promise.all(days.map(function (d) {
-                            var did = d.id || d.kernel_production_day_id;
-                            return getStages(did).then(function (raw) {
-                                var stages = raw && typeof raw === 'object' && raw.get_kernel_production_stages_by_day != null
-                                    ? raw.get_kernel_production_stages_by_day
-                                    : (Array.isArray(raw) ? raw[0] : raw);
-                                var dayDate = getStagesEffectiveDate(stages);
-                                return { dayId: did, day: d, dayDate: dayDate };
-                            }).catch(function () { return { dayId: did, day: d, dayDate: null }; });
-                        })).then(function (dayInfos) {
-                            var match = dayInfos.filter(function (info) { return info.dayDate === effectiveSaveDate; })[0];
-                            var targetDayId = match ? match.dayId : null;
-                            if (targetDayId) {
-                                scope.modalProductionDays = days;
-                                scope.renderProductionDaysList(days);
-                                $('#productionStagesDayId').val(targetDayId);
-                                scope.setProductionDayActive(targetDayId);
-                                return { targetDayId: targetDayId, days: days };
-                            }
-                            var currentInfo = dayInfos.filter(function (info) { return info.dayId === dayId; })[0];
-                            var currentDayDate = currentInfo ? currentInfo.dayDate : null;
-                            if (currentDayDate !== null && currentDayDate === effectiveSaveDate) return { targetDayId: dayId, days: days };
-                            if (typeof dataFunctions.createKernelProductionDay !== 'function') return { targetDayId: dayId, days: days };
-                            return dataFunctions.createKernelProductionDay(batchId).then(function (result) {
-                                var inner = (result && result.create_kernel_production_day) ? result.create_kernel_production_day : result;
-                                if (!inner || inner.success === false) throw new Error(inner && inner.error ? inner.error : 'Failed to create production day');
-                                var newDayId = inner.id;
-                                var dayNum = inner.day_number != null ? inner.day_number : (days.length + 1);
-                                var newDays = days.concat([{ id: newDayId, day_number: dayNum, kernel_production_stages_id: null }]);
-                                scope.modalProductionDays = newDays;
-                                scope.renderProductionDaysList(newDays);
-                                $('#productionStagesDayId').val(newDayId);
-                                scope.setProductionDayActive(newDayId);
-                                return { targetDayId: newDayId, days: newDays };
-                            });
-                        });
-                    })
-                    .then(function (out) {
-                        var target = out && out.targetDayId ? out.targetDayId : dayId;
-                        return doSave(target);
-                    })
-                    .catch(function (err) {
-                        return doSave(dayId);
+                scope.modalProductionDayStages = { cracking_data: cracking_data, washing_data: washing_data, sorting_data: sorting_data, packing_data: packing_data, summary_data: summary_data };
+                // Mark day as saved in the days list
+                if (scope.modalProductionDays) {
+                    scope.modalProductionDays.forEach(function (d) {
+                        if (d.id === dayId) d.kernel_production_stages_id = dayId;
                     });
-            };
-
-            checkAndSave().catch(function (e) {
+                    scope.renderProductionDaysList(scope.modalProductionDays);
+                    scope.setProductionDayActive(dayId);
+                }
+                scope.updateProductionActionButtonTicks();
+                scope.clearProductionStagesDraft(batchId);
+                if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved for this day.', 'success');
+            }).catch(function (e) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save production stages', 'error');
             });
         },
@@ -855,41 +792,47 @@ var _modal_production_stages = (function () {
             $('#productionStagesBatchId').val(batchId);
             $('#productionStagesDayId').val('');
             scope.clearProductionStagesForm();
+            scope._loadedKernelDetail = null;
+
             var dateVal = batch.received_date ? (batch.received_date.toString().split('T')[0]) : (new Date().toISOString().split('T')[0]);
             $('#ps_crack_date').val(fromISO(dateVal));
-            var days = batch.productionDays && batch.productionDays.length ? batch.productionDays : [];
-            var loadDays = days.length === 0 && dataFunctions.getKernelProductionDays ? dataFunctions.getKernelProductionDays(batchId) : Promise.resolve(days);
-            loadDays.then(function (raw) {
-                var list = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
-                if (list.length === 0 && typeof dataFunctions !== 'undefined' && typeof dataFunctions.createKernelProductionDay === 'function') {
-                    return dataFunctions.createKernelProductionDay(batchId).then(function (result) {
-                        var inner = (result && result.create_kernel_production_day) ? result.create_kernel_production_day : result;
-                        if (!inner || inner.success === false) throw new Error(inner && inner.error ? inner.error : 'Failed to create production day');
-                        var newDayId = inner.id;
-                        list = [{ id: newDayId, day_number: 1, kernel_production_stages_id: null }];
-                        scope.modalProductionDays = list;
-                        $('#productionStagesDayId').val(newDayId);
-                        scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
-                        scope.setProductionStagesTabsVisibility(true);
-                        if (batch.status === 'awaiting_production' && typeof dataFunctions !== 'undefined' && dataFunctions.updateProductionBatch) {
-                            dataFunctions.updateProductionBatch(batchId, { status: 'in_production' }).catch(function () {});
-                        }
-                        return scope.populateProductionGrowerSelects(batch.grower_name || '');
-                    });
+
+            // Load full kernel detail (stage arrays) via getKernelBatchDetail
+            dataFunctions.getKernelBatchDetail(batchId).then(function (detail) {
+                scope._loadedKernelDetail = detail;
+                var cracking = (detail && Array.isArray(detail.cracking_data)) ? detail.cracking_data : [];
+                var washing  = (detail && Array.isArray(detail.washing_data))  ? detail.washing_data  : [];
+                var sorting  = (detail && Array.isArray(detail.sorting_data))  ? detail.sorting_data  : [];
+                var packing  = (detail && Array.isArray(detail.packing_data))  ? detail.packing_data  : [];
+                var maxLen = Math.max(cracking.length, washing.length, sorting.length, packing.length);
+
+                // Build synthetic days list from array lengths
+                var list = [];
+                for (var i = 0; i < maxLen; i++) {
+                    var hasSaved = (cracking[i] && Object.keys(cracking[i]).length) ||
+                                   (washing[i]  && Object.keys(washing[i]).length)  ||
+                                   (sorting[i]  && Object.keys(sorting[i]).length)  ||
+                                   (packing[i]  && Object.keys(packing[i]).length);
+                    list.push({ id: String(i), day_number: i + 1, kernel_production_stages_id: hasSaved ? String(i) : null });
                 }
+
+                // If no days yet, start with day 0 in memory (no DB create needed)
+                if (list.length === 0) {
+                    list = [{ id: '0', day_number: 1, kernel_production_stages_id: null }];
+                }
+
                 scope.modalProductionDays = list;
-                scope.setProductionStagesTabsVisibility(list.length > 0);
-                if (list.length > 0) {
-                    var first = list[0];
-                    var firstDayId = first.id || first.kernel_production_day_id;
-                    $('#productionStagesDayId').val(firstDayId || '');
-                    return scope.populateProductionGrowerSelects(batch.grower_name || '').then(function () {
-                        return scope.loadProductionStagesForDay(firstDayId, first.kernel_production_stages_id);
-                    }).then(function () {
-                        scope.updateProductionActionButtonTicks();
-                    });
-                }
-                return scope.populateProductionGrowerSelects(batch.grower_name || '');
+                scope.setProductionStagesTabsVisibility(true);
+                var first = list[0];
+                $('#productionStagesDayId').val(first.id);
+
+                return scope.populateProductionGrowerSelects(batch.grower_name || '').then(function () {
+                    return scope.loadProductionStagesForDay(first.id, first.kernel_production_stages_id);
+                }).then(function () {
+                    scope.renderProductionDaysList(list);
+                    scope.setProductionDayActive(first.id);
+                    scope.updateProductionActionButtonTicks();
+                });
             }).then(function () {
                 scope.restoreProductionStagesDraft(batchId);
                 var modalEl = document.getElementById('productionStagesModal');
@@ -913,32 +856,39 @@ var _modal_production_stages = (function () {
             });
         },
 
-        showProductionStagesViewModal: (stagesId) => {
+        showProductionStagesViewModal: (dayIdOrIndex) => {
             var $body = $('#productionStagesViewBody');
             if (!$body.length) return;
             $body.html('<p class="text-muted mb-0">Loading…</p>');
             var modalEl = document.getElementById('productionStagesViewModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#productionStagesViewModal').modal('show');
-            (dataFunctions.getKernelProductionStages && dataFunctions.getKernelProductionStages(stagesId)).then(function (s) {
-                if (!s) { $body.html('<p class="text-muted mb-0">Production record not found.</p>'); return; }
-                var fmt = function (v) { return v != null && v !== '' ? String(v) : '—'; };
-                var renderSection = function (data) {
-                    if (!data || typeof data !== 'object') return '<p class="text-muted mb-0">No data</p>';
-                    var rows = [];
-                    for (var k in data) { if (data.hasOwnProperty(k)) rows.push('<tr><td class="text-nowrap">' + k + '</td><td>' + fmt(data[k]) + '</td></tr>'); }
-                    return rows.length ? '<table class="table table-sm table-bordered mb-2"><tbody>' + rows.join('') + '</tbody></table>' : '<p class="text-muted mb-0">No data</p>';
-                };
-                var html = '<div class="small"><p class="mb-2"><strong>Batch:</strong> ' + fmt(s.batch_number) + ' &nbsp; <strong>Grower:</strong> ' + fmt(s.grower_name) + '</p>';
-                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Cracking</strong></div><div class="card-body py-2">' + renderSection(s.cracking_data) + '</div></div>';
-                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Washing</strong></div><div class="card-body py-2">' + renderSection(s.washing_data) + '</div></div>';
-                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Sorting</strong></div><div class="card-body py-2">' + renderSection(s.sorting_data) + '</div></div>';
-                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Packing</strong></div><div class="card-body py-2">' + renderSection(s.packing_data) + '</div></div>';
-                html += '<div class="card mb-2"><div class="card-header py-1"><strong>Summary</strong></div><div class="card-body py-2">' + renderSection(s.summary_data) + '</div></div></div>';
-                $body.html(html);
-            }).catch(function (e) {
-                $body.html('<p class="text-danger mb-0">Could not load production record.</p>');
-            });
+            // Use cached kernel detail — read stage data by day index
+            var scope = _modal_production_stages;
+            var detail = scope._loadedKernelDetail;
+            var idx = parseInt(dayIdOrIndex, 10);
+            var s = detail ? {
+                cracking_data: (detail.cracking_data && detail.cracking_data[idx]) || {},
+                washing_data:  (detail.washing_data  && detail.washing_data[idx])  || {},
+                sorting_data:  (detail.sorting_data  && detail.sorting_data[idx])  || {},
+                packing_data:  (detail.packing_data  && detail.packing_data[idx])  || {}
+            } : null;
+            if (!s) { $body.html('<p class="text-muted mb-0">Production record not found.</p>'); return; }
+            var fmt = function (v) { return v != null && v !== '' ? String(v) : '—'; };
+            var renderSection = function (data) {
+                if (!data || typeof data !== 'object') return '<p class="text-muted mb-0">No data</p>';
+                var rows = [];
+                for (var k in data) { if (data.hasOwnProperty(k)) rows.push('<tr><td class="text-nowrap">' + k + '</td><td>' + fmt(data[k]) + '</td></tr>'); }
+                return rows.length ? '<table class="table table-sm table-bordered mb-2"><tbody>' + rows.join('') + '</tbody></table>' : '<p class="text-muted mb-0">No data</p>';
+            };
+            var batchNum = detail ? (detail.batch_number || '—') : '—';
+            var grower   = detail ? (detail.grower_name || '—') : '—';
+            var html = '<div class="small"><p class="mb-2"><strong>Batch:</strong> ' + fmt(batchNum) + ' &nbsp; <strong>Grower:</strong> ' + fmt(grower) + '</p>';
+            html += '<div class="card mb-2"><div class="card-header py-1"><strong>Cracking</strong></div><div class="card-body py-2">' + renderSection(s.cracking_data) + '</div></div>';
+            html += '<div class="card mb-2"><div class="card-header py-1"><strong>Washing</strong></div><div class="card-body py-2">' + renderSection(s.washing_data) + '</div></div>';
+            html += '<div class="card mb-2"><div class="card-header py-1"><strong>Sorting</strong></div><div class="card-body py-2">' + renderSection(s.sorting_data) + '</div></div>';
+            html += '<div class="card mb-2"><div class="card-header py-1"><strong>Packing</strong></div><div class="card-body py-2">' + renderSection(s.packing_data) + '</div></div></div>';
+            $body.html(html);
         }
     };
 }());

@@ -1221,6 +1221,126 @@ var _dataFunctions = function () {
         },
 
         /**
+         * getKernelBatchDetail — full kernel row for modals (stage arrays + job_card_data + qa_data).
+         * Used by: all production/job-card/QA modals.
+         */
+        getKernelBatchDetail: async function (kernelId, token = null, forceRefresh = false) {
+            const raw = await this.callFunction('get_kernel_batch_detail', { p_kernel_id: kernelId }, token, {
+                cacheKey: 'kernel_batch_detail_' + kernelId,
+                useCache: !forceRefresh,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (raw && raw.id) return raw;
+            if (raw && Array.isArray(raw.data) && raw.data[0]) return raw.data[0];
+            if (Array.isArray(raw) && raw[0]) return raw[0];
+            if (raw && raw.get_kernel_batch_detail) {
+                const d = raw.get_kernel_batch_detail;
+                return Array.isArray(d) ? d[0] : d;
+            }
+            return null;
+        },
+
+        /**
+         * upsertKernelProduction — save day stage data, finish production, or save job card.
+         * Used by: modal_production_stages only.
+         * options: { dayIndex, crackingData, washingData, sortingData, packingData, finishProduction, jobCardData }
+         */
+        upsertKernelProduction: async function (kernelId, options, token = null) {
+            options = options || {};
+            const params = {
+                p_kernel_id: kernelId,
+                p_day_index: options.dayIndex != null ? options.dayIndex : null,
+                p_cracking_data: options.crackingData != null ? options.crackingData : null,
+                p_washing_data: options.washingData != null ? options.washingData : null,
+                p_sorting_data: options.sortingData != null ? options.sortingData : null,
+                p_packing_data: options.packingData != null ? options.packingData : null,
+                p_finish_production: options.finishProduction === true,
+                p_job_card_data: options.jobCardData != null ? options.jobCardData : null
+            };
+            const result = await this.callFunction('upsert_kernel_production', params, token, { useCache: false });
+            this.clearCachePattern('kernel_batch_detail_' + kernelId);
+            this.clearCachePattern('kernel_batches_list');
+            return result;
+        },
+
+        /**
+         * upsertKernelJobCard — save / replace job card JSONB.
+         * Used by: modal_kernel_job_card only.
+         */
+        upsertKernelJobCard: async function (kernelId, jobCardData, token = null) {
+            const payload = typeof jobCardData === 'string' ? jobCardData : JSON.stringify(jobCardData);
+            const result = await this.callFunction('upsert_kernel_job_card', {
+                p_kernel_id: kernelId,
+                p_job_card_data: payload
+            }, token, { useCache: false });
+            this.clearCachePattern('kernel_batch_detail_' + kernelId);
+            this.clearCachePattern('kernel_batches_list');
+            return result;
+        },
+
+        /**
+         * upsertKernelQa — save / replace QA (packing sample) JSONB.
+         * Used by: modal_end_sample only.
+         */
+        upsertKernelQa: async function (kernelId, qaData, token = null) {
+            const payload = typeof qaData === 'string' ? qaData : JSON.stringify(qaData);
+            const result = await this.callFunction('upsert_kernel_qa', {
+                p_kernel_id: kernelId,
+                p_qa_data: payload
+            }, token, { useCache: false });
+            this.clearCachePattern('kernel_batch_detail_' + kernelId);
+            this.clearCachePattern('kernel_batches_list');
+            return result;
+        },
+
+        /**
+         * createKernelBatch — insert new batch into batches + kernel tables.
+         * Used by: kernel_production_batch_actions.saveNewBatch
+         */
+        createKernelBatch: async function (batchData, token = null) {
+            const params = {
+                p_batch_number:        batchData.batch_number        || null,
+                p_received_date:       batchData.received_date        || null,
+                p_wet_nis_received_kg: batchData.wet_nis_received_kg  != null ? batchData.wet_nis_received_kg : null,
+                p_supplier_id:         batchData.supplier_id          || null,
+                p_grower_name:         batchData.grower_name          || null
+            };
+            const result = await this.callFunction('create_kernel_batch', params, token, { useCache: false });
+            this.clearCachePattern('kernel_batches');
+            return result;
+        },
+
+        /**
+         * completeKernelBatch — set kernel status to 'complete' (release to stock).
+         * Used by: kernel_production_batch_actions.releaseBatchToStock
+         */
+        completeKernelBatch: async function (kernelId, token = null) {
+            const result = await this.callFunction('complete_kernel_batch', { p_kernel_id: kernelId }, token, { useCache: false });
+            this.clearCachePattern('kernel_batch_detail_' + kernelId);
+            this.clearCachePattern('kernel_batches');
+            return result;
+        },
+
+        /**
+         * getKernelProductionHistory — history-specific read: intake, stage arrays, job card, QA.
+         * Used by: modal_batch_history only.
+         */
+        getKernelProductionHistory: async function (kernelId, token = null, forceRefresh = false) {
+            const raw = await this.callFunction('get_kernel_production_history', { p_kernel_id: kernelId }, token, {
+                cacheKey: 'kernel_production_history_' + kernelId,
+                useCache: !forceRefresh,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (raw && raw.id) return raw;
+            if (raw && Array.isArray(raw.data) && raw.data[0]) return raw.data[0];
+            if (Array.isArray(raw) && raw[0]) return raw[0];
+            if (raw && raw.get_kernel_production_history) { const d = raw.get_kernel_production_history; return Array.isArray(d) ? d[0] : d; }
+            return null;
+        },
+
+        /**
          * Create production batch (invalidates batches cache)
          */
         createProductionBatch: async function (batchData, token = null) {
@@ -1491,7 +1611,143 @@ var _dataFunctions = function () {
         getOilProductionBatches: async function (token = null) {
             return await this.getOilProductionSheets(token);
         },
-        
+
+        // ── Oil / Shift / Product / Oil Bin functions ────────────────────────
+
+        /**
+         * Upsert batch (batches table). Step 1 for oil: call this then upsertOilBatch with returned batch_id.
+         * @param {object} data - { batch_id (optional), batch_type: 'oil'|'kernel', is_active (optional) }
+         * @param {string|null} token - auth token (optional)
+         * @returns {Promise<object>} { success, id, batch_id } or { success: false, error }
+         */
+        upsertBatch: async function (data, token = null) {
+            var params = {
+                p_batch_id:   data.batch_id   || null,
+                p_batch_type: data.batch_type || 'oil',
+                p_is_active:  data.is_active !== undefined ? data.is_active : true
+            };
+            const result = await this.callFunction('upsert_batch', params, token, { useCache: false });
+            this.clearCachePattern('batches');
+            this.clearCachePattern('oil_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        getOilBatches: async function (options = {}, token = null, forceRefresh = false) {
+            var params = {};
+            if (options.status) params.p_status = options.status;
+            if (options.search) params.p_search = options.search;
+            if (options.limit)  params.p_limit  = options.limit;
+            if (options.offset) params.p_offset = options.offset;
+            return await this.callFunction('get_oil_batches', params, token, {
+                cacheKey: 'oil_batches' + (options.status ? '_' + options.status : ''),
+                useCache: !forceRefresh,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+        },
+
+        upsertOilBatch: async function (data, token = null) {
+            var params = {
+                p_oil_id:                   data.oil_id                   || null,
+                p_batch_id:                 data.batch_id                  || null,
+                p_production_date:          data.production_date           || null,
+                p_status:                   data.status                    || null,
+                p_total_oil_litre:          data.total_oil_litre           != null ? data.total_oil_litre : null,
+                p_intake_data:              data.intake_data               || null,
+                p_production_data:          data.production_data           || null,
+                p_stock_data:               data.stock_data                || null,
+                p_dispatch_data:            data.dispatch_data             || null,
+                p_intake_completed_at:      data.intake_completed_at       || null,
+                p_production_completed_at:  data.production_completed_at   || null,
+                p_stock_completed_at:       data.stock_completed_at        || null,
+                p_dispatch_completed_at:    data.dispatch_completed_at     || null
+            };
+            const result = await this.callFunction('upsert_oil_batch', params, token, { useCache: false });
+            this.clearCachePattern('oil_batches');
+            this.clearCachePattern('oil_production_sheets');
+            return result;
+        },
+
+        getShiftList: async function (options = {}, token = null, forceRefresh = false) {
+            var params = {};
+            if (options.date_from) params.p_date_from = options.date_from;
+            if (options.date_to)   params.p_date_to   = options.date_to;
+            if (options.search)    params.p_search    = options.search;
+            if (options.limit)     params.p_limit     = options.limit;
+            if (options.offset)    params.p_offset    = options.offset;
+            return await this.callFunction('get_shift_list', params, token, {
+                cacheKey: 'shift_list',
+                useCache: !forceRefresh,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+        },
+
+        upsertShift: async function (data, token = null) {
+            var params = {
+                p_shift_id:       data.shift_id       || null,
+                p_shift_date:     data.shift_date      || null,
+                p_shift_name:     data.shift_name      || null,
+                p_shift_supervisor: data.shift_supervisor || null,
+                p_shift_tracking: data.shift_tracking  || null
+            };
+            const result = await this.callFunction('upsert_shift', params, token, { useCache: false });
+            this.clearCachePattern('shift_list');
+            return result;
+        },
+
+        getProductList: async function (options = {}, token = null, forceRefresh = false) {
+            var params = {};
+            if (options.type)   params.p_type   = options.type;
+            if (options.search) params.p_search = options.search;
+            if (options.limit)  params.p_limit  = options.limit;
+            if (options.offset) params.p_offset = options.offset;
+            return await this.callFunction('get_product_list', params, token, {
+                cacheKey: 'product_list' + (options.type ? '_' + options.type : ''),
+                useCache: !forceRefresh,
+                cacheTtl: this.cache.ttl.static,
+                forceRefresh: forceRefresh
+            });
+        },
+
+        upsertProduct: async function (data, token = null) {
+            var params = {
+                p_product_id:    data.product_id    || null,
+                p_product_name:  data.product_name  || null,
+                p_product_type:  data.product_type  || null,
+                p_product_specs: data.product_specs || null
+            };
+            const result = await this.callFunction('upsert_product', params, token, { useCache: false });
+            this.clearCachePattern('product_list');
+            return result;
+        },
+
+        getOilBinList: async function (options = {}, token = null, forceRefresh = false) {
+            var params = {};
+            if (options.search) params.p_search = options.search;
+            if (options.limit)  params.p_limit  = options.limit;
+            if (options.offset) params.p_offset = options.offset;
+            return await this.callFunction('get_oil_bin_list', params, token, {
+                cacheKey: 'oil_bin_list',
+                useCache: !forceRefresh,
+                cacheTtl: this.cache.ttl.static,
+                forceRefresh: forceRefresh
+            });
+        },
+
+        upsertOilBin: async function (data, token = null) {
+            var params = {
+                p_bin_id:       data.bin_id       || null,
+                p_bin_name:     data.bin_name      || null,
+                p_start_oil_bn: data.start_oil_bn  || null,
+                p_bin_data:     data.bin_data       || null
+            };
+            const result = await this.callFunction('upsert_oil_bin', params, token, { useCache: false });
+            this.clearCachePattern('oil_bin_list');
+            return result;
+        },
+        // ─────────────────────────────────────────────────────────────────────
+
         // Kernel Production Job Card Functions
         // DB create_kernel_job_card does not accept p_id or p_production_batch_id; PostgREST requires exact param match.
         createKernelJobCard: async function (jobCardData, token = null) {

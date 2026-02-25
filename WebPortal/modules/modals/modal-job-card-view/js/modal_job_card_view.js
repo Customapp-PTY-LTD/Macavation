@@ -1,23 +1,36 @@
 /**
- * Modal: Job Card View – read-only display. Logic from modules/kernel-production/js/kernel_production_job_card.js
+ * Modal: Job Card View – read-only display. Uses getKernelBatchDetail → job_card_data.
  */
 var _modal_job_card_view = (function () {
     'use strict';
-    return {
-        init: () => {},
+    var _currentKernelId = null;
 
-        show: (jobCardId) => {
+    return {
+        init: () => {
+            $(document).off('click', '#jobCardViewEditBtn').on('click', '#jobCardViewEditBtn', function () {
+                var modalEl = document.getElementById('jobCardViewModal');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                else $('#jobCardViewModal').modal('hide');
+                if (_currentKernelId && typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.showJobCardModalForBatch) {
+                    _modal_kernel_job_card.showJobCardModalForBatch(_currentKernelId);
+                }
+            });
+        },
+
+        show: (kernelId) => {
+            _currentKernelId = kernelId || null;
             var $body = $('#jobCardViewBody');
             if (!$body.length) return;
             $body.html('<p class="text-muted mb-0">Loading…</p>');
             var modalEl = document.getElementById('jobCardViewModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#jobCardViewModal').modal('show');
-            if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelJobCard) {
+            if (!kernelId || typeof dataFunctions === 'undefined' || !dataFunctions.getKernelBatchDetail) {
                 $body.html('<p class="text-danger mb-0">Cannot load job card.</p>');
                 return;
             }
-            dataFunctions.getKernelJobCard(jobCardId).then(function (jc) {
+            dataFunctions.getKernelBatchDetail(kernelId).then(function (detail) {
+                var jc = (detail && detail.job_card_data && Object.keys(detail.job_card_data).length) ? detail.job_card_data : null;
                 if (!jc) { $body.html('<p class="text-muted mb-0">Job card not found.</p>'); return; }
                 var fmt = function (v) { return v != null && v !== '' ? v : '—'; };
                 var html = '<div class="small">';
@@ -45,7 +58,7 @@ var _modal_job_card_view = (function () {
                 }
                 html += '<div class="card mb-2"><div class="card-header py-1"><strong>Waste (kg)</strong></div><div class="card-body py-2">Oil kernel: ' + fmt(jc.waste_oil_kernel_kg) + ' &nbsp; Shell fines: ' + fmt(jc.waste_shell_fines_kg) + ' &nbsp; Compost: ' + fmt(jc.waste_compost_kg) + ' &nbsp; Shell: ' + fmt(jc.waste_shell_kg) + '</div></div>';
                 html += '<div class="card mb-2"><div class="card-header py-1"><strong>Mass balance</strong></div><div class="card-body py-2">In: ' + fmt(jc.mass_balance_in_kg) + ' kg &nbsp; Out: ' + fmt(jc.mass_balance_out_kg) + ' kg &nbsp; Balance: ' + fmt(jc.mass_balance_percentage) + '%</div></div>';
-                html += '<p class="mb-0"><strong>Status:</strong> ' + fmt(jc.status) + '</p></div>';
+                html += '<p class="mb-0"><strong>Status:</strong> ' + fmt(detail.status) + '</p></div>';
                 $body.html(html);
             }).catch(() => {
                 $body.html('<p class="text-danger mb-0">Could not load job card.</p>');

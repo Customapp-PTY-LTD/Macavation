@@ -15,13 +15,15 @@ var _kernelProductionBatchActions = function () {
 
         releaseBatchToStock: (batchId) => {
             if (!batchId) return;
-            (dataFunctions.updateProductionBatch && dataFunctions.updateProductionBatch(batchId, { status: 'in_finished_stock', stage: 'finished_stock' })).then((result) => {
-                if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in Kernel Stock.', timer: 2000, showConfirmButton: false });
-                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
-                } else {
-                    throw new Error(result && result.error ? result.error : 'Update failed');
-                }
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.completeKernelBatch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Release function not available. Please refresh.', 'error');
+                return;
+            }
+            dataFunctions.completeKernelBatch(batchId).then((result) => {
+                var inner = (result && result.complete_kernel_batch) ? result.complete_kernel_batch : result;
+                if (inner && inner.success === false) throw new Error(inner.error || 'Update failed');
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in Kernel Stock.', timer: 2000, showConfirmButton: false });
+                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
             }).catch((e) => {
                 console.error(e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release to stock', 'error');
@@ -66,32 +68,27 @@ var _kernelProductionBatchActions = function () {
                 if (form) form.reportValidity();
                 return;
             }
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.createKernelBatch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Create batch function not available. Please refresh.', 'error');
+                return;
+            }
             var getVal = (id) => $('#' + id).val() || null;
             var getFloat = (id) => { var v = $('#' + id).val(); return v ? parseFloat(v) : null; };
             var batchData = {
-                p_batch_number: getVal('batchNumber'),
-                p_received_date: getVal('batchReceivedDate'),
-                p_wet_nis_received_kg: getFloat('batchWetNIS'),
-                p_supplier_id: getVal('batchSupplier') || null,
-                p_grower_name: getVal('batchGrowerName') || null,
-                p_receiving_moisture_percentage: getFloat('batchReceivingMoisture') || null,
-                p_start_date: getVal('batchStartDate') || null,
-                p_estimated_completion_date: getVal('batchEstimatedCompletion') || null,
-                p_batch_type: 'kernel',
-                p_status: 'receiving',
-                p_current_step: 1
+                batch_number:        getVal('batchNumber'),
+                received_date:       getVal('batchReceivedDate'),
+                wet_nis_received_kg: getFloat('batchWetNIS'),
+                supplier_id:         getVal('batchSupplier') || null,
+                grower_name:         getVal('batchGrowerName') || null
             };
-            (dataFunctions.createProductionBatch && dataFunctions.createProductionBatch(batchData)).then((result) => {
-                if (result && result.success !== false) {
-                    if (typeof dataFunctions !== 'undefined' && dataFunctions.clearCachePattern) dataFunctions.clearCachePattern('production_batches');
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: 'Production batch created successfully', timer: 2000, showConfirmButton: false });
-                    var modalEl = document.getElementById('newBatchModal');
-                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                    else $('#newBatchModal').modal('hide');
-                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
-                } else {
-                    throw new Error(result && result.error ? result.error : 'Failed to create batch');
-                }
+            dataFunctions.createKernelBatch(batchData).then((result) => {
+                var inner = (result && result.create_kernel_batch) ? result.create_kernel_batch : result;
+                if (inner && inner.success === false) throw new Error(inner.error || 'Failed to create batch');
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: 'Production batch created successfully', timer: 2000, showConfirmButton: false });
+                var modalEl = document.getElementById('newBatchModal');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                else $('#newBatchModal').modal('hide');
+                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
             }).catch((e) => {
                 console.error('[Kernel Production] saveNewBatch failed:', e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to create batch', 'error');

@@ -165,17 +165,15 @@ BEGIN
 END;
 $$;
 
--- RBAC: Grant execute to all roles
+-- RBAC: Grant EXECUTE to all roles
+-- roles.id and role_permissions.role_id are both UUID
 DO $$
 DECLARE
-    r RECORD;
+    v_role_id uuid;
 BEGIN
-    FOR r IN SELECT id, role_name FROM public.roles LOOP
-        EXECUTE format(
-            'GRANT EXECUTE ON FUNCTION public.get_kernel_batches(varchar, varchar, integer, integer) TO authenticated'
-        );
+    FOR v_role_id IN SELECT id FROM public.roles LOOP
         INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
-        VALUES (r.id, 'function', 'get_kernel_batches', 'execute', true)
+        VALUES (v_role_id, 'function', 'get_kernel_batches', 'EXECUTE', true)
         ON CONFLICT DO NOTHING;
     END LOOP;
 END;

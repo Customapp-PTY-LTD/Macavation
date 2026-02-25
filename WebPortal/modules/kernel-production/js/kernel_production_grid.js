@@ -137,10 +137,11 @@ var _kernelProductionGrid = function () {
             $(document).on('click', '.js-end-sample-batch', function (e) {
                 e.preventDefault();
                 const batchId = $(this).data('batch-id');
-                const packingSampleId = $(this).data('packing-sample-id');
-                if (packingSampleId && typeof _modal_end_sample_view !== 'undefined' && _modal_end_sample_view.show) {
-                    _modal_end_sample_view.show(packingSampleId);
-                } else if (batchId && typeof _modal_end_sample !== 'undefined' && _modal_end_sample.show) {
+                if (!batchId) return;
+                var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
+                if (batch && batch.has_qa && typeof _modal_end_sample_view !== 'undefined' && _modal_end_sample_view.show) {
+                    _modal_end_sample_view.show(batchId);
+                } else if (typeof _modal_end_sample !== 'undefined' && _modal_end_sample.show) {
                     _modal_end_sample.show(batchId);
                 }
             });
@@ -178,7 +179,11 @@ var _kernelProductionGrid = function () {
             $(document).on('click', '.js-job-card-batch', function (e) {
                 e.preventDefault();
                 const batchId = $(this).data('batch-id');
-                if (batchId && typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.showJobCardModalForBatch) {
+                if (!batchId) return;
+                var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
+                if (batch && batch.has_job_card && typeof _modal_job_card_view !== 'undefined' && _modal_job_card_view.show) {
+                    _modal_job_card_view.show(batchId);
+                } else if (typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.showJobCardModalForBatch) {
                     _modal_kernel_job_card.showJobCardModalForBatch(batchId);
                 }
             });
