@@ -49,9 +49,9 @@ var _kernelProductionGrid = function () {
      * Returns { label: string, filterValue: string }.
      */
     const getBatchDisplayStatus = (batch) => {
-        const hasProductionData = (batch.productionDays && batch.productionDays.length > 0) || !!batch.jobCardId;
-        const productionFinished = !!batch.productionFinishedAt;
-        const hasEndSample = !!batch.hasPackingSample;
+        const hasProductionData = (batch.production_day_count > 0) || !!batch.has_job_card;
+        const productionFinished = !!batch.production_finished_at;
+        const hasEndSample = !!batch.has_qa;
 
         if (productionFinished && hasEndSample) return { label: 'Release ready', filterValue: 'release_ready' };
         if (productionFinished) return { label: 'Awaiting test', filterValue: 'awaiting_test' };
@@ -204,64 +204,18 @@ var _kernelProductionGrid = function () {
         loadBatches: (forceRefresh) => {
             const scope = _kernelProductionGrid;
             forceRefresh = !!forceRefresh;
-            if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getProductionBatches !== 'function') {
-                console.warn('[Kernel Production] dataFunctions not available');
+            if (typeof _dataFunctions === 'undefined' || !_dataFunctions || typeof _dataFunctions.getKernelBatches !== 'function') {
+                console.warn('[Kernel Production] _dataFunctions not available');
                 return;
             }
             const startTime = performance.now();
-            dataFunctions.getProductionBatches(null, forceRefresh, { batch_type: 'kernel' }).then((allBatches) => {
-                const productionStatuses = ['awaiting_production', 'in_production', 'receiving', 'cracking', 'drying', 'sorting_dry', 'packing', 'awaiting_test', 'release_ready', 'completed'];
-                const batches = (allBatches || []).filter((b) =>
-                    productionStatuses.indexOf(b.status) >= 0 && b.status !== 'in_finished_stock'
-                );
-                const jobCardsPromise = (dataFunctions.getKernelJobCards && dataFunctions.getKernelJobCards(null, forceRefresh)) || Promise.resolve([]);
-                const packingSamplesPromise = (dataFunctions.getKernelPackingSamples && dataFunctions.getKernelPackingSamples(null, forceRefresh)) || Promise.resolve([]);
-                const daysListPromise = (dataFunctions.getKernelProductionDaysList && dataFunctions.getKernelProductionDaysList(null, forceRefresh)) || Promise.resolve([]);
-                Promise.all([Promise.resolve(batches), jobCardsPromise, packingSamplesPromise, daysListPromise]).then((results) => {
-                    const jobCards = results[1] || [];
-                    const packingSamples = results[2] || [];
-                    const daysList = results[3] || [];
-                    const jobCardByBatchId = {};
-                    const jobCardByBatchNumber = {};
-                    jobCards.forEach((jc) => {
-                        if (jc.production_batch_id) jobCardByBatchId[jc.production_batch_id] = { id: jc.id, status: jc.status };
-                        if (jc.batch_number) jobCardByBatchNumber[jc.batch_number] = { id: jc.id, status: jc.status };
-                    });
-                    const packingByBatchId = {};
-                    (packingSamples || []).forEach((ps) => {
-                        if (ps.production_batch_id) packingByBatchId[ps.production_batch_id] = { id: ps.id };
-                    });
-                    const productionDaysByBatchId = {};
-                    (Array.isArray(daysList) ? daysList : []).forEach((d) => {
-                        const bid = d.production_batch_id;
-                        if (!bid) return;
-                        if (!productionDaysByBatchId[bid]) productionDaysByBatchId[bid] = [];
-                        productionDaysByBatchId[bid].push({
-                            id: d.id,
-                            day_number: d.day_number,
-                            kernel_production_stages_id: d.kernel_production_stages_id
-                        });
-                    });
-                    batches.forEach((b) => {
-                        const jc = jobCardByBatchId[b.id] || jobCardByBatchNumber[b.batch_number];
-                        b.jobCardId = jc ? jc.id : null;
-                        b.hasJobCard = !!(jc && jc.id);
-                        const ps = packingByBatchId[b.id];
-                        b.packingSampleId = ps ? ps.id : null;
-                        b.hasPackingSample = !!(ps && ps.id);
-                        b.productionDays = productionDaysByBatchId[b.id] || [];
-                        b.productionFinishedAt = b.production_finished_at != null ? b.production_finished_at : b.productionFinishedAt;
-                        b.hasProductionStages = b.productionDays.length > 0;
-                    });
-                    scope.batches = batches;
-                    scope.filteredBatches = scope.batches;
-                    scope.renderBatches();
-                    console.log('[Kernel Production] Batches loaded in ' + (performance.now() - startTime).toFixed(2) + 'ms, count: ' + batches.length);
-                }).catch((err) => {
-                    console.error('[Kernel Production] Error loading batches:', err);
-                });
-            }).catch((error) => {
-                console.error('[Kernel Production] Error loading batches:', error);
+            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'production,qa,complete' }).then((batches) => {
+                scope.batches = batches || [];
+                scope.filteredBatches = scope.batches;
+                scope.renderBatches();
+                console.log('[Kernel Production] Batches loaded in ' + (performance.now() - startTime).toFixed(2) + 'ms, count: ' + scope.batches.length);
+            }).catch((err) => {
+                console.error('[Kernel Production] Error loading batches:', err);
             });
         },
 
@@ -278,19 +232,17 @@ var _kernelProductionGrid = function () {
                 return;
             }
             scope.filteredBatches.forEach((batch) => {
-                const step = batch.current_step != null ? batch.current_step : 1;
-                const canReleaseToStock = batch.status === 'release_ready' || batch.status === 'completed' || (batch.productionFinishedAt && batch.hasPackingSample);
+                const canReleaseToStock = batch.status === 'qa' || batch.status === 'complete' || (batch.production_finished_at && batch.has_qa);
                 const receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
                     ? (_common.formatDateDDMMYYYY(batch.received_date) || 'N/A')
                     : (batch.received_date ? (batch.received_date.toString().split ? batch.received_date.toString().split('T')[0] : batch.received_date) : 'N/A');
-                const productionStagesId = batch.productionDays && batch.productionDays[0] && batch.productionDays[0].kernel_production_stages_id ? batch.productionDays[0].kernel_production_stages_id : '';
-                const productionLabel = batch.productionFinishedAt ? '&#10003; Production' : 'Production';
-                const endSampleLabel = batch.hasPackingSample && batch.packingSampleId ? '&#10003; End sample' : 'End sample';
-                const jobCardLabel = batch.hasJobCard && batch.jobCardId ? '&#10003; Job Card' : 'Job Card';
-                const jobCardItem = '<a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '" data-job-card-id="' + (batch.jobCardId || '') + '">' + jobCardLabel + '</a>';
+                const productionLabel = batch.production_finished_at ? '&#10003; Production' : 'Production';
+                const endSampleLabel = batch.has_qa ? '&#10003; End sample' : 'End sample';
+                const jobCardLabel = batch.has_job_card ? '&#10003; Job Card' : 'Job Card';
+                const jobCardItem = '<a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '">' + jobCardLabel + '</a>';
                 let menuItems = [
-                    '<a class="dropdown-item js-production-batch" href="#" data-batch-id="' + batch.id + '" data-production-stages-id="' + productionStagesId + '">' + productionLabel + '</a>',
-                    '<a class="dropdown-item js-end-sample-batch" href="#" data-batch-id="' + batch.id + '" data-packing-sample-id="' + (batch.packingSampleId || '') + '">' + endSampleLabel + '</a>',
+                    '<a class="dropdown-item js-production-batch" href="#" data-batch-id="' + batch.id + '">' + productionLabel + '</a>',
+                    '<a class="dropdown-item js-end-sample-batch" href="#" data-batch-id="' + batch.id + '">' + endSampleLabel + '</a>',
                     jobCardItem
                 ];
                 if (canReleaseToStock) {
@@ -302,7 +254,7 @@ var _kernelProductionGrid = function () {
                 const isKpDataAdmin = typeof ROLE_FEATURE !== 'undefined' && ROLE_FEATURE.isKpDataAdmin && ROLE_FEATURE.isKpDataAdmin();
                 let actionsCell;
                 if (isKpDataAdmin) {
-                    actionsCell = '<button type="button" class="btn btn-sm btn-outline-secondary js-production-batch" data-batch-id="' + batch.id + '" data-production-stages-id="' + productionStagesId + '">' + productionLabel + '</button>';
+                    actionsCell = '<button type="button" class="btn btn-sm btn-outline-secondary js-production-batch" data-batch-id="' + batch.id + '">' + productionLabel + '</button>';
                 } else {
                     actionsCell = '<div class="dropdown">' +
                         '<button class="btn btn-sm btn-outline-secondary" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +

@@ -1200,6 +1200,26 @@ var _dataFunctions = function () {
             return [];
         },
         
+        getKernelBatches: async function (token = null, forceRefresh = false, options = {}) {
+            const params = {
+                p_status: options.status != null ? options.status : null,
+                p_search: options.search != null ? options.search : null,
+                p_limit: options.limit != null ? options.limit : 100,
+                p_offset: options.offset != null ? options.offset : 0
+            };
+            const cacheKey = 'kernel_batches_list' + (params.p_status ? '_' + params.p_status : '');
+            const raw = await this.callFunction('get_kernel_batches', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && Array.isArray(raw.get_kernel_batches)) return raw.get_kernel_batches;
+            return [];
+        },
+
         /**
          * Create production batch (invalidates batches cache)
          */

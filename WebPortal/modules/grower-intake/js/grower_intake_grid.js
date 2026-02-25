@@ -76,10 +76,8 @@ var _growerIntakeGrid = function () {
                 e.preventDefault();
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
-                const checklistId = ($(this).data('receiving-checklist-id') || '').trim() || undefined;
-                const sampleId = ($(this).data('sample-submission-id') || '').trim() || undefined;
-                const checklistDone = !!(checklistId && checklistId.length > 0);
-                const sampleDone = !!(sampleId && sampleId.length > 0);
+                const checklistDone = $(this).data('has-checklist') === 1 || $(this).data('has-checklist') === '1';
+                const sampleDone = $(this).data('sample-done') === 1 || $(this).data('sample-done') === '1';
                 if (!batchId) return;
                 if (!checklistDone) {
                     if (typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.show) {
@@ -91,7 +89,7 @@ var _growerIntakeGrid = function () {
                     }
                 } else {
                     if (typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.show) {
-                        _modal_grower_receiving_checklist.show(batchId, checklistId);
+                        _modal_grower_receiving_checklist.show(batchId, undefined);
                     }
                 }
             });
@@ -215,10 +213,8 @@ var _growerIntakeGrid = function () {
         loadIntakeBatches: async (forceRefresh) => {
             const scope = _growerIntakeGrid;
             try {
-                const all = await dataFunctions.getProductionBatches(null, forceRefresh, { batch_type: 'kernel' });
-                scope.intakeBatches = (all || []).filter((b) =>
-                    ['receiving', 'intake_received', 'quality_pending', 'quality_approved'].indexOf(b.status) >= 0
-                );
+                const all = await _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'intake,receiving' });
+                scope.intakeBatches = all || [];
                 scope.filterIntakeBatches();
             } catch (e) {
                 console.error('Error loading intake batches:', e);
@@ -242,7 +238,7 @@ var _growerIntakeGrid = function () {
             if (batch) {
                 batch.actual_wet_nis_kg = actualWetNisKg != null ? Number(actualWetNisKg) : null;
                 if (suppliedKg != null) batch.wet_nis_received_kg = Number(suppliedKg);
-                batch.wet_nis_weight_difference_kg = (batch.wet_nis_received_kg != null && batch.actual_wet_nis_kg != null)
+                batch.weight_difference_kg = (batch.wet_nis_received_kg != null && batch.actual_wet_nis_kg != null)
                     ? batch.wet_nis_received_kg - batch.actual_wet_nis_kg : null;
                 scope.filterIntakeBatches();
             }
@@ -263,30 +259,26 @@ var _growerIntakeGrid = function () {
             }
             scope.filteredIntakeBatches.forEach((b) => {
                 const receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(b.received_date) : b.received_date) || 'N/A';
-                const checklistDone = !!(b.receiving_checklist_id || b.receivingChecklistId);
-                /* Sample step complete only when BOTH ziplock and 5kg are saved (no fallback to sample_submission_id) */
-                const sampleDone = b.sample_ziplock_done === true && b.sample_5kg_done === true;
-                const sampleEnabled = checklistDone;
+                const checklistDone = !!b.has_receiving_checklist;
+                const sampleDone = !!b.has_ziplock_sample && !!b.has_5kg_sample;
                 const canRelease = checklistDone && sampleDone;
-                const checklistId = b.receiving_checklist_id || b.receivingChecklistId || '';
-                const sampleId = b.sample_submission_id || b.sampleSubmissionId || '';
                 var batchNum = (b.batch_number || '').toString();
                 var batchNumEscaped = batchNum.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
                 /* Stage 1: show only one option per workflow — Receiving checklist first, then New batch sample, then complete */
                 var stage1Btn;
                 if (!checklistDone) {
-                    stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-checklist-btn" data-batch-id="' + b.id + '" data-receiving-checklist-id="" title="Receiving checklist"><i class="fas fa-clipboard-check me-1"></i><span class="intake-btn-text">Receiving checklist</span></button>';
+                    stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-checklist-btn" data-batch-id="' + b.id + '" title="Receiving checklist"><i class="fas fa-clipboard-check me-1"></i><span class="intake-btn-text">Receiving checklist</span></button>';
                 } else if (!sampleDone) {
                     stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="New batch sample"><i class="fas fa-vial me-1"></i><span class="intake-btn-text">New batch sample</span></button>';
                 } else {
-                    stage1Btn = '<button type="button" class="btn btn-sm btn-success intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" data-sample-submission-id="' + sampleId + '" title="View batch sample"><i class="fas fa-check me-1"></i><span class="intake-btn-text">Batch sample</span></button>';
+                    stage1Btn = '<button type="button" class="btn btn-sm btn-success intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="View batch sample"><i class="fas fa-check me-1"></i><span class="intake-btn-text">Batch sample</span></button>';
                 }
 
                 var releaseItem = canRelease
                     ? '<a class="dropdown-item js-intake-release-btn" href="#" data-batch-id="' + b.id + '"><i class="fas fa-arrow-right me-2"></i>Release to production</a>'
                     : '<span class="dropdown-item text-muted" role="button" tabindex="0">Release to production</span>';
-                var editItem = '<a class="dropdown-item js-intake-edit" href="#" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + (checklistId || '') + '"><i class="fas fa-pen me-2"></i>Edit</a>';
+                var editItem = '<a class="dropdown-item js-intake-edit" href="#" data-batch-id="' + b.id + '"><i class="fas fa-pen me-2"></i>Edit</a>';
                 var actionsCell = '<div class="dropdown">' +
                     '<button class="btn btn-sm btn-outline-secondary" type="button" id="intakeBatchActions' + b.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
                     '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="intakeBatchActions' + b.id + '">' +
@@ -295,7 +287,11 @@ var _growerIntakeGrid = function () {
 
                 const stage1Cell = '<div class="intake-stage1-buttons">' + stage1Btn + '</div>';
 
-                var batchNumberCell = '<a href="#" class="intake-batch-number-link js-intake-batch-number-link" role="button" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + (checklistId || '') + '" data-sample-submission-id="' + (sampleId || '') + '">' + batchNumEscaped + '</a>';
+                var batchNumberCell = '<a href="#" class="intake-batch-number-link js-intake-batch-number-link" role="button"' +
+                    ' data-batch-id="' + b.id + '"' +
+                    ' data-has-checklist="' + (checklistDone ? '1' : '0') + '"' +
+                    ' data-sample-done="' + (sampleDone ? '1' : '0') + '">' +
+                    batchNumEscaped + '</a>';
 
                 var suppliedVal = b.wet_nis_received_kg != null ? b.wet_nis_received_kg : '';
                 var actualVal = b.actual_wet_nis_kg != null ? b.actual_wet_nis_kg : '';
@@ -311,7 +307,7 @@ var _growerIntakeGrid = function () {
                     wetCellContent = suppliedVal;
                 }
 
-                const row = '<tr class="js-intake-batch-row" data-batch-id="' + b.id + '" data-receiving-checklist-id="' + checklistId + '">' +
+                const row = '<tr class="js-intake-batch-row" data-batch-id="' + b.id + '">' +
                     '<td class="intake-col-batch">' + batchNumberCell + '</td>' +
                     '<td class="intake-col-grower d-none d-md-table-cell">' + (b.grower_name || '') + '</td>' +
                     '<td class="intake-col-date">' + receivedDate + '</td>' +

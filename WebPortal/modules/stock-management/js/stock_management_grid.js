@@ -457,10 +457,10 @@ var _stockManagementGrid = function () {
 
         loadKernelBatches: function (forceRefresh) {
             var scope = _stockManagementGrid;
-            dataFunctions.getProductionBatches(null, forceRefresh, { batch_type: 'kernel' }).then(function (all) {
+            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'complete' }).then(function (all) {
                 all = all || [];
-                scope.kernelRawBatches = all.filter(function (b) { return b.status === 'in_raw_stock'; });
-                scope.kernelFinishedBatches = all.filter(function (b) { return b.status === 'in_finished_stock'; });
+                scope.kernelRawBatches = [];
+                scope.kernelFinishedBatches = all;
                 scope.renderKernelBatches();
             }).catch(function (e) {
                 console.error('[Stock Management] loadKernelBatches failed:', e);
