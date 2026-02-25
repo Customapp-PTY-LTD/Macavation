@@ -1367,32 +1367,65 @@ var _dataFunctions = function () {
         },
 
         /**
-         * Get supplier intake batches (Oil & Protein). Used by Supplier Intake module.
-         * @param {string} status - e.g. 'supplier_intake' to filter by status
+         * Get supplier intake batches (Oil & Protein). Uses Supabase oil table via get_oil_batches.
+         * Returns rows with status 'intake', mapped to the shape expected by the Supplier Intake grid.
+         * @param {string} status - e.g. 'supplier_intake' or 'intake' to filter (oil table uses 'intake')
          * @param {string|null} token - auth token (optional)
          * @param {boolean} forceRefresh - bypass cache
-         * @returns {Promise<Array>} list of supplier intake batch records
+         * @returns {Promise<Array>} list of batch records { id, batch_number, product_type, date_received, ... }
          */
         getSupplierIntakeBatches: async function (status, token = null, forceRefresh = false) {
-            const params = { p_status: status || null };
-            const cacheKey = 'supplier_intake_batches_list' + (status ? '_' + status : '');
-            const raw = await this.callFunction('get_supplier_intake_batches', params, token, {
+            var pStatus = (status === 'supplier_intake' || status === 'intake') ? 'intake' : (status || null);
+            var params = { p_status: pStatus || 'intake', p_limit: 500, p_offset: 0 };
+            var cacheKey = 'supplier_intake_batches_list_' + (pStatus || 'intake');
+            var raw = await this.callFunction('get_oil_batches', params, token, {
                 cacheKey: cacheKey,
                 useCache: true,
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: !!forceRefresh
             });
-            if (Array.isArray(raw)) return raw;
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            if (raw && raw.get_supplier_intake_batches && Array.isArray(raw.get_supplier_intake_batches)) return raw.get_supplier_intake_batches;
-            return [];
+            var rows = [];
+            if (Array.isArray(raw)) rows = raw;
+            else if (raw && Array.isArray(raw.data)) rows = raw.data;
+            else if (raw && raw.get_oil_batches && Array.isArray(raw.get_oil_batches)) rows = raw.get_oil_batches;
+            else if (raw && typeof raw === 'object' && raw[Symbol.iterator]) rows = Array.from(raw);
+
+            function mapOilRowToGrid(o) {
+                var intake = (o && o.intake_data) || {};
+                var vc = (intake.vehicle_checks && typeof intake.vehicle_checks === 'object') ? intake.vehicle_checks : {};
+                return {
+                    id: o.id,
+                    batch_number: o.batch_id,
+                    product_type: intake.product_type || (o.name_of_product && String(o.name_of_product).toLowerCase().replace(/\s+/g, '_')) || 'oil',
+                    date_received: intake.date_received || o.production_date,
+                    delivery_note_ref: intake.delivery_note_reference || intake.delivery_note_ref,
+                    supplier_id: intake.supplier_id || null,
+                    supplier_details: intake.supplier || intake.supplier_details,
+                    quantity_kg: intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg),
+                    manufactured_date: intake.manufactured_date || (intake.items && intake.items[0] && intake.items[0].manufactured_date),
+                    best_before_date: intake.best_before_date || (intake.items && intake.items[0] && intake.items[0].best_before_date),
+                    status: o.status || 'intake',
+                    reference: intake.reference,
+                    description: intake.description,
+                    carton_bulk_bags: intake.carton_bulk_bags,
+                    vehicle_clean: vc.vehicle_clean != null ? vc.vehicle_clean : intake.vehicle_clean,
+                    vehicle_enclosed: vc.vehicle_enclosed != null ? vc.vehicle_enclosed : intake.vehicle_enclosed,
+                    hazard_substances: vc.hazard_substances != null ? vc.hazard_substances : intake.hazard_substances,
+                    pest_infestations: vc.pest_infestations != null ? vc.pest_infestations : intake.pest_infestations,
+                    pallets_condition: vc.pallets_condition != null ? vc.pallets_condition : intake.pallets_condition,
+                    raw_materials_condition: vc.raw_materials_condition != null ? vc.raw_materials_condition : intake.raw_materials_condition,
+                    receiving_comments: intake.receiving_comments
+                };
+            }
+
+            return rows.map(mapOilRowToGrid);
         },
 
         /**
-         * Release a supplier intake batch to oil production (updates batch status so it appears in Oil Production).
-         * Tries update_supplier_intake_batch first; falls back to update_production_batch if needed.
-         * @param {string} batchId - UUID id of the supplier intake batch (prefer batch.id from the grid)
-         * @param {object|null} batch - optional batch object { id, batch_number } for backend lookup
+         * Release a supplier intake batch to oil production. Updates the oil row status from 'intake' to 'production'.
+         * Uses Supabase oil table via upsert_oil_batch.
+         * @param {string} batchId - UUID id of the oil row (oil.id from the grid)
+         * @param {object|null} batch - optional batch object { id, batch_number } for context
          * @param {string|null} token - auth token (optional)
          * @returns {Promise<object>} result from backend
          */
@@ -1403,65 +1436,131 @@ var _dataFunctions = function () {
             } else if (batchOrToken && typeof batchOrToken === 'string') {
                 token = batchOrToken;
             }
-            var isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(batchId));
-            var batchNumber = (batch && batch.batch_number != null) ? String(batch.batch_number) : (!isUuid ? String(batchId) : null);
-            var payload = { p_status: 'oil_production' };
-            if (isUuid) payload.p_batch_id = batchId;
-            if (batchNumber) payload.p_batch_number = batchNumber;
-            var result;
-            try {
-                result = await this.callFunction('update_supplier_intake_batch', payload, token, { useCache: false });
-            } catch (err) {
-                result = await this.updateProductionBatch(batchId, { status: 'oil_production' }, token);
+            var oilId = (batch && batch.id != null) ? batch.id : batchId;
+            if (!oilId) {
+                return { success: false, error: 'Batch id is required' };
             }
+            var payload = {
+                p_oil_id: oilId,
+                p_status: 'production'
+            };
+            var result = await this.callFunction('upsert_oil_batch', payload, token, { useCache: false });
             var resolved = result && (result.data !== undefined ? result.data : result);
-            if (resolved && resolved.success !== false) {
+            if (resolved && (resolved.success !== false && resolved.error == null)) {
                 this.clearCachePattern('supplier_intake');
+                this.clearCachePattern('oil_batches');
                 this.clearCachePattern('oil_production');
-                this.clearCachePattern('production_batches');
                 return result;
             }
-            if (resolved && (resolved.error || '').toLowerCase().indexOf('batch not found') >= 0 && batchNumber) {
-                var list = await this.getSupplierIntakeBatches('supplier_intake', token, true);
-                var found = list && list.find(function (b) {
-                    return (b.batch_number != null && String(b.batch_number) === batchNumber) || (b.id != null && String(b.id) === String(batchId));
-                });
-                if (found && found.id) {
-                    var updateResult = await this.updateProductionBatch(found.id, { status: 'oil_production' }, token);
-                    this.clearCachePattern('supplier_intake');
-                    this.clearCachePattern('oil_production');
-                    this.clearCachePattern('production_batches');
-                    var ok = updateResult && (updateResult.success !== false && (updateResult.data == null || updateResult.data.success !== false));
-                    return ok ? { success: true, id: found.id } : updateResult;
-                }
-            }
+            var errMsg = (resolved && (resolved.error || resolved.message)) ? (resolved.error || resolved.message) : 'Release failed';
             this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('oil_batches');
             this.clearCachePattern('oil_production');
-            this.clearCachePattern('production_batches');
             return result;
         },
 
         /**
-         * Create a supplier intake batch (oil). Inserts into production_batches with batch_type 'oil', status 'supplier_intake'.
+         * Create a supplier intake batch (oil/protein). Uses Supabase oil table via upsert_oil_batch.
+         * Stores intake fields in intake_data jsonb; status is set to 'intake'.
          * Used by the Supplier Intake "Add new batch" modal.
-         * @param {object} data - { batch_number, quantity_kg, received_date, supplier_id, ... }
+         * @param {object} data - { product_type, date_received, delivery_note_ref, supplier_id, quantity_kg, ... }
          * @param {string|null} token - auth token (optional)
-         * @returns {Promise<object>} result from create_production_batch_simple
+         * @returns {Promise<object>} result from upsert_oil_batch { success, id, batch_id }
          */
         createSupplierIntakeBatch: async function (data, token = null) {
-            var payload = {
-                p_batch_number: data.batch_number || null,
-                p_received_date: data.received_date || data.date_received || null,
-                p_wet_nis_received_kg: data.quantity_kg != null ? data.quantity_kg : data.wet_nis_received_kg,
-                p_supplier_id: data.supplier_id || null,
-                p_batch_type: 'oil',
-                p_status: 'supplier_intake'
+            var intakeData = {
+                date_received: data.date_received || data.received_date || null,
+                delivery_note_reference: data.delivery_note_ref || null,
+                delivery_note_ref: data.delivery_note_ref || null,
+                supplier_id: data.supplier_id || null,
+                supplier: data.supplier_details || null,
+                supplier_details: data.supplier_details || null,
+                product_type: data.product_type || null,
+                quantity_kg: data.quantity_kg != null ? data.quantity_kg : data.wet_nis_received_kg,
+                manufactured_date: data.manufactured_date || null,
+                best_before_date: data.best_before_date || null,
+                reference: data.reference || null,
+                description: data.description || null,
+                carton_bulk_bags: data.carton_bulk_bags != null ? data.carton_bulk_bags : 1,
+                receiving_comments: data.receiving_comments || null,
+                vehicle_clean: data.vehicle_clean,
+                vehicle_enclosed: data.vehicle_enclosed,
+                hazard_substances: data.hazard_substances,
+                pest_infestations: data.pest_infestations,
+                pallets_condition: data.pallets_condition,
+                raw_materials_condition: data.raw_materials_condition,
+                vehicle_checks: {
+                    vehicle_clean: data.vehicle_clean,
+                    vehicle_enclosed: data.vehicle_enclosed,
+                    hazard_substances: data.hazard_substances,
+                    pest_infestations: data.pest_infestations,
+                    pallets_condition: data.pallets_condition,
+                    raw_materials_condition: data.raw_materials_condition
+                }
             };
-            if (data.start_date != null) payload.p_start_date = data.start_date;
-            if (data.estimated_completion_date != null) payload.p_estimated_completion_date = data.estimated_completion_date;
-            var result = await this.callFunction('create_production_batch_simple', payload, token, { useCache: false });
+            var payload = {
+                p_oil_id: null,
+                p_batch_id: data.batch_number || null,
+                p_production_date: data.date_received || data.received_date || null,
+                p_status: 'intake',
+                p_total_oil_litre: null,
+                p_intake_data: intakeData
+            };
+            var result = await this.callFunction('upsert_oil_batch', payload, token, { useCache: false });
             this.clearCachePattern('supplier_intake');
-            this.clearCachePattern('production_batches');
+            this.clearCachePattern('oil_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /**
+         * Update a supplier intake batch (oil table). Calls upsert_oil_batch with p_oil_id so the existing oil row is updated.
+         * @param {string} oilId - UUID of the oil row (batch.id from the grid)
+         * @param {object} data - same shape as createSupplierIntakeBatch (product_type, date_received, delivery_note_ref, ...)
+         * @param {string|null} token - auth token (optional)
+         * @returns {Promise<object>} result from upsert_oil_batch
+         */
+        updateSupplierIntakeBatch: async function (oilId, data, token = null) {
+            var intakeData = {
+                date_received: data.date_received || data.received_date || null,
+                delivery_note_reference: data.delivery_note_ref || null,
+                delivery_note_ref: data.delivery_note_ref || null,
+                supplier_id: data.supplier_id || null,
+                supplier: data.supplier_details || null,
+                supplier_details: data.supplier_details || null,
+                product_type: data.product_type || null,
+                quantity_kg: data.quantity_kg != null ? data.quantity_kg : data.wet_nis_received_kg,
+                manufactured_date: data.manufactured_date || null,
+                best_before_date: data.best_before_date || null,
+                reference: data.reference || null,
+                description: data.description || null,
+                carton_bulk_bags: data.carton_bulk_bags != null ? data.carton_bulk_bags : 1,
+                receiving_comments: data.receiving_comments || null,
+                vehicle_clean: data.vehicle_clean,
+                vehicle_enclosed: data.vehicle_enclosed,
+                hazard_substances: data.hazard_substances,
+                pest_infestations: data.pest_infestations,
+                pallets_condition: data.pallets_condition,
+                raw_materials_condition: data.raw_materials_condition,
+                vehicle_checks: {
+                    vehicle_clean: data.vehicle_clean,
+                    vehicle_enclosed: data.vehicle_enclosed,
+                    hazard_substances: data.hazard_substances,
+                    pest_infestations: data.pest_infestations,
+                    pallets_condition: data.pallets_condition,
+                    raw_materials_condition: data.raw_materials_condition
+                }
+            };
+            var payload = {
+                p_oil_id: oilId,
+                p_batch_id: data.batch_number || null,
+                p_production_date: data.date_received || data.received_date || null,
+                p_status: data.status || 'intake',
+                p_total_oil_litre: null,
+                p_intake_data: intakeData
+            };
+            var result = await this.callFunction('upsert_oil_batch', payload, token, { useCache: false });
+            this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('oil_batches');
             return result && (result.data !== undefined ? result.data : result);
         },
 

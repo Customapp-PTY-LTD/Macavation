@@ -56,10 +56,12 @@ var _supplierIntakeGrid = function () {
             const scope = _supplierIntakeGrid;
             $('#addNewBatchProductBtn').off('click').on('click', function (e) {
                 e.preventDefault();
-                if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.show) {
+                if (typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.show) {
+                    _modal_supplier_new_batch.show();
+                } else if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.show) {
                     _modalSupplierOilBatch.show();
                 } else if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', 'New oil batch modal not loaded. Please refresh the page.', 'error');
+                    Swal.fire('Error', 'New batch modal not loaded. Please refresh the page.', 'error');
                 }
             });
             $('#exportSupplierIntakeBtn').off('click').on('click', () => scope.exportBatches());
@@ -100,6 +102,20 @@ var _supplierIntakeGrid = function () {
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
                 if (batchId) scope.showBatchDetail(batchId);
+            });
+            $(document).on('click', '#supplierIntakeBatchesTableBody .js-supplier-intake-edit', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var batchId = $(this).data('batch-id');
+                if (!batchId) return;
+                var batch = (scope.batches || []).find(function (b) {
+                    return (b.id != null && String(b.id) === String(batchId)) || (b.batch_number != null && String(b.batch_number) === String(batchId));
+                });
+                if (batch && typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.show) {
+                    _modal_supplier_new_batch.show(batch);
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire('Info', batch ? 'Edit modal not loaded. Please refresh the page.' : 'Batch not found.', 'info');
+                }
             });
             $(document).on('click', '#supplierIntakeBatchesTableBody .js-supplier-intake-release-oil', function (e) {
                 e.preventDefault();
@@ -143,7 +159,7 @@ var _supplierIntakeGrid = function () {
                     ((b.supplier_details || '').toString().toLowerCase().indexOf(searchTerm) >= 0) ||
                     ((b.delivery_note_ref || '').toString().toLowerCase().indexOf(searchTerm) >= 0) ||
                     ((b.product_type || '').toString().toLowerCase().indexOf(searchTerm) >= 0);
-                const matchesStatus = !statusFilter || (b.status || 'supplier_intake') === statusFilter;
+                const matchesStatus = !statusFilter || (b.status || 'intake') === statusFilter;
                 return matchesSearch && matchesStatus;
             });
             scope.renderBatches();
@@ -192,9 +208,10 @@ var _supplierIntakeGrid = function () {
                 const receivingCell = '<div class="supplier-intake-receiving-buttons">' + checklistBtn + '</div>';
                 const releaseItem = '<a class="dropdown-item js-supplier-intake-release-oil" href="#"><i class="fas fa-arrow-right me-2"></i>Release to Oil Production</a>';
                 const viewItem = '<a class="dropdown-item js-supplier-intake-view" href="#" data-batch-id="' + batchId + '"><i class="fas fa-eye me-2"></i>View</a>';
+                const editItem = '<a class="dropdown-item js-supplier-intake-edit" href="#" data-batch-id="' + batchId + '"><i class="fas fa-edit me-2"></i>Edit</a>';
                 const actionsCell = '<div class="dropdown">' +
                     '<button class="btn btn-sm btn-outline-secondary" type="button" id="supplierIntakeActions' + escapeHtml(batchId) + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
-                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="supplierIntakeActions' + escapeHtml(batchId) + '">' + releaseItem + viewItem + '</ul></div>';
+                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="supplierIntakeActions' + escapeHtml(batchId) + '">' + releaseItem + viewItem + editItem + '</ul></div>';
                 const row = '<tr class="js-supplier-intake-row" data-batch-id="' + batchId + '">' +
                     '<td class="supplier-intake-col-batch">' + batchNumberCell + '</td>' +
                     '<td class="supplier-intake-col-product d-none d-md-table-cell">' + (productTypeLabel(b.product_type) || '—') + '</td>' +
@@ -204,7 +221,7 @@ var _supplierIntakeGrid = function () {
                     '<td class="supplier-intake-col-qty d-none d-sm-table-cell">' + (b.quantity_kg != null ? b.quantity_kg : '—') + '</td>' +
                     '<td class="supplier-intake-col-mfg d-none d-lg-table-cell">' + mfgBb + '</td>' +
                     '<td class="supplier-intake-col-receiving">' + receivingCell + '</td>' +
-                    '<td class="supplier-intake-col-status"><span class="badge bg-info">' + (b.status || 'supplier_intake') + '</span></td>' +
+                    '<td class="supplier-intake-col-status"><span class="badge bg-info">' + (b.status === 'intake' ? 'Supplier intake' : (b.status || 'intake')) + '</span></td>' +
                     '<td class="supplier-intake-col-actions">' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
@@ -242,17 +259,37 @@ var _supplierIntakeGrid = function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Info', 'Batch not found.', 'info');
                 return;
             }
-            const html = '<div class="text-start small">' +
-                '<p><strong>Batch #:</strong> ' + (b.batch_number || '—') + '</p>' +
-                '<p><strong>Product type:</strong> ' + (productTypeLabel(b.product_type) || '—') + '</p>' +
-                '<p><strong>Date received:</strong> ' + (formatDate(b.date_received) || '—') + '</p>' +
-                '<p><strong>Delivery note / PO:</strong> ' + (b.delivery_note_ref || '—') + '</p>' +
-                '<p><strong>Supplier:</strong> ' + (b.supplier_details || '—') + '</p>' +
-                '<p><strong>Quantity (kg):</strong> ' + (b.quantity_kg != null ? b.quantity_kg : '—') + '</p>' +
-                '<p><strong>Mfg / Best before:</strong> ' + (formatDate(b.manufactured_date) || '—') + ' / ' + (formatDate(b.best_before_date) || '—') + '</p>' +
-                '<p><strong>Status:</strong> ' + (b.status || 'supplier_intake') + '</p>' +
-                '</div>';
-            if (typeof Swal !== 'undefined') Swal.fire({ title: 'Batch details', html, confirmButtonText: 'OK', width: '400px' });
+            var line = function (label, value) {
+                var v = value != null && value !== '' ? String(value) : '—';
+                return '<p><strong>' + escapeHtml(label) + ':</strong> ' + escapeHtml(v) + '</p>';
+            };
+            var html = '<div class="text-start small">' +
+                '<p><strong>Batch #:</strong> ' + escapeHtml(b.batch_number || '—') + '</p>' +
+                line('Product type', productTypeLabel(b.product_type) || b.product_type) +
+                line('Date received', formatDate(b.date_received)) +
+                line('Delivery note / PO', b.delivery_note_ref) +
+                line('Supplier', b.supplier_details) +
+                line('Quantity (kg)', b.quantity_kg != null ? b.quantity_kg : '') +
+                line('Carton / bulk bags', b.carton_bulk_bags) +
+                line('Manufactured date', formatDate(b.manufactured_date)) +
+                line('Best before date', formatDate(b.best_before_date)) +
+                line('Reference / PO', b.reference) +
+                line('Description', b.description) +
+                line('Status', b.status === 'intake' ? 'Supplier intake' : (b.status || 'intake'));
+            if (b.vehicle_clean != null || b.vehicle_enclosed != null || b.hazard_substances != null || b.pest_infestations != null || b.pallets_condition != null || b.raw_materials_condition != null) {
+                html += '<hr class="my-2"><p class="mb-1"><strong>Receiving checks</strong></p>' +
+                    line('Vehicle clean', b.vehicle_clean) +
+                    line('Vehicle enclosed', b.vehicle_enclosed) +
+                    line('Hazard substances', b.hazard_substances) +
+                    line('Pest infestations', b.pest_infestations) +
+                    line('Pallets condition', b.pallets_condition) +
+                    line('Raw materials condition', b.raw_materials_condition);
+            }
+            if (b.receiving_comments != null && String(b.receiving_comments).trim() !== '') {
+                html += line('Receiving comments', b.receiving_comments);
+            }
+            html += '</div>';
+            if (typeof Swal !== 'undefined') Swal.fire({ title: 'Batch details', html, confirmButtonText: 'OK', width: '420px' });
         },
 
         releaseBatchToOilProduction: async (batchId, batch) => {

@@ -1,12 +1,13 @@
 /**
- * Modal: New batch of product (Supplier Intake). Parent calls show(); modal owns init, show, clearForm, save.
- * Date inputs use Flatpickr (dd/mm/yyyy), same as grower intake; API expects ISO (yyyy-mm-dd).
+ * Modal: New batch of product (Supplier Intake). Parent calls show() or show(batch) for edit.
+ * Modal owns init, show, clearForm, save. Date inputs use Flatpickr (dd/mm/yyyy); API expects ISO (yyyy-mm-dd).
  */
 var _modal_supplier_new_batch = (function () {
     'use strict';
 
     var CONTAINER_ID = 'newBatchProductModal';
     var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+    var _editingOilId = null;
 
     function toISO(dateStr) {
         if (!dateStr || typeof dateStr !== 'string') return null;
@@ -52,6 +53,44 @@ var _modal_supplier_new_batch = (function () {
         return toISO(val) || (val.indexOf('-') === 4 ? val : null);
     }
 
+    function setRadioValue(name, value) {
+        if (value === undefined || value === null) return;
+        var normalized = (value === true || value === 'true' || value === 'Yes') ? 'Yes' : (value === false || value === 'false' || value === 'No' ? 'No' : String(value));
+        var el = document.querySelector('input[name="' + name + '"][value="' + normalized + '"]');
+        if (el) el.checked = true;
+    }
+
+    function setModalTitle(title) {
+        var label = document.getElementById('newBatchProductModalLabel');
+        if (label) label.textContent = title;
+    }
+
+    function prefillForm(batch) {
+        if (!batch) return;
+        var set = function (id, value) {
+            var el = document.getElementById(id);
+            if (el && value != null && value !== '') el.value = value;
+        };
+        set('newBatchProductType', batch.product_type || '');
+        set('newBatchDateReceived', batch.date_received ? fromISO(String(batch.date_received).split('T')[0]) : '');
+        set('newBatchDeliveryNoteRef', batch.delivery_note_ref || '');
+        set('newBatchSupplier', batch.supplier_id || '');
+        set('newBatchReference', batch.reference || '');
+        set('newBatchDescription', batch.description || '');
+        set('newBatchBatchNumber', batch.batch_number || '');
+        set('newBatchCartonBags', batch.carton_bulk_bags != null ? String(batch.carton_bulk_bags) : '1');
+        set('newBatchQuantityKg', batch.quantity_kg != null ? String(batch.quantity_kg) : '');
+        set('newBatchManufacturedDate', batch.manufactured_date ? fromISO(String(batch.manufactured_date).split('T')[0]) : '');
+        set('newBatchBestBeforeDate', batch.best_before_date ? fromISO(String(batch.best_before_date).split('T')[0]) : '');
+        set('newBatchReceivingComments', batch.receiving_comments || '');
+        setRadioValue('newBatchVehicleClean', batch.vehicle_clean);
+        setRadioValue('newBatchVehicleEnclosed', batch.vehicle_enclosed);
+        setRadioValue('newBatchHazardSubstances', batch.hazard_substances);
+        setRadioValue('newBatchPestInfestations', batch.pest_infestations);
+        setRadioValue('newBatchPalletsCondition', batch.pallets_condition);
+        setRadioValue('newBatchRawMaterialsCondition', batch.raw_materials_condition);
+    }
+
     var api = {
         init: function () {
             var saveBtn = document.getElementById('saveNewBatchProductBtn');
@@ -63,11 +102,18 @@ var _modal_supplier_new_batch = (function () {
             }
         },
 
-        show: async function () {
-            api.clearForm();
-            var todayISO = new Date().toISOString().split('T')[0];
-            var dateEl = document.getElementById('newBatchDateReceived');
-            if (dateEl) dateEl.value = fromISO(todayISO);
+        show: async function (batch) {
+            _editingOilId = (batch && batch.id) ? batch.id : null;
+            api.clearForm(false);
+            if (_editingOilId && batch) {
+                setModalTitle('Edit batch');
+                prefillForm(batch);
+            } else {
+                setModalTitle('New batch of product');
+                var todayISO = new Date().toISOString().split('T')[0];
+                var dateEl = document.getElementById('newBatchDateReceived');
+                if (dateEl) dateEl.value = fromISO(todayISO);
+            }
 
             try {
                 if (typeof dataFunctions !== 'undefined' && dataFunctions.getContacts) {
@@ -78,10 +124,12 @@ var _modal_supplier_new_batch = (function () {
                         if (contacts && Array.isArray(contacts)) {
                             contacts.forEach(function (c) {
                                 var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
-                                html += '<option value="' + c.id + '">' + name + '</option>';
+                                var selected = (batch && batch.supplier_id && String(c.id) === String(batch.supplier_id)) ? ' selected' : '';
+                                html += '<option value="' + c.id + '"' + selected + '>' + name + '</option>';
                             });
                         }
                         sel.innerHTML = html;
+                        if (batch && batch.supplier_id) sel.value = batch.supplier_id;
                     }
                 }
             } catch (e) { console.error('Error loading contacts:', e); }
@@ -91,7 +139,7 @@ var _modal_supplier_new_batch = (function () {
             else if (typeof $ !== 'undefined' && $.fn.modal) $('#newBatchProductModal').modal('show');
         },
 
-        clearForm: function () {
+        clearForm: function (resetEditState) {
             var form = document.getElementById('newBatchProductForm');
             if (form) form.reset();
             var cartonEl = document.getElementById('newBatchCartonBags');
@@ -99,6 +147,7 @@ var _modal_supplier_new_batch = (function () {
             var todayISO = new Date().toISOString().split('T')[0];
             var dateEl = document.getElementById('newBatchDateReceived');
             if (dateEl) dateEl.value = fromISO(todayISO);
+            if (resetEditState !== false) _editingOilId = null;
         },
 
         save: async function () {
@@ -138,13 +187,34 @@ var _modal_supplier_new_batch = (function () {
             };
 
             try {
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.createSupplierIntakeBatch) {
+                if (typeof dataFunctions === 'undefined') {
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: 'Data functions not available.' });
                     return;
                 }
-                var result = await dataFunctions.createSupplierIntakeBatch(data);
+                var result;
+                if (_editingOilId) {
+                    if (!dataFunctions.updateSupplierIntakeBatch) {
+                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: 'Update not available.' });
+                        return;
+                    }
+                    data.status = 'intake';
+                    result = await dataFunctions.updateSupplierIntakeBatch(_editingOilId, data);
+                } else {
+                    if (!dataFunctions.createSupplierIntakeBatch) {
+                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: 'Data functions not available.' });
+                        return;
+                    }
+                    result = await dataFunctions.createSupplierIntakeBatch(data);
+                }
                 if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Batch added to supplier intake.', timer: 2000, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined') Swal.fire({
+                        icon: 'success',
+                        title: 'Saved',
+                        text: _editingOilId ? 'Batch updated.' : 'Batch added to supplier intake.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    _editingOilId = null;
                     var modalEl = document.getElementById('newBatchProductModal');
                     if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                     else if (typeof $ !== 'undefined' && $.fn.modal) $('#newBatchProductModal').modal('hide');
@@ -155,7 +225,7 @@ var _modal_supplier_new_batch = (function () {
                     throw new Error(errMsg);
                 }
             } catch (e) {
-                console.error('[Supplier Intake] save new batch failed:', e);
+                console.error('[Supplier Intake] save batch failed:', e);
                 var displayMsg = e.message || 'Failed to save batch';
                 if (e.responseText) displayMsg += ' (' + String(e.responseText).substring(0, 200) + ')';
                 if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: displayMsg });
