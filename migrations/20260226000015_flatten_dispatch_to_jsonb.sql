@@ -1,9 +1,9 @@
--- Migration: flatten kernel dispatch into JSONB columns on kernel_dispatch_orders.
--- Kills: kernel_dispatch_order_lines, kernel_dispatch_records (data migrated first).
--- Adds: lines jsonb, record jsonb, dispatched_at to kernel_dispatch_orders.
+-- Option A: Add lines/record to kernel_dispatch_orders so get_kernel_batches (20260226000016) works.
+-- Safe to run: adds columns, migrates from old tables only if they exist, then drops them and updates functions.
+-- Run this in Supabase SQL Editor on the project where you see "column o.lines does not exist".
 
 -- ============================================================
--- 1. Add new columns
+-- 1. Add new columns to kernel_dispatch_orders
 -- ============================================================
 ALTER TABLE public.kernel_dispatch_orders
     ADD COLUMN IF NOT EXISTS lines         jsonb       NOT NULL DEFAULT '[]',
@@ -11,59 +11,69 @@ ALTER TABLE public.kernel_dispatch_orders
     ADD COLUMN IF NOT EXISTS dispatched_at timestamptz;
 
 -- ============================================================
--- 2. Migrate existing lines → lines JSONB
+-- 2. Migrate existing lines → lines JSONB (only if table exists)
 -- ============================================================
-UPDATE public.kernel_dispatch_orders o
-SET lines = COALESCE(
-    (SELECT jsonb_agg(jsonb_build_object(
-        'kernel_id',   l.production_batch_id::text,
-        'batch_number', COALESCE(bt.batch_id, 'Unknown'),
-        'style',        l.style,
-        'quantity_kg',  l.quantity_kg
-    ))
-    FROM public.kernel_dispatch_order_lines l
-    LEFT JOIN public.kernel k  ON k.id  = l.production_batch_id
-    LEFT JOIN public.batches bt ON bt.id = k.batch_id
-    WHERE l.dispatch_order_id = o.id),
-    '[]'::jsonb
-);
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'kernel_dispatch_order_lines') THEN
+        UPDATE public.kernel_dispatch_orders o
+        SET lines = COALESCE(
+            (SELECT jsonb_agg(jsonb_build_object(
+                'kernel_id',    l.production_batch_id::text,
+                'batch_number', COALESCE(bt.batch_id, 'Unknown'),
+                'style',        l.style,
+                'quantity_kg',  l.quantity_kg
+            ))
+            FROM public.kernel_dispatch_order_lines l
+            LEFT JOIN public.kernel k  ON k.id  = l.production_batch_id
+            LEFT JOIN public.batches bt ON bt.id = k.batch_id
+            WHERE l.dispatch_order_id = o.id),
+            '[]'::jsonb
+        );
+    END IF;
+END $$;
 
 -- ============================================================
--- 3. Migrate existing records → record JSONB + set dispatched_at
+-- 3. Migrate existing records → record JSONB (only if table exists)
 -- ============================================================
-UPDATE public.kernel_dispatch_orders o
-SET
-    record = COALESCE(
-        (SELECT jsonb_build_object(
-            'vehicle_clean_yn',     r.vehicle_clean_yn,
-            'vehicle_enclosed_yn',  r.vehicle_enclosed_yn,
-            'hazard_substances_yn', r.hazard_substances_yn,
-            'pest_infestations_yn', r.pest_infestations_yn,
-            'pallets_condition_yn', r.pallets_condition_yn,
-            'truck_bin_locked_yn',  r.truck_bin_locked_yn,
-            'dispatch_person',      r.dispatch_person,
-            'transport_company',    r.transport_company,
-            'delivery_note_number', r.delivery_note_number,
-            'date_dispatched',      r.date_dispatched::text,
-            'truck_registration',   r.truck_registration,
-            'driver_name',          r.driver_name,
-            'time_dispatched',      r.time_dispatched::text,
-            'dispatched_to',        r.dispatched_to,
-            'dispatch_signature',   r.dispatch_signature
-        )
-        FROM public.kernel_dispatch_records r
-        WHERE r.dispatch_order_id = o.id
-        LIMIT 1),
-        '{}'::jsonb
-    ),
-    dispatched_at = (
-        SELECT r.updated_at FROM public.kernel_dispatch_records r
-        WHERE r.dispatch_order_id = o.id LIMIT 1
-    )
-WHERE o.status = 'dispatched';
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'kernel_dispatch_records') THEN
+        UPDATE public.kernel_dispatch_orders o
+        SET
+            record = COALESCE(
+                (SELECT jsonb_build_object(
+                    'vehicle_clean_yn',     r.vehicle_clean_yn,
+                    'vehicle_enclosed_yn',  r.vehicle_enclosed_yn,
+                    'hazard_substances_yn', r.hazard_substances_yn,
+                    'pest_infestations_yn', r.pest_infestations_yn,
+                    'pallets_condition_yn', r.pallets_condition_yn,
+                    'truck_bin_locked_yn',  r.truck_bin_locked_yn,
+                    'dispatch_person',      r.dispatch_person,
+                    'transport_company',    r.transport_company,
+                    'delivery_note_number', r.delivery_note_number,
+                    'date_dispatched',      r.date_dispatched::text,
+                    'truck_registration',   r.truck_registration,
+                    'driver_name',          r.driver_name,
+                    'time_dispatched',      r.time_dispatched::text,
+                    'dispatched_to',        r.dispatched_to,
+                    'dispatch_signature',   r.dispatch_signature
+                )
+                FROM public.kernel_dispatch_records r
+                WHERE r.dispatch_order_id = o.id
+                LIMIT 1),
+                '{}'::jsonb
+            ),
+            dispatched_at = (
+                SELECT r.updated_at FROM public.kernel_dispatch_records r
+                WHERE r.dispatch_order_id = o.id LIMIT 1
+            )
+        WHERE o.status = 'dispatched';
+    END IF;
+END $$;
 
 -- ============================================================
--- 4. Drop old tables
+-- 4. Drop old tables (if they exist)
 -- ============================================================
 DROP TABLE IF EXISTS public.kernel_dispatch_order_lines;
 DROP TABLE IF EXISTS public.kernel_dispatch_records;
@@ -103,7 +113,7 @@ END;
 $$;
 
 -- ============================================================
--- 6. get_kernel_dispatch_orders (replace: total_kg from JSONB)
+-- 6. get_kernel_dispatch_orders
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.get_kernel_dispatch_orders(
     p_limit  integer DEFAULT 100,
@@ -142,7 +152,7 @@ END;
 $$;
 
 -- ============================================================
--- 7. get_kernel_dispatch_order (replace: lines + record from JSONB, no JOIN)
+-- 7. get_kernel_dispatch_order
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.get_kernel_dispatch_order(p_order_id uuid)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -174,7 +184,7 @@ END;
 $$;
 
 -- ============================================================
--- 8. save_kernel_dispatch_record (replace: writes to record JSONB column)
+-- 8. save_kernel_dispatch_record
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.save_kernel_dispatch_record(
     p_dispatch_order_id      uuid,
@@ -182,8 +192,8 @@ CREATE OR REPLACE FUNCTION public.save_kernel_dispatch_record(
     p_vehicle_enclosed_yn    text DEFAULT NULL,
     p_hazard_substances_yn   text DEFAULT NULL,
     p_pest_infestations_yn   text DEFAULT NULL,
-    p_pallets_condition_yn   text DEFAULT NULL,
-    p_truck_bin_locked_yn    text DEFAULT NULL,
+    p_pallets_condition_yn  text DEFAULT NULL,
+    p_truck_bin_locked_yn   text DEFAULT NULL,
     p_dispatch_person        text DEFAULT NULL,
     p_transport_company      text DEFAULT NULL,
     p_delivery_note_number   text DEFAULT NULL,
@@ -241,9 +251,13 @@ DO $$
 DECLARE v_role_id uuid;
 BEGIN
     FOR v_role_id IN SELECT id FROM public.roles LOOP
-        INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
-        VALUES (v_role_id, 'function', 'create_kernel_dispatch_order', 'EXECUTE', true)
-        ON CONFLICT DO NOTHING;
+        IF NOT EXISTS (
+            SELECT 1 FROM public.role_permissions
+            WHERE role_id = v_role_id AND object_type = 'function' AND object_name = 'create_kernel_dispatch_order' AND operation = 'EXECUTE'
+        ) THEN
+            INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+            VALUES (v_role_id, 'function', 'create_kernel_dispatch_order', 'EXECUTE', true);
+        END IF;
     END LOOP;
 END;
 $$;
