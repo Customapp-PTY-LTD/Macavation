@@ -19,11 +19,6 @@ var _stockManagementGrid = function () {
         oilSummary: [],
         kernelRawBatches: [],
         kernelFinishedBatches: [],
-        selectedDispatchBatchId: null,
-        selectedDispatchBatch: null,
-        dispatchSelectionMode: false,
-        dispatchSelectedLines: [],
-        dispatchOrderDetails: {},
         oilSearchTimeout: null,
         searchTimeout: null,
 
@@ -56,29 +51,6 @@ var _stockManagementGrid = function () {
                     scope.loadStockItems();
                     scope.toggleKernelBatchJourney(stream);
                     if (document.getElementById('oilLotsTableBody')) scope.loadOilLotsAndSummary();
-                    if (stream === 'kernel' && typeof Swal !== 'undefined' && Swal.fire) {
-                        try {
-                            var draftJson = localStorage.getItem('kernel_dispatch_draft');
-                            if (draftJson) {
-                                var draft = null;
-                                try { draft = JSON.parse(draftJson); } catch (e) {}
-                                var hasLines = draft && Array.isArray(draft.dispatchSelectedLines) && draft.dispatchSelectedLines.length > 0;
-                                if (hasLines) {
-                                    Swal.fire({
-                                        title: 'Restore draft?',
-                                        text: 'You have a saved dispatch selection. Restore it?',
-                                        icon: 'question',
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Restore',
-                                        cancelButtonText: 'No'
-                                    }).then(function (r) {
-                                        if (r.isConfirmed && scope.restoreDispatchDraft) scope.restoreDispatchDraft();
-                                        else if (scope.clearDispatchDraft) scope.clearDispatchDraft();
-                                    });
-                                } else if (scope.clearDispatchDraft) scope.clearDispatchDraft();
-                            }
-                        } catch (e) {}
-                    }
                 } else {
                     console.warn('[Stock Management] Toolbar not found after modal load');
                 }
@@ -133,149 +105,6 @@ var _stockManagementGrid = function () {
                     if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show();
                 });
                 $('#exportStockBtn').off('click').on('click', function () { scope.exportStock(); });
-                $('#sendDispatchBtn').off('click').on('click', function () { scope.submitDispatchOrder(); });
-                $(document).on('click', '#dispatchSelectedList .js-dispatch-remove-line', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    var batchId = $(this).data('batch-id');
-                    var style = $(this).data('style');
-                    style = style != null ? String(style) : '';
-                    if (!batchId && style === '') return;
-                    var scope = _stockManagementGrid;
-                    var idx = scope.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && String(l.style) === style; });
-                    if (idx >= 0) {
-                        scope.dispatchSelectedLines.splice(idx, 1);
-                        scope.renderKernelStockByStyle();
-                        scope.renderDispatchSelectedList();
-                        var summary = document.getElementById('dispatchSelectedSummary');
-                        if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
-                        if (scope.dispatchSelectedLines.length === 0 && scope.clearDispatchDraft) scope.clearDispatchDraft();
-                        else if (scope.saveDispatchDraft) scope.saveDispatchDraft();
-                    }
-                });
-                $(document).on('click', '#dispatchSelectedList .js-dispatch-edit-line', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    var batchId = $(this).data('batch-id');
-                    var style = $(this).data('style');
-                    style = style != null ? String(style) : '';
-                    var currentQty = parseInt($(this).data('current-qty'), 10) || 1;
-                    var maxQty = parseInt($(this).data('max-qty'), 10) || 1;
-                    if (maxQty < 1) maxQty = 1;
-                    var scope = _stockManagementGrid;
-                    if (typeof Swal === 'undefined' || !Swal.fire) {
-                        var raw = prompt('Enter number of boxes (1 to ' + maxQty + ')', String(currentQty));
-                        var num = parseInt(raw, 10);
-                        if (!isNaN(num) && num >= 1 && num <= maxQty) {
-                            var idx = scope.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && String(l.style) === style; });
-                            if (idx >= 0) {
-                                scope.dispatchSelectedLines[idx].quantity_kg = num;
-                                scope.renderKernelStockByStyle();
-                                scope.renderDispatchSelectedList();
-                                if (scope.saveDispatchDraft) scope.saveDispatchDraft();
-                            }
-                        }
-                        return;
-                    }
-                    Swal.fire({
-                        title: 'Edit quantity',
-                        html: '<label class="form-label">Number of boxes (1 to ' + maxQty + ')</label><input type="number" id="dispatchEditQtyInput" class="form-control" min="1" max="' + maxQty + '" value="' + currentQty + '" step="1">',
-                        showCancelButton: true,
-                        confirmButtonText: 'Update',
-                        focusConfirm: false,
-                        preConfirm: function () {
-                            var input = document.getElementById('dispatchEditQtyInput');
-                            var num = input ? parseInt(input.value, 10) : NaN;
-                            if (isNaN(num) || num < 1 || num > maxQty) {
-                                Swal.showValidationMessage('Please enter a number between 1 and ' + maxQty + '.');
-                                return false;
-                            }
-                            return num;
-                        }
-                    }).then(function (result) {
-                        if (result && result.isConfirmed && typeof result.value === 'number') {
-                            var idx = scope.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && String(l.style) === style; });
-                            if (idx >= 0) {
-                                scope.dispatchSelectedLines[idx].quantity_kg = result.value;
-                                scope.renderKernelStockByStyle();
-                                scope.renderDispatchSelectedList();
-                                if (scope.saveDispatchDraft) scope.saveDispatchDraft();
-                            }
-                        }
-                    });
-                });
-                $(document).on('click', '#kernelStockByStyleBody .js-dispatch-qty-pick', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    var batchId = $(this).data('batch-id');
-                    var style = $(this).data('style');
-                    style = style != null ? String(style) : '';
-                    var qty = parseInt($(this).data('quantity'), 10) || 0;
-                    if (!batchId || style === '') return;
-                    var scope = _stockManagementGrid;
-                    var idx = scope.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && String(l.style) === style; });
-                    if (qty <= 0) {
-                        if (idx >= 0) scope.dispatchSelectedLines.splice(idx, 1);
-                    } else {
-                        var line = { production_batch_id: batchId, style: style, quantity_kg: qty };
-                        if (idx >= 0) scope.dispatchSelectedLines[idx] = line; else scope.dispatchSelectedLines.push(line);
-                    }
-                    scope.renderDispatchSelectedList();
-                    var summary = document.getElementById('dispatchSelectedSummary');
-                    if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
-                    if (scope.saveDispatchDraft) scope.saveDispatchDraft();
-                });
-                $(document).on('click', '#kernelStockByStyleBody .js-dispatch-qty-other', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    var batchId = $(this).data('batch-id');
-                    var style = $(this).data('style');
-                    style = style != null ? String(style) : '';
-                    var maxQty = parseInt($(this).data('max-qty'), 10) || 0;
-                    if (!batchId || style === '' || maxQty <= 0) return;
-                    var scope = _stockManagementGrid;
-                    if (typeof Swal === 'undefined') {
-                        var raw = prompt('Enter number of boxes (1 to ' + maxQty + ')');
-                        var num = parseInt(raw, 10);
-                        if (!isNaN(num) && num >= 1 && num <= maxQty) {
-                            var idx = scope.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && String(l.style) === style; });
-                            var line = { production_batch_id: batchId, style: style, quantity_kg: num };
-                            if (idx >= 0) scope.dispatchSelectedLines[idx] = line; else scope.dispatchSelectedLines.push(line);
-                            scope.renderDispatchSelectedList();
-                            var summary = document.getElementById('dispatchSelectedSummary');
-                            if (summary) summary.style.display = 'none';
-                            if (scope.dispatchSelectedLines.length > 0 && summary) summary.style.display = '';
-                            if (scope.saveDispatchDraft) scope.saveDispatchDraft();
-                        }
-                        return;
-                    }
-                    Swal.fire({
-                        title: 'Number of boxes',
-                        html: '<label class="form-label">Enter amount (1 to ' + maxQty + ')</label><input type="number" id="dispatchQtyOtherInput" class="form-control" min="1" max="' + maxQty + '" value="1" step="1">',
-                        showCancelButton: true,
-                        confirmButtonText: 'Add',
-                        focusConfirm: false,
-                        preConfirm: function () {
-                            var input = document.getElementById('dispatchQtyOtherInput');
-                            var num = input ? parseInt(input.value, 10) : NaN;
-                            if (isNaN(num) || num < 1 || num > maxQty) {
-                                Swal.showValidationMessage('Please enter a number between 1 and ' + maxQty + '.');
-                                return false;
-                            }
-                            return num;
-                        }
-                    }).then(function (result) {
-                        if (result && result.isConfirmed && typeof result.value === 'number') {
-                            var idx = scope.dispatchSelectedLines.findIndex(function (l) { return (l.production_batch_id || l.batch_id) === batchId && String(l.style) === style; });
-                            var line = { production_batch_id: batchId, style: style, quantity_kg: result.value };
-                            if (idx >= 0) scope.dispatchSelectedLines[idx] = line; else scope.dispatchSelectedLines.push(line);
-                            scope.renderDispatchSelectedList();
-                            var summary = document.getElementById('dispatchSelectedSummary');
-                            if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
-                            if (scope.saveDispatchDraft) scope.saveDispatchDraft();
-                        }
-                    });
-                });
 
                 $('#searchStockInput').on('input', function () {
                     clearTimeout(scope.searchTimeout);
@@ -340,66 +169,6 @@ var _stockManagementGrid = function () {
                     scope.oilSearchTimeout = setTimeout(function () { scope.loadOilLotsAndSummary(); }, 300);
                 });
             }
-        },
-
-        enterDispatchSelectionMode: function (details) {
-            var scope = _stockManagementGrid;
-            scope.dispatchOrderDetails = details || {};
-            scope.renderKernelStockByStyle();
-            scope.renderDispatchSelectedList();
-            var summary = document.getElementById('dispatchSelectedSummary');
-            if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
-            if (scope.saveDispatchDraft) scope.saveDispatchDraft();
-        },
-
-        hasDispatchDraft: function () {
-            var scope = _stockManagementGrid;
-            var hasLines = scope.dispatchSelectedLines && scope.dispatchSelectedLines.length > 0;
-            return !!hasLines;
-        },
-
-        saveDispatchDraft: function () {
-            var scope = _stockManagementGrid;
-            try {
-                localStorage.setItem('kernel_dispatch_draft', JSON.stringify({
-                    dispatchOrderDetails: scope.dispatchOrderDetails || {},
-                    dispatchSelectedLines: scope.dispatchSelectedLines || [],
-                    savedAt: new Date().toISOString()
-                }));
-            } catch (e) { console.warn('[Stock Management] Could not save dispatch draft', e); }
-        },
-
-        clearDispatchDraft: function () {
-            var scope = _stockManagementGrid;
-            try {
-                localStorage.removeItem('kernel_dispatch_draft');
-            } catch (e) {}
-            scope.dispatchSelectedLines = [];
-            scope.dispatchOrderDetails = {};
-            scope.renderKernelStockByStyle();
-            scope.renderDispatchSelectedList();
-            var summary = document.getElementById('dispatchSelectedSummary');
-            if (summary) summary.style.display = 'none';
-        },
-
-        restoreDispatchDraft: function () {
-            var scope = _stockManagementGrid;
-            var json;
-            try {
-                json = localStorage.getItem('kernel_dispatch_draft');
-            } catch (e) { return; }
-            if (!json) return;
-            var draft;
-            try {
-                draft = JSON.parse(json);
-            } catch (e) { return; }
-            if (!draft || !Array.isArray(draft.dispatchSelectedLines)) return;
-            scope.dispatchOrderDetails = draft.dispatchOrderDetails || {};
-            scope.dispatchSelectedLines = draft.dispatchSelectedLines;
-            scope.renderKernelStockByStyle();
-            scope.renderDispatchSelectedList();
-            var summary = document.getElementById('dispatchSelectedSummary');
-            if (summary) summary.style.display = scope.dispatchSelectedLines.length > 0 ? '' : 'none';
         },
 
         filterStockItems: function () {
@@ -483,35 +252,16 @@ var _stockManagementGrid = function () {
             var batches = scope.kernelFinishedBatches || [];
             var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
             var styleKeys = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
-            var maxDropdownOptions = 51;
             batches.forEach(function (b) {
                 var cells = (b.remaining_by_style && typeof b.remaining_by_style === 'object') ? b.remaining_by_style : null;
                 if (cells == null) cells = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
-                var batchId = (b.id || '');
-                var batchNum = (b.batch_number || '').toString().replace(/"/g, '&quot;');
+                var batchNum = (b.batch_number || '').toString();
                 var row = '<tr><td>' + batchNum + '</td>';
                 styleKeys.forEach(function (k) {
                     var val = cells[k] != null ? cells[k] : (b['yield_' + k] != null ? b['yield_' + k] : 0);
                     if (typeof val === 'number') totals[k] += val;
-                    var qty = (typeof val === 'number' && val > 0) ? Math.floor(val) : 0;
                     var displayVal = (val !== 0 && val !== '' && val != null) ? val : '—';
-                    if (qty > 0) {
-                        var cellId = 'kcell_' + (batchId + '_' + k).replace(/[^a-zA-Z0-9_-]/g, '_');
-                        var maxOpt = Math.min(qty, maxDropdownOptions - 1);
-                        var menuItems = '<li><a class="dropdown-item js-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="0">0 (clear)</a></li>';
-                        for (var n = 1; n <= maxOpt; n++) {
-                            menuItems += '<li><a class="dropdown-item js-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + n + '">' + n + '</a></li>';
-                        }
-                        if (qty > maxOpt) {
-                            menuItems += '<li><a class="dropdown-item js-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + qty + '">' + qty + ' (max)</a></li>';
-                        }
-                        menuItems += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item js-dispatch-qty-other" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-max-qty="' + qty + '">Other…</a></li>';
-                        row += '<td class="text-end kernel-qty-cell"><div class="dropdown">' +
-                            '<button class="btn btn-sm btn-outline-secondary py-0 px-1 js-kernel-qty-dropdown" type="button" id="' + cellId + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Add boxes">' + displayVal + '</button>' +
-                            '<ul class="dropdown-menu dropdown-menu-end js-kernel-qty-menu" aria-labelledby="' + cellId + '" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-max-qty="' + qty + '">' + menuItems + '</ul></div></td>';
-                    } else {
-                        row += '<td class="text-end">' + displayVal + '</td>';
-                    }
+                    row += '<td class="text-end">' + displayVal + '</td>';
                 });
                 row += '</tr>';
                 body.append(row);
@@ -533,91 +283,6 @@ var _stockManagementGrid = function () {
             }).catch(function (e) {
                 console.error(e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release batch', 'error');
-            });
-        },
-
-        renderDispatchSelectedList: function () {
-            var scope = _stockManagementGrid;
-            var listEl = document.getElementById('dispatchSelectedList');
-            var totalLabel = document.getElementById('dispatchSelectedTotalLabel');
-            if (!listEl) return;
-            if (scope.dispatchSelectedLines.length === 0) {
-                listEl.innerHTML = '<p class="text-muted small mb-0">No boxes selected. Click a quantity cell in the table above to choose how many boxes to add from that batch and style.</p>';
-                if (totalLabel) totalLabel.textContent = 'Total: 0 kg';
-                return;
-            }
-            var batches = scope.kernelFinishedBatches || [];
-            var batchMap = {};
-            batches.forEach(function (b) { batchMap[b.id] = b; });
-            var totalKg = 0;
-            var html = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0 align-middle">' +
-                '<thead class="table-light"><tr><th>Batch</th><th>Style</th><th class="text-end">Qty (kg)</th><th></th></tr></thead><tbody>';
-            scope.dispatchSelectedLines.forEach(function (line) {
-                var batchId = line.production_batch_id || line.batch_id;
-                var style = line.style != null ? String(line.style) : '';
-                var batch = batchMap[batchId];
-                var batchNum = batch ? batch.batch_number : batchId;
-                var qty = parseFloat(line.quantity_kg) || 0;
-                totalKg += qty;
-                var cells = batch && (batch.remaining_by_style && typeof batch.remaining_by_style === 'object') ? batch.remaining_by_style : (batch && batch.yield_by_style && typeof batch.yield_by_style === 'object' ? batch.yield_by_style : {});
-                var styleVal = cells[style] != null ? cells[style] : (batch && batch['yield_' + style] != null ? batch['yield_' + style] : 0);
-                var maxQty = (typeof styleVal === 'number' && styleVal > 0) ? Math.floor(styleVal) : 1;
-                var styleAttr = (style || '').replace(/"/g, '&quot;');
-                html += '<tr><td><span class="badge bg-primary">' + (batchNum || '—') + '</span></td><td>' + (line.style || '—') + '</td><td class="text-end">' + qty + '</td>' +
-                    '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary js-dispatch-edit-line me-1" title="Edit quantity" data-batch-id="' + (batchId || '') + '" data-style="' + styleAttr + '" data-current-qty="' + qty + '" data-max-qty="' + maxQty + '"><i class="fas fa-edit"></i></button>' +
-                    '<button type="button" class="btn btn-sm btn-danger js-dispatch-remove-line" title="Remove from basket" data-batch-id="' + (batchId || '') + '" data-style="' + styleAttr + '"><i class="fas fa-times"></i></button></td></tr>';
-            });
-            html += '</tbody></table></div>';
-            listEl.innerHTML = html;
-            if (totalLabel) totalLabel.textContent = 'Total: ' + totalKg.toFixed(1) + ' kg';
-        },
-
-        submitDispatchOrder: function () {
-            var scope = _stockManagementGrid;
-            if (!scope.dispatchOrderDetails || !scope.dispatchOrderDetails.buyer_name) {
-                if (typeof Swal !== 'undefined' && Swal.fire) {
-                    Swal.fire({
-                        title: 'Enter buyer and delivery date',
-                        text: 'Please fill in the buyer and delivery date so we can complete the dispatch.',
-                        icon: 'info',
-                        confirmButtonText: 'OK'
-                    }).then(function (r) {
-                        if (r && r.isConfirmed && typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) {
-                            _modal_stock_send_to_dispatch.show();
-                        }
-                    });
-                } else if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) {
-                    _modal_stock_send_to_dispatch.show();
-                }
-                return;
-            }
-            if (scope.dispatchSelectedLines.length === 0) {
-                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Please select at least one box from the table.', 'warning');
-                return;
-            }
-            var lines = scope.dispatchSelectedLines.map(function (l) {
-                return { production_batch_id: l.production_batch_id || l.batch_id, style: l.style, quantity_kg: l.quantity_kg };
-            });
-            dataFunctions.createKernelDispatchOrder({
-                buyer_name: scope.dispatchOrderDetails.buyer_name,
-                buyer_contact_id: scope.dispatchOrderDetails.buyer_contact_id || null,
-                delivery_date: scope.dispatchOrderDetails.delivery_date,
-                lines: lines
-            }).then(function (result) {
-                if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Sent', text: 'Dispatch order created successfully.', timer: 2000, showConfirmButton: false });
-                    scope.dispatchSelectedLines = [];
-                    scope.dispatchOrderDetails = {};
-                    scope.clearDispatchDraft();
-                    var summary = document.getElementById('dispatchSelectedSummary');
-                    if (summary) summary.style.display = 'none';
-                    setTimeout(function () {
-                        scope.loadKernelBatches(true);
-                    }, 300);
-                } else throw new Error(result && result.error ? result.error : 'Failed to create dispatch order');
-            }).catch(function (e) {
-                console.error(e);
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to create dispatch order', 'error');
             });
         },
 

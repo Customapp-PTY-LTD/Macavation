@@ -105,7 +105,7 @@
             <p class="text-muted small mb-3">Batches released from Grower Intake go to Kernel Production; release to stock from there. Raw (NIS = R NIL) is legacy; finished (KERNEL R YES) are ready for dispatch.</p>
             <hr class="my-3">
             <h6 class="text-secondary">Kernel Stock by style</h6>
-            <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with yield quantity per style (from Production Job Card). Click a quantity cell to choose how many boxes to add to your basket from that batch and style; then use Send to Dispatch to enter buyer and delivery and submit.</p>
+            <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with available stock per style (from packing data). Click Send to Dispatch to choose a buyer, select items from the shopping cart, and submit a dispatch order.</p>
             <div class="table-responsive kernel-stock-table-wrapper">
                 <table class="table table-sm table-bordered" id="kernelStockByStyleTable">
                     <thead>
@@ -122,24 +122,6 @@
                     </thead>
                     <tbody id="kernelStockByStyleBody"></tbody>
                 </table>
-            </div>
-            <!-- Selected boxes summary (visible when selection mode and items selected) -->
-            <div id="dispatchSelectedSummary" class="dispatch-selected-summary mt-3" style="display: none;">
-                <hr class="my-3">
-                <div class="card border-primary">
-                    <div class="card-header bg-light py-2">
-                        <h6 class="mb-0 text-primary"><i class="fas fa-boxes me-2"></i>Selected for dispatch</h6>
-                    </div>
-                    <div class="card-body py-2">
-                        <div id="dispatchSelectedList"></div>
-                        <div class="d-flex justify-content-between align-items-center flex-wrap mt-2 pt-2 border-top">
-                            <strong id="dispatchSelectedTotalLabel" class="text-secondary">Total: 0 kg</strong>
-                            <button type="button" class="btn btn-success mt-1" id="sendDispatchBtn">
-                                <i class="fas fa-paper-plane me-1"></i>Send
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

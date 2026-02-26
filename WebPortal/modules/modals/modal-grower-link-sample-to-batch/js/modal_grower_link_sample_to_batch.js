@@ -1,9 +1,13 @@
 /**
  * Modal: New batch sample (Grower Intake).
- * Two tabs: (1) Ziplock bag sample – original form (Moisture, Peroxide, FFA).
- * (2) 5kg sample – full printed form (Receiving, Batch info, Crack-Out, Float Test, Unsound breakdown).
- * Saves per tab independently; sample step is complete only when both tabs are saved.
- * Autosaves form state every 2 minutes and restores on reopen (device sleep or leaving modal).
+ * Two tabs: (1) Ziplock bag sample – Moisture, Peroxide, FFA.
+ *           (2) 5kg sample – Crack-Out, Float Test, Unsound breakdown.
+ *
+ * Each tab saves independently. The batch/kernel record MUST already exist
+ * (created via modal_grower_create_kernel_batch) before this modal is opened.
+ * show() accepts the kernel UUID directly — no new batch/kernel creation here.
+ *
+ * Both tabs must be saved to enable "Release to production" in the grid.
  * Uses container id: linkSampleToBatchModal
  */
 var _modal_grower_link_sample_to_batch = (function () {
@@ -13,7 +17,10 @@ var _modal_grower_link_sample_to_batch = (function () {
     var DRAFT_STORAGE_PREFIX = 'grower_intake_sample_draft_';
     var AUTOSAVE_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 
-    var _batchId = null;
+    var _kernelId     = null;  // UUID from kernel.id — set on show(), never null during save
+    var _batchId      = null;  // Human-readable batch number — used as localStorage draft key only
+    var _ziplockSaved = false;
+    var _fiveKgSaved  = false;
     var _autosaveTimerId = null;
 
     function getActiveSampleTab() {
@@ -26,7 +33,6 @@ var _modal_grower_link_sample_to_batch = (function () {
     var FLOAT_IDS = ['sampleFloatingKernelG', 'sampleSinkingKernelG'];
     var UNSOUND_IDS = ['sampleGerminationG', 'sampleLateStinkbugG', 'sampleEarlyStinkbugG', 'sampleDarkCentreG', 'sampleMouldG', 'sampleRottenG', 'sampleImmatureSplitG', 'sampleShrivelledG', 'sampleNutBorerG'];
 
-    var ZIPLOCK_FIELD_IDS = ['sampleMoistureRequired', 'samplePeroxideRequired', 'sampleFfaRequired', 'sampleMoistureResult', 'samplePeroxideResult', 'sampleFfaResult'];
     var ALL_NUMBER_IDS = ['sampleMoistureResult', 'samplePeroxideResult', 'sampleFfaResult'].concat(CRACK_OUT_IDS, FLOAT_IDS, UNSOUND_IDS);
     var ALL_CHECKBOX_IDS = ['sampleMoistureRequired', 'samplePeroxideRequired', 'sampleFfaRequired'];
 
@@ -56,6 +62,78 @@ var _modal_grower_link_sample_to_batch = (function () {
         if (crackEl) crackEl.value = crackTotal > 0 ? crackTotal : '';
         if (floatEl) floatEl.value = floatTotal > 0 ? floatTotal : '';
         if (unsoundEl) unsoundEl.value = unsoundTotal > 0 ? unsoundTotal : '';
+    }
+
+    function updateTabIndicators() {
+        var zBadge = document.getElementById('ziplock-tab-badge');
+        var fBadge = document.getElementById('fivekg-tab-badge');
+        if (zBadge) zBadge.classList.toggle('d-none', !_ziplockSaved);
+        if (fBadge) fBadge.classList.toggle('d-none', !_fiveKgSaved);
+    }
+
+    function loadExistingData(kd) {
+        if (!kd || !kd.intake_data) return;
+        var intakeData = kd.intake_data;
+        var el;
+
+        // Ziplock sample
+        var zl = intakeData.ziplock_sample;
+        if (zl && zl.completed_at) {
+            _ziplockSaved = true;
+            el = document.getElementById('sampleMoistureRequired');
+            if (el) el.checked = !!zl.moisture_required;
+            el = document.getElementById('sampleMoistureResult');
+            if (el) el.value = zl.moisture_result != null ? zl.moisture_result : '';
+            el = document.getElementById('samplePeroxideRequired');
+            if (el) el.checked = !!zl.peroxide_required;
+            el = document.getElementById('samplePeroxideResult');
+            if (el) el.value = zl.peroxide_result != null ? zl.peroxide_result : '';
+            el = document.getElementById('sampleFfaRequired');
+            if (el) el.checked = !!zl.ffa_required;
+            el = document.getElementById('sampleFfaResult');
+            if (el) el.value = zl.ffa_result != null ? zl.ffa_result : '';
+        }
+
+        // 5kg sample
+        var fk = intakeData.five_kg_sample;
+        if (fk && fk.completed_at) {
+            _fiveKgSaved = true;
+            if (fk.crack_out) {
+                el = document.getElementById('sampleSoundKernelG');
+                if (el) el.value = fk.crack_out.sound_kernel_g != null ? fk.crack_out.sound_kernel_g : '';
+                el = document.getElementById('sampleUnsoundKernelG');
+                if (el) el.value = fk.crack_out.unsound_kernel_g != null ? fk.crack_out.unsound_kernel_g : '';
+                el = document.getElementById('sampleShellG');
+                if (el) el.value = fk.crack_out.shell_g != null ? fk.crack_out.shell_g : '';
+            }
+            if (fk.float_test) {
+                el = document.getElementById('sampleFloatingKernelG');
+                if (el) el.value = fk.float_test.floating_g != null ? fk.float_test.floating_g : '';
+                el = document.getElementById('sampleSinkingKernelG');
+                if (el) el.value = fk.float_test.sinking_g != null ? fk.float_test.sinking_g : '';
+            }
+            if (fk.unsound) {
+                el = document.getElementById('sampleGerminationG');
+                if (el) el.value = fk.unsound.germination_g != null ? fk.unsound.germination_g : '';
+                el = document.getElementById('sampleLateStinkbugG');
+                if (el) el.value = fk.unsound.late_stinkbug_g != null ? fk.unsound.late_stinkbug_g : '';
+                el = document.getElementById('sampleEarlyStinkbugG');
+                if (el) el.value = fk.unsound.early_stinkbug_g != null ? fk.unsound.early_stinkbug_g : '';
+                el = document.getElementById('sampleDarkCentreG');
+                if (el) el.value = fk.unsound.dark_centre_g != null ? fk.unsound.dark_centre_g : '';
+                el = document.getElementById('sampleMouldG');
+                if (el) el.value = fk.unsound.mould_g != null ? fk.unsound.mould_g : '';
+                el = document.getElementById('sampleRottenG');
+                if (el) el.value = fk.unsound.rotten_g != null ? fk.unsound.rotten_g : '';
+                el = document.getElementById('sampleImmatureSplitG');
+                if (el) el.value = fk.unsound.immature_split_g != null ? fk.unsound.immature_split_g : '';
+                el = document.getElementById('sampleShrivelledG');
+                if (el) el.value = fk.unsound.shrivelled_g != null ? fk.unsound.shrivelled_g : '';
+                el = document.getElementById('sampleNutBorerG');
+                if (el) el.value = fk.unsound.nut_borer_g != null ? fk.unsound.nut_borer_g : '';
+            }
+            updateTotals();
+        }
     }
 
     function getFormState() {
@@ -112,29 +190,18 @@ var _modal_grower_link_sample_to_batch = (function () {
     }
 
     function clearForm() {
-        ['sampleMoistureRequired', 'samplePeroxideRequired', 'sampleFfaRequired'].forEach(function (id) {
+        ALL_CHECKBOX_IDS.forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.checked = false;
         });
-        ['sampleMoistureResult', 'samplePeroxideResult', 'sampleFfaResult'].forEach(function (id) {
+        ALL_NUMBER_IDS.forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.value = '';
         });
-        CRACK_OUT_IDS.forEach(function (id) {
+        ['sampleCrackOutTotalG', 'sampleFloatTotalG', 'sampleUnsoundTotalG'].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.value = '';
         });
-        document.getElementById('sampleCrackOutTotalG') && (document.getElementById('sampleCrackOutTotalG').value = '');
-        FLOAT_IDS.forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el) el.value = '';
-        });
-        document.getElementById('sampleFloatTotalG') && (document.getElementById('sampleFloatTotalG').value = '');
-        UNSOUND_IDS.forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el) el.value = '';
-        });
-        document.getElementById('sampleUnsoundTotalG') && (document.getElementById('sampleUnsoundTotalG').value = '');
     }
 
     function startAutosave(batchId) {
@@ -174,109 +241,141 @@ var _modal_grower_link_sample_to_batch = (function () {
             });
         },
 
-        show: function (batchId, batchNumber) {
-            _batchId = batchId || null;
-            if (!_batchId) return;
+        /**
+         * show — open the sample modal for an EXISTING kernel batch.
+         * @param {string} kernelId     kernel.id UUID (b.id from get_kernel_batches)
+         * @param {string} batchNumber  human-readable batch number (used as draft key)
+         */
+        show: async function (kernelId, batchNumber) {
+            _kernelId     = kernelId || null;
+            _batchId      = batchNumber || kernelId;
+            _ziplockSaved = false;
+            _fiveKgSaved  = false;
+
             clearForm();
-            loadDraft(_batchId);
-            var tabZiplock = document.getElementById('tab-ziplock-bag');
-            var tab5kg = document.getElementById('tab-5kg-sample');
-            if (tabZiplock && tab5kg && typeof bootstrap !== 'undefined') {
-                var tabZiplockInstance = bootstrap.Tab.getOrCreateInstance(tabZiplock);
-                if (tabZiplockInstance) tabZiplockInstance.show();
+
+            // Load existing sample data from the kernel record
+            if (_kernelId && typeof dataFunctions !== 'undefined' && dataFunctions.getKernelBatchDetail) {
+                try {
+                    var kd = await dataFunctions.getKernelBatchDetail(_kernelId, null, true);
+                    kd = kd && (kd.data !== undefined ? kd.data : kd);
+                    if (kd) loadExistingData(kd);
+                } catch (e) {
+                    console.error('Error loading existing sample data:', e);
+                    loadDraft(_batchId);
+                }
             }
+
+            updateTabIndicators();
+
+            // Always open on ziplock tab
+            var tabZiplock = document.getElementById('tab-ziplock-bag');
+            if (tabZiplock && typeof bootstrap !== 'undefined') {
+                bootstrap.Tab.getOrCreateInstance(tabZiplock).show();
+            }
+
             var modalEl = document.getElementById(CONTAINER_ID);
             if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else if (typeof $ !== 'undefined' && $.fn.modal) $('#' + CONTAINER_ID).modal('show');
         },
 
         save: async function () {
-            var batchId = _batchId;
-            if (!batchId) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected.', 'error');
+            if (!_kernelId) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'No batch selected — open this from a batch row.', 'error');
                 return;
             }
 
             var activeTab = getActiveSampleTab();
-            var payload;
+            var sampleData = { kernel_id: _kernelId };
 
             if (activeTab === 'ziplock') {
                 var moistureRequired = !!document.getElementById('sampleMoistureRequired')?.checked;
                 var peroxideRequired = !!document.getElementById('samplePeroxideRequired')?.checked;
-                var ffaRequired = !!document.getElementById('sampleFfaRequired')?.checked;
-                var moistureResult = getFloat('sampleMoistureResult');
-                var peroxideResult = getFloat('samplePeroxideResult');
-                var ffaResult = getFloat('sampleFfaResult');
+                var ffaRequired      = !!document.getElementById('sampleFfaRequired')?.checked;
+                var moistureResult   = getFloat('sampleMoistureResult');
+                var peroxideResult   = getFloat('samplePeroxideResult');
+                var ffaResult        = getFloat('sampleFfaResult');
 
+                if (!moistureRequired && !peroxideRequired && !ffaRequired) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Incomplete', 'Please tick at least one test (Moisture, Peroxide, or FFA) to record.', 'info');
+                    return;
+                }
                 if (moistureRequired && moistureResult == null) {
-                    if (typeof Swal !== 'undefined') Swal.fire('Please enter a result for Moisture.', '', 'info');
+                    if (typeof Swal !== 'undefined') Swal.fire('Incomplete', 'Please enter a result for Moisture.', 'info');
                     return;
                 }
                 if (peroxideRequired && peroxideResult == null) {
-                    if (typeof Swal !== 'undefined') Swal.fire('Please enter a result for Peroxide Value.', '', 'info');
+                    if (typeof Swal !== 'undefined') Swal.fire('Incomplete', 'Please enter a result for Peroxide Value.', 'info');
                     return;
                 }
                 if (ffaRequired && ffaResult == null) {
-                    if (typeof Swal !== 'undefined') Swal.fire('Please enter a result for Free Fatty Acids.', '', 'info');
+                    if (typeof Swal !== 'undefined') Swal.fire('Incomplete', 'Please enter a result for Free Fatty Acids.', 'info');
                     return;
                 }
 
-                payload = {
-                    p_batch_id: batchId,
-                    p_sample_type: 'ziplock',
-                    p_moisture_required: moistureRequired,
-                    p_moisture_result: moistureResult,
-                    p_peroxide_required: peroxideRequired,
-                    p_peroxide_result: peroxideResult,
-                    p_ffa_required: ffaRequired,
-                    p_ffa_result: ffaResult,
-                    p_wet_nut_in_shell_kg: 0
-                };
+                sampleData.sample_type         = 'ziplock';
+                sampleData.moisture_required   = moistureRequired;
+                sampleData.moisture_result     = moistureResult;
+                sampleData.peroxide_required   = peroxideRequired;
+                sampleData.peroxide_result     = peroxideResult;
+                sampleData.ffa_required        = ffaRequired;
+                sampleData.ffa_result          = ffaResult;
+                sampleData.wet_nut_in_shell_kg = 0;
+
             } else {
-                payload = {
-                    p_batch_id: batchId,
-                    p_sample_type: '5kg',
-                    p_moisture_required: false,
-                    p_moisture_result: null,
-                    p_peroxide_required: false,
-                    p_peroxide_result: null,
-                    p_ffa_required: false,
-                    p_ffa_result: null,
-                    p_wet_nut_in_shell_kg: 0,
-                    p_crack_out_sound_kernel_g: getFloat('sampleSoundKernelG'),
-                    p_crack_out_unsound_kernel_g: getFloat('sampleUnsoundKernelG'),
-                    p_crack_out_shell_g: getFloat('sampleShellG'),
-                    p_float_floating_g: getFloat('sampleFloatingKernelG'),
-                    p_float_sinking_g: getFloat('sampleSinkingKernelG'),
-                    p_unsound_germination_g: getFloat('sampleGerminationG'),
-                    p_unsound_late_stinkbug_g: getFloat('sampleLateStinkbugG'),
-                    p_unsound_early_stinkbug_g: getFloat('sampleEarlyStinkbugG'),
-                    p_unsound_dark_centre_g: getFloat('sampleDarkCentreG'),
-                    p_unsound_mould_g: getFloat('sampleMouldG'),
-                    p_unsound_rotten_g: getFloat('sampleRottenG'),
-                    p_unsound_immature_split_g: getFloat('sampleImmatureSplitG'),
-                    p_unsound_shrivelled_g: getFloat('sampleShrivelledG'),
-                    p_unsound_nut_borer_g: getFloat('sampleNutBorerG')
-                };
+                // 5kg: crack-out is the core measurement
+                var crackTotal = (getFloat('sampleSoundKernelG') || 0) +
+                                 (getFloat('sampleUnsoundKernelG') || 0) +
+                                 (getFloat('sampleShellG') || 0);
+                if (crackTotal <= 0) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Incomplete', 'Please enter at least one crack-out weight (Sound Kernel, Unsound Kernel, or Shell).', 'info');
+                    return;
+                }
+
+                sampleData.sample_type                = '5kg';
+                sampleData.crack_out_sound_kernel_g   = getFloat('sampleSoundKernelG');
+                sampleData.crack_out_unsound_kernel_g = getFloat('sampleUnsoundKernelG');
+                sampleData.crack_out_shell_g          = getFloat('sampleShellG');
+                sampleData.float_floating_g           = getFloat('sampleFloatingKernelG');
+                sampleData.float_sinking_g            = getFloat('sampleSinkingKernelG');
+                sampleData.unsound_germination_g      = getFloat('sampleGerminationG');
+                sampleData.unsound_late_stinkbug_g    = getFloat('sampleLateStinkbugG');
+                sampleData.unsound_early_stinkbug_g   = getFloat('sampleEarlyStinkbugG');
+                sampleData.unsound_dark_centre_g      = getFloat('sampleDarkCentreG');
+                sampleData.unsound_mould_g            = getFloat('sampleMouldG');
+                sampleData.unsound_rotten_g           = getFloat('sampleRottenG');
+                sampleData.unsound_immature_split_g   = getFloat('sampleImmatureSplitG');
+                sampleData.unsound_shrivelled_g       = getFloat('sampleShrivelledG');
+                sampleData.unsound_nut_borer_g        = getFloat('sampleNutBorerG');
             }
 
             try {
-                var result = await dataFunctions.createSampleSubmissionForBatch(payload);
-
-                var ok = result && (result.success === true || (result.success !== false && result.id));
+                var result = await dataFunctions.saveKernelIntakeSample(sampleData);
+                var ok = result && (result.success === true || (result.success !== false && result.kernel_id));
                 if (!ok) {
-                    throw new Error(result && result.error ? result.error : 'Failed to save sample');
+                    throw new Error(result && result.error ? result.error : 'Failed to save sample data');
                 }
 
-                clearDraft(batchId);
+                if (activeTab === 'ziplock') _ziplockSaved = true;
+                else _fiveKgSaved = true;
+                updateTabIndicators();
+                clearDraft(_batchId);
 
-                var message = activeTab === 'ziplock' ? 'Ziplock sample saved.' : '5kg sample saved.';
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (_ziplockSaved && _fiveKgSaved) {
+                    if (typeof Swal !== 'undefined') Swal.fire({
+                        icon: 'success',
+                        title: 'Both samples complete',
+                        text: 'Ziplock and 5kg samples are saved. Use "Release to production" in the batch actions to move this batch forward.',
+                        timer: 3500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    var remaining = activeTab === 'ziplock' ? '5kg sample still needed.' : 'Ziplock sample still needed.';
+                    if (typeof Swal !== 'undefined') Swal.fire({
                         icon: 'success',
                         title: 'Saved',
-                        text: message,
-                        timer: 2000,
+                        text: (activeTab === 'ziplock' ? 'Ziplock sample saved. ' : '5kg sample saved. ') + remaining,
+                        timer: 2500,
                         showConfirmButton: false
                     });
                 }

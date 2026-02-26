@@ -22,7 +22,7 @@ var _modal_grower_create_kernel_batch = (function () {
             var numberEl = document.getElementById('intakeBatchNumber');
             if (numberEl) {
                 var d = new Date();
-                numberEl.value = 'BATCH-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-001';
+                numberEl.value = 'KERNEL-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-001';
             }
 
             var wetEl = document.getElementById('intakeBatchWetNis');
@@ -77,31 +77,26 @@ var _modal_grower_create_kernel_batch = (function () {
             }
 
             try {
-                var createResult = await dataFunctions.createProductionBatch({
-                    p_batch_number: batchNumber,
-                    p_received_date: receivedDate,
-                    p_wet_nis_received_kg: wetNis,
-                    p_supplier_id: supplierId || undefined,
-                    p_grower_name: growerName || undefined,
-                    p_batch_type: 'kernel',
-                    p_status: 'receiving',
-                    p_current_step: 1
+                // Step 1: create row in batches (uses form batch number as human-readable id)
+                var batchResult = await dataFunctions.upsertBatch({
+                    batch_id:   batchNumber,
+                    batch_type: 'kernel'
                 });
-
-                var id = (createResult && createResult.id) ||
-                    (createResult && createResult.data && createResult.data.id) ||
-                    (createResult && createResult.create_production_batch_simple && createResult.create_production_batch_simple.id);
-
-                if (createResult && createResult.success === false && createResult.error) {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', createResult.error, 'error');
-                    return;
+                if (!batchResult || !batchResult.success || !batchResult.id) {
+                    throw new Error(batchResult && batchResult.error ? batchResult.error : 'Failed to create batch record');
                 }
 
-                if (!id) {
-                    throw new Error(createResult && createResult.error ? createResult.error : 'Create failed: no batch id returned');
+                // Step 2: create row in kernel (status = intake)
+                var kernelResult = await dataFunctions.initializeKernelForBatch({
+                    batch_uuid:           batchResult.id,
+                    supplier_id:          supplierId   || null,
+                    grower_name:          growerName   || null,
+                    received_date:        receivedDate || null,
+                    wet_nis_received_kg:  isNaN(wetNis) ? null : wetNis
+                });
+                if (!kernelResult || !kernelResult.success) {
+                    throw new Error(kernelResult && kernelResult.error ? kernelResult.error : 'Failed to initialize kernel record');
                 }
-
-                await dataFunctions.updateProductionBatch(id, { status: 'intake_received', stage: 'intake' });
 
                 var modalEl = document.getElementById(CONTAINER_ID);
                 if (modalEl && typeof bootstrap !== 'undefined') {

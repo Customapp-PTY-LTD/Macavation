@@ -3,7 +3,8 @@
  */
 var _modal_end_sample = (function () {
     'use strict';
-    var labTestPdfUrl = ''; // stored URL after upload
+    var labTestPdfUrl = '';       // stored URL after upload
+    var _completedAt  = null;     // preserved from existing qa_data so re-saves don't reset the date
 
     return {
         init: () => {
@@ -39,6 +40,7 @@ var _modal_end_sample = (function () {
             $('#endSampleSupervisorSigned').val('');
             $('#endSampleNutPlantManagerSigned').val('');
             labTestPdfUrl = '';
+            _completedAt  = null;
             $('#endSampleLabTestPdf').val('');
             $('#endSampleLabTestPdfPreview').empty();
             // Show modal immediately (fields populate async below)
@@ -58,6 +60,7 @@ var _modal_end_sample = (function () {
         },
 
         populateFromQaData: (qa) => {
+            _completedAt = qa.completed_at || null;
             $('#endSampleMoistureRequired').prop('checked', !!qa.moisture_required);
             $('#endSampleMoistureResult').val(qa.moisture_result != null ? qa.moisture_result : '');
             $('#endSamplePeroxideRequired').prop('checked', !!qa.peroxide_required);
@@ -167,7 +170,8 @@ var _modal_end_sample = (function () {
                 external_lab_result: $('#endSampleExternalLabResult').val() || null,
                 lab_test_pdf_url: labTestPdfUrl || null,
                 supervisor_signed_by: $('#endSampleSupervisorSigned').val() || null,
-                nut_plant_manager_signed_by: $('#endSampleNutPlantManagerSigned').val() || null
+                nut_plant_manager_signed_by: $('#endSampleNutPlantManagerSigned').val() || null,
+                completed_at: _completedAt || new Date().toISOString()
             };
             if (typeof dataFunctions === 'undefined' || typeof dataFunctions.upsertKernelQa !== 'function') {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Save not available. Please refresh the page.', 'error');

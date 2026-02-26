@@ -1,13 +1,16 @@
 /**
- * Modal: Send to Dispatch. Step 1: Buyer + delivery date. Step 2: Select boxes by style (qty per style).
- * On Confirm selection: allocate to batches, set dispatchSelectedLines, enter selection mode, hide modal.
+ * Modal: Send to Dispatch.
+ * Step 1: Enter buyer + delivery date.
+ * Step 2: Shopping cart — browse kernel batches by style, pick quantities, then send.
  */
 var _modal_stock_send_to_dispatch = (function () {
     'use strict';
 
     var STYLE_KEYS = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
-
     var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+    var _dispatchLines = [];
+    var _pendingDetails = null;
+    var MAX_DROPDOWN_OPTIONS = 51;
 
     function deliveryDateToISO(displayStr) {
         if (!displayStr || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(displayStr.trim())) return null;
@@ -22,134 +25,115 @@ var _modal_stock_send_to_dispatch = (function () {
         return parts[2] + '/' + parts[1] + '/' + parts[0];
     }
 
-    function computeTotalsByStyle(batches) {
-        var totals = {};
-        STYLE_KEYS.forEach(function (k) { totals[k] = 0; });
-        (batches || []).forEach(function (b) {
-            // Prefer remaining_by_style (yield minus already dispatched) when present
-            var cells = (b.remaining_by_style && typeof b.remaining_by_style === 'object') ? b.remaining_by_style : null;
-            if (cells == null) cells = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
-            STYLE_KEYS.forEach(function (k) {
-                var val = cells[k] != null ? cells[k] : (b['yield_' + k] != null ? b['yield_' + k] : 0);
-                if (typeof val === 'number') totals[k] += val;
-            });
-        });
-        return totals;
-    }
-
-    function allocateLines(batches, requestedByStyle) {
-        var lines = [];
-        var batchesSorted = (batches || []).slice().sort(function (a, b) {
-            var da = a.received_date || '';
-            var db = b.received_date || '';
-            if (da !== db) return String(da).localeCompare(String(db));
-            return String(a.batch_number || '').localeCompare(String(b.batch_number || ''));
-        });
-        STYLE_KEYS.forEach(function (style) {
-            var remaining = parseFloat(requestedByStyle[style]) || 0;
-            if (remaining <= 0) return;
-            batchesSorted.forEach(function (batch) {
-                if (remaining <= 0) return;
-                // Use remaining_by_style when present so we don't allocate more than (yield - already dispatched)
-                var cells = (batch.remaining_by_style && typeof batch.remaining_by_style === 'object') ? batch.remaining_by_style : null;
-                if (cells == null) cells = (batch.yield_by_style && typeof batch.yield_by_style === 'object') ? batch.yield_by_style : {};
-                var available = cells[style] != null ? cells[style] : (batch['yield_' + style] != null ? batch['yield_' + style] : 0);
-                if (typeof available !== 'number' || available <= 0) return;
-                var take = Math.min(available, remaining);
-                if (take > 0) {
-                    lines.push({ production_batch_id: batch.id, style: style, quantity_kg: take });
-                    remaining -= take;
-                }
-            });
-        });
-        return lines;
-    }
-
     var api = {
         init: function () {
-            var scope = api;
-            var nextBtn = document.getElementById('dispatchModalSelectBoxesBtn');
-            if (nextBtn) {
-                nextBtn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    scope.onNextSelectBoxes();
-                });
-            }
-            var backBtn = document.getElementById('dispatchModalBackBtn');
-            if (backBtn) {
-                backBtn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    scope.showStep1();
-                });
-            }
-            var confirmBtn = document.getElementById('dispatchModalConfirmSelectionBtn');
-            if (confirmBtn) {
-                confirmBtn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    scope.onConfirmSelection();
-                });
-            }
-            var buyerSelect = document.getElementById('dispatchBuyerContact');
-            var buyerInput = document.getElementById('dispatchBuyer');
-            if (buyerSelect && buyerInput) {
-                buyerSelect.addEventListener('change', function () {
-                    var sel = buyerSelect.options[buyerSelect.selectedIndex];
-                    if (sel && sel.value && buyerInput) {
-                        buyerInput.value = sel.getAttribute('data-buyer-name') || sel.textContent || '';
+            // Step 1 → 2
+            $(document).off('click.dispatchModal', '#dispatchModalSelectBoxesBtn').on('click.dispatchModal', '#dispatchModalSelectBoxesBtn', function (e) {
+                e.preventDefault();
+                api.onNextSelectBoxes();
+            });
+            // Step 2 → back
+            $(document).off('click.dispatchModal', '#dispatchModalBackBtn').on('click.dispatchModal', '#dispatchModalBackBtn', function (e) {
+                e.preventDefault();
+                api.showStep1();
+            });
+            // Send dispatch order
+            $(document).off('click.dispatchModal', '#dispatchModalSendBtn').on('click.dispatchModal', '#dispatchModalSendBtn', function (e) {
+                e.preventDefault();
+                api.onSend();
+            });
+            // Buyer contact → autofill buyer name
+            $(document).off('change.dispatchModal', '#dispatchBuyerContact').on('change.dispatchModal', '#dispatchBuyerContact', function () {
+                var sel = this.options[this.selectedIndex];
+                var buyerInput = document.getElementById('dispatchBuyer');
+                if (sel && sel.value && buyerInput) {
+                    buyerInput.value = sel.getAttribute('data-buyer-name') || sel.textContent || '';
+                    buyerInput.classList.remove('is-invalid');
+                }
+            });
+            // Clear invalid highlights on input
+            $(document).off('input.dispatchModalValid', '#sendToDispatchModal .is-invalid').on('input.dispatchModalValid', '#sendToDispatchModal .is-invalid', function () {
+                $(this).removeClass('is-invalid');
+            });
+
+            // Qty pick from shopping table
+            $(document).off('click.dispatchShop', '#sendToDispatchModal .js-modal-dispatch-qty-pick').on('click.dispatchShop', '#sendToDispatchModal .js-modal-dispatch-qty-pick', function (e) {
+                e.preventDefault();
+                var batchId = String($(this).data('batch-id') || '');
+                var style = String($(this).data('style') || '');
+                var qty = parseInt($(this).data('quantity'), 10);
+                if (!batchId || style === '' || isNaN(qty)) return;
+                var batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
+                var batch = batches.find(function (b) { return b.id === batchId; });
+                var batchNum = batch ? (batch.batch_number || batchId) : batchId;
+                var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
+                if (qty <= 0) {
+                    if (idx >= 0) _dispatchLines.splice(idx, 1);
+                } else {
+                    var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: qty };
+                    if (idx >= 0) _dispatchLines[idx] = line; else _dispatchLines.push(line);
+                }
+                api.renderShoppingTable();
+                api.renderBasket();
+            });
+
+            // "Other…" custom qty
+            $(document).off('click.dispatchShopOther', '#sendToDispatchModal .js-modal-dispatch-qty-other').on('click.dispatchShopOther', '#sendToDispatchModal .js-modal-dispatch-qty-other', function (e) {
+                e.preventDefault();
+                var batchId = String($(this).data('batch-id') || '');
+                var style = String($(this).data('style') || '');
+                var maxQty = parseFloat($(this).data('max-qty')) || 0;
+                if (!batchId || style === '' || maxQty <= 0) return;
+                var batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
+                var batch = batches.find(function (b) { return b.id === batchId; });
+                var batchNum = batch ? (batch.batch_number || batchId) : batchId;
+                Swal.fire({
+                    title: 'Enter quantity',
+                    html: '<label class="form-label">Amount in kg (max ' + maxQty + ')</label><input type="number" id="dispatchModalOtherQtyInput" class="form-control" min="0.1" max="' + maxQty + '" value="1" step="0.1">',
+                    showCancelButton: true,
+                    confirmButtonText: 'Add',
+                    focusConfirm: false,
+                    preConfirm: function () {
+                        var input = document.getElementById('dispatchModalOtherQtyInput');
+                        var num = input ? parseFloat(input.value) : NaN;
+                        if (isNaN(num) || num <= 0 || num > maxQty) {
+                            Swal.showValidationMessage('Please enter a value between 0.1 and ' + maxQty + '.');
+                            return false;
+                        }
+                        return num;
+                    }
+                }).then(function (result) {
+                    if (result && result.isConfirmed && typeof result.value === 'number') {
+                        var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
+                        var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: result.value };
+                        if (idx >= 0) _dispatchLines[idx] = line; else _dispatchLines.push(line);
+                        api.renderShoppingTable();
+                        api.renderBasket();
                     }
                 });
-            }
-            document.addEventListener('input', function (e) {
-                if (e.target && e.target.closest && e.target.closest('#sendToDispatchModal') && e.target.classList && e.target.classList.contains('is-invalid')) {
-                    e.target.classList.remove('is-invalid');
-                }
             });
-            document.addEventListener('change', function (e) {
-                if (e.target && e.target.closest && e.target.closest('#sendToDispatchModal') && e.target.classList && e.target.classList.contains('is-invalid')) {
-                    e.target.classList.remove('is-invalid');
-                }
+
+            // Remove from basket
+            $(document).off('click.dispatchBasketRemove', '#dispatchModalBasketBody .js-modal-basket-remove').on('click.dispatchBasketRemove', '#dispatchModalBasketBody .js-modal-basket-remove', function (e) {
+                e.preventDefault();
+                var batchId = String($(this).data('batch-id') || '');
+                var style = String($(this).data('style') || '');
+                var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
+                if (idx >= 0) _dispatchLines.splice(idx, 1);
+                api.renderShoppingTable();
+                api.renderBasket();
             });
+
+            // Flatpickr init when modal opens
             if (typeof $ !== 'undefined') {
                 $(document).on('shown.bs.modal', '#sendToDispatchModal', function () {
-                    var container = document.getElementById('sendToDispatchModal');
-                    var inputs = container ? container.querySelectorAll('.flatpickr-date') : [];
-                    inputs.forEach(function (el) {
-                        if (el._flatpickr) return;
-                        if (typeof flatpickr !== 'undefined') {
-                            flatpickr(el, FLATPICKR_DDMMYYYY);
-                        }
-                    });
                     var deliveryInput = document.getElementById('dispatchDeliveryDate');
+                    if (deliveryInput && !deliveryInput._flatpickr && typeof flatpickr !== 'undefined') {
+                        flatpickr(deliveryInput, FLATPICKR_DDMMYYYY);
+                    }
                     if (deliveryInput && deliveryInput._flatpickr) {
                         deliveryInput._flatpickr.setDate(new Date());
                     }
-                });
-            }
-        },
-
-        clearInvalidHighlights: function () {
-            var el = document.getElementById('dispatchBuyer');
-            if (el) el.classList.remove('is-invalid');
-            el = document.getElementById('dispatchDeliveryDate');
-            if (el) el.classList.remove('is-invalid');
-            document.querySelectorAll('#sendToDispatchModal .js-dispatch-qty').forEach(function (input) {
-                input.classList.remove('is-invalid');
-            });
-        },
-
-        highlightInvalidFields: function (opts) {
-            api.clearInvalidHighlights();
-            if (!opts) return;
-            if (opts.step1Ids && Array.isArray(opts.step1Ids)) {
-                opts.step1Ids.forEach(function (id) {
-                    var el = document.getElementById(id);
-                    if (el) el.classList.add('is-invalid');
-                });
-            }
-            if (opts.step2StyleKeys && Array.isArray(opts.step2StyleKeys)) {
-                opts.step2StyleKeys.forEach(function (styleKey) {
-                    var inputEl = document.querySelector('.js-dispatch-qty[data-style-key="' + styleKey.replace(/"/g, '\\"') + '"]');
-                    if (inputEl) inputEl.classList.add('is-invalid');
                 });
             }
         },
@@ -174,61 +158,112 @@ var _modal_stock_send_to_dispatch = (function () {
             if (step2) step2.style.display = '';
             if (footer1) footer1.style.display = 'none';
             if (footer2) footer2.style.display = '';
-
-            api.clearInvalidHighlights();
-            var d = details || api._pendingDetails || {};
+            var d = details || _pendingDetails || {};
             var buyerLabelEl = document.getElementById('sendToDispatchStep2BuyerLabel');
             var deliveryLabelEl = document.getElementById('sendToDispatchStep2DeliveryLabel');
             if (buyerLabelEl) buyerLabelEl.textContent = d.buyer_name || '—';
             if (deliveryLabelEl) deliveryLabelEl.textContent = (d.delivery_date ? deliveryDateFromISO(d.delivery_date) : '') || '—';
+            api.renderShoppingTable();
+            api.renderBasket();
+        },
 
-            var scope = typeof _stockManagementGrid !== 'undefined' ? _stockManagementGrid : null;
-            var lines = (scope && scope.dispatchSelectedLines) ? scope.dispatchSelectedLines : [];
-            var reviewEl = document.getElementById('sendToDispatchStep2ReviewBody');
-            if (reviewEl) {
-                if (lines.length === 0) {
-                    reviewEl.innerHTML = '<p class="text-muted small mb-0">No boxes in basket yet. Close this and click quantity cells in the Kernel Stock by style table to add boxes, then open Send to Dispatch again.</p>';
-                } else {
-                    var batches = scope && scope.kernelFinishedBatches ? scope.kernelFinishedBatches : [];
-                    var batchMap = {};
-                    batches.forEach(function (b) { batchMap[b.id] = b; });
-                    var totalKg = 0;
-                    var html = '<table class="table table-sm table-bordered mb-0"><thead class="table-light"><tr><th>Batch</th><th>Style</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>';
-                    lines.forEach(function (line) {
-                        var batch = batchMap[line.production_batch_id || line.batch_id];
-                        var batchNum = batch ? batch.batch_number : (line.production_batch_id || line.batch_id);
-                        var qty = parseFloat(line.quantity_kg) || 0;
-                        totalKg += qty;
-                        html += '<tr><td>' + (batchNum || '—') + '</td><td>' + (line.style || '—') + '</td><td class="text-end">' + qty + '</td></tr>';
-                    });
-                    html += '</tbody></table><p class="small text-muted mt-2 mb-0">Total: ' + totalKg.toFixed(1) + ' kg</p>';
-                    reviewEl.innerHTML = html;
-                }
+        renderShoppingTable: function () {
+            var batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
+            var body = document.getElementById('dispatchShoppingBody');
+            var totalsRow = document.getElementById('dispatchShoppingTotalsRow');
+            if (!body) return;
+            body.innerHTML = '';
+            var totals = {};
+            STYLE_KEYS.forEach(function (k) { totals[k] = 0; });
+            if (batches.length === 0) {
+                body.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">No stock available.</td></tr>';
+                return;
+            }
+            batches.forEach(function (b) {
+                var cells = (b.remaining_by_style && typeof b.remaining_by_style === 'object') ? b.remaining_by_style : null;
+                if (cells == null) cells = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
+                var batchId = b.id || '';
+                var batchNum = (b.batch_number || '').toString().replace(/"/g, '&quot;');
+                var tr = document.createElement('tr');
+                var html = '<td><span class="badge bg-secondary">' + batchNum + '</span></td>';
+                STYLE_KEYS.forEach(function (k) {
+                    var val = cells[k] != null ? cells[k] : (b['yield_' + k] != null ? b['yield_' + k] : 0);
+                    if (typeof val === 'number') totals[k] += val;
+                    var qty = (typeof val === 'number' && val > 0) ? val : 0;
+                    var displayVal = (qty > 0) ? qty : '—';
+                    var selectedLine = _dispatchLines.find(function (l) { return l.kernel_id === batchId && String(l.style) === k; });
+                    if (qty > 0) {
+                        var cellId = 'dshop_' + (batchId + '_' + k).replace(/[^a-zA-Z0-9_-]/g, '_');
+                        var maxOpt = Math.min(Math.floor(qty), MAX_DROPDOWN_OPTIONS - 1);
+                        var menuItems = '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="0">0 (clear)</a></li>';
+                        for (var n = 1; n <= maxOpt; n++) {
+                            menuItems += '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + n + '">' + n + '</a></li>';
+                        }
+                        if (Math.floor(qty) > maxOpt) {
+                            menuItems += '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + Math.floor(qty) + '">' + Math.floor(qty) + ' (max)</a></li>';
+                        }
+                        menuItems += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item js-modal-dispatch-qty-other" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-max-qty="' + qty + '">Other…</a></li>';
+                        var btnClass = selectedLine ? 'btn-success' : 'btn-outline-secondary';
+                        var btnLabel = selectedLine ? (selectedLine.quantity_kg + ' / ' + displayVal) : displayVal;
+                        html += '<td class="text-end kernel-qty-cell"><div class="dropdown">' +
+                            '<button class="btn btn-sm ' + btnClass + ' py-0 px-1" type="button" id="' + cellId + '" data-bs-toggle="dropdown" aria-expanded="false">' + btnLabel + '</button>' +
+                            '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="' + cellId + '">' + menuItems + '</ul></div></td>';
+                    } else {
+                        html += '<td class="text-end text-muted">—</td>';
+                    }
+                });
+                tr.innerHTML = html;
+                body.appendChild(tr);
+            });
+            if (totalsRow) {
+                totalsRow.querySelectorAll('td[data-style]').forEach(function (td) {
+                    var k = td.getAttribute('data-style');
+                    td.textContent = (totals[k] != null && totals[k] > 0) ? totals[k] : '—';
+                });
             }
         },
 
-        show: function (selectedBatch) {
-            api._selectedBatch = selectedBatch && typeof selectedBatch === 'object' ? selectedBatch : null;
-            api.showStep1();
-            api.clearInvalidHighlights();
-            var batchSummary = document.getElementById('sendToDispatchStep1BatchSummary');
-            var batchLabel = document.getElementById('sendToDispatchStep1BatchLabel');
-            if (batchSummary && batchLabel) {
-                if (api._selectedBatch && (api._selectedBatch.batch_number || api._selectedBatch.id)) {
-                    batchLabel.textContent = api._selectedBatch.batch_number || api._selectedBatch.id;
-                    batchSummary.style.display = '';
-                } else {
-                    batchSummary.style.display = 'none';
-                }
+        renderBasket: function () {
+            var basketEl = document.getElementById('dispatchModalBasket');
+            var basketBody = document.getElementById('dispatchModalBasketBody');
+            var basketTotal = document.getElementById('dispatchModalBasketTotal');
+            var sendBtn = document.getElementById('dispatchModalSendBtn');
+            if (!basketBody) return;
+            if (_dispatchLines.length === 0) {
+                if (basketEl) basketEl.style.display = 'none';
+                if (sendBtn) sendBtn.disabled = true;
+                return;
             }
+            if (basketEl) basketEl.style.display = '';
+            if (sendBtn) sendBtn.disabled = false;
+            var totalKg = 0;
+            var html = '';
+            _dispatchLines.forEach(function (line) {
+                var qty = parseFloat(line.quantity_kg) || 0;
+                totalKg += qty;
+                var styleAttr = (line.style || '').replace(/"/g, '&quot;');
+                html += '<tr><td><span class="badge bg-primary">' + (line.batch_number || '—') + '</span></td>' +
+                    '<td>' + (line.style || '—') + '</td>' +
+                    '<td class="text-end">' + qty + '</td>' +
+                    '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger js-modal-basket-remove" title="Remove" data-batch-id="' + (line.kernel_id || '') + '" data-style="' + styleAttr + '"><i class="fas fa-times"></i></button></td></tr>';
+            });
+            basketBody.innerHTML = html;
+            if (basketTotal) basketTotal.textContent = 'Total: ' + totalKg.toFixed(1) + ' kg';
+        },
+
+        show: function () {
+            _dispatchLines = [];
+            _pendingDetails = null;
+            api.showStep1();
             var buyerInput = document.getElementById('dispatchBuyer');
             var buyerSelect = document.getElementById('dispatchBuyerContact');
             var deliveryInput = document.getElementById('dispatchDeliveryDate');
-            if (buyerInput) buyerInput.value = '';
+            if (buyerInput) { buyerInput.value = ''; buyerInput.classList.remove('is-invalid'); }
             if (deliveryInput && deliveryInput._flatpickr) {
                 deliveryInput._flatpickr.setDate(new Date());
             } else if (deliveryInput) {
                 deliveryInput.value = '';
+                deliveryInput.classList.remove('is-invalid');
             }
             if (buyerSelect) {
                 buyerSelect.innerHTML = '<option value="">— Select contact —</option>';
@@ -248,11 +283,9 @@ var _modal_stock_send_to_dispatch = (function () {
                     }).catch(function () {});
                 }
             }
-
             var modalEl = document.getElementById('sendToDispatchModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                var inst = bootstrap.Modal.getOrCreateInstance(modalEl);
-                inst.show();
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
             } else if (typeof $ !== 'undefined' && $.fn.modal) {
                 $('#sendToDispatchModal').modal('show');
             }
@@ -264,75 +297,74 @@ var _modal_stock_send_to_dispatch = (function () {
             var deliveryInput = document.getElementById('dispatchDeliveryDate');
             var buyerName = (buyerInput && buyerInput.value && buyerInput.value.trim()) ? buyerInput.value.trim() : null;
             if (!buyerName) {
-                if (typeof Swal !== 'undefined' && Swal.fire) {
-                    Swal.fire('Validation', 'Please enter the buyer name.', 'warning').then(function () {
-                        api.highlightInvalidFields({ step1Ids: ['dispatchBuyer'] });
-                    });
-                }
+                if (buyerInput) buyerInput.classList.add('is-invalid');
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Validation', 'Please enter the buyer name.', 'warning');
                 return;
             }
             var deliveryDisplay = deliveryInput && deliveryInput.value ? deliveryInput.value.trim() : null;
             var deliveryDateISO = deliveryDisplay ? deliveryDateToISO(deliveryDisplay) : null;
             if (!deliveryDateISO) {
-                if (typeof Swal !== 'undefined' && Swal.fire) {
-                    Swal.fire('Validation', 'Please select the delivery date.', 'warning').then(function () {
-                        api.highlightInvalidFields({ step1Ids: ['dispatchDeliveryDate'] });
-                    });
-                }
+                if (deliveryInput) deliveryInput.classList.add('is-invalid');
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Validation', 'Please select the delivery date.', 'warning');
                 return;
             }
-            var details = {
+            _pendingDetails = {
                 buyer_name: buyerName,
                 buyer_contact_id: (buyerSelect && buyerSelect.value) ? buyerSelect.value : null,
                 delivery_date: deliveryDateISO
             };
-
-            var scope = typeof _stockManagementGrid !== 'undefined' ? _stockManagementGrid : null;
-            if (scope) {
-                scope.dispatchOrderDetails = details;
-                if (scope.saveDispatchDraft) scope.saveDispatchDraft();
-            }
-
-            api._pendingDetails = details;
-            api.showStep2(details);
+            api.showStep2(_pendingDetails);
         },
 
-        getDetailsFromStep1Form: function () {
-            var buyerInput = document.getElementById('dispatchBuyer');
-            var buyerSelect = document.getElementById('dispatchBuyerContact');
-            var deliveryInput = document.getElementById('dispatchDeliveryDate');
-            var buyerName = (buyerInput && buyerInput.value && buyerInput.value.trim()) ? buyerInput.value.trim() : null;
-            var deliveryDisplay = deliveryInput && deliveryInput.value ? deliveryInput.value.trim() : null;
-            var deliveryDateISO = deliveryDisplay ? deliveryDateToISO(deliveryDisplay) : null;
-            if (!buyerName || !deliveryDateISO) return null;
-            return {
-                buyer_name: buyerName,
-                buyer_contact_id: (buyerSelect && buyerSelect.value) ? buyerSelect.value : null,
-                delivery_date: deliveryDateISO
-            };
-        },
-
-        onConfirmSelection: function () {
-            var details = api._pendingDetails;
-            if (!details || !details.buyer_name) {
-                details = api.getDetailsFromStep1Form();
+        onSend: function () {
+            if (!_pendingDetails || !_pendingDetails.buyer_name) {
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Error', 'Buyer details missing. Please go back and enter them.', 'error');
+                return;
             }
-            var scope = typeof _stockManagementGrid !== 'undefined' ? _stockManagementGrid : null;
-            if (scope && details && details.buyer_name) {
-                scope.dispatchOrderDetails = details;
-                if (scope.saveDispatchDraft) scope.saveDispatchDraft();
+            if (_dispatchLines.length === 0) {
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Validation', 'Please select at least one item to dispatch.', 'warning');
+                return;
             }
-
-            var modalEl = document.getElementById('sendToDispatchModal');
-            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                var bsModal = bootstrap.Modal.getInstance(modalEl);
-                if (bsModal) bsModal.hide();
-            } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                $('#sendToDispatchModal').modal('hide');
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.createKernelDispatchOrder) {
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Error', 'Dispatch function not available. Please refresh.', 'error');
+                return;
             }
-            api._pendingDetails = null;
+            var lines = _dispatchLines.map(function (l) {
+                return { kernel_id: l.kernel_id, batch_number: l.batch_number, style: l.style, quantity_kg: l.quantity_kg };
+            });
+            var sendBtn = document.getElementById('dispatchModalSendBtn');
+            if (sendBtn) sendBtn.disabled = true;
+            dataFunctions.createKernelDispatchOrder({
+                buyer_name: _pendingDetails.buyer_name,
+                buyer_contact_id: _pendingDetails.buyer_contact_id || null,
+                delivery_date: _pendingDetails.delivery_date,
+                lines: lines
+            }).then(function (result) {
+                if (result && result.success !== false) {
+                    if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon: 'success', title: 'Dispatched', text: 'Dispatch order created successfully.', timer: 2000, showConfirmButton: false });
+                    _dispatchLines = [];
+                    _pendingDetails = null;
+                    var modalEl = document.getElementById('sendToDispatchModal');
+                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        var inst = bootstrap.Modal.getInstance(modalEl);
+                        if (inst) inst.hide();
+                    } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                        $('#sendToDispatchModal').modal('hide');
+                    }
+                    if (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.loadKernelBatches) {
+                        setTimeout(function () { _stockManagementGrid.loadKernelBatches(true); }, 300);
+                    }
+                } else {
+                    throw new Error(result && result.error ? result.error : 'Failed to create dispatch order');
+                }
+            }).catch(function (e) {
+                console.error('[Dispatch Modal] onSend failed:', e);
+                if (sendBtn) sendBtn.disabled = false;
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Error', e.message || 'Failed to create dispatch order', 'error');
+            });
         }
     };
+
     return api;
 })();
 _modal_stock_send_to_dispatch.init();

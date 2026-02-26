@@ -19,14 +19,27 @@ var _kernelProductionBatchActions = function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Release function not available. Please refresh.', 'error');
                 return;
             }
-            dataFunctions.completeKernelBatch(batchId).then((result) => {
-                var inner = (result && result.complete_kernel_batch) ? result.complete_kernel_batch : result;
-                if (inner && inner.success === false) throw new Error(inner.error || 'Update failed');
-                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in Kernel Stock.', timer: 2000, showConfirmButton: false });
-                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
-            }).catch((e) => {
-                console.error(e);
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release to stock', 'error');
+            var batch = (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch) ? _kernelProductionGrid.getBatch(batchId) : null;
+            var batchLabel = batch ? (batch.batch_number || 'this batch') : 'this batch';
+            Swal.fire({
+                title: 'Release to stock?',
+                html: 'Release <strong>' + batchLabel + '</strong> to kernel stock?<br><small class="text-muted">This will mark the batch as complete.</small>',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Release to stock',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#198754'
+            }).then((res) => {
+                if (!res.isConfirmed) return;
+                dataFunctions.completeKernelBatch(batchId).then((result) => {
+                    var inner = (result && result.complete_kernel_batch) ? result.complete_kernel_batch : result;
+                    if (inner && inner.success === false) throw new Error(inner.error || 'Update failed');
+                    Swal.fire({ icon: 'success', title: 'Released to stock', text: batchLabel + ' is now in kernel stock.', timer: 2000, showConfirmButton: false });
+                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                }).catch((e) => {
+                    console.error(e);
+                    Swal.fire('Error', e.message || 'Failed to release to stock', 'error');
+                });
             });
         },
 

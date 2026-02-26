@@ -88,25 +88,19 @@ var _modal_grower_receiving_checklist = (function () {
 
             var supplierIdEl = document.getElementById('growerReceivingChecklistSupplierId');
             if (supplierIdEl) supplierIdEl.value = '';
-            if (batchId && typeof dataFunctions !== 'undefined' && dataFunctions.getProductionBatches) {
-                try {
-                    var batches = await dataFunctions.getProductionBatches(null, false, { batch_type: 'kernel' });
-                    var batch = (batches || []).find(function (b) { return b.id === batchId; });
-                    if (batch && batch.supplier_id && supplierIdEl) supplierIdEl.value = batch.supplier_id;
-                } catch (err) {
-                    console.error('Error loading batch for supplier:', err);
-                }
-            }
 
-            if (checklistId) {
+            // Load kernel record to get supplier + any existing checklist data
+            if (batchId && typeof dataFunctions !== 'undefined' && dataFunctions.getKernelBatchDetail) {
                 try {
-                    var raw = await dataFunctions.getReceivingChecklist(checklistId);
-                    var payload = (raw && (raw.checklist || raw.received_items !== undefined)) ? raw : (raw && raw.data) ? raw.data : raw;
-                    if (payload) scope.loadIntoForm(payload);
-                } catch (e) {
-                    console.error('Error loading receiving checklist for edit:', e);
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: 'Could not load checklist: ' + (e.message || e) });
-                    return;
+                    var kernelDetail = await dataFunctions.getKernelBatchDetail(batchId);
+                    var kd = kernelDetail && (kernelDetail.data || kernelDetail);
+                    if (kd && kd.supplier_id && supplierIdEl) supplierIdEl.value = kd.supplier_id;
+                    var existingChecklist = kd && kd.intake_data && kd.intake_data.receiving_checklist;
+                    if (existingChecklist && existingChecklist.completed_at) {
+                        scope.loadIntoForm({ checklist: existingChecklist, received_items: existingChecklist.received_items || [] });
+                    }
+                } catch (err) {
+                    console.error('Error loading kernel detail for checklist:', err);
                 }
             }
 
@@ -300,86 +294,32 @@ var _modal_grower_receiving_checklist = (function () {
                     p_received_items: receivedItems
                 };
 
-                var receivingId = $('#growerReceivingId').val();
-                var result = receivingId
-                    ? await dataFunctions.callFunction('update_receiving_checklist', {
-                        p_receiving_id: receivingId,
-                        p_date_received: receivingData.p_date_received,
-                        p_delivery_note_ref: receivingData.p_delivery_note_ref,
-                        p_supplier_id: receivingData.p_supplier_id,
-                        p_vehicle_clean: receivingData.p_vehicle_clean,
-                        p_vehicle_enclosed: receivingData.p_vehicle_enclosed,
-                        p_hazard_substances: receivingData.p_hazard_substances,
-                        p_pest_infestations: receivingData.p_pest_infestations,
-                        p_pallets_condition: receivingData.p_pallets_condition,
-                        p_raw_materials_condition: receivingData.p_raw_materials_condition,
-                        p_comments: receivingData.p_comments,
-                        p_received_items: receivingData.p_received_items
-                    })
-                    : await dataFunctions.callFunction('create_receiving_checklist', receivingData);
+                var batchIdEl = document.getElementById('growerReceivingChecklistBatchId');
+                var kernelId = batchIdEl && batchIdEl.value ? batchIdEl.value.trim() : null;
+                if (!kernelId) throw new Error('No kernel record linked — cannot save checklist');
+
+                var result = await dataFunctions.upsertKernelChecklist({
+                    kernel_id:               kernelId,
+                    date_received:           receivingData.p_date_received,
+                    delivery_note_ref:       receivingData.p_delivery_note_ref,
+                    supplier_id:             receivingData.p_supplier_id,
+                    vehicle_clean:           receivingData.p_vehicle_clean,
+                    vehicle_enclosed:        receivingData.p_vehicle_enclosed,
+                    hazard_substances:       receivingData.p_hazard_substances,
+                    pest_infestations:       receivingData.p_pest_infestations,
+                    pallets_condition:       receivingData.p_pallets_condition,
+                    raw_materials_condition: receivingData.p_raw_materials_condition,
+                    comments:               receivingData.p_comments,
+                    received_items:         receivingData.p_received_items
+                });
 
                 if (result && result.success !== false) {
-                    if (dataFunctions.clearCachePattern) {
-                        dataFunctions.clearCachePattern('receiving_checklists');
-                        dataFunctions.clearCachePattern('stock_items');
-                        dataFunctions.clearCachePattern('production_batches');
-                    }
-
-                    var batchIdEl = document.getElementById('growerReceivingChecklistBatchId');
-                    var batchId = batchIdEl && batchIdEl.value ? batchIdEl.value.trim() : null;
-                    var newId = result.id || result.receiving_id || (result.data && (result.data.id || result.data.receiving_id)) || (result.create_receiving_checklist && (result.create_receiving_checklist.id || result.create_receiving_checklist.receiving_id)) || (result.result && (result.result.id || result.result.receiving_id));
-
-                    if (batchId && newId && !receivingId) {
-                        try {
-                            await dataFunctions.updateProductionBatch(batchId, { receiving_checklist_id: newId });
-                        } catch (e) {
-                            console.error('[Grower Receiving Checklist] Link checklist to batch failed', e);
-                            var msg = 'Receiving checklist was saved but could not be linked to the batch.';
-                            if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'Checklist saved', text: msg, timer: 5000, showConfirmButton: true });
-                        }
-                    } else if (batchId && !receivingId && !newId) {
-                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'Checklist saved, tick not updated', text: 'The checklist was saved but the batch link failed (no id in API response).', timer: 5000, showConfirmButton: true });
-                    }
-
-                    if (batchId && typeof dataFunctions.updateProductionBatchActualWeight === 'function') {
-                        var totalActualKg = (receivedItems && receivedItems.length > 0)
-                            ? receivedItems.reduce(function (sum, it) { return sum + (it.quantity_kg != null ? parseFloat(it.quantity_kg) : 0); }, 0)
-                            : 0;
-                        if (isNaN(totalActualKg)) totalActualKg = 0;
-                        console.log('[Grower Receiving Checklist] Updating batch actual weight: batchId=', batchId, 'totalActualKg=', totalActualKg, 'receivedItems=', receivedItems && receivedItems.length);
-                        try {
-                            var actualResult = await dataFunctions.updateProductionBatchActualWeight(batchId, totalActualKg);
-                            var actualResolved = actualResult && (actualResult.data !== undefined ? actualResult.data : actualResult);
-                            if (actualResolved && actualResolved.success === false) {
-                                console.error('[Grower Receiving Checklist] Update batch actual weight failed:', actualResolved.error);
-                                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'Actual weight not saved', text: (actualResolved.error || 'Backend rejected the update.') + ' Run the database migration for grower intake actual weight if you have not already.', timer: 6000, showConfirmButton: true });
-                            } else {
-                                console.log('[Grower Receiving Checklist] Actual weight updated successfully', actualResolved);
-                                if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.setBatchActualWeight) {
-                                    _growerIntakeGrid.setBatchActualWeight(batchId, totalActualKg);
-                                }
-                            }
-                        } catch (e) {
-                            console.error('[Grower Receiving Checklist] Update batch actual weight failed', e);
-                            if (typeof Swal !== 'undefined') Swal.fire({ icon: 'warning', title: 'Actual weight not saved', text: 'Could not save actual weight to the batch. ' + (e.message || '') + ' See browser console (F12) for details.', timer: 6000, showConfirmButton: true });
-                        }
-                    } else if (batchId && (!receivedItems || receivedItems.length === 0)) {
-                        console.warn('[Grower Receiving Checklist] No received items to sum for actual weight; batchId=', batchId);
-                    }
-
                     if (batchIdEl) batchIdEl.value = '';
-
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: receivingId ? 'Receiving checklist updated.' : 'Receiving checklist created.', timer: 2000, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Receiving checklist saved.', timer: 2000, showConfirmButton: false });
                     if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.loadIntakeBatches) await _growerIntakeGrid.loadIntakeBatches(true);
-                    // Re-apply actual weight after refetch so the table shows it even if the API didn't return actual_wet_nis_kg yet
-                    var totalActualKgForRefresh = (receivedItems && receivedItems.length > 0)
-                        ? receivedItems.reduce(function (sum, it) { return sum + (it.quantity_kg != null ? parseFloat(it.quantity_kg) : 0); }, 0) : 0;
-                    if (!isNaN(totalActualKgForRefresh) && batchId && typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.setBatchActualWeight) {
-                        _growerIntakeGrid.setBatchActualWeight(batchId, totalActualKgForRefresh);
-                    }
                     scope.hide();
                 } else {
-                    throw new Error(result && (result.error || result.message)) || 'Failed to save';
+                    throw new Error((result && (result.error || result.message)) || 'Failed to save');
                 }
             } catch (error) {
                 console.error('Error saving receiving checklist:', error);

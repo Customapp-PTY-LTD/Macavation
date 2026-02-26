@@ -28,7 +28,7 @@ function getStageSummarySnippets(cracking_data, washing_data, sorting_data, pack
         parts.push('Washing: ' + (washIn != null ? washIn + ' kg in' : '') + (washIn != null && washOut != null ? ' → ' : '') + (washOut != null ? washOut + ' kg out' : ''));
     }
     var sortSound = n(s.sound_qty);
-    var sortButter = n(s.butterhigh_qty);
+    var sortButter = n(s.butter_qty);
     if (sortSound != null || sortButter != null) {
         var sp = [];
         if (sortSound != null) sp.push('Sound ' + sortSound + ' kg');
@@ -136,12 +136,18 @@ var _modal_batch_history = (function () {
                 var zl = intake.ziplock_sample;
                 if (zl && zl.completed_at) {
                     var html = '<div class="small">';
-                    if (zl.submission_number) html += '<p class="mb-1"><strong>Submission:</strong> ' + fmt(zl.submission_number) + '</p>';
-                    html += '<p class="mb-1"><strong>Completed:</strong> ' + fmt(zl.completed_at ? String(zl.completed_at).split('T')[0] : null) + '</p>';
-                    if (zl.moisture) html += '<p class="mb-1"><strong>Moisture:</strong> ' + (zl.moisture.required ? '&#10003; ' : '') + (zl.moisture.result != null ? zl.moisture.result + '%' : '—') + '</p>';
-                    if (zl.peroxide) html += '<p class="mb-1"><strong>Peroxide:</strong> ' + (zl.peroxide.required ? '&#10003; ' : '') + (zl.peroxide.result != null ? zl.peroxide.result + ' meqO2/kg' : '—') + '</p>';
-                    if (zl.ffa) html += '<p class="mb-0"><strong>FFA:</strong> ' + (zl.ffa.required ? '&#10003; ' : '') + (zl.ffa.result != null ? zl.ffa.result + '%' : '—') + '</p>';
-                    html += '</div>';
+                    html += '<p class="mb-2"><strong>Completed:</strong> ' + fmt(String(zl.completed_at).split('T')[0]) + '</p>';
+                    html += '<table class="table table-sm table-bordered mb-0"><thead><tr><th>Test</th><th>Required</th><th>Result</th></tr></thead><tbody>';
+                    if (zl.moisture_required || zl.moisture_result != null) {
+                        html += '<tr><td>Moisture</td><td>' + (zl.moisture_required ? '&#10003;' : '—') + '</td><td>' + (zl.moisture_result != null ? zl.moisture_result + '%' : '—') + '</td></tr>';
+                    }
+                    if (zl.peroxide_required || zl.peroxide_result != null) {
+                        html += '<tr><td>Peroxide Value</td><td>' + (zl.peroxide_required ? '&#10003;' : '—') + '</td><td>' + (zl.peroxide_result != null ? zl.peroxide_result + ' meqO&#8322;/kg' : '—') + '</td></tr>';
+                    }
+                    if (zl.ffa_required || zl.ffa_result != null) {
+                        html += '<tr><td>Free Fatty Acids</td><td>' + (zl.ffa_required ? '&#10003;' : '—') + '</td><td>' + (zl.ffa_result != null ? zl.ffa_result + '%' : '—') + '</td></tr>';
+                    }
+                    html += '</tbody></table></div>';
                     entries.push({ type: 'sample', title: 'Ziplock sample', bodyHtml: html, date: String(zl.completed_at).split('T')[0] || null });
                 }
 
@@ -165,25 +171,90 @@ var _modal_batch_history = (function () {
                 var washing  = Array.isArray(detail.washing_data)  ? detail.washing_data  : [];
                 var sorting  = Array.isArray(detail.sorting_data)  ? detail.sorting_data  : [];
                 var packing  = Array.isArray(detail.packing_data)  ? detail.packing_data  : [];
-                var maxLen = Math.max(cracking.length, washing.length, sorting.length, packing.length);
-                for (var i = 0; i < maxLen; i++) {
-                    var c = cracking[i] || {};
-                    var w = washing[i]  || {};
-                    var s = sorting[i]  || {};
-                    var p = packing[i]  || {};
-                    var dayDate = getProductionDayDateLatest({ cracking_data: c, washing_data: w, sorting_data: s, packing_data: p })
-                               || getProductionDayDate({ cracking_data: c, washing_data: w, sorting_data: s, packing_data: p });
-                    var snippets = getStageSummarySnippets(c, w, s, p);
-                    var dateDisplay = dayDate ? ('Day ' + (i + 1) + ' (' + formatStageDate(dayDate) + ')') : ('Day ' + (i + 1));
-                    var html = '<div class="small"><p class="mb-1"><strong>Date:</strong> ' + dateDisplay + '</p>';
-                    if (snippets.length > 0) {
-                        html += '<ul class="mb-0 ps-3">' + snippets.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul>';
+
+                // Group all stage entries by date — each array is independent
+                var dayMap = {};
+                var noDateKey = '__nodate';
+                var collectStage = function (arr, stageName) {
+                    arr.forEach(function (entry) {
+                        var raw = entry && entry.date;
+                        var key = (raw && typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw))
+                            ? raw.substring(0, 10) : noDateKey;
+                        if (!dayMap[key]) dayMap[key] = { cracking: [], washing: [], sorting: [], packing: [] };
+                        dayMap[key][stageName].push(entry);
+                    });
+                };
+                collectStage(cracking, 'cracking');
+                collectStage(washing,  'washing');
+                collectStage(sorting,  'sorting');
+                collectStage(packing,  'packing');
+
+                var sortedDates = Object.keys(dayMap).sort(function (a, b) {
+                    if (a === noDateKey) return 1;
+                    if (b === noDateKey) return -1;
+                    return a < b ? -1 : a > b ? 1 : 0;
+                });
+
+                var nv = function (v) { var x = parseFloat(v); return isNaN(x) ? null : x; };
+                var dayNum = 0;
+                sortedDates.forEach(function (dateKey) {
+                    dayNum++;
+                    var g = dayMap[dateKey];
+                    var dateLabel = dateKey === noDateKey ? ('Day ' + dayNum) : ('Day ' + dayNum + ' &ndash; ' + formatStageDate(dateKey));
+                    var lines = [];
+
+                    g.cracking.forEach(function (c) {
+                        var crackTime = (c.timespent1 || c.totaltime || '').toString().trim();
+                        var crackQty = nv(c.totalqty);
+                        if (crackTime || crackQty != null) {
+                            lines.push('<strong>Cracking:</strong> ' + (crackTime ? crackTime : '') + (crackTime && crackQty != null ? ', ' : '') + (crackQty != null ? crackQty + ' kg' : ''));
+                        }
+                    });
+                    g.washing.forEach(function (w) {
+                        var washIn = nv(w.qty_in);
+                        var washOut = nv(w.total_qty);
+                        if (washIn != null || washOut != null) {
+                            lines.push('<strong>Washing:</strong> ' + (washIn != null ? washIn + ' kg in' : '') + (washIn != null && washOut != null ? ' &rarr; ' : '') + (washOut != null ? washOut + ' kg out' : ''));
+                        }
+                    });
+                    g.sorting.forEach(function (s) {
+                        var sortFields = [
+                            { key: 'sound_qty',     label: 'Sound' },
+                            { key: 'butter_qty',    label: 'Butter' },
+                            { key: 'butterlow_qty', label: 'Butter Low' },
+                            { key: 'oil_qty',       label: 'Oil' },
+                            { key: 'compost_qty',   label: 'Compost' }
+                        ];
+                        var sp = [];
+                        sortFields.forEach(function (f) {
+                            var v = nv(s[f.key]);
+                            if (v != null) sp.push(f.label + ' ' + v + ' kg');
+                        });
+                        if (sp.length > 0) lines.push('<strong>Sorting:</strong> ' + sp.join(', '));
+                    });
+                    g.packing.forEach(function (p) {
+                        var packSk = nv(p.sk_total_qty);
+                        var packBt = nv(p.bt_total_qty);
+                        var packTot = nv(p.totals_qty);
+                        if (packSk != null || packBt != null || packTot != null) {
+                            var pp = [];
+                            if (packSk != null) pp.push('SK ' + packSk + ' kg');
+                            if (packBt != null) pp.push('Butter ' + packBt + ' kg');
+                            if (packTot != null && packSk == null && packBt == null) pp.push(packTot + ' kg');
+                            if (packTot != null && (packSk != null || packBt != null)) pp.push('Total ' + packTot + ' kg');
+                            lines.push('<strong>Packing:</strong> ' + pp.join(', '));
+                        }
+                    });
+
+                    var html = '<div class="small">';
+                    if (lines.length > 0) {
+                        html += '<ul class="mb-0 ps-3">' + lines.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul>';
                     } else {
-                        html += '<p class="text-muted mb-0">No stage data recorded for this day.</p>';
+                        html += '<p class="text-muted mb-0">No data recorded.</p>';
                     }
                     html += '</div>';
-                    entries.push({ type: 'production', title: 'Production — Day ' + (i + 1), bodyHtml: html, date: dayDate || null });
-                }
+                    entries.push({ type: 'production', title: dateLabel, bodyHtml: html, date: dateKey === noDateKey ? null : dateKey });
+                });
 
                 // --- Job card ---
                 var jc = (detail.job_card_data && Object.keys(detail.job_card_data).length) ? detail.job_card_data : null;

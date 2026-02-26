@@ -5,8 +5,6 @@
 var _modal_kernel_dispatch = (function () {
     'use strict';
 
-    var dispatchBatchId = null;
-
     var formatDate = function (v) {
         if (!v) return '';
         if (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY) return _common.formatDateDDMMYYYY(v);
@@ -24,13 +22,7 @@ var _modal_kernel_dispatch = (function () {
             scope.initHandlers();
         },
 
-        initHandlers: () => {
-            const scope = _modal_kernel_dispatch;
-            $('#confirmDispatchBtn').off('click').on('click', function (e) {
-                e.preventDefault();
-                scope.confirmDispatch();
-            });
-        },
+        initHandlers: () => {},
 
         showOrder: async (orderId) => {
             const scope = _modal_kernel_dispatch;
@@ -84,60 +76,6 @@ var _modal_kernel_dispatch = (function () {
             }
         },
 
-        show: (batchId) => {
-            const scope = _modal_kernel_dispatch;
-            dispatchBatchId = batchId;
-            var viewBasket = document.getElementById('kernelDispatchViewBasket');
-            var confirmBatch = document.getElementById('kernelDispatchConfirmBatch');
-            var titleEl = document.getElementById('kernelDispatchModalLabel');
-            if (viewBasket) viewBasket.style.display = 'none';
-            if (confirmBatch) confirmBatch.style.display = 'block';
-            if (titleEl) titleEl.textContent = 'Dispatch batch';
-            var refInput = document.getElementById('dispatchBatchRef');
-            if (refInput) refInput.value = '';
-            var modalEl = document.getElementById('kernelDispatchModal');
-            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                bootstrap.Modal.getOrCreateInstance(modalEl).show();
-            } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                $('#kernelDispatchModal').modal('show');
-            }
-        },
-
-        confirmDispatch: async () => {
-            const scope = _modal_kernel_dispatch;
-            var batchId = dispatchBatchId;
-            if (!batchId) return;
-            try {
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.updateProductionBatch) {
-                    if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Error', 'Update not available', 'error');
-                    return;
-                }
-                var result = await dataFunctions.updateProductionBatch(batchId, { status: 'dispatched', stage: 'dispatched' });
-                if (result && result.success !== false) {
-                    var modalEl = document.getElementById('kernelDispatchModal');
-                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                        var modal = bootstrap.Modal.getInstance(modalEl);
-                        if (modal) modal.hide();
-                    } else if (typeof $ !== 'undefined' && $.fn.modal) {
-                        $('#kernelDispatchModal').modal('hide');
-                    }
-                    dispatchBatchId = null;
-                    if (typeof Swal !== 'undefined' && Swal.fire) {
-                        Swal.fire({ icon: 'success', title: 'Dispatched', text: 'Batch marked as dispatched.', timer: 2000, showConfirmButton: false });
-                    }
-                    if (typeof _kernelDispatchGrid !== 'undefined' && _kernelDispatchGrid.loadOrders) {
-                        await _kernelDispatchGrid.loadOrders(true);
-                    }
-                } else {
-                    throw new Error(result && result.error ? result.error : 'Update failed');
-                }
-            } catch (e) {
-                console.error(e);
-                if (typeof Swal !== 'undefined' && Swal.fire) {
-                    Swal.fire('Error', e.message || 'Failed to dispatch', 'error');
-                }
-            }
-        }
     };
 }());
 _modal_kernel_dispatch.init();

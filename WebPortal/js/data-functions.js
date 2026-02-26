@@ -1260,7 +1260,7 @@ var _dataFunctions = function () {
             };
             const result = await this.callFunction('upsert_kernel_production', params, token, { useCache: false });
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
-            this.clearCachePattern('kernel_batches_list');
+            this.clearCachePattern('kernel_batches');
             return result;
         },
 
@@ -1269,13 +1269,12 @@ var _dataFunctions = function () {
          * Used by: modal_kernel_job_card only.
          */
         upsertKernelJobCard: async function (kernelId, jobCardData, token = null) {
-            const payload = typeof jobCardData === 'string' ? jobCardData : JSON.stringify(jobCardData);
             const result = await this.callFunction('upsert_kernel_job_card', {
                 p_kernel_id: kernelId,
-                p_job_card_data: payload
+                p_job_card_data: jobCardData
             }, token, { useCache: false });
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
-            this.clearCachePattern('kernel_batches_list');
+            this.clearCachePattern('kernel_batches');
             return result;
         },
 
@@ -1284,13 +1283,12 @@ var _dataFunctions = function () {
          * Used by: modal_end_sample only.
          */
         upsertKernelQa: async function (kernelId, qaData, token = null) {
-            const payload = typeof qaData === 'string' ? qaData : JSON.stringify(qaData);
             const result = await this.callFunction('upsert_kernel_qa', {
                 p_kernel_id: kernelId,
-                p_qa_data: payload
+                p_qa_data: qaData
             }, token, { useCache: false });
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
-            this.clearCachePattern('kernel_batches_list');
+            this.clearCachePattern('kernel_batches');
             return result;
         },
 
@@ -1731,6 +1729,105 @@ var _dataFunctions = function () {
             return result && (result.data !== undefined ? result.data : result);
         },
 
+        /**
+         * Initialize a kernel row (status='intake') for a batch UUID.
+         * Idempotent — safe to call if the kernel row already exists.
+         * @param {object} data - { batch_uuid (required), supplier_id, grower_name, received_date, wet_nis_received_kg }
+         * @param {string|null} token
+         * @returns {Promise<object>} { success, id, batch_uuid, existing? }
+         */
+        initializeKernelForBatch: async function (data, token = null) {
+            var params = {
+                p_batch_uuid:          data.batch_uuid,
+                p_supplier_id:         data.supplier_id          || null,
+                p_grower_name:         data.grower_name          || null,
+                p_received_date:       data.received_date        || null,
+                p_wet_nis_received_kg: data.wet_nis_received_kg != null ? data.wet_nis_received_kg : null
+            };
+            const result = await this.callFunction('initialize_kernel_for_batch', params, token, { useCache: false });
+            this.clearCachePattern('kernel_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /**
+         * Save a ziplock or 5kg sample into kernel.intake_data JSONB.
+         * Writes to the kernel table directly — does NOT touch production_batches or sample_submissions.
+         * @param {object} data - { kernel_id (required), sample_type ('ziplock'|'5kg'), ...fields }
+         * @param {string|null} token
+         * @returns {Promise<object>} { success, kernel_id, sample_type }
+         */
+        saveKernelIntakeSample: async function (data, token = null) {
+            var params = {
+                p_kernel_id:                  data.kernel_id,
+                p_sample_type:                data.sample_type,
+                p_moisture_required:          data.moisture_required          != null ? data.moisture_required          : null,
+                p_moisture_result:            data.moisture_result            != null ? data.moisture_result            : null,
+                p_peroxide_required:          data.peroxide_required          != null ? data.peroxide_required          : null,
+                p_peroxide_result:            data.peroxide_result            != null ? data.peroxide_result            : null,
+                p_ffa_required:               data.ffa_required               != null ? data.ffa_required               : null,
+                p_ffa_result:                 data.ffa_result                 != null ? data.ffa_result                 : null,
+                p_wet_nut_in_shell_kg:        data.wet_nut_in_shell_kg        != null ? data.wet_nut_in_shell_kg        : null,
+                p_crack_out_sound_kernel_g:   data.crack_out_sound_kernel_g   != null ? data.crack_out_sound_kernel_g   : null,
+                p_crack_out_unsound_kernel_g: data.crack_out_unsound_kernel_g != null ? data.crack_out_unsound_kernel_g : null,
+                p_crack_out_shell_g:          data.crack_out_shell_g          != null ? data.crack_out_shell_g          : null,
+                p_float_floating_g:           data.float_floating_g           != null ? data.float_floating_g           : null,
+                p_float_sinking_g:            data.float_sinking_g            != null ? data.float_sinking_g            : null,
+                p_unsound_germination_g:      data.unsound_germination_g      != null ? data.unsound_germination_g      : null,
+                p_unsound_late_stinkbug_g:    data.unsound_late_stinkbug_g    != null ? data.unsound_late_stinkbug_g    : null,
+                p_unsound_early_stinkbug_g:   data.unsound_early_stinkbug_g   != null ? data.unsound_early_stinkbug_g   : null,
+                p_unsound_dark_centre_g:      data.unsound_dark_centre_g      != null ? data.unsound_dark_centre_g      : null,
+                p_unsound_mould_g:            data.unsound_mould_g            != null ? data.unsound_mould_g            : null,
+                p_unsound_rotten_g:           data.unsound_rotten_g           != null ? data.unsound_rotten_g           : null,
+                p_unsound_immature_split_g:   data.unsound_immature_split_g   != null ? data.unsound_immature_split_g   : null,
+                p_unsound_shrivelled_g:       data.unsound_shrivelled_g       != null ? data.unsound_shrivelled_g       : null,
+                p_unsound_nut_borer_g:        data.unsound_nut_borer_g        != null ? data.unsound_nut_borer_g        : null
+            };
+            const result = await this.callFunction('save_kernel_intake_sample', params, token, { useCache: false });
+            this.clearCachePattern('kernel_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /**
+         * Upsert receiving checklist into kernel.intake_data.receiving_checklist JSONB.
+         * Also sets kernel.actual_wet_nis_kg from the sum of received_items.
+         * @param {object} data - { kernel_id, date_received, delivery_note_ref, supplier_id,
+         *   vehicle_clean, vehicle_enclosed, hazard_substances, pest_infestations,
+         *   pallets_condition, raw_materials_condition, comments, received_items[] }
+         * @param {string|null} token
+         * @returns {Promise<object>} { success, kernel_id, total_kg }
+         */
+        upsertKernelChecklist: async function (data, token = null) {
+            var params = {
+                p_kernel_id:               data.kernel_id,
+                p_date_received:           data.date_received           || null,
+                p_delivery_note_ref:       data.delivery_note_ref       || null,
+                p_supplier_id:             data.supplier_id             || null,
+                p_vehicle_clean:           data.vehicle_clean           || null,
+                p_vehicle_enclosed:        data.vehicle_enclosed        || null,
+                p_hazard_substances:       data.hazard_substances       || null,
+                p_pest_infestations:       data.pest_infestations       || null,
+                p_pallets_condition:       data.pallets_condition       || null,
+                p_raw_materials_condition: data.raw_materials_condition || null,
+                p_comments:               data.comments                || null,
+                p_received_items:         data.received_items          || []
+            };
+            const result = await this.callFunction('upsert_kernel_checklist', params, token, { useCache: false });
+            this.clearCachePattern('kernel_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /**
+         * Release a kernel batch to production.
+         * Validates both ziplock_sample and five_kg_sample are saved, then sets status = 'production'.
+         * @param {object} data - { kernel_id }
+         * @returns {Promise<object>} { success, kernel_id } or { success: false, error }
+         */
+        releaseKernelToProduction: async function (data, token = null) {
+            const result = await this.callFunction('release_kernel_to_production', { p_kernel_id: data.kernel_id }, token, { useCache: false });
+            this.clearCachePattern('kernel_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
         getOilBatches: async function (options = {}, token = null, forceRefresh = false) {
             var params = {};
             if (options.status) params.p_status = options.status;
@@ -1985,9 +2082,8 @@ var _dataFunctions = function () {
                 p_buyer_contact_id: payload.buyer_contact_id || null,
                 p_lines: Array.isArray(payload.lines) ? payload.lines : []
             };
-            const result = await this.callFunction('create_kernel_dispatch_order_simple', params, token, { useCache: false });
-            this.clearCachePattern('production_batches');
-            this.clearCachePattern('kernel_dispatch');
+            const result = await this.callFunction('create_kernel_dispatch_order', params, token, { useCache: false });
+            this.clearCachePattern('kernel_dispatch_orders_list');
             return result;
         },
 
@@ -2006,7 +2102,11 @@ var _dataFunctions = function () {
         getKernelDispatchOrder: async function (orderId, token = null) {
             if (!orderId) return null;
             const raw = await this.callFunction('get_kernel_dispatch_order', { p_order_id: orderId }, token, { useCache: false });
-            if (raw && raw.success !== false && raw.order) return { order: raw.order, lines: raw.lines || [] };
+            if (raw && raw.success !== false && raw.order) {
+                const order = raw.order;
+                // lines is now a JSONB column on the order row (not a separate array)
+                return { order: order, lines: Array.isArray(order.lines) ? order.lines : [] };
+            }
             return null;
         },
 
@@ -2030,8 +2130,7 @@ var _dataFunctions = function () {
                 p_dispatch_signature: payload.dispatch_signature || null
             };
             const result = await this.callFunction('save_kernel_dispatch_record', params, token, { useCache: false });
-            this.clearCachePattern('kernel_dispatch');
-            this.clearCachePattern('production_batches');
+            this.clearCachePattern('kernel_dispatch_orders_list');
             return result;
         },
 
