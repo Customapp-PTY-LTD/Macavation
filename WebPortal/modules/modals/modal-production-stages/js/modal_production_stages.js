@@ -602,7 +602,49 @@ var _modal_production_stages = (function () {
                 });
             }
             var agg = scope.aggregateProductionStages(allStages);
-            $body.html(scope.renderBatchSummaryHtml(agg, maxLen));
+            var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
+            $body.html(scope.renderBatchSummaryHtml(agg, maxLen, batch, detail));
+        },
+
+        /**
+         * Show batch summary modal for a batch by ID (e.g. from kanban card or table).
+         * Loads kernel detail then renders the same summary as when opened from Production modal.
+         */
+        showBatchSummaryForBatch: (batchId) => {
+            const scope = _modal_production_stages;
+            if (!batchId || typeof dataFunctions === 'undefined' || !dataFunctions.getKernelBatchDetail) return;
+            var $body = $('#batchSummaryBody');
+            $body.html('<p class="text-muted mb-0">Loading…</p>');
+            var modalEl = document.getElementById('batchSummaryModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            else $('#batchSummaryModal').modal('show');
+            dataFunctions.getKernelBatchDetail(batchId).then(function (detail) {
+                scope._loadedKernelDetail = detail;
+                var cracking = (detail && Array.isArray(detail.cracking_data)) ? detail.cracking_data : [];
+                var washing  = (detail && Array.isArray(detail.washing_data))  ? detail.washing_data  : [];
+                var sorting  = (detail && Array.isArray(detail.sorting_data))  ? detail.sorting_data  : [];
+                var packing  = (detail && Array.isArray(detail.packing_data))  ? detail.packing_data  : [];
+                var maxLen = Math.max(cracking.length, washing.length, sorting.length, packing.length);
+                if (maxLen === 0) {
+                    $body.html('<p class="text-muted mb-0">No production days to summarize. Add days and save data first.</p>');
+                    return;
+                }
+                var allStages = [];
+                for (var i = 0; i < maxLen; i++) {
+                    allStages.push({
+                        cracking_data: cracking[i] || {},
+                        washing_data:  washing[i]  || {},
+                        sorting_data:  sorting[i]  || {},
+                        packing_data:  packing[i]  || {}
+                    });
+                }
+                var agg = scope.aggregateProductionStages(allStages);
+                var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
+                $body.html(scope.renderBatchSummaryHtml(agg, maxLen, batch, detail));
+            }).catch(function (err) {
+                console.error('[Batch Summary] Failed to load kernel detail:', err);
+                $body.html('<p class="text-danger mb-0">Unable to load batch data. Please try again.</p>');
+            });
         },
 
         aggregateProductionStages: (stagesList) => {
@@ -616,8 +658,11 @@ var _modal_production_stages = (function () {
                     var data = stages[sec];
                     if (data && typeof data === 'object') {
                         for (var key in data) {
+                            if (key === 'date') continue; // skip date field
                             var v = data[key];
-                            if (typeof v === 'number' && !isNaN(v)) agg[sec][key] = (agg[sec][key] || 0) + v;
+                            // Values come from JSONB as strings — parse to number
+                            var n = (typeof v === 'number') ? v : parseFloat(v);
+                            if (!isNaN(n)) agg[sec][key] = (agg[sec][key] || 0) + n;
                         }
                     }
                 });
@@ -704,19 +749,384 @@ var _modal_production_stages = (function () {
             };
         },
 
-        renderBatchSummaryHtml: (agg, dayCount) => {
-            var fmt = function (v) { return v != null && typeof v === 'number' ? v.toFixed(2) : (v != null ? String(v) : '—'); };
-            var rows = ['<p class="text-muted small">Totals across ' + dayCount + ' day(s).</p>', '<table class="table table-sm table-bordered"><thead><tr><th>Field</th><th>Total</th></tr></thead><tbody>'];
-            var sections = [['cracking_data', 'Cracking'], ['washing_data', 'Washing'], ['sorting_data', 'Sorting'], ['packing_data', 'Packing'], ['summary_data', 'Summary']];
-            sections.forEach(function (pair) {
-                var data = agg[pair[0]];
-                if (data && typeof data === 'object') {
-                    rows.push('<tr><td colspan="2" class="fw-bold">' + pair[1] + '</td></tr>');
-                    for (var k in data) rows.push('<tr><td class="ps-3">' + k + '</td><td>' + fmt(data[k]) + '</td></tr>');
+        renderBatchSummaryHtml: (agg, dayCount, batch, detail) => {
+            var n = function (v) { return (v != null && typeof v === 'number') ? v : parseFloat(v); };
+            var kg = function (v) { var x = n(v); return isNaN(x) ? '—' : x.toFixed(1) + ' kg'; };
+            var num = function (v) { var x = n(v); return isNaN(x) ? '—' : (x % 1 === 0 ? String(x) : x.toFixed(2)); };
+            var pct = function (v) { var x = n(v); return isNaN(x) ? '—' : x.toFixed(1) + '%'; };
+            var has = function (obj, k) { return obj && obj[k] != null && obj[k] !== '' && !isNaN(n(obj[k])); };
+            var v = function (obj, k) { return has(obj, k) ? n(obj[k]) : 0; };
+
+            var c = agg.cracking_data || {};
+            var w = agg.washing_data || {};
+            var s = agg.sorting_data || {};
+            var p = agg.packing_data || {};
+
+            /* ── Inline styles (scoped to summary) ── */
+            var styles = {
+                card: 'border-radius:12px;padding:16px 20px;background:var(--mac-surface, #f8f9fa);border:1px solid var(--mac-border, #e0e0e0);',
+                metricCard: 'text-align:center;border-radius:12px;padding:14px 10px;background:var(--mac-surface, #f8f9fa);border:1px solid var(--mac-border, #e0e0e0);flex:1;min-width:120px;',
+                metricVal: 'font-size:1.5rem;font-weight:700;color:var(--mac-green, #2e7d32);line-height:1.2;',
+                metricLabel: 'font-size:0.75rem;color:var(--mac-text-secondary, #666);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;',
+                sectionTitle: 'font-size:0.85rem;font-weight:700;color:var(--mac-green, #2e7d32);text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 10px 0;padding-bottom:6px;border-bottom:2px solid var(--mac-green, #2e7d32);',
+                row: 'display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--mac-border-light, rgba(0,0,0,0.05));',
+                rowLabel: 'color:var(--mac-text-secondary, #666);font-size:0.85rem;',
+                rowValue: 'font-weight:600;font-size:0.85rem;',
+                barOuter: 'height:8px;border-radius:4px;background:var(--mac-border, #e0e0e0);overflow:hidden;flex:1;margin-left:10px;',
+                barInner: 'height:100%;border-radius:4px;transition:width 0.3s;',
+                pill: 'display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.75rem;font-weight:600;',
+                flowArrow: 'display:flex;align-items:center;justify-content:center;color:var(--mac-text-secondary, #999);font-size:1.2rem;padding:4px 0;'
+            };
+
+            var html = [];
+
+            /* ═══════════════════════════════════════════
+               HEADER — Batch info + key metrics
+               ═══════════════════════════════════════════ */
+            var batchName = (batch && batch.batch_id) ? batch.batch_id : (batch && batch.batch_number) ? batch.batch_number : '';
+            var grower = (batch && batch.grower_name) ? batch.grower_name : (detail && detail.supplier_name) ? detail.supplier_name : '';
+            var nisReceived = (detail && detail.wet_nis_received_kg) ? n(detail.wet_nis_received_kg) : ((batch && batch.wet_nis_received_kg) ? n(batch.wet_nis_received_kg) : NaN);
+            var status = (batch && batch.status) ? batch.status : (detail && detail.status) ? detail.status : '';
+
+            // Status pill colour
+            var statusColour = '#888';
+            if (status === 'production') statusColour = '#f59e0b';
+            else if (status === 'qa') statusColour = '#3b82f6';
+            else if (status === 'complete' || status === 'dispatch') statusColour = '#22c55e';
+            else if (status === 'intake' || status === 'receiving') statusColour = '#8b5cf6';
+
+            html.push('<div style="margin-bottom:18px;">');
+            if (batchName || grower) {
+                html.push('<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">');
+                if (batchName) html.push('<span style="font-size:1.1rem;font-weight:700;">' + batchName + '</span>');
+                if (status) html.push('<span style="' + styles.pill + 'background:' + statusColour + '20;color:' + statusColour + ';">' + status.charAt(0).toUpperCase() + status.slice(1) + '</span>');
+                html.push('</div>');
+                if (grower) html.push('<div style="color:var(--mac-text-secondary,#666);font-size:0.85rem;">Grower: ' + grower + '</div>');
+            }
+            html.push('<div style="color:var(--mac-text-secondary,#666);font-size:0.8rem;margin-top:4px;">' + dayCount + ' production day' + (dayCount !== 1 ? 's' : '') + ' recorded</div>');
+            html.push('</div>');
+
+            /* ── Top-level KPI cards ── */
+            var crackOutput = v(c, 'total_output');
+            var totalSKkg = v(p, 'total_sk_kg');
+            var totalBTkg = v(p, 'total_bt_kg');
+            var packedTotal = totalSKkg + totalBTkg;
+            var crackPct = has(c, 'cracking_percentage') ? n(c.cracking_percentage) : NaN;
+
+            html.push('<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">');
+            if (!isNaN(nisReceived)) {
+                html.push('<div style="' + styles.metricCard + '"><div style="' + styles.metricVal + '">' + nisReceived.toFixed(0) + '</div><div style="' + styles.metricLabel + '">NIS Received (kg)</div></div>');
+            }
+            if (crackOutput > 0) {
+                html.push('<div style="' + styles.metricCard + '"><div style="' + styles.metricVal + '">' + crackOutput.toFixed(0) + '</div><div style="' + styles.metricLabel + '">Kernel Cracked (kg)</div></div>');
+            }
+            if (packedTotal > 0) {
+                html.push('<div style="' + styles.metricCard + '"><div style="' + styles.metricVal + '">' + packedTotal.toFixed(0) + '</div><div style="' + styles.metricLabel + '">Total Packed (kg)</div></div>');
+            }
+            if (!isNaN(crackPct)) {
+                html.push('<div style="' + styles.metricCard + '"><div style="' + styles.metricVal + '">' + crackPct.toFixed(1) + '%</div><div style="' + styles.metricLabel + '">Cracking Yield</div></div>');
+            }
+            html.push('</div>');
+
+            /* ═══════════════════════════════════════════
+               HELPER: build a detail row
+               ═══════════════════════════════════════════ */
+            var row = function (label, value, indent) {
+                return '<div style="' + styles.row + (indent ? 'padding-left:12px;' : '') + '"><span style="' + styles.rowLabel + '">' + label + '</span><span style="' + styles.rowValue + '">' + value + '</span></div>';
+            };
+            var sectionHead = function (title) {
+                return '<div style="' + styles.sectionTitle + '">' + title + '</div>';
+            };
+
+            /* ═══════════════════════════════════════════
+               1. CRACKING
+               ═══════════════════════════════════════════ */
+            if (Object.keys(c).length) {
+                html.push(sectionHead('Cracking'));
+                html.push('<div style="' + styles.card + '">');
+
+                if (has(c, 'silo1')) html.push(row('Silo Input', kg(c.silo1)));
+                if (has(c, 'startqty1')) html.push(row('Start Quantity', kg(c.startqty1)));
+
+                // Summarise wholes/halves across time slots as totals only
+                var totalWholes = v(c, 'total_wholes');
+                var totalHalves = v(c, 'total_halves');
+                var totalInshell = v(c, 'total_inshell');
+                var totalReject = v(c, 'total_reject');
+
+                if (totalWholes > 0 || totalHalves > 0) {
+                    html.push('<div style="margin:10px 0 6px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Kernel Output</div>');
+                    if (totalWholes > 0) html.push(row('Wholes', kg(totalWholes), true));
+                    if (totalHalves > 0) html.push(row('Halves', kg(totalHalves), true));
+                    if (totalInshell > 0) html.push(row('In-Shell', kg(totalInshell), true));
+                    if (totalReject > 0) html.push(row('Rejects', kg(totalReject), true));
                 }
-            });
-            rows.push('</tbody></table>');
-            return rows.join('');
+
+                if (has(c, 'total_output')) html.push(row('Total Kernel Output', kg(c.total_output)));
+
+                // Shell & waste
+                var shellTotal = v(c, 'shell_total');
+                var shellCarryover = v(c, 'shell_carryover');
+                var shellFines = v(c, 'shell_fines');
+                if (shellTotal > 0 || shellCarryover > 0 || shellFines > 0) {
+                    html.push('<div style="margin:10px 0 6px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Shell & Waste</div>');
+                    if (shellTotal > 0) html.push(row('Shell', kg(shellTotal), true));
+                    if (shellCarryover > 0) html.push(row('Carry Over', kg(shellCarryover), true));
+                    if (shellFines > 0) html.push(row('Shell & Fines', kg(shellFines), true));
+                }
+
+                if (has(c, 'cracking_percentage')) {
+                    var cp = n(c.cracking_percentage);
+                    html.push('<div style="display:flex;align-items:center;margin-top:10px;">');
+                    html.push('<span style="font-size:0.85rem;font-weight:600;min-width:110px;">Cracking Yield</span>');
+                    html.push('<div style="' + styles.barOuter + '"><div style="' + styles.barInner + 'width:' + Math.min(cp, 100) + '%;background:var(--mac-green,#2e7d32);"></div></div>');
+                    html.push('<span style="font-weight:700;margin-left:10px;min-width:50px;text-align:right;">' + pct(cp) + '</span>');
+                    html.push('</div>');
+                }
+
+                html.push('</div>');
+                html.push('<div style="' + styles.flowArrow + '">&#8595;</div>');
+            }
+
+            /* ═══════════════════════════════════════════
+               2. WASHING
+               ═══════════════════════════════════════════ */
+            if (Object.keys(w).length) {
+                html.push(sectionHead('Washing'));
+                html.push('<div style="' + styles.card + '">');
+
+                if (has(w, 'total_in')) html.push(row('Total In', kg(w.total_in)));
+                else if (has(w, 'crates_in')) html.push(row('Crates In', num(w.crates_in)));
+
+                // Sinker / Floater split
+                var sinkerT = v(w, 'sinker_total');
+                var floaterT = v(w, 'floater_total');
+                if (sinkerT > 0 || floaterT > 0) {
+                    var splitTotal = sinkerT + floaterT;
+                    html.push('<div style="margin:10px 0 6px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Float Test Split</div>');
+                    html.push(row('Sinkers (good kernel)', kg(sinkerT), true));
+                    html.push(row('Floaters', kg(floaterT), true));
+                    if (splitTotal > 0) {
+                        var sinkerPct = (sinkerT / splitTotal * 100);
+                        html.push('<div style="display:flex;align-items:center;margin:6px 0 0 12px;">');
+                        html.push('<span style="font-size:0.8rem;color:var(--mac-text-secondary,#666);min-width:90px;">Sinker ratio</span>');
+                        html.push('<div style="' + styles.barOuter + '">');
+                        html.push('<div style="' + styles.barInner + 'width:' + sinkerPct.toFixed(0) + '%;background:#22c55e;"></div>');
+                        html.push('</div>');
+                        html.push('<span style="font-weight:600;margin-left:10px;font-size:0.8rem;">' + sinkerPct.toFixed(0) + '%</span>');
+                        html.push('</div>');
+                    }
+                }
+
+                if (has(w, 'total_output')) html.push(row('Total Output', kg(w.total_output)));
+
+                // Waste
+                var wShell = v(w, 'waste_shellfines');
+                var wCompost = v(w, 'waste_compost');
+                if (wShell > 0 || wCompost > 0) {
+                    html.push('<div style="margin:10px 0 6px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Waste</div>');
+                    if (wShell > 0) html.push(row('Shell & Fines', kg(wShell), true));
+                    if (wCompost > 0) html.push(row('Compost', kg(wCompost), true));
+                    if (has(w, 'waste_total')) html.push(row('Total Waste', kg(w.waste_total), true));
+                }
+
+                if (has(w, 'recovery')) {
+                    var wr = n(w.recovery);
+                    html.push('<div style="display:flex;align-items:center;margin-top:10px;">');
+                    html.push('<span style="font-size:0.85rem;font-weight:600;min-width:110px;">Recovery</span>');
+                    html.push('<div style="' + styles.barOuter + '"><div style="' + styles.barInner + 'width:' + Math.min(wr, 100) + '%;background:#3b82f6;"></div></div>');
+                    html.push('<span style="font-weight:700;margin-left:10px;min-width:50px;text-align:right;">' + pct(wr) + '</span>');
+                    html.push('</div>');
+                }
+
+                html.push('</div>');
+                html.push('<div style="' + styles.flowArrow + '">&#8595;</div>');
+            }
+
+            /* ═══════════════════════════════════════════
+               3. SORTING — Grade distribution
+               ═══════════════════════════════════════════ */
+            if (Object.keys(s).length) {
+                html.push(sectionHead('Sorting'));
+                html.push('<div style="' + styles.card + '">');
+
+                if (has(s, 'total_in')) html.push(row('Total In', kg(s.total_in)));
+                else if (has(s, 'crates_in')) html.push(row('Crates In', num(s.crates_in)));
+
+                // Grade distribution as stacked bar + rows
+                var grades = [
+                    { key: 'style0',  label: 'Style 0 (Premium)',  color: '#16a34a' },
+                    { key: 'style1',  label: 'Style 1',            color: '#22c55e' },
+                    { key: 'style1s', label: 'Style 1s',           color: '#4ade80' },
+                    { key: 'style4l', label: 'Style 4L',           color: '#86efac' },
+                    { key: 'style5',  label: 'Style 5',            color: '#bbf7d0' },
+                    { key: 'style6',  label: 'Style 6 (Butter)',   color: '#fbbf24' },
+                    { key: 'style78', label: 'Style 7/8 (Butter)', color: '#f59e0b' }
+                ];
+
+                var gradeData = [];
+                var gradeTotal = 0;
+                grades.forEach(function (g) {
+                    var wt = v(s, g.key + '_weight');
+                    var qt = v(s, g.key + '_qty');
+                    if (wt > 0 || qt > 0) {
+                        gradeData.push({ label: g.label, weight: wt, qty: qt, color: g.color });
+                        gradeTotal += wt;
+                    }
+                });
+
+                if (gradeData.length > 0) {
+                    html.push('<div style="margin:10px 0 6px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Grade Distribution</div>');
+
+                    // Stacked bar
+                    if (gradeTotal > 0) {
+                        html.push('<div style="display:flex;height:14px;border-radius:7px;overflow:hidden;margin-bottom:10px;">');
+                        gradeData.forEach(function (g) {
+                            var widthPct = (g.weight / gradeTotal * 100).toFixed(1);
+                            if (parseFloat(widthPct) > 0) {
+                                html.push('<div style="width:' + widthPct + '%;background:' + g.color + ';" title="' + g.label + ': ' + g.weight.toFixed(1) + ' kg (' + widthPct + '%)"></div>');
+                            }
+                        });
+                        html.push('</div>');
+                    }
+
+                    // Legend rows
+                    gradeData.forEach(function (g) {
+                        var detail = g.weight > 0 ? g.weight.toFixed(1) + ' kg' : '';
+                        if (g.qty > 0) detail += (detail ? ' / ' : '') + num(g.qty) + ' crates';
+                        if (gradeTotal > 0 && g.weight > 0) detail += ' (' + (g.weight / gradeTotal * 100).toFixed(0) + '%)';
+                        html.push('<div style="display:flex;align-items:center;padding:3px 0 3px 12px;">');
+                        html.push('<span style="width:10px;height:10px;border-radius:50%;background:' + g.color + ';margin-right:8px;flex-shrink:0;"></span>');
+                        html.push('<span style="' + styles.rowLabel + 'flex:1;">' + g.label + '</span>');
+                        html.push('<span style="' + styles.rowValue + '">' + detail + '</span>');
+                        html.push('</div>');
+                    });
+                }
+
+                // Waste
+                var oilKernel = v(s, 'oil_weight') || v(s, 'oil_qty');
+                var compost = v(s, 'compost_weight') || v(s, 'compost_qty');
+                if (oilKernel > 0 || compost > 0) {
+                    html.push('<div style="margin:10px 0 6px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Waste & By-product</div>');
+                    if (oilKernel > 0) html.push(row('Oil Kernel', kg(oilKernel), true));
+                    if (compost > 0) html.push(row('Compost', kg(compost), true));
+                }
+
+                if (has(s, 'total_output')) html.push(row('Total Output', kg(s.total_output)));
+                if (has(s, 'recovery')) {
+                    var sr = n(s.recovery);
+                    html.push('<div style="display:flex;align-items:center;margin-top:10px;">');
+                    html.push('<span style="font-size:0.85rem;font-weight:600;min-width:110px;">Recovery</span>');
+                    html.push('<div style="' + styles.barOuter + '"><div style="' + styles.barInner + 'width:' + Math.min(sr, 100) + '%;background:#8b5cf6;"></div></div>');
+                    html.push('<span style="font-weight:700;margin-left:10px;min-width:50px;text-align:right;">' + pct(sr) + '</span>');
+                    html.push('</div>');
+                }
+
+                html.push('</div>');
+                html.push('<div style="' + styles.flowArrow + '">&#8595;</div>');
+            }
+
+            /* ═══════════════════════════════════════════
+               4. PACKING — Final product
+               ═══════════════════════════════════════════ */
+            if (Object.keys(p).length) {
+                html.push(sectionHead('Packing'));
+                html.push('<div style="' + styles.card + '">');
+
+                // Sound Kernel table
+                var skStyles = [
+                    ['sk_sp',  'Special'],
+                    ['sk_0',   'Style 0'],
+                    ['sk_1',   'Style 1'],
+                    ['sk_1s',  'Style 1s'],
+                    ['sk_4l',  'Style 4L'],
+                    ['sk_5',   'Style 5']
+                ];
+                var hasSK = skStyles.some(function (s) { return v(p, s[0] + '_qty') > 0 || v(p, s[0] + '_cartons') > 0; });
+                if (hasSK) {
+                    html.push('<div style="margin:4px 0 8px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Sound Kernel</div>');
+                    html.push('<table style="width:100%;font-size:0.85rem;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid var(--mac-border,#e0e0e0);">');
+                    html.push('<th style="text-align:left;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Grade</th>');
+                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Qty (kg)</th>');
+                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Cartons</th>');
+                    html.push('</tr></thead><tbody>');
+                    skStyles.forEach(function (pair) {
+                        var qty = v(p, pair[0] + '_qty');
+                        var ctn = v(p, pair[0] + '_cartons');
+                        if (qty > 0 || ctn > 0) {
+                            html.push('<tr style="border-bottom:1px solid var(--mac-border-light,rgba(0,0,0,0.05));">');
+                            html.push('<td style="padding:4px 0;">' + pair[1] + '</td>');
+                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (qty > 0 ? qty.toFixed(1) : '—') + '</td>');
+                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (ctn > 0 ? num(ctn) : '—') + '</td>');
+                            html.push('</tr>');
+                        }
+                    });
+                    if (has(p, 'total_sk_kg') || has(p, 'total_sk_cartons')) {
+                        html.push('<tr style="border-top:2px solid var(--mac-border,#e0e0e0);font-weight:700;">');
+                        html.push('<td style="padding:4px 0;">Total</td>');
+                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_sk_kg') > 0 ? v(p, 'total_sk_kg').toFixed(1) : '—') + '</td>');
+                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_sk_cartons') > 0 ? num(v(p, 'total_sk_cartons')) : '—') + '</td>');
+                        html.push('</tr>');
+                    }
+                    html.push('</tbody></table>');
+                }
+
+                // Butter Grade table
+                var btStyles = [
+                    ['bt_78',   'Style 7/8'],
+                    ['bt_high', 'High Grade'],
+                    ['bt_low',  'Low Grade']
+                ];
+                var hasBT = btStyles.some(function (s) { return v(p, s[0] + '_qty') > 0 || v(p, s[0] + '_cartons') > 0; });
+                if (hasBT) {
+                    html.push('<div style="margin:14px 0 8px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Butter Grade</div>');
+                    html.push('<table style="width:100%;font-size:0.85rem;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid var(--mac-border,#e0e0e0);">');
+                    html.push('<th style="text-align:left;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Grade</th>');
+                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Qty (kg)</th>');
+                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Cartons</th>');
+                    html.push('</tr></thead><tbody>');
+                    btStyles.forEach(function (pair) {
+                        var qty = v(p, pair[0] + '_qty');
+                        var ctn = v(p, pair[0] + '_cartons');
+                        if (qty > 0 || ctn > 0) {
+                            html.push('<tr style="border-bottom:1px solid var(--mac-border-light,rgba(0,0,0,0.05));">');
+                            html.push('<td style="padding:4px 0;">' + pair[1] + '</td>');
+                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (qty > 0 ? qty.toFixed(1) : '—') + '</td>');
+                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (ctn > 0 ? num(ctn) : '—') + '</td>');
+                            html.push('</tr>');
+                        }
+                    });
+                    if (has(p, 'total_bt_kg') || has(p, 'total_bt_cartons')) {
+                        html.push('<tr style="border-top:2px solid var(--mac-border,#e0e0e0);font-weight:700;">');
+                        html.push('<td style="padding:4px 0;">Total</td>');
+                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_bt_kg') > 0 ? v(p, 'total_bt_kg').toFixed(1) : '—') + '</td>');
+                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_bt_cartons') > 0 ? num(v(p, 'total_bt_cartons')) : '—') + '</td>');
+                        html.push('</tr>');
+                    }
+                    html.push('</tbody></table>');
+                }
+
+                html.push('</div>');
+            }
+
+            /* ═══════════════════════════════════════════
+               OVERALL YIELD WATERFALL (if enough data)
+               ═══════════════════════════════════════════ */
+            if (!isNaN(nisReceived) && nisReceived > 0 && packedTotal > 0) {
+                var overallYield = (packedTotal / nisReceived * 100);
+                html.push('<div style="margin-top:20px;' + styles.card + 'background:var(--mac-green,#2e7d32)10;border-color:var(--mac-green,#2e7d32)30;">');
+                html.push('<div style="display:flex;justify-content:space-between;align-items:center;">');
+                html.push('<div>');
+                html.push('<div style="font-weight:700;font-size:0.9rem;">Overall Yield: NIS to Packed Product</div>');
+                html.push('<div style="color:var(--mac-text-secondary,#666);font-size:0.8rem;margin-top:2px;">' + nisReceived.toFixed(0) + ' kg NIS received &rarr; ' + packedTotal.toFixed(0) + ' kg packed</div>');
+                html.push('</div>');
+                html.push('<div style="font-size:1.6rem;font-weight:800;color:var(--mac-green,#2e7d32);">' + overallYield.toFixed(1) + '%</div>');
+                html.push('</div>');
+                html.push('<div style="margin-top:8px;' + styles.barOuter + 'height:10px;margin-left:0;"><div style="' + styles.barInner + 'width:' + Math.min(overallYield, 100) + '%;background:var(--mac-green,#2e7d32);height:10px;"></div></div>');
+                html.push('</div>');
+            }
+
+            return html.join('');
         },
 
         finishBatchProduction: () => {

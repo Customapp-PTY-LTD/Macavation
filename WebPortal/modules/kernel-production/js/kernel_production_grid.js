@@ -177,6 +177,14 @@ var _kernelProductionGrid = function () {
                     _modal_batch_history.show(batchId);
                 }
             });
+            $(document).on('click', '.js-batch-summary', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const batchId = $(this).data('batch-id');
+                if (batchId && typeof _modal_production_stages !== 'undefined' && _modal_production_stages.showBatchSummaryForBatch) {
+                    _modal_production_stages.showBatchSummaryForBatch(batchId);
+                }
+            });
             $(document).on('click', '#batchesTableBody tr.js-batch-row', function (e) {
                 if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
                 const batchId = $(this).data('batch-id');
@@ -251,6 +259,7 @@ var _kernelProductionGrid = function () {
                             '<button class="btn btn-sm btn-outline-secondary js-production-batch" data-batch-id="' + batch.id + '" title="Production">' + productionIcon + '<i class="fas fa-cogs"></i></button>' +
                             '<button class="btn btn-sm btn-outline-secondary js-job-card-batch" data-batch-id="' + batch.id + '" title="Job Card">' + jcIcon + '<i class="fas fa-file-alt"></i></button>' +
                             '<button class="btn btn-sm btn-outline-secondary js-end-sample-batch" data-batch-id="' + batch.id + '" title="End Sample">' + qaIcon + '<i class="fas fa-flask"></i></button>' +
+                            '<button class="btn btn-sm btn-outline-info js-batch-summary" data-batch-id="' + batch.id + '" title="Batch summary"><i class="fas fa-calculator"></i></button>' +
                         '</div></div>';
                 }
             );
@@ -345,10 +354,12 @@ var _kernelProductionGrid = function () {
                 const endSampleLabel = batch.has_qa ? '&#10003; End sample' : 'End sample';
                 const jobCardLabel = batch.has_job_card ? '&#10003; Job Card' : 'Job Card';
                 const jobCardItem = '<a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '">' + jobCardLabel + '</a>';
+                const summaryItem = '<a class="dropdown-item js-batch-summary" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-calculator me-1"></i>Batch summary</a>';
                 let menuItems = [
                     '<a class="dropdown-item js-production-batch" href="#" data-batch-id="' + batch.id + '">' + productionLabel + '</a>',
                     '<a class="dropdown-item js-end-sample-batch" href="#" data-batch-id="' + batch.id + '">' + endSampleLabel + '</a>',
-                    jobCardItem
+                    jobCardItem,
+                    summaryItem
                 ];
                 if (canReleaseToStock) {
                     menuItems.push('<a class="dropdown-item js-release-to-stock" href="#" data-batch-id="' + batch.id + '">Release to stock</a>');
