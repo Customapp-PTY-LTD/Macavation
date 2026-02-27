@@ -164,6 +164,13 @@ var _modal_production_stages = (function () {
             $(document).on('change input', '#ps_crack_timespent1', function () {
                 scope.syncCrackTimeToSummary();
             });
+            // Map section date field IDs to their section key
+            var sectionDateFields = {
+                'ps_crack_date': 'crack',
+                'ps_wash_date':  'wash',
+                'ps_sort_date':  'sort',
+                'ps_pack_date':  'pack'
+            };
             $('#productionStagesModal').off('shown.bs.modal').on('shown.bs.modal', function () {
                 var container = document.getElementById('productionStagesModal');
                 var inputs = container ? container.querySelectorAll('.flatpickr-date') : [];
@@ -171,7 +178,15 @@ var _modal_production_stages = (function () {
                 inputs.forEach(function (el) {
                     if (el._flatpickr) return;
                     if (typeof flatpickr !== 'undefined') {
-                        flatpickr(el, FLATPICKR_DDMMYYYY);
+                        var opts = Object.assign({}, FLATPICKR_DDMMYYYY);
+                        // For section date fields, add onChange to load existing data for that date
+                        var sectionKey = sectionDateFields[el.id];
+                        if (sectionKey) {
+                            opts.onChange = function () {
+                                scope._onSectionDateChange(sectionKey, el.id);
+                            };
+                        }
+                        flatpickr(el, opts);
                         if (!el.value && todayPlaceholder) el.placeholder = todayPlaceholder;
                     }
                 });
@@ -180,11 +195,6 @@ var _modal_production_stages = (function () {
                 var batchId = $('#productionStagesBatchId').val();
                 if (batchId) scope.saveProductionStagesDraftToStorage();
             });
-            // Section date change handlers — populate fields with existing data for the selected date
-            $(document).on('change', '#ps_crack_date', function () { scope._onSectionDateChange('crack', 'ps_crack_date'); });
-            $(document).on('change', '#ps_wash_date', function () { scope._onSectionDateChange('wash', 'ps_wash_date'); });
-            $(document).on('change', '#ps_sort_date', function () { scope._onSectionDateChange('sort', 'ps_sort_date'); });
-            $(document).on('change', '#ps_pack_date', function () { scope._onSectionDateChange('pack', 'ps_pack_date'); });
             $(document).on('click', '#productionStagesDayList [data-day-id]', function () {
                 var dayId = $(this).attr('data-day-id');
                 if (dayId) scope.selectProductionDay(dayId);

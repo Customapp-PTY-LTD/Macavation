@@ -139,17 +139,25 @@
    ============================================ */
 
 .kanban-card--ghost {
-    opacity: 0.4;
-    background: var(--mac-green-light);
+    opacity: 0.5;
+    background: var(--mac-glass-bg);
+    -webkit-backdrop-filter: blur(12px) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(12px) saturate(var(--mac-glass-saturate));
+    border: 1px dashed var(--mac-green);
+    border-radius: var(--mac-radius-md);
 }
 
 .kanban-card--chosen {
-    box-shadow: var(--mac-shadow-lg);
-    transform: rotate(1deg);
+    box-shadow: var(--mac-glass-shadow), 0 0 0 2px rgba(var(--mac-green-rgb), 0.25);
+    transform: rotate(1deg) scale(1.02);
+    background: var(--mac-glass-bg-heavy);
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
 }
 
 .kanban-card--drag {
-    opacity: 0.9;
+    opacity: 0.95;
+    box-shadow: var(--mac-glass-shadow);
 }
 
 /* ============================================

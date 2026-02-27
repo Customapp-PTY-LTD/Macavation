@@ -122,19 +122,22 @@ thead th,
     border-bottom-right-radius: var(--phoenix-border-radius) !important;
 }
 
-/* Universal modal header — clean & minimal */
+/* Universal modal header — frosted glass */
 .modal-content .modal-header {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    background-color: var(--mac-bg-secondary) !important;
+    background: var(--mac-glass-bg) !important;
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
     color: var(--mac-text) !important;
     font-family: var(--mac-font) !important;
     font-weight: 600;
     border: none !important;
-    border-bottom: 1px solid var(--mac-border) !important;
+    border-bottom: 1px solid var(--mac-glass-border) !important;
+    box-shadow: var(--mac-glass-highlight);
     padding: var(--mac-space-md) var(--mac-space-lg);
 }
 .modal-content .modal-header .modal-title {
@@ -158,9 +161,14 @@ thead th,
     color: var(--mac-text);
 }
 
-/* Modal footer: Cancel on far left (red), Save/Add primary with no glow */
+/* Modal footer: frosted glass, Cancel on far left (red), Save/Add primary with no glow */
 .modal-content .modal-footer {
     justify-content: space-between;
+    background: var(--mac-glass-bg);
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    border-top: 1px solid var(--mac-glass-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .modal-content .modal-footer .btn-secondary {
     background-color: #dc3545 !important;
@@ -229,9 +237,11 @@ h1, h2, h3, h4, h5, h6,
 
 /* Navbar */
 .navbar {
-    background: var(--mac-bg-secondary) !important;
-    border-bottom: 1px solid var(--mac-border);
-    box-shadow: none;
+    background: var(--mac-glass-bg-heavy) !important;
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    border-bottom: 1px solid var(--mac-glass-border);
+    box-shadow: var(--mac-glass-highlight), 0 1px 3px rgba(0, 0, 0, 0.04);
     position: fixed;
     top: 0;
     left: 0;
@@ -271,9 +281,11 @@ h1, h2, h3, h4, h5, h6,
     left: 0;
     z-index: 101;
     padding: 0;
-    background-color: var(--mac-bg-secondary);
-    border-right: 1px solid var(--mac-border);
-    box-shadow: none;
+    background: var(--mac-glass-bg-heavy);
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    border-right: 1px solid var(--mac-glass-border);
+    box-shadow: var(--mac-glass-shadow);
     transition: all 0.3s ease;
     width: 300px;
     height: calc(100vh - 56px);
@@ -390,23 +402,22 @@ h1, h2, h3, h4, h5, h6,
     opacity: 1;
 }
 
-.sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) {
-    position: static;
-}
-
-/* Submenus under chevron: remain hidden when collapsed */
-.sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) > .collapse {
+/* Collapsed: hide ALL submenu collapse panels so only icons show */
+.sidebar.collapsed .collapse,
+.sidebar.collapsed .collapse.show,
+.sidebar.collapsed .collapsing {
     display: none !important;
-}
-
-.sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) > .collapse.show {
-    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
 }
 
 /* Sidebar Footer */
 .sidebar-footer {
-    border-top: 1px solid var(--mac-border) !important;
+    border-top: 1px solid var(--mac-glass-border) !important;
     margin-top: auto;
+    background: var(--mac-glass-bg);
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur));
+    backdrop-filter: blur(var(--mac-glass-blur));
 }
 
 .sidebar-footer .btn-link {
@@ -884,7 +895,8 @@ h1, h2, h3, h4, h5, h6,
     right: 0;
     width: 1px;
     height: 100%;
-    background: linear-gradient(to bottom, transparent, var(--phoenix-border-color), transparent);
+    background: linear-gradient(to bottom, transparent, var(--mac-glass-border), transparent);
+    z-index: 1;
 }
 
 .sidebar .nav-item {
@@ -1266,9 +1278,15 @@ h1, h2, h3, h4, h5, h6,
 }
 
 [data-theme-mode="dark"] .modal-content .modal-header {
-    background-color: var(--mac-bg-secondary) !important;
-    border-bottom-color: var(--mac-border) !important;
+    background: var(--mac-glass-bg) !important;
+    border-bottom-color: var(--mac-glass-border) !important;
     color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .modal-content .modal-footer {
+    background: var(--mac-glass-bg);
+    border-top-color: var(--mac-glass-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 [data-theme-mode="dark"] .modal-content .modal-header .modal-title {
@@ -1338,13 +1356,13 @@ h1, h2, h3, h4, h5, h6,
 }
 
 [data-theme-mode="dark"] .navbar {
-    background: var(--mac-bg-secondary) !important;
-    border-bottom-color: var(--mac-border);
+    background: var(--mac-glass-bg-heavy) !important;
+    border-bottom-color: var(--mac-glass-border);
 }
 
 [data-theme-mode="dark"] .sidebar {
-    background-color: var(--mac-bg-secondary);
-    border-right-color: var(--mac-border);
+    background: var(--mac-glass-bg-heavy);
+    border-right-color: var(--mac-glass-border);
 }
 
 [data-theme-mode="dark"] .btn-outline-secondary {

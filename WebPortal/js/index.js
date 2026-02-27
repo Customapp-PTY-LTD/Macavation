@@ -423,7 +423,6 @@ function initializeSidebarToggle() {
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebarMenu');
     const mainContent = document.querySelector('.main-content');
-    const userManagementCollapse = document.getElementById('userManagementCollapse');
 
     if (sidebarToggle && sidebar && mainContent) {
         sidebarToggle.addEventListener('click', function () {
@@ -431,10 +430,18 @@ function initializeSidebarToggle() {
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('sidebar-collapsed');
 
-            if (wasCollapsed && userManagementCollapse && userManagementCollapse.classList.contains('show')) {
-                userManagementCollapse.style.top = '';
-                userManagementCollapse.style.left = '';
-                userManagementCollapse.style.position = '';
+            // When collapsing: close all open submenu panels so they
+            // don't persist in a broken state when sidebar expands again
+            if (!wasCollapsed) {
+                sidebar.querySelectorAll('.collapse.show').forEach(function (panel) {
+                    var bsC = bootstrap.Collapse.getInstance(panel);
+                    if (bsC) bsC.hide();
+                    else panel.classList.remove('show');
+                    // Reset any inline positioning from flyout logic
+                    panel.style.top = '';
+                    panel.style.left = '';
+                    panel.style.position = '';
+                });
             }
         });
     }
