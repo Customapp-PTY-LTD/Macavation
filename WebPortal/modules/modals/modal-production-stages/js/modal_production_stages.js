@@ -111,6 +111,7 @@ function deriveSummaryFromStages(cracking_data, washing_data, sorting_data, pack
 
 var _modal_production_stages = (function () {
     'use strict';
+    var AUTO_SAVE_DELAY_MS = 900;
     return {
         modalProductionDays: null,
         modalProductionDayStages: null,
@@ -118,6 +119,9 @@ var _modal_production_stages = (function () {
         currentTabSection: 'crack',
         /** Cached result of getKernelBatchDetail — avoids repeated DB calls within one modal session. */
         _loadedKernelDetail: null,
+        _autoSaveTimer: null,
+        /** When true, date picker onChange will not clear the form (used when we set dates programmatically). */
+        _suppressDateChangeClear: false,
         productionActionMap: {
             crack: { section: 'crack', paneId: 'pane-cracking', dataKey: 'cracking_data' },
             wash: { section: 'wash', paneId: 'pane-washing', dataKey: 'washing_data' },
@@ -133,6 +137,7 @@ var _modal_production_stages = (function () {
                     scope.persistCurrentTabToStages();
                     scope.currentTabSection = scope.tabIdToSection[newTabId];
                     scope.updateProductionActionButtonTicks();
+                    scope.scheduleAutoSave();
                     var batchId = $('#productionStagesBatchId').val();
                     var tabName = newTabId.replace('tab-', '');
                     if (batchId && tabName) {
@@ -178,15 +183,11 @@ var _modal_production_stages = (function () {
                 inputs.forEach(function (el) {
                     if (el._flatpickr) return;
                     if (typeof flatpickr !== 'undefined') {
-                        var opts = Object.assign({}, FLATPICKR_DDMMYYYY);
-                        // For section date fields, add onChange to load existing data for that date
-                        var sectionKey = sectionDateFields[el.id];
-                        if (sectionKey) {
-                            opts.onChange = function () {
-                                scope._onSectionDateChange(sectionKey, el.id);
-                            };
-                        }
-                        flatpickr(el, opts);
+                        flatpickr(el, Object.assign({}, FLATPICKR_DDMMYYYY, {
+                            onChange: function (selectedDates, dateStr) {
+                                if (dateStr != null && dateStr !== '') _modal_production_stages.onProductionDateChanged(dateStr);
+                            }
+                        }));
                         if (!el.value && todayPlaceholder) el.placeholder = todayPlaceholder;
                     }
                 });
@@ -195,6 +196,9 @@ var _modal_production_stages = (function () {
                 var batchId = $('#productionStagesBatchId').val();
                 if (batchId) scope.saveProductionStagesDraftToStorage();
             });
+            $('#productionStagesModal').off('hide.bs.modal').on('hide.bs.modal', function () {
+                scope.flushAutoSave();
+            });
             $(document).on('click', '#productionStagesDayList [data-day-id]', function () {
                 var dayId = $(this).attr('data-day-id');
                 if (dayId) scope.selectProductionDay(dayId);
@@ -202,6 +206,9 @@ var _modal_production_stages = (function () {
             $(document).on('click', '#addProductionDayBtn', function (e) {
                 e.preventDefault();
                 scope.addProductionDay();
+            });
+            $(document).on('change input', '#productionStagesModal [id^="ps_"]', function () {
+                scope.scheduleAutoSave();
             });
         },
 
@@ -300,6 +307,7 @@ var _modal_production_stages = (function () {
         setProductionStagesSectionData: (prefix, data) => {
             const scope = _modal_production_stages;
             if (!data || typeof data !== 'object') return;
+            scope._suppressDateChangeClear = true;
             $.each(data, function (key, v) {
                 var el = document.getElementById('ps_' + prefix + '_' + key);
                 if (el) {
@@ -316,6 +324,7 @@ var _modal_production_stages = (function () {
             });
             if (prefix === 'wash') scope.updateWashWasteTotal();
             if (prefix === 'crack') scope.updateCrackSiloQty();
+            setTimeout(function () { scope._suppressDateChangeClear = false; }, 0);
         },
 
         ensureSelectHasOption: (selectEl, value) => {
@@ -332,6 +341,34 @@ var _modal_production_stages = (function () {
                 if (this.type === 'checkbox') this.checked = false;
                 else this.value = '';
             });
+        },
+
+        /** Set the four stage date inputs (Cracking, Washing, Sorting, Packing) to today. Use for a brand new day. */
+        setTodayDatesInProductionForm: () => {
+            const scope = _modal_production_stages;
+            scope._suppressDateChangeClear = true;
+            var today = new Date().toISOString().split('T')[0];
+            var ddmmyyyy = fromISO(today);
+            $('#ps_crack_date, #ps_wash_date, #ps_sort_date, #ps_pack_date').val(ddmmyyyy);
+            setTimeout(function () { scope._suppressDateChangeClear = false; }, 0);
+        },
+
+        /** Called when user changes any stage date in the picker. Clears non-date inputs and syncs all four dates to the new value, then auto-saves. */
+        onProductionDateChanged: (newDateStr) => {
+            const scope = _modal_production_stages;
+            if (scope._suppressDateChangeClear || !newDateStr || typeof newDateStr !== 'string') return;
+            newDateStr = newDateStr.trim();
+            if (newDateStr === '') return;
+            scope._suppressDateChangeClear = true;
+            var dateIds = ['ps_crack_date', 'ps_wash_date', 'ps_sort_date', 'ps_pack_date'];
+            $('[id^="ps_"]').each(function () {
+                if (dateIds.indexOf(this.id) >= 0) return;
+                if (this.type === 'checkbox') this.checked = false;
+                else this.value = '';
+            });
+            dateIds.forEach(function (id) { $('#' + id).val(newDateStr); });
+            setTimeout(function () { scope._suppressDateChangeClear = false; }, 0);
+            scope.scheduleAutoSave();
         },
 
         populateProductionGrowerSelects: (selectedGrowerName) => {
@@ -527,12 +564,15 @@ var _modal_production_stages = (function () {
                 scope.setProductionStagesSectionData('pack', pack);
             } else {
                 scope.clearProductionStagesForm();
+                scope.setTodayDatesInProductionForm();
             }
             return Promise.resolve();
         },
 
+        /** Switch to a day: save current day, then load the selected day's data (or blank + today's date if new day). */
         selectProductionDay: (dayId) => {
             const scope = _modal_production_stages;
+            scope.flushAutoSave();
             scope.persistCurrentTabToStages();
             $('#productionStagesDayId').val(dayId || '');
             var days = scope.modalProductionDays || [];
@@ -564,12 +604,7 @@ var _modal_production_stages = (function () {
             scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
             scope.setProductionStagesTabsVisibility(true);
             scope.setProductionDayActive(newDayId);
-            // Default today's date in all section date fields
-            var todayDisplay = fromISO(new Date().toISOString().split('T')[0]);
-            $('#ps_crack_date').val(todayDisplay);
-            $('#ps_wash_date').val(todayDisplay);
-            $('#ps_sort_date').val(todayDisplay);
-            $('#ps_pack_date').val(todayDisplay);
+            scope.setTodayDatesInProductionForm();
         },
 
         showBatchSummary: () => {
@@ -1231,17 +1266,27 @@ var _modal_production_stages = (function () {
         },
 
         saveProductionStages: () => {
+            _modal_production_stages.doSaveProductionStages(false);
+        },
+
+        /**
+         * Core save: persists current form to backend. When silent is true, no success toast (for auto-save).
+         * Shows "Saving..." / "Saved" in the status span when silent.
+         */
+        doSaveProductionStages: (silent) => {
             const scope = _modal_production_stages;
             var batchId = $('#productionStagesBatchId').val();
             var dayId = $('#productionStagesDayId').val();
             if (!batchId) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
+                if (!silent && typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
                 return;
             }
             if (dayId == null || dayId === '') {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Select or add a day first, then save.', 'error');
+                if (!silent && typeof Swal !== 'undefined') Swal.fire('Error', 'Select or add a day first, then save.', 'error');
                 return;
             }
+            var $status = $('#productionStagesAutoSaveStatus');
+            if (silent && $status.length) $status.removeClass('text-success text-danger').text('Saving…');
             scope.persistCurrentTabToStages();
             var cracking_data = scope.getProductionStagesSectionData('crack');
             var washing_data = scope.getProductionStagesSectionData('wash');
@@ -1281,10 +1326,40 @@ var _modal_production_stages = (function () {
                 }
                 scope.updateProductionActionButtonTicks();
                 scope.clearProductionStagesDraft(batchId);
-                if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved for this day.', 'success');
+                if (silent) {
+                    if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); }
+                    setTimeout(function () { if ($status.length) $status.text(''); }, 2000);
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved for this day.', 'success');
+                }
             }).catch(function (e) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save production stages', 'error');
+                if ($status.length) { $status.removeClass('text-success').addClass('text-danger').text('Save failed'); }
+                if (!silent && typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save production stages', 'error');
+                else if (silent && typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Auto-save failed', 'error');
             });
+        },
+
+        /** Schedules a single auto-save after AUTO_SAVE_DELAY_MS. Cancels any pending auto-save. */
+        scheduleAutoSave: () => {
+            const scope = _modal_production_stages;
+            var batchId = $('#productionStagesBatchId').val();
+            var dayId = $('#productionStagesDayId').val();
+            if (!batchId || dayId == null || dayId === '') return;
+            if (scope._autoSaveTimer) clearTimeout(scope._autoSaveTimer);
+            scope._autoSaveTimer = setTimeout(function () {
+                scope._autoSaveTimer = null;
+                scope.doSaveProductionStages(true);
+            }, AUTO_SAVE_DELAY_MS);
+        },
+
+        /** Runs any pending auto-save immediately, then clears the timer. Call before switching day or closing modal. */
+        flushAutoSave: () => {
+            const scope = _modal_production_stages;
+            if (scope._autoSaveTimer) {
+                clearTimeout(scope._autoSaveTimer);
+                scope._autoSaveTimer = null;
+                scope.doSaveProductionStages(true);
+            }
         },
 
         showProductionStagesModalForBatch: (batchId) => {

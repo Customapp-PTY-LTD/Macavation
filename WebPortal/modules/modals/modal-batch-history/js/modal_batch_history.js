@@ -257,15 +257,47 @@ var _modal_batch_history = (function () {
                 });
 
                 // --- Job card ---
+                // DATA SOURCES (getKernelProductionHistory): detail = kernel row + batches.batch_id.
+                //   - detail.job_card_data  → kernel.job_card_data (jsonb, saved by upsert_kernel_job_card; keys without p_)
+                //   - detail.grower_name    → kernel.grower_name (varchar)
+                //   - detail.actual_wet_nis_kg → kernel.actual_wet_nis_kg (numeric), only if migration adds it to get_kernel_production_history
+                //   - detail.received_date  → kernel.received_date (date)
+                // Job card jsonb keys (either key or p_key): batch_number, received_date, total_weight_kg, supplier_name,
+                //   packing_start_date, packing_completion_date, sound_kernel_total_cartons, sound_kernel_total_kg,
+                //   butter_grade_total_cartons, butter_grade_total_kg.
                 var jc = (detail.job_card_data && Object.keys(detail.job_card_data).length) ? detail.job_card_data : null;
                 if (jc) {
+                    var jcVal = function (key) {
+                        var v = jc[key];
+                        if (v != null && v !== '') return v;
+                        var pKey = 'p_' + key;
+                        return (jc[pKey] != null && jc[pKey] !== '') ? jc[pKey] : null;
+                    };
                     var fmtN = function (v) { return v != null && v !== '' ? (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(2)) : String(v)) : '—'; };
+                    // Batch: kernel.job_card_data.batch_number (or .p_batch_number)
+                    var batchNumber = jcVal('batch_number');
+                    // Received: kernel.job_card_data.received_date (or .p_received_date)
+                    var receivedDate = jcVal('received_date');
+                    // Total weight: kernel.job_card_data.total_weight_kg, fallback kernel.actual_wet_nis_kg
+                    var totalWeightKg = jcVal('total_weight_kg');
+                    if (totalWeightKg == null && detail.actual_wet_nis_kg != null && detail.actual_wet_nis_kg !== '') totalWeightKg = detail.actual_wet_nis_kg;
+                    // Supplier: kernel.job_card_data.supplier_name, fallback kernel.grower_name
+                    var supplierDisplay = jcVal('supplier_name');
+                    if (supplierDisplay == null && detail.grower_name != null && detail.grower_name !== '') supplierDisplay = detail.grower_name;
+                    // Packing dates: kernel.job_card_data.packing_start_date / packing_completion_date
+                    var packingStart = jcVal('packing_start_date');
+                    var packingCompletion = jcVal('packing_completion_date');
+                    // Sound kernel / Butter grade: kernel.job_card_data.sound_kernel_total_* / butter_grade_total_*
+                    var soundCartons = jcVal('sound_kernel_total_cartons');
+                    var soundKg = jcVal('sound_kernel_total_kg');
+                    var butterCartons = jcVal('butter_grade_total_cartons');
+                    var butterKg = jcVal('butter_grade_total_kg');
                     var html = '<div class="small">';
-                    html += '<p class="mb-1"><strong>Batch:</strong> ' + fmtN(jc.batch_number) + ' &nbsp; <strong>Received:</strong> ' + fmtN(jc.received_date) + '</p>';
-                    html += '<p class="mb-1"><strong>Total weight (kg):</strong> ' + fmtN(jc.total_weight_kg) + ' &nbsp; <strong>Supplier:</strong> ' + fmtN(jc.supplier_name) + '</p>';
-                    html += '<p class="mb-1"><strong>Packing:</strong> ' + fmtN(jc.packing_start_date) + ' – ' + fmtN(jc.packing_completion_date) + '</p>';
-                    html += '<p class="mb-0"><strong>Sound kernel:</strong> ' + fmtN(jc.sound_kernel_total_cartons) + ' cartons, ' + fmtN(jc.sound_kernel_total_kg) + ' kg &nbsp; <strong>Butter grade:</strong> ' + fmtN(jc.butter_grade_total_cartons) + ' cartons, ' + fmtN(jc.butter_grade_total_kg) + ' kg</p></div>';
-                    entries.push({ type: 'job_card', title: 'Job Card', bodyHtml: html, date: jc.packing_completion_date || jc.received_date || null });
+                    html += '<p class="mb-1"><strong>Batch:</strong> ' + fmtN(batchNumber) + ' &nbsp; <strong>Received:</strong> ' + fmtN(receivedDate) + '</p>';
+                    html += '<p class="mb-1"><strong>Total weight (kg):</strong> ' + fmtN(totalWeightKg) + ' &nbsp; <strong>Supplier:</strong> ' + fmtN(supplierDisplay) + '</p>';
+                    html += '<p class="mb-1"><strong>Packing:</strong> ' + fmtN(packingStart) + ' – ' + fmtN(packingCompletion) + '</p>';
+                    html += '<p class="mb-0"><strong>Sound kernel:</strong> ' + fmtN(soundCartons) + ' cartons, ' + fmtN(soundKg) + ' kg &nbsp; <strong>Butter grade:</strong> ' + fmtN(butterCartons) + ' cartons, ' + fmtN(butterKg) + ' kg</p></div>';
+                    entries.push({ type: 'job_card', title: 'Job Card', bodyHtml: html, date: packingCompletion || receivedDate || null });
                 }
 
                 // --- QA / End sample ---
