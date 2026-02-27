@@ -802,6 +802,7 @@ h1, h2, h3, h4, h5, h6,
 
 .badge.bg-secondary {
     background-color: var(--phoenix-secondary) !important;
+    color: var(--phoenix-dark) !important;
 }
 
 .badge.bg-success {

@@ -119,6 +119,7 @@ var _modal_production_stages = (function () {
         currentTabSection: 'crack',
         /** Cached result of getKernelBatchDetail — avoids repeated DB calls within one modal session. */
         _loadedKernelDetail: null,
+        _signaturePad: null,
         _autoSaveTimer: null,
         /** When true, date picker onChange will not clear the form (used when we set dates programmatically). */
         _suppressDateChangeClear: false,
@@ -143,6 +144,8 @@ var _modal_production_stages = (function () {
                     if (batchId && tabName) {
                         try { localStorage.setItem('kernelProduction_lastTab_' + batchId, tabName); } catch (err) {}
                     }
+                    // Init signature pad when packing tab is shown (canvas must be visible for sizing)
+                    if (newTabId === 'tab-packing') scope.initSignaturePad();
                 }
             });
             $('#saveProductionStagesBtnSingle, #saveProductionStagesBtn').off('click').on('click', function (e) {
@@ -191,6 +194,11 @@ var _modal_production_stages = (function () {
                         if (!el.value && todayPlaceholder) el.placeholder = todayPlaceholder;
                     }
                 });
+            });
+            // Signature pad init
+            $(document).off('click.sigclear', '#ps_pack_signature_clear').on('click.sigclear', '#ps_pack_signature_clear', function (e) {
+                e.preventDefault();
+                if (scope._signaturePad) { scope._signaturePad.clear(); $('#ps_pack_signature').val(''); }
             });
             $('#productionStagesModal').off('hidden.bs.modal').on('hidden.bs.modal', function () {
                 var batchId = $('#productionStagesBatchId').val();
@@ -289,7 +297,39 @@ var _modal_production_stages = (function () {
             $('#ps_sum_crack_time').val(val != null && val !== '' ? val : '');
         },
 
+        initSignaturePad: () => {
+            const scope = _modal_production_stages;
+            var canvas = document.getElementById('ps_pack_signature_canvas');
+            if (!canvas || typeof SignaturePad === 'undefined') return;
+            if (scope._signaturePad) return; // already initialized
+            scope._signaturePad = new SignaturePad(canvas, { penColor: '#222', backgroundColor: 'rgba(255,255,255,0)' });
+            // Sync to hidden input when stroke ends
+            scope._signaturePad.addEventListener('endStroke', function () {
+                var hidden = document.getElementById('ps_pack_signature');
+                if (hidden && !scope._signaturePad.isEmpty()) {
+                    hidden.value = scope._signaturePad.toDataURL('image/png');
+                }
+            });
+            // Resize canvas to match CSS display size
+            var ratio = Math.max(window.devicePixelRatio || 1, 1);
+            canvas.width = canvas.offsetWidth * ratio;
+            canvas.height = canvas.offsetHeight * ratio;
+            canvas.getContext('2d').scale(ratio, ratio);
+            scope._signaturePad.clear();
+            // Load existing signature if present
+            var hidden = document.getElementById('ps_pack_signature');
+            if (hidden && hidden.value && hidden.value.indexOf('data:') === 0) {
+                scope._signaturePad.fromDataURL(hidden.value, { ratio: ratio });
+            }
+        },
+
         getProductionStagesSectionData: (prefix) => {
+            const scope = _modal_production_stages;
+            // Sync signature pad to hidden input before collecting packing data
+            if (prefix === 'pack' && scope._signaturePad && !scope._signaturePad.isEmpty()) {
+                var sigEl = document.getElementById('ps_pack_signature');
+                if (sigEl) sigEl.value = scope._signaturePad.toDataURL('image/png');
+            }
             var out = {};
             $('[id^="ps_' + prefix + '_"]').each(function () {
                 var el = this;
@@ -324,6 +364,13 @@ var _modal_production_stages = (function () {
             });
             if (prefix === 'wash') scope.updateWashWasteTotal();
             if (prefix === 'crack') scope.updateCrackSiloQty();
+            if (prefix === 'pack' && data.signature && scope._signaturePad) {
+                scope._signaturePad.clear();
+                if (data.signature.indexOf('data:') === 0) {
+                    var ratio = Math.max(window.devicePixelRatio || 1, 1);
+                    scope._signaturePad.fromDataURL(data.signature, { ratio: ratio });
+                }
+            }
             setTimeout(function () { scope._suppressDateChangeClear = false; }, 0);
         },
 
@@ -337,10 +384,12 @@ var _modal_production_stages = (function () {
         },
 
         clearProductionStagesForm: () => {
+            const scope = _modal_production_stages;
             $('[id^="ps_"]').each(function () {
                 if (this.type === 'checkbox') this.checked = false;
                 else this.value = '';
             });
+            if (scope._signaturePad) scope._signaturePad.clear();
         },
 
         /** Set the four stage date inputs (Cracking, Washing, Sorting, Packing) to today. Use for a brand new day. */

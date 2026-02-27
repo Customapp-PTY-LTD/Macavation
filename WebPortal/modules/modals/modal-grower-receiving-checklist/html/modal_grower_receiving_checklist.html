@@ -100,11 +100,18 @@
                                 <tbody id="growerReceivedItemsTableBody">
                                     <tr>
                                         <td class="align-middle"><select class="form-select form-select-sm" name="growerDescription"><option value="">Select</option><option value="NIS">NIS</option><option value="Kernel">Kernel</option></select></td>
-                                        <td class="align-middle"><input type="number" class="form-control form-control-sm" name="growerQuantity" step="0.01"></td>
+                                        <td class="align-middle"><input type="number" class="form-control form-control-sm grower-bag-weight" name="growerQuantity" step="0.01"></td>
                                         <td class="align-middle"><input type="text" class="form-control form-control-sm flatpickr-date" name="growerManufacturedDate" title="Manufactured Date or Harvested Date"></td>
                                         <td class="align-middle"><button type="button" class="btn btn-sm btn-danger growerRemoveItemRow"><i class="fas fa-times"></i></button></td>
                                     </tr>
                                 </tbody>
+                                <tfoot>
+                                    <tr class="table-light fw-bold">
+                                        <td class="text-end">Total</td>
+                                        <td id="growerBagWeightTotal" class="text-end">0.00 kg</td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>

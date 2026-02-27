@@ -319,7 +319,7 @@ var _kernelProductionGrid = function () {
                 return;
             }
             const startTime = performance.now();
-            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'production,qa,complete' }).then((batches) => {
+            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'production,qa' }).then((batches) => {
                 scope.batches = batches || [];
                 scope.filteredBatches = scope.batches;
                 if (scope.currentView === 'kanban') {
