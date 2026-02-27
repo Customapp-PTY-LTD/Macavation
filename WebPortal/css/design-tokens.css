@@ -135,3 +135,54 @@
     --dark-wedgewood: var(--mac-text);
     --wedgewood-subtle: var(--mac-green-light);
 }
+
+/* ============================================
+   DARK MODE OVERRIDES
+   Activated by data-theme-mode="dark" on <html>
+   ============================================ */
+[data-theme-mode="dark"] {
+    color-scheme: dark;
+
+    /* --- Neutrals --- */
+    --mac-bg: #1A1A1A;
+    --mac-bg-secondary: #242424;
+    --mac-bg-tertiary: #2E2E2E;
+    --mac-border: #3A3A3A;
+    --mac-border-strong: #4A4A4A;
+    --mac-text: #E8E8E6;
+    --mac-text-secondary: #A0A0A0;
+    --mac-text-tertiary: #707070;
+
+    /* --- Brand (slightly brighter for dark bg) --- */
+    --mac-green-light: rgba(0, 137, 80, 0.15);
+
+    /* --- Semantic tints (higher alpha for dark bg) --- */
+    --mac-success-light: rgba(45, 164, 78, 0.15);
+    --mac-warning-light: rgba(212, 167, 44, 0.15);
+    --mac-danger-light: rgba(207, 34, 46, 0.15);
+    --mac-info-light: rgba(9, 105, 218, 0.15);
+
+    /* --- Shadows (more visible on dark) --- */
+    --mac-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --mac-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --mac-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --mac-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.04);
+
+    /* --- Kanban --- */
+    --kanban-column-bg: var(--mac-bg);
+    --kanban-card-bg: var(--mac-bg-secondary);
+    --kanban-card-border: var(--mac-border);
+    --kanban-card-shadow: var(--mac-shadow-card);
+    --kanban-card-hover-shadow: var(--mac-shadow-md);
+
+    /* --- Bridge overrides --- */
+    --phoenix-body-bg: var(--mac-bg);
+    --phoenix-card-bg: var(--mac-bg-secondary);
+    --phoenix-text-color: var(--mac-text);
+    --phoenix-border-color: var(--mac-border);
+    --phoenix-light: var(--mac-bg-tertiary);
+    --phoenix-dark: var(--mac-text);
+    --phoenix-secondary: var(--mac-border);
+    --shadow-warm: rgba(0, 0, 0, 0.3);
+    --macavation-modal-body-bg: var(--mac-bg);
+}

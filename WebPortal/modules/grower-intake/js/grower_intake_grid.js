@@ -409,6 +409,24 @@ var _growerIntakeGrid = function () {
                 html += '</div>';
                 return html;
             });
+
+            // Drag-and-drop: forward transitions only
+            var colOrder = ['receiving', 'intake_received', 'quality_pending', 'quality_approved'];
+            KanbanHelper.enableDragDrop('giKanbanBoard', function (batchId, fromKey, toKey) {
+                var fromIdx = colOrder.indexOf(fromKey);
+                var toIdx = colOrder.indexOf(toKey);
+                if (toIdx <= fromIdx) return; // block backward moves
+
+                if (toKey === 'intake_received' && fromKey === 'receiving') {
+                    if (typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.show) {
+                        _modal_grower_receiving_checklist.show(batchId);
+                    }
+                } else if ((toKey === 'quality_pending' || toKey === 'quality_approved') && (fromKey === 'intake_received' || fromKey === 'receiving')) {
+                    if (typeof _modal_grower_link_sample_to_batch !== 'undefined' && _modal_grower_link_sample_to_batch.show) {
+                        _modal_grower_link_sample_to_batch.show(batchId);
+                    }
+                }
+            });
         },
 
         moveBatchToRawStock: async (batchId) => {

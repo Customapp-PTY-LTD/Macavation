@@ -177,6 +177,16 @@ var _kernelDispatchGrid = function () {
                 html += '</div>';
                 return html;
             });
+
+            // Drag-and-drop: confirmed → dispatched only
+            KanbanHelper.enableDragDrop('kdKanbanBoard', function (orderId, fromKey, toKey) {
+                if (fromKey === 'confirmed' && toKey === 'dispatched') {
+                    if (typeof _modal_kernel_dispatch_form !== 'undefined' && _modal_kernel_dispatch_form.show) {
+                        _modal_kernel_dispatch_form.show(orderId);
+                    }
+                }
+                // backward (dispatched → confirmed) is silently ignored
+            });
         }
     };
 }();
