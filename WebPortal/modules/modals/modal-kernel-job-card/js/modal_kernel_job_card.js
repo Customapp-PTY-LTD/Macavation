@@ -187,7 +187,6 @@ var _modal_kernel_job_card = (function () {
             };
             scope.setJobCardField('jobCardBatchNumber', jc.batch_number);
             scope.setJobCardField('jobCardReceivedDate', fmtDate(jc.received_date));
-            scope.setJobCardField('jobCardSupplierName', jc.supplier_name);
             if (jc.supplier_id != null && jc.supplier_id !== '') scope.setJobCardField('jobCardSupplier', jc.supplier_id);
             scope.setJobCardField('jobCardTotalWeight', jc.total_weight_kg);
             scope.setJobCardField('jobCardRemovedPreSizer', jc.removed_pre_sizer_kg);
@@ -244,7 +243,6 @@ var _modal_kernel_job_card = (function () {
             var pack = s.packing_data || {};
             var sum = s.summary_data || {};
             if (crack.date) scope.setJobCardField('jobCardReceivedDate', crack.date.toString().split('T')[0]);
-            if (crack.grower) scope.setJobCardField('jobCardSupplierName', crack.grower);
             if (crack.batch1) scope.setJobCardField('jobCardBatchNumber', crack.batch1);
             if (pack.date) {
                 var d = pack.date.toString().split('T')[0];
@@ -363,7 +361,6 @@ var _modal_kernel_job_card = (function () {
             $('#jobCardProductionBatchId').val(batchId);
             $('#jobCardBatchNumber').val(batch.batch_number || '');
             scope.setJobCardField('jobCardReceivedDate', batch.received_date ? batch.received_date.toString().split('T')[0] : new Date().toISOString().split('T')[0]);
-            $('#jobCardSupplierName').val(batch.grower_name || '');
 
             // Load contacts + full kernel detail (job_card_data + stage arrays) in parallel
             var getContacts = dataFunctions.getContacts && dataFunctions.getContacts();
@@ -516,7 +513,7 @@ var _modal_kernel_job_card = (function () {
                 p_production_batch_id: getVal('jobCardProductionBatchId') || null,
                 p_total_weight_kg: getFloat('jobCardTotalWeight'),
                 p_supplier_id: getVal('jobCardSupplier') || null,
-                p_supplier_name: getVal('jobCardSupplierName') || null,
+                p_supplier_name: null,
                 p_removed_pre_sizer_kg: getFloat('jobCardRemovedPreSizer'),
                 p_balance_kg: getFloat('jobCardBalance'),
                 p_receiving_moisture_percentage: getFloat('jobCardReceivingMoisture'),
