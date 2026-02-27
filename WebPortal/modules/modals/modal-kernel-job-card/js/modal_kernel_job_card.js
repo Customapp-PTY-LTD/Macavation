@@ -361,6 +361,10 @@ var _modal_kernel_job_card = (function () {
             $('#jobCardProductionBatchId').val(batchId);
             $('#jobCardBatchNumber').val(batch.batch_number || '');
             scope.setJobCardField('jobCardReceivedDate', batch.received_date ? batch.received_date.toString().split('T')[0] : new Date().toISOString().split('T')[0]);
+            if (batch.actual_wet_nis_kg != null && batch.actual_wet_nis_kg !== '') {
+                scope.setJobCardField('jobCardBalance', batch.actual_wet_nis_kg);
+                scope.calculateMassBalance();
+            }
 
             // Load contacts + full kernel detail (job_card_data + stage arrays) in parallel
             var getContacts = dataFunctions.getContacts && dataFunctions.getContacts();
@@ -369,15 +373,39 @@ var _modal_kernel_job_card = (function () {
             (getContacts || Promise.resolve([])).then(function (contacts) {
                 var html = '<option value="">Select Supplier</option>';
                 if (contacts && Array.isArray(contacts)) {
+                    var batchSupplierId = batch.supplier_id != null && batch.supplier_id !== '' ? String(batch.supplier_id) : null;
                     contacts.forEach(function (contact) {
                         var name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
-                        var selected = batch.supplier_id && contact.id === batch.supplier_id ? ' selected' : '';
-                        html += '<option value="' + contact.id + '"' + selected + '>' + name + '</option>';
+                        var cid = contact.id != null ? String(contact.id) : '';
+                        var selected = batchSupplierId && cid === batchSupplierId ? ' selected' : '';
+                        html += '<option value="' + (contact.id || '') + '"' + selected + '>' + name + '</option>';
                     });
                 }
                 $('#jobCardSupplier').html(html);
                 return getDetail;
             }).then(function (detail) {
+                var intake = (detail && (detail.intake_data || detail.intakeData)) ? (detail.intake_data || detail.intakeData) : {};
+                var moistureResult = null;
+                if (intake.moisture && intake.moisture.result != null) moistureResult = intake.moisture.result;
+                else if (intake.ziplock_sample) {
+                    var zl = intake.ziplock_sample;
+                    if (zl.moisture && zl.moisture.result != null) moistureResult = zl.moisture.result;
+                    else if (zl.moisture_result != null) moistureResult = zl.moisture_result;
+                }
+                if (moistureResult != null) {
+                    scope.setJobCardField('jobCardReceivingMoisture', moistureResult);
+                    scope.calculateRemovedMoisture();
+                }
+
+                var qa = (detail && (detail.qa_data || detail.qaData)) ? (detail.qa_data || detail.qaData) : {};
+                var packingMoistureResult = null;
+                if (qa.moisture_result != null) packingMoistureResult = qa.moisture_result;
+                else if (qa.moisture && qa.moisture.result != null) packingMoistureResult = qa.moisture.result;
+                if (packingMoistureResult != null) {
+                    scope.setJobCardField('jobCardPackingMoisture', packingMoistureResult);
+                    scope.calculateRemovedMoisture();
+                }
+
                 var jc = (detail && detail.job_card_data && Object.keys(detail.job_card_data).length) ? detail.job_card_data : null;
                 if (jc && (jc.batch_number || jc.packing_start_date)) {
                     // Populate from saved job_card_data (source of truth)
@@ -400,6 +428,29 @@ var _modal_kernel_job_card = (function () {
                             if (jcFromPayload) scope.populateJobCardFormFromData(jcFromPayload);
                         }
                     }
+                }
+
+                // Ensure auto-filled Balance and Receiving % are kept when saved/staged data didn't provide them
+                var balanceVal = $('#jobCardBalance').val();
+                var actualKg = batch.actual_wet_nis_kg != null && batch.actual_wet_nis_kg !== '' ? batch.actual_wet_nis_kg : (detail && detail.actual_wet_nis_kg != null && detail.actual_wet_nis_kg !== '' ? detail.actual_wet_nis_kg : null);
+                if (actualKg != null && (!balanceVal || String(balanceVal).trim() === '')) {
+                    scope.setJobCardField('jobCardBalance', actualKg);
+                    scope.calculateMassBalance();
+                }
+                var receivingMoistureVal = $('#jobCardReceivingMoisture').val();
+                if (moistureResult != null && (!receivingMoistureVal || String(receivingMoistureVal).trim() === '')) {
+                    scope.setJobCardField('jobCardReceivingMoisture', moistureResult);
+                    scope.calculateRemovedMoisture();
+                }
+                var packingMoistureVal = $('#jobCardPackingMoisture').val();
+                if (packingMoistureResult != null && (!packingMoistureVal || String(packingMoistureVal).trim() === '')) {
+                    scope.setJobCardField('jobCardPackingMoisture', packingMoistureResult);
+                    scope.calculateRemovedMoisture();
+                }
+                var supplierVal = $('#jobCardSupplier').val();
+                var supplierIdFromBatchOrDetail = (detail && (detail.supplier_id != null && detail.supplier_id !== '')) ? detail.supplier_id : (batch.supplier_id != null && batch.supplier_id !== '' ? batch.supplier_id : null);
+                if (supplierIdFromBatchOrDetail != null && (!supplierVal || String(supplierVal).trim() === '')) {
+                    scope.setJobCardField('jobCardSupplier', supplierIdFromBatchOrDetail);
                 }
             }).then(function () {
                 var modalEl = document.getElementById('kernelJobCardModal');
