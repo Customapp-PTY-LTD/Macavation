@@ -1,70 +1,9 @@
 /* Macavation Premium Macadamia Management System - Theme System */
 
 /* ============================================
-   BASE CSS VARIABLES (Macavation: Gold + Aqua)
+   BASE CSS VARIABLES
+   All tokens now defined in design-tokens.css
    ============================================ */
-:root {
-    /* Brand Colors */
-    --phoenix-primary: #927325;
-    --phoenix-primary-rgb: 146, 115, 37;
-    --phoenix-secondary: #e9ecef;
-    --phoenix-secondary-rgb: 233, 236, 239;
-    --phoenix-tertiary: #B0DCE7;
-    --phoenix-tertiary-rgb: 176, 220, 231;
-    /* Semantic – success green (keep) */
-    --phoenix-success: #38b000;
-    --phoenix-success-rgb: 56, 176, 0;
-    --phoenix-info: #00b4d8;
-    --phoenix-info-rgb: 0, 180, 216;
-    --phoenix-warning: #fbbf24;
-    --phoenix-warning-rgb: 251, 191, 36;
-    --phoenix-danger: #ef4444;
-    --phoenix-danger-rgb: 239, 68, 68;
-    --phoenix-light: #e9ecef;
-    --phoenix-light-rgb: 233, 236, 239;
-    --phoenix-dark: #6b5519;
-    --phoenix-dark-rgb: 107, 85, 25;
-    
-    /* Layout Colors */
-    --phoenix-body-bg: #f0fafb;
-    --phoenix-card-bg: #ffffff;
-    --phoenix-text-color: #1e2d2e;
-    --phoenix-border-color: #B0DCE7;
-    
-    /* Theme-specific Colors */
-    --theme-sidebar-bg: #927325;
-    --theme-sidebar-text: rgba(255, 255, 255, 0.9);
-    --theme-sidebar-active: #B0DCE7;
-    --theme-sidebar-hover: rgba(176, 220, 231, 0.2);
-    --theme-navbar-gradient: linear-gradient(135deg, #927325, #B0DCE7);
-    --theme-accent: #B0DCE7;
-    
-    /* Static Variables – slightly sharp corners (5px) */
-    --phoenix-border-radius: 5px;
-    --phoenix-radius-sm: 4px;
-    --phoenix-radius-md: 5px;
-    --phoenix-radius-lg: 6px;
-    --phoenix-box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    --phoenix-box-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-    --phoenix-transition: all 0.15s ease-in-out;
-
-    /* Wedgewood palette (refined gold/brown) */
-    --primary-wedgewood: #8d7434;
-    --secondary-wedgewood: #a89158;
-    --tertiary-wedgewood: #c4b279;
-    --accent-wedgewood: #6b5a2a;
-    --light-wedgewood: #f8f6f0;
-    --dark-wedgewood: #4a3f21;
-    --wedgewood-subtle: rgba(141, 116, 52, 0.1);
-
-    /* Typography */
-    --phoenix-font-sans-serif: "Helvetica Neue", "Helvetica", Arial, sans-serif;
-    --phoenix-font-brand: "Helvetica Neue", "Helvetica", Arial, sans-serif;
-
-    /* Macavation brand (navbar + modals) */
-    --macavation-pink: #FF005E;
-    --macavation-modal-body-bg: #F5F5F5;
-}
 
 /* ============================================
    CUT-THROAT / BOXY – Global corner overrides
@@ -183,38 +122,40 @@ thead th,
     border-bottom-right-radius: var(--phoenix-border-radius) !important;
 }
 
-/* All modals – universal header (centered, white bg, pink text, brand font, shadow like main navbar) and body (body grey) */
+/* Universal modal header — clean & minimal */
 .modal-content .modal-header {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    background-color: #fff !important;
-    color: var(--macavation-pink) !important;
-    font-family: "Inter", var(--phoenix-font-brand) !important;
-    font-weight: 700;
+    background-color: var(--mac-bg-secondary) !important;
+    color: var(--mac-text) !important;
+    font-family: var(--mac-font) !important;
+    font-weight: 600;
     border: none !important;
-    padding: 1rem 3rem;
+    border-bottom: 1px solid var(--mac-border) !important;
+    padding: var(--mac-space-md) var(--mac-space-lg);
 }
 .modal-content .modal-header .modal-title {
-    font-family: "Inter", var(--phoenix-font-brand) !important;
-    font-weight: 700;
-    color: var(--macavation-pink) !important;
+    font-family: var(--mac-font) !important;
+    font-weight: 600;
+    color: var(--mac-text) !important;
     margin: 0;
-    text-transform: uppercase;
+    font-size: 1rem;
+    text-transform: none;
 }
 .modal-content .modal-header .btn-close {
     position: absolute;
     right: 1rem;
-    opacity: 0.7;
+    opacity: 0.5;
 }
 .modal-content .modal-header .btn-close:hover {
     opacity: 1;
 }
 .modal-content .modal-body {
-    background-color: var(--macavation-modal-body-bg) !important;
-    color: var(--phoenix-text-color);
+    background-color: var(--mac-bg) !important;
+    color: var(--mac-text);
 }
 
 /* Modal footer: Cancel on far left (red), Save/Add primary with no glow */
@@ -254,114 +195,49 @@ thead th,
     box-shadow: none !important;
 }
 
-/* ============================================
-   THEME TRANSITION ANIMATION
-   ============================================ */
-.theme-transitioning,
-.theme-transitioning *,
-.theme-transitioning *::before,
-.theme-transitioning *::after {
-    transition: background-color 0.3s ease, 
-                color 0.3s ease, 
-                border-color 0.3s ease,
-                box-shadow 0.3s ease !important;
-}
-
-/* ============================================
-   DARK MODE OVERRIDES
-   ============================================ */
-[data-theme-mode="dark"] {
-    --phoenix-box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
-    --phoenix-box-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.4);
-}
-
-[data-theme-mode="dark"] .card {
-    border-color: var(--phoenix-border-color);
-}
-
-[data-theme-mode="dark"] .table {
-    --bs-table-bg: var(--phoenix-card-bg);
-    --bs-table-color: var(--phoenix-text-color);
-    --bs-table-border-color: var(--phoenix-border-color);
-}
-
-[data-theme-mode="dark"] .modal-content {
-    background-color: var(--phoenix-card-bg);
-    border-color: var(--phoenix-border-color);
-}
-
-[data-theme-mode="dark"] .dropdown-menu {
-    background-color: var(--phoenix-card-bg);
-    border-color: var(--phoenix-border-color);
-}
-
-[data-theme-mode="dark"] .dropdown-item {
-    color: var(--phoenix-text-color);
-}
-
-[data-theme-mode="dark"] .dropdown-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme-mode="dark"] .form-control,
-[data-theme-mode="dark"] .form-select {
-    background-color: var(--phoenix-card-bg);
-    border-color: var(--phoenix-border-color);
-    color: var(--phoenix-text-color);
-}
-
-[data-theme-mode="dark"] .text-muted {
-    color: rgba(226, 232, 240, 0.6) !important;
-}
-
-[data-theme-mode="dark"] .text-dark {
-    color: var(--phoenix-text-color) !important;
-}
-
-[data-theme-mode="dark"] .bg-light {
-    background-color: var(--phoenix-light) !important;
-}
-
-[data-theme-mode="dark"] .border {
-    border-color: var(--phoenix-border-color) !important;
-}
+/* Theme transition and dark mode removed — single light theme via design-tokens.css */
 
 /* Base Styles */
 body {
-    font-family: var(--phoenix-font-sans-serif);
-    background-color: var(--phoenix-body-bg);
-    color: var(--phoenix-text-color);
-    line-height: 1.6;
+    font-family: var(--mac-font);
+    background-color: var(--mac-bg);
+    color: var(--mac-text);
+    line-height: 1.5;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Global Typography - Ensure consistent fonts across all modules */
+/* Global Typography */
 h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6,
 .card-title, .modal-title, .page-title,
 .module-title, .section-title {
-    font-family: var(--phoenix-font-brand);
+    font-family: var(--mac-font);
     font-weight: 600;
+    color: var(--mac-text);
+    letter-spacing: -0.01em;
 }
 
 .font-brand {
-    font-family: var(--phoenix-font-brand) !important;
+    font-family: var(--mac-font) !important;
 }
 
 .mt-navbar {
-    margin-top: 90px;
+    margin-top: 72px;
 }
 
-/* Navbar - Theme Integrated */
+/* Navbar */
 .navbar {
-    background: var(--theme-navbar-gradient) !important;
-    border-bottom: none;
-    box-shadow: 0 4px 12px rgba(17, 24, 39, 0.25);
+    background: var(--mac-bg-secondary) !important;
+    border-bottom: 1px solid var(--mac-border);
+    box-shadow: none;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 1050;
-    height: 70px;
+    height: 56px;
 }
 
 .navbar-brand {
@@ -387,20 +263,20 @@ h1, h2, h3, h4, h5, h6,
     color: var(--phoenix-primary) !important;
 }
 
-/* Sidebar - Theme Integrated */
+/* Sidebar */
 .sidebar {
     position: fixed;
-    top: 70px;
+    top: 56px;
     bottom: 0;
     left: 0;
     z-index: 101;
     padding: 0;
-    background-color: transparent;
-    border-right: 1px solid rgba(0, 0, 0, 0.12);
+    background-color: var(--mac-bg-secondary);
+    border-right: 1px solid var(--mac-border);
     box-shadow: none;
     transition: all 0.3s ease;
     width: 300px;
-    height: calc(100vh - 70px);
+    height: calc(100vh - 56px);
     overflow-y: hidden;
     display: flex;
     flex-direction: column;
@@ -529,19 +405,19 @@ h1, h2, h3, h4, h5, h6,
 
 /* Sidebar Footer */
 .sidebar-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-top: 1px solid var(--mac-border) !important;
     margin-top: auto;
 }
 
 .sidebar-footer .btn-link {
-    color: rgba(255, 255, 255, 0.8) !important;
+    color: var(--mac-text-tertiary) !important;
     text-decoration: none;
-    transition: var(--phoenix-transition);
+    transition: all var(--mac-transition);
 }
 
 .sidebar-footer .btn-link:hover {
-    color: #fff !important;
-    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--mac-text) !important;
+    background-color: var(--mac-bg-tertiary);
 }
 
 .sidebar.collapsed .sidebar-footer .toggle-text {
@@ -562,13 +438,13 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .sidebar .nav-link {
-    color: var(--theme-sidebar-text);
-    padding: 0.65rem 1rem;
-    border-radius: var(--phoenix-border-radius);
-    margin: 0.15rem 0.75rem;
+    color: var(--mac-text-secondary);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--mac-radius-sm);
+    margin: 1px 0.5rem;
     font-weight: 500;
-    font-size: 0.9rem;
-    transition: var(--phoenix-transition);
+    font-size: 0.875rem;
+    transition: all var(--mac-transition);
     display: flex;
     align-items: center;
     text-decoration: none;
@@ -576,15 +452,15 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .sidebar .nav-link:hover {
-    background-color: var(--theme-sidebar-hover);
-    color: #fff;
-    transform: translateX(2px);
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text);
+    transform: none;
 }
 
 .sidebar .nav-link.active {
-    background-color: var(--theme-sidebar-active);
-    color: white;
-    box-shadow: 0 8px 20px rgba(var(--phoenix-primary-rgb), 0.35);
+    background-color: var(--mac-green-light);
+    color: var(--mac-green);
+    box-shadow: none;
 }
 
 .sidebar .nav-link.active::before {
@@ -594,8 +470,8 @@ h1, h2, h3, h4, h5, h6,
     top: 0;
     bottom: 0;
     width: 3px;
-    background-color: var(--phoenix-primary);
-    border-radius: 0;
+    background-color: var(--mac-green);
+    border-radius: 0 2px 2px 0;
 }
 
 .sidebar .nav-link i {
@@ -619,10 +495,10 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .sidebar .collapse .nav-link {
-    padding-left: 2.5rem;
-    font-size: 0.83rem;
-    color: rgba(255, 255, 255, 0.7);
-    margin: 0.1rem 0.75rem;
+    padding-left: 2.25rem;
+    font-size: 0.8125rem;
+    color: var(--mac-text-secondary);
+    margin: 1px 0.5rem;
     position: relative;
 }
 
@@ -631,25 +507,23 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .sidebar .collapse .nav-link:hover {
-    color: var(--phoenix-primary);
-    background-color: rgba(var(--phoenix-primary-rgb), 0.1);
-    transform: translateX(2px);
+    color: var(--mac-text);
+    background-color: var(--mac-bg-tertiary);
+    transform: none;
 }
 
 .sidebar .collapse .nav-link:hover::before {
-    background-color: var(--phoenix-primary);
-    opacity: 1;
+    content: none;
 }
 
 .sidebar .collapse .nav-link.active {
-    color: var(--phoenix-primary);
-    background-color: rgba(var(--phoenix-primary-rgb), 0.1);
+    color: var(--mac-green);
+    background-color: var(--mac-green-light);
     font-weight: 600;
 }
 
 .sidebar .collapse .nav-link.active::before {
-    background-color: var(--phoenix-primary);
-    opacity: 1;
+    content: none;
 }
 
 /* User Management Section Styling */
@@ -743,9 +617,7 @@ h1, h2, h3, h4, h5, h6,
     color: var(--phoenix-text-color);
 }
 
-[data-bs-theme="dark"] .card-header {
-    background-color: var(--phoenix-dark);
-}
+/* dark card-header removed */
 
 /* Buttons - Phoenix Style */
 .btn {
@@ -812,9 +684,7 @@ h1, h2, h3, h4, h5, h6,
     color: var(--phoenix-text-color);
 }
 
-[data-bs-theme="dark"] .table thead {
-    background-color: var(--phoenix-dark);
-}
+/* dark table header removed */
 
 .table tbody tr:hover {
     background-color: rgba(var(--phoenix-primary-rgb), 0.05);
@@ -909,13 +779,7 @@ h1, h2, h3, h4, h5, h6,
     opacity: 1;
 }
 
-[data-bs-theme="dark"] .modal-header {
-    background-color: var(--phoenix-primary) !important;
-}
-
-[data-bs-theme="dark"] .modal-header .modal-title {
-    color: #2d2d2d !important;
-}
+/* dark modal header removed */
 
 /* Alerts - Phoenix Style */
 .alert {
@@ -1349,66 +1213,4 @@ h1, h2, h3, h4, h5, h6,
     }
 }
 
-/* ============================================
-   THEME SELECTOR STYLES
-   ============================================ */
-#themeSelector .dropdown-toggle {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--phoenix-border-radius);
-    padding: 0.5rem 0.75rem;
-    color: white;
-    transition: var(--phoenix-transition);
-}
-
-#themeSelector .dropdown-toggle:hover {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-#themeSelector .dropdown-toggle::after {
-    display: none;
-}
-
-#themeSelector .dropdown-menu {
-    min-width: 280px;
-    padding: 0.5rem;
-    border-radius: var(--phoenix-border-radius);
-    box-shadow: var(--phoenix-box-shadow-lg);
-    border: 1px solid var(--phoenix-border-color);
-    background-color: var(--phoenix-card-bg);
-}
-
-#themeSelector .theme-option {
-    border-radius: var(--phoenix-border-radius);
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.25rem;
-    transition: var(--phoenix-transition);
-    color: var(--phoenix-text-color);
-}
-
-#themeSelector .theme-option:last-child {
-    margin-bottom: 0;
-}
-
-#themeSelector .theme-option:hover {
-    background-color: rgba(var(--phoenix-primary-rgb), 0.1);
-}
-
-#themeSelector .theme-option .fa-check {
-    color: var(--phoenix-success);
-}
-
-#themeSelector .theme-option small {
-    font-size: 0.75rem;
-}
-
-/* Theme indicator dot */
-.theme-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: var(--phoenix-primary);
-    display: inline-block;
-    margin-right: 0.5rem;
-}
+/* Theme selector removed — single theme */

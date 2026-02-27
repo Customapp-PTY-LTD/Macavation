@@ -6,6 +6,24 @@
 var _growerIntakeGrid = function () {
     'use strict';
 
+    var INTAKE_KANBAN_COLUMNS = [
+        { key: 'receiving', label: 'Receiving' },
+        { key: 'intake_received', label: 'Intake Received' },
+        { key: 'quality_pending', label: 'Quality Pending' },
+        { key: 'quality_approved', label: 'Quality Approved' }
+    ];
+
+    function getIntakeColumnKey(b) {
+        if (['receiving', 'intake_received', 'quality_pending', 'quality_approved'].indexOf(b.status) >= 0) {
+            return b.status;
+        }
+        var checklistDone = !!b.has_receiving_checklist;
+        var sampleDone = !!b.has_ziplock_sample && !!b.has_5kg_sample;
+        if (!checklistDone) return 'receiving';
+        if (!sampleDone) return 'intake_received';
+        return 'quality_approved';
+    }
+
     return {
         samples: [],
         filteredSamples: [],
@@ -14,6 +32,7 @@ var _growerIntakeGrid = function () {
         currentPage: 1,
         itemsPerPage: 20,
         wetNisDisplayMode: 'both', // 'supplied' | 'actual' | 'both'
+        currentView: 'kanban',
 
         init: () => {
             const scope = _growerIntakeGrid;
@@ -59,6 +78,10 @@ var _growerIntakeGrid = function () {
                 scope.filterIntakeBatches();
             });
 
+            $('#giViewKanban, #giViewTable').off('click').on('click', function () {
+                scope.toggleView($(this).data('view'));
+            });
+
             $(document).on('click', '#intakeWetNisDropdownMenu .js-wet-nis-mode', function (e) {
                 e.preventDefault();
                 var mode = $(this).data('mode');
@@ -72,7 +95,7 @@ var _growerIntakeGrid = function () {
                 }
             });
 
-            $(document).on('click', '#intakeBatchesTableBody .js-intake-batch-number-link', function (e) {
+            $(document).on('click', '#intakeBatchesTableBody .js-intake-batch-number-link, #giKanbanBoard .js-intake-batch-number-link', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
@@ -93,7 +116,7 @@ var _growerIntakeGrid = function () {
                     }
                 }
             });
-            $(document).on('click', '#intakeBatchesTableBody .js-intake-checklist-btn', function (e) {
+            $(document).on('click', '#intakeBatchesTableBody .js-intake-checklist-btn, #giKanbanBoard .js-intake-checklist-btn', function (e) {
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
                 const checklistId = ($(this).data('receiving-checklist-id') || '').trim() || undefined;
@@ -101,7 +124,7 @@ var _growerIntakeGrid = function () {
                     _modal_grower_receiving_checklist.show(batchId, checklistId);
                 }
             });
-            $(document).on('click', '#intakeBatchesTableBody .js-intake-sample-btn', function (e) {
+            $(document).on('click', '#intakeBatchesTableBody .js-intake-sample-btn, #giKanbanBoard .js-intake-sample-btn', function (e) {
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
                 const batchNumber = $(this).data('batch-number');
@@ -112,7 +135,7 @@ var _growerIntakeGrid = function () {
                     _modal_grower_link_sample_to_batch.show(batchId, batchNumber);
                 }
             });
-            $(document).on('click', '#intakeBatchesTableBody .js-intake-release-btn', function (e) {
+            $(document).on('click', '#intakeBatchesTableBody .js-intake-release-btn, #giKanbanBoard .js-intake-release-btn', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
@@ -120,7 +143,7 @@ var _growerIntakeGrid = function () {
                     _growerIntakeGrid.moveBatchToRawStock(batchId);
                 }
             });
-            $(document).on('click', '#intakeBatchesTableBody .js-intake-edit', function (e) {
+            $(document).on('click', '#intakeBatchesTableBody .js-intake-edit, #giKanbanBoard .js-intake-edit', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
@@ -204,10 +227,21 @@ var _growerIntakeGrid = function () {
                 const matchesSearch = !searchTerm ||
                     (b.batch_number && b.batch_number.toLowerCase().indexOf(searchTerm) >= 0) ||
                     (b.grower_name && b.grower_name.toLowerCase().indexOf(searchTerm) >= 0);
-                const matchesStatus = !statusFilter || b.status === statusFilter;
+                var matchesStatus = !statusFilter;
+                if (statusFilter) {
+                    if (b.status === statusFilter) {
+                        matchesStatus = true;
+                    } else {
+                        matchesStatus = getIntakeColumnKey(b) === statusFilter;
+                    }
+                }
                 return matchesSearch && matchesStatus;
             });
-            scope.renderIntakeBatches();
+            if (scope.currentView === 'kanban') {
+                scope.renderKanbanIntake();
+            } else {
+                scope.renderIntakeBatches();
+            }
         },
 
         loadIntakeBatches: async (forceRefresh) => {
@@ -316,6 +350,64 @@ var _growerIntakeGrid = function () {
                     '<td class="intake-col-status"><span class="badge bg-info">' + (b.status || '') + '</span></td>' +
                     '<td class="intake-col-actions">' + actionsCell + '</td></tr>';
                 tbody.append(row);
+            });
+        },
+
+        toggleView: (view) => {
+            const scope = _growerIntakeGrid;
+            scope.currentView = view;
+            var board = document.getElementById('giKanbanBoard');
+            var table = document.getElementById('giTableCard');
+            if (view === 'kanban') {
+                if (board) board.style.display = '';
+                if (table) table.style.display = 'none';
+                scope.renderKanbanIntake();
+            } else {
+                if (board) board.style.display = 'none';
+                if (table) table.style.display = '';
+                scope.renderIntakeBatches();
+            }
+            $('#giViewKanban').toggleClass('active', view === 'kanban');
+            $('#giViewTable').toggleClass('active', view === 'table');
+        },
+
+        renderKanbanIntake: () => {
+            const scope = _growerIntakeGrid;
+            if (typeof KanbanHelper === 'undefined') return;
+
+            KanbanHelper.render('giKanbanBoard', INTAKE_KANBAN_COLUMNS, scope.filteredIntakeBatches, getIntakeColumnKey, function (b) {
+                var batchNum = (b.batch_number || '').toString();
+                var esc = KanbanHelper._esc;
+                var receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(b.received_date) : b.received_date) || '';
+                var checklistDone = !!b.has_receiving_checklist;
+                var sampleDone = !!b.has_ziplock_sample && !!b.has_5kg_sample;
+                var canRelease = checklistDone && sampleDone;
+
+                var stage1Html;
+                if (!checklistDone) {
+                    stage1Html = '<button type="button" class="btn btn-sm btn-primary js-intake-checklist-btn" data-batch-id="' + b.id + '" title="Receiving checklist"><i class="fas fa-clipboard-check me-1"></i>Checklist</button>';
+                } else if (!sampleDone) {
+                    stage1Html = '<button type="button" class="btn btn-sm btn-primary js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="New batch sample"><i class="fas fa-vial me-1"></i>Sample</button>';
+                } else {
+                    stage1Html = '<button type="button" class="btn btn-sm btn-success js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="View batch sample"><i class="fas fa-check me-1"></i>Sample</button>';
+                }
+
+                var releaseHtml = canRelease
+                    ? '<button type="button" class="btn btn-sm btn-outline-success js-intake-release-btn" data-batch-id="' + b.id + '" title="Release to production"><i class="fas fa-arrow-right me-1"></i>Release</button>'
+                    : '';
+
+                var weightLabel = b.wet_nis_received_kg != null ? b.wet_nis_received_kg + ' kg' : '';
+
+                var html = '<div class="kanban-card js-intake-batch-row" data-batch-id="' + b.id + '">';
+                html += '<div class="kanban-card-title">' + esc(batchNum) + '</div>';
+                html += '<div class="kanban-card-meta">';
+                if (b.grower_name) html += '<div class="kanban-card-meta-item"><i class="fas fa-user"></i> ' + esc(b.grower_name) + '</div>';
+                if (receivedDate) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + esc(receivedDate) + '</div>';
+                if (weightLabel) html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + esc(weightLabel) + '</div>';
+                html += '</div>';
+                html += '<div class="kanban-card-actions">' + stage1Html + releaseHtml + '</div>';
+                html += '</div>';
+                return html;
             });
         },
 

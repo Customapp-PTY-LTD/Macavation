@@ -19,11 +19,11 @@ body {
     background: #F5F5F5;
 }
 
-/* Navbar Styling – white header */
+/* Navbar Styling */
 .navbar {
-    background: #ffffff !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    background: var(--mac-bg-secondary) !important;
+    box-shadow: none;
+    border-bottom: 1px solid var(--mac-border);
 }
 
 .navbar .container-fluid {
@@ -41,12 +41,12 @@ body {
 }
 
 .navbar-brand span {
-    font-family: "Inter", "Helvetica Neue", sans-serif;
+    font-family: var(--mac-font);
     font-weight: 700;
-    font-size: 1.5rem;
-    letter-spacing: 1px;
+    font-size: 1.25rem;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
-    color: #FF005E !important;
+    color: var(--mac-pink) !important;
 }
 
 .navbar .nav-link {
@@ -58,15 +58,15 @@ body {
 }
 
 .navbar .dropdown-menu {
-    background: white;
-    border: 1px solid var(--macadamia-kernel);
-    border-radius: 5px;
-    box-shadow: 0 10px 40px var(--shadow-warm);
+    background: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-lg);
+    box-shadow: var(--mac-shadow-lg);
 }
 
 .navbar .dropdown-item:hover {
-    background: var(--macadamia-cream);
-    color: var(--forest-deep);
+    background: var(--mac-bg-tertiary);
+    color: var(--mac-text);
 }
 
 /* User icon: no arrow/caret next to profile circle */
@@ -161,27 +161,27 @@ body {
 .user-dropdown-change-pic {
     display: block;
     font-size: 0.75rem;
-    color: var(--forest-deep);
+    color: var(--mac-green);
     margin-top: 4px;
     opacity: 0.8;
 }
 
 .user-dropdown-info {
-    background: var(--macadamia-cream);
+    background: var(--mac-bg-tertiary);
     padding: 0.5rem 0.75rem;
-    border-radius: 5px;
+    border-radius: var(--mac-radius-md);
 }
 
 .user-dropdown-signout {
-    background: #dc3545 !important;
+    background: var(--mac-danger) !important;
     border: none !important;
     color: #fff !important;
-    border-radius: 5px !important;
+    border-radius: var(--mac-radius-md) !important;
     font-weight: 500;
 }
 
 .user-dropdown-signout:hover {
-    background: #bb2d3b !important;
+    background: #b01c26 !important;
     color: #fff !important;
 }
 
@@ -192,19 +192,20 @@ body {
 }
 
 .sidebar {
-    background: transparent !important;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    border-right: 1px solid rgba(0, 0, 0, 0.15);
+    background: var(--mac-bg-secondary) !important;
+    border: none !important;
+    border-right: 1px solid var(--mac-border) !important;
     box-shadow: none;
 }
 
 @media (min-width: 768px) {
     .sidebar {
-        left: 1rem !important;
-        top: calc(70px + 1rem) !important;
-        height: calc(100vh - 70px - 2rem) !important;
-        border: 1px solid rgba(0, 0, 0, 0.15) !important;
-        border-radius: 5px;
+        left: 0 !important;
+        top: 56px !important;
+        height: calc(100vh - 56px) !important;
+        border: none !important;
+        border-right: 1px solid var(--mac-border) !important;
+        border-radius: 0;
         box-shadow: none;
     }
 
@@ -214,82 +215,85 @@ body {
 
     .sidebar.collapsed {
         width: 70px !important;
-        border-radius: 5px;
+        border-radius: 0;
     }
 }
 
 /* Side nav: Bootstrap Phoenix text colour and font */
 .sidebar .nav-link {
-    color: #31374a !important;
-    font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    color: var(--mac-text-secondary) !important;
+    font-family: var(--mac-font) !important;
     font-weight: 500 !important;
-    border-radius: 5px;
-    margin: 2px 8px;
-    transition: all 0.3s ease;
+    font-size: 0.875rem;
+    border-radius: var(--mac-radius-sm);
+    margin: 1px 8px;
+    padding: 0.5rem 0.75rem;
+    transition: all var(--mac-transition);
 }
 
 .sidebar .nav-link:hover {
-    background: var(--forest-light-bg) !important;
-    color: var(--forest-deep) !important;
+    background: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text) !important;
 }
 
 .sidebar .nav-link.active {
-    background: var(--forest-light-bg) !important;
-    color: var(--forest-deep) !important;
+    background: var(--mac-green-light) !important;
+    color: var(--mac-green) !important;
 }
 
 .sidebar .nav-link.active::before,
 .sidebar .collapse .nav-link.active::before {
-    background-color: var(--forest-deep) !important;
+    background-color: var(--mac-green) !important;
 }
 
 .sidebar .collapse .nav-link {
     padding-left: 1rem;
-    font-size: 0.9rem;
-    color: #31374a !important;
-    font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    color: var(--mac-text-secondary) !important;
+    font-family: var(--mac-font) !important;
     font-weight: 500 !important;
 }
 
 .sidebar .collapse .nav-link:hover {
-    color: var(--forest-deep) !important;
-    background: var(--forest-light-bg) !important;
+    color: var(--mac-text) !important;
+    background: var(--mac-bg-tertiary) !important;
 }
 
 .sidebar .collapse .nav-link.active {
-    color: var(--forest-deep) !important;
-    background: var(--forest-light-bg) !important;
+    color: var(--mac-green) !important;
+    background: var(--mac-green-light) !important;
 }
 
-/* User Management: same as other side nav items (Phoenix styling) */
+/* User Management: same as other side nav items */
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link {
     font-weight: 500 !important;
-    color: #31374a !important;
+    color: var(--mac-text-secondary) !important;
     background-color: transparent !important;
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link:hover {
-    background: var(--forest-light-bg) !important;
-    color: var(--forest-deep) !important;
+    background: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text) !important;
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link[aria-expanded="true"] {
-    background: var(--forest-light-bg) !important;
-    color: var(--forest-deep) !important;
+    background: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text) !important;
 }
 
 .sidebar-footer {
-    border-color: rgba(0, 0, 0, 0.08) !important;
+    border-color: var(--mac-border) !important;
 }
 
 .sidebar-footer .btn-link {
-    color: #525b75 !important;
-    font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    color: var(--mac-text-tertiary) !important;
+    font-family: var(--mac-font) !important;
+    font-size: 0.8125rem;
 }
 
 .sidebar-footer .btn-link:hover {
-    color: var(--forest-deep) !important;
-    background: var(--forest-light-bg) !important;
+    color: var(--mac-text) !important;
+    background: var(--mac-bg-tertiary) !important;
 }
 
 /* Side nav scrollbar: left-aligned, only visible on hover (space reserved so buttons don't shift) */
@@ -335,13 +339,13 @@ body {
 
 @media (min-width: 768px) {
     .main-content {
-        margin-left: calc(300px + 2rem) !important;
-        width: calc(100% - 300px - 2rem) !important;
+        margin-left: 300px !important;
+        width: calc(100% - 300px) !important;
     }
 
     .main-content.sidebar-collapsed {
-        margin-left: calc(70px + 2rem) !important;
-        width: calc(100% - 70px - 2rem) !important;
+        margin-left: 70px !important;
+        width: calc(100% - 70px) !important;
     }
 }
 
@@ -350,133 +354,126 @@ body {
     border-top: none !important;
 }
 
-/* Page Headers */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    font-family: 'Tahoma', sans-serif;
-    color: var(--macadamia-dark);
-}
+/* Page Headers — font set globally in main.css */
 
 /* Cards */
 .card {
-    background: white;
-    border: none;
-    border-radius: 5px;
-    box-shadow: 0 4px 20px var(--shadow-warm);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-lg);
+    box-shadow: var(--mac-shadow-card);
+    transition: box-shadow var(--mac-transition);
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px var(--shadow-warm);
+    transform: none;
+    box-shadow: var(--mac-shadow-md);
 }
 
 .card.border-primary {
-    border-left-color: #008950 !important;
+    border-left-color: var(--mac-green) !important;
 }
 
 .card.border-success {
-    border-left-color: var(--forest-light) !important;
+    border-left-color: var(--mac-success) !important;
 }
 
 .card.border-info {
-    border-left-color: var(--gold-accent) !important;
+    border-left-color: var(--mac-info) !important;
 }
 
 .card.border-warning {
-    border-left-color: var(--earth-rich) !important;
+    border-left-color: var(--mac-warning) !important;
 }
 
 .text-primary {
-    color: var(--forest-deep) !important;
+    color: var(--mac-green) !important;
 }
 
 .text-success {
-    color: var(--forest-light) !important;
+    color: var(--mac-success) !important;
 }
 
 .text-info {
-    color: var(--gold-accent) !important;
+    color: var(--mac-info) !important;
 }
 
 .text-warning {
-    color: var(--earth-rich) !important;
+    color: var(--mac-warning) !important;
 }
 
 /* Buttons */
 .btn-primary {
-    background: #008950;
+    background: var(--mac-green);
     border: none;
-    border-radius: 5px;
-    padding: 0.6rem 1.5rem;
-    font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0, 137, 80, 0.3);
-    transition: all 0.3s ease;
+    border-radius: var(--mac-radius-md);
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    box-shadow: none;
+    transition: background var(--mac-transition);
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 137, 80, 0.4);
-    background: #008950;
+    transform: none;
+    box-shadow: none;
+    background: var(--mac-green-hover);
 }
 
-/* Outline buttons – green border (app-wide) */
+/* Outline buttons */
 .btn-outline-primary {
-    border: 2px solid var(--forest-deep);
-    color: var(--forest-deep);
-    border-radius: 5px;
+    border: 1px solid var(--mac-border-strong);
+    color: var(--mac-text);
+    border-radius: var(--mac-radius-md);
+    background: transparent;
 }
 
 .btn-outline-primary:hover {
-    background: var(--forest-deep);
-    border-color: var(--forest-deep);
-    color: white;
+    background: var(--mac-bg-tertiary);
+    border-color: var(--mac-border-strong);
+    color: var(--mac-text);
 }
 
 .btn-outline-secondary {
-    border: 2px solid var(--forest-deep);
-    color: var(--forest-deep);
-    border-radius: 5px;
+    border: 1px solid var(--mac-border);
+    color: var(--mac-text-secondary);
+    border-radius: var(--mac-radius-md);
 }
 
 .btn-outline-secondary:hover {
-    background: var(--forest-deep);
-    border-color: var(--forest-deep);
-    color: white;
+    background: var(--mac-bg-tertiary);
+    border-color: var(--mac-border-strong);
+    color: var(--mac-text);
 }
 
 /* Avatar */
 .avatar-name {
-    background: var(--gold-accent) !important;
-    color: var(--macadamia-dark) !important;
+    background: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text-secondary) !important;
 }
 
 /* Dropdown Header */
 .dropdown-header {
-    background: var(--macadamia-cream);
-    border-radius: 5px;
+    background: var(--mac-bg-tertiary);
+    border-radius: var(--mac-radius-md);
     margin: -0.5rem -0.5rem 0.5rem -0.5rem;
     padding: 1rem !important;
 }
 
 /* SweetAlert Customization */
 .swal2-popup {
-    border-radius: 5px !important;
-    font-family: 'Nunito Sans', sans-serif !important;
+    border-radius: var(--mac-radius-lg) !important;
+    font-family: var(--mac-font) !important;
 }
 
 .swal2-title {
-    font-family: 'Tahoma', sans-serif !important;
-    color: var(--macadamia-dark) !important;
+    font-family: var(--mac-font) !important;
+    color: var(--mac-text) !important;
 }
 
 .swal2-confirm {
-    background: #008950 !important;
-    border-radius: 5px !important;
+    background: var(--mac-green) !important;
+    border-radius: var(--mac-radius-md) !important;
 }
 
 /* Scrollbar Styling */
@@ -486,98 +483,148 @@ h6 {
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--macadamia-cream);
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--macadamia-shell);
-    border-radius: 4px;
+    background: var(--mac-border-strong);
+    border-radius: var(--mac-radius-pill);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--forest-light);
+    background: var(--mac-text-tertiary);
 }
 
-/* Tables – sharp corners */
+/* Tables */
 .table {
-    background: white;
+    background: transparent;
     border-radius: 0 !important;
     overflow: hidden;
+    font-size: 0.875rem;
 }
 
 .table thead th,
 .table thead th:first-child,
 .table thead th:last-child {
     border-radius: 0 !important;
-    background: var(--forest-deep);
-    color: white;
+    background: var(--mac-bg-tertiary);
+    color: var(--mac-text-secondary);
     font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     border: none;
+    border-bottom: 1px solid var(--mac-border);
+    padding: 0.625rem 0.75rem;
+}
+
+.table tbody tr {
+    border-bottom: 1px solid var(--mac-border);
 }
 
 .table tbody tr:hover {
-    background: var(--macadamia-cream);
+    background: var(--mac-bg-tertiary);
+}
+
+.table td {
+    padding: 0.625rem 0.75rem;
+    vertical-align: middle;
 }
 
 /* Form Controls */
 .form-control,
 .form-select {
-    border: 2px solid var(--macadamia-kernel);
-    border-radius: 5px;
-    padding: 0.6rem 1rem;
-    transition: all 0.3s ease;
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--mac-text);
+    background: var(--mac-bg-secondary);
+    transition: border-color var(--mac-transition), box-shadow var(--mac-transition);
 }
 
 .form-control:focus,
 .form-select:focus {
-    border-color: var(--forest-light);
-    box-shadow: 0 0 0 4px rgba(74, 124, 89, 0.1);
+    border-color: var(--mac-green);
+    box-shadow: 0 0 0 3px rgba(0, 137, 80, 0.12);
 }
 
-/* Badges */
+/* Badges — Notion-style pill with tint */
+.badge {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    padding: 0.2em 0.6em;
+    border-radius: var(--mac-radius-pill);
+    letter-spacing: 0.01em;
+}
+
 .badge.bg-primary {
-    background: var(--forest-deep) !important;
+    background: var(--mac-green-light) !important;
+    color: var(--mac-green) !important;
 }
 
 .badge.bg-success {
-    background: var(--forest-light) !important;
+    background: var(--mac-success-light) !important;
+    color: var(--mac-success) !important;
 }
 
 .badge.bg-warning {
-    background: var(--gold-accent) !important;
-    color: var(--macadamia-dark) !important;
+    background: var(--mac-warning-light) !important;
+    color: #8a6d14 !important;
 }
 
-/* Modal Styling – consistent radius, primary header, primary font */
+.badge.bg-info {
+    background: var(--mac-info-light) !important;
+    color: var(--mac-info) !important;
+}
+
+.badge.bg-danger {
+    background: var(--mac-danger-light) !important;
+    color: var(--mac-danger) !important;
+}
+
+/* Modal Styling */
 .modal-content {
-    border-radius: 5px !important;
-    border: none;
+    border-radius: var(--mac-radius-lg) !important;
+    border: 1px solid var(--mac-border);
     overflow: hidden;
+    box-shadow: var(--mac-shadow-lg);
 }
 
 .modal-header {
-    background: var(--phoenix-primary) !important;
-    color: #2d2d2d;
+    background: var(--mac-bg-secondary) !important;
+    color: var(--mac-text);
     border: none;
-    border-radius: 5px !important;
-    font-family: var(--phoenix-font-brand);
+    border-bottom: 1px solid var(--mac-border) !important;
+    border-radius: 0 !important;
+    font-family: var(--mac-font);
+    padding: var(--mac-space-md) var(--mac-space-lg);
 }
 
 .modal-header .modal-title {
-    color: #2d2d2d !important;
-    font-family: var(--phoenix-font-brand);
+    color: var(--mac-text) !important;
+    font-family: var(--mac-font);
+    font-weight: 600;
+    font-size: 1rem;
+    text-transform: none;
 }
 
 .modal-header .btn-close {
     filter: none;
-    opacity: 0.8;
+    opacity: 0.5;
+}
+
+.modal-header .btn-close:hover {
+    opacity: 1;
 }
 
 .modal-body {
-    background: var(--macadamia-cream);
+    background: var(--mac-bg);
+    padding: var(--mac-space-lg);
 }
 
 .modal-footer {
-    background: white;
-    border-top: 1px solid var(--macadamia-kernel);
+    background: var(--mac-bg-secondary);
+    border-top: 1px solid var(--mac-border);
+    padding: var(--mac-space-md) var(--mac-space-lg);
 }

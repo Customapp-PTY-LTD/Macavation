@@ -229,7 +229,7 @@
     }
 }
 
-/* Tablet styles */
+/* Tablet styles — touch targets + kanban optimization */
 @media (min-width: 769px) and (max-width: 1024px) {
     .mobile-table {
         display: table;
@@ -237,6 +237,51 @@
 
     .mobile-card-view {
         display: none;
+    }
+
+    /* 44px minimum touch targets */
+    .btn,
+    button,
+    input[type="button"],
+    input[type="submit"],
+    a.btn,
+    .dropdown-item,
+    .nav-link {
+        min-height: 44px;
+    }
+
+    /* Form inputs — 16px prevents iOS zoom on focus */
+    .form-control,
+    .form-select,
+    textarea.form-control {
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    /* Table rows — more padding for tap comfort */
+    .table td,
+    .table th {
+        padding: 0.75rem 0.5rem;
+    }
+
+    /* Kanban cards — comfortable tap area */
+    .kanban-card {
+        padding: var(--mac-space-md, 16px);
+    }
+
+    .kanban-card-actions .btn {
+        min-height: 40px;
+        padding: 0.375rem 0.75rem;
+    }
+
+    /* Sidebar nav links */
+    .sidebar-nav .nav-link {
+        padding: 0.625rem 1rem;
+    }
+
+    /* Dropdown menus */
+    .dropdown-item {
+        padding: 0.625rem 1rem;
     }
 }
 

@@ -12,7 +12,7 @@
     <!-- Search and Filters -->
     <div class="card mb-3">
         <div class="card-body">
-            <div class="row g-3">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label for="searchBatchesInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchBatchesInput" placeholder="Search by batch number, grower, or status...">
@@ -27,16 +27,30 @@
                         <option value="release_ready">Release ready</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-md-2">
                     <button type="button" class="btn btn-outline-secondary w-100" id="clearBatchFiltersBtn">
                         <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
+                <div class="col-md-3 d-flex justify-content-end">
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" data-view="kanban" id="kpViewKanban">
+                            <i class="fas fa-columns me-1"></i>Board
+                        </button>
+                        <button class="view-toggle-btn" data-view="table" id="kpViewTable">
+                            <i class="fas fa-list me-1"></i>Table
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="card mb-4">
+
+    <!-- Kanban Board (default view) -->
+    <div id="kpKanbanBoard" class="kanban-board"></div>
+
+    <!-- Table View (hidden by default) -->
+    <div class="card mb-4" id="kpTableCard" style="display:none">
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover" id="batchesTable">

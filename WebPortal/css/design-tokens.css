@@ -1,0 +1,137 @@
+/* ============================================
+   MACAVATION DESIGN TOKENS
+   Clean & Minimal Design System (Inter + Neutrals + Green Accent)
+   ============================================ */
+
+:root {
+    /* --- Brand --- */
+    --mac-green: #008950;
+    --mac-green-rgb: 0, 137, 80;
+    --mac-green-light: rgba(0, 137, 80, 0.08);
+    --mac-green-hover: #007744;
+    --mac-pink: #FF005E;
+
+    /* --- Neutrals (cool warm off-whites) --- */
+    --mac-bg: #F7F7F5;
+    --mac-bg-secondary: #FFFFFF;
+    --mac-bg-tertiary: #F0F0EE;
+    --mac-border: #E3E3E0;
+    --mac-border-strong: #D3D3D0;
+    --mac-text: #1F1F1F;
+    --mac-text-secondary: #6B6B6B;
+    --mac-text-tertiary: #9B9B9B;
+
+    /* --- Semantic --- */
+    --mac-success: #2DA44E;
+    --mac-success-rgb: 45, 164, 78;
+    --mac-success-light: rgba(45, 164, 78, 0.08);
+    --mac-warning: #D4A72C;
+    --mac-warning-rgb: 212, 167, 44;
+    --mac-warning-light: rgba(212, 167, 44, 0.08);
+    --mac-danger: #CF222E;
+    --mac-danger-rgb: 207, 34, 46;
+    --mac-danger-light: rgba(207, 34, 46, 0.08);
+    --mac-info: #0969DA;
+    --mac-info-rgb: 9, 105, 218;
+    --mac-info-light: rgba(9, 105, 218, 0.08);
+
+    /* --- Typography --- */
+    --mac-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --mac-font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+
+    /* --- Spacing (8px base grid) --- */
+    --mac-space-xs: 4px;
+    --mac-space-sm: 8px;
+    --mac-space-md: 16px;
+    --mac-space-lg: 24px;
+    --mac-space-xl: 32px;
+    --mac-space-2xl: 48px;
+
+    /* --- Radii --- */
+    --mac-radius-sm: 6px;
+    --mac-radius-md: 8px;
+    --mac-radius-lg: 12px;
+    --mac-radius-pill: 9999px;
+
+    /* --- Shadows (subtle, Notion-like) --- */
+    --mac-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --mac-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --mac-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --mac-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.04);
+
+    /* --- Transitions --- */
+    --mac-transition: 150ms ease;
+    --mac-transition-slow: 300ms ease;
+
+    /* --- Kanban --- */
+    --kanban-column-bg: var(--mac-bg);
+    --kanban-card-bg: var(--mac-bg-secondary);
+    --kanban-card-border: var(--mac-border);
+    --kanban-card-shadow: var(--mac-shadow-card);
+    --kanban-card-hover-shadow: var(--mac-shadow-md);
+
+    /* ============================================
+       BRIDGE VARIABLES
+       Map old phoenix/macadamia names → new tokens
+       so existing var() references keep working
+       ============================================ */
+
+    /* Phoenix → Mac */
+    --phoenix-primary: var(--mac-green);
+    --phoenix-primary-rgb: var(--mac-green-rgb);
+    --phoenix-secondary: var(--mac-border);
+    --phoenix-secondary-rgb: 227, 227, 224;
+    --phoenix-tertiary: var(--mac-bg-tertiary);
+    --phoenix-tertiary-rgb: 240, 240, 238;
+    --phoenix-success: var(--mac-success);
+    --phoenix-success-rgb: var(--mac-success-rgb);
+    --phoenix-info: var(--mac-info);
+    --phoenix-info-rgb: var(--mac-info-rgb);
+    --phoenix-warning: var(--mac-warning);
+    --phoenix-warning-rgb: var(--mac-warning-rgb);
+    --phoenix-danger: var(--mac-danger);
+    --phoenix-danger-rgb: var(--mac-danger-rgb);
+    --phoenix-light: var(--mac-bg-tertiary);
+    --phoenix-light-rgb: 240, 240, 238;
+    --phoenix-dark: var(--mac-text);
+    --phoenix-dark-rgb: 31, 31, 31;
+    --phoenix-body-bg: var(--mac-bg);
+    --phoenix-card-bg: var(--mac-bg-secondary);
+    --phoenix-text-color: var(--mac-text);
+    --phoenix-border-color: var(--mac-border);
+    --phoenix-border-radius: var(--mac-radius-md);
+    --phoenix-radius-sm: var(--mac-radius-sm);
+    --phoenix-radius-md: var(--mac-radius-md);
+    --phoenix-radius-lg: var(--mac-radius-lg);
+    --phoenix-box-shadow: var(--mac-shadow-sm);
+    --phoenix-box-shadow-lg: var(--mac-shadow-lg);
+    --phoenix-transition: all 150ms ease;
+    --phoenix-font-sans-serif: var(--mac-font);
+    --phoenix-font-brand: var(--mac-font);
+
+    /* Macadamia → Mac */
+    --macadamia-cream: var(--mac-bg-tertiary);
+    --macadamia-shell: var(--mac-text-secondary);
+    --macadamia-kernel: var(--mac-border);
+    --macadamia-dark: var(--mac-text);
+    --forest-deep: var(--mac-green);
+    --forest-light: var(--mac-green);
+    --forest-light-bg: var(--mac-green-light);
+    --earth-rich: var(--mac-text-secondary);
+    --gold-accent: var(--mac-warning);
+    --gold-light: var(--mac-warning-light);
+    --shadow-warm: rgba(0, 0, 0, 0.06);
+
+    /* Macavation brand */
+    --macavation-pink: var(--mac-pink);
+    --macavation-modal-body-bg: var(--mac-bg);
+
+    /* Wedgewood (referenced in a few places) */
+    --primary-wedgewood: var(--mac-green);
+    --secondary-wedgewood: var(--mac-text-secondary);
+    --tertiary-wedgewood: var(--mac-border);
+    --accent-wedgewood: var(--mac-green-hover);
+    --light-wedgewood: var(--mac-bg);
+    --dark-wedgewood: var(--mac-text);
+    --wedgewood-subtle: var(--mac-green-light);
+}

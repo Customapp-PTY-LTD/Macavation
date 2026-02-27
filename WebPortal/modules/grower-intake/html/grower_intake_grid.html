@@ -38,11 +38,25 @@
                         <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
+                <div class="col-md-3 d-flex justify-content-end align-items-end">
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" data-view="kanban" id="giViewKanban">
+                            <i class="fas fa-columns me-1"></i>Board
+                        </button>
+                        <button class="view-toggle-btn" data-view="table" id="giViewTable">
+                            <i class="fas fa-list me-1"></i>Table
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="card mb-4 border-primary">
+    <!-- Kanban Board (default view) -->
+    <div id="giKanbanBoard" class="kanban-board"></div>
+
+    <!-- Table View (hidden by default) -->
+    <div class="card mb-4" id="giTableCard" style="display:none">
         <div class="card-body p-2 p-md-3">
             <div class="table-responsive intake-table-responsive">
                 <table class="table table-hover" id="intakeBatchesTable">

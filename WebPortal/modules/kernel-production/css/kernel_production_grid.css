@@ -117,7 +117,7 @@
 }
 .batch-history-timeline__block-body .table {
     margin-top: 0.5rem;
-    background: #fff;
+    background: var(--mac-bg-secondary);
 }
 .batch-history-timeline__block-body .table th,
 .batch-history-timeline__block-body .table td {

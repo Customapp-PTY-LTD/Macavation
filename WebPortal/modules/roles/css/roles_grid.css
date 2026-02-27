@@ -148,17 +148,3 @@
         max-width: 150px !important;
     }
 }
-
-/* Dark mode */
-[data-bs-theme="dark"] .card-header {
-    background-color: var(--phoenix-dark);
-}
-
-[data-bs-theme="dark"] .pagination .page-link:hover {
-    background-color: var(--phoenix-dark);
-}
-
-[data-bs-theme="dark"] #permissionsPreview {
-    background-color: var(--phoenix-dark);
-    border-color: var(--phoenix-border-color);
-}

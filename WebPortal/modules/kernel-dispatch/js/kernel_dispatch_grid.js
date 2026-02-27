@@ -16,13 +16,22 @@ var _kernelDispatchGrid = function () {
         return day + '/' + month + '/' + year;
     };
 
+    var DISPATCH_KANBAN_COLUMNS = [
+        { key: 'confirmed', label: 'Ready to Dispatch' },
+        { key: 'dispatched', label: 'Dispatched' }
+    ];
+
     return {
         orders: [],
         _handlersBound: false,
+        currentView: 'kanban',
 
         init: async () => {
             const scope = _kernelDispatchGrid;
             $('#kernelDispatchRefreshBtn').off('click').on('click', function () { scope.loadOrders(true); });
+            $('#kdViewKanban, #kdViewTable').off('click').on('click', function () {
+                scope.toggleView($(this).data('view'));
+            });
             if (!scope._handlersBound) {
                 scope._handlersBound = true;
                 $(document).on('click', '.js-view-dispatch-order', function () {
@@ -76,6 +85,10 @@ var _kernelDispatchGrid = function () {
 
         render: () => {
             const scope = _kernelDispatchGrid;
+            if (scope.currentView === 'kanban') {
+                scope.renderKanban();
+                return;
+            }
             var pending = scope.orders.filter(function (o) { return o.status !== 'dispatched'; });
             var dispatched = scope.orders.filter(function (o) { return o.status === 'dispatched'; });
 
@@ -113,6 +126,57 @@ var _kernelDispatchGrid = function () {
                     dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + '</td></tr>');
                 });
             }
+        },
+
+        toggleView: (view) => {
+            const scope = _kernelDispatchGrid;
+            scope.currentView = view;
+            var board = document.getElementById('kdKanbanBoard');
+            var tables = document.getElementById('kdTableCards');
+            if (view === 'kanban') {
+                if (board) board.style.display = '';
+                if (tables) tables.style.display = 'none';
+                scope.renderKanban();
+            } else {
+                if (board) board.style.display = 'none';
+                if (tables) tables.style.display = '';
+                scope.render();
+            }
+            $('#kdViewKanban').toggleClass('active', view === 'kanban');
+            $('#kdViewTable').toggleClass('active', view === 'table');
+        },
+
+        renderKanban: () => {
+            const scope = _kernelDispatchGrid;
+            if (typeof KanbanHelper === 'undefined') return;
+
+            KanbanHelper.render('kdKanbanBoard', DISPATCH_KANBAN_COLUMNS, scope.orders, function (o) {
+                return o.status === 'dispatched' ? 'dispatched' : 'confirmed';
+            }, function (o) {
+                var esc = KanbanHelper._esc;
+                var buyer = esc(o.buyer_name || '—');
+                var deliveryStr = formatDate(o.delivery_date);
+                var createdStr = formatDate(o.created_at);
+                var lineCount = o.line_count != null ? o.line_count : 0;
+                var totalKg = o.total_kg != null ? Number(o.total_kg).toFixed(1) : '0.0';
+                var isDispatched = o.status === 'dispatched';
+
+                var html = '<div class="kanban-card" data-order-id="' + (o.id || '') + '">';
+                html += '<div class="kanban-card-title">' + buyer + '</div>';
+                html += '<div class="kanban-card-meta">';
+                if (deliveryStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + esc(deliveryStr) + '</div>';
+                html += '<div class="kanban-card-meta-item"><i class="fas fa-list"></i> ' + lineCount + ' lines</div>';
+                html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + totalKg + ' kg</div>';
+                html += '</div>';
+                html += '<div class="kanban-card-actions">';
+                html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-box me-1"></i>View</button>';
+                if (!isDispatched) {
+                    html += '<button type="button" class="btn btn-sm btn-success js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Dispatch</button>';
+                }
+                html += '</div>';
+                html += '</div>';
+                return html;
+            });
         }
     };
 }();

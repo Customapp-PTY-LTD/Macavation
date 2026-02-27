@@ -59,10 +59,18 @@ var _kernelProductionGrid = function () {
         return { label: 'Awaiting production', filterValue: 'awaiting_production' };
     };
 
+    const KANBAN_COLUMNS = [
+        { key: 'awaiting_production', label: 'Awaiting Production' },
+        { key: 'in_production', label: 'In Production' },
+        { key: 'awaiting_test', label: 'Awaiting Test' },
+        { key: 'release_ready', label: 'Release Ready' }
+    ];
+
     return {
         batches: [],
         filteredBatches: [],
         searchDebounceToken: 0,
+        currentView: 'kanban',
 
         /** Same derived status as in the grid table (for use by batch history modal etc.). */
         getBatchDisplayStatus: getBatchDisplayStatus,
@@ -187,6 +195,65 @@ var _kernelProductionGrid = function () {
                     _modal_kernel_job_card.showJobCardModalForBatch(batchId);
                 }
             });
+            // Kanban card click → batch history
+            $(document).on('click', '#kpKanbanBoard .kanban-card', function (e) {
+                if ($(e.target).closest('button, .btn').length) return;
+                const batchId = $(this).data('batch-id');
+                if (batchId && typeof _modal_batch_history !== 'undefined' && _modal_batch_history.show) {
+                    _modal_batch_history.show(batchId);
+                }
+            });
+            // View toggle
+            $('#kpViewKanban').on('click', function () { _kernelProductionGrid.toggleView('kanban'); });
+            $('#kpViewTable').on('click', function () { _kernelProductionGrid.toggleView('table'); });
+        },
+
+        toggleView: (view) => {
+            const scope = _kernelProductionGrid;
+            scope.currentView = view;
+            if (view === 'kanban') {
+                $('#kpKanbanBoard').show();
+                $('#kpTableCard').hide();
+                $('#kpViewKanban').addClass('active');
+                $('#kpViewTable').removeClass('active');
+                scope.renderKanban();
+            } else {
+                $('#kpKanbanBoard').hide();
+                $('#kpTableCard').show();
+                $('#kpViewTable').addClass('active');
+                $('#kpViewKanban').removeClass('active');
+                scope.renderBatches();
+            }
+        },
+
+        renderKanban: () => {
+            const scope = _kernelProductionGrid;
+            if (typeof KanbanHelper === 'undefined') return;
+            KanbanHelper.render(
+                'kpKanbanBoard',
+                KANBAN_COLUMNS,
+                scope.filteredBatches,
+                function (batch) { return getBatchDisplayStatus(batch).filterValue; },
+                function (batch) {
+                    var receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
+                        ? (_common.formatDateDDMMYYYY(batch.received_date) || '') : '';
+                    var productionIcon = batch.production_finished_at ? '<i class="fas fa-check text-success me-1"></i>' : '';
+                    var qaIcon = batch.has_qa ? '<i class="fas fa-check text-success me-1"></i>' : '';
+                    var jcIcon = batch.has_job_card ? '<i class="fas fa-check text-success me-1"></i>' : '';
+                    return '<div class="kanban-card" data-batch-id="' + batch.id + '">' +
+                        '<div class="kanban-card-title">' + KanbanHelper._esc(batch.batch_number || 'N/A') + '</div>' +
+                        '<div class="kanban-card-meta">' +
+                            '<span class="kanban-card-meta-item"><i class="fas fa-user"></i> ' + KanbanHelper._esc(batch.grower_name || 'N/A') + '</span>' +
+                            '<span class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + KanbanHelper._esc(String(batch.wet_nis_received_kg || '0')) + ' kg</span>' +
+                            (receivedDate ? '<span class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + KanbanHelper._esc(receivedDate) + '</span>' : '') +
+                        '</div>' +
+                        '<div class="kanban-card-actions">' +
+                            '<button class="btn btn-sm btn-outline-secondary js-production-batch" data-batch-id="' + batch.id + '" title="Production">' + productionIcon + '<i class="fas fa-cogs"></i></button>' +
+                            '<button class="btn btn-sm btn-outline-secondary js-job-card-batch" data-batch-id="' + batch.id + '" title="Job Card">' + jcIcon + '<i class="fas fa-file-alt"></i></button>' +
+                            '<button class="btn btn-sm btn-outline-secondary js-end-sample-batch" data-batch-id="' + batch.id + '" title="End Sample">' + qaIcon + '<i class="fas fa-flask"></i></button>' +
+                        '</div></div>';
+                }
+            );
         },
 
         filterBatches: () => {
@@ -203,7 +270,11 @@ var _kernelProductionGrid = function () {
                 const matchesStatus = !statusFilter || displayStatus.filterValue === statusFilter;
                 return matchesSearch && matchesStatus;
             });
-            scope.renderBatches();
+            if (scope.currentView === 'kanban') {
+                scope.renderKanban();
+            } else {
+                scope.renderBatches();
+            }
         },
 
         loadBatches: (forceRefresh) => {
@@ -217,7 +288,11 @@ var _kernelProductionGrid = function () {
             _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'production,qa,complete' }).then((batches) => {
                 scope.batches = batches || [];
                 scope.filteredBatches = scope.batches;
-                scope.renderBatches();
+                if (scope.currentView === 'kanban') {
+                    scope.renderKanban();
+                } else {
+                    scope.renderBatches();
+                }
                 console.log('[Kernel Production] Batches loaded in ' + (performance.now() - startTime).toFixed(2) + 'ms, count: ' + scope.batches.length);
             }).catch((err) => {
                 console.error('[Kernel Production] Error loading batches:', err);

@@ -42,7 +42,7 @@
 /* Ensure Actions dropdown menu and items are visible */
 #oilDispatchTable .dropdown-menu {
     z-index: 1060;
-    background-color: #fff;
+    background-color: var(--mac-bg-secondary);
     border: 1px solid rgba(0, 0, 0, 0.15);
 }
 #oilDispatchTable .dropdown-item {

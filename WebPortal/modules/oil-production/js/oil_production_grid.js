@@ -7,10 +7,16 @@ var _oilProductionGrid = function () {
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+    var OIL_KANBAN_COLUMNS = [
+        { key: 'pending', label: 'Pending' },
+        { key: 'completed', label: 'Completed' }
+    ];
+
     return {
         batches: [],
         filteredBatches: [],
         searchDebounceToken: 0,
+        currentView: 'kanban',
 
         init: () => {
             const scope = _oilProductionGrid;
@@ -56,7 +62,10 @@ var _oilProductionGrid = function () {
                 $('#filterOilBatchStatus').val('');
                 scope.filterBatches();
             });
-            $(document).on('click', '#oilBatchesTableBody tr.js-oil-batch-row', function (e) {
+            $('#opViewKanban, #opViewTable').off('click').on('click', function () {
+                scope.toggleView($(this).data('view'));
+            });
+            $(document).on('click', '#oilBatchesTableBody tr.js-oil-batch-row, #opKanbanBoard .js-oil-batch-row', function (e) {
                 if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
                 const batchId = $(this).data('batch-id');
                 if (batchId && scope.editBatch) scope.editBatch(batchId);
@@ -88,7 +97,11 @@ var _oilProductionGrid = function () {
                 const matchesStatus = !statusFilter || (batch.status || '').toString() === statusFilter;
                 return matchesSearch && matchesStatus;
             });
-            scope.renderBatches();
+            if (scope.currentView === 'kanban') {
+                scope.renderKanban();
+            } else {
+                scope.renderBatches();
+            }
         },
 
         loadBatches: async (forceRefresh) => {
@@ -146,6 +159,51 @@ var _oilProductionGrid = function () {
                     '<td><span class="badge bg-info">' + scope.escapeHtml(batch.status || 'pending') + '</span></td>' +
                     '<td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
+            });
+        },
+
+        toggleView: (view) => {
+            const scope = _oilProductionGrid;
+            scope.currentView = view;
+            var board = document.getElementById('opKanbanBoard');
+            var table = document.getElementById('opTableCard');
+            if (view === 'kanban') {
+                if (board) board.style.display = '';
+                if (table) table.style.display = 'none';
+                scope.renderKanban();
+            } else {
+                if (board) board.style.display = 'none';
+                if (table) table.style.display = '';
+                scope.renderBatches();
+            }
+            $('#opViewKanban').toggleClass('active', view === 'kanban');
+            $('#opViewTable').toggleClass('active', view === 'table');
+        },
+
+        renderKanban: () => {
+            const scope = _oilProductionGrid;
+            if (typeof KanbanHelper === 'undefined') return;
+
+            KanbanHelper.render('opKanbanBoard', OIL_KANBAN_COLUMNS, scope.filteredBatches, function (batch) {
+                return (batch.status || 'pending').toString().toLowerCase();
+            }, function (batch) {
+                var esc = KanbanHelper._esc;
+                var batchId = (batch.id != null ? batch.id : batch.batch_number || '').toString();
+                var dateStr = scope.formatDate(batch.production_date);
+
+                var html = '<div class="kanban-card js-oil-batch-row" data-batch-id="' + scope.escapeHtml(batchId) + '">';
+                html += '<div class="kanban-card-title">' + esc(batch.batch_number || 'N/A') + '</div>';
+                html += '<div class="kanban-card-meta">';
+                if (dateStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + esc(dateStr) + '</div>';
+                if (batch.shift) html += '<div class="kanban-card-meta-item"><i class="fas fa-clock"></i> ' + esc(batch.shift) + '</div>';
+                if (batch.product_name) html += '<div class="kanban-card-meta-item"><i class="fas fa-oil-can"></i> ' + esc(batch.product_name) + '</div>';
+                if (batch.total_oil_litre != null) html += '<div class="kanban-card-meta-item"><i class="fas fa-tint"></i> ' + esc(String(batch.total_oil_litre)) + ' L</div>';
+                html += '</div>';
+                html += '<div class="kanban-card-actions">';
+                html += '<button type="button" class="btn btn-sm btn-outline-secondary js-oil-batch-edit" data-batch-id="' + scope.escapeHtml(batchId) + '"><i class="fas fa-pen me-1"></i>Edit</button>';
+                html += '</div>';
+                html += '</div>';
+                return html;
             });
         },
 
