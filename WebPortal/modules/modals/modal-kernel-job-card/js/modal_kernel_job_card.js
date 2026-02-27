@@ -361,9 +361,10 @@ var _modal_kernel_job_card = (function () {
             $('#jobCardProductionBatchId').val(batchId);
             $('#jobCardBatchNumber').val(batch.batch_number || '');
             scope.setJobCardField('jobCardReceivedDate', batch.received_date ? batch.received_date.toString().split('T')[0] : new Date().toISOString().split('T')[0]);
+            // Actual Weight from Grower Intake → Total Weight (kg); Balance = Total Weight − Removed Pre-Sizer
             if (batch.actual_wet_nis_kg != null && batch.actual_wet_nis_kg !== '') {
-                scope.setJobCardField('jobCardBalance', batch.actual_wet_nis_kg);
-                scope.calculateMassBalance();
+                scope.setJobCardField('jobCardTotalWeight', batch.actual_wet_nis_kg);
+                scope.calculateBalance();
             }
 
             // Load contacts + full kernel detail (job_card_data + stage arrays) in parallel
@@ -430,12 +431,12 @@ var _modal_kernel_job_card = (function () {
                     }
                 }
 
-                // Ensure auto-filled Balance and Receiving % are kept when saved/staged data didn't provide them
-                var balanceVal = $('#jobCardBalance').val();
+                // Ensure Total Weight (from Actual Weight / Grower Intake) and Balance are kept when saved/staged data didn't provide them
+                var totalWeightVal = $('#jobCardTotalWeight').val();
                 var actualKg = batch.actual_wet_nis_kg != null && batch.actual_wet_nis_kg !== '' ? batch.actual_wet_nis_kg : (detail && detail.actual_wet_nis_kg != null && detail.actual_wet_nis_kg !== '' ? detail.actual_wet_nis_kg : null);
-                if (actualKg != null && (!balanceVal || String(balanceVal).trim() === '')) {
-                    scope.setJobCardField('jobCardBalance', actualKg);
-                    scope.calculateMassBalance();
+                if (actualKg != null && (!totalWeightVal || String(totalWeightVal).trim() === '')) {
+                    scope.setJobCardField('jobCardTotalWeight', actualKg);
+                    scope.calculateBalance();
                 }
                 var receivingMoistureVal = $('#jobCardReceivingMoisture').val();
                 if (moistureResult != null && (!receivingMoistureVal || String(receivingMoistureVal).trim() === '')) {
