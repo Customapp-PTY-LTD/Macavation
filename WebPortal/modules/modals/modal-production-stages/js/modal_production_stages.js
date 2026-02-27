@@ -172,6 +172,10 @@ var _modal_production_stages = (function () {
             $(document).on('change input', '#ps_crack_timespent1', function () {
                 scope.syncCrackTimeToSummary();
             });
+            // Crates/cartons → qty auto-calc (× 11.34)
+            $(document).on('input change', '.wash-crate-input', function () { scope.recalcWashingQty(); });
+            $(document).on('input change', '.sort-crate-input', function () { scope.recalcSortingQty(); });
+            $(document).on('input change', '.pack-carton-input', function () { scope.recalcPackingQty(); });
             // Map section date field IDs to their section key
             var sectionDateFields = {
                 'ps_crack_date': 'crack',
@@ -297,6 +301,66 @@ var _modal_production_stages = (function () {
             $('#ps_sum_crack_time').val(val != null && val !== '' ? val : '');
         },
 
+        recalcWashingQty: () => {
+            var KG = 11.34;
+            var calc = function (id) { return parseFloat($('#' + id).val()) || 0; };
+            // Individual crate → qty
+            $('.wash-crate-input').each(function () {
+                var crates = parseFloat(this.value) || 0;
+                var qtyEl = document.getElementById(this.getAttribute('data-qty'));
+                if (qtyEl) qtyEl.value = crates ? +(crates * KG).toFixed(2) : '';
+            });
+            // Totals & diffs
+            var floater = calc('ps_wash_floater_crates'), sinker = calc('ps_wash_sinker_crates');
+            var totalOut = floater + sinker;
+            var cratesIn = calc('ps_wash_crates_in');
+            var diff = cratesIn - totalOut;
+            $('#ps_wash_total_crates').val(totalOut || '');
+            $('#ps_wash_total_qty').val(totalOut ? +(totalOut * KG).toFixed(2) : '');
+            $('#ps_wash_crate_diff').val(diff || '');
+            $('#ps_wash_qty_diff').val(diff ? +(diff * KG).toFixed(2) : '');
+        },
+
+        recalcSortingQty: () => {
+            var KG = 11.34;
+            var skTotal = 0, btTotal = 0;
+            // Individual crate → qty
+            $('.sort-crate-input').each(function () {
+                var crates = parseFloat(this.value) || 0;
+                var qtyEl = document.getElementById(this.getAttribute('data-qty'));
+                if (qtyEl) qtyEl.value = crates ? +(crates * KG).toFixed(2) : '';
+                var group = this.getAttribute('data-group');
+                if (group === 'sk') skTotal += crates;
+                else if (group === 'bt') btTotal += crates;
+            });
+            // Sound Kernel totals (styles 0,1,1s,4l,5,6)
+            $('#ps_sort_sound_crates').val(skTotal || '');
+            $('#ps_sort_sound_qty').val(skTotal ? +(skTotal * KG).toFixed(2) : '');
+            // Butter totals (7/8 + butter low oil)
+            $('#ps_sort_butter_crates').val(btTotal || '');
+            $('#ps_sort_butter_qty').val(btTotal ? +(btTotal * KG).toFixed(2) : '');
+        },
+
+        recalcPackingQty: () => {
+            var KG = 11.34;
+            var skTotal = 0, btTotal = 0;
+            $('.pack-carton-input').each(function () {
+                var cartons = parseFloat(this.value) || 0;
+                var qty = cartons ? +(cartons * KG).toFixed(2) : '';
+                var qtyEl = document.getElementById(this.getAttribute('data-qty'));
+                if (qtyEl) qtyEl.value = qty;
+                if (this.getAttribute('data-group') === 'sk') skTotal += cartons;
+                else if (this.getAttribute('data-group') === 'bt') btTotal += cartons;
+            });
+            var grandTotal = skTotal + btTotal;
+            $('#ps_pack_sk_total_cartons').val(skTotal || '');
+            $('#ps_pack_sk_total_qty').val(skTotal ? +(skTotal * KG).toFixed(2) : '');
+            $('#ps_pack_bt_total_cartons').val(btTotal || '');
+            $('#ps_pack_bt_total_qty').val(btTotal ? +(btTotal * KG).toFixed(2) : '');
+            $('#ps_pack_totals_cartons').val(grandTotal || '');
+            $('#ps_pack_totals_qty').val(grandTotal ? +(grandTotal * KG).toFixed(2) : '');
+        },
+
         initSignaturePad: () => {
             const scope = _modal_production_stages;
             var canvas = document.getElementById('ps_pack_signature_canvas');
@@ -362,8 +426,10 @@ var _modal_production_stages = (function () {
                 }
                 }
             });
-            if (prefix === 'wash') scope.updateWashWasteTotal();
+            if (prefix === 'wash') { scope.updateWashWasteTotal(); scope.recalcWashingQty(); }
             if (prefix === 'crack') scope.updateCrackSiloQty();
+            if (prefix === 'sort') scope.recalcSortingQty();
+            if (prefix === 'pack') scope.recalcPackingQty();
             if (prefix === 'pack' && data.signature && scope._signaturePad) {
                 scope._signaturePad.clear();
                 if (data.signature.indexOf('data:') === 0) {
@@ -867,7 +933,7 @@ var _modal_production_stages = (function () {
             /* ═══════════════════════════════════════════
                HEADER — Batch info + key metrics
                ═══════════════════════════════════════════ */
-            var batchName = (batch && batch.batch_id) ? batch.batch_id : (batch && batch.batch_number) ? batch.batch_number : '';
+            var batchName = (batch && batch.batch_number) ? batch.batch_number : (detail && detail.batch_number) ? detail.batch_number : '';
             var grower = (batch && batch.grower_name) ? batch.grower_name : (detail && detail.supplier_name) ? detail.supplier_name : '';
             var nisReceived = (detail && detail.wet_nis_received_kg) ? n(detail.wet_nis_received_kg) : ((batch && batch.wet_nis_received_kg) ? n(batch.wet_nis_received_kg) : NaN);
             var status = (batch && batch.status) ? batch.status : (detail && detail.status) ? detail.status : '';
