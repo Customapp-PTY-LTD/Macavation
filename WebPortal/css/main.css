@@ -122,19 +122,22 @@ thead th,
     border-bottom-right-radius: var(--phoenix-border-radius) !important;
 }
 
-/* Universal modal header — clean & minimal */
+/* Universal modal header — frosted glass */
 .modal-content .modal-header {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    background-color: var(--mac-bg-secondary) !important;
+    background: var(--mac-glass-bg) !important;
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
     color: var(--mac-text) !important;
     font-family: var(--mac-font) !important;
     font-weight: 600;
     border: none !important;
-    border-bottom: 1px solid var(--mac-border) !important;
+    border-bottom: 1px solid var(--mac-glass-border) !important;
+    box-shadow: var(--mac-glass-highlight);
     padding: var(--mac-space-md) var(--mac-space-lg);
 }
 .modal-content .modal-header .modal-title {
@@ -158,9 +161,14 @@ thead th,
     color: var(--mac-text);
 }
 
-/* Modal footer: Cancel on far left (red), Save/Add primary with no glow */
+/* Modal footer: frosted glass, Cancel on far left (red), Save/Add primary with no glow */
 .modal-content .modal-footer {
     justify-content: space-between;
+    background: var(--mac-glass-bg);
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    border-top: 1px solid var(--mac-glass-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .modal-content .modal-footer .btn-secondary {
     background-color: #dc3545 !important;
@@ -229,9 +237,11 @@ h1, h2, h3, h4, h5, h6,
 
 /* Navbar */
 .navbar {
-    background: var(--mac-bg-secondary) !important;
-    border-bottom: 1px solid var(--mac-border);
-    box-shadow: none;
+    background: var(--mac-glass-bg-heavy) !important;
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    border-bottom: 1px solid var(--mac-glass-border);
+    box-shadow: var(--mac-glass-highlight), 0 1px 3px rgba(0, 0, 0, 0.04);
     position: fixed;
     top: 0;
     left: 0;
@@ -271,9 +281,11 @@ h1, h2, h3, h4, h5, h6,
     left: 0;
     z-index: 101;
     padding: 0;
-    background-color: var(--mac-bg-secondary);
-    border-right: 1px solid var(--mac-border);
-    box-shadow: none;
+    background: var(--mac-glass-bg-heavy);
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    border-right: 1px solid var(--mac-glass-border);
+    box-shadow: var(--mac-glass-shadow);
     transition: all 0.3s ease;
     width: 300px;
     height: calc(100vh - 56px);
@@ -390,23 +402,85 @@ h1, h2, h3, h4, h5, h6,
     opacity: 1;
 }
 
-.sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) {
-    position: static;
+/* Collapsed: hide ALL submenu collapse panels so only icons show */
+.sidebar.collapsed .collapse,
+.sidebar.collapsed .collapse.show,
+.sidebar.collapsed .collapsing {
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
 }
 
-/* Submenus under chevron: remain hidden when collapsed */
-.sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) > .collapse {
-    display: none !important;
+/* ── Sidebar flyout panel (collapsed dropdown sub-menus) ── */
+.sidebar-flyout {
+    position: fixed;
+    z-index: 1060;
+    min-width: 200px;
+    max-width: 260px;
+    padding: var(--mac-space-xs) 0;
+    background: var(--mac-glass-bg);
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    border: 1px solid var(--mac-glass-border);
+    border-radius: var(--mac-radius-lg);
+    box-shadow: var(--mac-glass-shadow);
+    animation: flyoutIn 120ms ease-out;
 }
 
-.sidebar.collapsed .nav-item:has([data-bs-toggle="collapse"]) > .collapse.show {
-    display: none !important;
+@keyframes flyoutIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+.sidebar-flyout-header {
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--mac-text-tertiary);
+    border-bottom: 1px solid var(--mac-glass-border);
+    margin-bottom: var(--mac-space-xs);
+}
+
+.sidebar-flyout-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem var(--mac-space-md);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--mac-text-secondary);
+    text-decoration: none;
+    transition: all var(--mac-transition);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.sidebar-flyout-item:hover {
+    background: var(--mac-green-light);
+    color: var(--mac-green);
+}
+
+.sidebar-flyout-item i {
+    width: 1rem;
+    text-align: center;
+    font-size: 0.8125rem;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.sidebar-flyout-item:hover i {
+    opacity: 1;
 }
 
 /* Sidebar Footer */
 .sidebar-footer {
-    border-top: 1px solid var(--mac-border) !important;
+    border-top: 1px solid var(--mac-glass-border) !important;
     margin-top: auto;
+    background: var(--mac-glass-bg);
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur));
+    backdrop-filter: blur(var(--mac-glass-blur));
 }
 
 .sidebar-footer .btn-link {
@@ -884,7 +958,8 @@ h1, h2, h3, h4, h5, h6,
     right: 0;
     width: 1px;
     height: 100%;
-    background: linear-gradient(to bottom, transparent, var(--phoenix-border-color), transparent);
+    background: linear-gradient(to bottom, transparent, var(--mac-glass-border), transparent);
+    z-index: 1;
 }
 
 .sidebar .nav-item {
@@ -1214,3 +1289,298 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* Theme selector removed — single theme */
+
+/* ============================================
+   DARK MODE – Bootstrap component overrides
+   These components use their own bg colors
+   instead of inheriting CSS variables.
+   ============================================ */
+[data-theme-mode="dark"] body {
+    background-color: var(--mac-bg);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .card {
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .card-header {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .card-header.bg-light {
+    background-color: var(--mac-bg-tertiary) !important;
+}
+
+[data-theme-mode="dark"] .card-header.bg-secondary {
+    background-color: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--mac-text);
+    --bs-table-border-color: var(--mac-border);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.04);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .table thead {
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .modal-content {
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .modal-content .modal-header {
+    background: var(--mac-glass-bg) !important;
+    border-bottom-color: var(--mac-glass-border) !important;
+    color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .modal-content .modal-footer {
+    background: var(--mac-glass-bg);
+    border-top-color: var(--mac-glass-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+[data-theme-mode="dark"] .modal-content .modal-header .modal-title {
+    color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .modal-content .modal-body {
+    background-color: var(--mac-bg) !important;
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .modal-content .modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+[data-theme-mode="dark"] .form-control,
+[data-theme-mode="dark"] .form-select {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .form-control:focus,
+[data-theme-mode="dark"] .form-select:focus {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-green);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .form-control::placeholder {
+    color: var(--mac-text-tertiary);
+}
+
+[data-theme-mode="dark"] .form-label {
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .input-group-text {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+    color: var(--mac-text-secondary);
+}
+
+[data-theme-mode="dark"] .dropdown-menu {
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border);
+}
+
+[data-theme-mode="dark"] .dropdown-item {
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .dropdown-item:hover,
+[data-theme-mode="dark"] .dropdown-item:focus {
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .dropdown-header {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+    color: var(--mac-text-secondary);
+}
+
+[data-theme-mode="dark"] .dropdown-divider {
+    border-color: var(--mac-border);
+}
+
+[data-theme-mode="dark"] .navbar {
+    background: var(--mac-glass-bg-heavy) !important;
+    border-bottom-color: var(--mac-glass-border);
+}
+
+[data-theme-mode="dark"] .sidebar {
+    background: var(--mac-glass-bg-heavy);
+    border-right-color: var(--mac-glass-border);
+}
+
+[data-theme-mode="dark"] .btn-outline-secondary {
+    border-color: var(--mac-border);
+    color: var(--mac-text-secondary);
+}
+
+[data-theme-mode="dark"] .btn-outline-secondary:hover {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border-strong);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .btn-outline-primary {
+    color: var(--mac-green);
+    border-color: var(--mac-green);
+}
+
+[data-theme-mode="dark"] .text-muted {
+    color: var(--mac-text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .text-dark {
+    color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .bg-light {
+    background-color: var(--mac-bg-tertiary) !important;
+}
+
+[data-theme-mode="dark"] .bg-white {
+    background-color: var(--mac-bg-secondary) !important;
+}
+
+[data-theme-mode="dark"] .border-bottom {
+    border-bottom-color: var(--mac-border) !important;
+}
+
+[data-theme-mode="dark"] .border-top {
+    border-top-color: var(--mac-border) !important;
+}
+
+[data-theme-mode="dark"] .border-secondary {
+    border-color: var(--mac-border) !important;
+}
+
+[data-theme-mode="dark"] .alert-warning {
+    background-color: rgba(var(--mac-warning-rgb), 0.15);
+    color: var(--mac-warning);
+}
+
+[data-theme-mode="dark"] .alert-danger {
+    background-color: rgba(var(--mac-danger-rgb), 0.15);
+    color: #f88;
+}
+
+[data-theme-mode="dark"] .alert-success {
+    background-color: rgba(var(--mac-success-rgb), 0.15);
+    color: #6fd886;
+}
+
+[data-theme-mode="dark"] .alert-info {
+    background-color: rgba(var(--mac-info-rgb), 0.15);
+    color: #6db3f2;
+}
+
+[data-theme-mode="dark"] .badge.bg-info {
+    background-color: var(--mac-info) !important;
+}
+
+[data-theme-mode="dark"] .badge.bg-warning {
+    color: #fff;
+}
+
+[data-theme-mode="dark"] .page-header {
+    background: linear-gradient(135deg, rgba(0, 137, 80, 0.1) 0%, rgba(58, 58, 58, 0.2) 100%);
+    border-color: var(--mac-border);
+}
+
+[data-theme-mode="dark"] .pagination .page-link {
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border);
+    color: var(--mac-green);
+}
+
+[data-theme-mode="dark"] .pagination .page-link:hover {
+    background-color: var(--mac-bg-tertiary);
+}
+
+/* ── Collapsed sidebar: pure-CSS tooltips (no Bootstrap JS) ── */
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link[data-tip] {
+    position: relative;
+}
+
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link[data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0.3rem 0.6rem;
+    background: var(--mac-text);
+    color: var(--mac-bg);
+    font-family: var(--mac-font);
+    font-size: 0.75rem !important;
+    font-weight: 500;
+    line-height: 1.3 !important;
+    white-space: nowrap;
+    border-radius: var(--mac-radius-sm);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 120ms ease;
+    z-index: 1070;
+}
+
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link[data-tip]:hover::after {
+    opacity: 1;
+}
+
+/* Sidebar footer — dark mode toggle collapsed state */
+.sidebar.collapsed .sidebar-footer #darkModeToggle .toggle-text {
+    display: none;
+}
+
+/* SweetAlert2 dark overrides */
+[data-theme-mode="dark"] .swal2-popup {
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .swal2-title {
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .swal2-html-container {
+    color: var(--mac-text-secondary);
+}
+
+[data-theme-mode="dark"] .swal2-input,
+[data-theme-mode="dark"] .swal2-select,
+[data-theme-mode="dark"] .swal2-textarea {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
+}
+
+/* View toggle dark override */
+[data-theme-mode="dark"] .view-toggle {
+    border-color: var(--mac-border);
+}
+
+[data-theme-mode="dark"] .view-toggle-btn {
+    color: var(--mac-text-secondary);
+}
+
+[data-theme-mode="dark"] .view-toggle-btn:not(.active):hover {
+    background: var(--mac-bg-tertiary);
+}

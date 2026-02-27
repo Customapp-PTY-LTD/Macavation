@@ -169,6 +169,13 @@ var _modal_production_stages = (function () {
             $(document).on('change input', '#ps_crack_timespent1', function () {
                 scope.syncCrackTimeToSummary();
             });
+            // Map section date field IDs to their section key
+            var sectionDateFields = {
+                'ps_crack_date': 'crack',
+                'ps_wash_date':  'wash',
+                'ps_sort_date':  'sort',
+                'ps_pack_date':  'pack'
+            };
             $('#productionStagesModal').off('shown.bs.modal').on('shown.bs.modal', function () {
                 var container = document.getElementById('productionStagesModal');
                 var inputs = container ? container.querySelectorAll('.flatpickr-date') : [];
@@ -471,12 +478,13 @@ var _modal_production_stages = (function () {
             $container.empty();
             (days || []).forEach(function (d, idx) {
                 var dayId = d.id || d.kernel_production_day_id;
-                var num = d.day_number != null ? d.day_number : (idx + 1);
                 if (!dayId) return;
-                var html = d.kernel_production_stages_id
-                    ? 'Day ' + num + ' <span class="text-success ms-1">&#10003;</span>'
-                    : 'Day ' + num;
-                $container.append($('<button type="button" class="btn btn-sm btn-outline-secondary" data-day-id="' + dayId + '" data-day-saved="' + (d.kernel_production_stages_id ? '1' : '0') + '">').html(html));
+                var label = (d.date && d.date !== '') ? fromISO(d.date) : 'New day';
+                var isSaved = !!d.kernel_production_stages_id;
+                var html = isSaved
+                    ? label + ' <span class="text-success ms-1">&#10003;</span>'
+                    : label;
+                $container.append($('<button type="button" class="btn btn-sm btn-outline-secondary" data-day-id="' + dayId + '" data-day-saved="' + (isSaved ? '1' : '0') + '">').html(html));
             });
         },
 
@@ -492,17 +500,55 @@ var _modal_production_stages = (function () {
             });
         },
 
-        loadProductionStagesForDay: (dayId, stagesId) => {
+        /** When a section date picker changes, look up existing data for that date and populate the section. */
+        _onSectionDateChange: (section, dateFieldId) => {
             const scope = _modal_production_stages;
-            if (dayId == null && stagesId == null) return Promise.resolve();
-            // dayId is the day index (0, 1, 2…). Load that day's stage data from cached kernel detail.
-            // If the day has saved data we fill the form; if it's a brand new day we clear the form and set today's date.
-            var idx = parseInt(dayId != null ? dayId : stagesId, 10);
+            var rawDate = $('#' + dateFieldId).val();
+            var isoDate = toISO(rawDate);
+            if (!isoDate || isoDate === '') return;
+
             var detail = scope._loadedKernelDetail;
-            var crack = (detail && detail.cracking_data && detail.cracking_data[idx]) ? detail.cracking_data[idx] : {};
-            var wash  = (detail && detail.washing_data  && detail.washing_data[idx])  ? detail.washing_data[idx]  : {};
-            var sort  = (detail && detail.sorting_data  && detail.sorting_data[idx])  ? detail.sorting_data[idx]  : {};
-            var pack  = (detail && detail.packing_data  && detail.packing_data[idx])  ? detail.packing_data[idx]  : {};
+            if (!detail) return;
+
+            var map = scope.productionActionMap[section];
+            if (!map) return;
+
+            var existing = scope._findByDate(detail[map.dataKey], isoDate);
+            if (Object.keys(existing).length > 0) {
+                // Found existing data for this date — populate the section
+                scope.setProductionStagesSectionData(map.section, existing);
+            } else {
+                // No existing data — clear section fields except the date itself
+                $('[id^="ps_' + map.section + '_"]').each(function () {
+                    if (this.id === dateFieldId) return;
+                    if (this.type === 'checkbox') this.checked = false;
+                    else this.value = '';
+                });
+            }
+        },
+
+        /** Find entry in a JSONB array by its 'date' field. Returns the object or {}. */
+        _findByDate: (arr, date) => {
+            if (!Array.isArray(arr) || !date || date === '') return {};
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i] && arr[i].date === date) return arr[i];
+            }
+            return {};
+        },
+
+        loadProductionStagesForDay: (dayDate, stagesId) => {
+            const scope = _modal_production_stages;
+            if (!dayDate || dayDate === '') {
+                scope.clearProductionStagesForm();
+                scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
+                return Promise.resolve();
+            }
+            // dayDate is an ISO date string — look up each section by date
+            var detail = scope._loadedKernelDetail;
+            var crack = scope._findByDate(detail && detail.cracking_data, dayDate);
+            var wash  = scope._findByDate(detail && detail.washing_data,  dayDate);
+            var sort  = scope._findByDate(detail && detail.sorting_data,  dayDate);
+            var pack  = scope._findByDate(detail && detail.packing_data,  dayDate);
             var hasData = Object.keys(crack).length || Object.keys(wash).length || Object.keys(sort).length || Object.keys(pack).length;
             scope.modalProductionDayStages = {
                 cracking_data: crack,
@@ -527,10 +573,13 @@ var _modal_production_stages = (function () {
         selectProductionDay: (dayId) => {
             const scope = _modal_production_stages;
             scope.flushAutoSave();
+            scope.persistCurrentTabToStages();
             $('#productionStagesDayId').val(dayId || '');
             var days = scope.modalProductionDays || [];
             var day = days.filter(function (d) { return (d.id || d.kernel_production_day_id) === dayId; })[0];
-            scope.loadProductionStagesForDay(dayId, day && day.kernel_production_stages_id).then(function () {
+            // Pass the date for lookup (dayId = date string for saved days, day.date for all)
+            var dayDate = (day && day.date) ? day.date : dayId;
+            scope.loadProductionStagesForDay(dayDate, day && day.kernel_production_stages_id).then(function () {
                 scope.setProductionDayActive(dayId);
                 scope.updateProductionActionButtonTicks();
             });
@@ -543,12 +592,12 @@ var _modal_production_stages = (function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
                 return;
             }
-            // In-memory day allocation — new day is the next available index (no DB write until save).
+            scope.persistCurrentTabToStages();
             scope.modalProductionDays = scope.modalProductionDays || [];
-            var newIndex = scope.modalProductionDays.length;
-            var newDayId = String(newIndex);
-            var dayNum = newIndex + 1;
-            scope.modalProductionDays.push({ id: newDayId, day_number: dayNum, kernel_production_stages_id: null });
+            // New day gets a temporary ID until saved (then keyed by date)
+            var newDayId = 'new_' + Date.now();
+            var dayNum = scope.modalProductionDays.length + 1;
+            scope.modalProductionDays.push({ id: newDayId, date: '', day_number: dayNum, kernel_production_stages_id: null });
             scope.renderProductionDaysList(scope.modalProductionDays);
             $('#productionStagesDayId').val(newDayId);
             scope.clearProductionStagesForm();
@@ -769,6 +818,43 @@ var _modal_production_stages = (function () {
             });
         },
 
+        /** Upsert an entry into a JSONB array by matching the 'date' field. Returns updated array. */
+        _upsertByDate: (arr, data) => {
+            if (!data || !data.date || data.date === '') return Array.isArray(arr) ? arr : [];
+            arr = Array.isArray(arr) ? arr.slice() : [];
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i] && arr[i].date === data.date) {
+                    arr[i] = data;
+                    return arr;
+                }
+            }
+            arr.push(data);
+            return arr;
+        },
+
+        /** Rebuild the day list from the union of dates across all cached arrays. */
+        _rebuildDayListFromCache: () => {
+            const scope = _modal_production_stages;
+            var detail = scope._loadedKernelDetail;
+            if (!detail) return;
+            var allDates = {};
+            ['cracking_data', 'washing_data', 'sorting_data', 'packing_data'].forEach(function (key) {
+                (detail[key] || []).forEach(function (entry) {
+                    if (entry && entry.date && entry.date !== '') allDates[entry.date] = true;
+                });
+            });
+            var dates = Object.keys(allDates).sort();
+            var list = [];
+            dates.forEach(function (dt, idx) {
+                list.push({ id: dt, date: dt, day_number: idx + 1, kernel_production_stages_id: dt });
+            });
+            if (list.length === 0) {
+                list = [{ id: 'new', date: '', day_number: 1, kernel_production_stages_id: null }];
+            }
+            scope.modalProductionDays = list;
+            scope.renderProductionDaysList(list);
+        },
+
         saveProductionStages: () => {
             _modal_production_stages.doSaveProductionStages(false);
         },
@@ -797,10 +883,15 @@ var _modal_production_stages = (function () {
             var sorting_data = scope.getProductionStagesSectionData('sort');
             var packing_data = scope.getProductionStagesSectionData('pack');
             var summary_data = deriveSummaryFromStages(cracking_data, washing_data, sorting_data, packing_data);
-            var dayIndex = parseInt(dayId, 10);
 
+            // Validate: at least cracking must have a date
+            if (!cracking_data.date || cracking_data.date === '') {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Cracking date is required. Please set a date on the Cracking tab.', 'error');
+                return;
+            }
+
+            // SP now uses date-based upsert for all sections; dayIndex no longer needed
             dataFunctions.upsertKernelProduction(batchId, {
-                dayIndex: dayIndex,
                 crackingData: cracking_data,
                 washingData: washing_data,
                 sortingData: sorting_data,
@@ -808,27 +899,20 @@ var _modal_production_stages = (function () {
             }).then(function (result) {
                 var inner = (result && result.upsert_kernel_production) ? result.upsert_kernel_production : result;
                 if (inner && inner.success === false) throw new Error(inner.error || 'Save failed');
-                // Update cached detail so subsequent operations see saved data
+                // Update cached detail by date (upsert into each array)
                 if (scope._loadedKernelDetail) {
-                    var ensureArr = function (arr) { return Array.isArray(arr) ? arr : []; };
-                    var setIdx = function (arr, idx, val) {
-                        while (arr.length <= idx) arr.push({});
-                        arr[idx] = val;
-                        return arr;
-                    };
-                    scope._loadedKernelDetail.cracking_data = setIdx(ensureArr(scope._loadedKernelDetail.cracking_data), dayIndex, cracking_data);
-                    scope._loadedKernelDetail.washing_data  = setIdx(ensureArr(scope._loadedKernelDetail.washing_data),  dayIndex, washing_data);
-                    scope._loadedKernelDetail.sorting_data  = setIdx(ensureArr(scope._loadedKernelDetail.sorting_data),  dayIndex, sorting_data);
-                    scope._loadedKernelDetail.packing_data  = setIdx(ensureArr(scope._loadedKernelDetail.packing_data),  dayIndex, packing_data);
+                    scope._loadedKernelDetail.cracking_data = scope._upsertByDate(scope._loadedKernelDetail.cracking_data, cracking_data);
+                    scope._loadedKernelDetail.washing_data  = scope._upsertByDate(scope._loadedKernelDetail.washing_data,  washing_data);
+                    scope._loadedKernelDetail.sorting_data  = scope._upsertByDate(scope._loadedKernelDetail.sorting_data,  sorting_data);
+                    scope._loadedKernelDetail.packing_data  = scope._upsertByDate(scope._loadedKernelDetail.packing_data,  packing_data);
                 }
                 scope.modalProductionDayStages = { cracking_data: cracking_data, washing_data: washing_data, sorting_data: sorting_data, packing_data: packing_data, summary_data: summary_data };
-                // Mark day as saved in the days list
-                if (scope.modalProductionDays) {
-                    scope.modalProductionDays.forEach(function (d) {
-                        if (d.id === dayId) d.kernel_production_stages_id = dayId;
-                    });
-                    scope.renderProductionDaysList(scope.modalProductionDays);
-                    scope.setProductionDayActive(dayId);
+                // Rebuild the day list from cached arrays and set active day to cracking date
+                scope._rebuildDayListFromCache();
+                var primaryDate = cracking_data.date || washing_data.date || sorting_data.date || packing_data.date;
+                if (primaryDate) {
+                    $('#productionStagesDayId').val(primaryDate);
+                    scope.setProductionDayActive(primaryDate);
                 }
                 scope.updateProductionActionButtonTicks();
                 scope.clearProductionStagesDraft(batchId);
@@ -885,7 +969,6 @@ var _modal_production_stages = (function () {
             scope._loadedKernelDetail = null;
 
             var dateVal = batch.received_date ? (batch.received_date.toString().split('T')[0]) : (new Date().toISOString().split('T')[0]);
-            $('#ps_crack_date').val(fromISO(dateVal));
 
             // Load full kernel detail (stage arrays) via getKernelBatchDetail
             dataFunctions.getKernelBatchDetail(batchId).then(function (detail) {
@@ -894,21 +977,32 @@ var _modal_production_stages = (function () {
                 var washing  = (detail && Array.isArray(detail.washing_data))  ? detail.washing_data  : [];
                 var sorting  = (detail && Array.isArray(detail.sorting_data))  ? detail.sorting_data  : [];
                 var packing  = (detail && Array.isArray(detail.packing_data))  ? detail.packing_data  : [];
-                var maxLen = Math.max(cracking.length, washing.length, sorting.length, packing.length);
 
-                // Build synthetic days list from array lengths
+                // Patch legacy entries: if an entry has no date, inherit from cracking at same index
+                [washing, sorting, packing].forEach(function (arr) {
+                    arr.forEach(function (entry, idx) {
+                        if (entry && (!entry.date || entry.date === '') && cracking[idx] && cracking[idx].date) {
+                            entry.date = cracking[idx].date;
+                        }
+                    });
+                });
+
+                // Build day list from unique dates across all 4 arrays
+                var allDates = {};
+                [cracking, washing, sorting, packing].forEach(function (arr) {
+                    (arr || []).forEach(function (entry) {
+                        if (entry && entry.date && entry.date !== '') allDates[entry.date] = true;
+                    });
+                });
+                var dates = Object.keys(allDates).sort();
                 var list = [];
-                for (var i = 0; i < maxLen; i++) {
-                    var hasSaved = (cracking[i] && Object.keys(cracking[i]).length) ||
-                                   (washing[i]  && Object.keys(washing[i]).length)  ||
-                                   (sorting[i]  && Object.keys(sorting[i]).length)  ||
-                                   (packing[i]  && Object.keys(packing[i]).length);
-                    list.push({ id: String(i), day_number: i + 1, kernel_production_stages_id: hasSaved ? String(i) : null });
-                }
+                dates.forEach(function (dt, idx) {
+                    list.push({ id: dt, date: dt, day_number: idx + 1, kernel_production_stages_id: dt });
+                });
 
-                // If no days yet, start with day 0 in memory (no DB create needed)
+                // If no days yet, start with an empty new day
                 if (list.length === 0) {
-                    list = [{ id: '0', day_number: 1, kernel_production_stages_id: null }];
+                    list = [{ id: 'new', date: '', day_number: 1, kernel_production_stages_id: null }];
                 }
 
                 scope.modalProductionDays = list;
@@ -917,8 +1011,16 @@ var _modal_production_stages = (function () {
                 $('#productionStagesDayId').val(first.id);
 
                 return scope.populateProductionGrowerSelects(batch.grower_name || '').then(function () {
-                    return scope.loadProductionStagesForDay(first.id, first.kernel_production_stages_id);
+                    return scope.loadProductionStagesForDay(first.date || first.id, first.kernel_production_stages_id);
                 }).then(function () {
+                    // For new days (no saved data), set default dates in all section date fields
+                    if (!first.date || first.date === '') {
+                        var defaultDisplay = fromISO(dateVal);
+                        $('#ps_crack_date').val(defaultDisplay);
+                        $('#ps_wash_date').val(defaultDisplay);
+                        $('#ps_sort_date').val(defaultDisplay);
+                        $('#ps_pack_date').val(defaultDisplay);
+                    }
                     scope.renderProductionDaysList(list);
                     scope.setProductionDayActive(first.id);
                     scope.updateProductionActionButtonTicks();
@@ -946,22 +1048,21 @@ var _modal_production_stages = (function () {
             });
         },
 
-        showProductionStagesViewModal: (dayIdOrIndex) => {
+        showProductionStagesViewModal: (dayIdOrDate) => {
             var $body = $('#productionStagesViewBody');
             if (!$body.length) return;
             $body.html('<p class="text-muted mb-0">Loading…</p>');
             var modalEl = document.getElementById('productionStagesViewModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#productionStagesViewModal').modal('show');
-            // Use cached kernel detail — read stage data by day index
+            // Use cached kernel detail — read stage data by date
             var scope = _modal_production_stages;
             var detail = scope._loadedKernelDetail;
-            var idx = parseInt(dayIdOrIndex, 10);
             var s = detail ? {
-                cracking_data: (detail.cracking_data && detail.cracking_data[idx]) || {},
-                washing_data:  (detail.washing_data  && detail.washing_data[idx])  || {},
-                sorting_data:  (detail.sorting_data  && detail.sorting_data[idx])  || {},
-                packing_data:  (detail.packing_data  && detail.packing_data[idx])  || {}
+                cracking_data: scope._findByDate(detail.cracking_data, dayIdOrDate),
+                washing_data:  scope._findByDate(detail.washing_data,  dayIdOrDate),
+                sorting_data:  scope._findByDate(detail.sorting_data,  dayIdOrDate),
+                packing_data:  scope._findByDate(detail.packing_data,  dayIdOrDate)
             } : null;
             if (!s) { $body.html('<p class="text-muted mb-0">Production record not found.</p>'); return; }
             var fmt = function (v) { return v != null && v !== '' ? String(v) : '—'; };

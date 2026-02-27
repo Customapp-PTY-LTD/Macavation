@@ -254,6 +254,31 @@ var _kernelProductionGrid = function () {
                         '</div></div>';
                 }
             );
+
+            // Drag-and-drop: forward transitions only
+            var colOrder = ['awaiting_production', 'in_production', 'awaiting_test', 'release_ready'];
+            KanbanHelper.enableDragDrop('kpKanbanBoard', function (batchId, fromKey, toKey) {
+                var fromIdx = colOrder.indexOf(fromKey);
+                var toIdx = colOrder.indexOf(toKey);
+                if (toIdx <= fromIdx) return; // block backward moves
+
+                if (fromKey === 'awaiting_production' && toKey === 'in_production') {
+                    if (typeof _modal_production_stages !== 'undefined' && _modal_production_stages.showProductionStagesModalForBatch) {
+                        _modal_production_stages.showProductionStagesModalForBatch(batchId);
+                    }
+                } else if (fromKey === 'in_production' && toKey === 'awaiting_test') {
+                    if (typeof _modal_end_sample !== 'undefined' && _modal_end_sample.show) {
+                        _modal_end_sample.show(batchId);
+                    }
+                } else if (fromKey === 'awaiting_test' && toKey === 'release_ready') {
+                    var batch = scope.getBatch(batchId);
+                    if (batch && batch.has_qa && typeof _modal_end_sample_view !== 'undefined' && _modal_end_sample_view.show) {
+                        _modal_end_sample_view.show(batchId);
+                    } else if (typeof _modal_end_sample !== 'undefined' && _modal_end_sample.show) {
+                        _modal_end_sample.show(batchId);
+                    }
+                }
+            });
         },
 
         filterBatches: () => {
