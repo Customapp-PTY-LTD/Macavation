@@ -1214,3 +1214,262 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* Theme selector removed — single theme */
+
+/* ============================================
+   DARK MODE – Bootstrap component overrides
+   These components use their own bg colors
+   instead of inheriting CSS variables.
+   ============================================ */
+[data-theme-mode="dark"] body {
+    background-color: var(--mac-bg);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .card {
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .card-header {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .card-header.bg-light {
+    background-color: var(--mac-bg-tertiary) !important;
+}
+
+[data-theme-mode="dark"] .card-header.bg-secondary {
+    background-color: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--mac-text);
+    --bs-table-border-color: var(--mac-border);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.04);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .table thead {
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .modal-content {
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .modal-content .modal-header {
+    background-color: var(--mac-bg-secondary) !important;
+    border-bottom-color: var(--mac-border) !important;
+    color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .modal-content .modal-header .modal-title {
+    color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .modal-content .modal-body {
+    background-color: var(--mac-bg) !important;
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .modal-content .modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+[data-theme-mode="dark"] .form-control,
+[data-theme-mode="dark"] .form-select {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .form-control:focus,
+[data-theme-mode="dark"] .form-select:focus {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-green);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .form-control::placeholder {
+    color: var(--mac-text-tertiary);
+}
+
+[data-theme-mode="dark"] .form-label {
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .input-group-text {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+    color: var(--mac-text-secondary);
+}
+
+[data-theme-mode="dark"] .dropdown-menu {
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border);
+}
+
+[data-theme-mode="dark"] .dropdown-item {
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .dropdown-item:hover,
+[data-theme-mode="dark"] .dropdown-item:focus {
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .dropdown-header {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+    color: var(--mac-text-secondary);
+}
+
+[data-theme-mode="dark"] .dropdown-divider {
+    border-color: var(--mac-border);
+}
+
+[data-theme-mode="dark"] .navbar {
+    background: var(--mac-bg-secondary) !important;
+    border-bottom-color: var(--mac-border);
+}
+
+[data-theme-mode="dark"] .sidebar {
+    background-color: var(--mac-bg-secondary);
+    border-right-color: var(--mac-border);
+}
+
+[data-theme-mode="dark"] .btn-outline-secondary {
+    border-color: var(--mac-border);
+    color: var(--mac-text-secondary);
+}
+
+[data-theme-mode="dark"] .btn-outline-secondary:hover {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border-strong);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .btn-outline-primary {
+    color: var(--mac-green);
+    border-color: var(--mac-green);
+}
+
+[data-theme-mode="dark"] .text-muted {
+    color: var(--mac-text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .text-dark {
+    color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .bg-light {
+    background-color: var(--mac-bg-tertiary) !important;
+}
+
+[data-theme-mode="dark"] .bg-white {
+    background-color: var(--mac-bg-secondary) !important;
+}
+
+[data-theme-mode="dark"] .border-bottom {
+    border-bottom-color: var(--mac-border) !important;
+}
+
+[data-theme-mode="dark"] .border-top {
+    border-top-color: var(--mac-border) !important;
+}
+
+[data-theme-mode="dark"] .border-secondary {
+    border-color: var(--mac-border) !important;
+}
+
+[data-theme-mode="dark"] .alert-warning {
+    background-color: rgba(var(--mac-warning-rgb), 0.15);
+    color: var(--mac-warning);
+}
+
+[data-theme-mode="dark"] .alert-danger {
+    background-color: rgba(var(--mac-danger-rgb), 0.15);
+    color: #f88;
+}
+
+[data-theme-mode="dark"] .alert-success {
+    background-color: rgba(var(--mac-success-rgb), 0.15);
+    color: #6fd886;
+}
+
+[data-theme-mode="dark"] .alert-info {
+    background-color: rgba(var(--mac-info-rgb), 0.15);
+    color: #6db3f2;
+}
+
+[data-theme-mode="dark"] .badge.bg-info {
+    background-color: var(--mac-info) !important;
+}
+
+[data-theme-mode="dark"] .badge.bg-warning {
+    color: #fff;
+}
+
+[data-theme-mode="dark"] .page-header {
+    background: linear-gradient(135deg, rgba(0, 137, 80, 0.1) 0%, rgba(58, 58, 58, 0.2) 100%);
+    border-color: var(--mac-border);
+}
+
+[data-theme-mode="dark"] .pagination .page-link {
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border);
+    color: var(--mac-green);
+}
+
+[data-theme-mode="dark"] .pagination .page-link:hover {
+    background-color: var(--mac-bg-tertiary);
+}
+
+/* Sidebar footer — dark mode toggle collapsed state */
+.sidebar.collapsed .sidebar-footer #darkModeToggle .toggle-text {
+    display: none;
+}
+
+/* SweetAlert2 dark overrides */
+[data-theme-mode="dark"] .swal2-popup {
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .swal2-title {
+    color: var(--mac-text);
+}
+
+[data-theme-mode="dark"] .swal2-html-container {
+    color: var(--mac-text-secondary);
+}
+
+[data-theme-mode="dark"] .swal2-input,
+[data-theme-mode="dark"] .swal2-select,
+[data-theme-mode="dark"] .swal2-textarea {
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
+}
+
+/* View toggle dark override */
+[data-theme-mode="dark"] .view-toggle {
+    border-color: var(--mac-border);
+}
+
+[data-theme-mode="dark"] .view-toggle-btn {
+    color: var(--mac-text-secondary);
+}
+
+[data-theme-mode="dark"] .view-toggle-btn:not(.active):hover {
+    background: var(--mac-bg-tertiary);
+}

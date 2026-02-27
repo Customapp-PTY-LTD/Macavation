@@ -205,6 +205,19 @@ var _oilProductionGrid = function () {
                 html += '</div>';
                 return html;
             });
+
+            // Drag-and-drop: pending → completed only
+            KanbanHelper.enableDragDrop('opKanbanBoard', function (batchId, fromKey, toKey) {
+                if (fromKey === 'pending' && toKey === 'completed') {
+                    var batch = scope.batches.find(function (b) {
+                        return String(b.id) === String(batchId) || String(b.batch_number) === String(batchId);
+                    });
+                    if (batch && typeof _modal_oil_production_sheet !== 'undefined' && _modal_oil_production_sheet.show) {
+                        _modal_oil_production_sheet.show(batch);
+                    }
+                }
+                // backward (completed → pending) is silently ignored
+            });
         },
 
         editBatch: (batchId) => {

@@ -438,6 +438,16 @@ function initializeSidebarToggle() {
             }
         });
     }
+
+    // Dark mode toggle
+    var darkToggle = document.getElementById('darkModeToggle');
+    if (darkToggle) {
+        darkToggle.addEventListener('click', function () {
+            if (typeof ThemeManager !== 'undefined' && ThemeManager.toggleDarkMode) {
+                ThemeManager.toggleDarkMode();
+            }
+        });
+    }
 }
 
 function testNavigation() {

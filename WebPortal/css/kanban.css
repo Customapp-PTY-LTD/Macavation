@@ -68,6 +68,7 @@
     transition: box-shadow var(--mac-transition);
     cursor: pointer;
     min-height: 44px;
+    flex-shrink: 0;
 }
 
 .kanban-card:hover {
@@ -131,6 +132,24 @@
     border-radius: var(--mac-radius-pill);
     font-size: 0.6875rem;
     font-weight: 500;
+}
+
+/* ============================================
+   DRAG-AND-DROP STATES
+   ============================================ */
+
+.kanban-card--ghost {
+    opacity: 0.4;
+    background: var(--mac-green-light);
+}
+
+.kanban-card--chosen {
+    box-shadow: var(--mac-shadow-lg);
+    transform: rotate(1deg);
+}
+
+.kanban-card--drag {
+    opacity: 0.9;
 }
 
 /* ============================================
