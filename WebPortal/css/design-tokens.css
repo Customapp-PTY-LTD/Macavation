@@ -60,13 +60,13 @@
     --mac-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.04);
 
     /* --- Glass / Frosted (Apple-style) --- */
-    --mac-glass-bg: rgba(255, 255, 255, 0.72);
-    --mac-glass-bg-heavy: rgba(255, 255, 255, 0.85);
-    --mac-glass-blur: 20px;
+    --mac-glass-bg: rgba(255, 255, 255, 0.55);
+    --mac-glass-bg-heavy: rgba(255, 255, 255, 0.65);
+    --mac-glass-blur: 24px;
     --mac-glass-saturate: 180%;
-    --mac-glass-border: rgba(255, 255, 255, 0.45);
-    --mac-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --mac-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    --mac-glass-border: rgba(0, 0, 0, 0.08);
+    --mac-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --mac-glass-highlight: inset 0 0.5px 0 rgba(255, 255, 255, 0.7);
 
     /* --- Transitions --- */
     --mac-transition: 150ms ease;
@@ -172,11 +172,11 @@
     --mac-info-light: rgba(9, 105, 218, 0.15);
 
     /* --- Glass (darker tint, brighter border for dark bg) --- */
-    --mac-glass-bg: rgba(36, 36, 36, 0.72);
-    --mac-glass-bg-heavy: rgba(36, 36, 36, 0.85);
-    --mac-glass-border: rgba(255, 255, 255, 0.08);
-    --mac-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
-    --mac-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --mac-glass-bg: rgba(30, 30, 30, 0.60);
+    --mac-glass-bg-heavy: rgba(30, 30, 30, 0.70);
+    --mac-glass-border: rgba(255, 255, 255, 0.12);
+    --mac-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --mac-glass-highlight: inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
 
     /* --- Shadows (more visible on dark) --- */
     --mac-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);

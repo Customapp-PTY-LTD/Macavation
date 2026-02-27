@@ -411,6 +411,69 @@ h1, h2, h3, h4, h5, h6,
     overflow: hidden !important;
 }
 
+/* ── Sidebar flyout panel (collapsed dropdown sub-menus) ── */
+.sidebar-flyout {
+    position: fixed;
+    z-index: 1060;
+    min-width: 200px;
+    max-width: 260px;
+    padding: var(--mac-space-xs) 0;
+    background: var(--mac-glass-bg);
+    -webkit-backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    backdrop-filter: blur(var(--mac-glass-blur)) saturate(var(--mac-glass-saturate));
+    border: 1px solid var(--mac-glass-border);
+    border-radius: var(--mac-radius-lg);
+    box-shadow: var(--mac-glass-shadow);
+    animation: flyoutIn 120ms ease-out;
+}
+
+@keyframes flyoutIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+.sidebar-flyout-header {
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--mac-text-tertiary);
+    border-bottom: 1px solid var(--mac-glass-border);
+    margin-bottom: var(--mac-space-xs);
+}
+
+.sidebar-flyout-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem var(--mac-space-md);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--mac-text-secondary);
+    text-decoration: none;
+    transition: all var(--mac-transition);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.sidebar-flyout-item:hover {
+    background: var(--mac-green-light);
+    color: var(--mac-green);
+}
+
+.sidebar-flyout-item i {
+    width: 1rem;
+    text-align: center;
+    font-size: 0.8125rem;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.sidebar-flyout-item:hover i {
+    opacity: 1;
+}
+
 /* Sidebar Footer */
 .sidebar-footer {
     border-top: 1px solid var(--mac-glass-border) !important;
@@ -1450,6 +1513,36 @@ h1, h2, h3, h4, h5, h6,
 
 [data-theme-mode="dark"] .pagination .page-link:hover {
     background-color: var(--mac-bg-tertiary);
+}
+
+/* ── Collapsed sidebar: pure-CSS tooltips (no Bootstrap JS) ── */
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link[data-tip] {
+    position: relative;
+}
+
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link[data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0.3rem 0.6rem;
+    background: var(--mac-text);
+    color: var(--mac-bg);
+    font-family: var(--mac-font);
+    font-size: 0.75rem !important;
+    font-weight: 500;
+    line-height: 1.3 !important;
+    white-space: nowrap;
+    border-radius: var(--mac-radius-sm);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 120ms ease;
+    z-index: 1070;
+}
+
+.sidebar.collapsed .flex-grow-1 > ul > .nav-item > .nav-link[data-tip]:hover::after {
+    opacity: 1;
 }
 
 /* Sidebar footer — dark mode toggle collapsed state */

@@ -420,30 +420,159 @@ function initializeActiveStates() {
 }
 
 function initializeSidebarToggle() {
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebar = document.getElementById('sidebarMenu');
-    const mainContent = document.querySelector('.main-content');
+    var sidebarToggle = document.getElementById('sidebarToggle');
+    var sidebar = document.getElementById('sidebarMenu');
+    var mainContent = document.querySelector('.main-content');
 
+    // ── CSS-only tooltip helpers ──
+    // Move `title` → `data-tip` so CSS ::after can read it
+    // (also suppresses the native browser tooltip)
+    function enableCssTips() {
+        if (!sidebar) return;
+        sidebar.querySelectorAll('.flex-grow-1 > ul > .nav-item > .nav-link[title]').forEach(function (el) {
+            if (!el.getAttribute('data-tip')) {
+                el.setAttribute('data-tip', el.getAttribute('title'));
+            }
+            el.removeAttribute('title');
+        });
+    }
+
+    function restoreTitles() {
+        if (!sidebar) return;
+        sidebar.querySelectorAll('.flex-grow-1 > ul > .nav-item > .nav-link[data-tip]').forEach(function (el) {
+            el.setAttribute('title', el.getAttribute('data-tip'));
+        });
+    }
+
+    // ── Flyout helpers ──
+    var activeFlyout = null;
+
+    function closeFlyout() {
+        if (activeFlyout) {
+            activeFlyout.remove();
+            activeFlyout = null;
+        }
+        document.removeEventListener('click', onDocClickFlyout, true);
+    }
+
+    function onDocClickFlyout(e) {
+        if (activeFlyout && !activeFlyout.contains(e.target)) {
+            closeFlyout();
+        }
+    }
+
+    function openFlyout(navItem) {
+        closeFlyout();
+
+        // Find the collapse panel inside this nav-item
+        var collapseDiv = navItem.querySelector('.collapse');
+        if (!collapseDiv) return;
+
+        // Build flyout element
+        var flyout = document.createElement('div');
+        flyout.className = 'sidebar-flyout';
+
+        // Get the label from the nav-link title
+        var link = navItem.querySelector('.nav-link');
+        var title = link ? (link.getAttribute('title') || '') : '';
+        if (title) {
+            var header = document.createElement('div');
+            header.className = 'sidebar-flyout-header';
+            header.textContent = title;
+            flyout.appendChild(header);
+        }
+
+        // Clone sub-menu links
+        var subLinks = collapseDiv.querySelectorAll('.nav-link[route]');
+        subLinks.forEach(function (sl) {
+            // Only include visible items (menu-filter may have hidden some)
+            var parentItem = sl.closest('.nav-item');
+            if (parentItem && parentItem.style.display === 'none') return;
+
+            var item = document.createElement('a');
+            item.className = 'sidebar-flyout-item';
+            item.href = '#';
+            item.setAttribute('route', sl.getAttribute('route'));
+            item.setAttribute('title', sl.getAttribute('title') || '');
+            // Copy icon + text
+            var icon = sl.querySelector('i');
+            if (icon) {
+                item.appendChild(icon.cloneNode(true));
+            }
+            item.appendChild(document.createTextNode(sl.textContent.trim()));
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                // Trigger the real nav-link click
+                sl.click();
+                closeFlyout();
+            });
+            flyout.appendChild(item);
+        });
+
+        if (flyout.querySelectorAll('.sidebar-flyout-item').length === 0) return;
+
+        // Position: right of the sidebar, aligned to the nav-item
+        document.body.appendChild(flyout);
+        var rect = navItem.getBoundingClientRect();
+        var sidebarWidth = sidebar.getBoundingClientRect().right;
+        flyout.style.top = rect.top + 'px';
+        flyout.style.left = sidebarWidth + 'px';
+
+        // Clamp bottom if it would overflow viewport
+        requestAnimationFrame(function () {
+            var flyRect = flyout.getBoundingClientRect();
+            if (flyRect.bottom > window.innerHeight - 8) {
+                flyout.style.top = Math.max(8, window.innerHeight - flyRect.height - 8) + 'px';
+            }
+        });
+
+        activeFlyout = flyout;
+        // Delay listener to avoid immediate close from the same click
+        setTimeout(function () {
+            document.addEventListener('click', onDocClickFlyout, true);
+        }, 0);
+    }
+
+    // ── Sidebar toggle ──
     if (sidebarToggle && sidebar && mainContent) {
         sidebarToggle.addEventListener('click', function () {
-            const wasCollapsed = sidebar.classList.contains('collapsed');
+            var wasCollapsed = sidebar.classList.contains('collapsed');
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('sidebar-collapsed');
 
-            // When collapsing: close all open submenu panels so they
-            // don't persist in a broken state when sidebar expands again
             if (!wasCollapsed) {
+                // Collapsing: close all open submenu panels
                 sidebar.querySelectorAll('.collapse.show').forEach(function (panel) {
                     var bsC = bootstrap.Collapse.getInstance(panel);
                     if (bsC) bsC.hide();
                     else panel.classList.remove('show');
-                    // Reset any inline positioning from flyout logic
-                    panel.style.top = '';
-                    panel.style.left = '';
-                    panel.style.position = '';
                 });
+                enableCssTips();
+            } else {
+                // Expanding
+                restoreTitles();
+                closeFlyout();
             }
         });
+
+        // Init tips if sidebar starts collapsed
+        if (sidebar.classList.contains('collapsed')) {
+            enableCssTips();
+        }
+    }
+
+    // ── Intercept dropdown clicks when collapsed → open flyout ──
+    // CAPTURE phase so we fire before Bootstrap's collapse handler
+    if (sidebar) {
+        sidebar.addEventListener('click', function (e) {
+            if (!sidebar.classList.contains('collapsed')) return;
+            var collapseLink = e.target.closest('.nav-link[data-bs-toggle="collapse"]');
+            if (!collapseLink) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            var navItem = collapseLink.closest('.nav-item');
+            if (navItem) openFlyout(navItem);
+        }, true);
     }
 
     // Dark mode toggle
