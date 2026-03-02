@@ -10,40 +10,58 @@ var _menuFilter = function () {
          */
         init: function () {
             this.filterMenus();
-            
-            // Re-filter when user info changes
-            window.addEventListener('storage', (e) => {
-                if (e.key === 'user_info') {
-                    this.filterMenus();
+
+            // Re-filter when user info or role features change
+            var self = this;
+            window.addEventListener('storage', function (e) {
+                if (e.key === 'user_info' || e.key === 'role_feature_keys') {
+                    self.filterMenus();
                 }
             });
         },
 
         /**
-         * Filter menus based on user role
+         * Get accessible routes — prefers DB-cached features, falls back to hardcoded config
          */
-        filterMenus: function () {
-            if (typeof roleMenuConfig === 'undefined') {
-                console.warn('[Menu Filter] roleMenuConfig not available');
-                return;
+        _getAccessibleRoutes: function () {
+            // 1. Try DB-cached features from localStorage (set by auth-service)
+            var cached = localStorage.getItem('role_feature_keys');
+            if (cached) {
+                try {
+                    var keys = JSON.parse(cached);
+                    if (Array.isArray(keys) && keys.length > 0) {
+                        return keys;
+                    }
+                } catch (e) { /* fall through */ }
             }
 
-            const accessibleMenus = roleMenuConfig.getAccessibleMenus();
-            const isAdmin = roleMenuConfig.isAdminUser();
+            // 2. Fallback to hardcoded role-menu-config
+            if (typeof roleMenuConfig !== 'undefined') {
+                return roleMenuConfig.getAccessibleMenus();
+            }
 
-            console.log('[Menu Filter] Accessible menus:', accessibleMenus);
-            console.log('[Menu Filter] Is Admin:', isAdmin);
+            return [];
+        },
 
-            // Only admin/super_user see all menus. Everyone else (PWA, KP Data Admin, or unknown role) gets restricted menu.
-            // This avoids showing full menu on first load when role_name is not yet in user_info.
+        /**
+         * Filter menus based on role features (DB-driven with fallback)
+         */
+        filterMenus: function () {
+            var isAdmin = typeof roleMenuConfig !== 'undefined' && roleMenuConfig.isAdminUser();
+            var accessibleMenus = this._getAccessibleRoutes();
+
+            console.log('[Menu Filter] Accessible menus:', accessibleMenus.length, 'Admin:', isAdmin);
+
             if (isAdmin) {
+                // Admin/super_user/management roles — show everything
                 this.showAllMenus();
                 this.updateParentMenus();
             } else {
-                // Restricted: hide all first, then show only allowed routes (empty if role unknown)
+                // Restricted: hide all, then show only allowed routes
                 this.hideAllMenus();
-                accessibleMenus.forEach(route => {
-                    this.showMenu(route);
+                var self = this;
+                accessibleMenus.forEach(function (route) {
+                    self.showMenu(route);
                 });
                 this.updateParentMenus();
                 this.hideAdminSections();
@@ -87,93 +105,34 @@ var _menuFilter = function () {
         },
 
         /**
-         * Update parent collapse menus based on visible children
+         * Update parent collapse menus based on visible children.
+         * If no children are visible, hide the parent toggle too.
          */
         updateParentMenus: function () {
-            // User Management
-            const userManagementItems = document.querySelectorAll('#userManagementCollapse .nav-item');
-            const visibleUserItems = Array.from(userManagementItems).filter(item => 
-                item.style.display !== 'none'
-            );
-            const userManagementToggle = document.querySelector('[data-bs-target="#userManagementCollapse"]');
-            if (userManagementToggle) {
-                const parentNavItem = userManagementToggle.closest('.nav-item');
-                if (parentNavItem) {
-                    if (visibleUserItems.length > 0) {
-                        parentNavItem.style.display = this._visibleDisplay;
-                    } else {
-                        parentNavItem.style.display = 'none';
-                    }
-                }
-            }
+            var self = this;
+            var collapseIds = [
+                'crmCollapse',
+                'kernelCollapse',
+                'oilCollapse',
+                'qualityCollapse',
+                'businessCollapse',
+                'userManagementCollapse',
+                'testManagementCollapse'
+            ];
 
-            // CRM
-            const crmItems = document.querySelectorAll('#crmCollapse .nav-item');
-            const visibleCrmItems = Array.from(crmItems).filter(item => 
-                item.style.display !== 'none'
-            );
-            const crmToggle = document.querySelector('[data-bs-target="#crmCollapse"]');
-            if (crmToggle) {
-                const parentNavItem = crmToggle.closest('.nav-item');
-                if (parentNavItem) {
-                    if (visibleCrmItems.length > 0) {
-                        parentNavItem.style.display = this._visibleDisplay;
-                    } else {
-                        parentNavItem.style.display = 'none';
+            collapseIds.forEach(function (id) {
+                var children = document.querySelectorAll('#' + id + ' .nav-item');
+                var hasVisible = Array.from(children).some(function (item) {
+                    return item.style.display !== 'none';
+                });
+                var toggle = document.querySelector('[data-bs-target="#' + id + '"]');
+                if (toggle) {
+                    var parentNavItem = toggle.closest('.nav-item');
+                    if (parentNavItem) {
+                        parentNavItem.style.display = hasVisible ? self._visibleDisplay : 'none';
                     }
                 }
-            }
-
-            // Production
-            const productionItems = document.querySelectorAll('#productionCollapse .nav-item');
-            const visibleProductionItems = Array.from(productionItems).filter(item => 
-                item.style.display !== 'none'
-            );
-            const productionToggle = document.querySelector('[data-bs-target="#productionCollapse"]');
-            if (productionToggle) {
-                const parentNavItem = productionToggle.closest('.nav-item');
-                if (parentNavItem) {
-                    if (visibleProductionItems.length > 0) {
-                        parentNavItem.style.display = this._visibleDisplay;
-                    } else {
-                        parentNavItem.style.display = 'none';
-                    }
-                }
-            }
-
-            // Quality & Stock
-            const qualityItems = document.querySelectorAll('#qualityCollapse .nav-item');
-            const visibleQualityItems = Array.from(qualityItems).filter(item => 
-                item.style.display !== 'none'
-            );
-            const qualityToggle = document.querySelector('[data-bs-target="#qualityCollapse"]');
-            if (qualityToggle) {
-                const parentNavItem = qualityToggle.closest('.nav-item');
-                if (parentNavItem) {
-                    if (visibleQualityItems.length > 0) {
-                        parentNavItem.style.display = this._visibleDisplay;
-                    } else {
-                        parentNavItem.style.display = 'none';
-                    }
-                }
-            }
-
-            // Business
-            const businessItems = document.querySelectorAll('#businessCollapse .nav-item');
-            const visibleBusinessItems = Array.from(businessItems).filter(item => 
-                item.style.display !== 'none'
-            );
-            const businessToggle = document.querySelector('[data-bs-target="#businessCollapse"]');
-            if (businessToggle) {
-                const parentNavItem = businessToggle.closest('.nav-item');
-                if (parentNavItem) {
-                    if (visibleBusinessItems.length > 0) {
-                        parentNavItem.style.display = this._visibleDisplay;
-                    } else {
-                        parentNavItem.style.display = 'none';
-                    }
-                }
-            }
+            });
         },
 
         /**

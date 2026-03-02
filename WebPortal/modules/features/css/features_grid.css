@@ -1,0 +1,114 @@
+/* Features Grid Module – aligned with roles_grid.css */
+
+.module-content {
+    min-height: 400px;
+}
+
+#featuresTable {
+    margin-bottom: 0;
+}
+
+#featuresTable th {
+    border-top: none;
+    font-weight: 600;
+}
+
+#featuresTable td {
+    vertical-align: middle;
+}
+
+/* Clickable row: cursor and first column as primary link */
+#featuresTable tbody tr.js-feature-row {
+    cursor: pointer;
+}
+
+#featuresTable .js-feature-row td:first-child {
+    color: var(--phoenix-primary);
+    font-weight: 500;
+}
+
+#featuresTable .js-feature-row:hover td:first-child {
+    text-decoration: underline;
+}
+
+/* Actions column: centered, single dropdown with square ellipsis button */
+#featuresTable td:last-child {
+    text-align: center;
+}
+
+#featuresTable td:last-child .dropdown {
+    display: inline-block;
+}
+
+#featuresTable td:last-child .dropdown .btn {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+}
+
+#featuresTable td:last-child .dropdown .btn::after {
+    display: none;
+}
+
+/* Badge */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.4em 0.6em;
+}
+
+/* Pagination */
+.pagination {
+    margin-bottom: 0;
+}
+
+.pagination .page-link {
+    color: var(--phoenix-primary);
+    border-color: var(--phoenix-border-color);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--phoenix-primary);
+    border-color: var(--phoenix-primary);
+}
+
+.pagination .page-link:hover {
+    color: var(--phoenix-primary);
+    background-color: var(--phoenix-light);
+    border-color: var(--phoenix-border-color);
+}
+
+/* Card */
+.card {
+    border: 1px solid var(--phoenix-border-color);
+    box-shadow: var(--phoenix-box-shadow);
+}
+
+/* Form / validation */
+.required::after {
+    content: " *";
+    color: var(--phoenix-danger);
+}
+
+/* Text truncation for descriptions */
+.text-truncate {
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+
+    .text-truncate {
+        max-width: 150px !important;
+    }
+}

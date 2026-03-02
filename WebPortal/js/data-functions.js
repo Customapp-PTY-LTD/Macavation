@@ -894,6 +894,44 @@ var _dataFunctions = function () {
             return await this.callFunction('get_features', {}, token);
         },
 
+        /**
+         * Get feature by ID
+         */
+        getFeatureById: async function (featureId, token = null) {
+            return await this.callFunction('get_feature_by_id', { p_id: featureId }, token);
+        },
+
+        /**
+         * Create a new feature
+         */
+        createFeature: async function (featureData, token = null) {
+            return await this.callFunction('create_feature_simple', {
+                p_key: featureData.key,
+                p_name: featureData.name,
+                p_description: featureData.description || null
+            }, token);
+        },
+
+        /**
+         * Update an existing feature
+         */
+        updateFeature: async function (featureId, featureData, token = null) {
+            return await this.callFunction('update_feature_simple', {
+                p_id: featureId,
+                p_key: featureData.key,
+                p_name: featureData.name,
+                p_description: featureData.description || null,
+                p_is_active: featureData.is_active !== false
+            }, token);
+        },
+
+        /**
+         * Delete a feature
+         */
+        deleteFeature: async function (featureId, token = null) {
+            return await this.callFunction('delete_feature_simple', { p_id: featureId }, token);
+        },
+
         // ===== ROLE FEATURES FUNCTIONS =====
 
         /**
@@ -940,6 +978,13 @@ var _dataFunctions = function () {
          */
         deleteRoleFeature: async function (featureId, token = null) {
             return await this.callFunction('delete_role_feature_simple', { role_feature_id: featureId }, token);
+        },
+
+        /**
+         * Get enabled feature keys for a specific role (used by menu filter)
+         */
+        getFeaturesForRole: async function (roleId, token = null) {
+            return await this.callFunction('get_features_for_role', { p_role_id: roleId }, token);
         },
 
         // ===== COMPANY MANAGEMENT FUNCTIONS =====

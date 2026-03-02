@@ -13,6 +13,11 @@ class AuthService {
         if (this.userInfo && !this.userInfo.role_name && this.userInfo.role_id) {
             this.fetchCompleteUserInfo();
         }
+
+        // Refresh role features cache if user has a role_id and cache is missing
+        if (this.userInfo && this.userInfo.role_id && !localStorage.getItem('role_feature_keys')) {
+            this.fetchAndCacheFeatures(this.userInfo.role_id);
+        }
     }
 
     /**
@@ -110,6 +115,11 @@ class AuthService {
                 if (!this.userInfo.role_name && this.userInfo.role_id) {
                     await this.fetchCompleteUserInfo();
                 }
+
+                // Cache role features for menu filtering
+                if (this.userInfo.role_id) {
+                    this.fetchAndCacheFeatures(this.userInfo.role_id);
+                }
             }
             return result;
         } catch (error) {
@@ -142,6 +152,30 @@ class AuthService {
     }
 
     /**
+     * Fetch enabled feature keys for the user's role and cache in localStorage.
+     * Called after login and when role_id is confirmed.
+     */
+    async fetchAndCacheFeatures(roleId) {
+        try {
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getFeaturesForRole) {
+                return;
+            }
+            var result = await dataFunctions.getFeaturesForRole(roleId);
+            var keys = [];
+            if (Array.isArray(result)) {
+                keys = result.map(function (row) { return row.key; });
+            }
+            localStorage.setItem('role_feature_keys', JSON.stringify(keys));
+            // Refresh the menu filter if available
+            if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
+                menuFilter.refresh();
+            }
+        } catch (error) {
+            console.warn('[AuthService] Could not load role features:', error.message);
+        }
+    }
+
+    /**
      * Sign out user
      */
     signOut() {
@@ -156,6 +190,7 @@ class AuthService {
         
         localStorage.removeItem('lambda_token');
         localStorage.removeItem('user_info');
+        localStorage.removeItem('role_feature_keys');
         this.token = null;
         this.userInfo = null;
         

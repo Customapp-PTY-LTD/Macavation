@@ -1,4 +1,4 @@
-/* Role Features Grid Module – aligned with UI_DESIGN_INSTRUCTIONS.md / kernel-production */
+/* Role Features Grid – checkbox-per-feature UI */
 
 .module-content {
     min-height: 400px;
@@ -17,118 +17,45 @@
     vertical-align: middle;
 }
 
-/* Clickable row: cursor and first column as primary link */
-#featuresTable tbody tr.js-feature-row {
+/* Feature rows */
+#featuresTable .feature-row:hover {
+    background-color: var(--phoenix-light, #f8f9fa);
+}
+
+#featuresTable .feature-row.saving {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Checkbox sizing */
+#featuresTable .form-check-input {
+    width: 1.25em;
+    height: 1.25em;
     cursor: pointer;
 }
 
-#featuresTable .js-feature-row td:first-child {
-    color: var(--phoenix-primary);
-    font-weight: 500;
+#featuresTable .form-check-input:disabled {
+    cursor: wait;
 }
 
-#featuresTable .js-feature-row:hover td:first-child {
-    text-decoration: underline;
-}
-
-/* Actions column: centered, single dropdown with square ellipsis button */
-#featuresTable td:last-child {
-    text-align: center;
-}
-
-#featuresTable td:last-child .dropdown {
-    display: inline-block;
-}
-
-#featuresTable td:last-child .dropdown .btn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
+/* Code tag for feature keys */
+#featuresTable code {
+    font-size: 0.8rem;
+    color: #d63384;
+    background: transparent;
     padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     border-radius: 0;
-}
-
-/* Badges */
-.badge {
-    font-size: 0.75rem;
-    padding: 0.4em 0.6em;
-}
-
-/* Pagination */
-.pagination {
-    margin-bottom: 0;
-}
-
-.pagination .page-link {
-    color: var(--phoenix-primary);
-    border-color: var(--phoenix-border-color);
-}
-
-.pagination .page-item.active .page-link {
-    background-color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
-}
-
-.pagination .page-link:hover {
-    color: var(--phoenix-primary);
-    background-color: var(--phoenix-light);
-    border-color: var(--phoenix-border-color);
 }
 
 /* Card */
 .card {
-    border: 1px solid var(--phoenix-border-color);
-    box-shadow: var(--phoenix-box-shadow);
-}
-
-.card-header {
-    background-color: var(--phoenix-light);
-    border-bottom: 1px solid var(--phoenix-border-color);
-}
-
-/* Form / validation */
-.required::after {
-    content: " *";
-    color: var(--phoenix-danger);
-}
-
-.is-invalid {
-    border-color: var(--phoenix-danger);
-}
-
-.invalid-feedback {
-    color: var(--phoenix-danger);
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
-}
-
-.form-check {
-    margin-bottom: 1rem;
-}
-
-.form-text {
-    font-size: 0.875rem;
-    color: var(--phoenix-secondary);
-}
-
-/* Text truncation */
-.text-truncate {
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    border: 1px solid var(--phoenix-border-color, #dee2e6);
+    box-shadow: var(--phoenix-box-shadow, 0 .125rem .25rem rgba(0,0,0,.075));
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .table-responsive {
         font-size: 0.875rem;
-    }
-
-    .text-truncate {
-        max-width: 150px !important;
     }
 }

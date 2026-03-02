@@ -146,14 +146,12 @@ var _appRouter = function () {
                     return { success: false, errors: ['Authentication required'] };
                 }
 
-                // Role-based menu access check (currently disabled - all users have access)
-                // To re-enable role-based access, uncomment the code below:
-                /*
-                if (typeof roleMenuConfig !== 'undefined') {
+                // Role-based menu access check
+                // Skip check if role hasn't loaded yet (menu-filter will handle visibility once role arrives)
+                if (typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getUserRole()) {
                     const hasAccess = roleMenuConfig.hasAccess(routeName);
                     if (!hasAccess) {
                         console.log(`[App Router] Access denied for route: ${routeName}`);
-                        // Show permission error
                         const contentArea = document.getElementById('content-area');
                         if (contentArea) {
                             contentArea.innerHTML = `
@@ -166,15 +164,14 @@ var _appRouter = function () {
                             `;
                             setTimeout(() => {
                                 _appRouter.routeTo('dashboard');
-                            }, 3000);
+                            }, 2000);
                         }
                         return { success: false, errors: ['Insufficient permissions'] };
                     }
                 }
-                */
 
                 // Check if this is a user management module
-                const userManagementModules = ['users-grid', 'roles-grid', 'role-permissions-grid', 'role-features-grid'];
+                const userManagementModules = ['users-grid', 'roles-grid', 'role-permissions-grid', 'role-features-grid', 'features-grid'];
 
                 if (userManagementModules.includes(routeName)) {
 
@@ -373,6 +370,16 @@ var _appRouter = function () {
                 'role-feature-modal': () => {
                     if (typeof _modal_role_feature !== 'undefined' && _modal_role_feature.init) {
                         _modal_role_feature.init();
+                    }
+                },
+                'features-grid': () => {
+                    if (typeof initializeFeaturesGrid === 'function') {
+                        initializeFeaturesGrid();
+                    }
+                },
+                'feature-modal': () => {
+                    if (typeof _modal_feature !== 'undefined' && _modal_feature.init) {
+                        _modal_feature.init();
                     }
                 },
                 'crm-grid': () => {

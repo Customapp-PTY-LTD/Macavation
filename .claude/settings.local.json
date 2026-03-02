@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(SUPABASE_ACCESS_TOKEN=\"sbp_79ffc6772a53eca0d9021d77da313bf85b5c507e\" supabase db execute --project-ref sofanhfpxifgdtooefzq \":*)",
-      "WebFetch(domain:www.macavation.co.za)"
+      "WebFetch(domain:www.macavation.co.za)",
+      "Bash(grep -r \"menuFilter.init\\\\|menu-filter\\\\|menuFilter\" /Users/aidankeown/Desktop/CutsomApp/Software/Macavation/WebPortal/*.html)",
+      "Bash(ls -la /Users/aidankeown/Desktop/CutsomApp/Software/Macavation/WebPortal/*.html)",
+      "Bash(grep -l \"get_features\\\\|get_role_features\\\\|create_role_feature\" /Users/aidankeown/Desktop/CutsomApp/Software/Macavation/migrations/*.sql)",
+      "Bash(curl -s -X POST \"https://api.supabase.com/v1/projects/sofanhfpxifgdtooefzq/database/query\" -H \"Authorization: Bearer sbp_79ffc6772a53eca0d9021d77da313bf85b5c507e\" -H \"Content-Type: application/json\" -d '{\"\"query\"\": \"\"SELECT proname, pg_get_function_result\\(oid\\) as return_type FROM pg_proc WHERE proname LIKE ''''get_features%'''' AND pronamespace = \\(SELECT oid FROM pg_namespace WHERE nspname = ''''public''''\\);\"\"}')",
+      "Bash(curl -s -X POST \"https://api.supabase.com/v1/projects/sofanhfpxifgdtooefzq/database/query\" -H \"Authorization: Bearer sbp_79ffc6772a53eca0d9021d77da313bf85b5c507e\" -H \"Content-Type: application/json\" -d '{\"\"query\"\": \"\"DROP FUNCTION IF EXISTS public.get_features\\(\\);\"\"}')",
+      "Bash(curl -s -X POST \"https://api.supabase.com/v1/projects/sofanhfpxifgdtooefzq/database/query\" -H \"Authorization: Bearer sbp_79ffc6772a53eca0d9021d77da313bf85b5c507e\" -H \"Content-Type: application/json\" -d '{\"\"query\"\": \"\"SELECT proname, pg_get_function_identity_arguments\\(oid\\) as args FROM pg_proc WHERE proname IN \\(''''get_features'''', ''''get_role_features'''', ''''get_role_feature_by_id'''', ''''create_role_feature_simple'''', ''''update_role_feature_simple'''', ''''delete_role_feature_simple'''', ''''get_features_for_role''''\\) AND pronamespace = \\(SELECT oid FROM pg_namespace WHERE nspname = ''''public''''\\);\"\"}')",
+      "Bash(curl -s -X POST \"https://api.supabase.com/v1/projects/sofanhfpxifgdtooefzq/database/query\" -H \"Authorization: Bearer sbp_79ffc6772a53eca0d9021d77da313bf85b5c507e\" -H \"Content-Type: application/json\" -d '{\"\"query\"\": \"\"SELECT \\(SELECT COUNT\\(*\\) FROM features\\) as features_count, \\(SELECT COUNT\\(*\\) FROM role_features\\) as role_features_count, \\(SELECT COUNT\\(*\\) FROM role_permissions WHERE object_name LIKE ''''%feature%'''' AND operation = ''''EXECUTE''''\\) as rbac_grants;\"\"}')"
     ]
   }
 }

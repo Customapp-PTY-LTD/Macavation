@@ -119,6 +119,24 @@
             "js": ["js/modal_role_feature.js"],
             "css": []
         },
+        "features-grid": {
+            "description": "Features Management",
+            "path": "features",
+            "html": "html/features_grid.html",
+            "js": [
+                "js/features_grid.js"
+            ],
+            "css": [
+                "css/features_grid.css"
+            ]
+        },
+        "feature-modal": {
+            "description": "Add/Edit Feature Modal",
+            "path": "modals/modal-feature",
+            "html": "html/modal_feature.html",
+            "js": ["js/modal_feature.js"],
+            "css": []
+        },
         "admin-grid": {
             "description": "System Administration",
             "path": "admin",

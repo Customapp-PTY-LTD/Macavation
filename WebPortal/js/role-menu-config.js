@@ -11,12 +11,29 @@ var _roleMenuConfig = function () {
         menuConfig: {
             // Super User and Admin - Full Access
             'super_user': {
-                access: 'all' // All menus
+                access: 'all'
             },
             'admin': {
-                access: 'all' // All menus
+                access: 'all'
             },
-            
+
+            // Management roles - Full access (refine later)
+            'General Manager': {
+                access: 'all'
+            },
+            'Production Manager': {
+                access: 'all'
+            },
+            'QA Supervisor': {
+                access: 'all'
+            },
+            'Oil Plant Manager': {
+                access: 'all'
+            },
+            'Office Administrator': {
+                access: 'all'
+            },
+
             // PWA Grower Intake - Access to grower intake and related
             'PWA Grower Intake': {
                 access: 'specific',
@@ -26,7 +43,7 @@ var _roleMenuConfig = function () {
                     'my-day'
                 ]
             },
-            
+
             // PWA Production - Access to production modules
             'PWA Production': {
                 access: 'specific',
@@ -35,33 +52,36 @@ var _roleMenuConfig = function () {
                     'grower-intake-grid',
                     'kernel-production-grid',
                     'oil-production-grid',
+                    'supplier-intake-grid',
                     'my-day'
                 ]
             },
-            
+
             // PWA Quality Assurance - Access to quality and stock
             'PWA Quality Assurance': {
                 access: 'specific',
                 menus: [
                     'dashboard',
                     'quality-assurance-grid',
-                    'stock-management-grid',
-                    'grower-intake-grid', // To view intake data for quality checks
+                    'stock-management-kernel',
+                    'stock-management-oil',
+                    'grower-intake-grid',
                     'my-day'
                 ]
             },
-            
+
             // PWA Stock Management - Access to stock operations
             'PWA Stock Management': {
                 access: 'specific',
                 menus: [
                     'dashboard',
-                    'stock-management-grid',
-                    'quality-assurance-grid', // To view quality data
+                    'stock-management-kernel',
+                    'stock-management-oil',
+                    'quality-assurance-grid',
                     'my-day'
                 ]
             },
-            
+
             // PWA Sales - Access to sales and forecasting
             'PWA Sales': {
                 access: 'specific',
@@ -73,7 +93,7 @@ var _roleMenuConfig = function () {
                     'my-day'
                 ]
             },
-            
+
             // PWA Finance - Access to financial data
             'PWA Finance': {
                 access: 'specific',
@@ -84,7 +104,7 @@ var _roleMenuConfig = function () {
                     'my-day'
                 ]
             },
-            
+
             // PWA Document Management - Access to documents
             'PWA Document Management': {
                 access: 'specific',
@@ -94,7 +114,7 @@ var _roleMenuConfig = function () {
                     'my-day'
                 ]
             },
-            
+
             // PWA Field Operations - Access to field operations
             'PWA Field Operations': {
                 access: 'specific',
@@ -107,13 +127,14 @@ var _roleMenuConfig = function () {
                 ]
             },
 
-            // KP Data Admin - Production section only (Kernel Production, Grower Intake, Oil Production)
+            // KP Data Admin - Production section only
             'KP Data Admin': {
                 access: 'specific',
                 menus: [
                     'grower-intake-grid',
                     'kernel-production-grid',
-                    'oil-production-grid'
+                    'oil-production-grid',
+                    'supplier-intake-grid'
                 ]
             }
         },
@@ -174,6 +195,13 @@ var _roleMenuConfig = function () {
                 category: 'user-management',
                 parent: 'userManagementCollapse'
             },
+            'features-grid': {
+                route: 'features-grid',
+                icon: 'fas fa-puzzle-piece',
+                label: 'Features',
+                category: 'user-management',
+                parent: 'userManagementCollapse'
+            },
             'crm-grid': {
                 route: 'crm-grid',
                 icon: 'fas fa-building',
@@ -185,22 +213,57 @@ var _roleMenuConfig = function () {
                 route: 'grower-intake-grid',
                 icon: 'fas fa-truck-loading',
                 label: 'Grower Intake',
-                category: 'production',
-                parent: 'productionCollapse'
+                category: 'kernel',
+                parent: 'kernelCollapse'
             },
             'kernel-production-grid': {
                 route: 'kernel-production-grid',
                 icon: 'fas fa-cogs',
                 label: 'Kernel Production',
-                category: 'production',
-                parent: 'productionCollapse'
+                category: 'kernel',
+                parent: 'kernelCollapse'
+            },
+            'stock-management-kernel': {
+                route: 'stock-management-kernel',
+                icon: 'fas fa-warehouse',
+                label: 'Stock (Kernel)',
+                category: 'kernel',
+                parent: 'kernelCollapse'
+            },
+            'kernel-dispatch-grid': {
+                route: 'kernel-dispatch-grid',
+                icon: 'fas fa-box',
+                label: 'Kernel Dispatch',
+                category: 'kernel',
+                parent: 'kernelCollapse'
+            },
+            'supplier-intake-grid': {
+                route: 'supplier-intake-grid',
+                icon: 'fas fa-dolly',
+                label: 'Supplier Intake',
+                category: 'oil',
+                parent: 'oilCollapse'
             },
             'oil-production-grid': {
                 route: 'oil-production-grid',
-                icon: 'fas fa-oil-can',
+                icon: 'fas fa-industry',
                 label: 'Oil Production',
-                category: 'production',
-                parent: 'productionCollapse'
+                category: 'oil',
+                parent: 'oilCollapse'
+            },
+            'stock-management-oil': {
+                route: 'stock-management-oil',
+                icon: 'fas fa-warehouse',
+                label: 'Stock (Oil & Protein)',
+                category: 'oil',
+                parent: 'oilCollapse'
+            },
+            'oil-dispatch-grid': {
+                route: 'oil-dispatch-grid',
+                icon: 'fas fa-box-open',
+                label: 'Oil & Protein Dispatch',
+                category: 'oil',
+                parent: 'oilCollapse'
             },
             'quality-assurance-grid': {
                 route: 'quality-assurance-grid',
@@ -216,6 +279,7 @@ var _roleMenuConfig = function () {
                 category: 'quality',
                 parent: 'qualityCollapse'
             },
+            // Note: stock-management-kernel and stock-management-oil are defined above under kernel/oil categories
             'sales-forecasting-grid': {
                 route: 'sales-forecasting-grid',
                 icon: 'fas fa-chart-line',
@@ -267,55 +331,69 @@ var _roleMenuConfig = function () {
         },
 
         /**
-         * Check if user has access to a specific route
+         * Check if user has access to a specific route.
+         * Prefers DB-cached features, falls back to hardcoded config.
          */
         hasAccess: function (route) {
-            // Check if user is authenticated (has user_info)
-            const userInfo = localStorage.getItem('user_info');
+            var userInfo = localStorage.getItem('user_info');
             if (!userInfo) return false;
 
-            const roleName = this.getUserRole();
+            // Admin bypass
+            if (this.isAdminUser()) return true;
+
+            // 1. DB-cached features (preferred)
+            var cached = localStorage.getItem('role_feature_keys');
+            if (cached) {
+                try {
+                    var keys = JSON.parse(cached);
+                    if (Array.isArray(keys) && keys.length > 0) {
+                        return keys.indexOf(route) !== -1;
+                    }
+                } catch (e) { /* fall through */ }
+            }
+
+            // 2. Fallback to hardcoded config
+            var roleName = this.getUserRole();
             if (!roleName) return false;
 
-            const roleConfig = this.menuConfig[roleName];
+            var roleConfig = this.menuConfig[roleName];
             if (!roleConfig) return false;
 
-            // Super user and admin have all access
-            if (roleConfig.access === 'all') {
-                return true;
-            }
-
-            // Check specific menu access
-            if (roleConfig.access === 'specific') {
-                return roleConfig.menus.includes(route);
-            }
+            if (roleConfig.access === 'all') return true;
+            if (roleConfig.access === 'specific') return roleConfig.menus.indexOf(route) !== -1;
 
             return false;
         },
 
         /**
-         * Get accessible menus for current user
+         * Get accessible menus for current user.
+         * Prefers DB-cached features, falls back to hardcoded config.
          */
         getAccessibleMenus: function () {
-            // Check if user is authenticated (has user_info)
-            const userInfo = localStorage.getItem('user_info');
+            var userInfo = localStorage.getItem('user_info');
             if (!userInfo) return [];
 
-            const roleName = this.getUserRole();
+            // Admin bypass
+            if (this.isAdminUser()) return Object.keys(this.menuStructure);
+
+            // 1. DB-cached features (preferred)
+            var cached = localStorage.getItem('role_feature_keys');
+            if (cached) {
+                try {
+                    var keys = JSON.parse(cached);
+                    if (Array.isArray(keys) && keys.length > 0) return keys;
+                } catch (e) { /* fall through */ }
+            }
+
+            // 2. Fallback to hardcoded config
+            var roleName = this.getUserRole();
             if (!roleName) return [];
 
-            const roleConfig = this.menuConfig[roleName];
+            var roleConfig = this.menuConfig[roleName];
             if (!roleConfig) return [];
 
-            // Super user and admin have all menus
-            if (roleConfig.access === 'all') {
-                return Object.keys(this.menuStructure);
-            }
-
-            // Return specific menus
-            if (roleConfig.access === 'specific') {
-                return roleConfig.menus || [];
-            }
+            if (roleConfig.access === 'all') return Object.keys(this.menuStructure);
+            if (roleConfig.access === 'specific') return roleConfig.menus || [];
 
             return [];
         },
@@ -337,7 +415,8 @@ var _roleMenuConfig = function () {
             const roleName = this.getUserRole();
             if (!roleName) return false;
 
-            return roleName === 'admin' || roleName === 'super_user';
+            var roleConfig = this.menuConfig[roleName];
+            return roleConfig && roleConfig.access === 'all';
         },
 
         /**
