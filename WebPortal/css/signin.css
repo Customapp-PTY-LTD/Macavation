@@ -1,63 +1,41 @@
+/* ============================================
+   MACAVATION SIGN-IN — matches main app design system
+   Inter font · Neutral palette · Green/Tan/Brown accents
+   ============================================ */
+
 :root {
-    /* Macadamia-inspired color palette */
-    --macadamia-cream: #F5F0E8;
-    --macadamia-shell: #8B7355;
-    --macadamia-kernel: #E8DCC8;
-    --macadamia-dark: #4A3728;
-    --forest-deep: #008950;
-    --forest-light: #008950;
-    --earth-rich: #6B4423;
-    --gold-accent: #C9A962;
-    --gold-light: #E8D4A8;
-    --shadow-warm: rgba(74, 55, 40, 0.15);
+    --mac-green: #198754;
+    --mac-pink: #FF005E;
+    --mac-tan: #8d7434;
+    --mac-brown: #6d5822;
+    --mac-brown-dark: #4A3728;
+    --mac-bg: #F7F7F5;
+    --mac-bg-secondary: #FFFFFF;
+    --mac-bg-tertiary: #F0F0EE;
+    --mac-border: #E3E3E0;
+    --mac-border-strong: #D3D3D0;
+    --mac-text: #1F1F1F;
+    --mac-text-secondary: #6B6B6B;
+    --mac-text-tertiary: #9B9B9B;
+    --mac-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-    font-family: 'Nunito Sans', sans-serif;
+    font-family: var(--mac-font);
     min-height: 100vh;
-    background: var(--macadamia-cream);
-    position: relative;
-    overflow-x: hidden;
+    background: var(--mac-bg);
+    color: var(--mac-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Animated background with leaf patterns */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background:
-        radial-gradient(ellipse at 20% 20%, rgba(0, 137, 80, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 80%, rgba(107, 68, 35, 0.06) 0%, transparent 50%),
-        radial-gradient(ellipse at 60% 30%, rgba(201, 169, 98, 0.05) 0%, transparent 40%);
-    pointer-events: none;
-    z-index: 0;
-}
+/* Remove old decorative overlays */
+body::before { display: none; }
+.pattern-overlay, .nut-decoration { display: none; }
 
-/* Decorative macadamia pattern */
-.pattern-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-        radial-gradient(circle at 10% 90%, var(--macadamia-shell) 2px, transparent 2px),
-        radial-gradient(circle at 90% 10%, var(--forest-light) 1.5px, transparent 1.5px),
-        radial-gradient(circle at 50% 50%, var(--gold-accent) 1px, transparent 1px);
-    background-size: 180px 180px, 220px 220px, 150px 150px;
-    opacity: 0.04;
-    pointer-events: none;
-    z-index: 0;
-}
+/* ── Layout ── */
 
 .auth-container {
     min-height: 100vh;
@@ -65,40 +43,31 @@ body::before {
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    position: relative;
-    z-index: 1;
 }
 
 .auth-wrapper {
     display: flex;
-    max-width: 1000px;
+    max-width: 960px;
     width: 100%;
-    background: white;
-    border-radius: 24px;
+    background: var(--mac-bg-secondary);
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow:
-        0 25px 80px var(--shadow-warm),
-        0 10px 30px rgba(0, 137, 80, 0.08);
-    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid var(--mac-border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 12px 28px rgba(0,0,0,0.08);
+    animation: fadeIn 0.5s ease;
 }
 
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(40px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-/* Left Panel - Branding */
+/* ── Left Panel — Brand ── */
+
 .brand-panel {
     flex: 1;
-    background: #008950;
-    padding: 3rem;
+    background: var(--mac-green);
+    padding: 3rem 2.5rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -107,29 +76,15 @@ body::before {
     overflow: hidden;
 }
 
+/* Subtle tan accent line at top */
 .brand-panel::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background:
-        radial-gradient(circle at 30% 70%, rgba(201, 169, 98, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 70% 30%, rgba(0, 137, 80, 0.2) 0%, transparent 40%);
-    animation: shimmer 15s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-
-    0%,
-    100% {
-        transform: rotate(0deg);
-    }
-
-    50% {
-        transform: rotate(5deg);
-    }
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--mac-tan);
 }
 
 .brand-content {
@@ -140,118 +95,109 @@ body::before {
 }
 
 .logo-circle {
-    width: 120px;
-    height: 120px;
-    background: linear-gradient(145deg, var(--gold-accent), var(--gold-light));
+    width: 80px;
+    height: 80px;
+    background: var(--mac-bg-secondary);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 2rem;
-    box-shadow:
-        0 15px 40px rgba(0, 0, 0, 0.3),
-        inset 0 -5px 20px rgba(0, 0, 0, 0.1);
-    animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-10px);
-    }
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .logo-circle i {
-    font-size: 3rem;
-    color: var(--macadamia-dark);
+    font-size: 2rem;
+    color: var(--mac-green);
 }
 
 .brand-title {
-    font-family: 'Tahoma', sans-serif;
-    font-size: 3rem;
-    font-weight: 600;
-    letter-spacing: 3px;
-    margin-bottom: 0.5rem;
+    font-family: var(--mac-font);
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 0.25rem;
     text-transform: uppercase;
 }
 
 .brand-tagline {
-    font-size: 0.95rem;
-    opacity: 0.85;
-    letter-spacing: 2px;
+    font-size: 0.8rem;
+    opacity: 0.7;
+    letter-spacing: 1px;
     text-transform: uppercase;
     margin-bottom: 2rem;
+    font-weight: 400;
 }
 
 .brand-features {
     list-style: none;
     padding: 0;
-    margin-top: 2rem;
+    margin-top: 1.5rem;
+    text-align: left;
 }
 
 .brand-features li {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
     opacity: 0.9;
+    font-weight: 400;
 }
 
 .brand-features li i {
-    width: 36px;
-    height: 36px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.85rem;
-    color: var(--gold-light);
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.8);
+    flex-shrink: 0;
 }
 
-/* Right Panel - Form */
+/* ── Right Panel — Form ── */
+
 .form-panel {
     flex: 1;
-    padding: 3rem;
+    padding: 3rem 2.5rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    background: var(--mac-bg-secondary);
 }
 
 .form-header {
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
 }
 
 .form-header h2 {
-    font-family: 'Tahoma', sans-serif;
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--macadamia-dark);
-    margin-bottom: 0.5rem;
+    font-family: var(--mac-font);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--mac-brown-dark);
+    margin-bottom: 0.25rem;
 }
 
 .form-header p {
-    color: var(--macadamia-shell);
-    font-size: 0.95rem;
+    color: var(--mac-text-secondary);
+    font-size: 0.875rem;
 }
 
 /* Google Sign-in */
 .g_id_signin {
-    border-radius: 12px !important;
+    border-radius: 8px !important;
     overflow: hidden;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
 }
 
 .divider {
     display: flex;
     align-items: center;
-    margin: 1.5rem 0;
+    margin: 1.25rem 0;
 }
 
 .divider::before,
@@ -259,186 +205,200 @@ body::before {
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--macadamia-kernel), transparent);
+    background: var(--mac-border);
 }
 
 .divider span {
-    padding: 0 1.5rem;
-    color: var(--macadamia-shell);
-    font-size: 0.85rem;
+    padding: 0 1rem;
+    color: var(--mac-text-tertiary);
+    font-size: 0.75rem;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
-/* Form Elements */
+/* ── Form Elements ── */
+
 .form-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
 }
 
 .form-label {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    color: var(--macadamia-dark);
-    margin-bottom: 0.5rem;
-    letter-spacing: 0.5px;
+    color: var(--mac-text);
+    margin-bottom: 0.375rem;
+    letter-spacing: 0;
 }
 
 .form-label i {
-    margin-right: 0.5rem;
-    color: var(--forest-light);
+    margin-right: 0.375rem;
+    color: var(--mac-brown);
+    font-size: 0.75rem;
 }
 
 .form-control {
     width: 100%;
-    padding: 0.875rem 1rem;
-    border: 2px solid var(--macadamia-kernel);
-    border-radius: 12px;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    background: var(--macadamia-cream);
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--mac-border);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-family: var(--mac-font);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    background: var(--mac-bg);
+    color: var(--mac-text);
 }
 
 .form-control:focus {
     outline: none;
-    border-color: var(--forest-light);
-    background: white;
-    box-shadow: 0 0 0 4px rgba(74, 124, 89, 0.1);
+    border-color: var(--mac-green);
+    background: var(--mac-bg-secondary);
+    box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.08);
 }
 
 .form-control::placeholder {
-    color: #B8A898;
+    color: var(--mac-text-tertiary);
 }
 
 .form-check {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
 }
 
 .form-check-input {
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--macadamia-shell);
-    border-radius: 6px;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--mac-border-strong);
+    border-radius: 4px;
     cursor: pointer;
-    accent-color: var(--forest-light);
+    accent-color: var(--mac-green);
 }
 
 .form-check-label {
-    color: var(--macadamia-shell);
-    font-size: 0.9rem;
+    color: var(--mac-text-secondary);
+    font-size: 0.8125rem;
     cursor: pointer;
 }
 
-/* Primary Button */
+/* ── Primary Button ── */
+
 .btn-primary {
     width: 100%;
-    padding: 1rem;
-    background: #008950;
+    padding: 0.75rem 1rem;
+    background: var(--mac-green);
     border: none;
-    border-radius: 12px;
+    border-radius: 50px;
     color: white;
-    font-size: 1rem;
+    font-size: 0.875rem;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    font-family: var(--mac-font);
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 137, 80, 0.3);
+    transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 137, 80, 0.4);
+    background: #146c43;
+    box-shadow: 0 2px 8px rgba(25, 135, 84, 0.25);
 }
 
 .btn-primary:active {
-    transform: translateY(0);
+    background: #0f5132;
 }
 
 .btn-primary i {
-    margin-right: 0.5rem;
+    margin-right: 0.375rem;
 }
 
-/* Links */
+/* ── Links ── */
+
 .form-links {
     text-align: center;
-    margin-top: 1.5rem;
+    margin-top: 1.25rem;
 }
 
 .form-links a {
-    color: var(--forest-light);
+    color: var(--mac-tan);
     text-decoration: none;
     font-weight: 600;
-    transition: color 0.3s ease;
+    font-size: 0.8125rem;
+    transition: opacity 0.15s ease;
 }
 
 .form-links a:hover {
-    color: var(--forest-deep);
+    opacity: 0.8;
 }
 
 .form-links p {
-    color: var(--macadamia-shell);
-    margin-top: 1rem;
-    font-size: 0.9rem;
+    color: var(--mac-text-secondary);
+    margin-top: 0.75rem;
+    font-size: 0.8125rem;
 }
 
-/* Modal Styling – sharp corners, primary header, primary font */
+/* ── Sign-up Modal ── */
+
 .modal-content {
-    border-radius: 0 !important;
-    border: none;
+    border-radius: 12px !important;
+    border: 1px solid var(--mac-border);
     overflow: hidden;
 }
 
 .modal-header {
-    background: var(--phoenix-primary) !important;
-    color: #2d2d2d;
-    padding: 1.25rem 1.5rem;
+    background: var(--mac-bg) !important;
+    color: var(--mac-text);
+    padding: 1rem 1.5rem;
     border: none;
-    border-radius: 0 !important;
-    font-family: var(--phoenix-font-brand);
+    border-bottom: 2px solid var(--mac-tan) !important;
 }
 
 .modal-header .modal-title {
-    font-family: var(--phoenix-font-brand);
-    font-size: 1.5rem;
+    font-family: var(--mac-font);
+    font-size: 1rem;
     font-weight: 600;
-    color: #2d2d2d !important;
+    color: var(--mac-brown-dark) !important;
 }
 
 .modal-header .btn-close {
     filter: none;
-    opacity: 0.8;
+    opacity: 0.5;
+}
+
+.modal-header .btn-close:hover {
+    opacity: 1;
 }
 
 .modal-body {
-    padding: 2rem;
-    background: var(--macadamia-cream);
+    padding: 1.5rem;
+    background: var(--mac-bg-secondary);
 }
 
 .modal-footer {
-    background: white;
-    border-top: 1px solid var(--macadamia-kernel);
-    padding: 1rem 1.5rem;
+    background: var(--mac-bg);
+    border-top: 1px solid var(--mac-border);
+    padding: 0.75rem 1.5rem;
 }
 
 .btn-outline-secondary {
-    border: 2px solid var(--macadamia-shell);
-    color: var(--macadamia-shell);
-    border-radius: 10px;
-    padding: 0.6rem 1.5rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
+    border: 1px solid var(--mac-border-strong);
+    color: var(--mac-text-secondary);
+    border-radius: 50px;
+    padding: 0.5rem 1.25rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    font-family: var(--mac-font);
+    background: transparent;
+    transition: all 0.15s ease;
 }
 
 .btn-outline-secondary:hover {
-    background: var(--macadamia-shell);
-    color: white;
+    background: var(--mac-bg-tertiary);
+    color: var(--mac-text);
 }
 
-/* Responsive */
+/* ── Responsive ── */
+
 @media (max-width: 768px) {
     .auth-wrapper {
         flex-direction: column;
@@ -446,11 +406,11 @@ body::before {
     }
 
     .brand-panel {
-        padding: 2rem;
+        padding: 2rem 1.5rem;
     }
 
     .brand-title {
-        font-size: 2rem;
+        font-size: 1.5rem;
     }
 
     .brand-features {
@@ -458,66 +418,39 @@ body::before {
     }
 
     .form-panel {
-        padding: 2rem;
+        padding: 2rem 1.5rem;
     }
 
     .logo-circle {
-        width: 80px;
-        height: 80px;
+        width: 60px;
+        height: 60px;
         margin-bottom: 1rem;
     }
 
     .logo-circle i {
-        font-size: 2rem;
+        font-size: 1.5rem;
     }
 }
 
-/* Nut decoration elements */
-.nut-decoration {
-    position: fixed;
-    opacity: 0.03;
-    pointer-events: none;
-    z-index: 0;
-}
+/* ── SweetAlert ── */
 
-.nut-1 {
-    top: 10%;
-    left: 5%;
-    font-size: 8rem;
-    transform: rotate(-15deg);
-}
-
-.nut-2 {
-    bottom: 15%;
-    right: 8%;
-    font-size: 6rem;
-    transform: rotate(20deg);
-}
-
-.nut-3 {
-    top: 60%;
-    left: 3%;
-    font-size: 4rem;
-    transform: rotate(45deg);
-}
-
-/* SweetAlert customization */
 .swal2-popup {
-    border-radius: 20px !important;
-    font-family: 'Nunito Sans', sans-serif !important;
+    border-radius: 10px !important;
+    font-family: var(--mac-font) !important;
 }
 
 .swal2-title {
-    font-family: 'Tahoma', sans-serif !important;
-    color: var(--macadamia-dark) !important;
+    font-family: var(--mac-font) !important;
+    color: var(--mac-brown) !important;
 }
 
 .swal2-confirm {
-    background: #008950 !important;
-    border-radius: 10px !important;
+    background: var(--mac-green) !important;
+    border-radius: 8px !important;
 }
 
 .swal2-cancel {
-    background: var(--macadamia-shell) !important;
-    border-radius: 10px !important;
+    background: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text) !important;
+    border-radius: 8px !important;
 }

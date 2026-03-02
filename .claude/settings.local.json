@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(SUPABASE_ACCESS_TOKEN=\"sbp_79ffc6772a53eca0d9021d77da313bf85b5c507e\" supabase db execute --project-ref sofanhfpxifgdtooefzq \":*)"
+      "Bash(SUPABASE_ACCESS_TOKEN=\"sbp_79ffc6772a53eca0d9021d77da313bf85b5c507e\" supabase db execute --project-ref sofanhfpxifgdtooefzq \":*)",
+      "WebFetch(domain:www.macavation.co.za)"
     ]
   }
 }

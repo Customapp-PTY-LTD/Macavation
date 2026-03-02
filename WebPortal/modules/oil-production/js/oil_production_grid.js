@@ -156,7 +156,7 @@ var _oilProductionGrid = function () {
                     '<td>' + scope.escapeHtml(batch.shift || 'N/A') + '</td>' +
                     '<td>' + scope.escapeHtml(batch.product_name || 'N/A') + '</td>' +
                     '<td>' + scope.escapeHtml(String(batch.total_oil_litre != null ? batch.total_oil_litre : '0')) + '</td>' +
-                    '<td><span class="badge bg-info">' + scope.escapeHtml(batch.status || 'pending') + '</span></td>' +
+                    '<td>' + KanbanHelper.statusBadge(batch.status || 'pending', (batch.status === 'completed' ? 'last' : 'first')) + '</td>' +
                     '<td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });

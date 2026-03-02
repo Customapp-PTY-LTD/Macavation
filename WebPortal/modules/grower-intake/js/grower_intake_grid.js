@@ -347,7 +347,7 @@ var _growerIntakeGrid = function () {
                     '<td class="intake-col-date">' + receivedDate + '</td>' +
                     '<td class="intake-col-wet d-none d-sm-table-cell">' + wetCellContent + '</td>' +
                     '<td class="intake-col-stage1">' + stage1Cell + '</td>' +
-                    '<td class="intake-col-status"><span class="badge bg-info">' + (b.status || '') + '</span></td>' +
+                    '<td class="intake-col-status">' + (function() { var ik = getIntakeColumnKey(b); var sp = ik === 'receiving' ? 'first' : ik === 'quality_approved' ? 'last' : 'mid'; return KanbanHelper.statusBadge(b.status || '', sp); })() + '</td>' +
                     '<td class="intake-col-actions">' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
