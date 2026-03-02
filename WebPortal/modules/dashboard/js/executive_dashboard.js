@@ -10,6 +10,10 @@ var _executiveDashboard = function () {
 
         init: async () => {
             const scope = _executiveDashboard;
+            // Unified dashboard: show only this role's section (data-access)
+            document.querySelectorAll('[data-access]').forEach(function (el) {
+                el.style.display = (el.getAttribute('data-access') === 'executive') ? '' : 'none';
+            });
             scope.initHandlers();
             await scope.loadKPIs();
         },

@@ -22,6 +22,9 @@ var _rolesGrid = function () {
 
         init: async () => {
             const scope = _rolesGrid;
+            document.querySelectorAll('[data-access]').forEach(function (el) {
+                el.style.display = (el.getAttribute('data-access') === 'roles') ? '' : 'none';
+            });
             await scope.waitForReady();
             var modalContainers = document.querySelectorAll('.modal[route-name]');
             var loadPromises = [];
@@ -46,14 +49,14 @@ var _rolesGrid = function () {
         setupEventListeners: () => {
             const scope = _rolesGrid;
 
-            $('#searchInput').on('input', function () {
+            $('#rolesSearchInput').on('input', function () {
                 var token = ++scope.searchDebounceToken;
                 delay(300).then(function () {
                     if (token === scope.searchDebounceToken) scope.filterRoles();
                 });
             });
 
-            $('#filterStatus').on('change', function () {
+            $('#rolesFilterStatus').on('change', function () {
                 scope.filterRoles();
             });
 
@@ -73,7 +76,7 @@ var _rolesGrid = function () {
 
             $('#exportRolesBtn').on('click', function () { _rolesGrid.exportRoles(); });
             $('#refreshRolesBtn').on('click', function () { _rolesGrid.refreshRoles(); });
-            $('#clearFiltersBtn').on('click', function () { _rolesGrid.clearFilters(); });
+            $('#rolesClearFiltersBtn').on('click', function () { _rolesGrid.clearFilters(); });
 
             $(document).on('click', '#rolesTableBody tr.js-role-row', function (e) {
                 if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
@@ -112,8 +115,8 @@ var _rolesGrid = function () {
 
         filterRoles: () => {
             const scope = _rolesGrid;
-            var searchTerm = $('#searchInput').val().toLowerCase();
-            var statusFilter = $('#filterStatus').val();
+            var searchTerm = $('#rolesSearchInput').val().toLowerCase();
+            var statusFilter = $('#rolesFilterStatus').val();
             scope.filteredRoles = scope.roles.filter(function (role) {
                 var matchesSearch = !searchTerm ||
                     (role.role_name && role.role_name.toLowerCase().includes(searchTerm)) ||
@@ -164,7 +167,7 @@ var _rolesGrid = function () {
             const scope = _rolesGrid;
             var totalPages = Math.ceil(scope.filteredRoles.length / scope.itemsPerPage);
             if (totalPages <= 1) {
-                $('#pagination').empty();
+                $('#rolesPagination').empty();
                 return;
             }
             var paginationHtml = '<nav><ul class="pagination justify-content-center">';
@@ -182,7 +185,7 @@ var _rolesGrid = function () {
                 paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + (scope.currentPage + 1) + '">Next</a></li>';
             }
             paginationHtml += '</ul></nav>';
-            $('#pagination').html(paginationHtml);
+            $('#rolesPagination').html(paginationHtml);
         },
 
         editRole: (roleId) => {
@@ -261,8 +264,8 @@ var _rolesGrid = function () {
 
         clearFilters: () => {
             const scope = _rolesGrid;
-            $('#searchInput').val('');
-            $('#filterStatus').val('');
+            $('#rolesSearchInput').val('');
+            $('#rolesFilterStatus').val('');
             scope.filterRoles();
         },
 
