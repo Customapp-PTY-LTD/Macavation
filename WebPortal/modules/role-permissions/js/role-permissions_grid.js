@@ -22,6 +22,9 @@ var _rolePermissionsGrid = function () {
 
         init: async () => {
             const scope = _rolePermissionsGrid;
+            document.querySelectorAll('[data-access]').forEach(function (el) {
+                el.style.display = (el.getAttribute('data-access') === 'role-permissions') ? '' : 'none';
+            });
             await scope.waitForReady();
             var modalContainers = document.querySelectorAll('.modal[route-name]');
             var loadPromises = [];
@@ -47,14 +50,14 @@ var _rolePermissionsGrid = function () {
         setupEventListeners: () => {
             const scope = _rolePermissionsGrid;
 
-            $('#searchInput').on('input', function () {
+            $('#permissionsSearchInput').on('input', function () {
                 var token = ++scope.searchDebounceToken;
                 delay(500).then(function () {
                     if (token === scope.searchDebounceToken) scope.filterPermissions();
                 });
             });
 
-            $('#filterRole, #filterObjectType, #filterPermission, #filterStatus').on('change', function () {
+            $('#permissionsFilterRole, #permissionsFilterObjectType, #permissionsFilterPermission').on('change', function () {
                 scope.filterPermissions();
             });
 
@@ -74,7 +77,7 @@ var _rolePermissionsGrid = function () {
 
             $('#exportPermissionsBtn').on('click', function () { _rolePermissionsGrid.exportPermissions(); });
             $('#refreshPermissionsBtn').on('click', function () { _rolePermissionsGrid.refreshPermissions(); });
-            $('#clearFiltersBtn').on('click', function () { _rolePermissionsGrid.clearFilters(); });
+            $('#permissionsClearFiltersBtn').on('click', function () { _rolePermissionsGrid.clearFilters(); });
 
             $(document).on('click', '#permissionsTableBody tr.js-permission-row', function (e) {
                 if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
@@ -116,7 +119,7 @@ var _rolePermissionsGrid = function () {
             try {
                 var roles = await dataFunctions.getRoles();
                 if (!roles || !Array.isArray(roles) || roles.length === 0) return;
-                var select = document.getElementById('filterRole');
+                var select = document.getElementById('permissionsFilterRole');
                 if (select) {
                     var html = '<option value="">All Roles</option>';
                     roles.forEach(function (role) {
@@ -134,11 +137,11 @@ var _rolePermissionsGrid = function () {
             try {
                 scope.showLoading();
                 var filters = {
-                    searchTerm: $('#searchInput').val().trim() || null,
-                    roleId: $('#filterRole').val() || null,
-                    objectType: $('#filterObjectType').val() || null,
-                    operation: $('#filterPermission').val() || null,
-                    isActive: $('#filterStatus').val() ? ($('#filterStatus').val() === 'active') : null
+                    searchTerm: $('#permissionsSearchInput').val().trim() || null,
+                    roleId: $('#permissionsFilterRole').val() || null,
+                    objectType: $('#permissionsFilterObjectType').val() || null,
+                    operation: $('#permissionsFilterPermission').val() || null,
+                    isActive: $('#permissionsFilterStatus').val() ? ($('#permissionsFilterStatus').val() === 'active') : null
                 };
                 Object.keys(filters).forEach(function (key) {
                     if (filters[key] === null || filters[key] === '') delete filters[key];
@@ -196,7 +199,7 @@ var _rolePermissionsGrid = function () {
             const scope = _rolePermissionsGrid;
             var totalPages = Math.ceil(scope.filteredPermissions.length / scope.itemsPerPage);
             if (totalPages <= 1) {
-                $('#pagination').empty();
+                $('#permissionsPagination').empty();
                 return;
             }
             var current = scope.currentPage;
@@ -227,7 +230,7 @@ var _rolePermissionsGrid = function () {
             paginationHtml += '<li class="page-item' + (current >= totalPages ? ' disabled' : '') + '">';
             paginationHtml += current >= totalPages ? '<span class="page-link">Next</span>' : '<a class="page-link" href="#" data-page="' + (current + 1) + '">Next</a>';
             paginationHtml += '</li>';
-            $('#pagination').html(paginationHtml);
+            $('#permissionsPagination').html(paginationHtml);
         },
 
         editPermission: (permissionId) => {
@@ -306,11 +309,10 @@ var _rolePermissionsGrid = function () {
 
         clearFilters: () => {
             const scope = _rolePermissionsGrid;
-            $('#searchInput').val('');
-            $('#filterRole').val('');
-            $('#filterObjectType').val('');
-            $('#filterPermission').val('');
-            $('#filterStatus').val('');
+            $('#permissionsSearchInput').val('');
+            $('#permissionsFilterRole').val('');
+            $('#permissionsFilterObjectType').val('');
+            $('#permissionsFilterPermission').val('');
             scope.filterPermissions();
         },
 
