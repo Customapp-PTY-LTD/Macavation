@@ -152,10 +152,6 @@ var _modal_production_stages = (function () {
                 e.preventDefault();
                 scope.showBatchSummary();
             });
-            $('#finishBatchProductionBtn').off('click').on('click', function (e) {
-                e.preventDefault();
-                scope.finishBatchProduction();
-            });
             $(document).on('change input', '#ps_crack_start1, #ps_crack_end1', function () {
                 scope.updateCrackTimeSpentRow(1);
             });
@@ -1416,12 +1412,24 @@ var _modal_production_stages = (function () {
                 return;
             }
 
-            // SP now uses date-based upsert for all sections; dayIndex no longer needed
+            var packingComplete = (function (pack) {
+                if (!pack || typeof pack !== 'object') return false;
+                var dateOk = pack.date != null && String(pack.date).trim() !== '' && /^\d{4}-\d{2}-\d{2}/.test(String(pack.date).trim());
+                var signed = pack.signature != null && String(pack.signature).trim() !== '';
+                var sk = parseFloat(pack.sk_total_qty) || 0;
+                var bt = parseFloat(pack.bt_total_qty) || 0;
+                var tot = parseFloat(pack.totals_qty) || 0;
+                var hasQty = sk > 0 || bt > 0 || tot > 0;
+                return dateOk && signed && hasQty;
+            })(packing_data);
+
+            // Only move batch to Awaiting tests when packing is complete (date + signature + quantities)
             dataFunctions.upsertKernelProduction(batchId, {
                 crackingData: cracking_data,
                 washingData: washing_data,
                 sortingData: sorting_data,
-                packingData: packing_data
+                packingData: packing_data,
+                finishProduction: packingComplete
             }).then(function (result) {
                 var inner = (result && result.upsert_kernel_production) ? result.upsert_kernel_production : result;
                 if (inner && inner.success === false) throw new Error(inner.error || 'Save failed');
@@ -1442,6 +1450,7 @@ var _modal_production_stages = (function () {
                 }
                 scope.updateProductionActionButtonTicks();
                 scope.clearProductionStagesDraft(batchId);
+                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
                 if (silent) {
                     if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); }
                     setTimeout(function () { if ($status.length) $status.text(''); }, 2000);
