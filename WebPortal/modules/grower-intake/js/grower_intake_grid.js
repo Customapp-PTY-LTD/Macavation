@@ -154,6 +154,14 @@ var _growerIntakeGrid = function () {
                     Swal.fire('Error', 'Receiving checklist modal not loaded. Please refresh the page.', 'error');
                 }
             });
+            $(document).on('click', '#intakeBatchesTableBody .js-intake-delete-btn, #giKanbanBoard .js-intake-delete-btn', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const batchId = $(this).data('batch-id');
+                if (batchId && typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.deleteBatch) {
+                    _growerIntakeGrid.deleteBatch(batchId);
+                }
+            });
         },
 
         filterSamples: () => {
@@ -313,10 +321,11 @@ var _growerIntakeGrid = function () {
                     ? '<a class="dropdown-item js-intake-release-btn" href="#" data-batch-id="' + b.id + '"><i class="fas fa-arrow-right me-2"></i>Release to production</a>'
                     : '<span class="dropdown-item text-muted" role="button" tabindex="0">Release to production</span>';
                 var editItem = '<a class="dropdown-item js-intake-edit" href="#" data-batch-id="' + b.id + '"><i class="fas fa-pen me-2"></i>Edit</a>';
+                var deleteItem = '<a class="dropdown-item js-intake-delete-btn text-danger" href="#" data-batch-id="' + b.id + '"><i class="fas fa-trash me-2"></i>Delete batch</a>';
                 var actionsCell = '<div class="dropdown">' +
                     '<button class="btn btn-sm btn-outline-secondary" type="button" id="intakeBatchActions' + b.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
                     '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="intakeBatchActions' + b.id + '">' +
-                    releaseItem + editItem +
+                    releaseItem + editItem + deleteItem +
                     '</ul></div>';
 
                 const stage1Cell = '<div class="intake-stage1-buttons">' + stage1Btn + '</div>';
@@ -395,6 +404,7 @@ var _growerIntakeGrid = function () {
                 var releaseHtml = canRelease
                     ? '<button type="button" class="btn btn-sm btn-outline-success js-intake-release-btn" data-batch-id="' + b.id + '" title="Release to production"><i class="fas fa-arrow-right me-1"></i>Release</button>'
                     : '';
+                var deleteHtml = '<button type="button" class="btn btn-sm btn-outline-danger js-intake-delete-btn" data-batch-id="' + b.id + '" title="Delete batch"><i class="fas fa-trash"></i></button>';
 
                 var weightLabel = b.wet_nis_received_kg != null ? b.wet_nis_received_kg + ' kg' : '';
 
@@ -405,7 +415,7 @@ var _growerIntakeGrid = function () {
                 if (receivedDate) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + esc(receivedDate) + '</div>';
                 if (weightLabel) html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + esc(weightLabel) + '</div>';
                 html += '</div>';
-                html += '<div class="kanban-card-actions">' + stage1Html + releaseHtml + '</div>';
+                html += '<div class="kanban-card-actions">' + stage1Html + releaseHtml + deleteHtml + '</div>';
                 html += '</div>';
                 return html;
             });
@@ -444,6 +454,37 @@ var _growerIntakeGrid = function () {
                 console.error(e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release batch', 'error');
             }
+        },
+
+        deleteBatch: (batchId) => {
+            const scope = _growerIntakeGrid;
+            if (!batchId) return;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.deactivateKernelBatch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete function not available. Please refresh.', 'error');
+                return;
+            }
+            const batch = scope.intakeBatches.find((b) => String(b.id) === String(batchId));
+            const batchLabel = batch ? (batch.batch_number || 'this batch') : 'this batch';
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you want to delete "' + batchLabel + '"? This will remove it from intake and production. This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete!'
+            }).then((res) => {
+                if (!res.isConfirmed) return;
+                dataFunctions.deactivateKernelBatch(batchId).then((result) => {
+                    var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
+                    if (inner && inner.success === false) throw new Error(inner.error || 'Delete failed');
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Batch deleted', text: batchLabel + ' has been removed.', timer: 2000, showConfirmButton: false });
+                    scope.loadIntakeBatches(true);
+                }).catch((e) => {
+                    console.error(e);
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to delete batch', 'error');
+                });
+            });
         },
 
         showAddSampleModal: () => {

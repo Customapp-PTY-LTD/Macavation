@@ -22,10 +22,11 @@ var _rolePermissionsGrid = function () {
 
         init: async () => {
             const scope = _rolePermissionsGrid;
+            await scope.waitForReady();
+            // Unified role grids: show only this section (data-access)
             document.querySelectorAll('[data-access]').forEach(function (el) {
                 el.style.display = (el.getAttribute('data-access') === 'role-permissions') ? '' : 'none';
             });
-            await scope.waitForReady();
             var modalContainers = document.querySelectorAll('.modal[route-name]');
             var loadPromises = [];
             modalContainers.forEach(function (el) {
@@ -50,18 +51,18 @@ var _rolePermissionsGrid = function () {
         setupEventListeners: () => {
             const scope = _rolePermissionsGrid;
 
-            $('#permissionsSearchInput').on('input', function () {
+            $('#rpSearchInput').on('input', function () {
                 var token = ++scope.searchDebounceToken;
                 delay(500).then(function () {
                     if (token === scope.searchDebounceToken) scope.filterPermissions();
                 });
             });
 
-            $('#permissionsFilterRole, #permissionsFilterObjectType, #permissionsFilterPermission').on('change', function () {
+            $('#rpFilterRole, #rpFilterObjectType, #rpFilterPermission').on('change', function () {
                 scope.filterPermissions();
             });
 
-            $(document).on('click', '.pagination .page-link', function (e) {
+            $(document).on('click', '#rpPagination .page-link', function (e) {
                 e.preventDefault();
                 const scope = _rolePermissionsGrid;
                 var page = parseInt($(this).data('page'), 10);
@@ -77,7 +78,7 @@ var _rolePermissionsGrid = function () {
 
             $('#exportPermissionsBtn').on('click', function () { _rolePermissionsGrid.exportPermissions(); });
             $('#refreshPermissionsBtn').on('click', function () { _rolePermissionsGrid.refreshPermissions(); });
-            $('#permissionsClearFiltersBtn').on('click', function () { _rolePermissionsGrid.clearFilters(); });
+            $('#rpClearFiltersBtn').on('click', function () { _rolePermissionsGrid.clearFilters(); });
 
             $(document).on('click', '#permissionsTableBody tr.js-permission-row', function (e) {
                 if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
@@ -119,7 +120,7 @@ var _rolePermissionsGrid = function () {
             try {
                 var roles = await dataFunctions.getRoles();
                 if (!roles || !Array.isArray(roles) || roles.length === 0) return;
-                var select = document.getElementById('permissionsFilterRole');
+                var select = document.getElementById('rpFilterRole');
                 if (select) {
                     var html = '<option value="">All Roles</option>';
                     roles.forEach(function (role) {
@@ -137,11 +138,11 @@ var _rolePermissionsGrid = function () {
             try {
                 scope.showLoading();
                 var filters = {
-                    searchTerm: $('#permissionsSearchInput').val().trim() || null,
-                    roleId: $('#permissionsFilterRole').val() || null,
-                    objectType: $('#permissionsFilterObjectType').val() || null,
-                    operation: $('#permissionsFilterPermission').val() || null,
-                    isActive: $('#permissionsFilterStatus').val() ? ($('#permissionsFilterStatus').val() === 'active') : null
+                    searchTerm: $('#rpSearchInput').val().trim() || null,
+                    roleId: $('#rpFilterRole').val() || null,
+                    objectType: $('#rpFilterObjectType').val() || null,
+                    operation: $('#rpFilterPermission').val() || null,
+                    isActive: null
                 };
                 Object.keys(filters).forEach(function (key) {
                     if (filters[key] === null || filters[key] === '') delete filters[key];
@@ -199,7 +200,7 @@ var _rolePermissionsGrid = function () {
             const scope = _rolePermissionsGrid;
             var totalPages = Math.ceil(scope.filteredPermissions.length / scope.itemsPerPage);
             if (totalPages <= 1) {
-                $('#permissionsPagination').empty();
+                $('#rpPagination').empty();
                 return;
             }
             var current = scope.currentPage;
@@ -230,7 +231,7 @@ var _rolePermissionsGrid = function () {
             paginationHtml += '<li class="page-item' + (current >= totalPages ? ' disabled' : '') + '">';
             paginationHtml += current >= totalPages ? '<span class="page-link">Next</span>' : '<a class="page-link" href="#" data-page="' + (current + 1) + '">Next</a>';
             paginationHtml += '</li>';
-            $('#permissionsPagination').html(paginationHtml);
+            $('#rpPagination').html(paginationHtml);
         },
 
         editPermission: (permissionId) => {
@@ -309,10 +310,10 @@ var _rolePermissionsGrid = function () {
 
         clearFilters: () => {
             const scope = _rolePermissionsGrid;
-            $('#permissionsSearchInput').val('');
-            $('#permissionsFilterRole').val('');
-            $('#permissionsFilterObjectType').val('');
-            $('#permissionsFilterPermission').val('');
+            $('#rpSearchInput').val('');
+            $('#rpFilterRole').val('');
+            $('#rpFilterObjectType').val('');
+            $('#rpFilterPermission').val('');
             scope.filterPermissions();
         },
 

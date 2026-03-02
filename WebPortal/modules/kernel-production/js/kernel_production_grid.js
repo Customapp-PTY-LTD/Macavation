@@ -160,6 +160,13 @@ var _kernelProductionGrid = function () {
                     _kernelProductionBatchActions.releaseBatchToStock(batchId);
                 }
             });
+            $(document).on('click', '.js-delete-batch', function (e) {
+                e.preventDefault();
+                const batchId = $(this).data('batch-id');
+                if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.deleteBatch) {
+                    _kernelProductionBatchActions.deleteBatch(batchId);
+                }
+            });
             $(document).on('click', '.js-release-to-stock-disabled', function (e) {
                 e.preventDefault();
                 if (typeof Swal !== 'undefined') {
@@ -364,6 +371,7 @@ var _kernelProductionGrid = function () {
                 } else {
                     menuItems.push('<span class="dropdown-item text-muted js-release-to-stock-disabled" role="button" tabindex="0">Release to stock</span>');
                 }
+                menuItems.push('<a class="dropdown-item js-delete-batch text-danger" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-trash me-1"></i>Delete batch</a>');
                 // TEMPORARY: KP Data Admin sees only Production button. Remove when replacing with real auth.
                 const isKpDataAdmin = typeof ROLE_FEATURE !== 'undefined' && ROLE_FEATURE.isKpDataAdmin && ROLE_FEATURE.isKpDataAdmin();
                 let actionsCell;
