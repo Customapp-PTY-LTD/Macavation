@@ -250,7 +250,7 @@ var _kernelProductionGrid = function () {
                         '<div class="kanban-card-title">' + KanbanHelper._esc(batch.batch_number || 'N/A') + '</div>' +
                         '<div class="kanban-card-meta">' +
                             '<span class="kanban-card-meta-item"><i class="fas fa-user"></i> ' + KanbanHelper._esc(batch.grower_name || 'N/A') + '</span>' +
-                            '<span class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + KanbanHelper._esc(String(batch.wet_nis_received_kg || '0')) + ' kg</span>' +
+                            '<span class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + KanbanHelper._esc(String(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || '0'))) + ' kg</span>' +
                             (receivedDate ? '<span class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + KanbanHelper._esc(receivedDate) + '</span>' : '') +
                         '</div>' +
                         '<div class="kanban-card-actions">' +
@@ -318,7 +318,10 @@ var _kernelProductionGrid = function () {
             }
             const startTime = performance.now();
             _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'production,qa' }).then((batches) => {
-                scope.batches = batches || [];
+                scope.batches = (batches || []).map(function (b) {
+                    var displayKg = (b.actual_wet_nis_kg != null && b.actual_wet_nis_kg !== '') ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
+                    return Object.assign({}, b, { display_wet_nis_kg: displayKg });
+                });
                 scope.filteredBatches = scope.batches;
                 if (scope.currentView === 'kanban') {
                     scope.renderKanban();
@@ -376,7 +379,7 @@ var _kernelProductionGrid = function () {
                 }
                 const displayStatus = getBatchDisplayStatus(batch);
                 var stagePos = displayStatus.filterValue === 'awaiting_production' ? 'first' : displayStatus.filterValue === 'release_ready' ? 'last' : 'mid';
-                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.wet_nis_received_kg || '0') + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + '</td><td>' + actionsCell + '</td></tr>';
+                const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td>' + receivedDate + '</td><td>' + (batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || '0')) + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + '</td><td>' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
         },
@@ -433,7 +436,7 @@ var _kernelProductionGrid = function () {
                 { key: 'batch_number', label: 'Batch Number' },
                 { key: 'grower_name', label: 'Supplier' },
                 { key: 'received_date', label: 'Received Date' },
-                { key: 'wet_nis_received_kg', label: 'Wet NIS (kg)' },
+                { key: 'display_wet_nis_kg', label: 'Wet NIS (kg)' },
                 { key: 'status', label: 'Status' }
             ];
             if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
