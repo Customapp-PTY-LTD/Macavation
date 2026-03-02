@@ -212,12 +212,15 @@ var _modal_grower_receiving_checklist = (function () {
                 var val = parseFloat(this.value);
                 if (!isNaN(val)) total += val;
             });
+            var totalEl = document.getElementById('growerTotalWeightKg');
+            if (totalEl) totalEl.textContent = total.toFixed(2);
+
             var removedPreSizerEl = document.getElementById('growerRemovedPreSizerKg');
             var removed = (removedPreSizerEl && removedPreSizerEl.value !== '') ? parseFloat(removedPreSizerEl.value) : 0;
             if (isNaN(removed)) removed = 0;
-            var actualTotal = Math.max(0, total - removed);
-            var actualEl = document.getElementById('growerActualTotalKg');
-            if (actualEl) actualEl.textContent = actualTotal.toFixed(2) + ' kg';
+            var balanceIn = total - removed;
+            var balanceEl = document.getElementById('growerBalanceInKg');
+            if (balanceEl) balanceEl.textContent = balanceIn.toFixed(2);
         },
 
         hide: () => {

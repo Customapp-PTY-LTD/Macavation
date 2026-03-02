@@ -107,14 +107,20 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="row mt-3">
+                        <div class="row g-3 mt-2 border-top pt-3">
                             <div class="col-md-4">
-                                <label for="growerRemovedPreSizerKg" class="form-label">Removed pre sizer (kg)</label>
+                                <label class="form-label fw-semibold mb-1">Total weight (kg)</label>
+                                <div id="growerTotalWeightKg" class="form-control form-control-sm bg-light" readonly aria-readonly="true">0.00</div>
+                                <small class="text-muted">Sum of bag weights (uneditable)</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="growerRemovedPreSizerKg" class="form-label fw-semibold mb-1">Removed pre-sizer (kg)</label>
                                 <input type="number" class="form-control form-control-sm" id="growerRemovedPreSizerKg" step="0.01" min="0" placeholder="0">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Actual total (kg)</label>
-                                <div id="growerActualTotalKg" class="form-control form-control-sm bg-light">0.00</div>
+                                <label class="form-label fw-semibold mb-1">Balance in (kg)</label>
+                                <div id="growerBalanceInKg" class="form-control form-control-sm bg-light fw-semibold" readonly aria-readonly="true">0.00</div>
+                                <small class="text-muted">Total weight − Removed pre-sizer</small>
                             </div>
                         </div>
                     </div>
