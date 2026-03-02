@@ -1,77 +1,65 @@
-<!-- Oil Production Grid Module (implementation aligned with kernel-production; UI follows UI_DESIGN_INSTRUCTIONS.md) -->
+<!-- Oil Production: raw ingredients in production, person on duty, oil bins -->
 <div class="module-content">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Oil Production Workflow</h1>
+        <h1 class="h2">Oil Production</h1>
         <div class="btn-toolbar mb-2 mb-md-0 ms-auto">
-            <button type="button" class="btn btn-primary" id="addOilBatchBtn">
-                <i class="fas fa-plus me-1"></i>New Oil Production Sheet
-            </button>
-            <button type="button" class="btn btn-outline-secondary" id="exportOilBatchesBtn">
-                <i class="fas fa-download me-1"></i>Export
+            <button type="button" class="btn btn-outline-secondary" id="opRefreshBtn">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
             </button>
         </div>
     </div>
 
-    <!-- Search and Filters -->
-    <div class="card mb-3">
+    <!-- 1. Raw ingredients in production (released from Supplier Intake) -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Raw ingredients in production</h5>
+        </div>
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label for="searchOilBatchesInput" class="form-label">Search</label>
-                    <input type="text" class="form-control" id="searchOilBatchesInput" placeholder="Search by batch number, product, or status...">
-                </div>
-                <div class="col-md-3">
-                    <label for="filterOilBatchStatus" class="form-label">Status</label>
-                    <select class="form-select" id="filterOilBatchStatus">
-                        <option value="">All Statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-outline-secondary w-100" id="clearOilBatchFiltersBtn">
-                        <i class="fas fa-times me-1"></i>Clear
-                    </button>
-                </div>
-                <div class="col-md-3 d-flex justify-content-end align-items-end">
-                    <div class="view-toggle">
-                        <button class="view-toggle-btn active" data-view="kanban" id="opViewKanban">
-                            <i class="fas fa-columns me-1"></i>Board
-                        </button>
-                        <button class="view-toggle-btn" data-view="table" id="opViewTable">
-                            <i class="fas fa-list me-1"></i>Table
-                        </button>
-                    </div>
-                </div>
+            <p class="text-muted small mb-3">Batches sent through from Supplier Intake for use in oil extraction.</p>
+            <div id="opRawIngredientsList" class="op-raw-list">
+                <p class="text-muted mb-0">Loading…</p>
             </div>
         </div>
     </div>
 
-    <!-- Kanban Board (default view) -->
-    <div id="opKanbanBoard" class="kanban-board"></div>
-
-    <!-- Table View (hidden by default) -->
-    <div class="card mb-4 oil-production-grid-card" id="opTableCard" style="display:none">
+    <!-- 2. Person on duty (for the day) -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-user-clock me-2"></i>Person on duty</h5>
+        </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover" id="oilBatchesTable">
-                    <thead>
-                        <tr>
-                            <th>Batch Number</th>
-                            <th>Date</th>
-                            <th>Shift</th>
-                            <th>Product</th>
-                            <th>Oil Produced (L)</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="oilBatchesTableBody"></tbody>
-                </table>
+            <form id="opPersonOnDutyForm" class="row g-3">
+                <div class="col-md-3">
+                    <label for="opDutyDate" class="form-label">Date</label>
+                    <input type="text" class="form-control flatpickr-date" id="opDutyDate" data-input placeholder="dd/mm/yyyy">
+                </div>
+                <div class="col-md-4">
+                    <label for="opPersonOnDuty" class="form-label">Person on duty</label>
+                    <input type="text" class="form-control" id="opPersonOnDuty" placeholder="Name of person on duty">
+                </div>
+                <div class="col-md-3">
+                    <label for="opShiftName" class="form-label">Shift name</label>
+                    <input type="text" class="form-control" id="opShiftName" placeholder="e.g. Day shift">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-primary w-100" id="opSaveDutyBtn">
+                        <i class="fas fa-save me-1"></i>Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Oil bins being produced -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Oil bins</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">Storage bins for oil produced.</p>
+            <div id="opOilBinsList" class="op-bins-list">
+                <p class="text-muted mb-0">Loading…</p>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Oil Production Sheet Modal (content loaded by app router from modal-oil-production) -->
-<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="oilProductionModal" role="dialog" route-name="oil-production-sheet-modal" tabindex="-1" aria-labelledby="oilProductionModalLabel" aria-hidden="true"></div>
