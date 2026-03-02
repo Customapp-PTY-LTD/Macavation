@@ -28,7 +28,7 @@
         "dashboard": {
             "description": "Dashboard",
             "path": "dashboard",
-            "html": "html/dashboard.html",
+            "html": "html/dashboard_unified.html",
             "js": [
                 "js/dashboard.js"
             ],
@@ -68,7 +68,7 @@
         "roles-grid": {
             "description": "Role Management",
             "path": "roles",
-            "html": "html/roles_grid.html",
+            "html": "html/role_grids_unified.html",
             "js": [
                 "js/roles_grid.js"
             ],
@@ -86,7 +86,7 @@
         "role-permissions-grid": {
             "description": "Database Role Permissions Management",
             "path": "role-permissions",
-            "html": "html/role-permissions_grid.html",
+            "html": "html/role_grids_unified.html",
             "js": [
                 "js/role-permissions_grid.js"
             ],
@@ -104,7 +104,7 @@
         "role-features-grid": {
             "description": "Role Features Management",
             "path": "role-features",
-            "html": "html/role-features_grid.html",
+            "html": "html/role_grids_unified.html",
             "js": [
                 "js/role-features_grid.js"
             ],
@@ -455,7 +455,7 @@
         "amanda-dashboard": {
             "description": "Material Journey Dashboard - Track material from intake to dispatch",
             "path": "dashboard",
-            "html": "html/amanda_dashboard.html",
+            "html": "html/dashboard_unified.html",
             "js": [
                 "js/amanda_dashboard.js"
             ],
@@ -466,7 +466,7 @@
         "executive-dashboard": {
             "description": "Executive Dashboard & Reporting",
             "path": "dashboard",
-            "html": "html/executive_dashboard.html",
+            "html": "html/dashboard_unified.html",
             "js": [
                 "js/executive_dashboard.js"
             ],

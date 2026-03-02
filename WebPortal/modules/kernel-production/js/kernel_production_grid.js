@@ -196,10 +196,8 @@ var _kernelProductionGrid = function () {
                 e.preventDefault();
                 const batchId = $(this).data('batch-id');
                 if (!batchId) return;
-                var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
-                if (batch && batch.has_job_card && typeof _modal_job_card_view !== 'undefined' && _modal_job_card_view.show) {
-                    _modal_job_card_view.show(batchId);
-                } else if (typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.showJobCardModalForBatch) {
+                // Job card is always editable; open edit modal every time
+                if (typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.showJobCardModalForBatch) {
                     _modal_kernel_job_card.showJobCardModalForBatch(batchId);
                 }
             });
@@ -247,7 +245,7 @@ var _kernelProductionGrid = function () {
                         ? (_common.formatDateDDMMYYYY(batch.received_date) || '') : '';
                     var productionIcon = batch.production_finished_at ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     var qaIcon = batch.has_qa ? '<i class="fas fa-check text-success me-1"></i>' : '';
-                    var jcIcon = batch.has_job_card ? '<i class="fas fa-check text-success me-1"></i>' : '';
+                    var jcIcon = batch.has_qa ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     return '<div class="kanban-card" data-batch-id="' + batch.id + '">' +
                         '<div class="kanban-card-title">' + KanbanHelper._esc(batch.batch_number || 'N/A') + '</div>' +
                         '<div class="kanban-card-meta">' +
@@ -352,7 +350,7 @@ var _kernelProductionGrid = function () {
                     : (batch.received_date ? (batch.received_date.toString().split ? batch.received_date.toString().split('T')[0] : batch.received_date) : 'N/A');
                 const productionLabel = batch.production_finished_at ? '&#10003; Production' : 'Production';
                 const endSampleLabel = batch.has_qa ? '&#10003; End sample' : 'End sample';
-                const jobCardLabel = batch.has_job_card ? '&#10003; Job Card' : 'Job Card';
+                const jobCardLabel = batch.has_qa ? '&#10003; Job Card' : 'Job Card';
                 const jobCardItem = '<a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '">' + jobCardLabel + '</a>';
                 const summaryItem = '<a class="dropdown-item js-batch-summary" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-calculator me-1"></i>Batch summary</a>';
                 let menuItems = [

@@ -67,6 +67,10 @@ var _dashboard = function () {
 
         init: async () => {
             const scope = _dashboard;
+            // Unified dashboard: show only this role's section (data-access)
+            document.querySelectorAll('[data-access]').forEach(function (el) {
+                el.style.display = (el.getAttribute('data-access') === 'default') ? '' : 'none';
+            });
             try {
                 if (typeof waitForDataFunctions === 'function') {
                     try {

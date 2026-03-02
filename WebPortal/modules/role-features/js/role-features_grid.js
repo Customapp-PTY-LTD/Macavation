@@ -22,6 +22,9 @@ var _roleFeaturesGrid = function () {
 
         init: async () => {
             const scope = _roleFeaturesGrid;
+            document.querySelectorAll('[data-access]').forEach(function (el) {
+                el.style.display = (el.getAttribute('data-access') === 'role-features') ? '' : 'none';
+            });
             await scope.waitForReady();
             var modalContainers = document.querySelectorAll('.modal[route-name]');
             var loadPromises = [];
@@ -48,14 +51,14 @@ var _roleFeaturesGrid = function () {
         setupEventListeners: () => {
             const scope = _roleFeaturesGrid;
 
-            $('#searchInput').on('input', function () {
+            $('#featuresSearchInput').on('input', function () {
                 var token = ++scope.searchDebounceToken;
                 delay(300).then(function () {
                     if (token === scope.searchDebounceToken) scope.filterFeatures();
                 });
             });
 
-            $('#filterRole, #filterFeature, #filterValue').on('change', function () {
+            $('#featuresFilterRole, #featuresFilterFeature, #featuresFilterValue').on('change', function () {
                 scope.filterFeatures();
             });
 
@@ -75,7 +78,7 @@ var _roleFeaturesGrid = function () {
 
             $('#exportFeaturesBtn').on('click', function () { _roleFeaturesGrid.exportFeatures(); });
             $('#refreshFeaturesBtn').on('click', function () { _roleFeaturesGrid.refreshFeatures(); });
-            $('#clearFiltersBtn').on('click', function () { _roleFeaturesGrid.clearFilters(); });
+            $('#featuresClearFiltersBtn').on('click', function () { _roleFeaturesGrid.clearFilters(); });
 
             $(document).on('click', '#featuresTableBody tr.js-feature-row', function (e) {
                 if ($(e.target).closest('.dropdown').length || $(e.target).closest('button, .btn').length) return;
@@ -117,7 +120,7 @@ var _roleFeaturesGrid = function () {
             try {
                 var roles = await dataFunctions.getRoles();
                 if (!roles || !Array.isArray(roles) || roles.length === 0) return;
-                var select = document.getElementById('filterRole');
+                var select = document.getElementById('featuresFilterRole');
                 if (select) {
                     var html = '<option value="">All Roles</option>';
                     roles.forEach(function (role) {
@@ -144,7 +147,7 @@ var _roleFeaturesGrid = function () {
                     scope.loadMockFeatures();
                     return;
                 }
-                var select = document.getElementById('filterFeature');
+                var select = document.getElementById('featuresFilterFeature');
                 if (select) {
                     var html = '<option value="">All Features</option>';
                     features.forEach(function (feature) {
@@ -170,7 +173,7 @@ var _roleFeaturesGrid = function () {
                 { id: '7', feature_name: 'Settings' },
                 { id: '8', feature_name: 'Dashboard' }
             ];
-            var select = document.getElementById('filterFeature');
+            var select = document.getElementById('featuresFilterFeature');
             if (select) {
                 var html = '<option value="">All Features</option>';
                 mockFeatures.forEach(function (feature) {
@@ -182,10 +185,10 @@ var _roleFeaturesGrid = function () {
 
         filterFeatures: () => {
             const scope = _roleFeaturesGrid;
-            var searchTerm = $('#searchInput').val().toLowerCase();
-            var roleFilter = $('#filterRole').val();
-            var featureFilter = $('#filterFeature').val();
-            var valueFilter = $('#filterValue').val();
+            var searchTerm = $('#featuresSearchInput').val().toLowerCase();
+            var roleFilter = $('#featuresFilterRole').val();
+            var featureFilter = $('#featuresFilterFeature').val();
+            var valueFilter = $('#featuresFilterValue').val();
             scope.filteredFeatures = scope.features.filter(function (feature) {
                 var matchesSearch = !searchTerm ||
                     (feature.feature_name && feature.feature_name.toLowerCase().includes(searchTerm));
@@ -240,7 +243,7 @@ var _roleFeaturesGrid = function () {
             const scope = _roleFeaturesGrid;
             var totalPages = Math.ceil(scope.filteredFeatures.length / scope.itemsPerPage);
             if (totalPages <= 1) {
-                $('#pagination').empty();
+                $('#featuresPagination').empty();
                 return;
             }
             var current = scope.currentPage;
@@ -269,7 +272,7 @@ var _roleFeaturesGrid = function () {
             paginationHtml += '<li class="page-item' + (current >= totalPages ? ' disabled' : '') + '">';
             paginationHtml += current >= totalPages ? '<span class="page-link">Next</span>' : '<a class="page-link" href="#" data-page="' + (current + 1) + '">Next</a>';
             paginationHtml += '</li>';
-            $('#pagination').html(paginationHtml);
+            $('#featuresPagination').html(paginationHtml);
         },
 
         editFeature: (featureId) => {
@@ -366,10 +369,10 @@ var _roleFeaturesGrid = function () {
 
         clearFilters: () => {
             const scope = _roleFeaturesGrid;
-            $('#searchInput').val('');
-            $('#filterRole').val('');
-            $('#filterFeature').val('');
-            $('#filterValue').val('');
+            $('#featuresSearchInput').val('');
+            $('#featuresFilterRole').val('');
+            $('#featuresFilterFeature').val('');
+            $('#featuresFilterValue').val('');
             scope.filterFeatures();
         },
 
