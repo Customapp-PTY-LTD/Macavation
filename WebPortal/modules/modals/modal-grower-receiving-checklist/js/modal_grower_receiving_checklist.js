@@ -57,6 +57,7 @@ var _modal_grower_receiving_checklist = (function () {
             if (addRowBtn) addRowBtn.addEventListener('click', () => scope.addReceivedItemRow());
             $(document).on('click', '.growerRemoveItemRow', function () { $(this).closest('tr').remove(); scope.updateWeightTally(); });
             $(document).on('input change', '#growerReceivedItemsTableBody .grower-bag-weight', function () { scope.updateWeightTally(); });
+            $(document).on('input change', '#growerRemovedPreSizerKg', function () { scope.updateWeightTally(); });
             $(document).on('change', '#' + CONTAINER_ID + ' select[name="growerDescription"]', function () {
                 var val = $(this).val();
                 var titleText = val === 'NIS' ? 'Harvested Date' : val === 'Kernel' ? 'Manufactured Date' : 'Manufactured Date or Harvested Date';
@@ -130,6 +131,12 @@ var _modal_grower_receiving_checklist = (function () {
             $('input[name="growerRawMaterialsCondition"][value="' + (checklist.raw_materials_condition || '') + '"]').prop('checked', true);
             document.getElementById('growerReceivingComments').value = checklist.comments || '';
 
+            var removedEl = document.getElementById('growerRemovedPreSizerKg');
+            if (removedEl) {
+                var removedVal = checklist.removed_pre_sizer_kg ?? checklist.removedPreSizerKg;
+                removedEl.value = (removedVal != null && removedVal !== '') ? String(removedVal) : '';
+            }
+
             var tbody = $('#growerReceivedItemsTableBody');
             tbody.find('tr:not(:first)').remove();
             var firstRow = tbody.find('tr:first');
@@ -154,6 +161,7 @@ var _modal_grower_receiving_checklist = (function () {
         },
 
         clearForm: () => {
+            const scope = _modal_grower_receiving_checklist;
             if (typeof $ === 'undefined') return;
             var form = document.getElementById('growerReceivingChecklistForm');
             if (form) form.reset();
@@ -165,6 +173,9 @@ var _modal_grower_receiving_checklist = (function () {
             $('#growerReceivedItemsTableBody tr:not(:first)').remove();
             $('#growerReceivedItemsTableBody tr:first select[name="growerDescription"]').val('');
             $('#growerReceivedItemsTableBody tr:first input').val('');
+            var removedEl = document.getElementById('growerRemovedPreSizerKg');
+            if (removedEl) removedEl.value = '';
+            scope.updateWeightTally();
         },
 
         addReceivedItemRow: () => {
@@ -201,8 +212,12 @@ var _modal_grower_receiving_checklist = (function () {
                 var val = parseFloat(this.value);
                 if (!isNaN(val)) total += val;
             });
-            var el = document.getElementById('growerBagWeightTotal');
-            if (el) el.textContent = total.toFixed(2) + ' kg';
+            var removedPreSizerEl = document.getElementById('growerRemovedPreSizerKg');
+            var removed = (removedPreSizerEl && removedPreSizerEl.value !== '') ? parseFloat(removedPreSizerEl.value) : 0;
+            if (isNaN(removed)) removed = 0;
+            var actualTotal = Math.max(0, total - removed);
+            var actualEl = document.getElementById('growerActualTotalKg');
+            if (actualEl) actualEl.textContent = actualTotal.toFixed(2) + ' kg';
         },
 
         hide: () => {
@@ -253,7 +268,13 @@ var _modal_grower_receiving_checklist = (function () {
                     p_pallets_condition: $('input[name="growerPalletsCondition"]:checked').val() || null,
                     p_raw_materials_condition: $('input[name="growerRawMaterialsCondition"]:checked').val() || null,
                     p_comments: $('#growerReceivingComments').val() || null,
-                    p_received_items: receivedItems
+                    p_received_items: receivedItems,
+                    p_removed_pre_sizer_kg: (function () {
+                        var v = $('#growerRemovedPreSizerKg').val();
+                        if (v === '' || v == null) return null;
+                        var n = parseFloat(v);
+                        return isNaN(n) ? null : n;
+                    })()
                 };
 
                 var batchIdEl = document.getElementById('growerReceivingChecklistBatchId');
@@ -272,7 +293,8 @@ var _modal_grower_receiving_checklist = (function () {
                     pallets_condition:       receivingData.p_pallets_condition,
                     raw_materials_condition: receivingData.p_raw_materials_condition,
                     comments:               receivingData.p_comments,
-                    received_items:         receivingData.p_received_items
+                    received_items:         receivingData.p_received_items,
+                    removed_pre_sizer_kg:   receivingData.p_removed_pre_sizer_kg
                 });
 
                 if (result && result.success !== false) {

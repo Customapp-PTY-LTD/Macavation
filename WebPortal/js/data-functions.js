@@ -1809,10 +1809,12 @@ var _dataFunctions = function () {
                 p_pallets_condition:       data.pallets_condition       || null,
                 p_raw_materials_condition: data.raw_materials_condition || null,
                 p_comments:               data.comments                || null,
-                p_received_items:         data.received_items          || []
+                p_received_items:         data.received_items          || [],
+                p_removed_pre_sizer_kg:   data.removed_pre_sizer_kg    != null ? data.removed_pre_sizer_kg : null
             };
             const result = await this.callFunction('upsert_kernel_checklist', params, token, { useCache: false });
             this.clearCachePattern('kernel_batches');
+            this.clearCachePattern('kernel_batch_detail');
             return result && (result.data !== undefined ? result.data : result);
         },
 
