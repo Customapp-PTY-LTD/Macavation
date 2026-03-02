@@ -148,10 +148,6 @@ var _modal_production_stages = (function () {
                     if (newTabId === 'tab-packing') scope.initSignaturePad();
                 }
             });
-            $('#saveProductionStagesBtnSingle, #saveProductionStagesBtn').off('click').on('click', function (e) {
-                e.preventDefault();
-                scope.saveProductionStages();
-            });
             $('#batchSummaryBtn').off('click').on('click', function (e) {
                 e.preventDefault();
                 scope.showBatchSummary();
