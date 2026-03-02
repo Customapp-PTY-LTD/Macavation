@@ -16,6 +16,16 @@ var KanbanHelper = {
     /** Active Sortable instances keyed by containerId */
     _sortables: {},
 
+    /**
+     * Status badge HTML with stage colouring (pink→brown→green).
+     * @param {string} label   - Display text
+     * @param {string} stagePos - 'first', 'mid', or 'last'
+     */
+    statusBadge: function (label, stagePos) {
+        var cls = stagePos === 'first' ? 'badge-stage-first' : stagePos === 'last' ? 'badge-stage-last' : 'badge-stage-mid';
+        return '<span class="badge ' + cls + '">' + KanbanHelper._esc(label) + '</span>';
+    },
+
     render: function (containerId, columns, items, getColumnKey, cardRenderer) {
         var container = document.getElementById(containerId);
         if (!container) return;
@@ -36,9 +46,10 @@ var KanbanHelper = {
 
         // Build HTML
         var html = '';
-        columns.forEach(function (col) {
+        columns.forEach(function (col, colIdx) {
             var cards = grouped[col.key] || [];
-            html += '<div class="kanban-column">';
+            var posClass = colIdx === 0 ? 'kanban-col-first' : colIdx === columns.length - 1 ? 'kanban-col-last' : 'kanban-col-mid';
+            html += '<div class="kanban-column ' + posClass + '" data-column-key="' + KanbanHelper._esc(col.key) + '">';
             html += '<div class="kanban-column-header">';
             html += '<span>' + KanbanHelper._esc(col.label) + '</span>';
             html += '<span class="kanban-column-count">' + cards.length + '</span>';

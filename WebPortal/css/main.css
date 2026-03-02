@@ -216,6 +216,7 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+
 /* Global Typography */
 h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6,
@@ -1502,7 +1503,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 [data-theme-mode="dark"] .page-header {
-    background: linear-gradient(135deg, rgba(0, 137, 80, 0.1) 0%, rgba(58, 58, 58, 0.2) 100%);
+    background: linear-gradient(135deg, rgba(25, 135, 84, 0.1) 0%, rgba(58, 58, 58, 0.2) 100%);
     border-color: var(--mac-border);
 }
 
@@ -1585,3 +1586,27 @@ h1, h2, h3, h4, h5, h6,
 [data-theme-mode="dark"] .view-toggle-btn:not(.active):hover {
     background: var(--mac-bg-tertiary);
 }
+
+/* ============================================
+   BRAND COLOUR ACCENTS
+   Golden tan (#8d7434) + macadamia brown (#6d5822)
+   ============================================ */
+
+/* Modal header — tan underline accent */
+.modal-content .modal-header {
+    border-bottom: 2px solid var(--mac-tan, #8d7434) !important;
+}
+
+/* Section labels inside modals — brown with tan left bar */
+label.form-label.fw-semibold {
+    color: var(--mac-brown, #6d5822) !important;
+    border-left: 3px solid var(--mac-tan, #8d7434);
+    padding-left: 8px;
+}
+[data-theme-mode="dark"] label.form-label.fw-semibold { color: #C9A962 !important; }
+
+
+/* Scrollbar — macadamia brown (webkit) */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(109, 88, 34, 0.25); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(109, 88, 34, 0.45); }

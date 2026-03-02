@@ -5,9 +5,9 @@
     --macadamia-shell: #8B7355;
     --macadamia-kernel: #E8DCC8;
     --macadamia-dark: #4A3728;
-    --forest-deep: #008950;
-    --forest-light: #008950;
-    --forest-light-bg: rgba(0, 137, 80, 0.08);
+    --forest-deep: #198754;
+    --forest-light: #198754;
+    --forest-light-bg: rgba(25, 135, 84, 0.08);
     --earth-rich: #6B4423;
     --gold-accent: #C9A962;
     --gold-light: #E8D4A8;
@@ -325,7 +325,7 @@ body {
 }
 
 .sidebar .flex-grow-1:hover::-webkit-scrollbar-thumb {
-    background: rgba(0, 137, 80, 0.4);
+    background: rgba(25, 135, 84, 0.4);
 }
 
 .sidebar .flex-grow-1::-webkit-scrollbar-thumb:hover {
@@ -546,7 +546,7 @@ body {
 .form-control:focus,
 .form-select:focus {
     border-color: var(--mac-green);
-    box-shadow: 0 0 0 3px rgba(0, 137, 80, 0.12);
+    box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.12);
 }
 
 /* Badges — Notion-style pill with tint */

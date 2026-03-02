@@ -103,7 +103,7 @@ var _kernelDispatchGrid = function () {
                     var createdStr = formatDate(o.created_at);
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
-                    var statusBadge = '<span class="badge bg-info">' + (o.status || 'confirmed') + '</span>';
+                    var statusBadge = KanbanHelper.statusBadge(o.status || 'confirmed', 'first');
                     var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order me-1" data-order-id="' + (o.id || '') + '"><i class="fas fa-box me-1"></i>View basket</button>';
                     var dispatchBtn = '<button type="button" class="btn btn-sm btn-success js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Dispatch</button>';
                     pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + dispatchBtn + '</td></tr>');
@@ -121,7 +121,7 @@ var _kernelDispatchGrid = function () {
                     var createdStr = formatDate(o.created_at);
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
-                    var statusBadge = '<span class="badge bg-success">dispatched</span>';
+                    var statusBadge = KanbanHelper.statusBadge('dispatched', 'last');
                     var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-box me-1"></i>View basket</button>';
                     dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + '</td></tr>');
                 });
