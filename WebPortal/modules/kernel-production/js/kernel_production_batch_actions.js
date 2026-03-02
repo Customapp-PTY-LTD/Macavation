@@ -43,6 +43,36 @@ var _kernelProductionBatchActions = function () {
             });
         },
 
+        deleteBatch: (batchId) => {
+            if (!batchId) return;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.deactivateKernelBatch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete function not available. Please refresh.', 'error');
+                return;
+            }
+            var batch = (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch) ? _kernelProductionGrid.getBatch(batchId) : null;
+            var batchLabel = batch ? (batch.batch_number || 'this batch') : 'this batch';
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you want to delete "' + batchLabel + '"? This will remove it from production and intake. This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete!'
+            }).then((res) => {
+                if (!res.isConfirmed) return;
+                dataFunctions.deactivateKernelBatch(batchId).then((result) => {
+                    var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
+                    if (inner && inner.success === false) throw new Error(inner.error || 'Delete failed');
+                    Swal.fire({ icon: 'success', title: 'Batch deleted', text: batchLabel + ' has been removed.', timer: 2000, showConfirmButton: false });
+                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                }).catch((e) => {
+                    console.error(e);
+                    Swal.fire('Error', e.message || 'Failed to delete batch', 'error');
+                });
+            });
+        },
+
         showNewBatchModal: () => {
             const scope = _kernelProductionBatchActions;
             $('#newBatchModalLabel').text('New Production Batch');

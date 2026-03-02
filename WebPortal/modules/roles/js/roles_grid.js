@@ -22,10 +22,11 @@ var _rolesGrid = function () {
 
         init: async () => {
             const scope = _rolesGrid;
+            await scope.waitForReady();
+            // Unified role grids: show only this section (data-access), same pattern as dashboard_unified
             document.querySelectorAll('[data-access]').forEach(function (el) {
                 el.style.display = (el.getAttribute('data-access') === 'roles') ? '' : 'none';
             });
-            await scope.waitForReady();
             var modalContainers = document.querySelectorAll('.modal[route-name]');
             var loadPromises = [];
             modalContainers.forEach(function (el) {
@@ -60,7 +61,7 @@ var _rolesGrid = function () {
                 scope.filterRoles();
             });
 
-            $(document).on('click', '.pagination .page-link', function (e) {
+            $(document).on('click', '#rolesPagination .page-link', function (e) {
                 e.preventDefault();
                 const scope = _rolesGrid;
                 var page = parseInt($(this).data('page'), 10);
@@ -74,8 +75,8 @@ var _rolesGrid = function () {
                 if (typeof _modal_role !== 'undefined' && _modal_role.show) _modal_role.show();
             });
 
-            $('#exportRolesBtn').on('click', function () { _rolesGrid.exportRoles(); });
-            $('#refreshRolesBtn').on('click', function () { _rolesGrid.refreshRoles(); });
+            $('#rolesExportBtn').on('click', function () { _rolesGrid.exportRoles(); });
+            $('#rolesRefreshBtn').on('click', function () { _rolesGrid.refreshRoles(); });
             $('#rolesClearFiltersBtn').on('click', function () { _rolesGrid.clearFilters(); });
 
             $(document).on('click', '#rolesTableBody tr.js-role-row', function (e) {

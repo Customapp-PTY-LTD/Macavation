@@ -1321,6 +1321,17 @@ var _dataFunctions = function () {
         },
 
         /**
+         * deactivateKernelBatch — soft delete: set kernel.is_active = false. Batch is hidden from all lists.
+         * Used by: Kernel Production and Grower Intake "Delete batch" actions.
+         */
+        deactivateKernelBatch: async function (kernelId, token = null) {
+            const result = await this.callFunction('deactivate_kernel_batch', { p_kernel_id: kernelId }, token, { useCache: false });
+            this.clearCachePattern('kernel_batch_detail_' + kernelId);
+            this.clearCachePattern('kernel_batches');
+            return result;
+        },
+
+        /**
          * getKernelProductionHistory — history-specific read: intake, stage arrays, job card, QA.
          * Used by: modal_batch_history only.
          */
