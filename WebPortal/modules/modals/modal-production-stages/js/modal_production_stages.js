@@ -1499,6 +1499,7 @@ var _modal_production_stages = (function () {
                 return;
             }
             $('#productionStagesBatchId').val(batchId);
+            $('#productionStagesBatchNumber').text(batch.batch_number || batchId || '');
             $('#productionStagesDayId').val('');
             scope.clearProductionStagesForm();
             scope._loadedKernelDetail = null;
