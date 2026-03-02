@@ -847,7 +847,6 @@ var _modal_production_stages = (function () {
             var packingStart = packingDates.length ? packingDates[0] : null;
             var packingCompletion = packingDates.length ? packingDates[packingDates.length - 1] : null;
             var bestBeforeDate = (packingStart && /^\d{4}-\d{2}-\d{2}$/.test(packingStart)) ? add18MonthsToISO(packingStart) : null;
-            var totalWeight = (agg.summary_data && (agg.summary_data.pack_total_qty != null || agg.summary_data.crack_qty != null)) ? (agg.summary_data.pack_total_qty != null ? agg.summary_data.pack_total_qty : agg.summary_data.crack_qty) : null;
             var p = (agg.packing_data && typeof agg.packing_data === 'object') ? agg.packing_data : {};
             var soundKernelStyles = [];
             [
@@ -869,11 +868,17 @@ var _modal_production_stages = (function () {
             var skTotalKg = num(p.sk_total_qty) || soundKernelStyles.reduce(function (sum, r) { return sum + (r.weight_kg || 0); }, 0);
             var btTotalCartons = num(p.bt_total_cartons) || butterGradeStyles.reduce(function (sum, r) { return sum + (r.cartons || 0); }, 0);
             var btTotalKg = num(p.bt_total_qty) || butterGradeStyles.reduce(function (sum, r) { return sum + (r.weight_kg || 0); }, 0);
+            var totalWeight = (agg.summary_data && (agg.summary_data.pack_total_qty != null || agg.summary_data.crack_qty != null)) ? (agg.summary_data.pack_total_qty != null ? agg.summary_data.pack_total_qty : agg.summary_data.crack_qty) : (skTotalKg + btTotalKg) || null;
             var c = (agg.cracking_data && typeof agg.cracking_data === 'object') ? agg.cracking_data : {};
             var w = (agg.washing_data && typeof agg.washing_data === 'object') ? agg.washing_data : {};
             var s = (agg.sorting_data && typeof agg.sorting_data === 'object') ? agg.sorting_data : {};
+            var batchNumber = (batch && batch.batch_number) ? String(batch.batch_number) : null;
+            if (!batchNumber && unwrapped.length) {
+                var firstCrack = unwrapped[0].cracking_data;
+                if (firstCrack && (firstCrack.batch1 != null && firstCrack.batch1 !== '')) batchNumber = String(firstCrack.batch1);
+            }
             return {
-                p_batch_number: (batch && batch.batch_number) ? String(batch.batch_number) : null,
+                p_batch_number: batchNumber,
                 p_received_date: receivedDate,
                 p_production_batch_id: batchId || null,
                 p_total_weight_kg: totalWeight,
@@ -1314,8 +1319,8 @@ var _modal_production_stages = (function () {
             var jobCardPayload = null;
             if (allStages.length > 0) {
                 var p = scope.buildJobCardPayloadFromBatchAndStages(batchId, batch, allStages);
-                if (p && p.p_batch_number) {
-                    // Convert p_* payload to flat object for job_card_data JSONB
+                if (p) {
+                    // Convert p_* payload to flat object for job_card_data JSONB (always save when we have production data)
                     jobCardPayload = {};
                     Object.keys(p).forEach(function (k) {
                         jobCardPayload[k.replace(/^p_/, '')] = p[k];
