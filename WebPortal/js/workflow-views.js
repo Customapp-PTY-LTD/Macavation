@@ -10,15 +10,9 @@ var _workflowViews = function () {
          * Get user's role
          */
         getUserRole: function () {
-            const userInfo = localStorage.getItem('user_info');
-            if (!userInfo) return null;
-            
-            try {
-                const user = JSON.parse(userInfo);
-                return user.role_name || user.role || null;
-            } catch (e) {
-                return null;
-            }
+            const user = Session.get('user');
+            if (!user) return null;
+            return user.role_name || user.role || null;
         },
 
         /**
@@ -480,15 +474,9 @@ var _workflowViews = function () {
          * Get user name
          */
         getUserName: function () {
-            const userInfo = localStorage.getItem('user_info');
-            if (!userInfo) return 'User';
-            
-            try {
-                const user = JSON.parse(userInfo);
-                return user.first_name || user.username || user.email || 'User';
-            } catch (e) {
-                return 'User';
-            }
+            const user = Session.get('user');
+            if (!user) return 'User';
+            return user.first_name || user.username || user.email || 'User';
         },
 
         /**

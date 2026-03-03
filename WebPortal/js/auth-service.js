@@ -6,7 +6,7 @@
 class AuthService {
     constructor() {
         this.proxyUrl = 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws';
-        this.token = localStorage.getItem('lambda_token');
+        this.token = Session.get('token');
         this.userInfo = this.getUserInfo();
 
         // If we have user info but no role_name, fetch complete info
@@ -15,7 +15,7 @@ class AuthService {
         }
 
         // Refresh role features cache if user has a role_id and cache is missing
-        if (this.userInfo && this.userInfo.role_id && !localStorage.getItem('role_feature_keys')) {
+        if (this.userInfo && this.userInfo.role_id && !Session.get('featureKeys')) {
             this.fetchAndCacheFeatures(this.userInfo.role_id);
         }
     }
@@ -25,8 +25,7 @@ class AuthService {
      */
     getUserInfo() {
         try {
-            const userInfo = localStorage.getItem('user_info');
-            return userInfo ? JSON.parse(userInfo) : null;
+            return Session.get('user');
         } catch (error) {
             console.error('Error parsing user info:', error);
             return null;
@@ -108,8 +107,8 @@ class AuthService {
             if (result.token && result.user) {
                 this.token = result.token;
                 this.userInfo = result.user;
-                localStorage.setItem('lambda_token', result.token);
-                localStorage.setItem('user_info', JSON.stringify(result.user));
+                Session.set('token', result.token);
+                Session.set('user', result.user);
 
                 // If we don't have role_name, fetch complete user info
                 if (!this.userInfo.role_name && this.userInfo.role_id) {
@@ -144,7 +143,7 @@ class AuthService {
                     role_name: userData.role_name,
                     permissions: userData.permissions
                 };
-                localStorage.setItem('user_info', JSON.stringify(this.userInfo));
+                Session.set('user', this.userInfo);
             }
         } catch (error) {
             console.error('Error fetching complete user info:', error);
@@ -165,7 +164,7 @@ class AuthService {
             if (Array.isArray(result)) {
                 keys = result.map(function (row) { return row.key; });
             }
-            localStorage.setItem('role_feature_keys', JSON.stringify(keys));
+            Session.set('featureKeys', keys);
             // Refresh the menu filter if available
             if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
                 menuFilter.refresh();
@@ -183,14 +182,12 @@ class AuthService {
         const lastActivePage = sessionStorage.getItem('lastActivePage') || 
                              (typeof _appRouter !== 'undefined' && _appRouter.currentRoute) || 
                              'dashboard';
-        localStorage.setItem('lastActivePage', lastActivePage);
-        
-        // Get cc parameter from localStorage (stored as client_guid during sign-in)
-        const ccParam = localStorage.getItem('client_guid');
-        
-        localStorage.removeItem('lambda_token');
-        localStorage.removeItem('user_info');
-        localStorage.removeItem('role_feature_keys');
+        // Get cc parameter before clearing session
+        const ccParam = Session.get('clientGuid');
+
+        Session.clear();
+        // Restore lastActivePage so appRouter can redirect back after next login
+        Session.set('lastActivePage', lastActivePage);
         this.token = null;
         this.userInfo = null;
         
@@ -305,7 +302,7 @@ class AuthService {
             const result = await this.makeAuthenticatedRequest('/auth/refresh');
             if (result.token) {
                 this.token = result.token;
-                localStorage.setItem('lambda_token', result.token);
+                Session.set('token', result.token);
             }
             return result;
         } catch (error) {

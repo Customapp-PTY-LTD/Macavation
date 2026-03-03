@@ -62,8 +62,8 @@ var _signin = function () {
     return {
         init: () => {
             const scope = _signin;
-            const token = typeof localStorage !== 'undefined' && localStorage.getItem('lambda_token');
-            const userInfo = typeof localStorage !== 'undefined' && localStorage.getItem('user_info');
+            const token = typeof localStorage !== 'undefined' && Session.get('token');
+            const userInfo = typeof localStorage !== 'undefined' && Session.get('user');
             const isAuthenticated = !!(token && userInfo);
 
             if (isAuthenticated) {
@@ -169,9 +169,9 @@ var _signin = function () {
 
                 const authResult = await response.json();
                 if (typeof localStorage !== 'undefined') {
-                    localStorage.setItem('lambda_token', authResult.token);
-                    localStorage.setItem('user_info', JSON.stringify(authResult.user));
-                    localStorage.setItem('client_guid', clientGUID);
+                    Session.set('token', authResult.token);
+                    Session.set('user', authResult.user);
+                    Session.set('clientGuid', clientGUID);
                 }
 
                 scope.hideLoading();
@@ -233,9 +233,9 @@ var _signin = function () {
 
                 const authResult = await response.json();
                 if (typeof localStorage !== 'undefined') {
-                    localStorage.setItem('lambda_token', authResult.token);
-                    localStorage.setItem('user_info', JSON.stringify(authResult.user));
-                    localStorage.setItem('client_guid', clientGUID);
+                    Session.set('token', authResult.token);
+                    Session.set('user', authResult.user);
+                    Session.set('clientGuid', clientGUID);
                 }
 
                 scope.hideLoading();

@@ -41,9 +41,8 @@ var _dashboard = function () {
                 return (r && String(r).trim()) ? String(r).trim().toLowerCase() : '';
             }
             try {
-                const userInfo = localStorage.getItem('user_info');
-                if (!userInfo) return '';
-                const user = JSON.parse(userInfo);
+                const user = Session.get('user');
+                if (!user) return '';
                 const role = user.role_name || user.role || '';
                 return (role && String(role).trim()) ? String(role).trim().toLowerCase() : '';
             } catch (e) {

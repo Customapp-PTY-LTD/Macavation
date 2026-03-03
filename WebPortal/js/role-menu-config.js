@@ -318,16 +318,9 @@ var _roleMenuConfig = function () {
          * Get user's role name
          */
         getUserRole: function () {
-            const userInfo = localStorage.getItem('user_info');
-            if (!userInfo) return null;
-
-            try {
-                const user = JSON.parse(userInfo);
-                return user.role_name || user.role || null;
-            } catch (error) {
-                console.error('[Role Menu Config] Error parsing user info:', error);
-                return null;
-            }
+            const user = Session.get('user');
+            if (!user) return null;
+            return user.role_name || user.role || null;
         },
 
         /**
@@ -335,21 +328,15 @@ var _roleMenuConfig = function () {
          * Prefers DB-cached features, falls back to hardcoded config.
          */
         hasAccess: function (route) {
-            var userInfo = localStorage.getItem('user_info');
-            if (!userInfo) return false;
+            if (!Session.get('user')) return false;
 
             // Admin bypass
             if (this.isAdminUser()) return true;
 
             // 1. DB-cached features (preferred)
-            var cached = localStorage.getItem('role_feature_keys');
-            if (cached) {
-                try {
-                    var keys = JSON.parse(cached);
-                    if (Array.isArray(keys) && keys.length > 0) {
-                        return keys.indexOf(route) !== -1;
-                    }
-                } catch (e) { /* fall through */ }
+            var keys = Session.get('featureKeys');
+            if (Array.isArray(keys) && keys.length > 0) {
+                return keys.indexOf(route) !== -1;
             }
 
             // 2. Fallback to hardcoded config
@@ -370,20 +357,14 @@ var _roleMenuConfig = function () {
          * Prefers DB-cached features, falls back to hardcoded config.
          */
         getAccessibleMenus: function () {
-            var userInfo = localStorage.getItem('user_info');
-            if (!userInfo) return [];
+            if (!Session.get('user')) return [];
 
             // Admin bypass
             if (this.isAdminUser()) return Object.keys(this.menuStructure);
 
             // 1. DB-cached features (preferred)
-            var cached = localStorage.getItem('role_feature_keys');
-            if (cached) {
-                try {
-                    var keys = JSON.parse(cached);
-                    if (Array.isArray(keys) && keys.length > 0) return keys;
-                } catch (e) { /* fall through */ }
-            }
+            var keys = Session.get('featureKeys');
+            if (Array.isArray(keys) && keys.length > 0) return keys;
 
             // 2. Fallback to hardcoded config
             var roleName = this.getUserRole();

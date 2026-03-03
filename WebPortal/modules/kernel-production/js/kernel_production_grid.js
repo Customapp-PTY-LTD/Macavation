@@ -13,10 +13,9 @@ var _kernelProductionGrid = function () {
         /** Returns true if current user has role "KP Data Admin" (from localStorage user_info). */
         isKpDataAdmin: function () {
             try {
-                const raw = typeof localStorage !== 'undefined' && localStorage.getItem('user_info');
-                if (!raw) return false;
-                const user = JSON.parse(raw);
-                return user && user.role_name === ROLE_FEATURE.KP_DATA_ADMIN_ROLE;
+                const user = typeof localStorage !== 'undefined' && Session.get('user');
+                if (!user) return false;
+                return user.role_name === ROLE_FEATURE.KP_DATA_ADMIN_ROLE;
             } catch (e) {
                 return false;
             }

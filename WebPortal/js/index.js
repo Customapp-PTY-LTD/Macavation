@@ -140,14 +140,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function updateUserDisplay() {
     try {
-        const userInfoStr = localStorage.getItem('user_info');
-        if (!userInfoStr) {
-            console.warn('No user info found in localStorage');
+        const user = Session.get('user');
+        if (!user) {
+            console.warn('No user info found in session');
             updateUserNameDisplay('User');
             return;
         }
-
-        const user = JSON.parse(userInfoStr);
         let displayName = 'User';
         if (user.full_name) {
             displayName = user.full_name;
@@ -204,7 +202,7 @@ function updateUserDisplay() {
                             const userData = await dataFunctions.getUserById(userId);
                             if (userData && userData.role_name) {
                                 user.role_name = userData.role_name;
-                                localStorage.setItem('user_info', JSON.stringify(user));
+                                Session.set('user', user);
                                 updateRoleDisplay(userData.role_name);
                                 if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
                                 return;
@@ -215,7 +213,7 @@ function updateUserDisplay() {
                                     const userRole = roles.find(r => r.id === user.role_id);
                                     if (userRole && userRole.role_name) {
                                         user.role_name = userRole.role_name;
-                                        localStorage.setItem('user_info', JSON.stringify(user));
+                                        Session.set('user', user);
                                         updateRoleDisplay(userRole.role_name);
                                         if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
                                         return;
@@ -228,7 +226,7 @@ function updateUserDisplay() {
                                 if (currentUser && (currentUser.role_name || currentUser.role)) {
                                     const foundRole = currentUser.role_name || currentUser.role;
                                     user.role_name = foundRole;
-                                    localStorage.setItem('user_info', JSON.stringify(user));
+                                    Session.set('user', user);
                                     updateRoleDisplay(foundRole);
                                     if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
                                     return;
@@ -624,15 +622,13 @@ function signOut() {
             const lastActivePage = sessionStorage.getItem('lastActivePage') ||
                 (typeof _appRouter !== 'undefined' && _appRouter.currentRoute) ||
                 'dashboard';
-            localStorage.setItem('lastActivePage', lastActivePage);
-
-            const ccParam = localStorage.getItem('client_guid');
+            const ccParam = Session.get('clientGuid');
 
             if (typeof authService !== 'undefined' && typeof authService.signOut === 'function') {
                 authService.signOut();
             } else {
-                localStorage.removeItem('lambda_token');
-                localStorage.removeItem('user_info');
+                Session.clear();
+                Session.set('lastActivePage', lastActivePage);
                 const signinUrl = ccParam ? `signin.html?cc=${encodeURIComponent(ccParam)}` : 'signin.html';
                 window.location.href = signinUrl;
             }

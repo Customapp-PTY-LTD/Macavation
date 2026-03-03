@@ -14,7 +14,7 @@ var _menuFilter = function () {
             // Re-filter when user info or role features change
             var self = this;
             window.addEventListener('storage', function (e) {
-                if (e.key === 'user_info' || e.key === 'role_feature_keys') {
+                if (e.key === '_Session') {
                     self.filterMenus();
                 }
             });
@@ -25,14 +25,9 @@ var _menuFilter = function () {
          */
         _getAccessibleRoutes: function () {
             // 1. Try DB-cached features from localStorage (set by auth-service)
-            var cached = localStorage.getItem('role_feature_keys');
-            if (cached) {
-                try {
-                    var keys = JSON.parse(cached);
-                    if (Array.isArray(keys) && keys.length > 0) {
-                        return keys;
-                    }
-                } catch (e) { /* fall through */ }
+            var keys = Session.get('featureKeys');
+            if (Array.isArray(keys) && keys.length > 0) {
+                return keys;
             }
 
             // 2. Fallback to hardcoded role-menu-config

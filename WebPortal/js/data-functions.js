@@ -156,8 +156,8 @@ var _dataFunctions = function () {
             if (typeof authService !== 'undefined' && authService.token) {
                 return authService.token;
             }
-            // Fallback to localStorage
-            return localStorage.getItem('lambda_token');
+            // Fallback to Session
+            return Session.get('token');
         },
 
         /**
@@ -173,13 +173,13 @@ var _dataFunctions = function () {
          */
         getAuthStatus: function () {
             const token = this.getToken();
-            const userInfo = localStorage.getItem('user_info');
+            const userInfo = Session.get('user');
 
             return {
                 hasToken: !!token,
                 tokenLength: token ? token.length : 0,
                 hasUserInfo: !!userInfo,
-                userInfo: userInfo ? JSON.parse(userInfo) : null,
+                userInfo: userInfo,
                 authServiceAvailable: typeof authService !== 'undefined'
             };
         },
@@ -188,10 +188,9 @@ var _dataFunctions = function () {
          * Check if current user has admin privileges
          */
         hasAdminRole: function () {
-            const userInfo = localStorage.getItem('user_info');
-            if (!userInfo) return false;
+            const user = Session.get('user');
+            if (!user) return false;
 
-            const user = JSON.parse(userInfo);
             const roleName = user.role_name || user.role || '';
 
             return roleName.toLowerCase().includes('admin') ||
@@ -202,21 +201,19 @@ var _dataFunctions = function () {
          * Check if user can access user management features
          */
         canAccessUserManagement: function () {
-            const userInfo = localStorage.getItem('user_info');
-            if (!userInfo) return false;
+            const user = Session.get('user');
+            if (!user) return false;
 
-            const user = JSON.parse(userInfo);
             const roleName = user.role_name || user.role || '';
 
             // If we have a role_id but no role_name, we might need to fetch complete user info
             if (user.role_id && !roleName) {
-                // For now, allow access if user is authenticated and has a role_id
                 return true;
             }
 
             // Temporary: Allow all authenticated users for testing
             // TODO: Restrict this once roles are properly configured
-            if (userInfo) {
+            if (user) {
                 return true;
             }
 
@@ -235,10 +232,9 @@ var _dataFunctions = function () {
          * Only Super Admin should have access
          */
         canAccessTestManagement: function () {
-            const userInfo = localStorage.getItem('user_info');
-            if (!userInfo) return false;
+            const user = Session.get('user');
+            if (!user) return false;
 
-            const user = JSON.parse(userInfo);
             const roleName = user.role_name || user.role || '';
 
             // Only Super Admin has access to test management
@@ -380,9 +376,7 @@ var _dataFunctions = function () {
                         if (response.status === 401) {
                             const finalMessage = errorMessage || 'Invalid or expired token';
                             // Clear authentication data
-                            localStorage.removeItem('lambda_token');
-                            localStorage.removeItem('user_info');
-                            localStorage.removeItem('client_guid');
+                            Session.clear();
                             // Redirect to login page after a short delay to show message
                             setTimeout(() => {
                                 window.location.href = 'signin.html';

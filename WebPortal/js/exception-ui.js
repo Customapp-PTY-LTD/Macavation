@@ -165,7 +165,7 @@ var _exceptionUI = function () {
          */
         dismissException: async function (exceptionId) {
             try {
-                const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+                const userInfo = Session.get('user') || {};
                 await anomalyDetection.resolveAnomaly(exceptionId, 'Dismissed by user', userInfo.id);
                 
                 // Remove from UI

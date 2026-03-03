@@ -94,12 +94,11 @@ var _modal_quality_test = (function () {
                 form.reportValidity();
                 return;
             }
-            var userInfo = typeof localStorage !== 'undefined' ? localStorage.getItem('user_info') : null;
             var testedBy = null;
-            if (userInfo) {
+            var _qUser = typeof localStorage !== 'undefined' ? Session.get('user') : null;
+            if (_qUser) {
                 try {
-                    var user = JSON.parse(userInfo);
-                    testedBy = user.id || $('#testedBy').val() || null;
+                    testedBy = _qUser.id || $('#testedBy').val() || null;
                 } catch (e) {
                     testedBy = $('#testedBy').val() || null;
                 }

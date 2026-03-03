@@ -35,8 +35,8 @@ var _appRouter = function () {
             await _appRouter.loadRouteConfig();
 
             // Check localStorage first (persists across sessions), then sessionStorage, then default
-            var activePage = localStorage.getItem('lastActivePage') || 
-                           sessionStorage.getItem('lastActivePage') || 
+            var activePage = Session.get('lastActivePage') ||
+                           sessionStorage.getItem('lastActivePage') ||
                            '';
 
             // Check for URL parameter that might override
@@ -136,7 +136,7 @@ var _appRouter = function () {
                 
                 if (!isAuthenticated) {
                     // Get cc parameter from localStorage or URL
-                    const ccParam = localStorage.getItem('client_guid') || 
+                    const ccParam = Session.get('clientGuid') ||
                                    new URLSearchParams(window.location.search).get('cc') ||
                                    '9e1d961a-bfc2-469d-8526-8af75f536656';
                     
@@ -578,7 +578,7 @@ var _appRouter = function () {
         routeTo: (routeName, addBreadCrumb, params) => {
             // Store in both sessionStorage (current session) and localStorage (persist across sessions)
             sessionStorage.setItem('lastActivePage', routeName);
-            localStorage.setItem('lastActivePage', routeName);
+            Session.set('lastActivePage', routeName);
             _appRouter.currentRoute = routeName;
             
             _appRouter.loadContent({
@@ -598,7 +598,7 @@ var _appRouter = function () {
         promptOnFormExit: async (routeName) => {
             var doNavigate = function () {
                 sessionStorage.setItem('lastActivePage', routeName);
-                localStorage.setItem('lastActivePage', routeName);
+                Session.set('lastActivePage', routeName);
                 _appRouter.currentRoute = routeName;
                 return _appRouter.loadContent({
                     routeName: routeName,
