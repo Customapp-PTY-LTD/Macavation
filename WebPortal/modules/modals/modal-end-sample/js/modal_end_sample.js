@@ -23,7 +23,7 @@ var _modal_end_sample = (function () {
             });
         },
 
-        show: (batchId) => {
+        show: async (batchId) => {
             const scope = _modal_end_sample;
             // Reset form
             $('#endSampleProductionBatchId').val(batchId || '');
@@ -37,8 +37,7 @@ var _modal_end_sample = (function () {
             $('#endSampleInternalMicroResult').val('');
             $('#endSampleExternalLabRequired').prop('checked', false);
             $('#endSampleExternalLabResult').val('');
-            $('#endSampleSupervisorSigned').val('');
-            $('#endSampleNutPlantManagerSigned').val('');
+            scope.setSignedDropdowns([]);
             labTestPdfUrl = '';
             _completedAt  = null;
             $('#endSampleLabTestPdf').val('');
@@ -47,6 +46,16 @@ var _modal_end_sample = (function () {
             var modalEl = document.getElementById('endSampleModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#endSampleModal').modal('show');
+            // Load users and populate Signed (Supervisor) / Signed (Nut Plant Manager) dropdowns
+            if (typeof dataFunctions !== 'undefined' && dataFunctions.getUsers) {
+                try {
+                    var users = await dataFunctions.getUsers();
+                    var list = (users && Array.isArray(users)) ? users : (users && users.get_users && Array.isArray(users.get_users)) ? users.get_users : [];
+                    scope.setSignedDropdowns(list);
+                } catch (e) {
+                    console.error('[End Sample] Failed to load users:', e);
+                }
+            }
             // Pre-populate from saved qa_data
             if (batchId && typeof dataFunctions !== 'undefined' && dataFunctions.getKernelBatchDetail) {
                 dataFunctions.getKernelBatchDetail(batchId).then(function (detail) {
@@ -57,6 +66,40 @@ var _modal_end_sample = (function () {
                     console.error('[End Sample] Failed to load existing data:', e);
                 });
             }
+        },
+
+        setSignedDropdowns: (users) => {
+            var supSelect = document.getElementById('endSampleSupervisorSigned');
+            var npmSelect = document.getElementById('endSampleNutPlantManagerSigned');
+            if (!supSelect || !npmSelect) return;
+            var defaultSup = document.createElement('option');
+            defaultSup.value = '';
+            defaultSup.textContent = 'Select Supervisor';
+            defaultSup.selected = true;
+            supSelect.innerHTML = '';
+            supSelect.appendChild(defaultSup);
+            var defaultNpm = document.createElement('option');
+            defaultNpm.value = '';
+            defaultNpm.textContent = 'Select Nut Plant Manager';
+            defaultNpm.selected = true;
+            npmSelect.innerHTML = '';
+            npmSelect.appendChild(defaultNpm);
+            if (users && users.length) {
+                users.forEach(function (user) {
+                    var displayName = user.email || user.username || 'Unknown';
+                    var value = user.email || user.username || '';
+                    var optSup = document.createElement('option');
+                    optSup.value = value;
+                    optSup.textContent = displayName;
+                    supSelect.appendChild(optSup);
+                    var optNpm = document.createElement('option');
+                    optNpm.value = value;
+                    optNpm.textContent = displayName;
+                    npmSelect.appendChild(optNpm);
+                });
+            }
+            supSelect.value = '';
+            npmSelect.value = '';
         },
 
         populateFromQaData: (qa) => {
@@ -71,8 +114,22 @@ var _modal_end_sample = (function () {
             $('#endSampleInternalMicroResult').val(qa.internal_micro_result || '');
             $('#endSampleExternalLabRequired').prop('checked', !!qa.external_lab_required);
             $('#endSampleExternalLabResult').val(qa.external_lab_result || '');
-            $('#endSampleSupervisorSigned').val(qa.supervisor_signed_by || '');
-            $('#endSampleNutPlantManagerSigned').val(qa.nut_plant_manager_signed_by || '');
+            var supVal = (qa.supervisor_signed_by || '').trim();
+            var npmVal = (qa.nut_plant_manager_signed_by || '').trim();
+            var $sup = $('#endSampleSupervisorSigned');
+            var $npm = $('#endSampleNutPlantManagerSigned');
+            $sup.val(supVal);
+            if (supVal && $sup.val() !== supVal) {
+                $sup.find('option').each(function () {
+                    if ($(this).text().trim() === supVal) { $(this).prop('selected', true); return false; }
+                });
+            }
+            $npm.val(npmVal);
+            if (npmVal && $npm.val() !== npmVal) {
+                $npm.find('option').each(function () {
+                    if ($(this).text().trim() === npmVal) { $(this).prop('selected', true); return false; }
+                });
+            }
             if (qa.lab_test_pdf_url) {
                 labTestPdfUrl = qa.lab_test_pdf_url;
                 var href = (typeof _common !== 'undefined' && _common.sanitizeHtml) ? _common.sanitizeHtml(labTestPdfUrl) : labTestPdfUrl;

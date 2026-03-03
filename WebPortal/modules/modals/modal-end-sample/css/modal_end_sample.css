@@ -1,1 +1,7 @@
 /* Modal: End Sample (logic in modules/kernel-production/js/kernel_production_end_sample.js) */
+
+/* Default placeholder options in Signed dropdowns – show as muted until a user is selected */
+#endSampleSupervisorSigned option[value=""],
+#endSampleNutPlantManagerSigned option[value=""] {
+    color: var(--bs-secondary-color, #6c757d);
+}
