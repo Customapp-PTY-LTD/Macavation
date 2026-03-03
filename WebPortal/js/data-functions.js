@@ -975,10 +975,26 @@ var _dataFunctions = function () {
         },
 
         /**
-         * Get enabled feature keys for a specific role (used by menu filter)
+         * Get enabled feature keys for a specific role (used by menu filter).
+         * No cache so Role Features changes are reflected after refresh.
          */
         getFeaturesForRole: async function (roleId, token = null) {
-            return await this.callFunction('get_features_for_role', { p_role_id: roleId }, token);
+            var raw = await this.callFunction('get_features_for_role', { p_role_id: roleId }, token, { useCache: false });
+            var list = null;
+            if (Array.isArray(raw)) list = raw;
+            else if (raw && Array.isArray(raw.get_features_for_role)) list = raw.get_features_for_role;
+            else if (raw && Array.isArray(raw.data)) list = raw.data;
+            else if (raw && Array.isArray(raw.result)) list = raw.result;
+            else if (raw && typeof raw === 'object' && Array.isArray(raw.body)) list = raw.body;
+            if (!Array.isArray(list)) return [];
+            // Normalise to array of objects with key (backend returns TABLE (key VARCHAR) -> [{ key: '...' }] or similar)
+            return list.map(function (row) {
+                if (row && typeof row === 'object') {
+                    var k = row.key != null ? row.key : row.Key;
+                    return typeof k === 'string' ? { key: k } : { key: '' };
+                }
+                return { key: typeof row === 'string' ? row : '' };
+            });
         },
 
         // ===== COMPANY MANAGEMENT FUNCTIONS =====

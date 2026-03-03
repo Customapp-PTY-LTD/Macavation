@@ -11,56 +11,52 @@ var _menuFilter = function () {
         init: function () {
             this.filterMenus();
 
-            // Re-filter when user info or role features change
             var self = this;
+            // Re-filter when Session changes (other tab)
             window.addEventListener('storage', function (e) {
                 if (e.key === '_Session') {
                     self.filterMenus();
                 }
             });
+            // Re-filter when feature keys are set in this tab (e.g. after fetchAndCacheFeatures)
+            window.addEventListener('featureKeysUpdated', function () {
+                self.filterMenus();
+            });
         },
 
         /**
-         * Get accessible routes — prefers DB-cached features, falls back to hardcoded config
+         * Get accessible routes. Uses Session featureKeys when available (array, including empty);
+         * otherwise falls back to role-menu-config.
          */
         _getAccessibleRoutes: function () {
-            // 1. Try DB-cached features from localStorage (set by auth-service)
             var keys = Session.get('featureKeys');
-            if (Array.isArray(keys) && keys.length > 0) {
+            if (Array.isArray(keys)) {
                 return keys;
             }
-
-            // 2. Fallback to hardcoded role-menu-config
             if (typeof roleMenuConfig !== 'undefined') {
                 return roleMenuConfig.getAccessibleMenus();
             }
-
             return [];
         },
 
         /**
-         * Filter menus based on role features (DB-driven with fallback)
+         * Filter menus: only show items whose feature key is in Session featureKeys (from Role Features).
+         * No fallback to "admin sees all" — Role Features is the single source of truth.
          */
         filterMenus: function () {
-            var isAdmin = typeof roleMenuConfig !== 'undefined' && roleMenuConfig.isAdminUser();
-            var accessibleMenus = this._getAccessibleRoutes();
+            var keys = Session.get('featureKeys');
+            var accessibleMenus = Array.isArray(keys) ? keys : [];
+            var usingFeatureKeys = Array.isArray(keys);
 
-            console.log('[Menu Filter] Accessible menus:', accessibleMenus.length, 'Admin:', isAdmin);
+            console.log('[Menu Filter] Accessible menus:', accessibleMenus.length, 'from featureKeys:', usingFeatureKeys);
 
-            if (isAdmin) {
-                // Admin/super_user/management roles — show everything
-                this.showAllMenus();
-                this.updateParentMenus();
-            } else {
-                // Restricted: hide all, then show only allowed routes
-                this.hideAllMenus();
-                var self = this;
-                accessibleMenus.forEach(function (route) {
-                    self.showMenu(route);
-                });
-                this.updateParentMenus();
-                this.hideAdminSections();
-            }
+            // Always use featureKeys when it's an array (including empty). Never show all for admin.
+            this.hideAllMenus();
+            var self = this;
+            accessibleMenus.forEach(function (route) {
+                self.showMenu(route);
+            });
+            this.updateParentMenus();
         },
 
         /**

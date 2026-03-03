@@ -185,6 +185,16 @@ var _roleFeaturesGrid = function () {
                 // Invalidate cache so next role load fetches fresh data from DB
                 dataFunctions.clearCachePattern('get_role_features');
                 scope.updateSummary();
+                // If editing current user's role, refetch feature keys and refresh sidebar
+                var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
+                var currentRoleId = user && user.role_id ? user.role_id : null;
+                if (currentRoleId && String(currentRoleId) === String(scope.selectedRoleId)) {
+                    if (typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
+                        authService.fetchAndCacheFeatures(currentRoleId);
+                    } else if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
+                        menuFilter.refresh();
+                    }
+                }
             } catch (error) {
                 console.error('[Role Features] Error toggling feature:', error);
                 scope.showError('Error saving: ' + (error.message || ''));
@@ -217,7 +227,10 @@ var _roleFeaturesGrid = function () {
             var summaryEl = document.getElementById('featureSummary');
             if (!summaryEl) return;
             var total = scope.allFeatures.length;
-            var enabled = Object.keys(scope.roleFeatureIdMap).length;
+            // Count enabled same way we render checkboxes (by feature.id in map) so summary and checkboxes stay in sync
+            var enabled = scope.allFeatures.filter(function (f) {
+                return Object.prototype.hasOwnProperty.call(scope.roleFeatureIdMap, String(f.id));
+            }).length;
             summaryEl.style.cssText = '';
             summaryEl.innerHTML = '<span class="badge bg-primary me-2">' + enabled + ' / ' + total + '</span>' +
                 '<span class="text-muted">features enabled for this role</span>';

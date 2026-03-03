@@ -9,14 +9,20 @@ class AuthService {
         this.token = Session.get('token');
         this.userInfo = this.getUserInfo();
 
+        // Clear stale role-feature keys so sidebar never uses old Session data (Role Features is source of truth)
+        if (this.token && this.userInfo) {
+            Session.set('featureKeys', []);
+        }
+
         // If we have user info but no role_name, fetch complete info
         if (this.userInfo && !this.userInfo.role_name && this.userInfo.role_id) {
             this.fetchCompleteUserInfo();
         }
 
-        // Refresh role features cache if user has a role_id and cache is missing
-        if (this.userInfo && this.userInfo.role_id && !Session.get('featureKeys')) {
-            this.fetchAndCacheFeatures(this.userInfo.role_id);
+        // Load or refresh role features for menu visibility (Role Features Access checkboxes)
+        var roleId = this.userInfo && (this.userInfo.role_id || (this.userInfo.role && this.userInfo.role.id));
+        if (roleId) {
+            this.fetchAndCacheFeatures(roleId);
         }
     }
 
@@ -141,9 +147,13 @@ class AuthService {
                 this.userInfo = {
                     ...this.userInfo,
                     role_name: userData.role_name,
+                    role_id: userData.role_id != null ? userData.role_id : this.userInfo.role_id,
                     permissions: userData.permissions
                 };
                 Session.set('user', this.userInfo);
+                if (this.userInfo.role_id && typeof this.fetchAndCacheFeatures === 'function') {
+                    this.fetchAndCacheFeatures(this.userInfo.role_id);
+                }
             }
         } catch (error) {
             console.error('Error fetching complete user info:', error);
@@ -159,15 +169,25 @@ class AuthService {
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getFeaturesForRole) {
                 return;
             }
-            var result = await dataFunctions.getFeaturesForRole(roleId);
-            var keys = [];
-            if (Array.isArray(result)) {
-                keys = result.map(function (row) { return row.key; });
-            }
+            // Clear stale keys immediately so menu filter never uses old Session data
+            Session.set('featureKeys', []);
+            var roleIdStr = roleId != null ? String(roleId) : null;
+            if (!roleIdStr) return;
+            // Request goes to Lambda URL (POST body: { function: 'get_features_for_role', params: { p_role_id } })
+            console.log('[AuthService] Fetching feature keys for role', roleIdStr);
+            var list = await dataFunctions.getFeaturesForRole(roleIdStr);
+            var keys = (Array.isArray(list) ? list : []).map(function (row) {
+                return (row && typeof row === 'object' && row.key != null) ? row.key : (typeof row === 'string' ? row : '');
+            }).filter(Boolean);
             Session.set('featureKeys', keys);
-            // Refresh the menu filter if available
+            try {
+                if (typeof window.dispatchEvent === 'function') {
+                    window.dispatchEvent(new CustomEvent('featureKeysUpdated', { detail: { keys: keys } }));
+                }
+            } catch (e) {}
             if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
                 menuFilter.refresh();
+                setTimeout(function () { if (menuFilter.refresh) menuFilter.refresh(); }, 600);
             }
         } catch (error) {
             console.warn('[AuthService] Could not load role features:', error.message);

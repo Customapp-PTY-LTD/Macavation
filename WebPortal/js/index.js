@@ -88,8 +88,11 @@ document.addEventListener('DOMContentLoaded', function () {
         initProfilePictureInput();
 
         if (typeof menuFilter !== 'undefined') {
-            setTimeout(() => {
+            setTimeout(function () {
                 menuFilter.init();
+                // Delayed refresh passes so sidebar updates after async feature fetch completes
+                setTimeout(function () { if (menuFilter.refresh) menuFilter.refresh(); }, 1200);
+                setTimeout(function () { if (menuFilter.refresh) menuFilter.refresh(); }, 2500);
             }, 500);
         }
 
@@ -202,8 +205,12 @@ function updateUserDisplay() {
                             const userData = await dataFunctions.getUserById(userId);
                             if (userData && userData.role_name) {
                                 user.role_name = userData.role_name;
+                                if (userData.role_id != null) user.role_id = userData.role_id;
                                 Session.set('user', user);
                                 updateRoleDisplay(userData.role_name);
+                                if (user.role_id && typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
+                                    authService.fetchAndCacheFeatures(user.role_id);
+                                }
                                 if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
                                 return;
                             }
@@ -215,6 +222,9 @@ function updateUserDisplay() {
                                         user.role_name = userRole.role_name;
                                         Session.set('user', user);
                                         updateRoleDisplay(userRole.role_name);
+                                        if (user.role_id && typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
+                                            authService.fetchAndCacheFeatures(user.role_id);
+                                        }
                                         if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
                                         return;
                                     }
@@ -226,8 +236,12 @@ function updateUserDisplay() {
                                 if (currentUser && (currentUser.role_name || currentUser.role)) {
                                     const foundRole = currentUser.role_name || currentUser.role;
                                     user.role_name = foundRole;
+                                    if (currentUser.role_id != null) user.role_id = currentUser.role_id;
                                     Session.set('user', user);
                                     updateRoleDisplay(foundRole);
+                                    if (user.role_id && typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
+                                        authService.fetchAndCacheFeatures(user.role_id);
+                                    }
                                     if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
                                     return;
                                 }
