@@ -146,6 +146,35 @@ var _modal_user = (function () {
                 if (editingId) {
                     await dataFunctions.updateUser(editingId, formData);
                     api.showSuccess('User updated successfully');
+                    // If the updated user is the current logged-in user, refresh their feature keys and sidebar
+                    var currentUser = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
+                    var isCurrentUser = false;
+                    if (currentUser && formData.role_id) {
+                        var a = String(editingId);
+                        if ((currentUser.id && String(currentUser.id) === a) || (currentUser.user_id && String(currentUser.user_id) === a)) {
+                            isCurrentUser = true;
+                        }
+                        if (!isCurrentUser && currentUser.email && formData.email && String(currentUser.email).toLowerCase() === String(formData.email).toLowerCase()) {
+                            isCurrentUser = true;
+                        }
+                    }
+                    if (isCurrentUser) {
+                        if (currentUser) {
+                            currentUser.role_id = formData.role_id;
+                            var selectedOption = $('#cboRole option:selected');
+                            if (selectedOption.length) currentUser.role_name = selectedOption.text().trim() || currentUser.role_name;
+                            if (typeof Session !== 'undefined' && Session.set) Session.set('user', currentUser);
+                        }
+                        if (typeof authService !== 'undefined' && authService.userInfo) {
+                            authService.userInfo.role_id = formData.role_id;
+                            if (currentUser && currentUser.role_name) authService.userInfo.role_name = currentUser.role_name;
+                        }
+                        if (typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
+                            await authService.fetchAndCacheFeatures(formData.role_id);
+                        }
+                        if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
+                        if (typeof updateUserDisplay === 'function') updateUserDisplay();
+                    }
                 } else {
                     await dataFunctions.createUser(formData);
                     api.showSuccess('User created successfully');
