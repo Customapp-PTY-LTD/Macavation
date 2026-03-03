@@ -14,7 +14,7 @@ var _amandaDashboard = function () {
             const scope = _amandaDashboard;
             // Unified dashboard: show only this role's section (data-access)
             document.querySelectorAll('[data-access]').forEach(function (el) {
-                el.style.display = (el.getAttribute('data-access') === 'amanda') ? '' : 'none';
+                el.style.display = (el.getAttribute('data-access') === 'pallandium-integrator') ? '' : 'none';
             });
             scope.setupEventListeners();
             await scope.loadData();

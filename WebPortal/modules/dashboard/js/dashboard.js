@@ -9,14 +9,14 @@ var _dashboard = function () {
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    /** Role name (normalized lowercase) -> route name for role-specific dashboards */
-    const roleToDashboardRoute = {
-        'super admin': 'executive-dashboard',
-        'admin': 'executive-dashboard',
-        'executive': 'executive-dashboard',
-        'super_user': 'executive-dashboard',
-        'amanda': 'amanda-dashboard',
-        'material journey': 'amanda-dashboard'
+    /** Role name (normalized lowercase) -> data-access section key */
+    const roleToDashboardSection = {
+        'super admin': 'executive',
+        'admin': 'executive',
+        'executive': 'executive',
+        'super_user': 'executive',
+        'pallandium integrator': 'pallandium-integrator',
+        'material journey': 'pallandium-integrator'
     };
 
     const routeAddButtonMap = {
@@ -51,26 +51,31 @@ var _dashboard = function () {
             }
         },
 
-        /**
-         * If user role maps to a dedicated dashboard route, navigate there and skip default dashboard.
-         * @returns {boolean} true if redirected to another dashboard, false to continue with default
-         */
-        redirectToRoleDashboard: () => {
-            const role = _dashboard.getUserRole();
-            const route = role ? roleToDashboardRoute[role] : null;
-            if (route && typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
-                _appRouter.routeTo(route);
-                return true;
-            }
-            return false;
-        },
-
         init: async () => {
             const scope = _dashboard;
-            // Unified dashboard: show only this role's section (data-access)
+            const role = scope.getUserRole();
+            const section = roleToDashboardSection[role] || 'default';
+
+            // Show only the section for this role, hide all others
             document.querySelectorAll('[data-access]').forEach(function (el) {
-                el.style.display = (el.getAttribute('data-access') === 'default') ? '' : 'none';
+                el.style.display = (el.getAttribute('data-access') === section) ? '' : 'none';
             });
+
+            // Delegate to role-specific sub-init (it handles its own data loading)
+            if (section === 'pallandium-integrator') {
+                if (typeof _amandaDashboard !== 'undefined' && _amandaDashboard.init) {
+                    await _amandaDashboard.init();
+                }
+                return;
+            }
+            if (section === 'executive') {
+                if (typeof _executiveDashboard !== 'undefined' && _executiveDashboard.init) {
+                    await _executiveDashboard.init();
+                }
+                return;
+            }
+
+            // Default dashboard
             try {
                 if (typeof waitForDataFunctions === 'function') {
                     try {
@@ -84,10 +89,6 @@ var _dashboard = function () {
                     if (typeof dataFunctions === 'undefined') {
                         throw new Error('dataFunctions is not available');
                     }
-                }
-
-                if (scope.redirectToRoleDashboard()) {
-                    return;
                 }
 
                 scope.setCurrentDate();

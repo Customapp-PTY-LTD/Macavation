@@ -158,7 +158,7 @@ var _roleMenuConfig = function () {
             'amanda-dashboard': {
                 route: 'amanda-dashboard',
                 icon: 'fas fa-chart-line',
-                label: 'Material Journey Dashboard',
+                label: 'Pallandium Integrator Dashboard',
                 category: 'main'
             },
             'executive-dashboard': {

@@ -28,12 +28,16 @@
         "dashboard": {
             "description": "Dashboard",
             "path": "dashboard",
-            "html": "html/dashboard_unified.html",
+            "html": "html/dashboard.html",
             "js": [
-                "js/dashboard.js"
+                "js/dashboard.js",
+                "js/amanda_dashboard.js",
+                "js/executive_dashboard.js"
             ],
             "css": [
-                "css/dashboard.css"
+                "css/dashboard.css",
+                "css/amanda_dashboard.css",
+                "css/executive_dashboard.css"
             ]
         },
         "my-day": {
