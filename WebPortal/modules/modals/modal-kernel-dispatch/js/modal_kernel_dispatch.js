@@ -55,9 +55,16 @@ var _modal_kernel_dispatch = (function () {
                 if (statusEl) statusEl.textContent = order.status || '—';
                 if (tbody) {
                     tbody.innerHTML = '';
+                    var kgPerCarton = 11.34;
                     lines.forEach(function (line) {
                         var tr = document.createElement('tr');
-                        tr.innerHTML = '<td>' + (line.batch_number || '—') + '</td><td>' + (line.style || '—') + '</td><td class="text-end">' + (line.quantity_kg != null ? Number(line.quantity_kg) : '—') + '</td>';
+                        var qtyKg = (line.cartons != null && line.cartons >= 0)
+                            ? (Math.round(line.cartons * kgPerCarton * 100) / 100)
+                            : (line.quantity_kg != null ? Number(line.quantity_kg) : null);
+                        var qtyDisplay = (line.cartons != null && line.cartons >= 0)
+                            ? (line.cartons + ' ct · ' + (qtyKg != null ? qtyKg : '—') + ' kg')
+                            : (qtyKg != null ? qtyKg + ' kg' : '—');
+                        tr.innerHTML = '<td>' + (line.batch_number || '—') + '</td><td>' + (line.style || '—') + '</td><td class="text-end">' + qtyDisplay + '</td>';
                         tbody.appendChild(tr);
                     });
                 }

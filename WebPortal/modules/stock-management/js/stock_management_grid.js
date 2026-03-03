@@ -253,12 +253,13 @@ var _stockManagementGrid = function () {
             var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
             var styleKeys = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
             batches.forEach(function (b) {
-                var cells = (b.remaining_by_style && typeof b.remaining_by_style === 'object') ? b.remaining_by_style : null;
-                if (cells == null) cells = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
+                // Prefer cartons (remaining_by_style_cartons / yield_by_style_cartons)
+                var cells = (b.remaining_by_style_cartons && typeof b.remaining_by_style_cartons === 'object') ? b.remaining_by_style_cartons : null;
+                if (cells == null) cells = (b.yield_by_style_cartons && typeof b.yield_by_style_cartons === 'object') ? b.yield_by_style_cartons : {};
                 var batchNum = (b.batch_number || '').toString();
                 var row = '<tr><td>' + batchNum + '</td>';
                 styleKeys.forEach(function (k) {
-                    var val = cells[k] != null ? cells[k] : (b['yield_' + k] != null ? b['yield_' + k] : 0);
+                    var val = cells[k] != null ? cells[k] : 0;
                     if (typeof val === 'number') totals[k] += val;
                     var displayVal = (val !== 0 && val !== '' && val != null) ? val : '—';
                     row += '<td class="text-end">' + displayVal + '</td>';

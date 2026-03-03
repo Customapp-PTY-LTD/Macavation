@@ -2145,6 +2145,16 @@ var _dataFunctions = function () {
             return result;
         },
 
+        updateKernelDispatchOrderCartons: async function (orderId, lines, token = null) {
+            const params = {
+                p_order_id: orderId,
+                p_lines: Array.isArray(lines) ? lines : []
+            };
+            const result = await this.callFunction('update_kernel_dispatch_order_cartons', params, token, { useCache: false });
+            this.clearCachePattern('kernel_dispatch_orders_list');
+            return result;
+        },
+
         getKernelDispatchOrders: async function (token = null, forceRefresh = false) {
             const raw = await this.callFunction('get_kernel_dispatch_orders', { p_limit: 100, p_offset: 0 }, token, {
                 cacheKey: 'kernel_dispatch_orders_list',

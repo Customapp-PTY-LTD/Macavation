@@ -8,6 +8,7 @@ var _modal_stock_send_to_dispatch = (function () {
 
     var STYLE_KEYS = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
     var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+    var KG_PER_CARTON = 11.34;
     var _dispatchLines = [];
     var _pendingDetails = null;
     var MAX_DROPDOWN_OPTIONS = 51;
@@ -56,56 +57,61 @@ var _modal_stock_send_to_dispatch = (function () {
                 $(this).removeClass('is-invalid');
             });
 
-            // Qty pick from shopping table
+            // Qty pick from shopping table (use attr for style so "0" is not treated as falsy)
             $(document).off('click.dispatchShop', '#sendToDispatchModal .js-modal-dispatch-qty-pick').on('click.dispatchShop', '#sendToDispatchModal .js-modal-dispatch-qty-pick', function (e) {
                 e.preventDefault();
                 var batchId = String($(this).data('batch-id') || '');
-                var style = String($(this).data('style') || '');
-                var qty = parseInt($(this).data('quantity'), 10);
-                if (!batchId || style === '' || isNaN(qty)) return;
+                var style = $(this).attr('data-style');
+                style = (style == null || style === '') ? '' : String(style);
+                var cartons = parseInt($(this).data('quantity'), 10);
+                if (!batchId || style === '' || isNaN(cartons)) return;
                 var batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
                 var batch = batches.find(function (b) { return b.id === batchId; });
                 var batchNum = batch ? (batch.batch_number || batchId) : batchId;
                 var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
-                if (qty <= 0) {
+                if (cartons <= 0) {
                     if (idx >= 0) _dispatchLines.splice(idx, 1);
                 } else {
-                    var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: qty };
+                    var quantity_kg = Math.round(cartons * KG_PER_CARTON * 100) / 100;
+                    var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: quantity_kg, cartons: cartons };
                     if (idx >= 0) _dispatchLines[idx] = line; else _dispatchLines.push(line);
                 }
                 api.renderShoppingTable();
                 api.renderBasket();
             });
 
-            // "Other…" custom qty
+            // "Other…" custom cartons (use attr for style so "0" is not treated as falsy)
             $(document).off('click.dispatchShopOther', '#sendToDispatchModal .js-modal-dispatch-qty-other').on('click.dispatchShopOther', '#sendToDispatchModal .js-modal-dispatch-qty-other', function (e) {
                 e.preventDefault();
                 var batchId = String($(this).data('batch-id') || '');
-                var style = String($(this).data('style') || '');
-                var maxQty = parseFloat($(this).data('max-qty')) || 0;
-                if (!batchId || style === '' || maxQty <= 0) return;
+                var style = $(this).attr('data-style');
+                style = (style == null || style === '') ? '' : String(style);
+                var maxCartons = parseInt($(this).data('max-qty'), 10) || 0;
+                if (!batchId || style === '' || maxCartons <= 0) return;
                 var batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
                 var batch = batches.find(function (b) { return b.id === batchId; });
                 var batchNum = batch ? (batch.batch_number || batchId) : batchId;
                 Swal.fire({
-                    title: 'Enter quantity',
-                    html: '<label class="form-label">Amount in kg (max ' + maxQty + ')</label><input type="number" id="dispatchModalOtherQtyInput" class="form-control" min="0.1" max="' + maxQty + '" value="1" step="0.1">',
+                    title: 'Enter cartons',
+                    html: '<label class="form-label">Cartons (max ' + maxCartons + ')</label><input type="number" id="dispatchModalOtherQtyInput" class="form-control" min="1" max="' + maxCartons + '" value="1" step="1">',
                     showCancelButton: true,
                     confirmButtonText: 'Add',
                     focusConfirm: false,
                     preConfirm: function () {
                         var input = document.getElementById('dispatchModalOtherQtyInput');
-                        var num = input ? parseFloat(input.value) : NaN;
-                        if (isNaN(num) || num <= 0 || num > maxQty) {
-                            Swal.showValidationMessage('Please enter a value between 0.1 and ' + maxQty + '.');
+                        var num = input ? parseInt(input.value, 10) : NaN;
+                        if (isNaN(num) || num <= 0 || num > maxCartons) {
+                            Swal.showValidationMessage('Please enter a value between 1 and ' + maxCartons + '.');
                             return false;
                         }
                         return num;
                     }
                 }).then(function (result) {
                     if (result && result.isConfirmed && typeof result.value === 'number') {
+                        var cartons = result.value;
+                        var quantity_kg = Math.round(cartons * KG_PER_CARTON * 100) / 100;
                         var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
-                        var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: result.value };
+                        var line = { kernel_id: batchId, batch_number: batchNum, style: style, quantity_kg: quantity_kg, cartons: cartons };
                         if (idx >= 0) _dispatchLines[idx] = line; else _dispatchLines.push(line);
                         api.renderShoppingTable();
                         api.renderBasket();
@@ -113,11 +119,12 @@ var _modal_stock_send_to_dispatch = (function () {
                 });
             });
 
-            // Remove from basket
+            // Remove from basket (use attr for style so "0" is not treated as falsy)
             $(document).off('click.dispatchBasketRemove', '#dispatchModalBasketBody .js-modal-basket-remove').on('click.dispatchBasketRemove', '#dispatchModalBasketBody .js-modal-basket-remove', function (e) {
                 e.preventDefault();
                 var batchId = String($(this).data('batch-id') || '');
-                var style = String($(this).data('style') || '');
+                var style = $(this).attr('data-style');
+                style = (style == null || style === '') ? '' : String(style);
                 var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
                 if (idx >= 0) _dispatchLines.splice(idx, 1);
                 api.renderShoppingTable();
@@ -180,31 +187,31 @@ var _modal_stock_send_to_dispatch = (function () {
                 return;
             }
             batches.forEach(function (b) {
-                var cells = (b.remaining_by_style && typeof b.remaining_by_style === 'object') ? b.remaining_by_style : null;
-                if (cells == null) cells = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
+                var cells = (b.remaining_by_style_cartons && typeof b.remaining_by_style_cartons === 'object') ? b.remaining_by_style_cartons : null;
+                if (cells == null) cells = (b.yield_by_style_cartons && typeof b.yield_by_style_cartons === 'object') ? b.yield_by_style_cartons : {};
                 var batchId = b.id || '';
                 var batchNum = (b.batch_number || '').toString().replace(/"/g, '&quot;');
                 var tr = document.createElement('tr');
                 var html = '<td><span class="badge bg-secondary">' + batchNum + '</span></td>';
                 STYLE_KEYS.forEach(function (k) {
-                    var val = cells[k] != null ? cells[k] : (b['yield_' + k] != null ? b['yield_' + k] : 0);
+                    var val = cells[k] != null ? cells[k] : 0;
                     if (typeof val === 'number') totals[k] += val;
-                    var qty = (typeof val === 'number' && val > 0) ? val : 0;
-                    var displayVal = (qty > 0) ? qty : '—';
+                    var cartonsAvail = (typeof val === 'number' && val > 0) ? Math.floor(val) : 0;
+                    var displayVal = (cartonsAvail > 0) ? cartonsAvail : '—';
                     var selectedLine = _dispatchLines.find(function (l) { return l.kernel_id === batchId && String(l.style) === k; });
-                    if (qty > 0) {
+                    if (cartonsAvail > 0) {
                         var cellId = 'dshop_' + (batchId + '_' + k).replace(/[^a-zA-Z0-9_-]/g, '_');
-                        var maxOpt = Math.min(Math.floor(qty), MAX_DROPDOWN_OPTIONS - 1);
+                        var maxOpt = Math.min(cartonsAvail, MAX_DROPDOWN_OPTIONS - 1);
                         var menuItems = '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="0">0 (clear)</a></li>';
                         for (var n = 1; n <= maxOpt; n++) {
                             menuItems += '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + n + '">' + n + '</a></li>';
                         }
-                        if (Math.floor(qty) > maxOpt) {
-                            menuItems += '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + Math.floor(qty) + '">' + Math.floor(qty) + ' (max)</a></li>';
+                        if (cartonsAvail > maxOpt) {
+                            menuItems += '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + cartonsAvail + '">' + cartonsAvail + ' (max)</a></li>';
                         }
-                        menuItems += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item js-modal-dispatch-qty-other" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-max-qty="' + qty + '">Other…</a></li>';
+                        menuItems += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item js-modal-dispatch-qty-other" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-max-qty="' + cartonsAvail + '">Other…</a></li>';
                         var btnClass = selectedLine ? 'btn-success' : 'btn-outline-secondary';
-                        var btnLabel = selectedLine ? (selectedLine.quantity_kg + ' / ' + displayVal) : displayVal;
+                        var btnLabel = selectedLine ? ((selectedLine.cartons != null ? selectedLine.cartons : selectedLine.quantity_kg) + ' / ' + displayVal) : displayVal;
                         html += '<td class="text-end kernel-qty-cell"><div class="dropdown">' +
                             '<button class="btn btn-sm ' + btnClass + ' py-0 px-1" type="button" id="' + cellId + '" data-bs-toggle="dropdown" aria-expanded="false">' + btnLabel + '</button>' +
                             '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="' + cellId + '">' + menuItems + '</ul></div></td>';
@@ -239,12 +246,13 @@ var _modal_stock_send_to_dispatch = (function () {
             var totalKg = 0;
             var html = '';
             _dispatchLines.forEach(function (line) {
-                var qty = parseFloat(line.quantity_kg) || 0;
-                totalKg += qty;
-                var styleAttr = (line.style || '').replace(/"/g, '&quot;');
+                var cartons = line.cartons != null ? line.cartons : 0;
+                var qtyKg = (cartons > 0 || line.cartons === 0) ? (Math.round(cartons * KG_PER_CARTON * 100) / 100) : (parseFloat(line.quantity_kg) || 0);
+                totalKg += qtyKg;
+                var styleAttr = (line.style !== undefined && line.style !== null) ? String(line.style).replace(/"/g, '&quot;') : '';
                 html += '<tr><td><span class="badge bg-primary">' + (line.batch_number || '—') + '</span></td>' +
-                    '<td>' + (line.style || '—') + '</td>' +
-                    '<td class="text-end">' + qty + '</td>' +
+                    '<td>' + (line.style !== undefined && line.style !== null ? line.style : '—') + '</td>' +
+                    '<td class="text-end">' + cartons + ' ct · ' + qtyKg.toFixed(2) + ' kg</td>' +
                     '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger js-modal-basket-remove" title="Remove" data-batch-id="' + (line.kernel_id || '') + '" data-style="' + styleAttr + '"><i class="fas fa-times"></i></button></td></tr>';
             });
             basketBody.innerHTML = html;
@@ -330,7 +338,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 return;
             }
             var lines = _dispatchLines.map(function (l) {
-                return { kernel_id: l.kernel_id, batch_number: l.batch_number, style: l.style, quantity_kg: l.quantity_kg };
+                return { kernel_id: l.kernel_id, batch_number: l.batch_number, style: l.style, cartons: l.cartons };
             });
             var sendBtn = document.getElementById('dispatchModalSendBtn');
             if (sendBtn) sendBtn.disabled = true;
