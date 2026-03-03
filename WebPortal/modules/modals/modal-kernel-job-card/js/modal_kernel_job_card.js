@@ -12,10 +12,12 @@ var _modal_kernel_job_card = (function () {
     var DEBUG_BEST_BEFORE = false;
     var JOB_CARD_DATE_IDS = ['jobCardReceivedDate', 'jobCardPackingStartDate', 'jobCardPackingCompletionDate', 'jobCardBestBeforeDate'];
     var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+    var AUTO_SAVE_DELAY_MS = 900;
 
     /** Module state for packing start and best-before (no DOM reads for Best Before). */
     var _jobCardPackingStartISO = null;
     var _jobCardBestBeforeISO = null;
+    var _autoSaveTimer = null;
 
     /** §7.1 Convert dd/mm/yyyy → yyyy-mm-dd for API. Pass-through if already ISO. */
     function jobCardToISO(dateStr) {
@@ -105,6 +107,7 @@ var _modal_kernel_job_card = (function () {
             });
 
             $('#kernelJobCardModal').on('hidden.bs.modal', () => scope.clearJobCardForm());
+            $('#kernelJobCardModal').off('hide.bs.modal').on('hide.bs.modal', function () { scope.flushAutoSave(); });
             scope.initHandlers();
         },
 
@@ -129,6 +132,9 @@ var _modal_kernel_job_card = (function () {
             $(document).on('input', '#soundKernelTableBody input, #butterGradeTableBody input', function () { scope.calculateJobCardTotals(); });
             $(document).on('input', '#jobCardWasteOilKernel, #jobCardWasteShellFines, #jobCardWasteCompost, #jobCardWasteShell', function () { scope.calculateMassBalance(); });
             $(document).on('change', '#jobCardPackingStartDate', function () { scope.syncBestBeforeFromStartDate(); });
+            $(document).on('input change', '#kernelJobCardModal :input, #kernelJobCardModal select', function () {
+                scope.scheduleAutoSave();
+            });
         },
 
         syncBestBeforeFromStartDate: () => {
@@ -466,13 +472,7 @@ var _modal_kernel_job_card = (function () {
             $('#butterGradeTableBody').append(row);
         },
 
-        saveJobCard: () => {
-            const scope = _modal_kernel_job_card;
-            var form = $('#kernelJobCardForm')[0];
-            if (!form || !form.checkValidity()) {
-                if (form) form.reportValidity();
-                return;
-            }
+        _buildJobCardPayload: () => {
             var soundKernelStyles = [];
             $('#soundKernelTableBody tr').each(function () {
                 var style = $(this).find('select[name="style"]').val();
@@ -492,7 +492,7 @@ var _modal_kernel_job_card = (function () {
             var getFloat = function (id) { var v = $('#' + id).val(); return v ? parseFloat(v) : null; };
             var getIntText = function (id) { var v = $('#' + id).text(); return v ? parseInt(v, 10) : null; };
             var getFloatText = function (id) { var v = $('#' + id).text(); return v ? parseFloat(v) : null; };
-            var jobCardData = {
+            var data = {
                 p_batch_number: getVal('jobCardBatchNumber'),
                 p_received_date: getDateVal('jobCardReceivedDate'),
                 p_production_batch_id: getVal('jobCardProductionBatchId') || null,
@@ -521,13 +521,27 @@ var _modal_kernel_job_card = (function () {
                 p_mass_balance_out_kg: getFloat('jobCardMassBalanceOut'),
                 p_mass_balance_percentage: getFloat('jobCardMassBalancePercentage')
             };
-            if (getVal('jobCardId')) jobCardData.p_id = getVal('jobCardId');
-            var kernelId = getVal('jobCardProductionBatchId');
+            if (getVal('jobCardId')) data.p_id = getVal('jobCardId');
+            return data;
+        },
+
+        doSaveJobCard: (silent) => {
+            const scope = _modal_kernel_job_card;
+            var kernelId = $('#jobCardProductionBatchId').val();
             if (!kernelId) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch ID missing. Please reopen the job card from a batch row.', 'error');
+                if (!silent && typeof Swal !== 'undefined') Swal.fire('Error', 'Batch ID missing. Please reopen the job card from a batch row.', 'error');
                 return;
             }
-            // Store job card as flat JSONB object (strip p_ prefix; use field names directly)
+            if (!silent) {
+                var form = $('#kernelJobCardForm')[0];
+                if (!form || !form.checkValidity()) {
+                    if (form) form.reportValidity();
+                    return;
+                }
+            }
+            var $status = $('#jobCardAutoSaveStatus');
+            if (silent && $status.length) $status.removeClass('text-success text-danger').text('Saving…');
+            var jobCardData = scope._buildJobCardPayload();
             var jobCardObj = {};
             Object.keys(jobCardData).forEach(function (k) {
                 jobCardObj[k.replace(/^p_/, '')] = jobCardData[k];
@@ -535,15 +549,42 @@ var _modal_kernel_job_card = (function () {
             dataFunctions.upsertKernelJobCard(kernelId, jobCardObj).then(function (result) {
                 var inner = (result && result.upsert_kernel_job_card) ? result.upsert_kernel_job_card : result;
                 if (inner && inner.success === false) throw new Error(inner.error || 'Failed to save');
-                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: 'Job card saved successfully', timer: 2000, showConfirmButton: false });
-                var modalEl = document.getElementById('kernelJobCardModal');
-                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                else $('#kernelJobCardModal').modal('hide');
-                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
-            }).catch((e) => {
-                console.error('[Kernel Production] saveJobCard failed:', e);
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save job card', 'error');
+                if (silent) {
+                    if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); setTimeout(function () { if ($status.length) $status.text(''); }, 2000); }
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: 'Job card saved successfully', timer: 2000, showConfirmButton: false });
+                    var modalEl = document.getElementById('kernelJobCardModal');
+                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                    else $('#kernelJobCardModal').modal('hide');
+                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                }
+            }).catch(function (e) {
+                console.error('[Kernel Job Card] save failed:', e);
+                if ($status.length) { $status.removeClass('text-success').addClass('text-danger').text('Save failed'); }
+                if (!silent && typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save job card', 'error');
             });
+        },
+
+        saveJobCard: () => {
+            _modal_kernel_job_card.doSaveJobCard(false);
+        },
+
+        scheduleAutoSave: () => {
+            var kernelId = $('#jobCardProductionBatchId').val();
+            if (!kernelId) return;
+            if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
+            _autoSaveTimer = setTimeout(function () {
+                _autoSaveTimer = null;
+                _modal_kernel_job_card.doSaveJobCard(true);
+            }, AUTO_SAVE_DELAY_MS);
+        },
+
+        flushAutoSave: () => {
+            if (_autoSaveTimer) {
+                clearTimeout(_autoSaveTimer);
+                _autoSaveTimer = null;
+                _modal_kernel_job_card.doSaveJobCard(true);
+            }
         }
     };
 }());

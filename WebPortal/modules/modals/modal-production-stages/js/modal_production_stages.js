@@ -306,7 +306,7 @@ var _modal_production_stages = (function () {
             var floater = calc('ps_wash_floater_crates'), sinker = calc('ps_wash_sinker_crates');
             var totalOut = floater + sinker;
             var cratesIn = calc('ps_wash_crates_in');
-            var diff = cratesIn - totalOut;
+            var diff = Math.abs(cratesIn - totalOut);
             $('#ps_wash_total_crates').val(totalOut || '');
             $('#ps_wash_total_qty').val(totalOut ? +(totalOut * KG).toFixed(2) : '');
             $('#ps_wash_crate_diff').val(diff || '');
@@ -460,22 +460,41 @@ var _modal_production_stages = (function () {
             setTimeout(function () { scope._suppressDateChangeClear = false; }, 0);
         },
 
-        /** Called when user changes any stage date in the picker. Clears non-date inputs and syncs all four dates to the new value, then auto-saves. */
+        /** Called when user changes any stage date in the picker. Saves current day, loads data for the new date (or clears), and syncs all four dates. */
         onProductionDateChanged: (newDateStr) => {
             const scope = _modal_production_stages;
             if (scope._suppressDateChangeClear || !newDateStr || typeof newDateStr !== 'string') return;
             newDateStr = newDateStr.trim();
             if (newDateStr === '') return;
             scope._suppressDateChangeClear = true;
+            // Flush any pending auto-save for the current date before switching
+            scope.flushAutoSave();
             var dateIds = ['ps_crack_date', 'ps_wash_date', 'ps_sort_date', 'ps_pack_date'];
-            $('[id^="ps_"]').each(function () {
-                if (dateIds.indexOf(this.id) >= 0) return;
-                if (this.type === 'checkbox') this.checked = false;
-                else this.value = '';
-            });
+            // Sync all four date fields to the selected date
             dateIds.forEach(function (id) { $('#' + id).val(newDateStr); });
             setTimeout(function () { scope._suppressDateChangeClear = false; }, 0);
-            scope.scheduleAutoSave();
+            // Look up existing data for this date in the cached detail
+            var isoDate = toISO(newDateStr);
+            var detail = scope._loadedKernelDetail;
+            var crack = scope._findByDate(detail && detail.cracking_data, isoDate);
+            var wash  = scope._findByDate(detail && detail.washing_data,  isoDate);
+            var sort  = scope._findByDate(detail && detail.sorting_data,  isoDate);
+            var pack  = scope._findByDate(detail && detail.packing_data,  isoDate);
+            var hasData = Object.keys(crack).length || Object.keys(wash).length || Object.keys(sort).length || Object.keys(pack).length;
+            if (hasData) {
+                scope.setProductionStagesSectionData('crack', crack);
+                scope.setProductionStagesSectionData('wash', wash);
+                scope.setProductionStagesSectionData('sort', sort);
+                scope.setProductionStagesSectionData('pack', pack);
+            } else {
+                // No data for this date — clear all non-date inputs
+                $('[id^="ps_"]').each(function () {
+                    if (dateIds.indexOf(this.id) >= 0) return;
+                    if (this.type === 'checkbox') this.checked = false;
+                    else this.value = '';
+                });
+            }
+            // Do not auto-save on date navigation — wait for actual data entry
         },
 
         populateProductionGrowerSelects: (selectedGrowerName) => {

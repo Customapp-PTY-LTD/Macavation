@@ -1,105 +1,188 @@
-<!-- Dashboard Module (UI follows UI_DESIGN_INSTRUCTIONS.md) -->
-<div class="dashboard-container module-content">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2 mb-0">Dashboard Overview</h1>
-    </div>
-    <p class="text-muted mb-4" id="dashboardDate">
-        <span id="currentDate"></span>
-    </p>
+<!-- Unified Dashboard: all role-specific content in one file, tagged with data-access for visibility filtering -->
+<div class="dashboard-unified module-content">
 
-    <!-- Exceptions Panel (Exception-First Design) -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header dashboard-exceptions-header">
-                    <h5 class="mb-0 fw-bold">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        Exceptions Requiring Attention
-                    </h5>
-                </div>
-                <div class="card-body" id="exceptionsContainer">
-                    <div class="text-center text-muted py-4">
-                        <i class="bi bi-hourglass-split fs-3"></i>
-                        <p class="mb-0 mt-2">Loading exceptions...</p>
+    <!-- ========== FROM: default dashboard (dashboard.html) ========== -->
+    <div data-access="default" class="dashboard-container">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2 mb-0">Dashboard Overview</h1>
+        </div>
+        <p class="text-muted mb-4" id="dashboardDate">
+            <span id="currentDate"></span>
+        </p>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header dashboard-exceptions-header">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            Exceptions Requiring Attention
+                        </h5>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Key Metrics (Context-Aware) -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <h4 class="fw-bold mb-3">Operational Metrics</h4>
-            <div id="metricsContainer">
-                <!-- Metrics will be dynamically loaded -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions (High-Frequency Tasks) -->
-    <div class="card mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold">
-                <i class="bi bi-lightning-fill me-2"></i>
-                Quick Actions
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-3" id="quickActionsContainer">
-                <!-- Quick actions will be dynamically loaded -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Legacy Alerts (for backward compatibility) -->
-    <div class="row mb-4" id="alertsContainer" style="display: none;">
-        <!-- Alerts will be dynamically loaded -->
-    </div>
-
-    <!-- Legacy Stats (for backward compatibility) -->
-    <div class="row g-3 mb-4" id="statsContainer" style="display: none;">
-        <!-- Stats cards will be dynamically loaded -->
-    </div>
-
-    <!-- Recent Activity & Upcoming Tasks -->
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0 fw-bold">
-                        <i class="bi bi-clock-history me-2"></i>Recent Activity
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="list-group list-group-flush" id="recentActivityList">
+                    <div class="card-body" id="exceptionsContainer">
                         <div class="text-center text-muted py-4">
                             <i class="bi bi-hourglass-split fs-3"></i>
-                            <p class="mb-0 mt-2">Loading recent activity...</p>
+                            <p class="mb-0 mt-2">Loading exceptions...</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-4">
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0 fw-bold">
-                        <i class="bi bi-calendar-event me-2"></i>Upcoming Tasks
-                    </h5>
+        <div class="card mb-3">
+            <div class="card-body">
+                <h4 class="fw-bold mb-3">Operational Metrics</h4>
+                <div id="metricsContainer"></div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-lightning-fill me-2"></i>
+                    Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3" id="quickActionsContainer"></div>
+            </div>
+        </div>
+
+        <div class="row mb-4" id="alertsContainer" style="display: none;"></div>
+        <div class="row g-3 mb-4" id="statsContainer" style="display: none;"></div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="bi bi-clock-history me-2"></i>Recent Activity
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush" id="recentActivityList">
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-hourglass-split fs-3"></i>
+                                <p class="mb-0 mt-2">Loading recent activity...</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <ul class="list-unstyled mb-0" id="upcomingTasksList">
-                        <li class="text-center text-muted py-4">
-                            <i class="bi bi-hourglass-split fs-3"></i>
-                            <p class="mb-0 mt-2">Loading tasks...</p>
-                        </li>
-                    </ul>
+            </div>
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="bi bi-calendar-event me-2"></i>Upcoming Tasks
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0" id="upcomingTasksList">
+                            <li class="text-center text-muted py-4">
+                                <i class="bi bi-hourglass-split fs-3"></i>
+                                <p class="mb-0 mt-2">Loading tasks...</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== FROM: Material Journey / Amanda dashboard (amanda_dashboard.html) ========== -->
+    <div data-access="amanda">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Material Journey Dashboard</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+                <button type="button" class="btn btn-secondary" id="refreshBtn">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Active Alerts</h5>
+                    </div>
+                    <div class="card-body" id="alertsSection">
+                        <p class="text-muted mb-0">No active alerts</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="materialJourneyCards"></div>
+    </div>
+
+    <!-- ========== FROM: Executive dashboard (executive_dashboard.html) ========== -->
+    <div data-access="executive">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Executive Dashboard &amp; Reporting</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+                <button type="button" class="btn btn-primary" id="generateReportBtn">
+                    <i class="fas fa-file-pdf me-1"></i>Generate Report
+                </button>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card border-primary">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Production (kg)</h6>
+                        <h3 id="totalProduction">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-success">
+                    <div class="card-body">
+                        <h6 class="text-muted">Active Batches</h6>
+                        <h3 id="activeBatches">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-info">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Sales (ZAR)</h6>
+                        <h3 id="totalSales">R 0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <h6 class="text-muted">Quality Pass Rate</h6>
+                        <h3 id="qualityPassRate">0%</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Production Trends</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Chart will be displayed here</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Sales Performance</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Chart will be displayed here</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-

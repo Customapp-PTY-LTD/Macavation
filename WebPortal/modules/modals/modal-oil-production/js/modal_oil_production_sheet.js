@@ -4,6 +4,9 @@
 var _modal_oil_production_sheet = (function () {
     'use strict';
 
+    var AUTO_SAVE_DELAY_MS = 900;
+    var _autoSaveTimer = null;
+
     return {
         init: () => {
             const scope = _modal_oil_production_sheet;
@@ -25,6 +28,10 @@ var _modal_oil_production_sheet = (function () {
                 scope.calculateRawMaterialTotals();
             });
             $('#oilProductionModal').off('hidden.bs.modal').on('hidden.bs.modal', function () { scope.clearForm(); });
+            $('#oilProductionModal').off('hide.bs.modal').on('hide.bs.modal', function () { scope.flushAutoSave(); });
+            $(document).on('input change', '#oilProductionModal :input, #oilProductionModal select', function () {
+                scope.scheduleAutoSave();
+            });
         },
 
         show: (batch) => {
@@ -117,79 +124,89 @@ var _modal_oil_production_sheet = (function () {
             $('#totalCakeOut').text(totalCakeOut.toFixed(2));
         },
 
-        saveProductionSheet: async () => {
+        _buildProductionSheetPayload: () => {
+            var mixes = [];
+            $('#mixTableBody tr').each(function () {
+                var mixNumber = $(this).find('input[name="mixNumber"]').val();
+                var rawMaterialType = $(this).find('select[name="rawMaterialType"]').val();
+                var quantity = $(this).find('input[name="quantity"]').val();
+                if (mixNumber || rawMaterialType || quantity) {
+                    mixes.push({
+                        mix_number: mixNumber ? parseInt(mixNumber, 10) : null,
+                        crush_value: $(this).find('input[name="crush"]').val() ? parseFloat($(this).find('input[name="crush"]').val()) : null,
+                        time_value: $(this).find('input[name="time"]').val() || null,
+                        raw_material_type: rawMaterialType || null,
+                        raw_material_batch: $(this).find('input[name="rawMaterialBatch"]').val() || null,
+                        quantity_kg: quantity ? parseFloat(quantity) : null,
+                        notes: $(this).find('input[name="notes"]').val() || null
+                    });
+                }
+            });
+            var rawMaterials = [];
+            $('#rawMaterialTableBody tr').each(function () {
+                var batch = $(this).find('input[name="rawMaterialBatch"]').val();
+                var rawIn = $(this).find('input[name="rawMaterialIn"]').val();
+                var oilOut = $(this).find('input[name="oilOut"]').val();
+                var cakeOut = $(this).find('input[name="cakeOut"]').val();
+                if (batch || rawIn || oilOut || cakeOut) {
+                    rawMaterials.push({
+                        batch_number: batch || null,
+                        raw_material_in_kg: rawIn ? parseFloat(rawIn) : null,
+                        oil_out_kg: oilOut ? parseFloat(oilOut) : null,
+                        cake_out_kg: cakeOut ? parseFloat(cakeOut) : null
+                    });
+                }
+            });
+            return {
+                p_production_date: $('#productionDate').val(),
+                p_shift: $('#shift').val(),
+                p_shift_supervisor: $('#shiftSupervisor').val(),
+                p_batch_number: $('#batchNumber').val(),
+                p_supervisor_signature: $('#supervisorSignature').val() || null,
+                p_product_name: $('#productName').val(),
+                p_start_oil_bn: $('#startOilBN').val() || null,
+                p_start_oil_litre: $('#startOilLitre').val() ? parseFloat($('#startOilLitre').val()) : null,
+                p_ibc1_bn: $('#ibc1BN').val() || null,
+                p_ibc1_litre: $('#ibc1Litre').val() ? parseFloat($('#ibc1Litre').val()) : null,
+                p_ibc2_bn: $('#ibc2BN').val() || null,
+                p_ibc2_litre: $('#ibc2Litre').val() ? parseFloat($('#ibc2Litre').val()) : null,
+                p_ibc3_bn: $('#ibc3BN').val() || null,
+                p_ibc3_litre: $('#ibc3Litre').val() ? parseFloat($('#ibc3Litre').val()) : null,
+                p_recipe_oil_kernel: $('#recipeOilKernel').val() ? parseFloat($('#recipeOilKernel').val()) : null,
+                p_recipe_cracker_dust: $('#recipeCrackerDust').val() ? parseFloat($('#recipeCrackerDust').val()) : null,
+                p_recipe_kernel_dust: $('#recipeKernelDust').val() ? parseFloat($('#recipeKernelDust').val()) : null,
+                p_recipe_crush: $('#recipeCrush').val() ? parseFloat($('#recipeCrush').val()) : null,
+                p_recipe_cake: $('#recipeCake').val() ? parseFloat($('#recipeCake').val()) : null,
+                p_recipe_notes: $('#recipeNotes').val() || null,
+                p_general_waste_kg: $('#generalWaste').val() ? parseFloat($('#generalWaste').val()) : null,
+                p_floor_waste_kg: $('#floorWaste').val() ? parseFloat($('#floorWaste').val()) : null,
+                p_product_waste_kg: $('#productWaste').val() ? parseFloat($('#productWaste').val()) : null,
+                p_oil_from_filter_kg: $('#oilFromFilter').val() ? parseFloat($('#oilFromFilter').val()) : null,
+                p_raw_materials: rawMaterials.length > 0 ? JSON.stringify(rawMaterials) : null,
+                p_mixes: mixes.length > 0 ? JSON.stringify(mixes) : null
+            };
+        },
+
+        doSaveProductionSheet: async (silent) => {
             const scope = _modal_oil_production_sheet;
+            var batchId = $('#oilBatchId').val();
+            // Auto-save only works when editing an existing record
+            if (silent && !batchId) return;
             if (typeof dataFunctions === 'undefined' || !dataFunctions.callFunction) {
-                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon: 'error', title: 'Error', text: 'System not ready. Please refresh the page.' });
+                if (!silent && typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon: 'error', title: 'Error', text: 'System not ready. Please refresh the page.' });
                 return;
             }
-            try {
+            var $status = $('#oilProductionAutoSaveStatus');
+            if (!silent) {
                 var form = document.getElementById('oilProductionForm');
                 if (!form || !form.checkValidity()) {
                     if (form) form.reportValidity();
                     return;
                 }
-                var mixes = [];
-                $('#mixTableBody tr').each(function () {
-                    var mixNumber = $(this).find('input[name="mixNumber"]').val();
-                    var rawMaterialType = $(this).find('select[name="rawMaterialType"]').val();
-                    var quantity = $(this).find('input[name="quantity"]').val();
-                    if (mixNumber || rawMaterialType || quantity) {
-                        mixes.push({
-                            mix_number: mixNumber ? parseInt(mixNumber, 10) : null,
-                            crush_value: $(this).find('input[name="crush"]').val() ? parseFloat($(this).find('input[name="crush"]').val()) : null,
-                            time_value: $(this).find('input[name="time"]').val() || null,
-                            raw_material_type: rawMaterialType || null,
-                            raw_material_batch: $(this).find('input[name="rawMaterialBatch"]').val() || null,
-                            quantity_kg: quantity ? parseFloat(quantity) : null,
-                            notes: $(this).find('input[name="notes"]').val() || null
-                        });
-                    }
-                });
-                var rawMaterials = [];
-                $('#rawMaterialTableBody tr').each(function () {
-                    var batch = $(this).find('input[name="rawMaterialBatch"]').val();
-                    var rawIn = $(this).find('input[name="rawMaterialIn"]').val();
-                    var oilOut = $(this).find('input[name="oilOut"]').val();
-                    var cakeOut = $(this).find('input[name="cakeOut"]').val();
-                    if (batch || rawIn || oilOut || cakeOut) {
-                        rawMaterials.push({
-                            batch_number: batch || null,
-                            raw_material_in_kg: rawIn ? parseFloat(rawIn) : null,
-                            oil_out_kg: oilOut ? parseFloat(oilOut) : null,
-                            cake_out_kg: cakeOut ? parseFloat(cakeOut) : null
-                        });
-                    }
-                });
-                var productionData = {
-                    p_production_date: $('#productionDate').val(),
-                    p_shift: $('#shift').val(),
-                    p_shift_supervisor: $('#shiftSupervisor').val(),
-                    p_batch_number: $('#batchNumber').val(),
-                    p_supervisor_signature: $('#supervisorSignature').val() || null,
-                    p_product_name: $('#productName').val(),
-                    p_start_oil_bn: $('#startOilBN').val() || null,
-                    p_start_oil_litre: $('#startOilLitre').val() ? parseFloat($('#startOilLitre').val()) : null,
-                    p_ibc1_bn: $('#ibc1BN').val() || null,
-                    p_ibc1_litre: $('#ibc1Litre').val() ? parseFloat($('#ibc1Litre').val()) : null,
-                    p_ibc2_bn: $('#ibc2BN').val() || null,
-                    p_ibc2_litre: $('#ibc2Litre').val() ? parseFloat($('#ibc2Litre').val()) : null,
-                    p_ibc3_bn: $('#ibc3BN').val() || null,
-                    p_ibc3_litre: $('#ibc3Litre').val() ? parseFloat($('#ibc3Litre').val()) : null,
-                    p_recipe_oil_kernel: $('#recipeOilKernel').val() ? parseFloat($('#recipeOilKernel').val()) : null,
-                    p_recipe_cracker_dust: $('#recipeCrackerDust').val() ? parseFloat($('#recipeCrackerDust').val()) : null,
-                    p_recipe_kernel_dust: $('#recipeKernelDust').val() ? parseFloat($('#recipeKernelDust').val()) : null,
-                    p_recipe_crush: $('#recipeCrush').val() ? parseFloat($('#recipeCrush').val()) : null,
-                    p_recipe_cake: $('#recipeCake').val() ? parseFloat($('#recipeCake').val()) : null,
-                    p_recipe_notes: $('#recipeNotes').val() || null,
-                    p_general_waste_kg: $('#generalWaste').val() ? parseFloat($('#generalWaste').val()) : null,
-                    p_floor_waste_kg: $('#floorWaste').val() ? parseFloat($('#floorWaste').val()) : null,
-                    p_product_waste_kg: $('#productWaste').val() ? parseFloat($('#productWaste').val()) : null,
-                    p_oil_from_filter_kg: $('#oilFromFilter').val() ? parseFloat($('#oilFromFilter').val()) : null,
-                    p_raw_materials: rawMaterials.length > 0 ? JSON.stringify(rawMaterials) : null,
-                    p_mixes: mixes.length > 0 ? JSON.stringify(mixes) : null
-                };
-                var batchId = $('#oilBatchId').val();
+            }
+            if (silent && $status.length) $status.removeClass('text-success text-danger').text('Saving…');
+            try {
+                var productionData = scope._buildProductionSheetPayload();
                 var result;
                 if (batchId) {
                     productionData.p_batch_id = batchId;
@@ -199,25 +216,51 @@ var _modal_oil_production_sheet = (function () {
                 }
                 if (result && result.success !== false) {
                     if (typeof dataFunctions.clearCachePattern === 'function') dataFunctions.clearCachePattern('oil_production_sheets');
-                    if (typeof Swal !== 'undefined' && Swal.fire) {
-                        Swal.fire({ icon: 'success', title: 'Success', text: batchId ? 'Production sheet updated successfully' : 'Production sheet created successfully', timer: 2000, showConfirmButton: false });
-                    }
-                    var modalEl = document.getElementById('oilProductionModal');
-                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                        var inst = bootstrap.Modal.getInstance(modalEl);
-                        if (inst) inst.hide();
+                    if (silent) {
+                        if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); setTimeout(function () { if ($status.length) $status.text(''); }, 2000); }
                     } else {
-                        $('#oilProductionModal').modal('hide');
+                        if (typeof Swal !== 'undefined' && Swal.fire) {
+                            Swal.fire({ icon: 'success', title: 'Success', text: batchId ? 'Production sheet updated successfully' : 'Production sheet created successfully', timer: 2000, showConfirmButton: false });
+                        }
+                        var modalEl = document.getElementById('oilProductionModal');
+                        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                            var inst = bootstrap.Modal.getInstance(modalEl);
+                            if (inst) inst.hide();
+                        } else {
+                            $('#oilProductionModal').modal('hide');
+                        }
+                        if (typeof _oilProductionGrid !== 'undefined' && _oilProductionGrid.loadBatches) _oilProductionGrid.loadBatches(true);
                     }
-                    if (typeof _oilProductionGrid !== 'undefined' && _oilProductionGrid.loadBatches) _oilProductionGrid.loadBatches(true);
                 } else {
                     throw new Error(result && (result.error || result.message) ? (result.error || result.message) : 'Failed to save production sheet');
                 }
             } catch (error) {
                 console.error('Error saving production sheet:', error);
-                if (typeof Swal !== 'undefined' && Swal.fire) {
+                if ($status.length) { $status.removeClass('text-success').addClass('text-danger').text('Save failed'); }
+                if (!silent && typeof Swal !== 'undefined' && Swal.fire) {
                     Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to save production sheet: ' + (error.message || error) });
                 }
+            }
+        },
+
+        saveProductionSheet: () => {
+            _modal_oil_production_sheet.doSaveProductionSheet(false);
+        },
+
+        scheduleAutoSave: () => {
+            if (!$('#oilBatchId').val()) return;
+            if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
+            _autoSaveTimer = setTimeout(function () {
+                _autoSaveTimer = null;
+                _modal_oil_production_sheet.doSaveProductionSheet(true);
+            }, AUTO_SAVE_DELAY_MS);
+        },
+
+        flushAutoSave: () => {
+            if (_autoSaveTimer) {
+                clearTimeout(_autoSaveTimer);
+                _autoSaveTimer = null;
+                _modal_oil_production_sheet.doSaveProductionSheet(true);
             }
         }
     };
