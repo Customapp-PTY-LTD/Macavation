@@ -10,9 +10,13 @@ var _executiveDashboard = function () {
 
         init: async () => {
             const scope = _executiveDashboard;
-            // Unified dashboard: show only this role's section (data-access)
+            // Unified dashboard: show only this role's section (data-access) via d-none
             document.querySelectorAll('[data-access]').forEach(function (el) {
-                el.style.display = (el.getAttribute('data-access') === 'executive') ? '' : 'none';
+                if (el.getAttribute('data-access') === 'executive') {
+                    el.classList.remove('d-none');
+                } else {
+                    el.classList.add('d-none');
+                }
             });
             scope.initHandlers();
             await scope.loadKPIs();

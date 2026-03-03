@@ -55,9 +55,14 @@ var _dashboard = function () {
             const role = scope.getUserRole();
             const section = roleToDashboardSection[role] || 'default';
 
-            // Show only the section for this role, hide all others
+            // Show only the section for this role, hide all others (use d-none for consistency)
             document.querySelectorAll('[data-access]').forEach(function (el) {
-                el.style.display = (el.getAttribute('data-access') === section) ? '' : 'none';
+                var sectionAttr = el.getAttribute('data-access');
+                if (sectionAttr === section) {
+                    el.classList.remove('d-none');
+                } else {
+                    el.classList.add('d-none');
+                }
             });
 
             // Delegate to role-specific sub-init (it handles its own data loading)

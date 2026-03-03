@@ -12,9 +12,13 @@ var _amandaDashboard = function () {
 
         init: async () => {
             const scope = _amandaDashboard;
-            // Unified dashboard: show only this role's section (data-access)
+            // Unified dashboard: show only this role's section (data-access) via d-none
             document.querySelectorAll('[data-access]').forEach(function (el) {
-                el.style.display = (el.getAttribute('data-access') === 'pallandium-integrator') ? '' : 'none';
+                if (el.getAttribute('data-access') === 'pallandium-integrator') {
+                    el.classList.remove('d-none');
+                } else {
+                    el.classList.add('d-none');
+                }
             });
             scope.setupEventListeners();
             await scope.loadData();
