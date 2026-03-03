@@ -1,6 +1,7 @@
 /**
  * Role Features Grid Module
- * Checkbox-per-feature UI: select a role, toggle features on/off with auto-save.
+ * Checkbox-per-feature UI: select a role, toggle features on/off.
+ * Check = grant (createRoleFeature), Uncheck = remove (deleteRoleFeature).
  */
 
 var _roleFeaturesGrid = function () {
@@ -8,26 +9,16 @@ var _roleFeaturesGrid = function () {
 
     return {
         allFeatures: [],
-        enabledKeys: [],
+        // Map of String(feature_id) -> role_feature_id (bigint from DB)
+        roleFeatureIdMap: {},
         selectedRoleId: null,
 
         init: async () => {
             const scope = _roleFeaturesGrid;
             await scope.waitForReady();
-            // Unified role grids: show only this section (data-access)
             document.querySelectorAll('[data-access]').forEach(function (el) {
                 el.style.display = (el.getAttribute('data-access') === 'role-features') ? '' : 'none';
             });
-            var modalContainers = document.querySelectorAll('.modal[route-name]');
-            var loadPromises = [];
-            modalContainers.forEach(function (el) {
-                var routeName = el.getAttribute('route-name');
-                if (routeName && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
-                    loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: '#' + el.id }));
-                }
-            });
-            if (loadPromises.length) await Promise.all(loadPromises);
-            if (typeof _modal_role_feature !== 'undefined' && _modal_role_feature.init) _modal_role_feature.init();
             scope.setupEventListeners();
             await scope.loadRolesDropdown();
         },
@@ -89,13 +80,13 @@ var _roleFeaturesGrid = function () {
             try {
                 var results = await Promise.all([
                     dataFunctions.getFeatures(),
-                    dataFunctions.getFeaturesForRole(roleId)
+                    dataFunctions.getRoleFeatures()
                 ]);
 
                 var featuresResponse = results[0];
-                var enabledResponse = results[1];
+                var allRoleFeatures = results[1];
 
-                // Parse features
+                // Normalise features array
                 if (Array.isArray(featuresResponse)) {
                     scope.allFeatures = featuresResponse;
                 } else if (featuresResponse && featuresResponse.get_features) {
@@ -104,13 +95,14 @@ var _roleFeaturesGrid = function () {
                     scope.allFeatures = [];
                 }
 
-                // Parse enabled keys
-                scope.enabledKeys = [];
-                if (Array.isArray(enabledResponse)) {
-                    scope.enabledKeys = enabledResponse.map(function (row) {
-                        return row.key;
-                    });
-                }
+                // Build map: String(feature_id) -> role_feature.id for this role
+                scope.roleFeatureIdMap = {};
+                var assigned = Array.isArray(allRoleFeatures) ? allRoleFeatures : [];
+                assigned.forEach(function (rf) {
+                    if (String(rf.role_id) === String(roleId)) {
+                        scope.roleFeatureIdMap[String(rf.feature_id)] = rf.id;
+                    }
+                });
 
                 scope.renderFeatures();
                 scope.updateSummary();
@@ -132,9 +124,8 @@ var _roleFeaturesGrid = function () {
             }
 
             var html = scope.allFeatures.map(function (feature) {
-                var isEnabled = scope.enabledKeys.indexOf(feature.key) !== -1;
+                var isEnabled = Object.prototype.hasOwnProperty.call(scope.roleFeatureIdMap, String(feature.id));
                 var checkedAttr = isEnabled ? ' checked' : '';
-                var featureId = feature.id;
                 var featureKey = scope.escapeHtml(feature.key || '');
                 var featureName = scope.escapeHtml(feature.name || '');
                 var featureDesc = scope.escapeHtml(feature.description || '');
@@ -143,43 +134,56 @@ var _roleFeaturesGrid = function () {
                     '<td class="text-center">' +
                     '<div class="form-check d-flex justify-content-center mb-0">' +
                     '<input class="form-check-input feature-checkbox" type="checkbox"' +
-                    ' data-feature-id="' + featureId + '"' +
+                    ' data-feature-id="' + feature.id + '"' +
                     ' data-feature-key="' + featureKey + '"' +
                     checkedAttr + '>' +
                     '</div></td>' +
                     '<td class="fw-medium">' + featureName + '</td>' +
                     '<td><code>' + featureKey + '</code></td>' +
-                    '<td class="text-muted">' + featureDesc + '</td>' +
+                    '<td class="text-muted small">' + featureDesc + '</td>' +
                     '</tr>';
             }).join('');
 
             tbody.innerHTML = html;
         },
 
-        toggleFeature: async (featureId, featureKey, enabled, checkboxEl) => {
+        toggleFeature: async (featureId, _featureKey, enabled, checkboxEl) => {
             const scope = _roleFeaturesGrid;
             if (!scope.selectedRoleId) return;
 
-            // Disable checkbox during save
             checkboxEl.prop('disabled', true);
-            checkboxEl.closest('tr').addClass('saving');
 
             try {
-                await dataFunctions.createRoleFeature({
-                    role_id: scope.selectedRoleId,
-                    feature_id: featureId,
-                    value: enabled ? 'true' : 'false'
-                });
-
-                // Update local state
-                if (enabled && scope.enabledKeys.indexOf(featureKey) === -1) {
-                    scope.enabledKeys.push(featureKey);
-                } else if (!enabled) {
-                    scope.enabledKeys = scope.enabledKeys.filter(function (k) {
-                        return k !== featureKey;
+                if (enabled) {
+                    var result = await dataFunctions.createRoleFeature({
+                        role_id: scope.selectedRoleId,
+                        feature_id: featureId,
+                        value: 'true'
                     });
+                    // Extract the returned role_feature id so we can delete it later
+                    var newId = null;
+                    if (result) {
+                        if (result.id) {
+                            newId = result.id;
+                        } else if (Array.isArray(result) && result[0] && result[0].id) {
+                            newId = result[0].id;
+                        }
+                    }
+                    if (newId) {
+                        scope.roleFeatureIdMap[String(featureId)] = newId;
+                    } else {
+                        // SP didn't return id — reload to get it
+                        await scope.reloadRoleFeatureIds();
+                    }
+                } else {
+                    var roleFeatureId = scope.roleFeatureIdMap[String(featureId)];
+                    if (roleFeatureId) {
+                        await dataFunctions.deleteRoleFeature(roleFeatureId);
+                        delete scope.roleFeatureIdMap[String(featureId)];
+                    }
                 }
-
+                // Invalidate cache so next role load fetches fresh data from DB
+                dataFunctions.clearCachePattern('get_role_features');
                 scope.updateSummary();
             } catch (error) {
                 console.error('[Role Features] Error toggling feature:', error);
@@ -188,7 +192,23 @@ var _roleFeaturesGrid = function () {
                 checkboxEl.prop('checked', !enabled);
             } finally {
                 checkboxEl.prop('disabled', false);
-                checkboxEl.closest('tr').removeClass('saving');
+            }
+        },
+
+        reloadRoleFeatureIds: async () => {
+            const scope = _roleFeaturesGrid;
+            if (!scope.selectedRoleId) return;
+            try {
+                var allRoleFeatures = await dataFunctions.getRoleFeatures();
+                var assigned = Array.isArray(allRoleFeatures) ? allRoleFeatures : [];
+                scope.roleFeatureIdMap = {};
+                assigned.forEach(function (rf) {
+                    if (String(rf.role_id) === String(scope.selectedRoleId)) {
+                        scope.roleFeatureIdMap[String(rf.feature_id)] = rf.id;
+                    }
+                });
+            } catch (error) {
+                console.error('[Role Features] Error reloading role feature IDs:', error);
             }
         },
 
@@ -197,9 +217,8 @@ var _roleFeaturesGrid = function () {
             var summaryEl = document.getElementById('featureSummary');
             if (!summaryEl) return;
             var total = scope.allFeatures.length;
-            var enabled = scope.enabledKeys.length;
-            summaryEl.style.display = '';
-            summaryEl.className = 'col-md-8 d-flex align-items-center';
+            var enabled = Object.keys(scope.roleFeatureIdMap).length;
+            summaryEl.style.cssText = '';
             summaryEl.innerHTML = '<span class="badge bg-primary me-2">' + enabled + ' / ' + total + '</span>' +
                 '<span class="text-muted">features enabled for this role</span>';
         },
@@ -213,7 +232,7 @@ var _roleFeaturesGrid = function () {
             }
             var summaryEl = document.getElementById('featureSummary');
             if (summaryEl) {
-                summaryEl.style.display = 'none';
+                summaryEl.style.cssText = 'display:none !important;';
                 summaryEl.innerHTML = '';
             }
         },
@@ -241,14 +260,6 @@ var _roleFeaturesGrid = function () {
             }
         },
 
-        showSuccess: (message) => {
-            if (typeof _common !== 'undefined' && _common.showToastMessage) {
-                _common.showToastMessage(message, 'success');
-            } else {
-                alert(message);
-            }
-        },
-
         escapeHtml: (text) => {
             if (!text) return '';
             var div = document.createElement('div');
@@ -258,7 +269,7 @@ var _roleFeaturesGrid = function () {
     };
 }();
 
-window.roleFeaturesGrid = _roleFeaturesGrid;
+window._roleFeaturesGrid = _roleFeaturesGrid;
 
 function initializeRoleFeaturesGrid() {
     var maxWait = 5000;
