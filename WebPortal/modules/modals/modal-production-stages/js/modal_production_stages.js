@@ -325,10 +325,10 @@ var _modal_production_stages = (function () {
                 if (group === 'sk') skTotal += crates;
                 else if (group === 'bt') btTotal += crates;
             });
-            // Sound Kernel totals (styles 0,1,1s,4l,5,6)
+            // Sound Kernel totals (styles 0,1,1s,4l,5,6,7/8)
             $('#ps_sort_sound_crates').val(skTotal || '');
             $('#ps_sort_sound_qty').val(skTotal ? +(skTotal * KG).toFixed(2) : '');
-            // Butter totals (7/8 + butter low oil)
+            // Butter totals (butter low oil only; 7/8 is in Sound Kernel)
             $('#ps_sort_butter_crates').val(btTotal || '');
             $('#ps_sort_butter_qty').val(btTotal ? +(btTotal * KG).toFixed(2) : '');
         },
