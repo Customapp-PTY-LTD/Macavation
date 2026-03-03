@@ -2012,7 +2012,7 @@ var _dataFunctions = function () {
                 'p_sound_kernel_styles', 'p_sound_kernel_total_cartons', 'p_sound_kernel_total_kg',
                 'p_butter_grade_styles', 'p_butter_grade_total_cartons', 'p_butter_grade_total_kg',
                 'p_waste_oil_kernel_kg', 'p_waste_shell_fines_kg', 'p_waste_compost_kg', 'p_waste_shell_kg',
-                'p_mass_balance_in_kg', 'p_mass_balance_out_kg', 'p_mass_balance_percentage', 'p_auto_update_stock'
+                'p_mass_balance_in_kg', 'p_mass_balance_out_kg', 'p_mass_balance_percentage'
             ];
             const payload = {};
             if (jobCardData && typeof jobCardData === 'object') {

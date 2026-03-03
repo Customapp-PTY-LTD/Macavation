@@ -29,6 +29,52 @@
     position: absolute;
 }
 
+/* Prevent actions dropdown from being clipped (main grid cards – UI_DESIGN_INSTRUCTIONS pattern) */
+.stock-management-table-card .table-responsive {
+    overflow: visible;
+}
+.stock-management-table-card .card-body {
+    overflow: visible;
+}
+.stock-management-table-card #stockTable,
+.stock-management-table-card #oilLotsTable {
+    overflow: visible !important;
+}
+.stock-management-table-card #stockTable tbody tr td,
+.stock-management-table-card #oilLotsTable tbody tr td {
+    overflow: visible;
+}
+
+/* Stock management modals: allow dropdowns to show (no clip by modal border-radius) */
+#sendToDispatchModal .modal-content,
+#rawMaterialIssuedModal .modal-content,
+#stockTakeModal .modal-content {
+    overflow: visible;
+}
+#sendToDispatchModal .modal-body,
+#rawMaterialIssuedModal .modal-body,
+#stockTakeModal .modal-body {
+    overflow: visible !important;
+}
+#sendToDispatchModal .table-responsive,
+#rawMaterialIssuedModal .table-responsive,
+#stockTakeModal .table-responsive {
+    overflow: visible;
+}
+#sendToDispatchModal .card-body .table-responsive,
+#rawMaterialIssuedModal .card-body .table-responsive,
+#stockTakeModal .card-body .table-responsive {
+    overflow: visible;
+}
+#sendToDispatchModal #dispatchShoppingTable,
+#sendToDispatchModal #dispatchShoppingTable tbody tr td,
+#rawMaterialIssuedModal #issuedItemsTable,
+#rawMaterialIssuedModal #issuedItemsTable tbody tr td,
+#stockTakeModal #stockTakeTable,
+#stockTakeModal #stockTakeTable tbody tr td {
+    overflow: visible !important;
+}
+
 /* Selected for dispatch summary (Kernel) */
 .dispatch-selected-summary .card { border-width: 1px; }
 .dispatch-selected-summary .card-header { font-weight: 600; }
