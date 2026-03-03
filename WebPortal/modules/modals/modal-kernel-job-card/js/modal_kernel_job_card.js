@@ -361,9 +361,9 @@ var _modal_kernel_job_card = (function () {
             $('#jobCardProductionBatchId').val(batchId);
             $('#jobCardBatchNumber').val(batch.batch_number || '');
             scope.setJobCardField('jobCardReceivedDate', batch.received_date ? batch.received_date.toString().split('T')[0] : new Date().toISOString().split('T')[0]);
-            // Receiving: Supplied Weight from grower intake; Removed Pre-Sizer and Balance filled when detail loads
-            if (batch.wet_nis_received_kg != null && batch.wet_nis_received_kg !== '') {
-                scope.setJobCardField('jobCardTotalWeight', batch.wet_nis_received_kg);
+            // Receiving: Total Weight = Actual from grower intake; Removed Pre-Sizer and Balance filled when detail loads
+            if (batch.actual_wet_nis_kg != null && batch.actual_wet_nis_kg !== '') {
+                scope.setJobCardField('jobCardTotalWeight', batch.actual_wet_nis_kg);
                 scope.calculateBalance();
             }
 
@@ -431,13 +431,12 @@ var _modal_kernel_job_card = (function () {
                     }
                 }
 
-                // Receiving section from grower intake: Supplied Weight = wet_nis_received_kg, Balance = actual_wet_nis_kg, Removed Pre-Sizer from checklist or derived (Supplied − Balance) for older batches
-                var suppliedKg = (detail && (detail.wet_nis_received_kg != null && detail.wet_nis_received_kg !== '')) ? detail.wet_nis_received_kg : (batch.wet_nis_received_kg != null && batch.wet_nis_received_kg !== '' ? batch.wet_nis_received_kg : null);
+                // Receiving: Total Weight = Actual from grower intake; Removed Pre-Sizer from checklist or derived; Balance = Total − Removed
                 var actualKg = (detail && (detail.actual_wet_nis_kg != null && detail.actual_wet_nis_kg !== '')) ? detail.actual_wet_nis_kg : (batch.actual_wet_nis_kg != null && batch.actual_wet_nis_kg !== '' ? batch.actual_wet_nis_kg : null);
+                var suppliedKg = (detail && (detail.wet_nis_received_kg != null && detail.wet_nis_received_kg !== '')) ? detail.wet_nis_received_kg : (batch.wet_nis_received_kg != null && batch.wet_nis_received_kg !== '' ? batch.wet_nis_received_kg : null);
                 var rc = (intake && intake.receiving_checklist) ? intake.receiving_checklist : {};
                 var removedPreSizerKg = (rc.removed_pre_sizer_kg != null && rc.removed_pre_sizer_kg !== '') ? rc.removed_pre_sizer_kg : (rc.removedPreSizerKg != null && rc.removedPreSizerKg !== '' ? rc.removedPreSizerKg : null);
-                if (suppliedKg != null) scope.setJobCardField('jobCardTotalWeight', suppliedKg);
-                if (actualKg != null) scope.setJobCardField('jobCardBalance', actualKg);
+                if (actualKg != null) scope.setJobCardField('jobCardTotalWeight', actualKg);
                 if (removedPreSizerKg != null) {
                     scope.setJobCardField('jobCardRemovedPreSizer', removedPreSizerKg);
                 } else if (suppliedKg != null && actualKg != null) {
