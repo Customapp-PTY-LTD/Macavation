@@ -54,6 +54,20 @@
     color: inherit;
 }
 
+/* Prevent actions dropdown from being clipped by card border-radius (UI_DESIGN_INSTRUCTIONS / oil-production pattern) */
+.kernel-production-table-card .table-responsive {
+    overflow: visible;
+}
+.kernel-production-table-card .card-body {
+    overflow: visible;
+}
+.kernel-production-table-card #batchesTable {
+    overflow: visible !important;
+}
+.kernel-production-table-card #batchesTable tbody tr td {
+    overflow: visible;
+}
+
 /* Batch History Modal – vertical timeline */
 .batch-history-timeline {
     position: relative;

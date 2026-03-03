@@ -74,6 +74,21 @@
     .intake-table-responsive { margin-left: 0; margin-right: 0; }
 }
 
+/* Prevent actions dropdown from being clipped by card border-radius (UI_DESIGN_INSTRUCTIONS / oil-production pattern) */
+.grower-intake-table-card .table-responsive,
+.grower-intake-table-card .intake-table-responsive {
+    overflow: visible;
+}
+.grower-intake-table-card .card-body {
+    overflow: visible;
+}
+.grower-intake-table-card #intakeBatchesTable {
+    overflow: visible !important;
+}
+.grower-intake-table-card #intakeBatchesTable tbody tr td {
+    overflow: visible;
+}
+
 #intakeBatchesTable {
     margin-bottom: 0;
     min-width: 520px; /* Prevents squashing; scroll on narrow viewports */
