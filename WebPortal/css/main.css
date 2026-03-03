@@ -338,9 +338,12 @@ h1, h2, h3, h4, h5, h6,
     padding-right: 0 !important;
 }
 
-/* When collapsed, show all 14 main menu icons (override #sidebarMenu .nav-item and menu-filter) */
+/* When collapsed, show main menu icons for items that are visible (no d-none) */
 #sidebarMenu.sidebar.collapsed .flex-grow-1 > ul > .nav-item {
     display: list-item !important;
+}
+#sidebarMenu.sidebar.collapsed .flex-grow-1 > ul > .nav-item.d-none {
+    display: none !important;
 }
 
 /* Main menu links: one row per icon only; hide all text so only icons appear when collapsed */

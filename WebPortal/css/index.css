@@ -186,10 +186,7 @@ body {
 }
 
 /* Sidebar Styling – floating card (collapse still works) */
-/* All sidebar nav items start hidden; menu-filter.js shows them by role */
-#sidebarMenu .nav-item {
-    display: none;
-}
+/* Sidebar nav items use d-none by default; menu-filter.js removes d-none based on feature key access */
 
 .sidebar {
     background: var(--mac-bg-secondary) !important;

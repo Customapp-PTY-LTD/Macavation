@@ -177,12 +177,12 @@
                 <div class="d-flex flex-column h-100">
                     <div class="flex-grow-1 pt-3">
                         <ul class="nav flex-column gap-1">
-                            <li class="nav-item">
+                            <li class="nav-item d-none" data-route="dashboard">
                                 <a class="nav-link" href="#" route="dashboard" title="Dashboard">
                                     <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item d-none" data-parent="crmCollapse">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#crmCollapse" aria-expanded="false"
                                     aria-controls="crmCollapse" title="CRM">
@@ -191,7 +191,7 @@
                                 </a>
                                 <div class="collapse" id="crmCollapse">
                                     <ul class="nav flex-column ms-3">
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="crm-grid">
                                             <a class="nav-link" href="#" route="crm-grid" title="Contacts">
                                                 <i class="fas fa-building me-2"></i>Contacts
                                             </a>
@@ -200,7 +200,7 @@
                                 </div>
                             </li>
                             <!-- Kernel stream: Grower Intake → PROCESSED/USK → W/House Finished (KERNEL R YES) -->
-                            <li class="nav-item">
+                            <li class="nav-item d-none" data-parent="kernelCollapse">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#kernelCollapse" aria-expanded="false"
                                     aria-controls="kernelCollapse" title="Kernel">
@@ -209,22 +209,22 @@
                                 </a>
                                 <div class="collapse" id="kernelCollapse">
                                     <ul class="nav flex-column ms-3">
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="grower-intake-grid">
                                             <a class="nav-link" href="#" route="grower-intake-grid" title="Grower Intake">
                                                 <i class="fas fa-truck-loading me-2"></i>Grower Intake
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="kernel-production-grid">
                                             <a class="nav-link" href="#" route="kernel-production-grid" title="Kernel Production">
                                                 <i class="fas fa-cogs me-2"></i>Kernel Production
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="stock-management-kernel">
                                             <a class="nav-link" href="#" route="stock-management-kernel" title="Stock (Kernel)">
                                                 <i class="fas fa-warehouse me-2"></i>Stock (Kernel)
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="kernel-dispatch-grid">
                                             <a class="nav-link" href="#" route="kernel-dispatch-grid" title="Kernel Dispatch">
                                                 <i class="fas fa-box me-2"></i>Kernel Dispatch
                                             </a>
@@ -233,7 +233,7 @@
                                 </div>
                             </li>
                             <!-- Oil & Protein stream: Supplier Intake → W/House Raws (OIL KERNEL R YES) → PRODUCTION → W/House Finished (OIL PROTEIN R YES) -->
-                            <li class="nav-item">
+                            <li class="nav-item d-none" data-parent="oilCollapse">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#oilCollapse" aria-expanded="false"
                                     aria-controls="oilCollapse" title="Oil &amp; Protein">
@@ -242,22 +242,22 @@
                                 </a>
                                 <div class="collapse" id="oilCollapse">
                                     <ul class="nav flex-column ms-3">
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="supplier-intake-grid">
                                             <a class="nav-link" href="#" route="supplier-intake-grid" title="Supplier Intake">
                                                 <i class="fas fa-dolly me-2"></i>Supplier Intake
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="oil-production-grid">
                                             <a class="nav-link" href="#" route="oil-production-grid" title="Oil Production">
                                                 <i class="fas fa-industry me-2"></i>Oil Production
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="stock-management-oil">
                                             <a class="nav-link" href="#" route="stock-management-oil" title="Stock (Oil &amp; Protein)">
                                                 <i class="fas fa-warehouse me-2"></i>Stock (Oil &amp; Protein)
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="oil-dispatch-grid">
                                             <a class="nav-link" href="#" route="oil-dispatch-grid" title="Oil &amp; Protein Dispatch">
                                                 <i class="fas fa-box-open me-2"></i>Oil &amp; Protein Dispatch
                                             </a>
@@ -265,7 +265,7 @@
                                     </ul>
                                 </div>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item d-none" data-parent="qualityCollapse">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#qualityCollapse" aria-expanded="false"
                                     aria-controls="qualityCollapse" title="Quality">
@@ -274,7 +274,7 @@
                                 </a>
                                 <div class="collapse" id="qualityCollapse">
                                     <ul class="nav flex-column ms-3">
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="quality-assurance-grid">
                                             <a class="nav-link" href="#" route="quality-assurance-grid" title="Quality Assurance">
                                                 <i class="fas fa-flask me-2"></i>Quality Assurance
                                             </a>
@@ -282,7 +282,7 @@
                                     </ul>
                                 </div>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item d-none" data-parent="businessCollapse">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#businessCollapse" aria-expanded="false"
                                     aria-controls="businessCollapse" title="Business">
@@ -291,12 +291,12 @@
                                 </a>
                                 <div class="collapse" id="businessCollapse">
                                     <ul class="nav flex-column ms-3">
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="sales-forecasting-grid">
                                             <a class="nav-link" href="#" route="sales-forecasting-grid" title="Sales Forecasting">
                                                 <i class="fas fa-chart-line me-2"></i>Sales Forecasting
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="financial-management-grid">
                                             <a class="nav-link" href="#" route="financial-management-grid" title="Financial Management">
                                                 <i class="fas fa-money-bill-wave me-2"></i>Financial Management
                                             </a>
@@ -304,18 +304,18 @@
                                     </ul>
                                 </div>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item d-none" data-route="document-management-grid">
                                 <a class="nav-link" href="#" route="document-management-grid" title="Document Management">
                                     <i class="fas fa-file-alt me-2"></i>Document Management
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item d-none" data-route="palladium-integration-grid">
                                 <a class="nav-link" href="#" route="palladium-integration-grid" title="Palladium Integration">
                                     <i class="fas fa-sync-alt me-2"></i>Palladium Integration
                                 </a>
                             </li>
                             <!-- User Management - Must be before System Administration -->
-                            <li class="nav-item" id="userManagementMenuItem">
+                            <li class="nav-item d-none" id="userManagementMenuItem" data-parent="userManagementCollapse">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#userManagementCollapse" aria-expanded="false"
                                     aria-controls="userManagementCollapse" title="User Management">
@@ -324,27 +324,27 @@
                                 </a>
                                 <div class="collapse" id="userManagementCollapse">
                                     <ul class="nav flex-column ms-3">
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="users-grid">
                                             <a class="nav-link" href="#" route="users-grid" title="Users">
                                                 <i class="fas fa-user me-2"></i>Users
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="roles-grid">
                                             <a class="nav-link" href="#" route="roles-grid" title="Roles">
                                                 <i class="fas fa-user-tag me-2"></i>Roles
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="role-permissions-grid">
                                             <a class="nav-link" href="#" route="role-permissions-grid" title="Database Role Permissions">
                                                 <i class="fas fa-key me-2"></i>Database Role Permissions
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="role-features-grid">
                                             <a class="nav-link" href="#" route="role-features-grid" title="Role Features">
                                                 <i class="fas fa-cog me-2"></i>Role Features
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="features-grid">
                                             <a class="nav-link" href="#" route="features-grid" title="Features">
                                                 <i class="fas fa-puzzle-piece me-2"></i>Features
                                             </a>
@@ -353,13 +353,13 @@
                                 </div>
                             </li>
                             <!-- System Administration - Must be after User Management -->
-                            <li class="nav-item" id="systemAdminMenuItem">
+                            <li class="nav-item d-none" id="systemAdminMenuItem" data-route="admin-grid">
                                 <a class="nav-link" href="#" route="admin-grid" title="System Administration">
                                     <i class="fas fa-cog me-2"></i>System Administration
                                 </a>
                             </li>
                             <!-- Test Scenarios Management (Super Admin Only) -->
-                            <li class="nav-item" id="testScenariosMenuItem" style="display: none;">
+                            <li class="nav-item d-none" id="testScenariosMenuItem" data-parent="testManagementCollapse">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#testManagementCollapse" aria-expanded="false"
                                     aria-controls="testManagementCollapse" title="Test Management">
@@ -368,12 +368,12 @@
                                 </a>
                                 <div class="collapse" id="testManagementCollapse">
                                     <ul class="nav flex-column ms-3">
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="test-scenarios-grid">
                                             <a class="nav-link" href="#" route="test-scenarios-grid" title="Test Scenarios">
                                                 <i class="fas fa-clipboard-list me-2"></i>Test Scenarios
                                             </a>
                                         </li>
-                                        <li class="nav-item">
+                                        <li class="nav-item d-none" data-route="test-data-grid">
                                             <a class="nav-link" href="#" route="test-data-grid" title="Test Data">
                                                 <i class="fas fa-database me-2"></i>Test Data
                                             </a>

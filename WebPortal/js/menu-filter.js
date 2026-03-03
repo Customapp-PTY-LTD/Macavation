@@ -63,48 +63,45 @@ var _menuFilter = function () {
             }
         },
 
-        /** Display value used when showing nav items (overrides default hidden state) */
-        _visibleDisplay: 'block',
-
         /**
-         * Show a specific menu item
+         * Show a specific menu item by route (feature key). Removes d-none so item is visible.
          */
         showMenu: function (route) {
-            const menuItem = document.querySelector(`a[route="${route}"]`);
-            if (menuItem) {
-                const navItem = menuItem.closest('.nav-item');
-                if (navItem) {
-                    navItem.style.display = this._visibleDisplay;
-                }
+            var navItem = document.querySelector('#sidebarMenu .nav-item[data-route="' + route + '"]');
+            if (!navItem) {
+                var link = document.querySelector('#sidebarMenu a[route="' + route + '"]');
+                if (link) navItem = link.closest('.nav-item');
+            }
+            if (navItem) {
+                navItem.classList.remove('d-none');
             }
         },
 
         /**
-         * Hide all menu items
+         * Hide all sidebar menu items by adding d-none (all start with d-none; this resets for re-filter).
          */
         hideAllMenus: function () {
-            const allMenuItems = document.querySelectorAll('.sidebar .nav-item');
-            allMenuItems.forEach(item => {
-                item.style.display = 'none';
+            var all = document.querySelectorAll('#sidebarMenu .nav-item');
+            all.forEach(function (item) {
+                item.classList.add('d-none');
             });
         },
 
         /**
-         * Show all menu items
+         * Show all sidebar menu items by removing d-none (full access).
          */
         showAllMenus: function () {
-            const allMenuItems = document.querySelectorAll('.sidebar .nav-item');
-            allMenuItems.forEach(item => {
-                item.style.display = this._visibleDisplay;
+            var all = document.querySelectorAll('#sidebarMenu .nav-item');
+            all.forEach(function (item) {
+                item.classList.remove('d-none');
             });
         },
 
         /**
-         * Update parent collapse menus based on visible children.
-         * If no children are visible, hide the parent toggle too.
+         * Update parent (top-level) sidebar items based on visible children.
+         * When a side nav feature is hidden, hide the corresponding top-level element if no children remain visible.
          */
         updateParentMenus: function () {
-            var self = this;
             var collapseIds = [
                 'crmCollapse',
                 'kernelCollapse',
@@ -118,69 +115,47 @@ var _menuFilter = function () {
             collapseIds.forEach(function (id) {
                 var children = document.querySelectorAll('#' + id + ' .nav-item');
                 var hasVisible = Array.from(children).some(function (item) {
-                    return item.style.display !== 'none';
+                    return !item.classList.contains('d-none');
                 });
                 var toggle = document.querySelector('[data-bs-target="#' + id + '"]');
                 if (toggle) {
                     var parentNavItem = toggle.closest('.nav-item');
                     if (parentNavItem) {
-                        parentNavItem.style.display = hasVisible ? self._visibleDisplay : 'none';
+                        if (hasVisible) {
+                            parentNavItem.classList.remove('d-none');
+                        } else {
+                            parentNavItem.classList.add('d-none');
+                        }
                     }
                 }
             });
         },
 
         /**
-         * Hide admin-only sections for PWA users
+         * Hide admin-only sections for PWA users (add d-none).
          */
         hideAdminSections: function () {
-            // Hide User Management section
-            const userManagementSection = document.querySelector('[data-bs-target="#userManagementCollapse"]');
-            if (userManagementSection) {
-                const parentNavItem = userManagementSection.closest('.nav-item');
-                if (parentNavItem) {
-                    parentNavItem.style.display = 'none';
-                }
+            var addDNone = function (el) {
+                if (el) el.classList.add('d-none');
+            };
+
+            var userMgmt = document.querySelector('[data-bs-target="#userManagementCollapse"]');
+            addDNone(userMgmt && userMgmt.closest('.nav-item'));
+
+            var adminMenu = document.querySelector('#sidebarMenu a[route="admin-grid"]');
+            addDNone(adminMenu && adminMenu.closest('.nav-item'));
+
+            var palladiumMenu = document.querySelector('#sidebarMenu a[route="palladium-integration-grid"]');
+            addDNone(palladiumMenu && palladiumMenu.closest('.nav-item'));
+
+            if (typeof roleMenuConfig !== 'undefined' && !roleMenuConfig.hasAccess('executive-dashboard')) {
+                var execDashboard = document.querySelector('#sidebarMenu a[route="executive-dashboard"]');
+                addDNone(execDashboard && execDashboard.closest('.nav-item'));
             }
 
-            // Hide System Administration
-            const adminMenu = document.querySelector('a[route="admin-grid"]');
-            if (adminMenu) {
-                const parentNavItem = adminMenu.closest('.nav-item');
-                if (parentNavItem) {
-                    parentNavItem.style.display = 'none';
-                }
-            }
-
-            // Hide Palladium Integration (typically admin-only)
-            const palladiumMenu = document.querySelector('a[route="palladium-integration-grid"]');
-            if (palladiumMenu) {
-                const parentNavItem = palladiumMenu.closest('.nav-item');
-                if (parentNavItem) {
-                    parentNavItem.style.display = 'none';
-                }
-            }
-
-            // Hide Executive Dashboard (unless explicitly allowed)
-            if (!roleMenuConfig.hasAccess('executive-dashboard')) {
-                const execDashboard = document.querySelector('a[route="executive-dashboard"]');
-                if (execDashboard) {
-                    const parentNavItem = execDashboard.closest('.nav-item');
-                    if (parentNavItem) {
-                        parentNavItem.style.display = 'none';
-                    }
-                }
-            }
-
-            // Hide Material Journey Dashboard (unless explicitly allowed)
-            if (!roleMenuConfig.hasAccess('amanda-dashboard')) {
-                const amandaDashboard = document.querySelector('a[route="amanda-dashboard"]');
-                if (amandaDashboard) {
-                    const parentNavItem = amandaDashboard.closest('.nav-item');
-                    if (parentNavItem) {
-                        parentNavItem.style.display = 'none';
-                    }
-                }
+            if (typeof roleMenuConfig !== 'undefined' && !roleMenuConfig.hasAccess('amanda-dashboard')) {
+                var amandaDashboard = document.querySelector('#sidebarMenu a[route="amanda-dashboard"]');
+                addDNone(amandaDashboard && amandaDashboard.closest('.nav-item'));
             }
         },
 
