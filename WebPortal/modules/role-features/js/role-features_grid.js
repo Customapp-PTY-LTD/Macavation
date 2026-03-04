@@ -182,8 +182,10 @@ var _roleFeaturesGrid = function () {
                         delete scope.roleFeatureIdMap[String(featureId)];
                     }
                 }
-                // Invalidate cache so next role load fetches fresh data from DB
+                // Invalidate caches so next load fetches fresh data from DB
                 dataFunctions.clearCachePattern('get_role_features');
+                dataFunctions.clearCachePattern('get_features_for_role');
+                Session.remove('featureKeys');
                 scope.updateSummary();
                 // If editing current user's role, refetch feature keys and refresh sidebar
                 var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;

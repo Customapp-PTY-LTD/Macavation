@@ -171,10 +171,23 @@ class AuthService {
             }
             // Clear stale keys immediately so menu filter never uses old Session data
             Session.set('featureKeys', []);
+            // If role_id is missing, look it up from role_name via cached roles list
+            if (!roleId) {
+                var currentUser = Session.get('user') || this.userInfo;
+                var currentRoleName = currentUser && (currentUser.role_name || currentUser.role);
+                if (currentRoleName) {
+                    var roles = await dataFunctions.getRoles();
+                    if (Array.isArray(roles)) {
+                        var lowerRoleName = (typeof currentRoleName === 'string' ? currentRoleName : (currentRoleName && currentRoleName.name) || '').toLowerCase();
+                        var match = roles.find(function (r) {
+                            return (r.role_name || '').toLowerCase() === lowerRoleName;
+                        });
+                        if (match) roleId = match.id;
+                    }
+                }
+            }
             var roleIdStr = roleId != null ? String(roleId) : null;
             if (!roleIdStr) return;
-            // Request goes to Lambda URL (POST body: { function: 'get_features_for_role', params: { p_role_id } })
-            console.log('[AuthService] Fetching feature keys for role', roleIdStr);
             var list = await dataFunctions.getFeaturesForRole(roleIdStr);
             var keys = (Array.isArray(list) ? list : []).map(function (row) {
                 return (row && typeof row === 'object' && row.key != null) ? row.key : (typeof row === 'string' ? row : '');

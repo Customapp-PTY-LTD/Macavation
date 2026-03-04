@@ -1960,6 +1960,39 @@ var _dataFunctions = function () {
             return result && (result.data !== undefined ? result.data : result);
         },
 
+        /** Get silo status for all 12 silos (kernel + oil). Used by Grower Intake silo picker and Kernel Production silo grid. */
+        getSilos: async function (token = null, forceRefresh = false) {
+            const raw = await this.callFunction('get_silos', {}, token, {
+                cacheKey: 'silos_list',
+                useCache: !forceRefresh,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && raw.get_silos) return Array.isArray(raw.get_silos) ? raw.get_silos : [raw.get_silos];
+            return [];
+        },
+
+        /** Mark a silo (1-12) as empty. Used from Kernel Production silo grid. */
+        setSiloEmpty: async function (siloNumber, token = null) {
+            const result = await this.callFunction('set_silo_empty', { p_silo_number: siloNumber }, token, { useCache: false });
+            this.clearCachePattern('silos');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /** Assign a kernel batch to one or more silos (1-12). Call after releaseKernelToProduction. */
+        assignKernelToSilos: async function (kernelId, siloNumbers, token = null) {
+            if (!Array.isArray(siloNumbers) || siloNumbers.length === 0) return { success: true, silos_assigned: 0 };
+            const result = await this.callFunction('assign_kernel_to_silos', {
+                p_kernel_id: kernelId,
+                p_silo_numbers: siloNumbers
+            }, token, { useCache: false });
+            this.clearCachePattern('silos');
+            this.clearCachePattern('kernel_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
         getOilBatches: async function (options = {}, token = null, forceRefresh = false) {
             var params = {};
             if (options.status) params.p_status = options.status;

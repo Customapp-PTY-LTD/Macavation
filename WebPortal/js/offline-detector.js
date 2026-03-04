@@ -109,7 +109,7 @@ var _offlineDetector = function () {
         checkConnectivity: async function () {
             try {
                 // Try to fetch a small resource to verify connectivity
-                const response = await fetch('/favicon.svg', {
+                const response = await fetch('/index.html', {
                     method: 'HEAD',
                     cache: 'no-cache',
                     timeout: 5000

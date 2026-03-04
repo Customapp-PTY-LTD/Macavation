@@ -138,3 +138,38 @@
     padding: 0.35rem 0.5rem;
 }
 
+/* Silos grid at top: 2 rows x 6, red = occupied, white = empty */
+.kp-silos-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+    max-width: 100%;
+}
+.kp-silo-box {
+    aspect-ratio: 1;
+    border: 2px solid #dee2e6;
+    border-radius: 0.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1rem;
+    background-color: #fff;
+    color: #212529;
+}
+.kp-silo-box .kp-silo-label { pointer-events: none; }
+.kp-silo-occupied {
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+    color: #842029;
+    cursor: pointer;
+}
+.kp-silo-occupied:hover {
+    background-color: #f1aeb5;
+    border-color: #ea868f;
+}
+.kp-silo-empty {
+    background-color: #fff;
+    cursor: default;
+}
+

@@ -81,6 +81,7 @@ var _kernelProductionGrid = function () {
             }
             console.log('[Kernel Production] Initializing grid...');
             scope.bindEvents();
+            scope.loadSilosGrid();
             scope.loadBatches();
             // Modal pattern: load modal content into empty containers, then init child modules (they bind to modal DOM)
             const loadPromises = [];
@@ -218,6 +219,13 @@ var _kernelProductionGrid = function () {
             // View toggle
             $('#kpViewKanban').on('click', function () { _kernelProductionGrid.toggleView('kanban'); });
             $('#kpViewTable').on('click', function () { _kernelProductionGrid.toggleView('table'); });
+            // Silos grid: click occupied silo to mark as empty
+            $(document).on('click', '#kpSilosGrid .kp-silo-occupied', function () {
+                const num = $(this).data('silo-number');
+                if (num != null && typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.setSiloEmpty) {
+                    _kernelProductionGrid.setSiloEmpty(num);
+                }
+            });
         },
 
         toggleView: (view) => {
@@ -337,6 +345,75 @@ var _kernelProductionGrid = function () {
                 console.log('[Kernel Production] Batches loaded in ' + (performance.now() - startTime).toFixed(2) + 'ms, count: ' + scope.batches.length);
             }).catch((err) => {
                 console.error('[Kernel Production] Error loading batches:', err);
+            });
+        },
+
+        loadSilosGrid: async () => {
+            const scope = _kernelProductionGrid;
+            const el = document.getElementById('kpSilosGrid');
+            if (!el) return;
+            const df = (typeof _dataFunctions !== 'undefined' && _dataFunctions.getSilos) ? _dataFunctions : (typeof dataFunctions !== 'undefined' ? dataFunctions : null);
+            if (!df || typeof df.getSilos !== 'function') {
+                el.innerHTML = '<p class="text-muted mb-0">Silos not available.</p>';
+                return;
+            }
+            try {
+                const list = await df.getSilos(null, true);
+                scope.renderSilosGrid(Array.isArray(list) ? list : []);
+            } catch (e) {
+                console.error('[Kernel Production] Error loading silos:', e);
+                el.innerHTML = '<p class="text-danger mb-0">Failed to load silos.</p>';
+            }
+        },
+
+        renderSilosGrid: (siloList) => {
+            const el = document.getElementById('kpSilosGrid');
+            if (!el) return;
+            const occupied = {};
+            (siloList || []).forEach((s) => {
+                const num = s.silo_number != null ? Number(s.silo_number) : null;
+                if (num >= 1 && num <= 12 && (s.kernel_id || s.oil_batch_id || s.status === 'occupied')) {
+                    occupied[num] = { batch_id: s.batch_id || null };
+                }
+            });
+            let html = '';
+            for (let n = 1; n <= 12; n++) {
+                const isOccupied = !!occupied[n];
+                const cls = 'kp-silo-box ' + (isOccupied ? 'kp-silo-occupied' : 'kp-silo-empty');
+                const title = isOccupied && occupied[n].batch_id ? 'Silo ' + n + ': ' + occupied[n].batch_id + ' — click to mark empty' : (isOccupied ? 'Silo ' + n + ' — click to mark empty' : 'Silo ' + n + ' (empty)');
+                html += '<div class="' + cls + '" data-silo-number="' + n + '" title="' + (title.replace(/"/g, '&quot;')) + '" role="button" tabindex="0"><span class="kp-silo-label">' + n + '</span></div>';
+            }
+            el.innerHTML = html;
+        },
+
+        setSiloEmpty: (siloNumber) => {
+            const df = (typeof _dataFunctions !== 'undefined' && _dataFunctions.setSiloEmpty) ? _dataFunctions : (typeof dataFunctions !== 'undefined' ? dataFunctions : null);
+            if (siloNumber == null || !df || typeof df.setSiloEmpty !== 'function') return;
+            if (typeof Swal === 'undefined') {
+                df.setSiloEmpty(siloNumber).then(() => _kernelProductionGrid.loadSilosGrid());
+                return;
+            }
+            Swal.fire({
+                title: 'Mark silo as empty?',
+                text: 'Silo ' + siloNumber + ' will be cleared. This does not delete the batch.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0d6efd',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, mark empty'
+            }).then((res) => {
+                if (!res.isConfirmed) return;
+                df.setSiloEmpty(siloNumber).then((result) => {
+                    if (result && result.success !== false) {
+                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Silo ' + siloNumber + ' marked empty', timer: 1500, showConfirmButton: false });
+                        _kernelProductionGrid.loadSilosGrid();
+                    } else {
+                        if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Failed to update silo', 'error');
+                    }
+                }).catch((e) => {
+                    console.error(e);
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to update silo', 'error');
+                });
             });
         },
 
