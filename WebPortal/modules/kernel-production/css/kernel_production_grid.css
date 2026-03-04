@@ -157,7 +157,22 @@
     background-color: #fff;
     color: #212529;
 }
-.kp-silo-box .kp-silo-label { pointer-events: none; }
+.kp-silo-box {
+    flex-direction: column;
+    padding: 0.25rem;
+}
+.kp-silo-box .kp-silo-label { pointer-events: none; font-size: 1rem; }
+.kp-silo-box .kp-silo-grower {
+    pointer-events: none;
+    font-size: 0.65rem;
+    font-weight: 500;
+    line-height: 1.15;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 0.15rem;
+}
 .kp-silo-occupied {
     background-color: #f8d7da;
     border-color: #f5c2c7;

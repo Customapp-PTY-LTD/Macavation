@@ -42,6 +42,13 @@ var _kernelProductionGrid = function () {
         ).join(' ');
     };
 
+    const escapeHtml = (text) => {
+        if (text == null || typeof text !== 'string') return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
+
     /**
      * Derive display status from actual production data, not just DB status.
      * Batches with no production days/history show "Awaiting production"; only batches with real production data show "In production".
@@ -372,16 +379,28 @@ var _kernelProductionGrid = function () {
             const occupied = {};
             (siloList || []).forEach((s) => {
                 const num = s.silo_number != null ? Number(s.silo_number) : null;
-                if (num >= 1 && num <= 12 && (s.kernel_id || s.oil_batch_id || s.status === 'occupied')) {
-                    occupied[num] = { batch_id: s.batch_id || null };
+                if (num >= 1 && num <= 12 && (s.kernel_id || s.oil_batch_id)) {
+                    occupied[num] = {
+                        batch_id: s.batch_id || s.batchId || null,
+                        grower_name: s.grower_name || s.growerName || null
+                    };
                 }
             });
             let html = '';
             for (let n = 1; n <= 12; n++) {
                 const isOccupied = !!occupied[n];
                 const cls = 'kp-silo-box ' + (isOccupied ? 'kp-silo-occupied' : 'kp-silo-empty');
-                const title = isOccupied && occupied[n].batch_id ? 'Silo ' + n + ': ' + occupied[n].batch_id + ' — click to mark empty' : (isOccupied ? 'Silo ' + n + ' — click to mark empty' : 'Silo ' + n + ' (empty)');
-                html += '<div class="' + cls + '" data-silo-number="' + n + '" title="' + (title.replace(/"/g, '&quot;')) + '" role="button" tabindex="0"><span class="kp-silo-label">' + n + '</span></div>';
+                const info = occupied[n];
+                const grower = info && info.grower_name ? info.grower_name : null;
+                const batch = info && info.batch_id ? info.batch_id : null;
+                const titleParts = ['Silo ' + n];
+                if (grower) titleParts.push(grower);
+                if (batch) titleParts.push(batch);
+                const title = (isOccupied ? titleParts.join(' — ') + ' — click to mark empty' : 'Silo ' + n + ' (empty)').replace(/"/g, '&quot;');
+                const labelHtml = grower
+                    ? '<span class="kp-silo-label">' + n + '</span><span class="kp-silo-grower">' + escapeHtml(grower) + '</span>'
+                    : '<span class="kp-silo-label">' + n + '</span>';
+                html += '<div class="' + cls + '" data-silo-number="' + n + '" title="' + title + '" role="button" tabindex="0">' + labelHtml + '</div>';
             }
             el.innerHTML = html;
         },

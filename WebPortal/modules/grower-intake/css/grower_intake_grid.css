@@ -203,24 +203,51 @@
 }
 
 /* Silo selection modal: 2 rows x 6 silos (red = occupied, white = available, border = selected) */
+.silo-selection-modal-dialog {
+    max-width: min(96vw, 640px);
+    min-width: 340px;
+}
+#siloSelectionModal .modal-footer {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+}
+#siloSelectionModal .modal-body {
+    overflow: visible;
+}
 .silo-selection-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 0.5rem;
-    max-width: 100%;
+    width: 100%;
+    min-width: 0;
 }
 .silo-box {
     aspect-ratio: 1;
     border: 2px solid #dee2e6;
     border-radius: 0.35rem;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     font-weight: 600;
     font-size: 1rem;
     background-color: #fff;
+    padding: 0.25rem;
+    min-width: 0;
 }
 .silo-box .silo-label { pointer-events: none; }
+.silo-box .silo-grower {
+    pointer-events: none;
+    font-size: 0.6rem;
+    font-weight: 500;
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 0.15rem;
+    text-align: center;
+}
 .silo-occupied {
     background-color: #f8d7da;
     border-color: #f5c2c7;

@@ -166,10 +166,13 @@ var _growerIntakeGrid = function () {
                     _growerIntakeGrid.deleteBatch(batchId);
                 }
             });
-            // Silo selection modal: toggle selection on empty silo click
-            $(document).on('click', '#siloSelectionGrid .silo-selectable', function () {
-                $(this).toggleClass('silo-selected');
-                _growerIntakeGrid.updateSiloSelectionSummary();
+            // Silo selection modal: toggle selection on empty silo click (delegate from grid so clicks on label/children work)
+            $(document).on('click', '#siloSelectionGrid', function (e) {
+                var $box = $(e.target).closest('.silo-box');
+                if ($box.length && $box.hasClass('silo-selectable')) {
+                    $box.toggleClass('silo-selected');
+                    _growerIntakeGrid.updateSiloSelectionSummary();
+                }
             });
             $('#siloSelectionConfirmBtn').off('click').on('click', function () {
                 if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.confirmSiloSelection) {
@@ -485,15 +488,26 @@ var _growerIntakeGrid = function () {
             var occupied = {};
             (scope.siloList || []).forEach(function (s) {
                 var num = s.silo_number != null ? Number(s.silo_number) : null;
-                if (num >= 1 && num <= 12 && (s.kernel_id || s.oil_batch_id || s.status === 'occupied')) {
-                    occupied[num] = true;
+                if (num >= 1 && num <= 12 && (s.kernel_id || s.oil_batch_id)) {
+                    occupied[num] = { grower_name: s.grower_name || s.growerName || null };
                 }
             });
+            function escapeHtml(t) {
+                if (t == null || typeof t !== 'string') return '';
+                var div = document.createElement('div');
+                div.textContent = t;
+                return div.innerHTML;
+            }
             var html = '';
             for (var n = 1; n <= 12; n++) {
                 var isOccupied = !!occupied[n];
                 var cls = 'silo-box ' + (isOccupied ? 'silo-occupied' : 'silo-empty silo-selectable');
-                html += '<div class="' + cls + '" data-silo-number="' + n + '" role="button" tabindex="0"><span class="silo-label">' + n + '</span></div>';
+                var grower = occupied[n] && occupied[n].grower_name ? occupied[n].grower_name : null;
+                var labelHtml = grower
+                    ? '<span class="silo-label">' + n + '</span><span class="silo-grower">' + escapeHtml(grower) + '</span>'
+                    : '<span class="silo-label">' + n + '</span>';
+                var title = isOccupied ? ('Silo ' + n + (grower ? ': ' + grower : '') + ' (occupied)') : ('Silo ' + n + ' (available)');
+                html += '<div class="' + cls + '" data-silo-number="' + n + '" role="button" tabindex="0" title="' + escapeHtml(title) + '">' + labelHtml + '</div>';
             }
             gridEl.innerHTML = html;
         },

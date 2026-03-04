@@ -47,6 +47,145 @@
                     </button>
                 </div>
             </form>
+            <div class="mt-3 pt-3 border-top">
+                <button type="button" class="btn btn-outline-primary" id="opGmpCheckSheetBtn">
+                    <i class="fas fa-clipboard-check me-1"></i>GMP Check Sheet (Shift Check)
+                </button>
+            </div>
+            <div class="mt-3 pt-3 border-top">
+                <h6 class="text-muted mb-2">Production sheets</h6>
+                <p class="small text-muted mb-2">Fill out the digital form or upload a completed sheet (PDF/image).</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-secondary op-production-sheet-btn" data-sheet-type="food_grade_oil">
+                        <i class="fas fa-tint me-1"></i>Food Grade Oil
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary op-production-sheet-btn" data-sheet-type="protein_powder">
+                        <i class="fas fa-mortar-pestle me-1"></i>Protein Powder
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary op-production-sheet-btn" data-sheet-type="cosmetic_oil">
+                        <i class="fas fa-flask me-1"></i>Cosmetic Oil
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production sheet modal (Food Grade Oil / Protein Powder / Cosmetic Oil) -->
+    <div class="modal fade" id="opProductionSheetModal" tabindex="-1" aria-labelledby="opProductionSheetModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="opProductionSheetModalLabel">Production sheet</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="opProductionSheetType" value="">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Submit by</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="opProdSheetMode" id="opProdSheetModeForm" value="form" checked>
+                            <label class="form-check-label" for="opProdSheetModeForm">Fill out the form</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="opProdSheetMode" id="opProdSheetModeUpload" value="upload">
+                            <label class="form-check-label" for="opProdSheetModeUpload">Upload a file instead</label>
+                        </div>
+                    </div>
+                    <div id="opProdSheetUploadSection" class="mb-4" style="display: none;">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <label for="opProdSheetFileInput" class="form-label">File (PDF or image)</label>
+                                <input type="file" class="form-control" id="opProdSheetFileInput" accept=".pdf,image/*">
+                                <div id="opProdSheetUploadStatus" class="small text-muted mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="opProdSheetFormSection"><div id="opProdSheetFormBody" class="op-production-sheet-form"></div></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="opProdSheetSubmitBtn"><i class="fas fa-paper-plane me-1"></i>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GMP Check Sheet modal (Oil Processing GMP – Shift Check) -->
+    <div class="modal fade" id="opGmpCheckSheetModal" tabindex="-1" aria-labelledby="opGmpCheckSheetModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="opGmpCheckSheetModalLabel">Oil Processing GMP Check Sheet (Shift Check) — MP5.2.1 Rev 03</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">How do you want to submit?</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="opGmpSubmitMode" id="opGmpModeForm" value="form" checked>
+                            <label class="form-check-label" for="opGmpModeForm">Fill out the form</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="opGmpSubmitMode" id="opGmpModeUpload" value="upload">
+                            <label class="form-check-label" for="opGmpModeUpload">Upload a file instead</label>
+                        </div>
+                    </div>
+
+                    <div id="opGmpUploadSection" class="op-gmp-upload-section mb-4" style="display: none;">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p class="text-muted small">Upload a scanned or photo of the completed GMP check sheet. You can still add date and checked by below.</p>
+                                <div class="mb-3">
+                                    <label for="opGmpFileInput" class="form-label">File (PDF or image)</label>
+                                    <input type="file" class="form-control" id="opGmpFileInput" accept=".pdf,image/*">
+                                </div>
+                                <div id="opGmpUploadStatus" class="small text-muted"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="opGmpFormSection" class="op-gmp-form-section">
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-3">
+                                <label for="opGmpDate" class="form-label">Date</label>
+                                <input type="text" class="form-control flatpickr-date" id="opGmpDate" placeholder="dd/mm/yyyy">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="opGmpCheckedBy" class="form-label">Checked by</label>
+                                <input type="text" class="form-control" id="opGmpCheckedBy" placeholder="Name or initials">
+                            </div>
+                        </div>
+                        <div id="opGmpFormRows" class="op-gmp-rows"></div>
+                        <div class="mt-3">
+                            <label for="opGmpComments" class="form-label">Comments (General observations, areas for improvement, preventative actions)</label>
+                            <textarea class="form-control" id="opGmpComments" rows="3" placeholder="Optional"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 pt-3 border-top" id="opGmpUploadOnlyFields" style="display: none;">
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <label for="opGmpUploadDate" class="form-label">Date</label>
+                                <input type="text" class="form-control flatpickr-date" id="opGmpUploadDate" placeholder="dd/mm/yyyy">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="opGmpUploadCheckedBy" class="form-label">Checked by</label>
+                                <input type="text" class="form-control" id="opGmpUploadCheckedBy" placeholder="Name or initials">
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label for="opGmpUploadComments" class="form-label">Comments (optional)</label>
+                            <textarea class="form-control" id="opGmpUploadComments" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="opGmpSubmitBtn">
+                        <i class="fas fa-paper-plane me-1"></i>Send
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
