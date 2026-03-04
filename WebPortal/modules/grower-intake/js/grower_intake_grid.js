@@ -537,13 +537,9 @@ var _growerIntakeGrid = function () {
             var btnEl = document.getElementById('siloSelectionConfirmBtn');
             if (btnEl) btnEl.disabled = true;
             try {
-                var releaseResult = await dataFunctions.releaseKernelToProduction({ kernel_id: kernelId });
+                var releaseResult = await dataFunctions.releaseKernelToProduction({ kernel_id: kernelId, silos: selected });
                 if (releaseResult && releaseResult.success === false) {
                     throw new Error(releaseResult.error || 'Release failed');
-                }
-                var assignResult = await dataFunctions.assignKernelToSilos(kernelId, selected);
-                if (assignResult && assignResult.success === false) {
-                    throw new Error(assignResult.error || 'Silo assignment failed');
                 }
                 var modalEl = document.getElementById('siloSelectionModal');
                 if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl).hide();

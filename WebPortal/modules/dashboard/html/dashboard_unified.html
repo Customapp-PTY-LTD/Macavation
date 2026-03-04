@@ -10,6 +10,49 @@
             <span id="currentDate"></span>
         </p>
 
+        <div class="row g-3 mb-4" id="kernelStatsContainer">
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kernel batches in production</h6>
+                        <h3 class="mb-0" id="statBatchesInProduction">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg cracked today</h6>
+                        <h3 class="mb-0" id="statKgCrackedToday">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg cracked this week</h6>
+                        <h3 class="mb-0" id="statKgCrackedWeek">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg packed today</h6>
+                        <h3 class="mb-0" id="statKgPackedToday">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-secondary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg packed this week</h6>
+                        <h3 class="mb-0" id="statKgPackedWeek">—</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card">
@@ -157,6 +200,49 @@
                     <div class="card-body">
                         <h6 class="text-muted">Quality Pass Rate</h6>
                         <h3 id="qualityPassRate">0%</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kernel batches in production</h6>
+                        <h3 class="mb-0" id="execStatBatchesInProduction">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg cracked today</h6>
+                        <h3 class="mb-0" id="execStatKgCrackedToday">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg cracked this week</h6>
+                        <h3 class="mb-0" id="execStatKgCrackedWeek">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg packed today</h6>
+                        <h3 class="mb-0" id="execStatKgPackedToday">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-secondary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg packed this week</h6>
+                        <h3 class="mb-0" id="execStatKgPackedWeek">—</h3>
                     </div>
                 </div>
             </div>

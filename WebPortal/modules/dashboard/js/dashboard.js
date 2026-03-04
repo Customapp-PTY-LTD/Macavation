@@ -102,6 +102,7 @@ var _dashboard = function () {
                 } catch (error) {
                     console.error('Error loading dashboard data:', error);
                 }
+                await scope.loadKernelStats();
                 await scope.loadExceptions();
                 await scope.loadMetrics();
                 scope.loadQuickActions();
@@ -139,6 +140,39 @@ var _dashboard = function () {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const dateString = now.toLocaleDateString('en-US', options);
             $('#currentDate').text(dateString);
+        },
+
+        loadKernelStats: async () => {
+            const $batches = $('#statBatchesInProduction');
+            const $crackToday = $('#statKgCrackedToday');
+            const $crackWeek = $('#statKgCrackedWeek');
+            const $packToday = $('#statKgPackedToday');
+            const $packWeek = $('#statKgPackedWeek');
+            const fmt = (n) => (typeof n === 'number' ? n.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : (n || 0));
+            if (!$batches.length && !$crackToday.length && !$packToday.length) return;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getDashboardKernelStats) {
+                    $batches.text('0');
+                    $crackToday.text('0');
+                    $crackWeek.text('0');
+                    $packToday.text('0');
+                    $packWeek.text('0');
+                    return;
+                }
+                const stats = await dataFunctions.getDashboardKernelStats();
+                if ($batches.length) $batches.text(Number(stats.batches_in_production) || 0);
+                if ($crackToday.length) $crackToday.text(fmt(stats.kg_cracked_today));
+                if ($crackWeek.length) $crackWeek.text(fmt(stats.kg_cracked_week));
+                if ($packToday.length) $packToday.text(fmt(stats.kg_packed_today));
+                if ($packWeek.length) $packWeek.text(fmt(stats.kg_packed_week));
+            } catch (error) {
+                console.error('Error loading kernel stats:', error);
+                if ($batches.length) $batches.text('—');
+                if ($crackToday.length) $crackToday.text('—');
+                if ($crackWeek.length) $crackWeek.text('—');
+                if ($packToday.length) $packToday.text('—');
+                if ($packWeek.length) $packWeek.text('—');
+            }
         },
 
         loadExceptions: async () => {

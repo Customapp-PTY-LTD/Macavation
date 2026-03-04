@@ -1066,6 +1066,70 @@ var _dataFunctions = function () {
             return await this.callFunction('get_dashboard_alerts', {}, token);
         },
 
+        /**
+         * Get dashboard kernel stats: batches in production, kg cracked today, kg cracked this week.
+         * Used by default dashboard.
+         */
+        getDashboardKernelStats: async function (token = null) {
+            var defaults = { batches_in_production: 0, kg_cracked_today: 0, kg_cracked_week: 0, kg_packed_today: 0, kg_packed_week: 0 };
+            try {
+                var raw = await this.callFunction('get_dashboard_kernel_stats', {}, token, { useCache: false });
+                var row = null;
+                if (Array.isArray(raw) && raw[0]) row = raw[0];
+                else if (raw && Array.isArray(raw.get_dashboard_kernel_stats) && raw.get_dashboard_kernel_stats[0]) row = raw.get_dashboard_kernel_stats[0];
+                else if (raw && raw.batches_in_production !== undefined) row = raw;
+                if (!row) return defaults;
+                return {
+                    batches_in_production: Number(row.batches_in_production) || 0,
+                    kg_cracked_today: Number(row.kg_cracked_today) || 0,
+                    kg_cracked_week: Number(row.kg_cracked_week) || 0,
+                    kg_packed_today: Number(row.kg_packed_today) || 0,
+                    kg_packed_week: Number(row.kg_packed_week) || 0
+                };
+            } catch (e) {
+                console.warn('[Dashboard] get_dashboard_kernel_stats failed. Apply migration 20260306000001_create_get_dashboard_kernel_stats.sql if needed.', e.message);
+                return defaults;
+            }
+        },
+
+        /**
+         * Get dashboard production stats: kernel pipeline, oil, quality, dispatch, batch health.
+         * Used by Executive dashboard.
+         */
+        getDashboardProductionStats: async function (token = null) {
+            var defaults = {
+                batches_awaiting_test: 0, batches_release_ready: 0, batches_completed_week: 0, batches_in_intake: 0,
+                oil_litres_today: 0, oil_litres_week: 0, oil_sheets_week: 0,
+                quality_pass_rate: 0, quality_tests_week: 0,
+                dispatch_orders_week: 0, dispatch_pending: 0, batches_on_hold: 0
+            };
+            try {
+                var raw = await this.callFunction('get_dashboard_production_stats', {}, token, { useCache: false });
+                var row = null;
+                if (Array.isArray(raw) && raw[0]) row = raw[0];
+                else if (raw && Array.isArray(raw.get_dashboard_production_stats) && raw.get_dashboard_production_stats[0]) row = raw.get_dashboard_production_stats[0];
+                else if (raw && raw.batches_awaiting_test !== undefined) row = raw;
+                if (!row) return defaults;
+                return {
+                    batches_awaiting_test: Number(row.batches_awaiting_test) || 0,
+                    batches_release_ready: Number(row.batches_release_ready) || 0,
+                    batches_completed_week: Number(row.batches_completed_week) || 0,
+                    batches_in_intake: Number(row.batches_in_intake) || 0,
+                    oil_litres_today: Number(row.oil_litres_today) || 0,
+                    oil_litres_week: Number(row.oil_litres_week) || 0,
+                    oil_sheets_week: Number(row.oil_sheets_week) || 0,
+                    quality_pass_rate: Number(row.quality_pass_rate) || 0,
+                    quality_tests_week: Number(row.quality_tests_week) || 0,
+                    dispatch_orders_week: Number(row.dispatch_orders_week) || 0,
+                    dispatch_pending: Number(row.dispatch_pending) || 0,
+                    batches_on_hold: Number(row.batches_on_hold) || 0
+                };
+            } catch (e) {
+                console.warn('[Dashboard] get_dashboard_production_stats failed. Apply migration 20260307000001 if needed.', e.message);
+                return defaults;
+            }
+        },
+
         getRecentActivity: async function (limit = 10, token = null) {
             const params = {
                 p_limit: limit
@@ -1887,12 +1951,18 @@ var _dataFunctions = function () {
         /**
          * Release a kernel batch to production.
          * Validates both ziplock_sample and five_kg_sample are saved, then sets status = 'production'.
-         * @param {object} data - { kernel_id }
+         * Optionally assigns silos when data.silos (integer[]) is provided.
+         * @param {object} data - { kernel_id [, silos ] }
          * @returns {Promise<object>} { success, kernel_id } or { success: false, error }
          */
         releaseKernelToProduction: async function (data, token = null) {
-            const result = await this.callFunction('release_kernel_to_production', { p_kernel_id: data.kernel_id }, token, { useCache: false });
+            const params = { p_kernel_id: data.kernel_id };
+            if (Array.isArray(data.silos) && data.silos.length > 0) {
+                params.p_silos = data.silos;
+            }
+            const result = await this.callFunction('release_kernel_to_production', params, token, { useCache: false });
             this.clearCachePattern('kernel_batches');
+            this.clearCachePattern('silos');
             return result && (result.data !== undefined ? result.data : result);
         },
 
