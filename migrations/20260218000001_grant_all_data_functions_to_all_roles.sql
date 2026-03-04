@@ -43,6 +43,7 @@ DECLARE
         'create_stock_take', 'get_stock_takes',
         'get_receiving_checklists', 'get_receiving_checklist', 'get_receiving_checklist_by_id', 'create_receiving_checklist', 'update_receiving_checklist',
         'get_raw_material_issued', 'get_financial_transactions', 'get_documents',
+        'get_document_categories', 'create_document_category_simple', 'get_document_by_id', 'create_document_simple', 'update_document_simple', 'delete_document_hard',
         'get_palladium_sync_status', 'sync_palladium', 'sync_palladium_entity',
         'get_workflow_tasks', 'get_watching_items', 'get_due_items', 'get_recent_activity_by_role', 'get_active_anomalies',
         'get_test_scenarios', 'get_test_scenario_by_id', 'get_test_scenarios_filtered',

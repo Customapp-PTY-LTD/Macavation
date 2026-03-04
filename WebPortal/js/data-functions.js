@@ -2373,9 +2373,63 @@ var _dataFunctions = function () {
             return await this.callFunction('get_financial_transactions', {}, token).catch(() => []);
         },
 
-        // Document Management Functions (placeholder)
-        getDocuments: async function (token = null) {
-            return await this.callFunction('get_documents', {}, token).catch(() => []);
+        // Document Management Functions
+        getDocumentCategories: async function (token = null) {
+            const raw = await this.callFunction('get_document_categories', {}, token).catch(() => []);
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && raw.get_document_categories) return Array.isArray(raw.get_document_categories) ? raw.get_document_categories : [raw.get_document_categories];
+            return [];
+        },
+        createDocumentCategory: async function (data, token = null) {
+            const result = await this.callFunction('create_document_category_simple', {
+                p_name: data.name,
+                p_description: data.description || null
+            }, token, { useCache: false });
+            this.clearCachePattern('document_categories');
+            return result;
+        },
+        getDocuments: async function (token = null, forceRefresh = false) {
+            const raw = await this.callFunction('get_documents', {}, token, {
+                cacheKey: 'documents_list',
+                useCache: !forceRefresh,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            }).catch(() => []);
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && raw.get_documents) return Array.isArray(raw.get_documents) ? raw.get_documents : [raw.get_documents];
+            return [];
+        },
+        getDocumentById: async function (documentId, token = null) {
+            return await this.callFunction('get_document_by_id', { p_id: documentId }, token);
+        },
+        createDocument: async function (data, token = null) {
+            const result = await this.callFunction('create_document_simple', {
+                p_document_name: data.document_name,
+                p_file_name: data.file_name,
+                p_category_id: data.category_id || null,
+                p_file_id: data.file_id || null,
+                p_file_link: data.file_link || null,
+                p_uploaded_by: data.uploaded_by || null
+            }, token, { useCache: false });
+            this.clearCachePattern('documents');
+            return result;
+        },
+        updateDocument: async function (documentId, data, token = null) {
+            const result = await this.callFunction('update_document_simple', {
+                p_id: documentId,
+                p_document_name: data.document_name || null,
+                p_category_id: data.category_id !== undefined ? data.category_id : null,
+                p_is_active: data.is_active !== undefined ? data.is_active : null
+            }, token, { useCache: false });
+            this.clearCachePattern('documents');
+            return result;
+        },
+        deleteDocument: async function (documentId, token = null) {
+            const result = await this.callFunction('delete_document_hard', { p_id: documentId }, token, { useCache: false });
+            this.clearCachePattern('documents');
+            return result;
         },
 
         // Palladium Integration Functions (placeholder)
