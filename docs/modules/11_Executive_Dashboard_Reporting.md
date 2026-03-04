@@ -71,6 +71,30 @@ CREATE TABLE scheduled_reports (
 
 ## Executive Dashboard Features
 
+### Kernel production stats on the default dashboard
+
+The default Executive dashboard shows five kernel stats: **Kernel batches in production**, **Kg cracked today**, **Kg cracked this week**, **Kg packed today**, **Kg packed this week**. They come from production data you enter in the **Kernel Production** workflow.
+
+**How data is saved**
+
+- When you add or edit **Production Stages** for a batch (Cracking, Washing, Sorting, Packing), the modal saves via `upsert_kernel_production`:
+  - **Cracking**: `date` (YYYY-MM-DD or DD/MM/YYYY) and `totalqty` (kg) are stored in `kernel.cracking_data` (one object per date).
+  - **Packing**: `date`, `sk_total_qty`, `bt_total_qty`, `totals_qty` (and style-level data) are stored in `kernel.packing_data` (one object per date).
+- Batch status is updated automatically: intake/receiving → **production** when you save production data; **production** → **qa** when you click “Finish batch production”. The UI labels “Awaiting test” and “Release ready” both use DB status **qa**.
+
+**How the dashboard shows it**
+
+- The dashboard calls the DB function `get_dashboard_kernel_stats()` (migration `20260306000001_create_get_dashboard_kernel_stats.sql`):
+  - **Batches in production**: count of active kernel batches whose status is **not** `complete` or `in_finished_stock` (so intake, receiving, production, and **qa** are all included — “Awaiting test” and “Release ready” count).
+  - **Kg cracked today / this week**: sum of `totalqty` (or `total_qty`) from all batches’ `cracking_data` entries whose `date` is today or in the last 7 days (dates in YYYY-MM-DD or DD/MM/YYYY are supported).
+  - **Kg packed today / this week**: sum of `totals_qty` (or `sk_total_qty` + `bt_total_qty`) from all batches’ `packing_data` entries for the same date range.
+
+**If numbers don’t appear**
+
+1. Ensure the migration is applied on the database and the backend (e.g. Lambda) calls `get_dashboard_kernel_stats`. If the RPC is missing, the dashboard shows 0 and the browser console logs a warning.
+2. For “today” / “this week” to match, the **server date** (DB `current_date`) must match the dates you entered. If you enter 03/03/2026, that day’s kg will only show when the server date is 3 March 2026.
+3. Enter at least Cracking (date + total qty) or Packing (date + totals) in Production Stages and save; then refresh the dashboard.
+
 ### Key Performance Indicators (KPIs)
 
 **Production KPIs**

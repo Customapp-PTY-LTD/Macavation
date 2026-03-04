@@ -121,14 +121,17 @@
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <h1 class="h2">Executive Dashboard &amp; Reporting</h1>
             <div class="btn-toolbar mb-2 mb-md-0">
+                <button type="button" class="btn btn-outline-secondary me-2" id="customizeDashboardBtn" title="Choose which stats to show">
+                    <i class="fas fa-sliders-h me-1"></i>Customize
+                </button>
                 <button type="button" class="btn btn-primary" id="generateReportBtn">
                     <i class="fas fa-file-pdf me-1"></i>Generate Report
                 </button>
             </div>
         </div>
 
-        <div class="row mb-4">
-            <div class="col-md-3 mb-3">
+        <div class="row mb-4" id="execDashboardKpiRow">
+            <div class="col-md-3 mb-3" data-dashboard-widget="totalProduction">
                 <div class="card border-primary">
                     <div class="card-body">
                         <h6 class="text-muted">Total Production (kg)</h6>
@@ -136,7 +139,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-md-3 mb-3" data-dashboard-widget="activeBatches">
                 <div class="card border-success">
                     <div class="card-body">
                         <h6 class="text-muted">Active Batches</h6>
@@ -144,7 +147,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-md-3 mb-3" data-dashboard-widget="totalSales">
                 <div class="card border-info">
                     <div class="card-body">
                         <h6 class="text-muted">Total Sales (ZAR)</h6>
@@ -152,11 +155,182 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-md-3 mb-3" data-dashboard-widget="qualityPassRate">
                 <div class="card border-warning">
                     <div class="card-body">
                         <h6 class="text-muted">Quality Pass Rate</h6>
                         <h3 id="qualityPassRate">0%</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesInProduction">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kernel batches in production</h6>
+                        <h3 class="mb-0" id="execStatBatchesInProduction">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgCrackedToday">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg cracked today</h6>
+                        <h3 class="mb-0" id="execStatKgCrackedToday">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgCrackedWeek">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg cracked this week</h6>
+                        <h3 class="mb-0" id="execStatKgCrackedWeek">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgPackedToday">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg packed today</h6>
+                        <h3 class="mb-0" id="execStatKgPackedToday">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgPackedWeek">
+                <div class="card h-100 border-secondary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg packed this week</h6>
+                        <h3 class="mb-0" id="execStatKgPackedWeek">—</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesAwaitingTest">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Awaiting test</h6>
+                        <h3 class="mb-0" id="execStatBatchesAwaitingTest">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesReleaseReady">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Release ready</h6>
+                        <h3 class="mb-0" id="execStatBatchesReleaseReady">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesCompletedWeek">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Completed this week</h6>
+                        <h3 class="mb-0" id="execStatBatchesCompletedWeek">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesInIntake">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">In intake</h6>
+                        <h3 class="mb-0" id="execStatBatchesInIntake">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesOnHold">
+                <div class="card h-100 border-danger">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">On hold</h6>
+                        <h3 class="mb-0" id="execStatBatchesOnHold">—</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatOilLitresToday">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Oil (L) today</h6>
+                        <h3 class="mb-0" id="execStatOilLitresToday">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatOilLitresWeek">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Oil (L) this week</h6>
+                        <h3 class="mb-0" id="execStatOilLitresWeek">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatOilSheetsWeek">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Oil sheets this week</h6>
+                        <h3 class="mb-0" id="execStatOilSheetsWeek">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatQualityPassRate">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Quality pass rate</h6>
+                        <h3 class="mb-0" id="execStatQualityPassRate">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatQualityTestsWeek">
+                <div class="card h-100 border-secondary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Quality tests this week</h6>
+                        <h3 class="mb-0" id="execStatQualityTestsWeek">—</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatDispatchWeek">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Dispatch this week</h6>
+                        <h3 class="mb-0" id="execStatDispatchWeek">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatDispatchPending">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Dispatch pending</h6>
+                        <h3 class="mb-0" id="execStatDispatchPending">—</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="execDashboardCustomizeModal" tabindex="-1" aria-labelledby="execDashboardCustomizeModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="execDashboardCustomizeModalLabel">Customize dashboard</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-3">Select which stats to show. Your choice is saved for this browser.</p>
+                        <div class="mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="execDashboardSelectAll">Select all</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="execDashboardDeselectAll">Deselect all</button>
+                        </div>
+                        <div id="execDashboardWidgetCheckboxes" class="list-group list-group-flush"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="execDashboardSaveVisibility">Save</button>
                     </div>
                 </div>
             </div>
