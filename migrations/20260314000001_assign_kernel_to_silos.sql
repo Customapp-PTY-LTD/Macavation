@@ -1,5 +1,6 @@
 -- Assign a kernel batch to one or more silos (1-12). Only empty silos can be assigned.
 -- Used after "Release to production" from Grower Intake when user selects silos.
+-- Updates silo table and kernel.silos (integer[]) with the assigned silo numbers.
 CREATE OR REPLACE FUNCTION public.assign_kernel_to_silos(
     p_kernel_id uuid,
     p_silo_numbers integer[] DEFAULT '{}'
@@ -24,6 +25,7 @@ BEGIN
         END IF;
     END LOOP;
 
+    -- Update silo table: assign kernel to selected empty silos
     UPDATE public.silo s
     SET kernel_id = p_kernel_id,
         status = 'occupied',
@@ -33,6 +35,13 @@ BEGIN
       AND (s.kernel_id IS NULL AND s.oil_batch_id IS NULL);
 
     GET DIAGNOSTICS n = ROW_COUNT;
+
+    -- Persist silo numbers on the kernel (batch) row
+    UPDATE public.kernel
+    SET silos = p_silo_numbers,
+        updated_at = NOW()
+    WHERE id = p_kernel_id AND is_active = true;
+
     RETURN jsonb_build_object('success', true, 'kernel_id', p_kernel_id, 'silos_assigned', n);
 EXCEPTION
     WHEN OTHERS THEN

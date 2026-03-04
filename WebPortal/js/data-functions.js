@@ -1951,12 +1951,18 @@ var _dataFunctions = function () {
         /**
          * Release a kernel batch to production.
          * Validates both ziplock_sample and five_kg_sample are saved, then sets status = 'production'.
-         * @param {object} data - { kernel_id }
+         * Optionally assigns silos when data.silos (integer[]) is provided.
+         * @param {object} data - { kernel_id [, silos ] }
          * @returns {Promise<object>} { success, kernel_id } or { success: false, error }
          */
         releaseKernelToProduction: async function (data, token = null) {
-            const result = await this.callFunction('release_kernel_to_production', { p_kernel_id: data.kernel_id }, token, { useCache: false });
+            const params = { p_kernel_id: data.kernel_id };
+            if (Array.isArray(data.silos) && data.silos.length > 0) {
+                params.p_silos = data.silos;
+            }
+            const result = await this.callFunction('release_kernel_to_production', params, token, { useCache: false });
             this.clearCachePattern('kernel_batches');
+            this.clearCachePattern('silos');
             return result && (result.data !== undefined ? result.data : result);
         },
 
