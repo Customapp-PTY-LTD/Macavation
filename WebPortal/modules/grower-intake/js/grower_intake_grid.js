@@ -24,7 +24,7 @@ var _growerIntakeGrid = function () {
         return 'quality_approved';
     }
 
-    return {
+        return {
         samples: [],
         filteredSamples: [],
         intakeBatches: [],
@@ -33,6 +33,8 @@ var _growerIntakeGrid = function () {
         itemsPerPage: 20,
         wetNisDisplayMode: 'both', // 'supplied' | 'actual' | 'both'
         currentView: 'kanban',
+        releaseBatchIdForSilos: null,
+        siloList: [],
 
         init: () => {
             const scope = _growerIntakeGrid;
@@ -139,7 +141,9 @@ var _growerIntakeGrid = function () {
                 e.preventDefault();
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
-                if (batchId && typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.moveBatchToRawStock) {
+                if (batchId && typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.showSiloPickerModal) {
+                    _growerIntakeGrid.showSiloPickerModal(batchId);
+                } else if (batchId && _growerIntakeGrid.moveBatchToRawStock) {
                     _growerIntakeGrid.moveBatchToRawStock(batchId);
                 }
             });
@@ -161,6 +165,19 @@ var _growerIntakeGrid = function () {
                 if (batchId && typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.deleteBatch) {
                     _growerIntakeGrid.deleteBatch(batchId);
                 }
+            });
+            // Silo selection modal: toggle selection on empty silo click
+            $(document).on('click', '#siloSelectionGrid .silo-selectable', function () {
+                $(this).toggleClass('silo-selected');
+                _growerIntakeGrid.updateSiloSelectionSummary();
+            });
+            $('#siloSelectionConfirmBtn').off('click').on('click', function () {
+                if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.confirmSiloSelection) {
+                    _growerIntakeGrid.confirmSiloSelection();
+                }
+            });
+            $('#siloSelectionModal').on('hidden.bs.modal', function () {
+                _growerIntakeGrid.releaseBatchIdForSilos = null;
             });
         },
 
@@ -437,6 +454,93 @@ var _growerIntakeGrid = function () {
                     }
                 }
             });
+        },
+
+        showSiloPickerModal: async (batchId) => {
+            const scope = _growerIntakeGrid;
+            if (!batchId) return;
+            scope.releaseBatchIdForSilos = batchId;
+            var gridEl = document.getElementById('siloSelectionGrid');
+            var btnEl = document.getElementById('siloSelectionConfirmBtn');
+            if (gridEl) gridEl.innerHTML = '<p class="text-muted mb-0">Loading silos…</p>';
+            if (btnEl) btnEl.disabled = true;
+            try {
+                var list = typeof dataFunctions !== 'undefined' && dataFunctions.getSilos ? await dataFunctions.getSilos(null, true) : [];
+                scope.siloList = Array.isArray(list) ? list : [];
+                scope.renderSiloSelectionGrid();
+                scope.updateSiloSelectionSummary();
+            } catch (e) {
+                console.error(e);
+                if (gridEl) gridEl.innerHTML = '<p class="text-danger mb-0">Failed to load silos.</p>';
+            }
+            var modalEl = document.getElementById('siloSelectionModal');
+            if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            else if (typeof $ !== 'undefined' && $.fn.modal) $('#siloSelectionModal').modal('show');
+        },
+
+        renderSiloSelectionGrid: () => {
+            const scope = _growerIntakeGrid;
+            var gridEl = document.getElementById('siloSelectionGrid');
+            if (!gridEl) return;
+            var occupied = {};
+            (scope.siloList || []).forEach(function (s) {
+                var num = s.silo_number != null ? Number(s.silo_number) : null;
+                if (num >= 1 && num <= 12 && (s.kernel_id || s.oil_batch_id || s.status === 'occupied')) {
+                    occupied[num] = true;
+                }
+            });
+            var html = '';
+            for (var n = 1; n <= 12; n++) {
+                var isOccupied = !!occupied[n];
+                var cls = 'silo-box ' + (isOccupied ? 'silo-occupied' : 'silo-empty silo-selectable');
+                html += '<div class="' + cls + '" data-silo-number="' + n + '" role="button" tabindex="0"><span class="silo-label">' + n + '</span></div>';
+            }
+            gridEl.innerHTML = html;
+        },
+
+        updateSiloSelectionSummary: () => {
+            var selected = [];
+            $('#siloSelectionGrid .silo-selectable.silo-selected').each(function () {
+                var n = $(this).data('silo-number');
+                if (n != null) selected.push(Number(n));
+            });
+            var summaryEl = document.getElementById('siloSelectionSummary');
+            var btnEl = document.getElementById('siloSelectionConfirmBtn');
+            if (summaryEl) summaryEl.textContent = selected.length > 0 ? 'Silos selected: ' + selected.sort(function (a, b) { return a - b; }).join(', ') : 'Select at least one silo.';
+            if (btnEl) btnEl.disabled = selected.length === 0;
+        },
+
+        confirmSiloSelection: async () => {
+            const scope = _growerIntakeGrid;
+            var kernelId = scope.releaseBatchIdForSilos;
+            if (!kernelId) return;
+            var selected = [];
+            $('#siloSelectionGrid .silo-selectable.silo-selected').each(function () {
+                var n = $(this).data('silo-number');
+                if (n != null) selected.push(Number(n));
+            });
+            if (selected.length === 0) return;
+            var btnEl = document.getElementById('siloSelectionConfirmBtn');
+            if (btnEl) btnEl.disabled = true;
+            try {
+                var releaseResult = await dataFunctions.releaseKernelToProduction({ kernel_id: kernelId });
+                if (releaseResult && releaseResult.success === false) {
+                    throw new Error(releaseResult.error || 'Release failed');
+                }
+                var assignResult = await dataFunctions.assignKernelToSilos(kernelId, selected);
+                if (assignResult && assignResult.success === false) {
+                    throw new Error(assignResult.error || 'Silo assignment failed');
+                }
+                var modalEl = document.getElementById('siloSelectionModal');
+                if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl).hide();
+                else if (typeof $ !== 'undefined') $('#siloSelectionModal').modal('hide');
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released to production', text: 'Batch is in Kernel Production and assigned to silo(s) ' + selected.sort(function (a, b) { return a - b; }).join(', ') + '.', timer: 2500, showConfirmButton: false });
+                scope.loadIntakeBatches(true);
+            } catch (e) {
+                console.error(e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release or assign silos', 'error');
+                if (btnEl) btnEl.disabled = false;
+            }
         },
 
         moveBatchToRawStock: async (batchId) => {
