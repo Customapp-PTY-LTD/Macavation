@@ -460,6 +460,9 @@ var _appRouter = function () {
                 'send-to-dispatch-modal': () => {
                     if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.init) _modal_stock_send_to_dispatch.init();
                 },
+                'send-to-dispatch-oil-modal': () => {
+                    if (typeof _modal_stock_send_to_dispatch_oil !== 'undefined' && _modal_stock_send_to_dispatch_oil.init) _modal_stock_send_to_dispatch_oil.init();
+                },
                 'sales-forecasting-grid': () => {
                     if (typeof initializeSalesForecastingGrid === 'function') {
                         initializeSalesForecastingGrid();
@@ -471,9 +474,7 @@ var _appRouter = function () {
                     }
                 },
                 'oil-dispatch-grid': () => {
-                    if (typeof initializeOilDispatchGrid === 'function') {
-                        initializeOilDispatchGrid();
-                    }
+                    if (typeof _oilDispatchGrid !== 'undefined' && _oilDispatchGrid.init) _oilDispatchGrid.init();
                 },
                 'financial-management-grid': () => {
                     if (typeof _financialManagementGrid !== 'undefined' && _financialManagementGrid.init) _financialManagementGrid.init();

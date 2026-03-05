@@ -8,8 +8,11 @@
             <div id="batchSummaryBody" style="max-height: calc(100vh - 180px); overflow-y: auto;">
                 <p class="text-muted mb-0">Loading…</p>
             </div>
-            <div class="modal-body-actions d-flex justify-content-end align-items-center mt-4 pt-3 border-top">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-body-actions d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                <button type="button" class="btn btn-success" id="batchSummaryFinishProductionBtn" style="display: none;"><i class="fas fa-flag-checkered me-1"></i>Finish batch production</button>
+                <div class="d-flex gap-2 ms-auto">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>

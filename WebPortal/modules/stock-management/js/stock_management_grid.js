@@ -104,6 +104,9 @@ var _stockManagementGrid = function () {
                 $('#sendToDispatchBtn').off('click').on('click', function () {
                     if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show();
                 });
+                $('#sendToDispatchOilBtn').off('click').on('click', function () {
+                    if (typeof _modal_stock_send_to_dispatch_oil !== 'undefined' && _modal_stock_send_to_dispatch_oil.show) _modal_stock_send_to_dispatch_oil.show();
+                });
                 $('#exportStockBtn').off('click').on('click', function () { scope.exportStock(); });
 
                 $('#searchStockInput').on('input', function () {

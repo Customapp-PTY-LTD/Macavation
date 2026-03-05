@@ -320,6 +320,20 @@
             "js": ["js/oil_dispatch_grid.js"],
             "css": ["css/oil_dispatch_grid.css"]
         },
+        "oil-dispatch-modal": {
+            "description": "Oil Dispatch view basket modal",
+            "path": "modals/modal-oil-dispatch",
+            "html": "html/modal_oil_dispatch.html",
+            "js": ["js/modal_oil_dispatch.js"],
+            "css": []
+        },
+        "oil-dispatch-form-modal": {
+            "description": "Oil Dispatch inspection and dispatch form",
+            "path": "modals/modal-oil-dispatch-form",
+            "html": "html/modal_oil_dispatch_form.html",
+            "js": ["js/modal_oil_dispatch_form.js"],
+            "css": []
+        },
         "quality-assurance-grid": {
             "description": "Quality Assurance & Food Safety",
             "path": "quality-assurance",
@@ -432,6 +446,13 @@
             "path": "modals/modal-stock-send-to-dispatch",
             "html": "html/modal_send_to_dispatch.html",
             "js": ["js/modal_send_to_dispatch.js"],
+            "css": []
+        },
+        "send-to-dispatch-oil-modal": {
+            "description": "Send to Dispatch (Oil & Protein) Modal",
+            "path": "modals/modal-stock-send-to-dispatch-oil",
+            "html": "html/modal_send_to_dispatch_oil.html",
+            "js": ["js/modal_send_to_dispatch_oil.js"],
             "css": []
         },
         "sales-forecasting-grid": {

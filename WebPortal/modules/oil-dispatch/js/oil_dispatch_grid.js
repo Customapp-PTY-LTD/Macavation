@@ -1,140 +1,193 @@
 /**
- * Oil & Protein Dispatch Grid Module
- * INV from OIL PROTEIN R YES → FEED+OIL+PROTEIN CUSTOMERS → DEBTORS.
- * Follows UI_DESIGN_INSTRUCTIONS.md; reference: kernel-production.
+ * Oil & Protein Dispatch - INV from OIL PROTEIN R YES → FEED+OIL+PROTEIN CUSTOMERS → DEBTORS.
+ * Lists dispatch orders (baskets) created from Stock (Oil). View basket shows products/lines per order.
+ * Mirrors Kernel Dispatch: same layout, flow, Board/Table, Kanban, View basket + Dispatch.
  */
 var _oilDispatchGrid = function () {
     'use strict';
 
+    var formatDate = function (v) {
+        if (!v) return '';
+        if (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY) return _common.formatDateDDMMYYYY(v);
+        var d = v instanceof Date ? v : new Date(v);
+        if (isNaN(d.getTime())) return '';
+        var day = String(d.getDate()).padStart(2, '0');
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var year = d.getFullYear();
+        return day + '/' + month + '/' + year;
+    };
+
+    var DISPATCH_KANBAN_COLUMNS = [
+        { key: 'confirmed', label: 'Ready to Dispatch' },
+        { key: 'dispatched', label: 'Dispatched' }
+    ];
+
     return {
-        dispatches: [],
-        filteredDispatches: [],
+        orders: [],
+        _handlersBound: false,
+        currentView: 'kanban',
 
         init: async () => {
             const scope = _oilDispatchGrid;
-            await scope.waitForReady();
-            scope.setupEventListeners();
-            await scope.loadData();
-        },
-
-        waitForReady: () => {
-            return new Promise(function (resolve) {
-                $(document).ready(resolve);
+            $('#oilDispatchRefreshBtn').off('click').on('click', function () { scope.loadOrders(true); });
+            $('#odViewKanban, #odViewTable').off('click').on('click', function () {
+                scope.toggleView($(this).data('view'));
             });
-        },
-
-        setupEventListeners: () => {
-            const scope = _oilDispatchGrid;
-            $('#clearDispatchFiltersBtn').off('click').on('click', function () {
-                $('#searchDispatchInput').val('');
-                $('#filterDispatchStatus').val('');
-                scope.filterDispatches();
+            if (!scope._handlersBound) {
+                scope._handlersBound = true;
+                $(document).on('click', '.js-view-oil-dispatch-order', function () {
+                    var id = $(this).data('order-id');
+                    if (id && typeof _modal_oil_dispatch !== 'undefined' && _modal_oil_dispatch.showOrder) {
+                        _modal_oil_dispatch.showOrder(id);
+                    }
+                });
+                $(document).on('click', '.js-dispatch-oil-order', function () {
+                    var id = $(this).data('order-id');
+                    if (id && typeof _modal_oil_dispatch_form !== 'undefined' && _modal_oil_dispatch_form.show) {
+                        _modal_oil_dispatch_form.show(id);
+                    }
+                });
+            }
+            var loadPromises = [];
+            $('.modal[route-name]').each(function (index, el) {
+                var routeName = $(el).attr('route-name');
+                var elementSelector = '#' + $(el).attr('id');
+                if (routeName && elementSelector && typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                    loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: elementSelector }));
+                }
             });
-            $('#searchDispatchInput').on('input', function () { scope.filterDispatches(); });
-            $('#filterDispatchStatus').on('change', function () { scope.filterDispatches(); });
-        },
-
-        loadData: async () => {
-            const scope = _oilDispatchGrid;
-            // Data capture for oil & protein dispatch (INV to feed/oil/protein customers) - to be implemented
-            scope.dispatches = [];
-            scope.filteredDispatches = [];
-            scope.renderTable();
-        },
-
-        filterDispatches: () => {
-            const scope = _oilDispatchGrid;
-            var searchTerm = ($('#searchDispatchInput').val() || '').toLowerCase();
-            var statusFilter = $('#filterDispatchStatus').val();
-            scope.filteredDispatches = scope.dispatches.filter(function (d) {
-                var matchSearch = !searchTerm ||
-                    (d.reference && d.reference.toLowerCase().indexOf(searchTerm) >= 0) ||
-                    (d.customer && d.customer.toLowerCase().indexOf(searchTerm) >= 0);
-                var matchStatus = !statusFilter || (d.status === statusFilter);
-                return matchSearch && matchStatus;
+            Promise.all(loadPromises).then(function () {
+                if (typeof _modal_oil_dispatch !== 'undefined' && _modal_oil_dispatch.init) _modal_oil_dispatch.init();
+                if (typeof _modal_oil_dispatch_form !== 'undefined' && _modal_oil_dispatch_form.init) _modal_oil_dispatch_form.init();
+            }).catch(function (err) {
+                console.error('[Oil Dispatch] Error loading modal:', err);
+                if (typeof _modal_oil_dispatch !== 'undefined' && _modal_oil_dispatch.init) _modal_oil_dispatch.init();
+                if (typeof _modal_oil_dispatch_form !== 'undefined' && _modal_oil_dispatch_form.init) _modal_oil_dispatch_form.init();
             });
-            scope.renderTable();
+            await scope.loadOrders();
         },
 
-        renderTable: () => {
+        loadOrders: async (forceRefresh) => {
             const scope = _oilDispatchGrid;
-            var tbody = $('#oilDispatchTableBody');
-            tbody.empty();
-            var list = scope.filteredDispatches.length >= 0 ? scope.filteredDispatches : scope.dispatches;
-            if (!list || list.length === 0) {
-                var msg = scope.dispatches.length === 0
-                    ? 'No oil & protein dispatches yet. Data capture will be implemented here.'
-                    : 'No dispatches match your search.';
-                tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>' + scope.escapeHtml(msg) + '</td></tr>');
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getOilDispatchOrders) {
+                    scope.orders = [];
+                    scope.render();
+                    return;
+                }
+                scope.orders = await dataFunctions.getOilDispatchOrders(null, forceRefresh) || [];
+                scope.render();
+            } catch (e) {
+                console.error('[Oil Dispatch] loadOrders failed:', e);
+                scope.orders = [];
+                scope.render();
+            }
+        },
+
+        render: () => {
+            const scope = _oilDispatchGrid;
+            if (scope.currentView === 'kanban') {
+                scope.renderKanban();
                 return;
             }
-            list.forEach(function (d) {
-                var dateStr = scope.formatDate(d.dispatch_date);
-                var did = scope.escapeHtml(String(d.id));
-                var actionsCell = '<div class="dropdown">' +
-                    '<button class="btn btn-sm btn-outline-secondary" type="button" id="dispatchActions' + did + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
-                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dispatchActions' + did + '">' +
-                    '<a class="dropdown-item js-dispatch-view" href="#" data-dispatch-id="' + did + '">View</a>' +
-                    '<a class="dropdown-item js-dispatch-edit" href="#" data-dispatch-id="' + did + '">Edit</a>' +
-                    '</ul></div>';
-                var row = '<tr class="js-dispatch-row" data-dispatch-id="' + did + '">' +
-                    '<td>' + scope.escapeHtml(d.reference || 'N/A') + '</td>' +
-                    '<td>' + scope.escapeHtml(dateStr || 'N/A') + '</td>' +
-                    '<td>' + scope.escapeHtml(d.customer || 'N/A') + '</td>' +
-                    '<td>' + scope.escapeHtml(d.product || 'N/A') + '</td>' +
-                    '<td>' + scope.escapeHtml(String(d.quantity != null ? d.quantity : '0')) + '</td>' +
-                    '<td><span class="badge bg-info">' + scope.escapeHtml(d.status || 'draft') + '</span></td>' +
-                    '<td>' + actionsCell + '</td></tr>';
-                tbody.append(row);
-            });
-        },
+            var pending = scope.orders.filter(function (o) { return o.status !== 'dispatched'; });
+            var dispatched = scope.orders.filter(function (o) { return o.status === 'dispatched'; });
 
-        showError: (message) => {
-            if (typeof _common !== 'undefined' && _common.showToastMessage) {
-                _common.showToastMessage(message, 'error');
-            } else if (typeof Swal !== 'undefined' && Swal.fire) {
-                Swal.fire({ icon: 'error', title: 'Error', text: message });
+            var pendingTbody = $('#oilDispatchTableBody');
+            pendingTbody.empty();
+            if (!pending.length) {
+                pendingTbody.html('<tr><td colspan="6" class="text-center text-muted py-4">No orders ready to dispatch. Go to Stock (Oil &amp; Protein), select products/lots, then Send to Dispatch to create an order.</td></tr>');
             } else {
-                alert(message);
+                pending.forEach(function (o) {
+                    var buyer = (o.buyer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '—';
+                    var deliveryStr = formatDate(o.delivery_date);
+                    var createdStr = formatDate(o.created_at);
+                    var lineCount = o.line_count != null ? o.line_count : 0;
+                    var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
+                    var statusBadge = typeof KanbanHelper !== 'undefined' ? KanbanHelper.statusBadge(o.status || 'confirmed', 'first') : '<span class="badge bg-secondary">' + (o.status || 'confirmed') + '</span>';
+                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order me-1" data-order-id="' + (o.id || '') + '" title="View basket"><i class="fas fa-box me-1"></i>View basket</button>';
+                    var dispatchBtn = '<button type="button" class="btn btn-sm btn-success js-dispatch-oil-order" data-order-id="' + (o.id || '') + '" title="Complete inspection and dispatch"><i class="fas fa-truck me-1"></i>Dispatch</button>';
+                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + dispatchBtn + '</td></tr>');
+                });
+            }
+
+            var dispatchedTbody = $('#oilDispatchedTableBody');
+            dispatchedTbody.empty();
+            if (!dispatched.length) {
+                dispatchedTbody.html('<tr><td colspan="6" class="text-center text-muted py-4">No baskets marked as dispatched yet. Use the Dispatch button above to complete an order.</td></tr>');
+            } else {
+                dispatched.forEach(function (o) {
+                    var buyer = (o.buyer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '—';
+                    var deliveryStr = formatDate(o.delivery_date);
+                    var createdStr = formatDate(o.created_at);
+                    var lineCount = o.line_count != null ? o.line_count : 0;
+                    var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
+                    var statusBadge = typeof KanbanHelper !== 'undefined' ? KanbanHelper.statusBadge('dispatched', 'last') : '<span class="badge bg-success">dispatched</span>';
+                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order" data-order-id="' + (o.id || '') + '" title="View basket"><i class="fas fa-box me-1"></i>View basket</button>';
+                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + '</td></tr>');
+                });
             }
         },
 
-        escapeHtml: (text) => {
-            if (!text) return '';
-            var div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        toggleView: (view) => {
+            const scope = _oilDispatchGrid;
+            scope.currentView = view;
+            var board = document.getElementById('odKanbanBoard');
+            var tables = document.getElementById('odTableCards');
+            if (view === 'kanban') {
+                if (board) board.style.display = '';
+                if (tables) tables.style.display = 'none';
+                scope.renderKanban();
+            } else {
+                if (board) board.style.display = 'none';
+                if (tables) tables.style.display = '';
+                scope.render();
+            }
+            $('#odViewKanban').toggleClass('active', view === 'kanban');
+            $('#odViewTable').toggleClass('active', view === 'table');
         },
 
-        formatDate: (value) => {
-            if (!value) return '';
-            var d = value instanceof Date ? value : new Date(value);
-            if (isNaN(d.getTime())) return '';
-            var day = String(d.getDate()).padStart(2, '0');
-            var month = String(d.getMonth() + 1).padStart(2, '0');
-            var year = d.getFullYear();
-            return day + '/' + month + '/' + year;
+        renderKanban: () => {
+            const scope = _oilDispatchGrid;
+            if (typeof KanbanHelper === 'undefined') return;
+
+            KanbanHelper.render('odKanbanBoard', DISPATCH_KANBAN_COLUMNS, scope.orders, function (o) {
+                return o.status === 'dispatched' ? 'dispatched' : 'confirmed';
+            }, function (o) {
+                var esc = KanbanHelper._esc;
+                var buyer = esc(o.buyer_name || '—');
+                var deliveryStr = formatDate(o.delivery_date);
+                var createdStr = formatDate(o.created_at);
+                var lineCount = o.line_count != null ? o.line_count : 0;
+                var totalKg = o.total_kg != null ? Number(o.total_kg).toFixed(1) : '0.0';
+                var isDispatched = o.status === 'dispatched';
+
+                var html = '<div class="kanban-card" data-order-id="' + (o.id || '') + '">';
+                html += '<div class="kanban-card-title">' + buyer + '</div>';
+                html += '<div class="kanban-card-meta">';
+                if (deliveryStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + esc(deliveryStr) + '</div>';
+                html += '<div class="kanban-card-meta-item"><i class="fas fa-list"></i> ' + lineCount + ' lines</div>';
+                html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + totalKg + ' kg</div>';
+                html += '</div>';
+                html += '<div class="kanban-card-actions">';
+                html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order" data-order-id="' + (o.id || '') + '" title="View basket"><i class="fas fa-box me-1"></i>View</button>';
+                if (!isDispatched) {
+                    html += '<button type="button" class="btn btn-sm btn-success js-dispatch-oil-order" data-order-id="' + (o.id || '') + '" title="Complete inspection and dispatch"><i class="fas fa-truck me-1"></i>Dispatch</button>';
+                }
+                html += '</div>';
+                html += '</div>';
+                return html;
+            });
+
+            KanbanHelper.enableDragDrop('odKanbanBoard', function (orderId, fromKey, toKey) {
+                if (fromKey === 'confirmed' && toKey === 'dispatched') {
+                    if (typeof _modal_oil_dispatch_form !== 'undefined' && _modal_oil_dispatch_form.show) {
+                        _modal_oil_dispatch_form.show(orderId);
+                    }
+                }
+            });
         }
     };
 }();
 
-window.oilDispatchGrid = _oilDispatchGrid;
-
-function initializeOilDispatchGrid() {
-    var maxWait = 5000;
-    var start = Date.now();
-    function tryInit() {
-        if (typeof dataFunctions !== 'undefined' && dataFunctions) {
-            _oilDispatchGrid.init();
-            return;
-        }
-        if (Date.now() - start < maxWait) {
-            setTimeout(tryInit, 50);
-        }
-    }
-    tryInit();
-}
-
-$(document).ready(function () {
-    initializeOilDispatchGrid();
-});
+if (typeof _oilDispatchGrid !== 'undefined') _oilDispatchGrid.init();

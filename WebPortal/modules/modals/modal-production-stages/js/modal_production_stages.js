@@ -152,6 +152,24 @@ var _modal_production_stages = (function () {
                 e.preventDefault();
                 scope.showBatchSummary();
             });
+            $(document).on('click', '#batchSummaryFinishProductionBtn', function (e) {
+                e.preventDefault();
+                var batchId = $('#batchSummaryModal').data('current-batch-id') || $('#productionStagesBatchId').val();
+                if (!batchId) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not selected', 'error');
+                    return;
+                }
+                var summaryModalEl = document.getElementById('batchSummaryModal');
+                if (summaryModalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(summaryModalEl).hide();
+                else $('#batchSummaryModal').modal('hide');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ title: 'Finish batch production?', text: 'This will mark the batch production as complete.', icon: 'question', showCancelButton: true, confirmButtonText: 'Finish' }).then(function (confirmResult) {
+                        if (confirmResult.isConfirmed) scope.doFinishBatchProduction(batchId);
+                    });
+                } else {
+                    scope.doFinishBatchProduction(batchId);
+                }
+            });
             $(document).on('change input', '#ps_crack_start1, #ps_crack_end1', function () {
                 scope.updateCrackTimeSpentRow(1);
             });
@@ -739,6 +757,7 @@ var _modal_production_stages = (function () {
             if (!batchId) return;
             var $body = $('#batchSummaryBody');
             $body.html('<p class="text-muted mb-0">Loading…</p>');
+            $('#batchSummaryFinishProductionBtn').hide();
             var modalEl = document.getElementById('batchSummaryModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#batchSummaryModal').modal('show');
@@ -751,6 +770,7 @@ var _modal_production_stages = (function () {
             var maxLen = Math.max(cracking.length, washing.length, sorting.length, packing.length);
             if (maxLen === 0) {
                 $body.html('<p class="text-muted mb-0">No production days to summarize. Add days and save data first.</p>');
+                $('#batchSummaryFinishProductionBtn').hide();
                 return;
             }
             var allStages = [];
@@ -765,6 +785,9 @@ var _modal_production_stages = (function () {
             var agg = scope.aggregateProductionStages(allStages);
             var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
             $body.html(scope.renderBatchSummaryHtml(agg, maxLen, batch, detail));
+            $('#batchSummaryModal').data('current-batch-id', batchId);
+            var $finishBtn = $('#batchSummaryFinishProductionBtn');
+            if ($finishBtn.length) $finishBtn.toggle(!!(batch && !batch.production_finished_at));
         },
 
         /**
@@ -776,6 +799,7 @@ var _modal_production_stages = (function () {
             if (!batchId || typeof dataFunctions === 'undefined' || !dataFunctions.getKernelBatchDetail) return;
             var $body = $('#batchSummaryBody');
             $body.html('<p class="text-muted mb-0">Loading…</p>');
+            $('#batchSummaryFinishProductionBtn').hide();
             var modalEl = document.getElementById('batchSummaryModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#batchSummaryModal').modal('show');
@@ -788,6 +812,7 @@ var _modal_production_stages = (function () {
                 var maxLen = Math.max(cracking.length, washing.length, sorting.length, packing.length);
                 if (maxLen === 0) {
                     $body.html('<p class="text-muted mb-0">No production days to summarize. Add days and save data first.</p>');
+                    $('#batchSummaryFinishProductionBtn').hide();
                     return;
                 }
                 var allStages = [];
@@ -802,6 +827,9 @@ var _modal_production_stages = (function () {
                 var agg = scope.aggregateProductionStages(allStages);
                 var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
                 $body.html(scope.renderBatchSummaryHtml(agg, maxLen, batch, detail));
+                $('#batchSummaryModal').data('current-batch-id', batchId);
+                var $finishBtn = $('#batchSummaryFinishProductionBtn');
+                if ($finishBtn.length) $finishBtn.toggle(!!(batch && !batch.production_finished_at));
             }).catch(function (err) {
                 console.error('[Batch Summary] Failed to load kernel detail:', err);
                 $body.html('<p class="text-danger mb-0">Unable to load batch data. Please try again.</p>');
@@ -1431,24 +1459,14 @@ var _modal_production_stages = (function () {
                 return;
             }
 
-            var packingComplete = (function (pack) {
-                if (!pack || typeof pack !== 'object') return false;
-                var dateOk = pack.date != null && String(pack.date).trim() !== '' && /^\d{4}-\d{2}-\d{2}/.test(String(pack.date).trim());
-                var signed = pack.signature != null && String(pack.signature).trim() !== '';
-                var sk = parseFloat(pack.sk_total_qty) || 0;
-                var bt = parseFloat(pack.bt_total_qty) || 0;
-                var tot = parseFloat(pack.totals_qty) || 0;
-                var hasQty = sk > 0 || bt > 0 || tot > 0;
-                return dateOk && signed && hasQty;
-            })(packing_data);
-
-            // Only move batch to Awaiting tests when packing is complete (date + signature + quantities)
+            // Do not auto-finish production when packing is complete — there may be multiple days (e.g. 3 days).
+            // User must explicitly click "Finish batch production" in the Batch summary modal.
             dataFunctions.upsertKernelProduction(batchId, {
                 crackingData: cracking_data,
                 washingData: washing_data,
                 sortingData: sorting_data,
                 packingData: packing_data,
-                finishProduction: packingComplete
+                finishProduction: false
             }).then(function (result) {
                 var inner = (result && result.upsert_kernel_production) ? result.upsert_kernel_production : result;
                 if (inner && inner.success === false) throw new Error(inner.error || 'Save failed');
