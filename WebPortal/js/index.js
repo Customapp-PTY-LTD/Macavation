@@ -367,11 +367,6 @@ function initializeSidebarCollapse() {
         });
 
         userManagementCollapse.addEventListener('show.bs.collapse', function () {
-            const chevron = userManagementToggle.querySelector('.fa-chevron-right, .fa-chevron-down');
-            if (chevron) {
-                chevron.classList.remove('fa-chevron-right');
-                chevron.classList.add('fa-chevron-down');
-            }
             if (sidebar && sidebar.classList.contains('collapsed')) {
                 const navItem = userManagementToggle.closest('.nav-item');
                 if (navItem) {
@@ -388,11 +383,6 @@ function initializeSidebarCollapse() {
         });
 
         userManagementCollapse.addEventListener('hide.bs.collapse', function () {
-            const chevron = userManagementToggle.querySelector('.fa-chevron-right, .fa-chevron-down');
-            if (chevron) {
-                chevron.classList.remove('fa-chevron-down');
-                chevron.classList.add('fa-chevron-right');
-            }
             userManagementCollapse.style.top = '';
             userManagementCollapse.style.left = '';
             userManagementCollapse.style.position = '';
