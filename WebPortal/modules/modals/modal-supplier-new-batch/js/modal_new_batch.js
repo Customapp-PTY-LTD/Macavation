@@ -1,94 +1,24 @@
 /**
- * Modal: New batch of product (Supplier Intake). Parent calls show() or show(batch) for edit.
- * Modal owns init, show, clearForm, save. Date inputs use Flatpickr (dd/mm/yyyy); API expects ISO (yyyy-mm-dd).
+ * Modal: Create supplier intake batch (Oil & Protein). Mirrors Grower "Create kernel batch":
+ * simple form (batch number, date, supplier, product type, quantity, delivery note).
+ * Receiving checklist is a separate step; after create we offer "Open Receiving checklist".
+ * Parent calls show() or show(batch) for edit.
  */
 var _modal_supplier_new_batch = (function () {
     'use strict';
 
     var CONTAINER_ID = 'newBatchProductModal';
-    var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
     var _editingOilId = null;
-
-    function toISO(dateStr) {
-        if (!dateStr || typeof dateStr !== 'string') return null;
-        dateStr = dateStr.trim();
-        if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) return dateStr.indexOf('-') === 4 ? dateStr : null;
-        var parts = dateStr.split('/');
-        return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
-    }
-
-    function fromISO(isoStr) {
-        if (!isoStr) return '';
-        var s = typeof isoStr === 'string' ? isoStr.trim() : String(isoStr);
-        if (s.indexOf('T') >= 0) s = s.split('T')[0];
-        var parts = s.split('-');
-        if (parts.length !== 3) return s;
-        return parts[2] + '/' + parts[1] + '/' + parts[0];
-    }
-
-    function getTodayPlaceholder() {
-        return fromISO(new Date().toISOString().split('T')[0]);
-    }
-
-    function initFlatpickrInModal() {
-        var container = document.getElementById(CONTAINER_ID);
-        if (!container || typeof flatpickr === 'undefined') return;
-        var todayPlaceholder = getTodayPlaceholder();
-        var inputs = container.querySelectorAll('.flatpickr-date');
-        inputs.forEach(function (el) {
-            if (!el.placeholder) el.placeholder = todayPlaceholder;
-            if (el._flatpickr) return;
-            flatpickr(el, FLATPICKR_DDMMYYYY);
-        });
-    }
-
-    function getRadioValue(name) {
-        var el = document.querySelector('input[name="' + name + '"]:checked');
-        return el ? el.value : null;
-    }
-
-    function getDateValue(el) {
-        if (!el || !el.value) return null;
-        var val = el.value.trim();
-        return toISO(val) || (val.indexOf('-') === 4 ? val : null);
-    }
-
-    function setRadioValue(name, value) {
-        if (value === undefined || value === null) return;
-        var normalized = (value === true || value === 'true' || value === 'Yes') ? 'Yes' : (value === false || value === 'false' || value === 'No' ? 'No' : String(value));
-        var el = document.querySelector('input[name="' + name + '"][value="' + normalized + '"]');
-        if (el) el.checked = true;
-    }
+    var _editingBatch = null; // full batch when editing, so we don't overwrite receiving checklist fields
 
     function setModalTitle(title) {
         var label = document.getElementById('newBatchProductModalLabel');
         if (label) label.textContent = title;
     }
 
-    function prefillForm(batch) {
-        if (!batch) return;
-        var set = function (id, value) {
-            var el = document.getElementById(id);
-            if (el && value != null && value !== '') el.value = value;
-        };
-        set('newBatchProductType', batch.product_type || '');
-        set('newBatchDateReceived', batch.date_received ? fromISO(String(batch.date_received).split('T')[0]) : '');
-        set('newBatchDeliveryNoteRef', batch.delivery_note_ref || '');
-        set('newBatchSupplier', batch.supplier_id || '');
-        set('newBatchReference', batch.reference || '');
-        set('newBatchDescription', batch.description || '');
-        set('newBatchBatchNumber', batch.batch_number || '');
-        set('newBatchCartonBags', batch.carton_bulk_bags != null ? String(batch.carton_bulk_bags) : '1');
-        set('newBatchQuantityKg', batch.quantity_kg != null ? String(batch.quantity_kg) : '');
-        set('newBatchManufacturedDate', batch.manufactured_date ? fromISO(String(batch.manufactured_date).split('T')[0]) : '');
-        set('newBatchBestBeforeDate', batch.best_before_date ? fromISO(String(batch.best_before_date).split('T')[0]) : '');
-        set('newBatchReceivingComments', batch.receiving_comments || '');
-        setRadioValue('newBatchVehicleClean', batch.vehicle_clean);
-        setRadioValue('newBatchVehicleEnclosed', batch.vehicle_enclosed);
-        setRadioValue('newBatchHazardSubstances', batch.hazard_substances);
-        setRadioValue('newBatchPestInfestations', batch.pest_infestations);
-        setRadioValue('newBatchPalletsCondition', batch.pallets_condition);
-        setRadioValue('newBatchRawMaterialsCondition', batch.raw_materials_condition);
+    function setSaveButtonLabel(label) {
+        var btn = document.getElementById('saveNewBatchProductBtn');
+        if (btn) btn.innerHTML = (label.indexOf('<i') >= 0 ? label : '<i class="fas fa-save me-1"></i>' + label);
     }
 
     var api = {
@@ -98,29 +28,45 @@ var _modal_supplier_new_batch = (function () {
             var modalEl = document.getElementById(CONTAINER_ID);
             if (modalEl && typeof $ !== 'undefined') {
                 $(modalEl).on('hidden.bs.modal', function () { api.clearForm(); });
-                $(modalEl).on('shown.bs.modal', function () { initFlatpickrInModal(); });
             }
         },
 
         show: async function (batch) {
             _editingOilId = (batch && batch.id) ? batch.id : null;
+            _editingBatch = batch || null;
             api.clearForm(false);
+
+            var numberEl = document.getElementById('newBatchBatchNumber');
+            var dateEl = document.getElementById('newBatchDateReceived');
+            var supplierEl = document.getElementById('newBatchSupplier');
+            var productEl = document.getElementById('newBatchProductType');
+            var qtyEl = document.getElementById('newBatchQuantityKg');
+            var noteEl = document.getElementById('newBatchDeliveryNoteRef');
+
             if (_editingOilId && batch) {
                 setModalTitle('Edit batch');
-                prefillForm(batch);
+                setSaveButtonLabel('Save batch');
+                if (numberEl) numberEl.value = (batch.batch_number || '').toString();
+                if (dateEl) dateEl.value = batch.date_received ? String(batch.date_received).split('T')[0] : '';
+                if (productEl) productEl.value = batch.product_type || '';
+                if (qtyEl) qtyEl.value = batch.quantity_kg != null ? String(batch.quantity_kg) : '';
+                if (noteEl) noteEl.value = (batch.delivery_note_ref || '').toString();
             } else {
-                setModalTitle('New batch of product');
-                var todayISO = new Date().toISOString().split('T')[0];
-                var dateEl = document.getElementById('newBatchDateReceived');
-                if (dateEl) dateEl.value = fromISO(todayISO);
+                setModalTitle('Create batch');
+                setSaveButtonLabel('Create batch');
+                var d = new Date();
+                if (numberEl) numberEl.value = 'OIL-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-001';
+                if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+                if (productEl) productEl.value = '';
+                if (qtyEl) qtyEl.value = '';
+                if (noteEl) noteEl.value = '';
             }
 
             try {
                 if (typeof dataFunctions !== 'undefined' && dataFunctions.getContacts) {
                     var contacts = await dataFunctions.getContacts();
-                    var sel = document.getElementById('newBatchSupplier');
-                    if (sel) {
-                        var html = '<option value="">Select supplier</option>';
+                    if (supplierEl) {
+                        var html = '<option value="">Select (optional)</option>';
                         if (contacts && Array.isArray(contacts)) {
                             contacts.forEach(function (c) {
                                 var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
@@ -128,26 +74,24 @@ var _modal_supplier_new_batch = (function () {
                                 html += '<option value="' + c.id + '"' + selected + '>' + name + '</option>';
                             });
                         }
-                        sel.innerHTML = html;
-                        if (batch && batch.supplier_id) sel.value = batch.supplier_id;
+                        supplierEl.innerHTML = html;
+                        if (batch && batch.supplier_id) supplierEl.value = batch.supplier_id;
                     }
                 }
             } catch (e) { console.error('Error loading contacts:', e); }
 
-            var modalEl = document.getElementById('newBatchProductModal');
+            var modalEl = document.getElementById(CONTAINER_ID);
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
-            else if (typeof $ !== 'undefined' && $.fn.modal) $('#newBatchProductModal').modal('show');
+            else if (typeof $ !== 'undefined' && $.fn.modal) $('#' + CONTAINER_ID).modal('show');
         },
 
         clearForm: function (resetEditState) {
             var form = document.getElementById('newBatchProductForm');
             if (form) form.reset();
-            var cartonEl = document.getElementById('newBatchCartonBags');
-            if (cartonEl) cartonEl.value = '1';
-            var todayISO = new Date().toISOString().split('T')[0];
-            var dateEl = document.getElementById('newBatchDateReceived');
-            if (dateEl) dateEl.value = fromISO(todayISO);
-            if (resetEditState !== false) _editingOilId = null;
+            if (resetEditState !== false) {
+                _editingOilId = null;
+                _editingBatch = null;
+            }
         },
 
         save: async function () {
@@ -156,35 +100,48 @@ var _modal_supplier_new_batch = (function () {
                 form.reportValidity();
                 return;
             }
+
             var supplierEl = document.getElementById('newBatchSupplier');
             var supplierId = supplierEl && supplierEl.value ? supplierEl.value : null;
             var supplierDetails = null;
             if (supplierEl && supplierEl.options[supplierEl.selectedIndex]) supplierDetails = supplierEl.options[supplierEl.selectedIndex].text || null;
 
-            var dateReceivedEl = document.getElementById('newBatchDateReceived');
-            var manufacturedEl = document.getElementById('newBatchManufacturedDate');
-            var bestBeforeEl = document.getElementById('newBatchBestBeforeDate');
+            var batchNumber = (document.getElementById('newBatchBatchNumber') && document.getElementById('newBatchBatchNumber').value) || null;
+            var dateReceived = document.getElementById('newBatchDateReceived') && document.getElementById('newBatchDateReceived').value;
+            var productType = document.getElementById('newBatchProductType') && document.getElementById('newBatchProductType').value;
+            var quantityKg = parseFloat(document.getElementById('newBatchQuantityKg') && document.getElementById('newBatchQuantityKg').value, 10);
+            var deliveryNoteRef = (document.getElementById('newBatchDeliveryNoteRef') && document.getElementById('newBatchDeliveryNoteRef').value) || null;
+
+            if (!dateReceived || !productType || !quantityKg || quantityKg <= 0) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Received date, product type and quantity (kg) are required.', 'error');
+                return;
+            }
+
             var data = {
-                product_type: document.getElementById('newBatchProductType').value,
-                date_received: getDateValue(dateReceivedEl) || (dateReceivedEl && dateReceivedEl.value ? dateReceivedEl.value : null),
-                delivery_note_ref: document.getElementById('newBatchDeliveryNoteRef').value || null,
+                batch_number: batchNumber || null,
+                date_received: dateReceived,
+                delivery_note_ref: deliveryNoteRef,
                 supplier_id: supplierId || null,
                 supplier_details: supplierDetails || null,
-                vehicle_clean: getRadioValue('newBatchVehicleClean'),
-                vehicle_enclosed: getRadioValue('newBatchVehicleEnclosed'),
-                hazard_substances: getRadioValue('newBatchHazardSubstances'),
-                pest_infestations: getRadioValue('newBatchPestInfestations'),
-                pallets_condition: getRadioValue('newBatchPalletsCondition'),
-                raw_materials_condition: getRadioValue('newBatchRawMaterialsCondition'),
-                receiving_comments: document.getElementById('newBatchReceivingComments').value || null,
-                reference: document.getElementById('newBatchReference').value || null,
-                description: document.getElementById('newBatchDescription').value || null,
-                batch_number: document.getElementById('newBatchBatchNumber').value || null,
-                carton_bulk_bags: parseInt(document.getElementById('newBatchCartonBags').value, 10) || 1,
-                quantity_kg: parseFloat(document.getElementById('newBatchQuantityKg').value, 10) || null,
-                manufactured_date: getDateValue(manufacturedEl) || (manufacturedEl && manufacturedEl.value ? manufacturedEl.value : null),
-                best_before_date: getDateValue(bestBeforeEl) || (bestBeforeEl && bestBeforeEl.value ? bestBeforeEl.value : null)
+                product_type: productType,
+                quantity_kg: quantityKg
             };
+
+            if (_editingOilId && _editingBatch) {
+                // Preserve receiving checklist fields so we don't overwrite them
+                data.vehicle_clean = _editingBatch.vehicle_clean;
+                data.vehicle_enclosed = _editingBatch.vehicle_enclosed;
+                data.hazard_substances = _editingBatch.hazard_substances;
+                data.pest_infestations = _editingBatch.pest_infestations;
+                data.pallets_condition = _editingBatch.pallets_condition;
+                data.raw_materials_condition = _editingBatch.raw_materials_condition;
+                data.receiving_comments = _editingBatch.receiving_comments;
+                data.reference = _editingBatch.reference;
+                data.description = _editingBatch.description;
+                data.carton_bulk_bags = _editingBatch.carton_bulk_bags != null ? _editingBatch.carton_bulk_bags : 1;
+                data.manufactured_date = _editingBatch.manufactured_date;
+                data.best_before_date = _editingBatch.best_before_date;
+            }
 
             try {
                 if (typeof dataFunctions === 'undefined') {
@@ -201,33 +158,56 @@ var _modal_supplier_new_batch = (function () {
                     result = await dataFunctions.updateSupplierIntakeBatch(_editingOilId, data);
                 } else {
                     if (!dataFunctions.createSupplierIntakeBatch) {
-                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: 'Data functions not available.' });
+                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: 'Create not available.' });
                         return;
                     }
                     result = await dataFunctions.createSupplierIntakeBatch(data);
                 }
-                if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({
-                        icon: 'success',
-                        title: 'Saved',
-                        text: _editingOilId ? 'Batch updated.' : 'Batch added to supplier intake.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
+
+                var resolved = result && (result.data !== undefined ? result.data : result);
+                if (resolved && resolved.success !== false) {
+                    var wasEdit = !!_editingOilId;
+                    var newId = (resolved && resolved.id) ? resolved.id : null;
                     _editingOilId = null;
-                    var modalEl = document.getElementById('newBatchProductModal');
+                    _editingBatch = null;
+                    var modalEl = document.getElementById(CONTAINER_ID);
                     if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                    else if (typeof $ !== 'undefined' && $.fn.modal) $('#newBatchProductModal').modal('hide');
-                    if (typeof _supplierIntakeGrid !== 'undefined' && _supplierIntakeGrid.loadBatches) _supplierIntakeGrid.loadBatches(true);
+                    else if (typeof $ !== 'undefined' && $.fn.modal) $('#' + CONTAINER_ID).modal('hide');
+
+                    if (typeof _supplierIntakeGrid !== 'undefined' && _supplierIntakeGrid.loadBatches) await _supplierIntakeGrid.loadBatches(true);
+
+                    if (wasEdit) {
+                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Batch updated.', timer: 2000, showConfirmButton: false });
+                    } else {
+                        var createdBatchNumber = data.batch_number || (resolved && resolved.batch_id);
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Batch created',
+                                text: 'Batch is in intake. Complete the Receiving checklist for this batch, then release to Oil Production when ready.',
+                                showDenyButton: true,
+                                confirmButtonText: 'OK',
+                                denyButtonText: 'Open Receiving checklist'
+                            }).then(function (res) {
+                                if (res.isDenied && typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.show) {
+                                    var batch = (typeof _supplierIntakeGrid !== 'undefined' && _supplierIntakeGrid.batches)
+                                        ? _supplierIntakeGrid.batches.find(function (b) {
+                                            return (newId && b.id && String(b.id) === String(newId)) ||
+                                                (createdBatchNumber && b.batch_number && String(b.batch_number) === String(createdBatchNumber));
+                                        })
+                                        : (newId ? { id: newId } : null);
+                                    _modal_stock_receiving_checklist.show(batch || (newId ? { id: newId } : null));
+                                }
+                            });
+                        }
+                    }
                 } else {
-                    var errMsg = (result && (result.error || result.message)) ? (result.error || result.message) : 'Failed to save';
-                    if (result && result.details) errMsg += ' ' + (typeof result.details === 'string' ? result.details : JSON.stringify(result.details));
+                    var errMsg = (resolved && (resolved.error || resolved.message)) ? (resolved.error || resolved.message) : 'Failed to save';
                     throw new Error(errMsg);
                 }
             } catch (e) {
                 console.error('[Supplier Intake] save batch failed:', e);
                 var displayMsg = e.message || 'Failed to save batch';
-                if (e.responseText) displayMsg += ' (' + String(e.responseText).substring(0, 200) + ')';
                 if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: displayMsg });
             }
         }

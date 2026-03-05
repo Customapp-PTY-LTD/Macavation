@@ -1,8 +1,8 @@
-<!-- Supplier Intake: Oil & Protein (implementation aligned with grower-intake; UI follows UI_DESIGN_INSTRUCTIONS.md) -->
+<!-- Supplier Intake: Oil & Protein – mirrored from Grower Intake (Kernel); same layout, Board/Table, card structure. -->
 <div class="module-content">
     <div class="pt-3 pb-2 mb-3 border-bottom">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
-            <h1 class="h2 mb-0">Supplier Intake</h1>
+            <h1 class="h2 mb-0">Supplier Intake Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
                 <button type="button" class="btn btn-primary" id="addNewBatchProductBtn">
                     <i class="fas fa-plus me-1"></i>Add new batch of product
@@ -10,12 +10,9 @@
                 <button type="button" class="btn btn-outline-secondary" id="exportSupplierIntakeBtn">
                     <i class="fas fa-download me-1"></i>Export
                 </button>
-                <button type="button" class="btn btn-outline-secondary" id="refreshSupplierIntakeBtn">
-                    <i class="fas fa-sync-alt me-1"></i>Refresh
-                </button>
             </div>
         </div>
-        <p class="text-muted mb-0 mt-2 small">Track batches of raw ingredients used in the oil extraction process (oil kernel, cracker dust, kernel dust, crush, cake). Add a batch, complete the Receiving Checklist, then when ready send it through to Oil Production.</p>
+        <p class="text-muted mb-0 mt-2 small">Complete the Receiving checklist for each batch (box becomes a tick). When the checklist is done, release the batch to Oil Production to use in the oil extraction process.</p>
     </div>
 
     <!-- Search and Filters -->
@@ -30,7 +27,9 @@
                     <label for="filterSupplierIntakeStatus" class="form-label">Status</label>
                     <select class="form-select" id="filterSupplierIntakeStatus">
                         <option value="">All Statuses</option>
-                        <option value="intake">Supplier intake</option>
+                        <option value="receiving">Receiving</option>
+                        <option value="intake_received">Intake received</option>
+                        <option value="ready_for_production">Ready for Oil Production</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
@@ -38,11 +37,25 @@
                         <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
+                <div class="col-md-3 d-flex justify-content-end align-items-end">
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" data-view="kanban" id="siViewKanban">
+                            <i class="fas fa-columns me-1"></i>Board
+                        </button>
+                        <button class="view-toggle-btn" data-view="table" id="siViewTable">
+                            <i class="fas fa-list me-1"></i>Table
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="card mb-4 border-primary">
+    <!-- Kanban Board (default view) -->
+    <div id="siKanbanBoard" class="kanban-board"></div>
+
+    <!-- Table View (hidden by default) -->
+    <div class="card mb-4 supplier-intake-table-card" id="siTableCard" style="display:none">
         <div class="card-body p-2 p-md-3">
             <div class="table-responsive supplier-intake-table-responsive">
                 <table class="table table-hover" id="supplierIntakeBatchesTable">
