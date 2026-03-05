@@ -234,6 +234,8 @@
     background-color: #fff;
     padding: 0.25rem;
     min-width: 0;
+    pointer-events: auto;
+    user-select: none;
 }
 .silo-box .silo-label { pointer-events: none; }
 .silo-box .silo-grower {
@@ -259,6 +261,10 @@
 .silo-selectable:hover {
     border-color: #0d6efd;
     background-color: #f0f7ff;
+}
+.silo-selectable:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
 }
 .silo-selected {
     border-color: #0d6efd !important;

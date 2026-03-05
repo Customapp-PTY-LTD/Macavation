@@ -167,11 +167,23 @@ var _growerIntakeGrid = function () {
                 }
             });
             // Silo selection modal: toggle selection on empty silo click (delegate from grid so clicks on label/children work)
-            $(document).on('click', '#siloSelectionGrid', function (e) {
-                var $box = $(e.target).closest('.silo-box');
-                if ($box.length && $box.hasClass('silo-selectable')) {
+            $(document).on('click', '#siloSelectionGrid .silo-box', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var $box = $(this);
+                if ($box.hasClass('silo-selectable')) {
                     $box.toggleClass('silo-selected');
                     _growerIntakeGrid.updateSiloSelectionSummary();
+                }
+            });
+            $(document).on('keydown', '#siloSelectionGrid .silo-box', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    var $box = $(this);
+                    if ($box.hasClass('silo-selectable')) {
+                        $box.toggleClass('silo-selected');
+                        _growerIntakeGrid.updateSiloSelectionSummary();
+                    }
                 }
             });
             $('#siloSelectionConfirmBtn').off('click').on('click', function () {
@@ -537,9 +549,15 @@ var _growerIntakeGrid = function () {
             var btnEl = document.getElementById('siloSelectionConfirmBtn');
             if (btnEl) btnEl.disabled = true;
             try {
-                var releaseResult = await dataFunctions.releaseKernelToProduction({ kernel_id: kernelId, silos: selected });
+                var releaseResult = await dataFunctions.releaseKernelToProduction({ kernel_id: kernelId });
                 if (releaseResult && releaseResult.success === false) {
                     throw new Error(releaseResult.error || 'Release failed');
+                }
+                if (typeof dataFunctions.assignKernelToSilos === 'function') {
+                    var assignResult = await dataFunctions.assignKernelToSilos(kernelId, selected);
+                    if (assignResult && assignResult.success === false) {
+                        throw new Error(assignResult.error || 'Silo assignment failed');
+                    }
                 }
                 var modalEl = document.getElementById('siloSelectionModal');
                 if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl).hide();
