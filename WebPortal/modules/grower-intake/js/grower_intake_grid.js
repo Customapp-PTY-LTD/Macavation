@@ -166,8 +166,9 @@ var _growerIntakeGrid = function () {
                     _growerIntakeGrid.deleteBatch(batchId);
                 }
             });
-            // Silo selection modal: toggle selection on empty silo click (delegate from grid so clicks on label/children work)
-            $(document).on('click', '#siloSelectionGrid .silo-box', function (e) {
+            // Silo selection modal: toggle selection on empty silo click (delegate from grid so clicks on label/children work).
+            // Use namespaced events and .off() first so re-running bindEvents (e.g. after re-navigating to Grower Intake) never stacks handlers; duplicate handlers cause toggle to run twice and selection to appear to do nothing (intermittent "can't select").
+            $(document).off('click.growerIntakeSilo', '#siloSelectionGrid .silo-box').on('click.growerIntakeSilo', '#siloSelectionGrid .silo-box', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 var $box = $(this);
@@ -176,7 +177,7 @@ var _growerIntakeGrid = function () {
                     _growerIntakeGrid.updateSiloSelectionSummary();
                 }
             });
-            $(document).on('keydown', '#siloSelectionGrid .silo-box', function (e) {
+            $(document).off('keydown.growerIntakeSilo', '#siloSelectionGrid .silo-box').on('keydown.growerIntakeSilo', '#siloSelectionGrid .silo-box', function (e) {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     var $box = $(this);
@@ -191,7 +192,7 @@ var _growerIntakeGrid = function () {
                     _growerIntakeGrid.confirmSiloSelection();
                 }
             });
-            $('#siloSelectionModal').on('hidden.bs.modal', function () {
+            $('#siloSelectionModal').off('hidden.bs.modal.growerIntakeSilo').on('hidden.bs.modal.growerIntakeSilo', function () {
                 _growerIntakeGrid.releaseBatchIdForSilos = null;
             });
         },
