@@ -64,12 +64,15 @@ var _stockManagementGrid = function () {
             var route = (typeof _appRouter !== 'undefined' && _appRouter.currentRoute) ? _appRouter.currentRoute : '';
             var stream = '';
             var titleEl = document.getElementById('stockManagementTitle');
+            var subtitleEl = document.getElementById('stockManagementSubtitle');
             if (route === 'stock-management-kernel') {
                 stream = 'kernel';
                 if (titleEl) titleEl.textContent = 'Stock (Kernel)';
+                if (subtitleEl) subtitleEl.textContent = 'Track kernel batches by style (totals across the top, yield per style from Production Job Card). Select a batch and send to dispatch—or export when you\'re ready.';
             } else if (route === 'stock-management-oil') {
                 stream = 'oil';
-                if (titleEl) titleEl.textContent = 'Stock (Oil & Protein)';
+                if (titleEl) titleEl.textContent = 'Stock (Oil)';
+                if (subtitleEl) subtitleEl.textContent = 'Add and import oil lots from Excel; track by location (801 Raw Materials / 850 Finished Goods), category, and status. Days Remaining from BB Date—then export when you\'re ready.';
             }
             var streamSel = document.getElementById('filterStockStream');
             if (streamSel) {
@@ -206,23 +209,17 @@ var _stockManagementGrid = function () {
             var oilCard = document.getElementById('oilStockLedgerCard');
             var mainFiltersCard = document.getElementById('mainStockFiltersCard');
             var mainTableCard = document.getElementById('mainStockTableCard');
-            var addOilBtn = document.getElementById('addOilLotBtn');
-            var importOilBtn = document.getElementById('importOilLotsBtn');
             if (stream === 'kernel') {
                 if (card) card.style.display = '';
                 scope.loadKernelBatches();
                 if (oilCard) oilCard.style.display = 'none';
                 if (mainFiltersCard) mainFiltersCard.style.display = 'none';
                 if (mainTableCard) mainTableCard.style.display = 'none';
-                if (addOilBtn) addOilBtn.classList.add('d-none');
-                if (importOilBtn) importOilBtn.classList.add('d-none');
             } else {
                 if (card) card.style.display = 'none';
                 if (oilCard) oilCard.style.display = '';
-                if (mainFiltersCard) mainFiltersCard.style.display = '';
-                if (mainTableCard) mainTableCard.style.display = '';
-                if (addOilBtn) addOilBtn.classList.remove('d-none');
-                if (importOilBtn) importOilBtn.classList.remove('d-none');
+                if (mainFiltersCard) mainFiltersCard.style.display = 'none';
+                if (mainTableCard) mainTableCard.style.display = 'none';
                 if (stream === 'oil' && document.getElementById('oilLotsTableBody')) scope.loadOilLotsAndSummary();
             }
         },
@@ -431,6 +428,35 @@ var _stockManagementGrid = function () {
 
         exportStock: function () {
             var scope = _stockManagementGrid;
+            var streamEl = document.getElementById('filterStockStream');
+            var stream = streamEl ? streamEl.value : 'kernel';
+            if (stream === 'oil') {
+                if (!scope.oilLots || scope.oilLots.length === 0) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Info', 'No oil lots to export', 'info');
+                    return;
+                }
+                var columns = [
+                    { key: 'location_code', label: 'Location' },
+                    { key: 'stock_category', label: 'Category' },
+                    { key: 'counterparty_name', label: 'Supplier/Customer' },
+                    { key: 'po_reference', label: 'PO Ref' },
+                    { key: 'batch_number', label: 'Batch #' },
+                    { key: 'product_description', label: 'Product' },
+                    { key: 'grade', label: 'Grade' },
+                    { key: 'ffa', label: 'FFA' },
+                    { key: 'units', label: 'Units' },
+                    { key: 'kilograms', label: 'Kg' },
+                    { key: 'manufacture_date', label: 'Mfg Date' },
+                    { key: 'bb_date', label: 'BB Date' },
+                    { key: 'status', label: 'Status' }
+                ];
+                if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {
+                    exportUtils.exportToCSV(scope.oilLots, 'oil_stock_lots', columns);
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Export utility not available', 'error');
+                }
+                return;
+            }
             if (!scope.stockItems || scope.stockItems.length === 0) {
                 if (typeof Swal !== 'undefined') Swal.fire('Info', 'No stock items to export', 'info');
                 return;

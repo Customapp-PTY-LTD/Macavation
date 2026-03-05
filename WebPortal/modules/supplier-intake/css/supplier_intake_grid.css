@@ -3,6 +3,21 @@
 
 #supplierIntakeBatchesTable th { border-top: none; font-weight: 600; }
 
+/* Table card: overflow visible so dropdowns are not clipped (mirror grower-intake-table-card) */
+.supplier-intake-table-card .table-responsive,
+.supplier-intake-table-card .supplier-intake-table-responsive {
+    overflow: visible;
+}
+.supplier-intake-table-card .card-body {
+    overflow: visible;
+}
+.supplier-intake-table-card #supplierIntakeBatchesTable {
+    overflow: visible !important;
+}
+.supplier-intake-table-card #supplierIntakeBatchesTable tbody tr td {
+    overflow: visible;
+}
+
 #supplierIntakeBatchesTable tbody tr.js-supplier-intake-row { cursor: pointer; }
 
 /* First column (Batch #) as primary link */

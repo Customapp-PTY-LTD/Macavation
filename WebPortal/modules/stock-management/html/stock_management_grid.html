@@ -4,18 +4,12 @@
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
             <h1 class="h2 mb-0" id="stockManagementTitle">Stock Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-outline-primary d-none" id="addOilLotBtn" data-oil-only="true">
-                <i class="fas fa-plus-circle me-1"></i>Add Oil Lot
-            </button>
-            <button type="button" class="btn btn-outline-success d-none" id="importOilLotsBtn" data-oil-only="true">
-                <i class="fas fa-file-excel me-1"></i>Import Oil Stock (Excel)
-            </button>
             <button type="button" class="btn btn-outline-secondary" id="exportStockBtn">
                 <i class="fas fa-download me-1"></i>Export
             </button>
             </div>
         </div>
-        <p class="text-muted mb-0 mt-2 small">Search and filter your stock; track kernel batches by style (totals across the top, yield per style from Production Job Card), select a batch and send to dispatch; or add and import oil lots from Excel (Days Remaining from BB Date)—then export when you're ready.</p>
+        <p class="text-muted mb-0 mt-2 small" id="stockManagementSubtitle">Search and filter your stock; track kernel batches by style (totals across the top, yield per style from Production Job Card), select a batch and send to dispatch; or add and import oil lots from Excel (Days Remaining from BB Date)—then export when you're ready.</p>
     </div>
 
     <input type="hidden" id="filterStockStream" value="kernel">
@@ -132,17 +126,26 @@
     <!-- Send to Dispatch (Oil) Modal (content loaded by app router) -->
     <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="sendToDispatchOilModal" role="dialog" route-name="send-to-dispatch-oil-modal" tabindex="-1" aria-labelledby="sendToDispatchOilModalLabel" aria-hidden="true"></div>
 
-    <!-- Oil Stock Ledger (hidden when stream = Kernel) -->
-    <div class="card mb-3 stock-management-table-card" id="oilStockLedgerCard">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0">Oil Stock Ledger (801 / 850 / Sold)</h5>
+    <!-- Oil Stock Ledger (hidden when stream = Kernel) - Mirrored layout to Stock (Kernel) -->
+    <div class="card mb-4 border-primary" id="oilStockLedgerCard" style="display: none;">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Oil stock</h5>
             <div class="btn-toolbar">
+                <button type="button" class="btn btn-primary" id="addOilLotBtn" data-oil-only="true">
+                    <i class="fas fa-plus-circle me-1"></i>Add Oil Lot
+                </button>
+                <button type="button" class="btn btn-outline-success" id="importOilLotsBtn" data-oil-only="true">
+                    <i class="fas fa-file-excel me-1"></i>Import Oil Stock (Excel)
+                </button>
                 <button type="button" class="btn btn-success" id="sendToDispatchOilBtn" title="Create an Oil &amp; Protein dispatch order from selected lots">
                     <i class="fas fa-truck me-1"></i>Send to Dispatch
                 </button>
             </div>
         </div>
         <div class="card-body">
+            <p class="text-muted small mb-3">Add and import oil lots from Excel; track by location (801 Raw Materials / 850 Finished Goods), category, and status. Days Remaining is calculated from BB Date. Export when you're ready.</p>
+            <hr class="my-3">
+            <h6 class="text-secondary">Oil Stock Ledger (801 / 850 / Sold)</h6>
             <div class="row g-3 mb-3">
                 <div class="col-md-3">
                     <label for="oilLocationFilter" class="form-label">Location</label>
@@ -179,7 +182,7 @@
 
             <div class="row g-3 mb-3">
                 <div class="col-12">
-                    <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
+                    <div class="table-responsive oil-stock-table-wrapper" style="max-height: 220px; overflow-y: auto;">
                         <table class="table table-sm table-bordered mb-0" id="oilSummaryTable">
                             <thead class="table-light">
                                 <tr>
@@ -194,7 +197,7 @@
                 </div>
             </div>
 
-            <div class="table-responsive">
+            <div class="table-responsive oil-stock-table-wrapper">
                 <table class="table table-hover table-sm" id="oilLotsTable">
                     <thead>
                         <tr>

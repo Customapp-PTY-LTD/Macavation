@@ -29,6 +29,22 @@
     position: absolute;
 }
 
+/* Oil Stock card: mirror Kernel card layout (border-primary, same structure) */
+#oilStockLedgerCard .card-body {
+    overflow: visible !important;
+}
+.oil-stock-table-wrapper {
+    overflow: visible !important;
+}
+#oilStockLedgerCard #oilLotsTable,
+#oilStockLedgerCard #oilSummaryTable {
+    overflow: visible !important;
+}
+#oilStockLedgerCard #oilLotsTable tbody tr td,
+#oilStockLedgerCard #oilSummaryTable tbody tr td {
+    overflow: visible;
+}
+
 /* Prevent actions dropdown from being clipped (main grid cards – UI_DESIGN_INSTRUCTIONS pattern) */
 .stock-management-table-card .table-responsive {
     overflow: visible;
