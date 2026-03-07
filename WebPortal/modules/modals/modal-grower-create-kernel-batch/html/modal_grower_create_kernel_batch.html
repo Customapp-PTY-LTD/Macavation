@@ -7,18 +7,18 @@
         <div class="modal-body">
             <form id="createKernelBatchForm">
                 <div class="mb-3">
-                    <label for="intakeBatchNumber" class="form-label">Batch number</label>
-                    <input type="text" class="form-control" id="intakeBatchNumber" placeholder="e.g. BATCH-2025-02-001" required>
-                </div>
-                <div class="mb-3">
-                    <label for="intakeBatchReceivedDate" class="form-label">Received date</label>
-                    <input type="date" class="form-control" id="intakeBatchReceivedDate" required>
-                </div>
-                <div class="mb-3">
                     <label for="intakeBatchGrower" class="form-label">Grower / supplier</label>
                     <select class="form-select" id="intakeBatchGrower">
                         <option value="">Select (optional)</option>
                     </select>
+                </div>
+                <div class="mb-3">
+                    <label for="intakeBatchNumber" class="form-label">Batch number</label>
+                    <input type="text" class="form-control" id="intakeBatchNumber" placeholder="Select supplier for Bn format (e.g. Bn 01 26 01)" required>
+                </div>
+                <div class="mb-3">
+                    <label for="intakeBatchReceivedDate" class="form-label">Received date</label>
+                    <input type="date" class="form-control" id="intakeBatchReceivedDate" required>
                 </div>
                 <div class="mb-3">
                     <label for="intakeBatchWetNis" class="form-label">Wet NIS (kg)</label>

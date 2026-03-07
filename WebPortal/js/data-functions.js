@@ -1412,12 +1412,30 @@ var _dataFunctions = function () {
         },
 
         /**
+         * getNextBatchNumber — returns next batch id in format "Bn SS YY NN" (supplier #, year, sequence).
+         * Used when creating kernel batches to show preview; actual number is assigned on create when batch_number is null.
+         */
+        getNextBatchNumber: async function (supplierId, year, token = null) {
+            const y = year != null ? Number(year) % 100 : (new Date().getFullYear() % 100);
+            const params = { p_supplier_id: supplierId || null, p_year: y };
+            const result = await this.callFunction('get_next_batch_number', params, token, { useCache: false });
+            if (result == null) return null;
+            if (typeof result === 'string') return result;
+            if (result.data != null && typeof result.data === 'string') return result.data;
+            if (result.get_next_batch_number != null) return String(result.get_next_batch_number);
+            if (Array.isArray(result) && result.length > 0 && typeof result[0] === 'string') return result[0];
+            if (typeof result === 'object' && result.value != null) return String(result.value);
+            return null;
+        },
+
+        /**
          * createKernelBatch — insert new batch into batches + kernel tables.
+         * Batch number: pass null to auto-assign "Bn SS YY NN"; or pass a value to use it (must be unique).
          * Used by: kernel_production_batch_actions.saveNewBatch
          */
         createKernelBatch: async function (batchData, token = null) {
             const params = {
-                p_batch_number:        batchData.batch_number        || null,
+                p_batch_number:        (batchData.batch_number && String(batchData.batch_number).trim()) || null,
                 p_received_date:       batchData.received_date        || null,
                 p_wet_nis_received_kg: batchData.wet_nis_received_kg  != null ? batchData.wet_nis_received_kg : null,
                 p_supplier_id:         batchData.supplier_id          || null,

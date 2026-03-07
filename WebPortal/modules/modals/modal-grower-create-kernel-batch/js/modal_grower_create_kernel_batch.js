@@ -12,18 +12,25 @@ var _modal_grower_create_kernel_batch = (function () {
         init: function () {
             var saveBtn = document.getElementById('saveCreateKernelBatchBtn');
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
+            var dateEl = document.getElementById('intakeBatchReceivedDate');
+            if (dateEl) {
+                dateEl.removeEventListener('change', api._onDateOrGrowerChange);
+                dateEl.addEventListener('change', api._onDateOrGrowerChange);
+            }
         },
 
         show: async function () {
             var today = new Date().toISOString().split('T')[0];
             var dateEl = document.getElementById('intakeBatchReceivedDate');
-            if (dateEl) dateEl.value = today;
+            if (dateEl) {
+                dateEl.value = today;
+                dateEl.removeEventListener('change', api._onDateOrGrowerChange);
+                dateEl.addEventListener('change', api._onDateOrGrowerChange);
+            }
 
             var numberEl = document.getElementById('intakeBatchNumber');
-            if (numberEl) {
-                var d = new Date();
-                numberEl.value = 'KERNEL-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-001';
-            }
+            if (numberEl) numberEl.value = '';
+            numberEl && numberEl.setAttribute('placeholder', 'Select supplier for Bn format (e.g. Bn 01 26 01)');
 
             var wetEl = document.getElementById('intakeBatchWetNis');
             if (wetEl) wetEl.value = '';
@@ -41,6 +48,8 @@ var _modal_grower_create_kernel_batch = (function () {
                             });
                         }
                         sel.innerHTML = html;
+                        sel.removeEventListener('change', api._onDateOrGrowerChange);
+                        sel.addEventListener('change', api._onDateOrGrowerChange);
                     }
                 }
             } catch (e) {
@@ -50,6 +59,35 @@ var _modal_grower_create_kernel_batch = (function () {
             var modalEl = document.getElementById(CONTAINER_ID);
             if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else if (typeof $ !== 'undefined' && $.fn.modal) $('#' + CONTAINER_ID).modal('show');
+        },
+
+        _onDateOrGrowerChange: function () {
+            var sel = document.getElementById('intakeBatchGrower');
+            var numberEl = document.getElementById('intakeBatchNumber');
+            if (!sel || !numberEl || typeof dataFunctions === 'undefined' || !dataFunctions.getNextBatchNumber) return;
+            var supplierId = (sel.value || '').trim() || null;
+            if (!supplierId) {
+                numberEl.value = '';
+                numberEl.setAttribute('placeholder', 'Select supplier for Bn format (e.g. Bn 01 26 01)');
+                numberEl.removeAttribute('readonly');
+                return;
+            }
+            numberEl.value = '';
+            numberEl.setAttribute('placeholder', 'Loading…');
+            numberEl.setAttribute('readonly', 'readonly');
+            var dateEl = document.getElementById('intakeBatchReceivedDate');
+            var year = dateEl && dateEl.value ? new Date(dateEl.value + 'T12:00:00').getFullYear() : new Date().getFullYear();
+            dataFunctions.getNextBatchNumber(supplierId, year).then(function (nextId) {
+                var val = (nextId != null && typeof nextId === 'string') ? nextId : (nextId != null ? String(nextId) : '');
+                numberEl.value = val;
+                numberEl.setAttribute('placeholder', val ? '' : 'Will assign on save');
+                if (val) numberEl.setAttribute('readonly', 'readonly'); else numberEl.removeAttribute('readonly');
+            }).catch(function (err) {
+                console.error('getNextBatchNumber failed:', err);
+                numberEl.value = '';
+                numberEl.setAttribute('placeholder', 'Select supplier for Bn format (e.g. Bn 01 26 01)');
+                numberEl.removeAttribute('readonly');
+            });
         },
 
         save: async function () {

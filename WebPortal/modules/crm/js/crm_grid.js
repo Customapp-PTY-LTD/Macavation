@@ -8,6 +8,25 @@ var _crmGrid = function () {
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+    // Canonical NIS supplier order from Macadamia Kernel Statistics '25 (picture order) – used for sort and # column
+    const NIS_SUPPLIER_ORDER = [
+        'Amber Macs (Pty) Ltd', 'Tamboti Agric (Pty) Ltd', 'Lilje Farms (Pty) Ltd', 'Senekal Familie Boerdery',
+        'Avo Valley (Pty) Ltd', 'Sundale Farm', 'Eucalypt Forestry Services CC', 'Perry\'s Bridge Citrus Estate (Pty) Ltd',
+        'Miller Farming', 'Stellenrust Landgoed', 'Pylon Park Sugar Estate CC', 'Cavalla Farming CC',
+        'Hopeview Farm (Pty) Ltd', 'MWM Agro Forestry', 'JD Richter Famile Trust', 'AH Bennett SP',
+        'Estorf Farms (Pty) Ltd', 'Sharma Sugar CC', 'Northern Sugar Estate', 'Mac Damm (Pty) Ltd',
+        'The Umhlatuzi Valley Sugar Company (Pty) Ltd', 'Horn Familie Trust', 'Fyvie Estates Trading', 'D.S. Vorster Landgoed CC',
+        'Duleen Estates CC', 'D.R. Mattison Farms', 'Empirenstata Trading (Pty) Ltd', 'Danroc (Pty) Ltd',
+        'Talana Macs', 'Barbers Rest (Pty) Ltd', 'Nivage (Pty) Ltd', 'AP Vos & Seuns (Pty) Ltd',
+        'Dougrale (Pty) Ltd', 'Ulunhata Agri (Pty) Ltd', 'Waldene Estate (Pty) Ltd', 'Tad Poles',
+        'Theo Bunge Family Trust', 'Shanwan Singh', 'SDD Macs - Eastridge Farm', 'Bhubesi Agri (Pty) Ltd',
+        'Golden Grow', 'NDX', 'Honey Coastline Investments 134 CC', 'Agristar Macadamias (Pty) Ltd NutsAll',
+        'Nombhabe Sugar (Pty) Ltd', 'RSM Farm and Factory (Pty) Ltd', 'R&K Estates - Fairview', 'Neeze Farm (Pty) Ltd',
+        'Zenith Estates CC', 'Highrain Macs (Pty) Ltd', 'Rope Miller', 'The Hayden Percival Family Trust',
+        'Van Eeden Projects Trust', 'Foster Farming Pty Ltd', 'Big G Mac', 'Mac-Eden Estate',
+        'The Two Rivers Trust', 'Philip', 'Talbot', 'Brechoust CC'
+    ];
+
     return {
         contacts: [],
         nisSuppliers: [],
@@ -189,9 +208,19 @@ var _crmGrid = function () {
             }
         },
 
+        /** Index in NIS_SUPPLIER_ORDER (0-based), or 9999 if not found. Used for sort and # column. */
+        nisOrderIndex: (contact) => {
+            const name = (contact.company_name || '').trim();
+            if (!name) return 9999;
+            const i = NIS_SUPPLIER_ORDER.findIndex(n => n.trim().toLowerCase() === name.toLowerCase());
+            return i >= 0 ? i : 9999;
+        },
+
         separateContactsByType: () => {
             const scope = _crmGrid;
-            scope.nisSuppliers = scope.contacts.filter(c => c.contact_type === 'nis_supplier');
+            scope.nisSuppliers = scope.contacts
+                .filter(c => c.contact_type === 'nis_supplier')
+                .sort((a, b) => scope.nisOrderIndex(a) - scope.nisOrderIndex(b));
             scope.oilProcessors = scope.contacts.filter(c => c.contact_type === 'oil_processor');
             scope.kernelCustomers = scope.contacts.filter(c => c.contact_type === 'kernel_customer');
         },
@@ -279,20 +308,24 @@ var _crmGrid = function () {
 
         renderNISSuppliers: (suppliers = null) => {
             const scope = _crmGrid;
-            const data = suppliers || scope.nisSuppliers;
+            let data = suppliers || scope.nisSuppliers;
+            data = [...data].sort((a, b) => scope.nisOrderIndex(a) - scope.nisOrderIndex(b));
             const tbody = $('#nisSuppliersTableBody');
             tbody.empty();
 
             if (data.length === 0) {
-                tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No NIS suppliers found</td></tr>');
+                tbody.html('<tr><td colspan="13" class="text-center py-4 text-muted">No NIS suppliers found</td></tr>');
                 return;
             }
 
             data.forEach(contact => {
                 const notesText = contact.notes || '';
                 const notesDisplay = notesText.length > 50 ? notesText.substring(0, 50) + '...' : notesText;
+                const orderIdx = scope.nisOrderIndex(contact);
+                const supplierNum = orderIdx < 9999 ? (orderIdx + 1) : (contact.supplier_number != null ? contact.supplier_number : (notesText.match(/Supplier #(\d+)/) || [])[1] || '–');
                 const row = `
                     <tr>
+                        <td class="text-end">${supplierNum}</td>
                         <td><strong>${contact.company_name || 'N/A'}</strong></td>
                         <td>${contact.physical_province || 'N/A'}</td>
                         <td>${contact.physical_area || 'N/A'}</td>
