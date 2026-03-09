@@ -95,6 +95,7 @@ var _oilProductionGrid = function () {
         bindEvents: function () {
             var scope = _oilProductionGrid;
             $('#opRefreshBtn').off('click').on('click', function () { scope.loadAll(true); });
+            $('#opViewDataBtn').off('click').on('click', function () { scope.showViewDataModal(); });
             $('#opSaveDutyBtn').off('click').on('click', function (e) {
                 e.preventDefault();
                 scope.savePersonOnDuty();
@@ -563,6 +564,95 @@ var _oilProductionGrid = function () {
             scope.loadShiftForSelectedDate(forceRefresh);
             scope.loadOilBins(forceRefresh);
             scope.loadOilBinBatches(forceRefresh);
+        },
+
+        showViewDataModal: function () {
+            var scope = _oilProductionGrid;
+            var body = document.getElementById('opViewDataModalBody');
+            var modalEl = document.getElementById('opViewDataModal');
+            if (!body || !modalEl) return;
+            body.innerHTML = '<p class="text-muted mb-0">Loading…</p>';
+            if (typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            scope.loadAll(true);
+            setTimeout(function () {
+                body.innerHTML = scope.buildViewDataHtml();
+            }, 800);
+        },
+
+        buildViewDataHtml: function () {
+            var scope = _oilProductionGrid;
+            var raw = scope.rawIngredients || [];
+            var bins = scope.oilBins || [];
+            var batches = scope.oilBinBatches || [];
+            var shift = scope.currentShift;
+            var html = '';
+
+            function section(title, icon, content) {
+                return '<div class="card mb-3"><div class="card-header bg-light py-2"><h6 class="mb-0">' + (icon ? '<i class="' + icon + ' me-2"></i>' : '') + escapeHtml(title) + '</h6></div><div class="card-body p-2">' + content + '</div></div>';
+            }
+
+            html += section('Shift (selected date)', 'fas fa-user-clock', (function () {
+                if (!shift) return '<p class="text-muted small mb-0">No shift recorded for the selected date.</p>';
+                var d = shift.shift_date ? fromISO(String(shift.shift_date).split('T')[0]) : '—';
+                var tr = '<p class="mb-1"><strong>Date:</strong> ' + escapeHtml(d) + '</p>';
+                tr += '<p class="mb-1"><strong>Person on duty:</strong> ' + escapeHtml(shift.shift_supervisor || '—') + '</p>';
+                tr += '<p class="mb-0"><strong>Shift name:</strong> ' + escapeHtml(shift.shift_name || '—') + '</p>';
+                if (shift.shift_tracking && (shift.shift_tracking.gmp_check_sheet || (shift.shift_tracking.production_sheets && Object.keys(shift.shift_tracking.production_sheets).length))) {
+                    tr += '<p class="mb-0 mt-2 small text-muted">GMP / production sheets recorded for this shift.</p>';
+                }
+                return tr;
+            })());
+
+            html += section('Raw ingredients in production', 'fas fa-boxes', (function () {
+                if (!raw.length) return '<p class="text-muted small mb-0">No raw ingredients in production.</p>';
+                var intake = function (o) { return (o && o.intake_data) || {}; };
+                var productLabel = function (o) {
+                    var i = intake(o);
+                    var pt = i.product_type || (o.name_of_product && String(o.name_of_product));
+                    return pt ? String(pt).replace(/_/g, ' ') : '—';
+                };
+                var qty = function (o) {
+                    var i = intake(o);
+                    return i.quantity_kg != null ? i.quantity_kg : (i.items && i.items[0] && i.items[0].quantity_kg);
+                };
+                var dateReceived = function (o) {
+                    var i = intake(o);
+                    var d = i.date_received || o.production_date;
+                    return d ? fromISO(String(d).split('T')[0]) : '—';
+                };
+                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Product type</th><th>Quantity (kg)</th><th>Date received</th></tr></thead><tbody>';
+                raw.forEach(function (o) {
+                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td></tr>';
+                });
+                tbl += '</tbody></table></div>';
+                return tbl;
+            })());
+
+            html += section('Oil bins', 'fas fa-tint', (function () {
+                if (!bins.length) return '<p class="text-muted small mb-0">No oil bins defined.</p>';
+                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Bin name</th><th>Start oil BN</th><th>Capacity (L)</th><th>Current level (L)</th></tr></thead><tbody>';
+                bins.forEach(function (b) {
+                    var bd = (b.bin_data && typeof b.bin_data === 'object') ? b.bin_data : {};
+                    var cap = bd.capacity_litres != null ? bd.capacity_litres : '—';
+                    var level = bd.current_level_litres != null ? bd.current_level_litres : '—';
+                    tbl += '<tr><td>' + escapeHtml(b.bin_name || '—') + '</td><td>' + escapeHtml(b.start_oil_bn || '—') + '</td><td>' + cap + '</td><td>' + level + '</td></tr>';
+                });
+                tbl += '</tbody></table></div>';
+                return tbl;
+            })());
+
+            html += section('Oil bin batches (production)', 'fas fa-flask', (function () {
+                if (!batches.length) return '<p class="text-muted small mb-0">No oil bin batches yet.</p>';
+                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch number</th><th>Shifts</th><th>Ingredients</th><th>Start date</th><th>Letrerage</th><th>FFA</th><th>Status</th></tr></thead><tbody>';
+                batches.forEach(function (b) {
+                    var startDate = b.start_date ? (typeof b.start_date === 'string' ? b.start_date.split('T')[0] : b.start_date) : '—';
+                    tbl += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + escapeHtml(b.shifts || '—') + '</td><td>' + escapeHtml(b.ingredients || '—') + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.letrerage != null ? b.letrerage : '—') + '</td><td>' + (b.ffa != null ? b.ffa : '—') + '</td><td>' + escapeHtml(b.status || '—') + '</td></tr>';
+                });
+                tbl += '</tbody></table></div>';
+                return tbl;
+            })());
+
+            return html || '<p class="text-muted mb-0">No data to display. Use Refresh on the main page and try again.</p>';
         },
 
         loadRawIngredients: async function (forceRefresh) {

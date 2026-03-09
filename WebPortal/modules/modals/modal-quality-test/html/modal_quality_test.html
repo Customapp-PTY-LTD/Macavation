@@ -5,6 +5,17 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
+            <!-- Supplier Intake: simple sample test (FFA only) -->
+            <div id="qualityTestSupplierIntakeForm" style="display: none;">
+                <p class="text-muted small mb-3">Complete the sample test to release this batch to Oil Production.</p>
+                <div class="mb-3">
+                    <label for="supplierIntakeSampleTestFfa" class="form-label required">FFA (%)</label>
+                    <input type="number" id="supplierIntakeSampleTestFfa" class="form-control" step="0.01" min="0" max="100" placeholder="Enter FFA %">
+                </div>
+            </div>
+
+            <!-- Full quality test form (tabs) -->
+            <div id="qualityTestFullForm">
             <ul class="nav nav-tabs" id="qualityTestTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="basic-info-tab" data-bs-toggle="tab" data-bs-target="#basic-info" type="button" role="tab">Basic Information</button>
@@ -232,6 +243,7 @@
                         </div>
                     </div>
                 </form>
+            </div>
             </div>
         </div>
         <div class="modal-footer">

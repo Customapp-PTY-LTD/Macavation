@@ -3,6 +3,9 @@
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Oil Production</h1>
         <div class="btn-toolbar mb-2 mb-md-0 ms-auto">
+            <button type="button" class="btn btn-outline-primary me-2" id="opViewDataBtn">
+                <i class="fas fa-chart-bar me-1"></i>View data
+            </button>
             <button type="button" class="btn btn-outline-secondary" id="opRefreshBtn">
                 <i class="fas fa-sync-alt me-1"></i>Refresh
             </button>
@@ -253,6 +256,24 @@
                     <button type="button" class="btn btn-primary" id="opEditOilBinBatchSaveBtn">
                         <i class="fas fa-save me-1"></i>Save
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View data modal: read-only summary of raw ingredients, oil bins, oil bin batches, shift -->
+    <div class="modal fade" id="opViewDataModal" tabindex="-1" aria-labelledby="opViewDataModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="opViewDataModalLabel"><i class="fas fa-chart-bar me-2"></i>Oil Production — View data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="opViewDataModalBody">
+                    <p class="text-muted mb-3">Loading…</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

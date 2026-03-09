@@ -33,7 +33,36 @@ var _modal_quality_test = (function () {
         show: async function (test, context) {
             _context = context || null;
             var title = document.getElementById('qualityTestModalLabel');
-            if (title) title.textContent = test ? 'Edit Quality Test' : 'New Quality Test';
+            var fullForm = document.getElementById('qualityTestFullForm');
+            var simpleForm = document.getElementById('qualityTestSupplierIntakeForm');
+            var modalEl = document.getElementById('qualityTestModal');
+
+            if (_context && _context.source === 'supplier-intake') {
+                if (title) title.textContent = 'Sample test';
+                if (fullForm) fullForm.style.display = 'none';
+                if (simpleForm) simpleForm.style.display = 'block';
+                if (modalEl) {
+                    var dialog = modalEl.querySelector('.modal-dialog');
+                    if (dialog) { dialog.classList.remove('modal-xl'); dialog.classList.add('modal-lg'); }
+                }
+                var saveBtn = document.getElementById('saveTestBtn');
+                if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save';
+                if (typeof $ !== 'undefined') {
+                    $('#supplierIntakeSampleTestFfa').val('');
+                }
+            } else {
+                if (title) title.textContent = test ? 'Edit Quality Test' : 'New Quality Test';
+                if (fullForm) fullForm.style.display = 'block';
+                if (simpleForm) simpleForm.style.display = 'none';
+                if (modalEl) {
+                    var dialog = modalEl.querySelector('.modal-dialog');
+                    if (dialog) { dialog.classList.remove('modal-lg'); dialog.classList.add('modal-xl'); }
+                }
+                var saveBtn = document.getElementById('saveTestBtn');
+                if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Quality Test';
+            }
+
+            if (!(_context && _context.source === 'supplier-intake')) {
             if (typeof $ !== 'undefined') {
                 api.clearForm();
                 $('#testId').val(test ? test.id : '');
@@ -77,6 +106,7 @@ var _modal_quality_test = (function () {
                 }
                 $('#basic-info-tab').tab('show');
             }
+            }
 
             try {
                 if (typeof dataFunctions !== 'undefined' && dataFunctions.getUsers) {
@@ -108,10 +138,56 @@ var _modal_quality_test = (function () {
             var testId = document.getElementById('testId');
             if (testId) testId.value = '';
             $('#moisturePass, #ffaPass, #peroxidePass, #tasteTestPass, #smellTestPass, #appearanceTestPass').prop('checked', false);
+            var fullForm = document.getElementById('qualityTestFullForm');
+            var simpleForm = document.getElementById('qualityTestSupplierIntakeForm');
+            if (fullForm) fullForm.style.display = 'block';
+            if (simpleForm) { simpleForm.style.display = 'none'; }
+            if ($('#supplierIntakeSampleTestFfa').length) $('#supplierIntakeSampleTestFfa').val('');
             _context = null;
+            var saveBtn = document.getElementById('saveTestBtn');
+            if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Quality Test';
         },
 
         save: async function () {
+            if (_context && _context.source === 'supplier-intake') {
+                var ffaVal = $('#supplierIntakeSampleTestFfa').val();
+                var ffaNum = (ffaVal != null && ffaVal !== '') ? parseFloat(ffaVal) : NaN;
+                if (ffaVal === '' || ffaVal == null || isNaN(ffaNum)) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'FFA (%) is required. Please enter a number.', 'error');
+                    return;
+                }
+                var bn = _context.batch_number || '';
+                var today = new Date().toISOString().split('T')[0];
+                var testData = {
+                    p_test_number: makeTestNumber('QT', bn),
+                    p_test_type: 'batch',
+                    p_product_type: 'oil',
+                    p_test_date: today,
+                    p_batch_number: bn,
+                    p_ffa_percentage: ffaNum,
+                    p_overall_result: 'pass',
+                    p_status: 'completed'
+                };
+                try {
+                    if (typeof dataFunctions === 'undefined' || !dataFunctions.callFunction) {
+                        throw new Error('Save not available');
+                    }
+                    await dataFunctions.callFunction('create_quality_test_simple', testData);
+                    if (_context.oil_id && typeof dataFunctions.updateOilBatchStatus === 'function') {
+                        await dataFunctions.updateOilBatchStatus(_context.oil_id, 'release_ready');
+                    }
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Sample test complete. Batch is now release ready.', timer: 2000, showConfirmButton: false });
+                    var modalEl = document.getElementById('qualityTestModal');
+                    if (modalEl && typeof bootstrap !== 'undefined') { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
+                    else if (typeof $ !== 'undefined' && $.fn.modal) $('#qualityTestModal').modal('hide');
+                    if (typeof _supplierIntakeGrid !== 'undefined' && _supplierIntakeGrid.loadBatches) _supplierIntakeGrid.loadBatches(true);
+                } catch (error) {
+                    console.error('Error saving supplier intake sample test:', error);
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', error.message || 'Failed to save sample test', 'error');
+                }
+                return;
+            }
+
             if (typeof $ === 'undefined' || typeof dataFunctions === 'undefined') return;
             var form = document.getElementById('qualityTestForm');
             if (!form || !form.checkValidity()) {

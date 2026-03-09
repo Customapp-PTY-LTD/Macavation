@@ -243,7 +243,7 @@ var _supplierIntakeGrid = function () {
                 var colKey = getSupplierColumnKey(b);
                 var sampleBtn = '<button type="button" class="btn btn-sm btn-primary js-supplier-intake-sample-test-btn" data-batch-id="' + esc(batchId) + '" title="Sample test"><i class="fas fa-vial me-1"></i>Sample test</button>';
                 var releaseBtn = colKey === 'release_ready'
-                    ? '<button type="button" class="btn btn-sm btn-outline-success js-supplier-intake-release-oil" data-batch-id="' + esc(batchId) + '" title="Release to Oil Production"><i class="fas fa-arrow-right me-1"></i>Release</button>'
+                    ? '<button type="button" class="btn btn-sm btn-primary js-supplier-intake-release-oil" data-batch-id="' + esc(batchId) + '" title="Release to Oil Production"><i class="fas fa-arrow-right me-1"></i>Release to Oil Production</button>'
                     : '';
                 var viewBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-supplier-intake-view" data-batch-id="' + esc(batchId) + '" title="View"><i class="fas fa-eye"></i></button>';
                 var html = '<div class="kanban-card js-supplier-intake-card" data-batch-id="' + batchId + '" data-kanban-id="' + esc(batchId) + '">';
@@ -317,9 +317,12 @@ var _supplierIntakeGrid = function () {
                 const mfgBb = [formatDate(b.manufactured_date), formatDate(b.best_before_date)].filter(Boolean).join(' / ') || '—';
                 const batchNumEscaped = (b.batch_number || '—').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                 const batchNumberCell = '<a href="#" class="supplier-intake-batch-number-link" role="button" data-batch-id="' + batchId + '">' + batchNumEscaped + '</a>';
-                const sampleBtn = '<button type="button" class="btn btn-sm btn-primary supplier-intake-step-btn js-supplier-intake-sample-test-btn" data-batch-id="' + escapeHtml(batchId) + '" title="Sample test"><i class="fas fa-vial me-1"></i><span class="supplier-intake-btn-text">Sample test</span></button>';
-                const receivingCell = '<div class="supplier-intake-receiving-buttons">' + sampleBtn + '</div>';
                 var colKey = getSupplierColumnKey(b);
+                const sampleBtn = '<button type="button" class="btn btn-sm btn-primary supplier-intake-step-btn js-supplier-intake-sample-test-btn" data-batch-id="' + escapeHtml(batchId) + '" title="Sample test"><i class="fas fa-vial me-1"></i><span class="supplier-intake-btn-text">Sample test</span></button>';
+                const releaseToOilBtn = '<button type="button" class="btn btn-sm btn-primary supplier-intake-step-btn js-supplier-intake-release-oil" data-batch-id="' + escapeHtml(batchId) + '" title="Release to Oil Production"><i class="fas fa-arrow-right me-1"></i><span class="supplier-intake-btn-text">Release to Oil Production</span></button>';
+                const receivingCell = colKey === 'release_ready'
+                    ? '<div class="supplier-intake-receiving-buttons">' + releaseToOilBtn + '</div>'
+                    : '<div class="supplier-intake-receiving-buttons">' + sampleBtn + '</div>';
                 const releaseItem = (colKey === 'release_ready')
                     ? '<a class="dropdown-item js-supplier-intake-release-oil" href="#"><i class="fas fa-arrow-right me-2"></i>Release to Oil Production</a>'
                     : '<span class="dropdown-item text-muted" role="button" tabindex="0">Release to Oil Production</span>';
