@@ -501,6 +501,11 @@ var _appRouter = function () {
                     if (typeof initializeTestScenariosGrid === 'function') {
                         initializeTestScenariosGrid();
                     }
+                },
+                'batch-journey': () => {
+                    if (typeof _batchJourneyGrid !== 'undefined' && _batchJourneyGrid.init) {
+                        _batchJourneyGrid.init();
+                    }
                 }
             };
 

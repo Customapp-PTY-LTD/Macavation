@@ -1,0 +1,63 @@
+/* Batch Journey Grid */
+
+#bjTable th {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--forest-deep, #2c5530);
+    border-bottom: 2px solid var(--forest-deep, #2c5530);
+    white-space: nowrap;
+}
+
+#bjTable td {
+    vertical-align: middle;
+    font-size: 0.875rem;
+}
+
+#bjTable tbody tr {
+    cursor: pointer;
+}
+
+#bjTable tbody tr:hover {
+    background-color: rgba(44, 85, 48, 0.05);
+}
+
+/* Batch number link style */
+#bjTable td:first-child {
+    color: var(--forest-deep, #2c5530);
+    font-weight: 600;
+}
+
+#bjTable tbody tr:hover td:first-child {
+    text-decoration: underline;
+}
+
+/* Status badges */
+.bj-status {
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.25rem;
+    text-transform: capitalize;
+}
+
+.bj-status-intake     { background: #e8f4fd; color: #1565c0; }
+.bj-status-receiving  { background: #fff3e0; color: #e65100; }
+.bj-status-production { background: #fce4ec; color: #c62828; }
+.bj-status-qa         { background: #f3e5f5; color: #6a1b9a; }
+.bj-status-dispatch   { background: #e0f2f1; color: #00695c; }
+.bj-status-complete   { background: #e8f5e9; color: #2e7d32; }
+
+/* Sort/filter styling */
+#bjStatusFilter,
+#bjSortBy {
+    border-color: var(--forest-deep, #2c5530);
+}
+
+#bjStatusFilter:focus,
+#bjSortBy:focus {
+    border-color: var(--forest-deep, #2c5530);
+    box-shadow: 0 0 0 0.2rem rgba(44, 85, 48, 0.25);
+}

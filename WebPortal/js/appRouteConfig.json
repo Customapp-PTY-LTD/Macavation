@@ -592,6 +592,13 @@
             "html": "html/modal_test_data_record.html",
             "js": ["js/modal_test_data_record.js"],
             "css": []
+        },
+        "batch-journey": {
+            "description": "Batch Journey - All Batches Overview",
+            "path": "batch-journey",
+            "html": "html/batch_journey_grid.html",
+            "js": ["js/batch_journey_grid.js"],
+            "css": ["css/batch_journey_grid.css"]
         }
     }
 }
