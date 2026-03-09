@@ -155,3 +155,21 @@
     font-weight: 500;
 }
 .op-oil-bin-batches-table .btn-sm { white-space: nowrap; }
+
+/* Raw ingredients table – Actions column and batch # styling (match oil bin batches) */
+.op-raw-ingredients-table thead th { border-top: none; font-weight: 600; }
+.op-raw-ingredients-table td:last-child { text-align: right; }
+.op-raw-ingredients-table td:first-child {
+    color: var(--forest-deep, var(--phoenix-primary));
+    font-weight: 500;
+}
+
+/* Production data modal – section titles (match production sheet op-ps-section-title) */
+.op-pd-section-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+.op-pd-section-title + .table-responsive { margin-bottom: 0.5rem; }
+.op-pd-section-title + .row { margin-bottom: 0.5rem; }

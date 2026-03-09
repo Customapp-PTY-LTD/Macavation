@@ -2072,6 +2072,14 @@ var _dataFunctions = function () {
             });
         },
 
+        getOilBatchById: async function (oilId, token = null) {
+            if (!oilId) return null;
+            var raw = await this.callFunction('get_oil_batch_by_id', { p_oil_id: oilId }, token, { useCache: false });
+            if (raw && Array.isArray(raw) && raw.length > 0) return raw[0];
+            if (raw && raw.get_oil_batch_by_id && Array.isArray(raw.get_oil_batch_by_id) && raw.get_oil_batch_by_id.length > 0) return raw.get_oil_batch_by_id[0];
+            return null;
+        },
+
         upsertOilBatch: async function (data, token = null) {
             var params = {
                 p_oil_id:                   data.oil_id                   || null,
