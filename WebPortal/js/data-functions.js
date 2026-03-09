@@ -2177,6 +2177,47 @@ var _dataFunctions = function () {
             this.clearCachePattern('oil_bin_list');
             return result;
         },
+
+        getOilBinBatches: async function (options = {}, token = null, forceRefresh = false) {
+            var params = { p_limit: options.limit || 100, p_offset: options.offset || 0 };
+            if (options.status) params.p_status = options.status;
+            return await this.callFunction('get_oil_bin_batches', params, token, {
+                cacheKey: 'oil_bin_batches' + (options.status ? '_' + options.status : ''),
+                useCache: !forceRefresh,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+        },
+
+        startOilBinBatch: async function (startDate = null, token = null) {
+            var params = {};
+            if (startDate) params.p_start_date = startDate;
+            const result = await this.callFunction('start_oil_bin_batch', params, token, { useCache: false });
+            this.clearCachePattern('oil_bin_batches');
+            return result;
+        },
+
+        sendOilBinBatchToStock: async function (oilBinBatchId, token = null) {
+            const result = await this.callFunction('send_oil_bin_batch_to_stock', { p_oil_bin_batch_id: oilBinBatchId }, token, { useCache: false });
+            if (result && result.success) {
+                this.clearCachePattern('oil_bin_batches');
+                this.clearCachePattern('oil_batches');
+            }
+            return result;
+        },
+
+        updateOilBinBatch: async function (data, token = null) {
+            var params = {
+                p_id: data.id,
+                p_shifts: data.shifts ?? null,
+                p_ingredients: data.ingredients ?? null,
+                p_letrerage: data.letrerage != null ? data.letrerage : null,
+                p_ffa: data.ffa != null ? data.ffa : null
+            };
+            const result = await this.callFunction('update_oil_bin_batch', params, token, { useCache: false });
+            if (result && result.success) this.clearCachePattern('oil_bin_batches');
+            return result;
+        },
         // ─────────────────────────────────────────────────────────────────────
 
         // Kernel Production Job Card Functions

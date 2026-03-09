@@ -145,3 +145,13 @@
     color: #6b7280;
 }
 .op-ps-add-row { margin-top: 0.35rem; }
+
+/* Oil bin batches (production) – match oil bins and raw ingredients tables */
+.op-oil-bin-batches-list .table-responsive { overflow-x: auto; }
+.op-oil-bin-batches-table thead th { border-top: none; font-weight: 600; }
+.op-oil-bin-batches-table tbody td { vertical-align: middle; }
+.op-oil-bin-batches-table td:first-child {
+    color: var(--forest-deep, var(--phoenix-primary));
+    font-weight: 500;
+}
+.op-oil-bin-batches-table .btn-sm { white-space: nowrap; }
