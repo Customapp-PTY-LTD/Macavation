@@ -398,9 +398,6 @@ var _appRouter = function () {
                 'supplier-intake-grid': () => {
                     if (typeof initializeSupplierIntakeGrid === 'function') initializeSupplierIntakeGrid();
                 },
-                'new-batch-modal': () => {
-                    if (typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.init) _modal_supplier_new_batch.init();
-                },
                 'supplier-oil-batch-modal': () => {
                     if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.init) _modalSupplierOilBatch.init();
                 },
@@ -450,6 +447,9 @@ var _appRouter = function () {
                 },
                 'receiving-checklist-modal': () => {
                     if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.init) _modal_stock_receiving_checklist.init();
+                },
+                'supplier-receiver-checklist-modal': () => {
+                    if (typeof _modal_supplier_receiver_checklist !== 'undefined' && _modal_supplier_receiver_checklist.init) _modal_supplier_receiver_checklist.init();
                 },
                 'raw-material-issued-modal': () => {
                     if (typeof _modal_stock_raw_material_issued !== 'undefined' && _modal_stock_raw_material_issued.init) _modal_stock_raw_material_issued.init();

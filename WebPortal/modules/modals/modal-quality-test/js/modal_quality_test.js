@@ -4,8 +4,24 @@
 var _modal_quality_test = (function () {
     'use strict';
 
+    var _context = null; // optional caller context (e.g. Supplier Intake oil batch)
+    var _inited = false;
+
+    function makeTestNumber(prefix, batchNumber) {
+        var bn = (batchNumber || '').toString().trim().replace(/\s+/g, '-');
+        var stamp = new Date();
+        var y = stamp.getFullYear();
+        var m = String(stamp.getMonth() + 1).padStart(2, '0');
+        var d = String(stamp.getDate()).padStart(2, '0');
+        var hh = String(stamp.getHours()).padStart(2, '0');
+        var mm = String(stamp.getMinutes()).padStart(2, '0');
+        return (prefix || 'QT') + '-' + (bn || 'BATCH') + '-' + y + m + d + hh + mm;
+    }
+
     var api = {
         init: function () {
+            if (_inited) return;
+            _inited = true;
             var saveBtn = document.getElementById('saveTestBtn');
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
             var modalEl = document.getElementById('qualityTestModal');
@@ -14,7 +30,8 @@ var _modal_quality_test = (function () {
             }
         },
 
-        show: async function (test) {
+        show: async function (test, context) {
+            _context = context || null;
             var title = document.getElementById('qualityTestModalLabel');
             if (title) title.textContent = test ? 'Edit Quality Test' : 'New Quality Test';
             if (typeof $ !== 'undefined') {
@@ -51,6 +68,12 @@ var _modal_quality_test = (function () {
                     $('#overallResult').val(test.overall_result || 'pending');
                     $('#overallNotes').val(test.overall_notes || '');
                     $('#testStatus').val(test.status || 'pending');
+                } else if (_context && _context.source === 'supplier-intake') {
+                    var bn = _context.batch_number || '';
+                    if ($('#batchNumber').length) $('#batchNumber').val(bn);
+                    if ($('#testType').length) $('#testType').val('batch');
+                    if ($('#productType').length) $('#productType').val('oil');
+                    if ($('#testNumber').length) $('#testNumber').val(makeTestNumber('QT', bn));
                 }
                 $('#basic-info-tab').tab('show');
             }
@@ -85,6 +108,7 @@ var _modal_quality_test = (function () {
             var testId = document.getElementById('testId');
             if (testId) testId.value = '';
             $('#moisturePass, #ffaPass, #peroxidePass, #tasteTestPass, #smellTestPass, #appearanceTestPass').prop('checked', false);
+            _context = null;
         },
 
         save: async function () {
@@ -147,6 +171,20 @@ var _modal_quality_test = (function () {
                     result = await dataFunctions.callFunction('create_quality_test_simple', testData);
                 }
                 if (result && result.success !== false) {
+                    // Supplier Intake integration: move oil batch to "release_ready" on a passing result
+                    try {
+                        if (_context && _context.source === 'supplier-intake' && _context.oil_id && dataFunctions.updateOilBatchStatus) {
+                            var overall = ($('#overallResult').val() || 'pending').toString();
+                            if (overall === 'pass' || overall === 'conditional_pass') {
+                                await dataFunctions.updateOilBatchStatus(_context.oil_id, 'release_ready');
+                                if (typeof _supplierIntakeGrid !== 'undefined' && _supplierIntakeGrid.loadBatches) {
+                                    _supplierIntakeGrid.loadBatches(true);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[Quality Test] Post-save status update failed', e);
+                    }
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: testId ? 'Quality test updated successfully' : 'Quality test created successfully', timer: 2000, showConfirmButton: false });
                     var modalEl = document.getElementById('qualityTestModal');
                     if (modalEl && typeof bootstrap !== 'undefined') { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }

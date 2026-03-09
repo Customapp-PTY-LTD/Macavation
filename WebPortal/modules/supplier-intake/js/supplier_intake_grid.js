@@ -1,22 +1,23 @@
 /**
  * Supplier Intake Grid – Oil & Protein.
  * Mirrored from Grower Intake (Kernel): same layout, Board/Table toggle, Kanban + table card.
- * Modals: New batch (new-batch-modal), Receiving checklist (receiving-checklist-modal).
+ * Modals: Receiver checklist (create batches or edit one batch).
  */
 var _supplierIntakeGrid = function () {
     'use strict';
 
     var SUPPLIER_INTAKE_KANBAN_COLUMNS = [
-        { key: 'receiving', label: 'Receiving' },
-        { key: 'intake_received', label: 'Intake received' },
-        { key: 'ready_for_production', label: 'Ready for Oil Production' }
+        { key: 'awaiting_test', label: 'Awaiting tests' },
+        { key: 'release_ready', label: 'Ready for Oil Production' }
     ];
 
     function getSupplierColumnKey(b) {
-        if (!b) return 'receiving';
-        var hasChecklist = !!(b.has_receiving_checklist || b.receiving_checklist_id || (b.vehicle_clean != null || b.vehicle_enclosed != null));
-        if (!hasChecklist) return 'receiving';
-        return 'intake_received'; // "ready_for_production" could be used when we track release separately; for now same as intake_received
+        if (!b) return 'awaiting_test';
+        var s = (b.status || '').toString().trim();
+        if (s === 'release_ready') return 'release_ready';
+        // Backwards compatibility: treat legacy 'intake' as "Awaiting tests" (status is now awaiting_test or release_ready only)
+        if (!s || s === 'intake' || s === 'awaiting_test') return 'awaiting_test';
+        return 'awaiting_test';
     }
 
     function productTypeLabel(value) {
@@ -55,27 +56,27 @@ var _supplierIntakeGrid = function () {
                 }
             });
             Promise.all(loadPromises).then(() => {
-                if (typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.init) _modal_supplier_new_batch.init();
                 if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.init) _modalSupplierOilBatch.init();
                 if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.init) _modal_stock_receiving_checklist.init();
+                if (typeof _modal_supplier_receiver_checklist !== 'undefined' && _modal_supplier_receiver_checklist.init) _modal_supplier_receiver_checklist.init();
+                if (typeof _modal_quality_test !== 'undefined' && _modal_quality_test.init) _modal_quality_test.init();
             }).catch((err) => {
                 console.error('[Supplier Intake] Error loading modals:', err);
-                if (typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.init) _modal_supplier_new_batch.init();
                 if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.init) _modalSupplierOilBatch.init();
                 if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.init) _modal_stock_receiving_checklist.init();
+                if (typeof _modal_supplier_receiver_checklist !== 'undefined' && _modal_supplier_receiver_checklist.init) _modal_supplier_receiver_checklist.init();
+                if (typeof _modal_quality_test !== 'undefined' && _modal_quality_test.init) _modal_quality_test.init();
             });
         },
 
         bindEvents: () => {
             const scope = _supplierIntakeGrid;
-            $('#addNewBatchProductBtn').off('click').on('click', function (e) {
+            $('#supplierReceiverChecklistBtn').off('click').on('click', function (e) {
                 e.preventDefault();
-                if (typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.show) {
-                    _modal_supplier_new_batch.show();
-                } else if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.show) {
-                    _modalSupplierOilBatch.show();
+                if (typeof _modal_supplier_receiver_checklist !== 'undefined' && _modal_supplier_receiver_checklist.show) {
+                    _modal_supplier_receiver_checklist.show();
                 } else if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', 'New batch modal not loaded. Please refresh the page.', 'error');
+                    Swal.fire('Error', 'Receiver checklist modal not loaded. Please refresh the page.', 'error');
                 }
             });
             $('#exportSupplierIntakeBtn').off('click').on('click', () => scope.exportBatches());
@@ -108,15 +109,13 @@ var _supplierIntakeGrid = function () {
                 const batchId = $(this).data('batch-id');
                 if (batchId) scope.showBatchDetail(batchId);
             });
-            $(document).on('click', '#supplierIntakeBatchesTableBody .js-supplier-intake-checklist-btn', function (e) {
+            $(document).on('click', '#supplierIntakeBatchesTableBody .js-supplier-intake-sample-test-btn', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
                 const batch = batchId ? scope.batches.find((b) => String(b.id) === batchId || String(b.batch_number) === batchId) : null;
-                if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.show) {
-                    _modal_stock_receiving_checklist.show(batch || undefined);
-                } else if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', 'Receiving checklist modal not loaded. Please refresh the page.', 'error');
+                if (batch) {
+                    scope.showSampleTest(batch);
                 }
             });
             $(document).on('click', '#supplierIntakeBatchesTableBody .js-supplier-intake-view', function (e) {
@@ -133,8 +132,8 @@ var _supplierIntakeGrid = function () {
                 var batch = (scope.batches || []).find(function (b) {
                     return (b.id != null && String(b.id) === String(batchId)) || (b.batch_number != null && String(b.batch_number) === String(batchId));
                 });
-                if (batch && typeof _modal_supplier_new_batch !== 'undefined' && _modal_supplier_new_batch.show) {
-                    _modal_supplier_new_batch.show(batch);
+                if (batch && typeof _modal_supplier_receiver_checklist !== 'undefined' && _modal_supplier_receiver_checklist.show) {
+                    _modal_supplier_receiver_checklist.show(batch);
                 } else if (typeof Swal !== 'undefined') {
                     Swal.fire('Info', batch ? 'Edit modal not loaded. Please refresh the page.' : 'Batch not found.', 'info');
                 }
@@ -152,14 +151,12 @@ var _supplierIntakeGrid = function () {
                 });
                 scope.releaseBatchToOilProduction(batchId, batch);
             });
-            $(document).on('click', '#siKanbanBoard .js-supplier-intake-checklist-btn', function (e) {
+            $(document).on('click', '#siKanbanBoard .js-supplier-intake-sample-test-btn', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 var batchId = $(this).data('batch-id');
                 var batch = batchId ? scope.batches.find(function (b) { return (b.id != null && String(b.id) === String(batchId)) || (b.batch_number != null && String(b.batch_number) === String(batchId)); }) : null;
-                if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.show) {
-                    _modal_stock_receiving_checklist.show(batch || undefined);
-                }
+                if (batch) scope.showSampleTest(batch);
             });
             $(document).on('click', '#siKanbanBoard .js-supplier-intake-release-oil', function (e) {
                 e.preventDefault();
@@ -204,7 +201,7 @@ var _supplierIntakeGrid = function () {
                     ((b.delivery_note_ref || '').toString().toLowerCase().indexOf(searchTerm) >= 0) ||
                     ((b.product_type || '').toString().toLowerCase().indexOf(searchTerm) >= 0);
                 const colKey = getSupplierColumnKey(b);
-                const matchesStatus = !statusFilter || colKey === statusFilter || (statusFilter === 'ready_for_production' && colKey === 'intake_received');
+                const matchesStatus = !statusFilter || colKey === statusFilter;
                 return matchesSearch && matchesStatus;
             });
             if (scope.currentView === 'kanban') {
@@ -243,9 +240,9 @@ var _supplierIntakeGrid = function () {
                 var qtyStr = (b.quantity_kg != null ? b.quantity_kg + ' kg' : '');
                 var productStr = productTypeLabel(b.product_type) || '—';
                 var supplierStr = (b.supplier_details || '—').toString();
-                var hasChecklist = !!(b.has_receiving_checklist || b.receiving_checklist_id || (b.vehicle_clean != null || b.vehicle_enclosed != null));
-                var checklistBtn = '<button type="button" class="btn btn-sm btn-primary js-supplier-intake-checklist-btn" data-batch-id="' + esc(batchId) + '" title="Receiving checklist"><i class="fas fa-clipboard-check me-1"></i>Checklist</button>';
-                var releaseBtn = hasChecklist
+                var colKey = getSupplierColumnKey(b);
+                var sampleBtn = '<button type="button" class="btn btn-sm btn-primary js-supplier-intake-sample-test-btn" data-batch-id="' + esc(batchId) + '" title="Sample test"><i class="fas fa-vial me-1"></i>Sample test</button>';
+                var releaseBtn = colKey === 'release_ready'
                     ? '<button type="button" class="btn btn-sm btn-outline-success js-supplier-intake-release-oil" data-batch-id="' + esc(batchId) + '" title="Release to Oil Production"><i class="fas fa-arrow-right me-1"></i>Release</button>'
                     : '';
                 var viewBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-supplier-intake-view" data-batch-id="' + esc(batchId) + '" title="View"><i class="fas fa-eye"></i></button>';
@@ -257,17 +254,9 @@ var _supplierIntakeGrid = function () {
                 if (dateStr !== '—') html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + esc(dateStr) + '</div>';
                 if (qtyStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + esc(qtyStr) + '</div>';
                 html += '</div>';
-                html += '<div class="kanban-card-actions">' + checklistBtn + releaseBtn + viewBtn + '</div>';
+                html += '<div class="kanban-card-actions">' + sampleBtn + releaseBtn + viewBtn + '</div>';
                 html += '</div>';
                 return html;
-            });
-            KanbanHelper.enableDragDrop('siKanbanBoard', function (batchId, fromKey, toKey) {
-                if (toKey === 'intake_received' && fromKey === 'receiving') {
-                    var batch = ( _supplierIntakeGrid.batches || []).find(function (b) { return (b.id != null && String(b.id) === String(batchId)) || (b.batch_number != null && String(b.batch_number) === String(batchId)); });
-                    if (batch && typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.show) {
-                        _modal_stock_receiving_checklist.show(batch);
-                    }
-                }
             });
         },
 
@@ -300,30 +289,62 @@ var _supplierIntakeGrid = function () {
             tbody.empty();
             if (scope.filteredBatches.length === 0) {
                 if (scope.batches.length === 0) {
-                    tbody.html('<tr><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No batches in supplier intake. Click Add new batch of product to add one.</td></tr>');
+                    tbody.html('<tr><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No batches in supplier intake. Click Receiver checklist to add batches.</td></tr>');
                 } else {
                     tbody.html('<tr><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-filter me-2"></i>No batches match your search.</td></tr>');
                 }
                 return;
             }
-            scope.filteredBatches.forEach((b) => {
+            function groupKey(b) {
+                var s = (b && b.supplier_details) ? String(b.supplier_details) : '—';
+                var d = b && b.delivery_note_ref ? String(b.delivery_note_ref) : '—';
+                var dt = formatDate(b && b.date_received) || '—';
+                return (s + '|' + d + '|' + dt).toLowerCase();
+            }
+            var list = scope.filteredBatches.slice().sort(function (a, b) {
+                var ga = groupKey(a);
+                var gb = groupKey(b);
+                if (ga < gb) return -1;
+                if (ga > gb) return 1;
+                var an = (a && a.batch_number) ? String(a.batch_number) : '';
+                var bn = (b && b.batch_number) ? String(b.batch_number) : '';
+                return an.localeCompare(bn);
+            });
+            var lastGroup = null;
+            list.forEach((b) => {
                 const batchId = (b.id != null ? b.id : b.batch_number || '').toString();
                 const supplier = (b.supplier_details != null ? b.supplier_details : (b.supplier_id ? '—' : '—'));
                 const mfgBb = [formatDate(b.manufactured_date), formatDate(b.best_before_date)].filter(Boolean).join(' / ') || '—';
                 const batchNumEscaped = (b.batch_number || '—').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                 const batchNumberCell = '<a href="#" class="supplier-intake-batch-number-link" role="button" data-batch-id="' + batchId + '">' + batchNumEscaped + '</a>';
-                const checklistBtn = '<button type="button" class="btn btn-sm btn-primary supplier-intake-step-btn js-supplier-intake-checklist-btn" data-batch-id="' + escapeHtml(batchId) + '" title="Receiving checklist"><i class="fas fa-clipboard-check me-1"></i><span class="supplier-intake-btn-text">Receiving checklist</span></button>';
-                const receivingCell = '<div class="supplier-intake-receiving-buttons">' + checklistBtn + '</div>';
-                const releaseItem = '<a class="dropdown-item js-supplier-intake-release-oil" href="#"><i class="fas fa-arrow-right me-2"></i>Release to Oil Production</a>';
+                const sampleBtn = '<button type="button" class="btn btn-sm btn-primary supplier-intake-step-btn js-supplier-intake-sample-test-btn" data-batch-id="' + escapeHtml(batchId) + '" title="Sample test"><i class="fas fa-vial me-1"></i><span class="supplier-intake-btn-text">Sample test</span></button>';
+                const receivingCell = '<div class="supplier-intake-receiving-buttons">' + sampleBtn + '</div>';
+                var colKey = getSupplierColumnKey(b);
+                const releaseItem = (colKey === 'release_ready')
+                    ? '<a class="dropdown-item js-supplier-intake-release-oil" href="#"><i class="fas fa-arrow-right me-2"></i>Release to Oil Production</a>'
+                    : '<span class="dropdown-item text-muted" role="button" tabindex="0">Release to Oil Production</span>';
                 const viewItem = '<a class="dropdown-item js-supplier-intake-view" href="#" data-batch-id="' + batchId + '"><i class="fas fa-eye me-2"></i>View</a>';
                 const editItem = '<a class="dropdown-item js-supplier-intake-edit" href="#" data-batch-id="' + batchId + '"><i class="fas fa-edit me-2"></i>Edit</a>';
                 const actionsCell = '<div class="dropdown">' +
                     '<button class="btn btn-sm btn-outline-secondary" type="button" id="supplierIntakeActions' + escapeHtml(batchId) + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
                     '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="supplierIntakeActions' + escapeHtml(batchId) + '">' + releaseItem + viewItem + editItem + '</ul></div>';
-                var colKey = getSupplierColumnKey(b);
-                var statusLabel = colKey === 'receiving' ? 'Receiving' : colKey === 'ready_for_production' ? 'Ready for Oil Production' : 'Intake received';
-                var stagePos = colKey === 'receiving' ? 'first' : colKey === 'ready_for_production' ? 'last' : 'mid';
+                var statusLabel = colKey === 'release_ready' ? 'Ready for Oil Production' : 'Awaiting tests';
+                var stagePos = colKey === 'release_ready' ? 'last' : 'first';
                 var statusBadgeHtml = (typeof KanbanHelper !== 'undefined' && KanbanHelper.statusBadge) ? KanbanHelper.statusBadge(statusLabel, stagePos) : ('<span class="badge bg-info">' + escapeHtml(statusLabel) + '</span>');
+
+                var gk = groupKey(b);
+                if (gk !== lastGroup) {
+                    lastGroup = gk;
+                    var grpSupplier = supplier || '—';
+                    var grpDelivery = b.delivery_note_ref || '—';
+                    var grpDate = formatDate(b.date_received) || '—';
+                    var grpHtml = '<tr class="supplier-intake-group-row">' +
+                        '<td colspan="10" class="supplier-intake-group-cell">' +
+                        '<span class="supplier-intake-group-title">' + escapeHtml(grpSupplier) + '</span>' +
+                        '<span class="supplier-intake-group-meta">Delivery: ' + escapeHtml(grpDelivery) + ' • Received: ' + escapeHtml(grpDate) + '</span>' +
+                        '</td></tr>';
+                    tbody.append(grpHtml);
+                }
                 const row = '<tr class="js-supplier-intake-row" data-batch-id="' + batchId + '">' +
                     '<td class="supplier-intake-col-batch">' + batchNumberCell + '</td>' +
                     '<td class="supplier-intake-col-product d-none d-md-table-cell">' + (productTypeLabel(b.product_type) || '—') + '</td>' +
@@ -338,6 +359,23 @@ var _supplierIntakeGrid = function () {
                 tbody.append(row);
             });
             scope.initActionsDropdowns();
+        },
+
+        showSampleTest: (batch) => {
+            const scope = _supplierIntakeGrid;
+            if (!batch) return;
+            if (typeof _modal_quality_test === 'undefined' || !_modal_quality_test.show) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Sample test modal not loaded. Please refresh the page.', 'error');
+                return;
+            }
+            var batchNumber = (batch.batch_number || '').toString();
+            var context = {
+                source: 'supplier-intake',
+                oil_id: batch.id,
+                batch_number: batchNumber,
+                product_type: batch.product_type || null
+            };
+            _modal_quality_test.show(undefined, context);
         },
 
         initActionsDropdowns: () => {
@@ -387,7 +425,15 @@ var _supplierIntakeGrid = function () {
                 line('Best before date', formatDate(b.best_before_date)) +
                 line('Reference / PO', b.reference) +
                 line('Description', b.description) +
-                line('Status', b.status === 'intake' ? 'Supplier intake' : (b.status || 'intake'));
+                line('Status', (function () {
+                    var s = (b.status || '').toLowerCase();
+                    if (s === 'intake' || s === 'awaiting_test') return 'Awaiting tests';
+                    if (s === 'release_ready') return 'Release ready';
+                    if (s === 'production') return 'Production';
+                    return b.status || '—';
+                })()) +
+                line('Created by', b.created_by_name) +
+                line('Updated by', b.updated_by_name);
             if (b.vehicle_clean != null || b.vehicle_enclosed != null || b.hazard_substances != null || b.pest_infestations != null || b.pallets_condition != null || b.raw_materials_condition != null) {
                 html += '<hr class="my-2"><p class="mb-1"><strong>Receiving checks</strong></p>' +
                     line('Vehicle clean', b.vehicle_clean) +

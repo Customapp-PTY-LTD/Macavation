@@ -1,0 +1,165 @@
+<div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="supplierReceiverChecklistModalLabel">Receiver checklist</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form id="supplierReceiverChecklistForm">
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Delivery &amp; supplier</h6></div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label for="srcDateReceived" class="form-label required">Date received</label>
+                                <input type="text" class="form-control flatpickr-date" id="srcDateReceived" data-input required placeholder="dd/mm/yyyy">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="srcDeliveryNoteRef" class="form-label required">Delivery note / PO number</label>
+                                <input type="text" class="form-control" id="srcDeliveryNoteRef" required placeholder="e.g. DN12345">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="srcSupplierDetails" class="form-label required">Supplier</label>
+                                <select class="form-select" id="srcSupplierDetails" required>
+                                    <option value="">Select supplier</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header"><h6 class="mb-0">Vehicle &amp; receiving checks</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Vehicle clean?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcVehicleClean" id="srcVehicleCleanYes" value="Yes">
+                                        <label class="form-check-label" for="srcVehicleCleanYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcVehicleClean" id="srcVehicleCleanNo" value="No">
+                                        <label class="form-check-label" for="srcVehicleCleanNo">No</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Vehicle fully enclosed?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcVehicleEnclosed" id="srcVehicleEnclosedYes" value="Yes">
+                                        <label class="form-check-label" for="srcVehicleEnclosedYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcVehicleEnclosed" id="srcVehicleEnclosedNo" value="No">
+                                        <label class="form-check-label" for="srcVehicleEnclosedNo">No</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Any hazard substances noted on truck?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcHazardSubstances" id="srcHazardSubstancesYes" value="Yes">
+                                        <label class="form-check-label" for="srcHazardSubstancesYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcHazardSubstances" id="srcHazardSubstancesNo" value="No">
+                                        <label class="form-check-label" for="srcHazardSubstancesNo">No</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Any signs of pest infestations?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcPestInfestations" id="srcPestInfestationsYes" value="Yes">
+                                        <label class="form-check-label" for="srcPestInfestationsYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcPestInfestations" id="srcPestInfestationsNo" value="No">
+                                        <label class="form-check-label" for="srcPestInfestationsNo">No</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Pallets received are in good condition</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcPalletsCondition" id="srcPalletsConditionYes" value="Yes">
+                                        <label class="form-check-label" for="srcPalletsConditionYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcPalletsCondition" id="srcPalletsConditionNo" value="No">
+                                        <label class="form-check-label" for="srcPalletsConditionNo">No</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Are raw materials received in good condition?</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcRawMaterialsCondition" id="srcRawMaterialsConditionYes" value="Yes">
+                                        <label class="form-check-label" for="srcRawMaterialsConditionYes">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="srcRawMaterialsCondition" id="srcRawMaterialsConditionNo" value="No">
+                                        <label class="form-check-label" for="srcRawMaterialsConditionNo">No</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <label for="srcReceivingComments" class="form-label">Comments/Actions taken</label>
+                            <textarea class="form-control" id="srcReceivingComments" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-0">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Bags (these will become batches)</h6>
+                        <button type="button" class="btn btn-sm btn-primary" id="srcAddItemRow"><i class="fas fa-plus"></i> Add bag</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle" id="srcItemsTable">
+                                <thead>
+                                    <tr>
+                                        <th style="min-width: 130px;">Reference</th>
+                                        <th style="min-width: 170px;">Product type</th>
+                                        <th style="min-width: 140px;">Batch #</th>
+                                        <th style="min-width: 120px;">Quantity (kg)</th>
+                                        <th style="min-width: 140px;">Manufactured date</th>
+                                        <th style="min-width: 140px;">Best before date</th>
+                                        <th style="width: 70px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="srcItemsTableBody">
+                                    <tr>
+                                        <td><input type="text" class="form-control form-control-sm" name="reference" placeholder="Optional"></td>
+                                        <td>
+                                            <select class="form-select form-select-sm" name="productType" required>
+                                                <option value="">Select product…</option>
+                                                <option value="oil_kernel">Oil kernel</option>
+                                                <option value="cracker_dust">Cracker dust</option>
+                                                <option value="kernel_dust">Kernel dust</option>
+                                                <option value="crush">Crush</option>
+                                                <option value="cake">Cake</option>
+                                            </select>
+                                        </td>
+                                        <td><input type="text" class="form-control form-control-sm" name="batch" placeholder="e.g. OIL-2026-03-001"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required></td>
+                                        <td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy"></td>
+                                        <td><input type="text" class="form-control form-control-sm flatpickr-date" name="bestBeforeDate" placeholder="dd/mm/yyyy"></td>
+                                        <td><button type="button" class="btn btn-sm btn-danger srcRemoveItemRow" title="Remove"><i class="fas fa-times"></i></button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-muted small">All bags in this checklist are grouped under the same supplier and delivery note, but each batch can be edited individually later.</div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="srcCreateBatchesBtn"><i class="fas fa-save me-1"></i>Create batches</button>
+        </div>
+    </div>
+</div>
+

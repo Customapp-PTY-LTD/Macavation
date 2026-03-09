@@ -185,6 +185,18 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Current user UUID for audit fields (created_by, updated_by). Returns null if not signed in.
+         * Used by oil modules (Supplier Intake create/update/release, Oil Production upsert) so the DB records who did what; later admin can join to users for "who did what, when".
+         */
+        getCurrentUserId: function () {
+            try {
+                var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
+                if (!user) return null;
+                return user.id != null ? user.id : (user.user_id != null ? user.user_id : null);
+            } catch (e) { return null; }
+        },
+
+        /**
          * Check if current user has admin privileges
          */
         hasAdminRole: function () {
@@ -1514,16 +1526,20 @@ var _dataFunctions = function () {
 
         /**
          * Get supplier intake batches (Oil & Protein). Uses Supabase oil table via get_oil_batches.
-         * Returns rows with status 'intake', mapped to the shape expected by the Supplier Intake grid.
-         * @param {string} status - e.g. 'supplier_intake' or 'intake' to filter (oil table uses 'intake')
+         * Returns rows with status 'awaiting_test' or 'release_ready', mapped to the shape expected by the Supplier Intake grid.
+         * Batches are created via the Receiver checklist (multiple batches per submission); initial status is 'awaiting_test'.
+         * @param {string} status - e.g. 'supplier_intake' to fetch all Supplier Intake stages (awaiting_test, release_ready)
          * @param {string|null} token - auth token (optional)
          * @param {boolean} forceRefresh - bypass cache
          * @returns {Promise<Array>} list of batch records { id, batch_number, product_type, date_received, ... }
          */
         getSupplierIntakeBatches: async function (status, token = null, forceRefresh = false) {
-            var pStatus = (status === 'supplier_intake' || status === 'intake') ? 'intake' : (status || null);
-            var params = { p_status: pStatus || 'intake', p_limit: 500, p_offset: 0 };
-            var cacheKey = 'supplier_intake_batches_list_' + (pStatus || 'intake');
+            // Supplier Intake: only 'awaiting_test' and 'release_ready' (no longer 'intake')
+            var pStatus = (status === 'supplier_intake' || status === 'intake')
+                ? 'awaiting_test,release_ready'
+                : (status || null);
+            var params = { p_status: pStatus || 'awaiting_test,release_ready', p_limit: 500, p_offset: 0 };
+            var cacheKey = 'supplier_intake_batches_list_' + (pStatus || 'awaiting_test_release_ready');
             var raw = await this.callFunction('get_oil_batches', params, token, {
                 cacheKey: cacheKey,
                 useCache: true,
@@ -1550,7 +1566,7 @@ var _dataFunctions = function () {
                     quantity_kg: intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg),
                     manufactured_date: intake.manufactured_date || (intake.items && intake.items[0] && intake.items[0].manufactured_date),
                     best_before_date: intake.best_before_date || (intake.items && intake.items[0] && intake.items[0].best_before_date),
-                    status: o.status || 'intake',
+                    status: o.status || 'awaiting_test',
                     reference: intake.reference,
                     description: intake.description,
                     carton_bulk_bags: intake.carton_bulk_bags,
@@ -1560,7 +1576,9 @@ var _dataFunctions = function () {
                     pest_infestations: vc.pest_infestations != null ? vc.pest_infestations : intake.pest_infestations,
                     pallets_condition: vc.pallets_condition != null ? vc.pallets_condition : intake.pallets_condition,
                     raw_materials_condition: vc.raw_materials_condition != null ? vc.raw_materials_condition : intake.raw_materials_condition,
-                    receiving_comments: intake.receiving_comments
+                    receiving_comments: intake.receiving_comments,
+                    created_by_name: o.created_by_name,
+                    updated_by_name: o.updated_by_name
                 };
             }
 
@@ -1568,7 +1586,7 @@ var _dataFunctions = function () {
         },
 
         /**
-         * Release a supplier intake batch to oil production. Updates the oil row status from 'intake' to 'production'.
+         * Release a supplier intake batch to oil production. Updates the oil row status to 'production'.
          * Uses Supabase oil table via upsert_oil_batch.
          * @param {string} batchId - UUID id of the oil row (oil.id from the grid)
          * @param {object|null} batch - optional batch object { id, batch_number } for context
@@ -1590,6 +1608,8 @@ var _dataFunctions = function () {
                 p_oil_id: oilId,
                 p_status: 'production'
             };
+            var uid = this.getCurrentUserId();
+            if (uid) payload.p_updated_by = uid;
             var result = await this.callFunction('upsert_oil_batch', payload, token, { useCache: false });
             var resolved = result && (result.data !== undefined ? result.data : result);
             if (resolved && (resolved.success !== false && resolved.error == null)) {
@@ -1606,8 +1626,24 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Update only the status of an oil batch (without overwriting intake_data).
+         * Used by Supplier Intake to move batches from awaiting_test -> release_ready after sample tests.
+         */
+        updateOilBatchStatus: async function (oilId, status, token = null) {
+            if (!oilId || !status) return { success: false, error: 'Oil id and status are required' };
+            var payload = { p_oil_id: oilId, p_status: status };
+            var uid = this.getCurrentUserId();
+            if (uid) payload.p_updated_by = uid;
+            var result = await this.callFunction('upsert_oil_batch', payload, token, { useCache: false });
+            this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('oil_batches');
+            this.clearCachePattern('oil_production');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /**
          * Create a supplier intake batch (oil/protein). Uses Supabase oil table via upsert_oil_batch.
-         * Stores intake fields in intake_data jsonb; status is set to 'intake'.
+         * Stores intake fields in intake_data jsonb; status defaults to 'awaiting_test'.
          * Used by the Supplier Intake "Add new batch" modal.
          * @param {object} data - { product_type, date_received, delivery_note_ref, supplier_id, quantity_kg, ... }
          * @param {string|null} token - auth token (optional)
@@ -1642,16 +1678,19 @@ var _dataFunctions = function () {
                     pest_infestations: data.pest_infestations,
                     pallets_condition: data.pallets_condition,
                     raw_materials_condition: data.raw_materials_condition
-                }
+                },
+                delivery_group_id: data.delivery_group_id || null
             };
             var payload = {
                 p_oil_id: null,
                 p_batch_id: data.batch_number || null,
                 p_production_date: data.date_received || data.received_date || null,
-                p_status: 'intake',
+                p_status: data.status || 'awaiting_test',
                 p_total_oil_litre: null,
                 p_intake_data: intakeData
             };
+            var uid = this.getCurrentUserId();
+            if (uid) { payload.p_created_by = uid; payload.p_updated_by = uid; }
             var result = await this.callFunction('upsert_oil_batch', payload, token, { useCache: false });
             this.clearCachePattern('supplier_intake');
             this.clearCachePattern('oil_batches');
@@ -1700,10 +1739,12 @@ var _dataFunctions = function () {
                 p_oil_id: oilId,
                 p_batch_id: data.batch_number || null,
                 p_production_date: data.date_received || data.received_date || null,
-                p_status: data.status || 'intake',
+                p_status: data.status || 'awaiting_test',
                 p_total_oil_litre: null,
                 p_intake_data: intakeData
             };
+            var uid = this.getCurrentUserId();
+            if (uid) payload.p_updated_by = uid;
             var result = await this.callFunction('upsert_oil_batch', payload, token, { useCache: false });
             this.clearCachePattern('supplier_intake');
             this.clearCachePattern('oil_batches');
@@ -2047,6 +2088,11 @@ var _dataFunctions = function () {
                 p_stock_completed_at:       data.stock_completed_at        || null,
                 p_dispatch_completed_at:    data.dispatch_completed_at     || null
             };
+            var uid = this.getCurrentUserId();
+            if (uid) {
+                params.p_updated_by = uid;
+                if (!data.oil_id) params.p_created_by = uid;
+            }
             const result = await this.callFunction('upsert_oil_batch', params, token, { useCache: false });
             this.clearCachePattern('oil_batches');
             this.clearCachePattern('oil_production_sheets');

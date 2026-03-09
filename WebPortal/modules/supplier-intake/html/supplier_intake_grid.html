@@ -4,15 +4,15 @@
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
             <h1 class="h2 mb-0">Supplier Intake Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
-                <button type="button" class="btn btn-primary" id="addNewBatchProductBtn">
-                    <i class="fas fa-plus me-1"></i>Add new batch of product
+                <button type="button" class="btn btn-primary" id="supplierReceiverChecklistBtn">
+                    <i class="fas fa-clipboard-check me-1"></i>Receiver checklist
                 </button>
                 <button type="button" class="btn btn-outline-secondary" id="exportSupplierIntakeBtn">
                     <i class="fas fa-download me-1"></i>Export
                 </button>
             </div>
         </div>
-        <p class="text-muted mb-0 mt-2 small">Complete the Receiving checklist for each batch (box becomes a tick). When the checklist is done, release the batch to Oil Production to use in the oil extraction process.</p>
+        <p class="text-muted mb-0 mt-2 small">Create batches via the Receiver checklist, then complete sample tests before releasing to Oil Production.</p>
     </div>
 
     <!-- Search and Filters -->
@@ -27,9 +27,8 @@
                     <label for="filterSupplierIntakeStatus" class="form-label">Status</label>
                     <select class="form-select" id="filterSupplierIntakeStatus">
                         <option value="">All Statuses</option>
-                        <option value="receiving">Receiving</option>
-                        <option value="intake_received">Intake received</option>
-                        <option value="ready_for_production">Ready for Oil Production</option>
+                        <option value="awaiting_test">Awaiting tests</option>
+                        <option value="release_ready">Ready for Oil Production</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
@@ -68,7 +67,7 @@
                             <th class="supplier-intake-col-supplier">Supplier</th>
                             <th class="supplier-intake-col-qty d-none d-sm-table-cell">Quantity (kg)</th>
                             <th class="supplier-intake-col-mfg d-none d-lg-table-cell">Mfg / Best before</th>
-                            <th class="supplier-intake-col-receiving">Receiving</th>
+                            <th class="supplier-intake-col-receiving">Sample test</th>
                             <th class="supplier-intake-col-status">Status</th>
                             <th class="supplier-intake-col-actions">Actions</th>
                         </tr>
@@ -83,6 +82,7 @@
 </div>
 
 <!-- Modal containers (content loaded by app router) -->
-<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="newBatchProductModal" role="dialog" route-name="new-batch-modal" tabindex="-1" aria-labelledby="newBatchProductModalLabel" aria-hidden="true"></div>
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="supplierOilBatchModal" role="dialog" route-name="supplier-oil-batch-modal" tabindex="-1" aria-labelledby="supplierOilBatchModalLabel" aria-hidden="true"></div>
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="receivingChecklistModal" role="dialog" route-name="receiving-checklist-modal" tabindex="-1" aria-labelledby="receivingChecklistModalLabel" aria-hidden="true"></div>
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="supplierReceiverChecklistModal" role="dialog" route-name="supplier-receiver-checklist-modal" tabindex="-1" aria-labelledby="supplierReceiverChecklistModalLabel" aria-hidden="true"></div>
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="qualityTestModal" role="dialog" route-name="quality-test-modal" tabindex="-1" aria-labelledby="qualityTestModalLabel" aria-hidden="true"></div>

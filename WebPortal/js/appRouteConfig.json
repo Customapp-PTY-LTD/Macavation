@@ -206,18 +206,18 @@
                 "css/supplier_intake_grid.css"
             ]
         },
-        "new-batch-modal": {
-            "description": "Supplier Intake - New batch of product modal",
-            "path": "modals/modal-supplier-new-batch",
-            "html": "html/modal_new_batch.html",
-            "js": ["js/modal_new_batch.js"],
-            "css": ["css/modal_new_batch.css"]
-        },
         "supplier-oil-batch-modal": {
             "description": "Supplier Intake - New oil batch (batches + oil table)",
             "path": "modals/modal-supplier-oil-batch",
             "html": "html/modal_supplier_oil_batch.html",
             "js": ["js/modal_supplier_oil_batch.js"],
+            "css": []
+        },
+        "supplier-receiver-checklist-modal": {
+            "description": "Supplier Intake - Receiver checklist (create batches)",
+            "path": "modals/modal-supplier-receiver-checklist",
+            "html": "html/modal_supplier_receiver_checklist.html",
+            "js": ["js/modal_supplier_receiver_checklist.js"],
             "css": []
         },
         "kernel-production-grid": {

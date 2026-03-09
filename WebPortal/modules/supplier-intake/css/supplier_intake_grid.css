@@ -42,7 +42,7 @@
 }
 .supplier-intake-col-batch { overflow: visible !important; }
 
-/* Receiving column: checklist button per row (aligned with grower Stage 1 steps) */
+/* Sample test column: button per row (aligned with grower Stage 1 steps) */
 .supplier-intake-receiving-buttons {
     display: flex;
     flex-wrap: wrap;
@@ -62,6 +62,22 @@
     display: inline;
 }
 .supplier-intake-col-receiving { width: 1%; white-space: nowrap; }
+
+/* Group header rows (supplier + delivery note + date) */
+.supplier-intake-group-row td.supplier-intake-group-cell {
+    background: rgba(13, 110, 253, 0.06);
+    border-top: 1px solid rgba(13, 110, 253, 0.18);
+    border-bottom: 1px solid rgba(13, 110, 253, 0.18);
+    padding: 0.5rem 0.75rem;
+}
+.supplier-intake-group-title {
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+.supplier-intake-group-meta {
+    color: rgba(33, 37, 41, 0.75);
+    font-size: 0.875rem;
+}
 
 /* Table scroll container */
 .supplier-intake-table-responsive {
