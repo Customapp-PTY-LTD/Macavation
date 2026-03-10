@@ -338,7 +338,7 @@ var _kernelProductionGrid = function () {
                 return;
             }
             const startTime = performance.now();
-            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'production,qa' }).then((batches) => {
+            _dataFunctions.getKernelBatches(null, forceRefresh, {}).then((batches) => {
                 scope.batches = (batches || []).map(function (b) {
                     var displayKg = (b.actual_wet_nis_kg != null && b.actual_wet_nis_kg !== '') ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
                     return Object.assign({}, b, { display_wet_nis_kg: displayKg });
