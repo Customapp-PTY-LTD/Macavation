@@ -32,6 +32,23 @@ var _supplierIntakeGrid = function () {
         return s.split('T')[0];
     }
 
+    /** Return ISO week key "YYYY-Www" for grouping (e.g. 2026-W10). */
+    function getIsoWeekKey(d) {
+        if (!d) return '';
+        var date = typeof d === 'string' ? new Date(d + 'T12:00:00') : (d instanceof Date ? d : new Date(d));
+        if (isNaN(date.getTime())) return '';
+        var year = date.getFullYear();
+        var start = new Date(year, 0, 1);
+        var days = Math.floor((date - start) / 86400000);
+        var weekNum = Math.floor(days / 7) + 1;
+        if (weekNum > 52) {
+            var nextJan = new Date(year + 1, 0, 1);
+            if (date >= nextJan) { year += 1; weekNum = 1; }
+        }
+        var pad = weekNum < 10 ? '0' : '';
+        return year + '-W' + pad + weekNum;
+    }
+
     function escapeHtml(s) {
         if (s == null) return '';
         var str = String(s);
@@ -80,7 +97,7 @@ var _supplierIntakeGrid = function () {
                 }
             });
             $('#exportSupplierIntakeBtn').off('click').on('click', () => scope.exportBatches());
-            $('#siViewKanban, #siViewTable').off('click').on('click', function () {
+            $('#siViewKanban, #siViewTable, #siViewWeekly, #siViewOverview').off('click').on('click', function () {
                 scope.toggleView($(this).data('view'));
             });
 
@@ -209,6 +226,8 @@ var _supplierIntakeGrid = function () {
             } else {
                 scope.renderBatches();
             }
+            if (scope.currentView === 'weekly') scope.renderWeekly();
+            if (scope.currentView === 'overview') scope.renderOverview();
         },
 
         toggleView: (view) => {
@@ -216,17 +235,20 @@ var _supplierIntakeGrid = function () {
             scope.currentView = view;
             var board = document.getElementById('siKanbanBoard');
             var table = document.getElementById('siTableCard');
-            if (view === 'kanban') {
-                if (board) board.style.display = '';
-                if (table) table.style.display = 'none';
-                scope.renderKanbanIntake();
-            } else {
-                if (board) board.style.display = 'none';
-                if (table) table.style.display = '';
-                scope.renderBatches();
-            }
+            var weekly = document.getElementById('siWeeklyCard');
+            var overview = document.getElementById('siOverviewCard');
+            if (board) board.style.display = (view === 'kanban') ? '' : 'none';
+            if (table) table.style.display = (view === 'table') ? '' : 'none';
+            if (weekly) weekly.style.display = (view === 'weekly') ? '' : 'none';
+            if (overview) overview.style.display = (view === 'overview') ? '' : 'none';
+            if (view === 'kanban') scope.renderKanbanIntake();
+            else if (view === 'table') scope.renderBatches();
+            else if (view === 'weekly') scope.renderWeekly();
+            else if (view === 'overview') scope.renderOverview();
             $('#siViewKanban').toggleClass('active', view === 'kanban');
             $('#siViewTable').toggleClass('active', view === 'table');
+            $('#siViewWeekly').toggleClass('active', view === 'weekly');
+            $('#siViewOverview').toggleClass('active', view === 'overview');
         },
 
         renderKanbanIntake: () => {
@@ -362,6 +384,55 @@ var _supplierIntakeGrid = function () {
                 tbody.append(row);
             });
             scope.initActionsDropdowns();
+        },
+
+        renderWeekly: () => {
+            const scope = _supplierIntakeGrid;
+            var tbody = document.getElementById('siWeeklyTableBody');
+            if (!tbody) return;
+            var list = scope.filteredBatches && scope.filteredBatches.length > 0 ? scope.filteredBatches : (scope.batches || []);
+            var byWeek = {};
+            list.forEach(function (b) {
+                var key = getIsoWeekKey(b.date_received);
+                if (!key) return;
+                if (!byWeek[key]) byWeek[key] = { stockIn: 0, stockOut: 0 };
+                var qty = parseFloat(b.quantity_kg);
+                if (!isNaN(qty)) byWeek[key].stockIn += qty;
+            });
+            var weeks = Object.keys(byWeek).sort();
+            var rows = weeks.length === 0
+                ? '<tr><td colspan="3" class="text-center text-muted py-4">No data for the selected filters.</td></tr>'
+                : weeks.map(function (key) {
+                    var v = byWeek[key];
+                    var stockIn = (v.stockIn != null && !isNaN(v.stockIn)) ? Number(v.stockIn).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                    var stockOut = (v.stockOut != null && v.stockOut > 0) ? Number(v.stockOut).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                    return '<tr><td>' + escapeHtml(key) + '</td><td class="text-end">' + escapeHtml(String(stockIn)) + '</td><td class="text-end">' + escapeHtml(String(stockOut)) + '</td></tr>';
+                }).join('');
+            tbody.innerHTML = rows;
+        },
+
+        renderOverview: () => {
+            const scope = _supplierIntakeGrid;
+            var tbody = document.getElementById('siOverviewTableBody');
+            if (!tbody) return;
+            var list = scope.filteredBatches && scope.filteredBatches.length > 0 ? scope.filteredBatches : (scope.batches || []);
+            var byIngredient = {};
+            list.forEach(function (b) {
+                var key = b.product_type || 'other';
+                if (!byIngredient[key]) byIngredient[key] = 0;
+                var qty = parseFloat(b.quantity_kg);
+                if (!isNaN(qty)) byIngredient[key] += qty;
+            });
+            var keys = Object.keys(byIngredient).sort();
+            var rows = keys.length === 0
+                ? '<tr><td colspan="2" class="text-center text-muted py-4">No data for the selected filters.</td></tr>'
+                : keys.map(function (key) {
+                    var total = byIngredient[key];
+                    var label = productTypeLabel(key);
+                    var amount = (total != null && !isNaN(total)) ? Number(total).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                    return '<tr><td>' + escapeHtml(label) + '</td><td class="text-end">' + escapeHtml(String(amount)) + '</td></tr>';
+                }).join('');
+            tbody.innerHTML = rows;
         },
 
         showSampleTest: (batch) => {

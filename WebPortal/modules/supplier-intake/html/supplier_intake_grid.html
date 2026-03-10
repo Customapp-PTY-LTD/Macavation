@@ -44,6 +44,12 @@
                         <button class="view-toggle-btn" data-view="table" id="siViewTable">
                             <i class="fas fa-list me-1"></i>Table
                         </button>
+                        <button class="view-toggle-btn" data-view="weekly" id="siViewWeekly">
+                            <i class="fas fa-calendar-week me-1"></i>Weekly
+                        </button>
+                        <button class="view-toggle-btn" data-view="overview" id="siViewOverview">
+                            <i class="fas fa-layer-group me-1"></i>Overview
+                        </button>
                     </div>
                 </div>
             </div>
@@ -74,6 +80,53 @@
                     </thead>
                     <tbody id="supplierIntakeBatchesTableBody">
                         <tr><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly View: stock in and stock out by week -->
+    <div class="card mb-4" id="siWeeklyCard" style="display:none">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-calendar-week me-2"></i>Weekly stock</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">Stock in (received) and stock out (released to Oil Production) by week.</p>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm" id="siWeeklyTable">
+                    <thead>
+                        <tr>
+                            <th>Week</th>
+                            <th class="text-end">Stock in (kg)</th>
+                            <th class="text-end">Stock out (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="siWeeklyTableBody">
+                        <tr><td colspan="3" class="text-center text-muted py-4">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview View: amount of ingredient -->
+    <div class="card mb-4" id="siOverviewCard" style="display:none">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Overview by ingredient</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">Total quantity by product type (current batches in Supplier Intake).</p>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm" id="siOverviewTable">
+                    <thead>
+                        <tr>
+                            <th>Ingredient</th>
+                            <th class="text-end">Amount (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="siOverviewTableBody">
+                        <tr><td colspan="2" class="text-center text-muted py-4">Loading…</td></tr>
                     </tbody>
                 </table>
             </div>
