@@ -264,6 +264,15 @@ var _stockManagementGrid = function () {
                     var displayVal = (val !== 0 && val !== '' && val != null) ? val : '—';
                     row += '<td class="text-end">' + displayVal + '</td>';
                 });
+                var ffaVal = (b.ffa != null && b.ffa !== '') ? (typeof b.ffa === 'number' ? b.ffa : parseFloat(b.ffa)) : null;
+                var ffaDisplay = (ffaVal != null && !isNaN(ffaVal)) ? ffaVal : '—';
+                var bbVal = b.best_before_date;
+                var bbDisplay = '—';
+                if (bbVal) {
+                    var d = typeof bbVal === 'string' ? new Date(bbVal) : bbVal;
+                    if (!isNaN(d.getTime())) bbDisplay = d.getDate() + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+                }
+                row += '<td class="text-end">' + ffaDisplay + '</td><td class="text-end">' + bbDisplay + '</td>';
                 row += '</tr>';
                 body.append(row);
             });
