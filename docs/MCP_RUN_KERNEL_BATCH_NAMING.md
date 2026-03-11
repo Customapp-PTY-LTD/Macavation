@@ -142,6 +142,13 @@ $$;
 
 ---
 
+## See also (other MCP migrations)
+
+- **docs/MCP_RUN_DASHBOARD_KERNEL_STATS.md** – Fix "Kernel batches in production" dashboard card so the count matches the Kernel Production grid.
+- **docs/MCP_RUN_PRODUCTION_TRENDS.md** – Production Trends chart: daily cracked / packed / dispatched (kg). Run via MCP `execute_sql` with the SQL in that doc.
+
+---
+
 ## Option B: Supabase SQL Editor
 
 Run the full migration files in order:

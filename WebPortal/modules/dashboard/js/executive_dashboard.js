@@ -27,11 +27,15 @@ var _executiveDashboard = function () {
         execStatQualityPassRate: 'Quality pass rate',
         execStatQualityTestsWeek: 'Quality tests this week',
         execStatDispatchWeek: 'Dispatch this week',
-        execStatDispatchPending: 'Dispatch pending'
+        execStatDispatchPending: 'Dispatch pending',
+        execProductionTrends: 'Production Trends'
     };
 
     return {
         kpis: {},
+        productionTrendsData: null,
+        productionTrendsChart: null,
+
 
         init: async () => {
             const scope = _executiveDashboard;
@@ -48,6 +52,7 @@ var _executiveDashboard = function () {
             await scope.loadKPIs();
             await scope.loadKernelStats();
             await scope.loadProductionStats();
+            await scope.loadProductionTrendsChart();
         },
 
         getDashboardVisibility: function () {
@@ -182,6 +187,90 @@ var _executiveDashboard = function () {
             $('#execDashboardSaveVisibility').off('click').on('click', function () {
                 scope.saveCustomizeModal();
             });
+            $('#productionTrendsMetric').off('change').on('change', function () {
+                scope.updateProductionTrendsChart();
+            });
+        },
+
+        loadProductionTrendsChart: async () => {
+            const scope = _executiveDashboard;
+            const canvas = document.getElementById('productionTrendsChart');
+            if (!canvas) return;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getProductionTrendsDaily) return;
+            try {
+                const raw = await dataFunctions.getProductionTrendsDaily(30);
+                scope.productionTrendsData = Array.isArray(raw) ? raw : [];
+                scope.renderProductionTrendsChart();
+            } catch (e) {
+                console.error('Error loading production trends:', e);
+                if (canvas && canvas.parentNode) {
+                    canvas.parentNode.innerHTML = '<p class="text-muted small mb-0">Unable to load trends. Apply migration get_production_trends_daily if needed.</p>';
+                }
+            }
+        },
+
+        renderProductionTrendsChart: () => {
+            const scope = _executiveDashboard;
+            const data = scope.productionTrendsData || [];
+            const canvas = document.getElementById('productionTrendsChart');
+            if (!canvas || !data.length) return;
+            const labels = data.map(function (r) {
+                var d = r.trend_date;
+                if (!d) return '';
+                if (typeof d === 'string') d = d.split('T')[0];
+                var parts = d.split('-');
+                if (parts.length === 3) return parts[2] + '/' + parts[1];
+                return d;
+            });
+            const metric = document.getElementById('productionTrendsMetric');
+            const key = (metric && metric.value) ? metric.value : 'kg_cracked';
+            const datasetLabel = metric && metric.options[metric.selectedIndex] ? metric.options[metric.selectedIndex].text : 'kg';
+            const values = data.map(function (r) { return Number(r[key]) || 0; });
+            if (scope.productionTrendsChart) {
+                scope.productionTrendsChart.data.labels = labels;
+                scope.productionTrendsChart.data.datasets[0].label = datasetLabel;
+                scope.productionTrendsChart.data.datasets[0].data = values;
+                scope.productionTrendsChart.update();
+                return;
+            }
+            if (typeof Chart === 'undefined') return;
+            var ctx = canvas.getContext('2d');
+            scope.productionTrendsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: values,
+                        backgroundColor: 'rgba(13, 110, 253, 0.6)',
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function (item) { return (item.raw || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg'; }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { maxRotation: 45, minRotation: 0, maxTicksLimit: 15 } },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: function (v) { return (v || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }); } }
+                        }
+                    }
+                }
+            });
+        },
+
+        updateProductionTrendsChart: () => {
+            _executiveDashboard.renderProductionTrendsChart();
         },
 
         loadKPIs: async (forceRefresh = false) => {

@@ -1105,6 +1105,25 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Get production trends for chart: daily kg cracked, kg packed, kg dispatched (SA timezone).
+         * @param {number} days - Number of days (default 30)
+         * @returns {Promise<Array<{trend_date:string,kg_cracked:number,kg_packed:number,kg_dispatched:number}>>}
+         */
+        getProductionTrendsDaily: async function (days, token = null) {
+            var pDays = Math.max(7, Math.min(90, parseInt(days, 10) || 30));
+            try {
+                var raw = await this.callFunction('get_production_trends_daily', { p_days: pDays }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_production_trends_daily)) return raw.get_production_trends_daily;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_production_trends_daily failed. Apply migration 20260326000001_get_production_trends_daily.sql if needed.', e.message);
+                return [];
+            }
+        },
+
+        /**
          * Get dashboard production stats: kernel pipeline, oil, quality, dispatch, batch health.
          * Used by Executive dashboard.
          */
