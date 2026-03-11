@@ -54,7 +54,10 @@ var _modal_grower_receiving_checklist = (function () {
             var saveBtn = document.getElementById('growerSaveReceivingChecklistBtn');
             if (saveBtn) saveBtn.addEventListener('click', (e) => { e.preventDefault(); scope.save(); });
             var addRowBtn = document.getElementById('growerAddReceivedItemRow');
-            if (addRowBtn) addRowBtn.addEventListener('click', () => scope.addReceivedItemRow());
+            if (addRowBtn) addRowBtn.addEventListener('click', () => {
+                scope.enforceSectionOrder(addRowBtn);
+                if (scope.isSection1Complete() && scope.isSection2Complete()) scope.addReceivedItemRow();
+            });
             $(document).on('click', '.growerRemoveItemRow', function () { $(this).closest('tr').remove(); scope.updateWeightTally(); });
             $(document).on('input change', '#growerReceivedItemsTableBody .grower-bag-weight', function () { scope.updateWeightTally(); });
             $(document).on('input change', '#growerRemovedPreSizerKg', function () { scope.updateWeightTally(); });
@@ -67,6 +70,17 @@ var _modal_grower_receiving_checklist = (function () {
             if (container && typeof $ !== 'undefined') {
                 $(container).on('shown.bs.modal', () => initFlatpickrInModal());
                 $(container).on('hidden.bs.modal', () => scope.clearForm());
+                $(container).on('focusin', function (e) {
+                    var t = e.target;
+                    if (!t) return;
+                    var id = t.id || '';
+                    var inItemsTable = t.closest && t.closest('#growerReceivedItemsTableBody');
+                    if (id === 'growerDateReceived' || id === 'growerDeliveryNoteRef' || id === 'growerRemovedPreSizerKg') {
+                        scope.enforceSectionOrder(t);
+                    } else if (inItemsTable || id === 'growerAddReceivedItemRow') {
+                        scope.enforceSectionOrder(id === 'growerAddReceivedItemRow' ? 'growerAddReceivedItemRow' : t);
+                    }
+                });
             }
         },
 
@@ -233,10 +247,208 @@ var _modal_grower_receiving_checklist = (function () {
             }
         },
 
+        isSection1Complete: () => {
+            if (typeof $ === 'undefined') return true;
+            var v = $('input[name="growerVehicleClean"]:checked').val();
+            var e = $('input[name="growerVehicleEnclosed"]:checked').val();
+            var h = $('input[name="growerHazardSubstances"]:checked').val();
+            var p = $('input[name="growerPestInfestations"]:checked').val();
+            var pal = $('input[name="growerPalletsCondition"]:checked').val();
+            var r = $('input[name="growerRawMaterialsCondition"]:checked').val();
+            return !!(v && e && h && p && pal && r);
+        },
+
+        isSection2Complete: () => {
+            if (typeof $ === 'undefined') return true;
+            var dateVal = ($('#growerDateReceived').val() || '').trim();
+            var refVal = ($('#growerDeliveryNoteRef').val() || '').trim();
+            return !!(dateVal && refVal);
+        },
+
+        isSection3Complete: () => {
+            if (typeof $ === 'undefined') return true;
+            var hasComplete = false;
+            $('#growerReceivedItemsTableBody tr').each(function () {
+                var $row = $(this);
+                var desc = ($row.find('select[name="growerDescription"]').val() || '').trim();
+                var qty = ($row.find('input[name="growerQuantity"]').val() || '').trim();
+                var dateVal = ($row.find('input[name="growerManufacturedDate"]').val() || '').trim();
+                if (desc && qty && dateVal && parseFloat(qty) > 0) hasComplete = true;
+            });
+            return hasComplete;
+        },
+
+        /** Move focus to the first focusable element in the first incomplete section (used after user dismisses section-order validation). */
+        focusFirstIncompleteSection: () => {
+            const scope = _modal_grower_receiving_checklist;
+            var container = document.getElementById(CONTAINER_ID);
+            if (!container) return;
+            var first = null;
+            if (!scope.isSection1Complete()) {
+                first = document.getElementById('growerVehicleCleanYes') || container.querySelector('.card.mb-3 input[name="growerVehicleClean"]');
+            } else if (!scope.isSection2Complete()) {
+                first = document.getElementById('growerDateReceived');
+            } else if (!scope.isSection3Complete()) {
+                first = document.getElementById('growerAddReceivedItemRow') || container.querySelector('#growerReceivedItemsTableBody input, #growerReceivedItemsTableBody select');
+            } else {
+                first = document.getElementById('growerRemovedPreSizerKg');
+            }
+            if (first && typeof first.focus === 'function') {
+                try { first.focus(); } catch (e) { }
+            }
+        },
+
+        enforceSectionOrder: (targetIdOrElement) => {
+            const scope = _modal_grower_receiving_checklist;
+            if (typeof $ === 'undefined' || typeof Swal === 'undefined' || !Swal.fire) return;
+            var id = typeof targetIdOrElement === 'string' ? targetIdOrElement : (targetIdOrElement && targetIdOrElement.id);
+            var el = typeof targetIdOrElement === 'string' ? document.getElementById(targetIdOrElement) : targetIdOrElement;
+            if (!id && el) id = el.id;
+
+            // Avoid re-showing validation when focus returns after user dismisses the alert; during cooldown still redirect focus so it doesn't stay on the invalid field
+            var dismissCooldownMs = 2000;
+            var inCooldown = scope._sectionOrderValidationDismissedAt && (Date.now() - scope._sectionOrderValidationDismissedAt) < dismissCooldownMs;
+            if (inCooldown) {
+                var isSection2Field = id === 'growerDateReceived' || id === 'growerDeliveryNoteRef';
+                var isSection3Field = id === 'growerAddReceivedItemRow' || (el && el.closest && el.closest('#growerReceivedItemsTableBody'));
+                var isSection4Field = id === 'growerRemovedPreSizerKg';
+                if ((isSection2Field && !scope.isSection1Complete()) || (isSection3Field && (!scope.isSection1Complete() || !scope.isSection2Complete())) || (isSection4Field && (!scope.isSection1Complete() || !scope.isSection2Complete() || !scope.isSection3Complete()))) {
+                    setTimeout(function () { scope.focusFirstIncompleteSection(); }, 0);
+                }
+                return;
+            }
+
+            var onDismiss = function () {
+                scope._sectionOrderValidationDismissedAt = Date.now();
+                var targetToBlur = el;
+                // Redirect focus after close: blur invalid field and focus first incomplete section (multiple attempts to beat late focus restore)
+                [0, 100, 250].forEach(function (delay) {
+                    setTimeout(function () {
+                        if (targetToBlur && targetToBlur.blur) try { targetToBlur.blur(); } catch (e) { }
+                        scope.focusFirstIncompleteSection();
+                    }, delay);
+                });
+            };
+
+            if (id === 'growerDateReceived' || id === 'growerDeliveryNoteRef') {
+                if (!scope.isSection1Complete()) {
+                    Swal.fire('Validation', 'Please complete Vehicle & Receiving Checks (first section) before filling Receiving Information.', 'warning').then(onDismiss);
+                    var card1 = document.querySelector('#' + CONTAINER_ID + ' .card.mb-3');
+                    if (card1) card1.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (el) setTimeout(function () { el.blur(); }, 0);
+                }
+                return;
+            }
+
+            if (id === 'growerAddReceivedItemRow' || (el && $('#growerReceivedItemsTableBody').find(el).length) || (el && el.closest && el.closest('#growerReceivedItemsTableBody'))) {
+                if (!scope.isSection1Complete()) {
+                    Swal.fire('Validation', 'Please complete Vehicle & Receiving Checks (first section) before filling Received Items.', 'warning').then(onDismiss);
+                    var card1a = document.querySelector('#' + CONTAINER_ID + ' .card.mb-3');
+                    if (card1a) card1a.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (el) setTimeout(function () { el.blur(); }, 0);
+                } else if (!scope.isSection2Complete()) {
+                    Swal.fire('Validation', 'Please complete Receiving Information (Date Received and Delivery Note Reference) before filling Received Items.', 'warning').then(onDismiss);
+                    var cards = document.querySelectorAll('#' + CONTAINER_ID + ' .card.mb-3');
+                    if (cards && cards[1]) cards[1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (el) setTimeout(function () { el.blur(); document.getElementById('growerDateReceived') && document.getElementById('growerDateReceived').focus(); }, 0);
+                }
+                return;
+            }
+
+            if (id === 'growerRemovedPreSizerKg') {
+                if (!scope.isSection1Complete()) {
+                    Swal.fire('Validation', 'Please complete Vehicle & Receiving Checks (first section) before filling Removed pre-sizer.', 'warning').then(onDismiss);
+                    var card1b = document.querySelector('#' + CONTAINER_ID + ' .card.mb-3');
+                    if (card1b) card1b.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (el) setTimeout(function () { el.blur(); }, 0);
+                } else if (!scope.isSection2Complete()) {
+                    Swal.fire('Validation', 'Please complete Receiving Information before filling Removed pre-sizer.', 'warning').then(onDismiss);
+                    var cards2 = document.querySelectorAll('#' + CONTAINER_ID + ' .card.mb-3');
+                    if (cards2 && cards2[1]) cards2[1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (el) setTimeout(function () { el.blur(); document.getElementById('growerDateReceived') && document.getElementById('growerDateReceived').focus(); }, 0);
+                } else if (!scope.isSection3Complete()) {
+                    Swal.fire('Validation', 'Please add at least one received item (Description, Weight and Date) before entering Removed pre-sizer.', 'warning').then(onDismiss);
+                    var cards3 = document.querySelectorAll('#' + CONTAINER_ID + ' .card.mb-3');
+                    if (cards3 && cards3[2]) cards3[2].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (el) setTimeout(function () { el.blur(); $('#growerAddReceivedItemRow').focus(); }, 0);
+                }
+            }
+        },
+
+        /**
+         * Validate mandatory fields (all except Comments). Returns { valid: boolean, message: string }.
+         */
+        validateBeforeSave: () => {
+            if (typeof $ === 'undefined') return { valid: true };
+
+            // 1. Vehicle & Receiving Checks (first section) — all Yes/No mandatory
+            var vehicleClean = $('input[name="growerVehicleClean"]:checked').val();
+            var vehicleEnclosed = $('input[name="growerVehicleEnclosed"]:checked').val();
+            var hazardSubstances = $('input[name="growerHazardSubstances"]:checked').val();
+            var pestInfestations = $('input[name="growerPestInfestations"]:checked').val();
+            var palletsCondition = $('input[name="growerPalletsCondition"]:checked').val();
+            var rawMaterialsCondition = $('input[name="growerRawMaterialsCondition"]:checked').val();
+
+            if (!vehicleClean || !vehicleEnclosed || !hazardSubstances || !pestInfestations || !palletsCondition || !rawMaterialsCondition) {
+                return { valid: false, message: 'Please answer all Vehicle & Receiving Checks (Yes/No).' };
+            }
+
+            // 2. Receiving Information — Date Received and Delivery Note Ref (HTML required handles these; double-check)
+            var dateReceived = ($('#growerDateReceived').val() || '').trim();
+            var deliveryNoteRef = ($('#growerDeliveryNoteRef').val() || '').trim();
+            if (!dateReceived) return { valid: false, message: 'Please enter Date Received.' };
+            if (!deliveryNoteRef) return { valid: false, message: 'Please enter Delivery Note Reference/Number.' };
+
+            // 3. Received Items — at least one row with Description, Weight and Date; no partial rows
+            var hasCompleteRow = false;
+            var rowError = null;
+            $('#growerReceivedItemsTableBody tr').each(function () {
+                var $row = $(this);
+                var desc = ($row.find('select[name="growerDescription"]').val() || '').trim();
+                var qty = ($row.find('input[name="growerQuantity"]').val() || '').trim();
+                var dateVal = ($row.find('input[name="growerManufacturedDate"]').val() || '').trim();
+                if (desc || qty || dateVal) {
+                    if (!desc || !qty || !dateVal) {
+                        rowError = 'Please complete each received item row: Description, Weight and Date are required.';
+                        return false;
+                    }
+                    var num = parseFloat(qty);
+                    if (isNaN(num) || num <= 0) {
+                        rowError = 'Please enter a valid Weight (kg) for each received item.';
+                        return false;
+                    }
+                    hasCompleteRow = true;
+                }
+            });
+            if (rowError) return { valid: false, message: rowError };
+            if (!hasCompleteRow) {
+                return { valid: false, message: 'Please add at least one received item with Description, Weight and Date.' };
+            }
+
+            // 4. Removed pre-sizer (kg) — mandatory; 0 or positive number
+            var removedVal = ($('#growerRemovedPreSizerKg').val() || '').trim();
+            if (removedVal === '') return { valid: false, message: 'Please enter Removed pre-sizer (kg). Use 0 if none.' };
+            var removedNum = parseFloat(removedVal);
+            if (isNaN(removedNum) || removedNum < 0) {
+                return { valid: false, message: 'Please enter a valid Removed pre-sizer (kg) (0 or positive number).' };
+            }
+
+            return { valid: true };
+        },
+
         save: async () => {
             const scope = _modal_grower_receiving_checklist;
             try {
                 if (typeof dataFunctions === 'undefined') return;
+
+                // Validate in section order: first section (Vehicle & Receiving Checks), then Receiving Information, then Received Items, then Removed pre-sizer
+                var validation = scope.validateBeforeSave();
+                if (!validation.valid) {
+                    if (typeof Swal !== 'undefined' && Swal.fire) {
+                        Swal.fire('Validation', validation.message, 'warning');
+                    }
+                    return;
+                }
 
                 var form = document.getElementById('growerReceivingChecklistForm');
                 if (form && !form.checkValidity()) {

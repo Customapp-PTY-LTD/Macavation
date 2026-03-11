@@ -11,7 +11,7 @@
                 <input type="hidden" id="growerReceivingChecklistSupplierId" value="">
                 <div class="card mb-3">
                     <div class="card-body">
-                        <label class="form-label fw-semibold">Vehicle &amp; Receiving Checks</label>
+                        <label class="form-label fw-semibold">Vehicle &amp; Receiving Checks <span class="text-danger">(all required)</span></label>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -114,8 +114,8 @@
                                 <small class="text-muted">Sum of bag weights (uneditable)</small>
                             </div>
                             <div class="col-md-4">
-                                <label for="growerRemovedPreSizerKg" class="form-label fw-semibold mb-1">Removed pre-sizer (kg)</label>
-                                <input type="number" class="form-control form-control-sm" id="growerRemovedPreSizerKg" step="0.01" min="0" placeholder="0">
+                                <label for="growerRemovedPreSizerKg" class="form-label fw-semibold mb-1 required">Removed pre-sizer (kg)</label>
+                                <input type="number" class="form-control form-control-sm" id="growerRemovedPreSizerKg" step="0.01" min="0" placeholder="0" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold mb-1">Balance in (kg)</label>
