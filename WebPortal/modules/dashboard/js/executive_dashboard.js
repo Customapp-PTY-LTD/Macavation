@@ -8,8 +8,6 @@ var _executiveDashboard = function () {
     var DASHBOARD_VISIBILITY_KEY = 'executive_dashboard_visible_widgets';
     var DASHBOARD_WIDGET_LABELS = {
         totalProduction: 'Total Production (kg)',
-        activeBatches: 'Active Batches',
-        totalSales: 'Total Sales (ZAR)',
         qualityPassRate: 'Quality Pass Rate',
         execStatBatchesInProduction: 'Kernel batches in production',
         execStatKgCrackedToday: 'Kg cracked today',
@@ -291,8 +289,6 @@ var _executiveDashboard = function () {
         renderKPIs: () => {
             const scope = _executiveDashboard;
             $('#totalProduction').text(scope.kpis.total_production_kg || '0');
-            $('#activeBatches').text(scope.kpis.active_batches || '0');
-            $('#totalSales').text('R ' + (scope.kpis.total_sales || '0.00'));
             $('#qualityPassRate').text((scope.kpis.quality_pass_rate || '0') + '%');
         }
     };

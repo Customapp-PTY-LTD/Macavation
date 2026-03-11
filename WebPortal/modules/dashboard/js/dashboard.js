@@ -219,18 +219,6 @@ var _dashboard = function () {
         // Calculate metrics with context - make them clickable
         const metrics = [
             {
-                title: 'Active Batches',
-                value: kpis.active_batches || 0,
-                unit: 'batches',
-                target: 10, // Example target
-                current: kpis.active_batches || 0,
-                trend: 5, // Example trend
-                trendPeriod: 'vs. last week',
-                icon: 'bi-box-seam',
-                color: 'primary',
-                actionUrl: 'kernel-production-grid' // Click to view production batches
-            },
-            {
                 title: 'Quality Pass Rate',
                 value: kpis.quality_pass_rate || 0,
                 unit: '%',
@@ -253,18 +241,6 @@ var _dashboard = function () {
                 icon: 'bi-graph-up',
                 color: 'info',
                 actionUrl: 'kernel-production-grid' // Click to view production batches
-            },
-            {
-                title: 'Total Sales',
-                value: kpis.total_sales || 0,
-                unit: 'ZAR',
-                target: 1000000,
-                current: kpis.total_sales || 0,
-                trend: 8,
-                trendPeriod: 'vs. last month',
-                icon: 'bi-currency-dollar',
-                color: 'success',
-                actionUrl: 'financial-management-grid' // Click to view financial transactions
             }
         ];
         
