@@ -309,7 +309,9 @@ var _kernelProductionGrid = function () {
                     var bbDisplay = (batch.best_before_date && (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(batch.best_before_date) : batch.best_before_date)) || '';
                     var productionIcon = batch.production_finished_at ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     var qaIcon = batch.has_qa ? '<i class="fas fa-check text-success me-1"></i>' : '';
-                    var jcIcon = batch.has_qa ? '<i class="fas fa-check text-success me-1"></i>' : '';
+                    var displayStatus = getBatchDisplayStatus(batch);
+                    var isJobCardApproved = batch.has_jobcard_approved === true;
+                    var jcIcon = (displayStatus.filterValue === 'release_ready' && isJobCardApproved) ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     return '<div class="kanban-card" data-batch-id="' + batch.id + '">' +
                         '<div class="kanban-card-title">' + KanbanHelper._esc(batch.batch_number || 'N/A') + '</div>' +
                         '<div class="kanban-card-meta">' +
@@ -540,14 +542,17 @@ var _kernelProductionGrid = function () {
                 return;
             }
             scope.filteredBatches.forEach((batch) => {
-                const canReleaseToStock = batch.status === 'qa' || batch.status === 'complete' || (batch.production_finished_at && batch.has_qa);
+                const displayStatus = getBatchDisplayStatus(batch);
+                const isReleaseReady = batch.status === 'qa' || batch.status === 'complete' || (batch.production_finished_at && batch.has_qa);
+                const isJobCardApproved = batch.has_jobcard_approved === true || (batch.has_jobcard_approved !== false && !!batch.has_job_card);
+                const canReleaseToStock = isReleaseReady && isJobCardApproved;
                 const receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
                     ? (_common.formatDateDDMMYYYY(batch.received_date) || 'N/A')
                     : (batch.received_date ? (batch.received_date.toString().split ? batch.received_date.toString().split('T')[0] : batch.received_date) : 'N/A');
                 const bbDisplay = (batch.best_before_date && (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(batch.best_before_date) : batch.best_before_date)) || '—';
                 const productionLabel = batch.production_finished_at ? '&#10003; Production' : 'Production';
                 const endSampleLabel = batch.has_qa ? '&#10003; End sample' : 'End sample';
-                const jobCardLabel = batch.has_qa ? '&#10003; Job Card' : 'Job Card';
+                const jobCardLabel = (displayStatus.filterValue === 'release_ready' && batch.has_jobcard_approved === true) ? '&#10003; Job Card' : 'Job Card';
                 const jobCardItem = '<a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '">' + jobCardLabel + '</a>';
                 const summaryItem = '<a class="dropdown-item js-batch-summary" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-calculator me-1"></i>Batch summary</a>';
                 let menuItems = [
@@ -572,7 +577,6 @@ var _kernelProductionGrid = function () {
                         '<button class="btn btn-sm btn-outline-secondary" type="button" id="batchActions' + batch.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
                         '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="batchActions' + batch.id + '">' + menuItems.join('') + '</ul></div>';
                 }
-                const displayStatus = getBatchDisplayStatus(batch);
                 var stagePos = displayStatus.filterValue === 'awaiting_production' ? 'first' : displayStatus.filterValue === 'release_ready' ? 'last' : 'mid';
                 const bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (set when Job Card is completed)';
                 const row = '<tr class="js-batch-row" data-batch-id="' + batch.id + '"><td>' + (batch.batch_number || 'N/A') + '</td><td>' + (batch.grower_name || 'N/A') + '</td><td title="Received date">' + receivedDate + '</td><td title="' + (bbTitle.replace(/"/g, '&quot;')) + '">' + bbDisplay + '</td><td>' + (batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || '0')) + '</td><td>' + KanbanHelper.statusBadge(displayStatus.label, stagePos) + '</td><td>' + actionsCell + '</td></tr>';

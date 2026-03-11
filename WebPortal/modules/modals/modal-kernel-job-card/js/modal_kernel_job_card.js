@@ -546,13 +546,13 @@ var _modal_kernel_job_card = (function () {
             Object.keys(jobCardData).forEach(function (k) {
                 jobCardObj[k.replace(/^p_/, '')] = jobCardData[k];
             });
-            dataFunctions.upsertKernelJobCard(kernelId, jobCardObj).then(function (result) {
+            dataFunctions.upsertKernelJobCard(kernelId, jobCardObj, null, silent ? {} : { approved: true }).then(function (result) {
                 var inner = (result && result.upsert_kernel_job_card) ? result.upsert_kernel_job_card : result;
                 if (inner && inner.success === false) throw new Error(inner.error || 'Failed to save');
                 if (silent) {
                     if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); setTimeout(function () { if ($status.length) $status.text(''); }, 2000); }
                 } else {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Success', text: 'Job card saved successfully', timer: 2000, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Jobcard approved', text: 'Job card saved. The jobcard button will show a tick and the batch can now be released to stock.', timer: 2000, showConfirmButton: false });
                     var modalEl = document.getElementById('kernelJobCardModal');
                     if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                     else $('#kernelJobCardModal').modal('hide');
