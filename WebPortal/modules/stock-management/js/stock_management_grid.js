@@ -126,7 +126,7 @@ var _stockManagementGrid = function () {
                 });
                 $(document).on('click', '.js-release-batch-to-production', function () {
                     var id = $(this).data('batch-id');
-                    if (id) scope.releaseBatchToProduction(id);
+                    if (id) scope.confirmAndReleaseBatchToProduction(id);
                 });
                 $(document).on('click', '[data-view-item]', function () {
                     var id = $(this).attr('data-view-item');
@@ -275,12 +275,32 @@ var _stockManagementGrid = function () {
                 var ffaTitle = 'Free Fatty Acids (from QA)';
                 var bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (from Job Card or packing completion + 18 months)';
                 row += '<td class="text-end" title="' + ffaTitle.replace(/"/g, '&quot;') + '">' + ffaDisplay + '</td><td class="text-end" title="' + bbTitle.replace(/"/g, '&quot;') + '">' + bbDisplay + '</td>';
+                row += '<td class="text-center"><button type="button" class="btn btn-sm btn-outline-secondary js-release-batch-to-production" data-batch-id="' + (b.id || '') + '" title="Send this batch back to production"><i class="fas fa-undo me-1"></i>Send back to production</button></td>';
                 row += '</tr>';
                 body.append(row);
             });
             totalsRow.find('td[data-style]').each(function () {
                 var k = $(this).data('style');
                 $(this).text(totals[k] != null ? totals[k] : 0);
+            });
+        },
+
+        confirmAndReleaseBatchToProduction: function (batchId) {
+            var scope = _stockManagementGrid;
+            if (!batchId) return;
+            if (typeof Swal === 'undefined') {
+                scope.releaseBatchToProduction(batchId);
+                return;
+            }
+            Swal.fire({
+                title: 'Send back to Kernel Production?',
+                text: 'This batch will reappear in the Kernel Production queue. You can then correct or update production data.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, send back',
+                cancelButtonText: 'Cancel'
+            }).then(function (result) {
+                if (result && result.isConfirmed) scope.releaseBatchToProduction(batchId);
             });
         },
 
