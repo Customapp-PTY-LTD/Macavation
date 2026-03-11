@@ -185,6 +185,15 @@
 }
 .kp-silo-empty {
     background-color: #fff;
-    cursor: default;
+    cursor: pointer;
+}
+.kp-silo-empty:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+}
+.kp-silo-box.kp-silo-selected {
+    border-color: #212529;
+    border-width: 3px;
+    box-shadow: 0 0 0 1px #212529;
 }
 

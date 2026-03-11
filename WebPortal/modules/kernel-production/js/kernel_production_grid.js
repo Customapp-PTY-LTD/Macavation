@@ -77,6 +77,8 @@ var _kernelProductionGrid = function () {
         filteredBatches: [],
         searchDebounceToken: 0,
         currentView: 'kanban',
+        /** When user clicks an empty silo, this is the silo number (1–12) for "Mark as full". */
+        selectedEmptySiloNumber: null,
 
         /** Same derived status as in the grid table (for use by batch history modal etc.). */
         getBatchDisplayStatus: getBatchDisplayStatus,
@@ -232,6 +234,46 @@ var _kernelProductionGrid = function () {
                 if (num != null && typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.setSiloEmpty) {
                     _kernelProductionGrid.setSiloEmpty(num);
                 }
+            });
+            // Silos grid: click empty silo → show "Mark as full" area
+            $(document).on('click', '#kpSilosGrid .kp-silo-empty', function () {
+                const num = $(this).data('silo-number');
+                if (num == null || typeof _kernelProductionGrid === 'undefined') return;
+                _kernelProductionGrid.selectEmptySiloForFill(num);
+            });
+            $('#kpMarkFullBtn').off('click').on('click', function () {
+                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.showSiloFillBatchModal) {
+                    _kernelProductionGrid.showSiloFillBatchModal();
+                }
+            });
+            $('#kpSiloFillCancel').off('click').on('click', function () {
+                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.clearSiloFillSelection) {
+                    _kernelProductionGrid.clearSiloFillSelection();
+                }
+            });
+            $(document).on('click', '#kpSiloFillBatchList .js-silo-fill-batch', function (e) {
+                e.preventDefault();
+                const kernelId = $(this).data('kernel-id');
+                const scope = _kernelProductionGrid;
+                const siloNum = scope.selectedEmptySiloNumber;
+                if (!kernelId || !siloNum) return;
+                if (typeof _dataFunctions === 'undefined' || !_dataFunctions.assignKernelToSilos) return;
+                _dataFunctions.assignKernelToSilos(kernelId, [siloNum]).then(function (result) {
+                    if (result && result.success !== false) {
+                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Silo ' + siloNum + ' assigned', timer: 1500, showConfirmButton: false });
+                        scope.clearSiloFillSelection();
+                        scope.loadSilosGrid();
+                        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                            var modalEl = document.getElementById('kpSiloFillBatchModal');
+                            if (modalEl) bootstrap.Modal.getInstance(modalEl) && bootstrap.Modal.getInstance(modalEl).hide();
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Failed to assign silo', 'error');
+                    }
+                }).catch(function (err) {
+                    console.error(err);
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', err.message || 'Failed to assign silo', 'error');
+                });
             });
         },
 
@@ -434,6 +476,53 @@ var _kernelProductionGrid = function () {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to update silo', 'error');
                 });
             });
+        },
+
+        selectEmptySiloForFill: (siloNumber) => {
+            const scope = _kernelProductionGrid;
+            scope.selectedEmptySiloNumber = siloNumber;
+            $('#kpSilosGrid .kp-silo-box').removeClass('kp-silo-selected');
+            $('#kpSilosGrid .kp-silo-box[data-silo-number="' + siloNumber + '"]').addClass('kp-silo-selected');
+            document.getElementById('kpSiloFillSiloNum').textContent = siloNumber;
+            $('#kpSiloFillArea').show();
+        },
+
+        clearSiloFillSelection: () => {
+            const scope = _kernelProductionGrid;
+            scope.selectedEmptySiloNumber = null;
+            $('#kpSilosGrid .kp-silo-box').removeClass('kp-silo-selected');
+            $('#kpSiloFillArea').hide();
+        },
+
+        showSiloFillBatchModal: () => {
+            const scope = _kernelProductionGrid;
+            const siloNum = scope.selectedEmptySiloNumber;
+            if (siloNum == null) return;
+            const titleEl = document.getElementById('kpSiloFillBatchModalLabel');
+            if (titleEl) titleEl.textContent = 'Select batch for silo ' + siloNum;
+            const listEl = document.getElementById('kpSiloFillBatchList');
+            if (!listEl) return;
+            const batches = scope.batches || [];
+            if (batches.length === 0) {
+                listEl.innerHTML = '<p class="text-muted mb-0">No production batches. Release batches from Grower Intake first.</p>';
+            } else {
+                let html = '';
+                batches.forEach((b) => {
+                    const kernelId = b.id;
+                    const batchNum = escapeHtml(b.batch_number || 'N/A');
+                    const grower = escapeHtml(b.grower_name || '');
+                    const label = grower ? batchNum + ' — ' + grower : batchNum;
+                    html += '<a href="#" class="list-group-item list-group-item-action js-silo-fill-batch" data-kernel-id="' + String(kernelId) + '">' + label + '</a>';
+                });
+                listEl.innerHTML = html;
+            }
+            const modalEl = document.getElementById('kpSiloFillBatchModal');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#kpSiloFillBatchModal').modal('show');
+            }
         },
 
         renderBatches: () => {
