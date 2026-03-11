@@ -386,7 +386,7 @@ var _growerIntakeGrid = function () {
                 const row = '<tr class="js-intake-batch-row" data-batch-id="' + b.id + '">' +
                     '<td class="intake-col-batch">' + batchNumberCell + '</td>' +
                     '<td class="intake-col-grower d-none d-md-table-cell">' + (b.grower_name || '') + '</td>' +
-                    '<td class="intake-col-date">' + receivedDate + '</td>' +
+                    '<td class="intake-col-date" title="Received date">' + receivedDate + '</td>' +
                     '<td class="intake-col-wet d-none d-sm-table-cell">' + wetCellContent + '</td>' +
                     '<td class="intake-col-stage1">' + stage1Cell + '</td>' +
                     '<td class="intake-col-status">' + (function() { var ik = getIntakeColumnKey(b); var sp = ik === 'receiving' ? 'first' : ik === 'quality_approved' ? 'last' : 'mid'; return KanbanHelper.statusBadge(b.status || '', sp); })() + '</td>' +
@@ -444,9 +444,9 @@ var _growerIntakeGrid = function () {
                 var html = '<div class="kanban-card js-intake-batch-row" data-batch-id="' + b.id + '">';
                 html += '<div class="kanban-card-title">' + esc(batchNum) + '</div>';
                 html += '<div class="kanban-card-meta">';
-                if (b.grower_name) html += '<div class="kanban-card-meta-item"><i class="fas fa-user"></i> ' + esc(b.grower_name) + '</div>';
-                if (receivedDate) html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + esc(receivedDate) + '</div>';
-                if (weightLabel) html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + esc(weightLabel) + '</div>';
+                if (b.grower_name) html += '<div class="kanban-card-meta-item" title="Grower / supplier"><i class="fas fa-user"></i> ' + esc(b.grower_name) + '</div>';
+                if (receivedDate) html += '<div class="kanban-card-meta-item" title="Received date"><i class="fas fa-calendar"></i> ' + esc(receivedDate) + '</div>';
+                if (weightLabel) html += '<div class="kanban-card-meta-item" title="Wet NIS (kg)"><i class="fas fa-weight-hanging"></i> ' + esc(weightLabel) + '</div>';
                 html += '</div>';
                 html += '<div class="kanban-card-actions">' + stage1Html + releaseHtml + deleteHtml + '</div>';
                 html += '</div>';

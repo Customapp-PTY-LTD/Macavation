@@ -272,7 +272,9 @@ var _stockManagementGrid = function () {
                     var d = typeof bbVal === 'string' ? new Date(bbVal) : bbVal;
                     if (!isNaN(d.getTime())) bbDisplay = d.getDate() + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
                 }
-                row += '<td class="text-end">' + ffaDisplay + '</td><td class="text-end">' + bbDisplay + '</td>';
+                var ffaTitle = 'Free Fatty Acids (from QA)';
+                var bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (from Job Card or packing completion + 18 months)';
+                row += '<td class="text-end" title="' + ffaTitle.replace(/"/g, '&quot;') + '">' + ffaDisplay + '</td><td class="text-end" title="' + bbTitle.replace(/"/g, '&quot;') + '">' + bbDisplay + '</td>';
                 row += '</tr>';
                 body.append(row);
             });
