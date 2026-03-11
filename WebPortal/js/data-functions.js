@@ -1889,12 +1889,24 @@ var _dataFunctions = function () {
         },
 
         getExecutiveKPIs: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_executive_kpis', {}, token, {
+            var raw = await this.callFunction('get_executive_kpis', {}, token, {
                 cacheKey: 'executive_kpis',
                 useCache: true,
                 cacheTtl: this.cache.ttl.dashboard,
                 forceRefresh: forceRefresh
             });
+            var row = null;
+            if (Array.isArray(raw) && raw[0]) row = raw[0];
+            else if (raw && Array.isArray(raw.get_executive_kpis) && raw.get_executive_kpis[0]) row = raw.get_executive_kpis[0];
+            else if (raw && raw.active_batches !== undefined) row = raw;
+            var defaults = { total_production_kg: 0, active_batches: 0, total_sales: 0, quality_pass_rate: 0 };
+            if (!row) return defaults;
+            return {
+                total_production_kg: Number(row.total_production_kg) || 0,
+                active_batches: Number(row.active_batches) || 0,
+                total_sales: Number(row.total_sales) || 0,
+                quality_pass_rate: Number(row.quality_pass_rate) || 0
+            };
         },
 
         // Sales Forecasting Functions (placeholder)

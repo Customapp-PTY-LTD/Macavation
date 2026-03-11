@@ -145,7 +145,9 @@ $$;
 ## See also (other MCP migrations)
 
 - **docs/MCP_RUN_DASHBOARD_KERNEL_STATS.md** – Fix "Kernel batches in production" dashboard card so the count matches the Kernel Production grid.
-- **docs/MCP_RUN_PRODUCTION_TRENDS.md** – Production Trends chart: daily cracked / packed / dispatched (kg). Run via MCP `execute_sql` with the SQL in that doc.
+- **docs/MCP_RUN_PRODUCTION_TRENDS.md** – Production Trends chart: daily cracked / packed / dispatched (kg).
+- **docs/MCP_RUN_EXECUTIVE_KPIS_ACTIVE_BATCHES.md** – Fix "Active Batches" card (get_executive_kpis).
+- **docs/MCP_RUN_DASHBOARD_STATS_ALL.md** – Fix most Executive Dashboard stats (production stats + Total Production kg) when tables are missing.
 
 ---
 
