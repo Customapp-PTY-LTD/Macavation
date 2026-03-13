@@ -17,6 +17,79 @@ var _roleMenuConfig = function () {
                 access: 'all'
             },
 
+            'Sales Exec': {
+                access: 'specific',
+                menus: [
+                    'dashboard',
+                    'batch-journey',
+                    'grower-intake-grid',
+                    'kernel-production-grid',
+                    'stock-management-kernel',
+                    'kernel-dispatch-grid',
+                    'document-management-grid',
+                    'users-grid',
+                    'admin-grid'
+                ]
+            },
+
+            'Factory Manager': {
+                access: 'specific',
+                menus: [
+                    'dashboard',
+                    'batch-journey',
+                    'grower-intake-grid',
+                    'kernel-production-grid',
+                    'stock-management-kernel',
+                    'kernel-dispatch-grid',
+                    'document-management-grid'
+                ]
+            },
+
+            'Quality Assurance': {
+                access: 'specific',
+                menus: [
+                    'dashboard',
+                    'batch-journey',
+                    'grower-intake-grid',
+                    'kernel-production-grid',
+                    'stock-management-kernel',
+                    'kernel-dispatch-grid',
+                    'document-management-grid'
+                ]
+            },
+
+            'Palladium Manager': {
+                access: 'specific',
+                menus: [
+                    'kernel-production-grid',
+                    'stock-management-kernel',
+                    'kernel-dispatch-grid',
+                    'document-management-grid'
+                ]
+            },
+
+            'Production Manager': {
+                access: 'specific',
+                menus: [
+                    'grower-intake-grid',
+                    'kernel-production-grid',
+                    'kernel-dispatch-grid'
+                ]
+            },
+
+            'Share Holder': {
+                access: 'specific',
+                menus: [
+                    'dashboard',
+                    'batch-journey',
+                    'grower-intake-grid',
+                    'kernel-production-grid',
+                    'stock-management-kernel',
+                    'kernel-dispatch-grid',
+                    'document-management-grid'
+                ]
+            },
+
             // Management roles - Full access (refine later)
             'General Manager': {
                 access: 'all'
