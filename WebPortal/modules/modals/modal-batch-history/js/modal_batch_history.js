@@ -313,30 +313,122 @@ var _modal_batch_history = (function () {
                         var pKey = 'p_' + key;
                         return (jc[pKey] != null && jc[pKey] !== '') ? jc[pKey] : null;
                     };
-                    var fmtN = function (v) { return v != null && v !== '' ? (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(2)) : String(v)) : '—'; };
-                    // Batch: kernel.job_card_data.batch_number (or .p_batch_number)
-                    var batchNumber = jcVal('batch_number');
-                    // Received: kernel.job_card_data.received_date (or .p_received_date)
-                    var receivedDate = jcVal('received_date');
-                    // Total weight: kernel.job_card_data.total_weight_kg, fallback kernel.actual_wet_nis_kg
+                    var fmtText = function (v) { return v != null && v !== '' ? String(v) : '—'; };
+                    var fmtDate = function (v) {
+                        if (!v) return '—';
+                        var raw = String(v).split('T')[0];
+                        return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? formatStageDate(raw) : String(v);
+                    };
+                    var fmtMeasure = function (v, suffix) {
+                        if (v == null || v === '') return '—';
+                        var n = parseFloat(v);
+                        if (isNaN(n)) return String(v);
+                        var text = Number.isInteger(n) ? String(n) : n.toFixed(2);
+                        return suffix ? text + ' ' + suffix : text;
+                    };
+                    var parseArray = function (value) {
+                        if (!value) return null;
+                        if (Array.isArray(value)) return value;
+                        if (typeof value === 'string') {
+                            try { return JSON.parse(value); } catch (e) { return null; }
+                        }
+                        return null;
+                    };
+                    var rowHtml = function (label, value) {
+                        return '<tr><th class="text-nowrap bg-light" style="width: 35%;">' + label + '</th><td>' + value + '</td></tr>';
+                    };
+                    var batchNumber = jcVal('batch_number') || detail.batch_number || null;
+                    var receivedDate = jcVal('received_date') || detail.received_date || null;
+                    var supplierDisplay = jcVal('supplier_name') || detail.grower_name || null;
                     var totalWeightKg = jcVal('total_weight_kg');
                     if (totalWeightKg == null && detail.actual_wet_nis_kg != null && detail.actual_wet_nis_kg !== '') totalWeightKg = detail.actual_wet_nis_kg;
-                    // Supplier: kernel.job_card_data.supplier_name, fallback kernel.grower_name
-                    var supplierDisplay = jcVal('supplier_name');
-                    if (supplierDisplay == null && detail.grower_name != null && detail.grower_name !== '') supplierDisplay = detail.grower_name;
-                    // Packing dates: kernel.job_card_data.packing_start_date / packing_completion_date
+                    var removedPreSizerKg = jcVal('removed_pre_sizer_kg');
+                    var balanceKg = jcVal('balance_kg');
+                    var receivingMoisture = jcVal('receiving_moisture_percentage');
+                    var packingMoisture = jcVal('packing_moisture_percentage');
+                    var removedMoisture = jcVal('removed_moisture_percentage');
                     var packingStart = jcVal('packing_start_date');
                     var packingCompletion = jcVal('packing_completion_date');
-                    // Sound kernel / Butter grade: kernel.job_card_data.sound_kernel_total_* / butter_grade_total_*
+                    var bestBefore = jcVal('best_before_date');
                     var soundCartons = jcVal('sound_kernel_total_cartons');
                     var soundKg = jcVal('sound_kernel_total_kg');
                     var butterCartons = jcVal('butter_grade_total_cartons');
                     var butterKg = jcVal('butter_grade_total_kg');
+                    var wasteOilKernel = jcVal('waste_oil_kernel_kg');
+                    var wasteShellFines = jcVal('waste_shell_fines_kg');
+                    var wasteCompost = jcVal('waste_compost_kg');
+                    var wasteShell = jcVal('waste_shell_kg');
+                    var massBalanceIn = jcVal('mass_balance_in_kg');
+                    var massBalanceOut = jcVal('mass_balance_out_kg');
+                    var massBalancePercentage = jcVal('mass_balance_percentage');
+                    var soundKernelStyles = parseArray(jcVal('sound_kernel_styles'));
+                    var butterGradeStyles = parseArray(jcVal('butter_grade_styles'));
+
                     var html = '<div class="small">';
-                    html += '<p class="mb-1"><strong>Batch:</strong> ' + fmtN(batchNumber) + ' &nbsp; <strong>Received:</strong> ' + fmtN(receivedDate) + '</p>';
-                    html += '<p class="mb-1"><strong>Total weight (kg):</strong> ' + fmtN(totalWeightKg) + ' &nbsp; <strong>Supplier:</strong> ' + fmtN(supplierDisplay) + '</p>';
-                    html += '<p class="mb-1"><strong>Packing:</strong> ' + fmtN(packingStart) + ' – ' + fmtN(packingCompletion) + '</p>';
-                    html += '<p class="mb-0"><strong>Sound kernel:</strong> ' + fmtN(soundCartons) + ' cartons, ' + fmtN(soundKg) + ' kg &nbsp; <strong>Butter grade:</strong> ' + fmtN(butterCartons) + ' cartons, ' + fmtN(butterKg) + ' kg</p></div>';
+                    html += '<div class="card mb-2 border-0 bg-light"><div class="card-body py-2">';
+                    html += '<div class="fw-semibold mb-1">' + fmtText(batchNumber) + '</div>';
+                    html += '<div><strong>Received:</strong> ' + fmtDate(receivedDate) + ' &nbsp; <strong>Supplier:</strong> ' + fmtText(supplierDisplay) + '</div>';
+                    html += '</div></div>';
+
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Receiving</strong></div><div class="card-body py-2 p-0">';
+                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += rowHtml('Total weight', fmtMeasure(totalWeightKg, 'kg'));
+                    html += rowHtml('Removed pre-sizer', fmtMeasure(removedPreSizerKg, 'kg'));
+                    html += rowHtml('Balance', fmtMeasure(balanceKg, 'kg'));
+                    html += '</tbody></table></div></div>';
+
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Moisture</strong></div><div class="card-body py-2 p-0">';
+                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += rowHtml('Receiving moisture', fmtMeasure(receivingMoisture, '%'));
+                    html += rowHtml('Packing moisture', fmtMeasure(packingMoisture, '%'));
+                    html += rowHtml('Removed moisture', fmtMeasure(removedMoisture, '%'));
+                    html += '</tbody></table></div></div>';
+
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Packing</strong></div><div class="card-body py-2 p-0">';
+                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += rowHtml('Packing start', fmtDate(packingStart));
+                    html += rowHtml('Packing completion', fmtDate(packingCompletion));
+                    html += rowHtml('Best before', fmtDate(bestBefore));
+                    html += '</tbody></table></div></div>';
+
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Sound kernel</strong></div><div class="card-body py-2">';
+                    if (soundKernelStyles && soundKernelStyles.length > 0) {
+                        html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
+                        soundKernelStyles.forEach(function (row) {
+                            html += '<tr><td>' + fmtText(row.style) + '</td><td>' + fmtText(row.cartons) + '</td><td>' + fmtMeasure(row.weight_kg, null) + '</td></tr>';
+                        });
+                        html += '</tbody></table>';
+                    }
+                    html += '<div><strong>Total cartons:</strong> ' + fmtText(soundCartons) + ' &nbsp; <strong>Total kg:</strong> ' + fmtMeasure(soundKg, null) + '</div>';
+                    html += '</div></div>';
+
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Butter grade</strong></div><div class="card-body py-2">';
+                    if (butterGradeStyles && butterGradeStyles.length > 0) {
+                        html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
+                        butterGradeStyles.forEach(function (row) {
+                            html += '<tr><td>' + fmtText(row.style) + '</td><td>' + fmtText(row.cartons) + '</td><td>' + fmtMeasure(row.weight_kg, null) + '</td></tr>';
+                        });
+                        html += '</tbody></table>';
+                    }
+                    html += '<div><strong>Total cartons:</strong> ' + fmtText(butterCartons) + ' &nbsp; <strong>Total kg:</strong> ' + fmtMeasure(butterKg, null) + '</div>';
+                    html += '</div></div>';
+
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Waste</strong></div><div class="card-body py-2 p-0">';
+                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += rowHtml('Oil kernel', fmtMeasure(wasteOilKernel, 'kg'));
+                    html += rowHtml('Shell fines', fmtMeasure(wasteShellFines, 'kg'));
+                    html += rowHtml('Compost', fmtMeasure(wasteCompost, 'kg'));
+                    html += rowHtml('Shell', fmtMeasure(wasteShell, 'kg'));
+                    html += '</tbody></table></div></div>';
+
+                    html += '<div class="card mb-0"><div class="card-header py-1"><strong>Mass balance</strong></div><div class="card-body py-2 p-0">';
+                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += rowHtml('Mass balance in', fmtMeasure(massBalanceIn, 'kg'));
+                    html += rowHtml('Mass balance out', fmtMeasure(massBalanceOut, 'kg'));
+                    html += rowHtml('Mass balance %', fmtMeasure(massBalancePercentage, '%'));
+                    html += '</tbody></table></div></div>';
+                    html += '</div>';
+
                     entries.push({ type: 'job_card', title: 'Job Card', bodyHtml: html, date: packingCompletion || receivedDate || null });
                 }
 
