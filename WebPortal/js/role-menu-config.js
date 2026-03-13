@@ -77,7 +77,7 @@ var _roleMenuConfig = function () {
                 ]
             },
 
-            'Share Holder': {
+            'Shareholder': {
                 access: 'specific',
                 menus: [
                     'dashboard',
