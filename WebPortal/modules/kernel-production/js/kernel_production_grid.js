@@ -77,6 +77,8 @@ var _kernelProductionGrid = function () {
         filteredBatches: [],
         searchDebounceToken: 0,
         currentView: 'kanban',
+        /** When true, only show batches that are in Release ready and have an approved job card. */
+        approvedJobcardsOnly: false,
         /** When user clicks an empty silo, this is the silo number (1–12) for "Mark as full". */
         selectedEmptySiloNumber: null,
 
@@ -228,6 +230,13 @@ var _kernelProductionGrid = function () {
             // View toggle
             $('#kpViewKanban').on('click', function () { _kernelProductionGrid.toggleView('kanban'); });
             $('#kpViewTable').on('click', function () { _kernelProductionGrid.toggleView('table'); });
+            // Approved jobcards filter (release ready + job card approved only)
+            $('#kpViewApprovedJobcards').on('click', function () {
+                const scope = _kernelProductionGrid;
+                scope.approvedJobcardsOnly = !scope.approvedJobcardsOnly;
+                $('#kpViewApprovedJobcards').toggleClass('active', scope.approvedJobcardsOnly);
+                scope.filterBatches();
+            });
             // Silos grid: click occupied silo to mark as empty
             $(document).on('click', '#kpSilosGrid .kp-silo-occupied', function () {
                 const num = $(this).data('silo-number');
@@ -367,7 +376,9 @@ var _kernelProductionGrid = function () {
                     (batch.status && batch.status.toLowerCase().indexOf(searchTerm) >= 0) ||
                     (displayStatus.label && displayStatus.label.toLowerCase().indexOf(searchTerm) >= 0);
                 const matchesStatus = !statusFilter || displayStatus.filterValue === statusFilter;
-                return matchesSearch && matchesStatus;
+                const matchesApprovedJobcards = !scope.approvedJobcardsOnly ||
+                    (displayStatus.filterValue === 'release_ready' && batch.has_jobcard_approved === true);
+                return matchesSearch && matchesStatus && matchesApprovedJobcards;
             });
             if (scope.currentView === 'kanban') {
                 scope.renderKanban();
