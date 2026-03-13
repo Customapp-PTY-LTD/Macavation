@@ -176,11 +176,11 @@ var _batchJourneyGrid = (function () {
             bindEvents();
             loadBatches();
 
-            // Load batch history modal
+            // Load batch history modal using the same modal shell pattern as other modules.
             if (typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
                 _appRouter.loadContent({
                     routeName: 'batch-history-modal',
-                    elementSelector: '#bjBatchHistoryContainer'
+                    elementSelector: '#batchHistoryModal'
                 });
             }
         }

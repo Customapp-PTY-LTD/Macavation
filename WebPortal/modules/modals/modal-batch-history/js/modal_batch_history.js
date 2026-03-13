@@ -76,18 +76,56 @@ function getProductionDayDateLatest(stages) {
 
 var _modal_batch_history = (function () {
     'use strict';
+    function statusToTitleCase(str) {
+        if (!str || typeof str !== 'string') return str || '';
+        return str.split('_').map(function (part) {
+            return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+        }).join(' ');
+    }
+
+    function hasJsonContent(value) {
+        return !!(value && typeof value === 'object' && Object.keys(value).length > 0);
+    }
+
+    function getBatchDisplayStatus(batch) {
+        if (!batch || typeof batch !== 'object') return '';
+        var cracking = Array.isArray(batch.cracking_data) ? batch.cracking_data : [];
+        var washing = Array.isArray(batch.washing_data) ? batch.washing_data : [];
+        var sorting = Array.isArray(batch.sorting_data) ? batch.sorting_data : [];
+        var packing = Array.isArray(batch.packing_data) ? batch.packing_data : [];
+        var productionDayCount = parseInt(batch.production_day_count, 10) || 0;
+        var hasJobCard = !!batch.has_job_card || hasJsonContent(batch.job_card_data);
+        var hasQa = !!batch.has_qa || hasJsonContent(batch.qa_data);
+        var hasProductionData = productionDayCount > 0 || hasJobCard || cracking.length > 0 || washing.length > 0 || sorting.length > 0 || packing.length > 0;
+        var productionFinished = !!batch.production_finished_at;
+
+        if (productionFinished && hasQa) return 'Release ready';
+        if (productionFinished) return 'Awaiting test';
+        if (hasProductionData) return 'In production';
+        return batch.status ? statusToTitleCase(batch.status) : 'Awaiting production';
+    }
+
+    function getBatchInfoText(batch) {
+        if (!batch) return 'Batch: Loading...';
+        var batchNumber = batch.batch_number || 'Batch';
+        return 'Batch: ' + batchNumber + (batch.grower_name ? ' — ' + batch.grower_name : '');
+    }
+
     return {
         init: () => {},
 
-        show: (batchId) => {
-            var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
-            if (!batch) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
+        show: (batchOrId) => {
+            var batch = (batchOrId && typeof batchOrId === 'object') ? batchOrId : null;
+            var batchId = batch && batch.id ? batch.id : batchOrId;
+            if (!batchId) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch ID missing', 'error');
                 return;
             }
-            var batchInfo = (batch.batch_number || 'Batch') + (batch.grower_name ? ' — ' + batch.grower_name : '');
             $('#batchHistoryModalLabel').text('Batch history');
-            $('#batchHistoryBatchInfo').text('Batch: ' + batchInfo);
+            if (!batch && typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch) {
+                batch = _kernelProductionGrid.getBatch(batchId);
+            }
+            $('#batchHistoryBatchInfo').text(getBatchInfoText(batch));
             var $container = $('#batchHistoryTimelineEntries');
             $container.html('<p class="text-muted mb-0">Loading…</p>');
             var modalEl = document.getElementById('batchHistoryModal');
@@ -104,6 +142,8 @@ var _modal_batch_history = (function () {
                     $container.html('<p class="text-muted mb-0">Batch detail not found.</p>');
                     return;
                 }
+                var displayBatch = detail || batch || {};
+                $('#batchHistoryBatchInfo').text(getBatchInfoText(displayBatch));
 
                 var entries = [];
                 var fmt = function (v) { return v != null && v !== '' ? String(v) : '—'; };
@@ -321,14 +361,7 @@ var _modal_batch_history = (function () {
 
                 entries.reverse();
 
-                var statusLabel = '';
-                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatchDisplayStatus) {
-                    var displayStatus = _kernelProductionGrid.getBatchDisplayStatus(batch);
-                    statusLabel = displayStatus && displayStatus.label ? displayStatus.label : '';
-                }
-                if (!statusLabel && batch && batch.status) {
-                    statusLabel = String(batch.status).split('_').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }).join(' ');
-                }
+                var statusLabel = getBatchDisplayStatus(displayBatch);
 
                 var html = '';
                 entries.forEach(function (entry, idx) {
