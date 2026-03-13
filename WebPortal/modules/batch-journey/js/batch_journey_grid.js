@@ -145,12 +145,12 @@ var _batchJourneyGrid = (function () {
         document.getElementById('bjStatusFilter').addEventListener('change', filterAndSort);
         document.getElementById('bjSortBy').addEventListener('change', filterAndSort);
 
-        // Row click -> batch history modal
+        // Row click -> read-only job card view
         $(document).on('click', '#bjTableBody tr.js-bj-row', function (e) {
             if ($(e.target).closest('button, .btn, .dropdown').length) return;
             var batchId = $(this).data('batch-id');
-            if (batchId && typeof _modal_batch_history !== 'undefined' && _modal_batch_history.show) {
-                _modal_batch_history.show(batchId);
+            if (batchId && typeof _modal_job_card_view !== 'undefined' && _modal_job_card_view.show) {
+                _modal_job_card_view.show(batchId, { allowEdit: false });
             }
         });
     }
@@ -176,11 +176,11 @@ var _batchJourneyGrid = (function () {
             bindEvents();
             loadBatches();
 
-            // Load batch history modal using the same modal shell pattern as other modules.
+            // Load the shared job card view modal using the same modal shell pattern as Kernel Production.
             if (typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
                 _appRouter.loadContent({
-                    routeName: 'batch-history-modal',
-                    elementSelector: '#batchHistoryModal'
+                    routeName: 'job-card-view-modal',
+                    elementSelector: '#jobCardViewModal'
                 });
             }
         }

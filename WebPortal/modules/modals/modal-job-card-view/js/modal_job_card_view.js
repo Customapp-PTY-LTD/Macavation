@@ -4,10 +4,12 @@
 var _modal_job_card_view = (function () {
     'use strict';
     var _currentKernelId = null;
+    var _allowEdit = true;
 
     return {
         init: () => {
             $(document).off('click', '#jobCardViewEditBtn').on('click', '#jobCardViewEditBtn', function () {
+                if (!_allowEdit) return;
                 var modalEl = document.getElementById('jobCardViewModal');
                 if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                 else $('#jobCardViewModal').modal('hide');
@@ -17,10 +19,13 @@ var _modal_job_card_view = (function () {
             });
         },
 
-        show: (kernelId) => {
+        show: (kernelId, options) => {
             _currentKernelId = kernelId || null;
+            options = options || {};
+            _allowEdit = options.allowEdit !== false;
             var $body = $('#jobCardViewBody');
             if (!$body.length) return;
+            $('#jobCardViewEditBtn').toggle(_allowEdit);
             $body.html('<p class="text-muted mb-0">Loading…</p>');
             var modalEl = document.getElementById('jobCardViewModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
