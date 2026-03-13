@@ -9,6 +9,28 @@ var _batchJourneyGrid = (function () {
     // Status order for "By Status" sort
     var STATUS_ORDER = ['intake', 'receiving', 'production', 'qa', 'dispatch', 'complete'];
 
+    function getDisplayStatus(batch) {
+        if (!batch || typeof batch !== 'object') {
+            return { value: 'intake', label: 'Intake' };
+        }
+        if (batch.status === 'complete') {
+            return { value: 'complete', label: 'Complete' };
+        }
+        if (batch.status === 'dispatch' || !!batch.has_dispatch) {
+            return { value: 'dispatch', label: 'Dispatch' };
+        }
+        if (!!batch.has_qa || !!batch.production_finished_at || batch.status === 'qa') {
+            return { value: 'qa', label: 'QA' };
+        }
+        if ((parseInt(batch.production_day_count, 10) || 0) > 0 || !!batch.has_job_card || batch.status === 'production') {
+            return { value: 'production', label: 'Production' };
+        }
+        if (!!batch.has_receiving_checklist || !!batch.has_ziplock_sample || !!batch.has_5kg_sample || batch.status === 'receiving') {
+            return { value: 'receiving', label: 'Receiving' };
+        }
+        return { value: 'intake', label: 'Intake' };
+    }
+
     function getMoistureValue(batch) {
         try {
             var intake = batch.intake_data;
@@ -61,7 +83,7 @@ var _batchJourneyGrid = (function () {
                 break;
             case 'status':
                 sorted.sort(function (a, b) {
-                    return STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+                    return STATUS_ORDER.indexOf(getDisplayStatus(a).value) - STATUS_ORDER.indexOf(getDisplayStatus(b).value);
                 });
                 break;
             case 'grower':
@@ -94,7 +116,7 @@ var _batchJourneyGrid = (function () {
         var sortBy = document.getElementById('bjSortBy').value;
 
         var filtered = scope.batches.filter(function (b) {
-            if (statusFilter && b.status !== statusFilter) return false;
+            if (statusFilter && getDisplayStatus(b).value !== statusFilter) return false;
             if (search) {
                 var haystack = ((b.batch_number || '') + ' ' + (b.grower_name || '')).toLowerCase();
                 if (haystack.indexOf(search) === -1) return false;
@@ -121,6 +143,7 @@ var _batchJourneyGrid = (function () {
         var html = '';
         for (var i = 0; i < scope.filteredBatches.length; i++) {
             var b = scope.filteredBatches[i];
+            var displayStatus = getDisplayStatus(b);
             var moisture = getMoistureValue(b);
             var totalYield = getTotalYield(b);
             var receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
@@ -130,7 +153,7 @@ var _batchJourneyGrid = (function () {
             html += '<tr class="js-bj-row" data-batch-id="' + b.id + '">'
                 + '<td>' + (b.batch_number || '-') + '</td>'
                 + '<td>' + (b.grower_name || '-') + '</td>'
-                + '<td><span class="bj-status bj-status-' + (b.status || 'intake') + '">' + (b.status || '-') + '</span></td>'
+                + '<td><span class="bj-status bj-status-' + displayStatus.value + '">' + displayStatus.label + '</span></td>'
                 + '<td>' + receivedDate + '</td>'
                 + '<td class="text-end">' + formatNumber(b.wet_nis_received_kg) + '</td>'
                 + '<td class="text-end">' + (moisture != null ? formatNumber(moisture, 1) + '%' : '-') + '</td>'
