@@ -1417,15 +1417,33 @@ var _dataFunctions = function () {
         /**
          * upsertKernelJobCard — save / replace job card JSONB.
          * Used by: modal_kernel_job_card only.
+         * options.approved: set true when user clicks "Jobcard approved" (sets jobcard_approved in DB; Job Card tick and Release to stock then apply).
+         * If backend only has 2-param function (migration not run), retries without p_jobcard_approved so save still works.
          */
-        upsertKernelJobCard: async function (kernelId, jobCardData, token = null) {
-            const result = await this.callFunction('upsert_kernel_job_card', {
+        upsertKernelJobCard: async function (kernelId, jobCardData, token = null, options = {}) {
+            const paramsWithApproved = {
                 p_kernel_id: kernelId,
-                p_job_card_data: jobCardData
-            }, token, { useCache: false });
-            this.clearCachePattern('kernel_batch_detail_' + kernelId);
-            this.clearCachePattern('kernel_batches');
-            return result;
+                p_job_card_data: jobCardData,
+                p_jobcard_approved: options.approved === true
+            };
+            const paramsTwoOnly = { p_kernel_id: kernelId, p_job_card_data: jobCardData };
+            const clearCache = () => {
+                this.clearCachePattern('kernel_batch_detail_' + kernelId);
+                this.clearCachePattern('kernel_batches');
+            };
+            try {
+                const result = await this.callFunction('upsert_kernel_job_card', paramsWithApproved, token, { useCache: false });
+                clearCache();
+                return result;
+            } catch (e) {
+                const msg = (e && e.message) ? String(e.message) : '';
+                if ((/function.*not found|schema cache/i.test(msg) || /upsert_kernel_job_card/i.test(msg)) && options.approved === true) {
+                    const result = await this.callFunction('upsert_kernel_job_card', paramsTwoOnly, token, { useCache: false });
+                    clearCache();
+                    return result;
+                }
+                throw e;
+            }
         },
 
         /**
