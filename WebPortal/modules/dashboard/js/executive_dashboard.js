@@ -26,6 +26,7 @@ var _executiveDashboard = function () {
         execStatQualityTestsWeek: 'Quality tests this week',
         execStatDispatchWeek: 'Dispatch this week',
         execStatDispatchPending: 'Dispatch pending',
+        execDailyMinuteTests: 'Daily minute tests',
         execProductionTrends: 'Production Trends'
     };
 
@@ -50,6 +51,7 @@ var _executiveDashboard = function () {
             await scope.loadKPIs();
             await scope.loadKernelStats();
             await scope.loadProductionStats();
+            await scope.loadDailyMinuteTests();
             await scope.loadProductionTrendsChart();
         },
 
@@ -141,6 +143,28 @@ var _executiveDashboard = function () {
             } catch (error) {
                 console.error('Error loading kernel stats:', error);
                 $('#execStatBatchesInProduction, #execStatKgCrackedToday, #execStatKgCrackedWeek, #execStatKgPackedToday, #execStatKgPackedWeek').text('—');
+            }
+        },
+
+        loadDailyMinuteTests: async () => {
+            const slotMap = { '07h00': '07', '10h00': '10', '13h00': '13', 'Averages': 'avg' };
+            const cols = ['batch', 'wholes', 'uncracks', 'total'];
+            const empty = '\u2014';
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getDailyMinuteTests) return;
+                const rows = await dataFunctions.getDailyMinuteTests();
+                rows.forEach(function (r) {
+                    var slot = slotMap[r.time_slot];
+                    if (!slot) return;
+                    cols.forEach(function (col) {
+                        var val = r[col];
+                        var cell = document.querySelector('.minute-test-cell[data-slot="' + slot + '"][data-col="' + col + '"]');
+                        if (cell) cell.textContent = (val != null && String(val).trim() !== '') ? String(val).trim() : empty;
+                    });
+                });
+            } catch (e) {
+                console.error('Error loading daily minute tests:', e);
+                document.querySelectorAll('.minute-test-cell').forEach(function (el) { el.textContent = empty; });
             }
         },
 

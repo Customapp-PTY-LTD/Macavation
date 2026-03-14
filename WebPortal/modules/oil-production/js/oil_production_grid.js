@@ -938,7 +938,7 @@ var _oilProductionGrid = function () {
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.updateOilBinBatch) {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
-                    return;
+                return;
                 }
                 var result = await dataFunctions.updateOilBinBatch({ id: id, shifts: shifts, ingredients: ingredients, letrerage: letrerage, ffa: ffa }, null);
                 if (result && result.success) {

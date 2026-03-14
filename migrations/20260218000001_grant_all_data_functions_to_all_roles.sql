@@ -19,7 +19,7 @@ DECLARE
         'get_features', 'get_role_features', 'get_role_feature_by_id',
         'create_role_feature_simple', 'update_role_feature_simple', 'delete_role_feature_simple',
         'get_companies', 'get_company_by_id', 'create_company_simple', 'update_company_simple', 'delete_company',
-        'get_dashboard_stats', 'get_dashboard_alerts', 'get_dashboard_kernel_stats', 'get_production_trends_daily', 'get_recent_activity',
+        'get_dashboard_stats', 'get_dashboard_alerts', 'get_dashboard_kernel_stats', 'get_production_trends_daily', 'get_daily_minute_tests', 'get_recent_activity',
         'get_contacts', 'get_contact_by_id', 'create_contact_simple', 'update_contact_simple', 'deactivate_contact',
         'get_production_batches', 'create_production_batch_simple', 'update_production_batch', 'update_production_batch_actual_weight',
         'get_supplier_intake_batches', 'create_supplier_intake_batch', 'update_supplier_intake_batch',

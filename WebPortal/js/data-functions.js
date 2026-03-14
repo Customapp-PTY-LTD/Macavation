@@ -1105,28 +1105,6 @@ var _dataFunctions = function () {
         },
 
         /**
-         * Get today's daily minute tests from cracking (07h00, 10h00, 13h00, Averages). Each slot may come from a different batch.
-         * @returns {Promise<Array<{time_slot:string, wholes:number|null, uncracks:number|null, total:number|null}>>}
-         */
-        getDashboardMinuteTests: async function (token = null) {
-            try {
-                var raw = await this.callFunction('get_dashboard_minute_tests', {}, token, { useCache: false });
-                var rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.get_dashboard_minute_tests) ? raw.get_dashboard_minute_tests : []);
-                return (rows || []).map(function (r) {
-                    return {
-                        time_slot: r.time_slot || '',
-                        wholes: r.wholes != null ? Number(r.wholes) : null,
-                        uncracks: r.uncracks != null ? Number(r.uncracks) : null,
-                        total: r.total != null ? Number(r.total) : null
-                    };
-                });
-            } catch (e) {
-                console.warn('[Dashboard] get_dashboard_minute_tests failed. Apply migration 20260214000001_get_dashboard_minute_tests.sql if needed.', e.message);
-                return [];
-            }
-        },
-
-        /**
          * Get production trends for chart: daily kg cracked, kg packed, kg dispatched (SA timezone).
          * @param {number} days - Number of days (default 30)
          * @returns {Promise<Array<{trend_date:string,kg_cracked:number,kg_packed:number,kg_dispatched:number}>>}
@@ -1141,6 +1119,25 @@ var _dataFunctions = function () {
                 return [];
             } catch (e) {
                 console.warn('[Dashboard] get_production_trends_daily failed. Apply migration 20260326000001_get_production_trends_daily.sql if needed.', e.message);
+                return [];
+            }
+        },
+
+        /**
+         * Get daily minute tests for dashboard (07h00, 10h00, 13h00, Averages from cracking).
+         * @param {string} [dateStr] - Optional date YYYY-MM-DD; omit for today (SA).
+         * @returns {Promise<Array<{time_slot:string,wholes:string,uncracks:string,total:string}>>}
+         */
+        getDailyMinuteTests: async function (dateStr, token = null) {
+            try {
+                var params = {};
+                if (dateStr && String(dateStr).trim() !== '') params.p_date = String(dateStr).trim();
+                var raw = await this.callFunction('get_daily_minute_tests', params, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_daily_minute_tests)) return raw.get_daily_minute_tests;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_daily_minute_tests failed. Apply migration 20260330000001_get_daily_minute_tests.sql if needed.', e.message);
                 return [];
             }
         },
