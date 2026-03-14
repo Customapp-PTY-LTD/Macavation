@@ -103,6 +103,7 @@ var _dashboard = function () {
                     console.error('Error loading dashboard data:', error);
                 }
                 await scope.loadKernelStats();
+                await scope.loadMinuteTests();
                 await scope.loadExceptions();
                 await scope.loadMetrics();
                 scope.loadQuickActions();
@@ -172,6 +173,40 @@ var _dashboard = function () {
                 if ($crackWeek.length) $crackWeek.text('—');
                 if ($packToday.length) $packToday.text('—');
                 if ($packWeek.length) $packWeek.text('—');
+            }
+        },
+
+        loadMinuteTests: async () => {
+            const $body = $('#dailyMinuteTestsBody');
+            if (!$body.length) return;
+            const fmt = (v) => (v != null && v !== '' && !Number.isNaN(Number(v))) ? String(Number(v)) : '—';
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getDashboardMinuteTests) {
+                    return;
+                }
+                const rows = await dataFunctions.getDashboardMinuteTests();
+                const bySlot = {};
+                (rows || []).forEach(function (r) {
+                    if (r && r.time_slot) bySlot[r.time_slot] = r;
+                });
+                $body.find('tr').each(function () {
+                    const $tr = $(this);
+                    const timeLabel = $tr.find('td:first').text().trim();
+                    const data = bySlot[timeLabel];
+                    const cells = $tr.find('.dashboard-minute-cell');
+                    if (cells.length >= 3 && data) {
+                        cells.eq(0).text(fmt(data.wholes));
+                        cells.eq(1).text(fmt(data.uncracks));
+                        cells.eq(2).text(fmt(data.total));
+                    } else if (cells.length >= 3 && !data) {
+                        cells.eq(0).text('—');
+                        cells.eq(1).text('—');
+                        cells.eq(2).text('—');
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading minute tests:', error);
+                $body.find('.dashboard-minute-cell').text('—');
             }
         },
 

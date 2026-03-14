@@ -4,6 +4,31 @@
     padding: 0;
 }
 
+/* Daily minute tests table: same style as production cracking minute-test grid */
+.dashboard-minute-tests-table thead th {
+    background-color: #e9ecef;
+    color: #495057;
+    border-color: #dee2e6;
+    font-weight: 600;
+}
+.dashboard-minute-tests-table tbody td {
+    background-color: #fff;
+    border-color: #dee2e6;
+    vertical-align: middle;
+}
+.dashboard-minute-cell {
+    display: inline-block;
+    min-width: 2.5rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    background-color: #fff;
+    color: #212529;
+}
+.dashboard-minute-tests-table .table-light {
+    background-color: #e9ecef;
+}
+
 /* Exceptions card header: flat danger, theme radius */
 .dashboard-container .card-header.dashboard-exceptions-header {
     background-color: var(--phoenix-danger);
