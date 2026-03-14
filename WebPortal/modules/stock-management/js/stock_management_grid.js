@@ -12,6 +12,57 @@ var _stockManagementGrid = function () {
         });
     };
 
+    /** Return ISO week key "YYYY-Www" for grouping (e.g. 2026-W10). Same as Supplier Intake / Grower Intake. */
+    function getIsoWeekKey(d) {
+        if (!d) return '';
+        var date;
+        if (typeof d === 'string') {
+            var s = d.trim();
+            date = (s.indexOf('T') !== -1) ? new Date(s) : new Date(s + 'T12:00:00');
+        } else {
+            date = d instanceof Date ? d : new Date(d);
+        }
+        if (isNaN(date.getTime())) return '';
+        var year = date.getFullYear();
+        var start = new Date(year, 0, 1);
+        var days = Math.floor((date - start) / 86400000);
+        var weekNum = Math.floor(days / 7) + 1;
+        if (weekNum > 52) {
+            var nextJan = new Date(year + 1, 0, 1);
+            if (date >= nextJan) { year += 1; weekNum = 1; }
+        }
+        var pad = weekNum < 10 ? '0' : '';
+        return year + '-W' + pad + weekNum;
+    }
+
+    /** Sum total kg from yield_by_style object (all style keys). */
+    function totalKgFromYield(b) {
+        if (!b || !b.yield_by_style || typeof b.yield_by_style !== 'object') return 0;
+        var sum = 0;
+        Object.keys(b.yield_by_style).forEach(function (k) {
+            var v = b.yield_by_style[k];
+            if (v != null && v !== '') sum += (typeof v === 'number' ? v : parseFloat(v)) || 0;
+        });
+        return sum;
+    }
+
+    /** Sum total kg from remaining_by_style object. */
+    function totalKgFromRemaining(b) {
+        if (!b || !b.remaining_by_style || typeof b.remaining_by_style !== 'object') return 0;
+        var sum = 0;
+        Object.keys(b.remaining_by_style).forEach(function (k) {
+            var v = b.remaining_by_style[k];
+            if (v != null && v !== '') sum += (typeof v === 'number' ? v : parseFloat(v)) || 0;
+        });
+        return sum;
+    }
+
+    function escapeHtml(s) {
+        if (s == null) return '';
+        var str = String(s);
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     return {
         stockItems: [],
         filteredStockItems: [],
@@ -19,6 +70,10 @@ var _stockManagementGrid = function () {
         oilSummary: [],
         kernelRawBatches: [],
         kernelFinishedBatches: [],
+        kernelDispatchOrders: [],
+        kernelDispatchOrdersWithLines: null,
+        kernelCurrentView: 'bystyle',
+        kernelWeeklyMode: 'in',
         oilSearchTimeout: null,
         searchTimeout: null,
 
@@ -124,6 +179,14 @@ var _stockManagementGrid = function () {
                     $('#filterStockLocation').val('');
                     scope.filterStockItems();
                 });
+                $('#ksViewByStyle, #ksViewWeekly, #ksViewOverview').off('click').on('click', function () {
+                    var view = $(this).data('view');
+                    if (view) scope.toggleKernelView(view);
+                });
+                $('#ksWeeklyViewMode').off('change').on('change', function () {
+                    scope.kernelWeeklyMode = $(this).val() || 'in';
+                    scope.renderKernelWeekly();
+                });
                 $(document).on('click', '.js-release-batch-to-production', function () {
                     var id = $(this).data('batch-id');
                     if (id) scope.confirmAndReleaseBatchToProduction(id);
@@ -226,16 +289,54 @@ var _stockManagementGrid = function () {
 
         loadKernelBatches: function (forceRefresh) {
             var scope = _stockManagementGrid;
-            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'complete' }).then(function (all) {
+            var df = (typeof _dataFunctions !== 'undefined' && _dataFunctions && typeof _dataFunctions.getKernelBatches === 'function')
+                ? _dataFunctions
+                : (typeof dataFunctions !== 'undefined' && dataFunctions ? dataFunctions : null);
+            var loadDispatch = (typeof dataFunctions !== 'undefined' && dataFunctions && dataFunctions.getKernelDispatchOrders)
+                ? dataFunctions.getKernelDispatchOrders(null, forceRefresh).catch(function () { return []; })
+                : Promise.resolve([]);
+            if (!df) {
+                console.warn('[Stock Management] getKernelBatches not available (_dataFunctions/dataFunctions)');
+                scope.kernelFinishedBatches = [];
+                scope.kernelDispatchOrders = [];
+                scope.renderKernelBatches();
+                return;
+            }
+            df.getKernelBatches(null, forceRefresh, { status: 'complete' }).then(function (all) {
                 all = all || [];
                 scope.kernelRawBatches = [];
                 scope.kernelFinishedBatches = all;
                 scope.renderKernelBatches();
+                return loadDispatch;
+            }).then(function (orders) {
+                scope.kernelDispatchOrders = Array.isArray(orders) ? orders : [];
+                scope.kernelDispatchOrdersWithLines = null;
+                if (scope.kernelCurrentView === 'weekly') scope.renderKernelWeekly();
+                if (scope.kernelCurrentView === 'overview') scope.renderKernelOverview();
             }).catch(function (e) {
                 console.error('[Stock Management] loadKernelBatches failed:', e);
                 scope.kernelRawBatches = [];
                 scope.kernelFinishedBatches = [];
+                scope.kernelDispatchOrders = [];
                 scope.renderKernelBatches();
+            });
+        },
+
+        /** Load full order details (with lines) for all dispatched orders; cache in kernelDispatchOrdersWithLines. */
+        loadKernelDispatchOrdersWithLines: function () {
+            var scope = _stockManagementGrid;
+            var df = (typeof dataFunctions !== 'undefined' && dataFunctions && dataFunctions.getKernelDispatchOrder) ? dataFunctions : null;
+            if (!df) return Promise.resolve();
+            var dispatched = (scope.kernelDispatchOrders || []).filter(function (o) { return o.dispatched_at; });
+            if (dispatched.length === 0) {
+                scope.kernelDispatchOrdersWithLines = [];
+                return Promise.resolve();
+            }
+            return Promise.all(dispatched.map(function (o) { return df.getKernelDispatchOrder(o.id); })).then(function (results) {
+                scope.kernelDispatchOrdersWithLines = (results || []).filter(function (r) { return r && r.order && Array.isArray(r.lines); });
+            }).catch(function (e) {
+                console.error('[Stock Management] loadKernelDispatchOrdersWithLines failed:', e);
+                scope.kernelDispatchOrdersWithLines = [];
             });
         },
 
@@ -283,6 +384,149 @@ var _stockManagementGrid = function () {
                 var k = $(this).data('style');
                 $(this).text(totals[k] != null ? totals[k] : 0);
             });
+        },
+
+        toggleKernelView: function (view) {
+            var scope = _stockManagementGrid;
+            scope.kernelCurrentView = view;
+            var byStylePanel = document.getElementById('ksByStylePanel');
+            var weeklyPanel = document.getElementById('ksWeeklyPanel');
+            var overviewPanel = document.getElementById('ksOverviewPanel');
+            if (byStylePanel) byStylePanel.style.display = (view === 'bystyle') ? '' : 'none';
+            if (weeklyPanel) weeklyPanel.style.display = (view === 'weekly') ? '' : 'none';
+            if (overviewPanel) overviewPanel.style.display = (view === 'overview') ? '' : 'none';
+            $('#ksViewByStyle').toggleClass('active', view === 'bystyle');
+            $('#ksViewWeekly').toggleClass('active', view === 'weekly');
+            $('#ksViewOverview').toggleClass('active', view === 'overview');
+            if (view === 'weekly') scope.renderKernelWeekly();
+            if (view === 'overview') scope.renderKernelOverview();
+        },
+
+        renderKernelWeekly: function () {
+            var scope = _stockManagementGrid;
+            var tbody = document.getElementById('ksWeeklyTableBody');
+            var totalHeader = document.getElementById('ksWeeklyTotalHeader');
+            if (!tbody) return;
+            var modeEl = document.getElementById('ksWeeklyViewMode');
+            var mode = (modeEl && modeEl.value) || scope.kernelWeeklyMode || 'in';
+            scope.kernelWeeklyMode = mode;
+            if (totalHeader) totalHeader.textContent = mode === 'out' ? 'Total out (kg)' : 'Total in (kg)';
+
+            var styleKeys = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
+            var colspan = styleKeys.length + 2;
+
+            if (mode === 'out') {
+                if (scope.kernelDispatchOrdersWithLines === null) {
+                    tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="text-center text-muted py-4">Loading…</td></tr>';
+                    scope.loadKernelDispatchOrdersWithLines().then(function () { scope.renderKernelWeekly(); });
+                    return;
+                }
+                var byWeek = {};
+                function ensureWeekOut(key) {
+                    if (!byWeek[key]) {
+                        byWeek[key] = { stockOut: 0, byStyleOut: {} };
+                        styleKeys.forEach(function (k) { byWeek[key].byStyleOut[k] = 0; });
+                    }
+                }
+                (scope.kernelDispatchOrdersWithLines || []).forEach(function (item) {
+                    var order = item.order;
+                    var lines = item.lines || [];
+                    var dt = order && order.dispatched_at;
+                    if (!dt) return;
+                    var key = getIsoWeekKey(dt);
+                    if (!key) return;
+                    ensureWeekOut(key);
+                    lines.forEach(function (line) {
+                        var style = line.style != null ? String(line.style) : '';
+                        var kg = (line.quantity_kg != null) ? (typeof line.quantity_kg === 'number' ? line.quantity_kg : parseFloat(line.quantity_kg)) : 0;
+                        if (isNaN(kg)) kg = 0;
+                        if (!byWeek[key].byStyleOut[style]) byWeek[key].byStyleOut[style] = 0;
+                        byWeek[key].byStyleOut[style] += kg;
+                        byWeek[key].stockOut += kg;
+                    });
+                });
+                var weeks = Object.keys(byWeek).sort();
+                var rows = weeks.length === 0
+                    ? '<tr><td colspan="' + colspan + '" class="text-center text-muted py-4">No data. Dispatch orders (with dispatched date) show weekly out by style.</td></tr>'
+                    : weeks.map(function (key) {
+                        var v = byWeek[key];
+                        var cells = ['<td>' + escapeHtml(key) + '</td>'];
+                        styleKeys.forEach(function (sk) {
+                            var val = (v.byStyleOut && v.byStyleOut[sk] != null && v.byStyleOut[sk] > 0)
+                                ? Number(v.byStyleOut[sk]).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                : '—';
+                            cells.push('<td class="text-end">' + escapeHtml(String(val)) + '</td>');
+                        });
+                        var totalOut = (v.stockOut != null && !isNaN(v.stockOut)) ? Number(v.stockOut).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                        cells.push('<td class="text-end fw-bold">' + escapeHtml(String(totalOut)) + '</td>');
+                        return '<tr>' + cells.join('') + '</tr>';
+                    }).join('');
+                tbody.innerHTML = rows;
+                return;
+            }
+
+            var byWeek = {};
+            function ensureWeek(key) {
+                if (!byWeek[key]) {
+                    byWeek[key] = { stockIn: 0, byStyleIn: {} };
+                    styleKeys.forEach(function (k) { byWeek[key].byStyleIn[k] = 0; });
+                }
+            }
+            (scope.kernelFinishedBatches || []).forEach(function (b) {
+                var dt = b.production_finished_at || b.updated_at || b.created_at;
+                if (!dt) return;
+                var key = getIsoWeekKey(dt);
+                if (!key) return;
+                ensureWeek(key);
+                var yieldObj = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
+                styleKeys.forEach(function (styleKey) {
+                    var v = yieldObj[styleKey];
+                    var kg = (v != null && v !== '') ? (typeof v === 'number' ? v : parseFloat(v)) : 0;
+                    if (!isNaN(kg)) {
+                        byWeek[key].byStyleIn[styleKey] += kg;
+                        byWeek[key].stockIn += kg;
+                    }
+                });
+            });
+            var weeks = Object.keys(byWeek).sort();
+            var rows = weeks.length === 0
+                ? '<tr><td colspan="' + colspan + '" class="text-center text-muted py-4">No data. Release batches to stock from Kernel Production to see weekly in by style.</td></tr>'
+                : weeks.map(function (key) {
+                    var v = byWeek[key];
+                    var cells = ['<td>' + escapeHtml(key) + '</td>'];
+                    styleKeys.forEach(function (sk) {
+                        var val = (v.byStyleIn && v.byStyleIn[sk] != null && v.byStyleIn[sk] > 0)
+                            ? Number(v.byStyleIn[sk]).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                            : '—';
+                        cells.push('<td class="text-end">' + escapeHtml(String(val)) + '</td>');
+                    });
+                    var totalIn = (v.stockIn != null && !isNaN(v.stockIn)) ? Number(v.stockIn).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                    cells.push('<td class="text-end fw-bold">' + escapeHtml(String(totalIn)) + '</td>');
+                    return '<tr>' + cells.join('') + '</tr>';
+                }).join('');
+            tbody.innerHTML = rows;
+        },
+
+        renderKernelOverview: function () {
+            var scope = _stockManagementGrid;
+            var tbody = document.getElementById('ksOverviewTableBody');
+            if (!tbody) return;
+            var styleKeys = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
+            var byStyle = {};
+            styleKeys.forEach(function (k) { byStyle[k] = 0; });
+            (scope.kernelFinishedBatches || []).forEach(function (b) {
+                var cells = (b.remaining_by_style && typeof b.remaining_by_style === 'object') ? b.remaining_by_style : (b.yield_by_style || {});
+                styleKeys.forEach(function (k) {
+                    var v = cells[k];
+                    if (v != null && v !== '') byStyle[k] += (typeof v === 'number' ? v : parseFloat(v)) || 0;
+                });
+            });
+            var rows = styleKeys.map(function (k) {
+                var total = byStyle[k];
+                var amount = (total != null && !isNaN(total)) ? Number(total).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+                return '<tr><td>' + escapeHtml(k) + '</td><td class="text-end">' + escapeHtml(String(amount)) + '</td></tr>';
+            }).join('');
+            tbody.innerHTML = rows || '<tr><td colspan="2" class="text-center text-muted py-4">No data.</td></tr>';
         },
 
         confirmAndReleaseBatchToProduction: function (batchId) {

@@ -96,6 +96,21 @@
             </div>
         </div>
         <div class="card-body">
+            <div class="d-flex justify-content-end mb-3">
+                <div class="view-toggle">
+                    <button type="button" class="view-toggle-btn active" data-view="bystyle" id="ksViewByStyle" title="By style">
+                        <i class="fas fa-layer-group me-1"></i>By style
+                    </button>
+                    <button type="button" class="view-toggle-btn" data-view="weekly" id="ksViewWeekly" title="Weekly stock in / out">
+                        <i class="fas fa-calendar-week me-1"></i>Weekly
+                    </button>
+                    <button type="button" class="view-toggle-btn" data-view="overview" id="ksViewOverview" title="Overview by style">
+                        <i class="fas fa-chart-pie me-1"></i>Overview
+                    </button>
+                </div>
+            </div>
+            <!-- By style view (default) -->
+            <div id="ksByStylePanel">
             <p class="text-muted small mb-3">Batches released from Grower Intake go to Kernel Production; release to stock from there. Raw (NIS = R NIL) is legacy; finished (KERNEL R YES) are ready for dispatch.</p>
             <hr class="my-3">
             <h6 class="text-secondary">Kernel Stock by style</h6>
@@ -120,6 +135,54 @@
                     </thead>
                     <tbody id="kernelStockByStyleBody"></tbody>
                 </table>
+            </div>
+            </div>
+            <!-- Weekly view: stock in by style or stock out by style (dropdown) -->
+            <div class="card mb-0 border-0" id="ksWeeklyPanel" style="display: none;">
+                <h6 class="text-secondary"><i class="fas fa-calendar-week me-2"></i>Weekly stock (kg)</h6>
+                <p class="text-muted small mb-3">View weekly stock in or weekly stock out by style. Use the dropdown to switch.</p>
+                <div class="mb-3">
+                    <label for="ksWeeklyViewMode" class="form-label small text-muted">View</label>
+                    <select id="ksWeeklyViewMode" class="form-select form-select-sm" style="max-width: 16rem;">
+                        <option value="in">Weekly in (by style)</option>
+                        <option value="out">Weekly out (by style)</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm" id="ksWeeklyTable">
+                        <thead>
+                            <tr id="ksWeeklyTableHead">
+                                <th>Week</th>
+                                <th class="text-end" title="Sound Kernel SP">SP</th>
+                                <th class="text-end">0</th><th class="text-end">1</th><th class="text-end">1S</th><th class="text-end">4L</th><th class="text-end">5</th><th class="text-end">6</th>
+                                <th class="text-end">7/8</th>
+                                <th class="text-end" title="Butter High Oil">B.High</th><th class="text-end" title="Butter Low Oil">B.Low</th>
+                                <th class="text-end fw-bold" id="ksWeeklyTotalHeader">Total in (kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ksWeeklyTableBody">
+                            <tr><td colspan="12" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Overview view: total kg by style -->
+            <div class="card mb-0 border-0" id="ksOverviewPanel" style="display: none;">
+                <h6 class="text-secondary"><i class="fas fa-chart-pie me-2"></i>Overview by style</h6>
+                <p class="text-muted small mb-3">Total remaining quantity (kg) by style across all batches in kernel stock.</p>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Style</th>
+                                <th class="text-end">Total (kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ksOverviewTableBody">
+                            <tr><td colspan="2" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
