@@ -8,8 +8,29 @@
             </button>
         </div>
     </div>
+    <div class="card mb-3">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">Categories</h6>
+        </div>
+        <div class="card-body py-2">
+            <p class="text-muted small mb-2">Manage categories used when uploading documents. Deleting a category hides it from the list; documents in that category keep their link but the category name will no longer show.</p>
+            <ul class="list-group list-group-flush" id="documentCategoriesList">
+                <li class="list-group-item text-muted small">Loading…</li>
+            </ul>
+        </div>
+    </div>
     <div class="card mb-4">
         <div class="card-body">
+            <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                    <label for="docSearchInput" class="form-label visually-hidden">Search</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="docSearchInput" placeholder="Search by document name or category...">
+                        <button type="button" class="btn btn-outline-secondary" id="docSearchClear" title="Clear search" style="display: none;"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover" id="documentsTable">
                     <thead>

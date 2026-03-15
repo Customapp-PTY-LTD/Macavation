@@ -90,6 +90,9 @@
         <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0"><i class="fas fa-seedling me-2"></i>Kernel batch journey</h5>
             <div class="btn-toolbar">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="importHistoricalKernelBtn" title="Load historical batches from Macadamia Kernel Statistics Excel">
+                    <i class="fas fa-file-import me-1"></i>Import historical
+                </button>
                 <button type="button" class="btn btn-success" id="sendToDispatchBtn">
                     <i class="fas fa-truck me-1"></i>Send to Dispatch
                 </button>
@@ -192,6 +195,31 @@
 
     <!-- Send to Dispatch (Oil) Modal (content loaded by app router) -->
     <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="sendToDispatchOilModal" role="dialog" route-name="send-to-dispatch-oil-modal" tabindex="-1" aria-labelledby="sendToDispatchOilModalLabel" aria-hidden="true"></div>
+
+    <!-- Import historical kernel data modal -->
+    <div class="modal fade" id="importHistoricalKernelModal" tabindex="-1" aria-labelledby="importHistoricalKernelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importHistoricalKernelModalLabel"><i class="fas fa-file-import me-2"></i>Import historical kernel data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">Load kernel batches from <strong>Macadamia Kernel Statistics</strong> Excel (e.g. for go-live).</p>
+                    <ol class="small mb-3">
+                        <li>Export the kernel batch sheet from Excel to <strong>CSV</strong> (one row per batch; columns: Batch, Grower, Received Date, Finished Date, SP, 0, 1, 1S, 4L, 5, 6, 7/8, B.High, B.Low).</li>
+                        <li>Run <code>node scripts/import-historical-kernel-from-csv.js your-file.csv</code> to generate SQL.</li>
+                        <li>Run the generated SQL in <strong>Supabase MCP</strong> (<code>execute_sql</code>) or the Supabase SQL Editor.</li>
+                    </ol>
+                    <p class="small text-muted mb-0">Export Excel to CSV, run the repo script to generate SQL, then run the SQL in Supabase (MCP or SQL Editor).</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="importHistoricalKernelRefreshBtn"><i class="fas fa-sync-alt me-1"></i>Refresh kernel data</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Oil Stock Ledger (hidden when stream = Kernel) - Mirrored layout to Stock (Kernel) -->
     <div class="card mb-4 border-primary" id="oilStockLedgerCard" style="display: none;">

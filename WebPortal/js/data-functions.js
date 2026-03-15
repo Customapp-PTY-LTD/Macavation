@@ -1537,6 +1537,39 @@ var _dataFunctions = function () {
         },
 
         /**
+         * importHistoricalKernelBatch — one-off import of a historical kernel batch (e.g. from Macadamia Kernel Statistics Excel).
+         * Creates batch + kernel with status 'complete' and one packing_data entry (yield by style in kg).
+         * @param {object} data - { batch_number, grower_name?, supplier_id?, received_date?, production_finished_at?, wet_nis_received_kg?, sk_sp_qty, sk_0_qty, sk_1_qty, sk_1s_qty, sk_4l_qty, sk_5_qty, sk_6_qty, bt_78_qty, bt_high_qty, bt_low_qty, best_before_date?, ffa? }
+         * @param {string|null} token
+         * @returns {Promise<object>} { success, id, batch_number } or { success: false, error }
+         */
+        importHistoricalKernelBatch: async function (data, token = null) {
+            const params = {
+                p_batch_number: data.batch_number,
+                p_grower_name: data.grower_name || null,
+                p_supplier_id: data.supplier_id || null,
+                p_received_date: data.received_date || null,
+                p_production_finished_at: data.production_finished_at || null,
+                p_wet_nis_received_kg: data.wet_nis_received_kg != null ? data.wet_nis_received_kg : null,
+                p_sk_sp_qty: data.sk_sp_qty != null ? data.sk_sp_qty : 0,
+                p_sk_0_qty: data.sk_0_qty != null ? data.sk_0_qty : 0,
+                p_sk_1_qty: data.sk_1_qty != null ? data.sk_1_qty : 0,
+                p_sk_1s_qty: data.sk_1s_qty != null ? data.sk_1s_qty : 0,
+                p_sk_4l_qty: data.sk_4l_qty != null ? data.sk_4l_qty : 0,
+                p_sk_5_qty: data.sk_5_qty != null ? data.sk_5_qty : 0,
+                p_sk_6_qty: data.sk_6_qty != null ? data.sk_6_qty : 0,
+                p_bt_78_qty: data.bt_78_qty != null ? data.bt_78_qty : 0,
+                p_bt_high_qty: data.bt_high_qty != null ? data.bt_high_qty : 0,
+                p_bt_low_qty: data.bt_low_qty != null ? data.bt_low_qty : 0,
+                p_best_before_date: data.best_before_date || null,
+                p_ffa: data.ffa != null ? data.ffa : null
+            };
+            const result = await this.callFunction('import_historical_kernel_batch', params, token, { useCache: false });
+            this.clearCachePattern('kernel_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /**
          * getKernelProductionHistory — history-specific read: intake, stage arrays, job card, QA.
          * Used by: modal_batch_history only.
          */
@@ -2633,6 +2666,11 @@ var _dataFunctions = function () {
                 p_name: data.name,
                 p_description: data.description || null
             }, token, { useCache: false });
+            this.clearCachePattern('document_categories');
+            return result;
+        },
+        deleteDocumentCategory: async function (categoryId, token = null) {
+            const result = await this.callFunction('delete_document_category_simple', { p_id: categoryId }, token, { useCache: false });
             this.clearCachePattern('document_categories');
             return result;
         },

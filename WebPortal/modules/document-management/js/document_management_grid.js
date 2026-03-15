@@ -22,11 +22,13 @@ var _documentManagementGrid = (function () {
     return {
         documents: [],
         categories: [],
+        docSearchQuery: '',
 
         init: function () {
             var scope = _documentManagementGrid;
             scope.initHandlers();
             scope.loadDocuments();
+            scope.loadCategoriesList();
         },
 
         initHandlers: function () {
@@ -65,6 +67,86 @@ var _documentManagementGrid = (function () {
                 if (action === 'view') scope.viewDocument(docId);
                 else if (action === 'download') scope.downloadDocument(docId);
                 else if (action === 'delete') scope.deleteDocument(docId);
+            });
+            $(document).on('click', '[data-category-delete]', function (e) {
+                e.preventDefault();
+                var id = $(this).data('category-delete');
+                if (id) scope.deleteCategory(id);
+            });
+            $('#docSearchInput').on('input', function () {
+                scope.docSearchQuery = ($(this).val() || '').trim().toLowerCase();
+                $('#docSearchClear').toggle(scope.docSearchQuery.length > 0);
+                scope.renderDocuments();
+            });
+            $('#docSearchClear').on('click', function () {
+                $('#docSearchInput').val('');
+                scope.docSearchQuery = '';
+                $(this).hide();
+                scope.renderDocuments();
+            });
+        },
+
+        loadCategoriesList: function () {
+            var scope = _documentManagementGrid;
+            var listEl = document.getElementById('documentCategoriesList');
+            if (!listEl) return;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getDocumentCategories) {
+                listEl.innerHTML = '<li class="list-group-item text-muted small">Categories not available.</li>';
+                return;
+            }
+            dataFunctions.getDocumentCategories().then(function (list) {
+                scope.categories = Array.isArray(list) ? list : [];
+                if (scope.categories.length === 0) {
+                    listEl.innerHTML = '<li class="list-group-item text-muted small">No categories yet. Add one when uploading a document.</li>';
+                    return;
+                }
+                listEl.innerHTML = scope.categories.map(function (c) {
+                    return '<li class="list-group-item d-flex justify-content-between align-items-center">' +
+                        '<span>' + escapeHtml(c.name || '') + '</span>' +
+                        '<button type="button" class="btn btn-sm btn-outline-danger" data-category-delete="' + escapeHtml(c.id) + '" title="Delete category"><i class="fas fa-trash-alt"></i></button>' +
+                        '</li>';
+                }).join('');
+            }).catch(function () {
+                listEl.innerHTML = '<li class="list-group-item text-muted small">Failed to load categories.</li>';
+            });
+        },
+
+        deleteCategory: function (categoryId) {
+            var scope = _documentManagementGrid;
+            var confirmMsg = 'Remove this category? Documents in this category will keep their link but the category name will no longer show.';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Delete category?',
+                    text: confirmMsg,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Delete',
+                    confirmButtonColor: '#dc3545'
+                }).then(function (result) {
+                    if (result && result.isConfirmed) scope.doDeleteCategory(categoryId);
+                });
+            } else if (window.confirm(confirmMsg)) {
+                scope.doDeleteCategory(categoryId);
+            }
+        },
+
+        doDeleteCategory: function (categoryId) {
+            var scope = _documentManagementGrid;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.deleteDocumentCategory) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete category not available', 'error');
+                return;
+            }
+            dataFunctions.deleteDocumentCategory(categoryId).then(function (result) {
+                var ok = result && (result.success === true || result.message);
+                if (ok) {
+                    scope.loadCategoriesList();
+                    scope.loadCategoriesForUpload();
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Category deleted', timer: 1500, showConfirmButton: false });
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Failed to delete category', 'error');
+                }
+            }).catch(function (e) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to delete category', 'error');
             });
         },
 
@@ -222,11 +304,23 @@ var _documentManagementGrid = (function () {
             var scope = _documentManagementGrid;
             var tbody = $('#documentsTableBody');
             tbody.empty();
-            if (scope.documents.length === 0) {
-                tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No documents found. Click "Upload Document" to add one.</td></tr>');
+            var q = scope.docSearchQuery || '';
+            var list = scope.documents;
+            if (q) {
+                list = scope.documents.filter(function (doc) {
+                    var name = (doc.document_name || '').toLowerCase();
+                    var cat = (doc.category_name || '').toLowerCase();
+                    return name.indexOf(q) !== -1 || cat.indexOf(q) !== -1;
+                });
+            }
+            if (list.length === 0) {
+                var msg = q
+                    ? 'No documents match your search. Try a different term or clear the search.'
+                    : 'No documents found. Click "Upload Document" to add one.';
+                tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>' + escapeHtml(msg) + '</td></tr>');
                 return;
             }
-            scope.documents.forEach(function (doc) {
+            list.forEach(function (doc) {
                 var dateStr = doc.created_at ? (doc.created_at.slice(0, 10) + ' ' + (doc.created_at.slice(11, 16) || '')).trim() : 'N/A';
                 var row = '<tr>' +
                     '<td>' + escapeHtml(doc.document_name || 'N/A') + '</td>' +

@@ -162,6 +162,21 @@ var _stockManagementGrid = function () {
                 $('#sendToDispatchBtn').off('click').on('click', function () {
                     if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show();
                 });
+                $('#importHistoricalKernelBtn').off('click').on('click', function () {
+                    var modalEl = document.getElementById('importHistoricalKernelModal');
+                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    } else if (modalEl) modalEl.classList.add('show');
+                });
+                $('#importHistoricalKernelRefreshBtn').off('click').on('click', function () {
+                    scope.loadKernelBatches(true);
+                    var modalEl = document.getElementById('importHistoricalKernelModal');
+                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        var modal = bootstrap.Modal.getInstance(modalEl);
+                        if (modal) modal.hide();
+                    }
+                });
                 $('#sendToDispatchOilBtn').off('click').on('click', function () {
                     if (typeof _modal_stock_send_to_dispatch_oil !== 'undefined' && _modal_stock_send_to_dispatch_oil.show) _modal_stock_send_to_dispatch_oil.show();
                 });
