@@ -8,9 +8,13 @@
             <form id="createKernelBatchForm">
                 <div class="mb-3">
                     <label for="intakeBatchGrower" class="form-label">Grower / supplier</label>
-                    <select class="form-select" id="intakeBatchGrower">
-                        <option value="">Select (optional)</option>
-                    </select>
+                    <div class="d-flex gap-2">
+                        <select class="form-select flex-grow-1" id="intakeBatchGrower">
+                            <option value="">Select (optional)</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" id="intakeAddSupplierBtn" title="Add new supplier"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <small class="text-muted">Supplier code is used in batch naming (e.g. Bn 01 26 01).</small>
                 </div>
                 <div class="mb-3">
                     <label for="intakeBatchNumber" class="form-label">Batch number</label>

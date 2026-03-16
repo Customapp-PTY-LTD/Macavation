@@ -11,13 +11,16 @@
                     <div class="mb-3">
                         <label for="dispatchBuyer" class="form-label required">Buyer</label>
                         <input type="text" class="form-control" id="dispatchBuyer" placeholder="Buyer or customer name" required>
-                        <small class="text-muted">Or select from contacts below</small>
+                        <small class="text-muted">Select from kernel customers below or type a name</small>
                     </div>
                     <div class="mb-3">
-                        <label for="dispatchBuyerContact" class="form-label">Buyer (from contacts)</label>
-                        <select class="form-select" id="dispatchBuyerContact">
-                            <option value="">— Select contact —</option>
-                        </select>
+                        <label for="dispatchBuyerContact" class="form-label">Kernel customers</label>
+                        <div class="d-flex gap-2">
+                            <select class="form-select flex-grow-1" id="dispatchBuyerContact">
+                                <option value="">— Select buyer —</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="dispatchAddBuyerBtn" title="Create new buyer"><i class="fas fa-plus"></i></button>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="dispatchDeliveryDate" class="form-label required">Date of delivery</label>

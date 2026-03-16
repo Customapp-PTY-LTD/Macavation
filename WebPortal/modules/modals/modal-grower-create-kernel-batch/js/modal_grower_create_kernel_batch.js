@@ -8,15 +8,131 @@ var _modal_grower_create_kernel_batch = (function () {
 
     var CONTAINER_ID = 'createKernelBatchModal';
 
+    var SUPPLIER_TYPES = ['nis_supplier', 'supplier', 'both'];
+
     var api = {
         init: function () {
             var saveBtn = document.getElementById('saveCreateKernelBatchBtn');
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
+            var addSupplierBtn = document.getElementById('intakeAddSupplierBtn');
+            if (addSupplierBtn) addSupplierBtn.addEventListener('click', function (e) { e.preventDefault(); api.showAddSupplierForm(); });
             var dateEl = document.getElementById('intakeBatchReceivedDate');
             if (dateEl) {
                 dateEl.removeEventListener('change', api._onDateOrGrowerChange);
                 dateEl.addEventListener('change', api._onDateOrGrowerChange);
             }
+        },
+
+        populateSupplierDropdown: function () {
+            var sel = document.getElementById('intakeBatchGrower');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Select (optional)</option>';
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getContacts) return;
+            dataFunctions.getContacts(null, true).then(function (raw) {
+                var contacts = Array.isArray(raw) ? raw : (raw && raw.get_contacts ? raw.get_contacts : (raw && raw.data ? raw.data : []));
+                if (!Array.isArray(contacts)) return;
+                var suppliers = contacts.filter(function (c) {
+                    var t = (c.contact_type || '').trim();
+                    return SUPPLIER_TYPES.indexOf(t) >= 0;
+                });
+                var opts = '<option value="">Select (optional)</option>';
+                suppliers.forEach(function (c) {
+                    var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
+                    var code = c.supplier_number != null ? ' (' + c.supplier_number + ')' : '';
+                    opts += '<option value="' + c.id + '">' + name + code + '</option>';
+                });
+                sel.innerHTML = opts;
+                sel.removeEventListener('change', api._onDateOrGrowerChange);
+                sel.addEventListener('change', api._onDateOrGrowerChange);
+            }).catch(function (e) { console.error('Error loading suppliers:', e); });
+        },
+
+        showAddSupplierForm: function () {
+            var apiRef = api;
+            if (typeof Swal === 'undefined') {
+                var name = window.prompt('Supplier company name:');
+                var codeStr = window.prompt('Supplier code (number for batch naming, e.g. 1-99):');
+                if (name && name.trim() && codeStr != null && codeStr.trim() !== '') {
+                    var code = parseInt(codeStr.trim(), 10);
+                    if (!isNaN(code) && code >= 0) apiRef.doCreateSupplier({ company_name: name.trim(), supplier_number: code });
+                }
+                return;
+            }
+            Swal.fire({
+                title: 'Add new supplier',
+                html:
+                    '<label class="form-label text-start d-block">Company name <span class="text-danger">*</span></label>' +
+                    '<input type="text" id="intakeNewSupplierName" class="form-control mb-2" placeholder="e.g. Farm Name (Pty) Ltd" required>' +
+                    '<label class="form-label text-start d-block">Supplier code <span class="text-danger">*</span></label>' +
+                    '<input type="number" id="intakeNewSupplierCode" class="form-control mb-2" min="0" max="99" placeholder="e.g. 1 (used in batch number: Bn 01 26 01)" required>' +
+                    '<small class="text-muted d-block mb-2">This number appears in the batch name (Bn [code] [year] [seq]). Use a unique number per supplier.</small>' +
+                    '<label class="form-label text-start d-block">Province</label>' +
+                    '<input type="text" id="intakeNewSupplierProvince" class="form-control mb-2" placeholder="e.g. Limpopo">' +
+                    '<label class="form-label text-start d-block">Area / City</label>' +
+                    '<input type="text" id="intakeNewSupplierArea" class="form-control mb-2" placeholder="e.g. Tzaneen">' +
+                    '<label class="form-label text-start d-block">Contact name</label>' +
+                    '<input type="text" id="intakeNewSupplierContact" class="form-control mb-2" placeholder="Contact person">' +
+                    '<label class="form-label text-start d-block">Notes</label>' +
+                    '<input type="text" id="intakeNewSupplierNotes" class="form-control" placeholder="Optional">',
+                showCancelButton: true,
+                confirmButtonText: 'Add supplier',
+                focusConfirm: false,
+                preConfirm: function () {
+                    var nameEl = document.getElementById('intakeNewSupplierName');
+                    var codeEl = document.getElementById('intakeNewSupplierCode');
+                    var name = nameEl && nameEl.value ? nameEl.value.trim() : '';
+                    var codeVal = codeEl && codeEl.value !== '' ? parseInt(codeEl.value, 10) : NaN;
+                    if (!name) {
+                        Swal.showValidationMessage('Company name is required');
+                        return false;
+                    }
+                    if (isNaN(codeVal) || codeVal < 0) {
+                        Swal.showValidationMessage('Supplier code must be a number (0–99) used for batch naming');
+                        return false;
+                    }
+                    return {
+                        company_name: name,
+                        supplier_number: codeVal,
+                        physical_province: (document.getElementById('intakeNewSupplierProvince') && document.getElementById('intakeNewSupplierProvince').value) ? document.getElementById('intakeNewSupplierProvince').value.trim() : null,
+                        physical_city: (document.getElementById('intakeNewSupplierArea') && document.getElementById('intakeNewSupplierArea').value) ? document.getElementById('intakeNewSupplierArea').value.trim() : null,
+                        primary_contact_name: (document.getElementById('intakeNewSupplierContact') && document.getElementById('intakeNewSupplierContact').value) ? document.getElementById('intakeNewSupplierContact').value.trim() : null,
+                        notes: (document.getElementById('intakeNewSupplierNotes') && document.getElementById('intakeNewSupplierNotes').value) ? document.getElementById('intakeNewSupplierNotes').value.trim() : null
+                    };
+                }
+            }).then(function (result) {
+                if (result && result.isConfirmed && result.value) apiRef.doCreateSupplier(result.value);
+            });
+        },
+
+        doCreateSupplier: function (data) {
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.createContact) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Create contact not available.', 'error');
+                return;
+            }
+            var payload = {
+                contact_type: 'nis_supplier',
+                company_name: data.company_name,
+                supplier_number: data.supplier_number,
+                physical_province: data.physical_province || null,
+                physical_city: data.physical_city || null,
+                primary_contact_name: data.primary_contact_name || null,
+                notes: data.notes || null,
+                status: 'active'
+            };
+            dataFunctions.createContact(payload).then(function (res) {
+                var id = (res && res.id) || (res && res.data && res.data.id);
+                if (id) {
+                    api.populateSupplierDropdown();
+                    var sel = document.getElementById('intakeBatchGrower');
+                    if (sel) sel.value = id;
+                    api._onDateOrGrowerChange();
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Supplier added', timer: 1500, showConfirmButton: false });
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (res && res.error) || 'Failed to add supplier', 'error');
+                }
+            }).catch(function (e) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to add supplier', 'error');
+            });
         },
 
         show: async function () {
@@ -35,26 +151,7 @@ var _modal_grower_create_kernel_batch = (function () {
             var wetEl = document.getElementById('intakeBatchWetNis');
             if (wetEl) wetEl.value = '';
 
-            try {
-                if (typeof dataFunctions !== 'undefined' && dataFunctions.getContacts) {
-                    var contacts = await dataFunctions.getContacts();
-                    var sel = document.getElementById('intakeBatchGrower');
-                    if (sel) {
-                        var html = '<option value="">Select (optional)</option>';
-                        if (contacts && contacts.length) {
-                            contacts.forEach(function (c) {
-                                var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
-                                html += '<option value="' + c.id + '">' + name + '</option>';
-                            });
-                        }
-                        sel.innerHTML = html;
-                        sel.removeEventListener('change', api._onDateOrGrowerChange);
-                        sel.addEventListener('change', api._onDateOrGrowerChange);
-                    }
-                }
-            } catch (e) {
-                console.error('Error loading contacts:', e);
-            }
+            api.populateSupplierDropdown();
 
             var modalEl = document.getElementById(CONTAINER_ID);
             if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();

@@ -1245,7 +1245,8 @@ var _dataFunctions = function () {
                     rate_food_kernel: contactData.rate_food_kernel !== undefined ? contactData.rate_food_kernel : (contactData.p_rate_food_kernel !== undefined ? contactData.p_rate_food_kernel : null),
                     rate_kernel_dust: contactData.rate_kernel_dust !== undefined ? contactData.rate_kernel_dust : (contactData.p_rate_kernel_dust !== undefined ? contactData.p_rate_kernel_dust : null),
                     rate_cracker_dust: contactData.rate_cracker_dust !== undefined ? contactData.rate_cracker_dust : (contactData.p_rate_cracker_dust !== undefined ? contactData.p_rate_cracker_dust : null),
-                    rate_crush: contactData.rate_crush !== undefined ? contactData.rate_crush : (contactData.p_rate_crush !== undefined ? contactData.p_rate_crush : null)
+                    rate_crush: contactData.rate_crush !== undefined ? contactData.rate_crush : (contactData.p_rate_crush !== undefined ? contactData.p_rate_crush : null),
+                    supplier_number: contactData.supplier_number !== undefined ? contactData.supplier_number : (contactData.p_supplier_number !== undefined ? contactData.p_supplier_number : null)
                 };
                 
                 console.log('[Data Functions] Using importTableRows workaround with row:', contactRow);

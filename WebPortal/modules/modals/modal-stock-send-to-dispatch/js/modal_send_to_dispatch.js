@@ -52,6 +52,11 @@ var _modal_stock_send_to_dispatch = (function () {
                     buyerInput.classList.remove('is-invalid');
                 }
             });
+            // Create new buyer
+            $(document).off('click.dispatchModal', '#dispatchAddBuyerBtn').on('click.dispatchModal', '#dispatchAddBuyerBtn', function (e) {
+                e.preventDefault();
+                api.showAddBuyerForm();
+            });
             // Clear invalid highlights on input
             $(document).off('input.dispatchModalValid', '#sendToDispatchModal .is-invalid').on('input.dispatchModalValid', '#sendToDispatchModal .is-invalid', function () {
                 $(this).removeClass('is-invalid');
@@ -259,6 +264,104 @@ var _modal_stock_send_to_dispatch = (function () {
             if (basketTotal) basketTotal.textContent = 'Total: ' + totalKg.toFixed(1) + ' kg';
         },
 
+        populateBuyerDropdown: function () {
+            var buyerSelect = document.getElementById('dispatchBuyerContact');
+            if (!buyerSelect) return;
+            buyerSelect.innerHTML = '<option value="">— Select buyer —</option>';
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getContacts) return;
+            dataFunctions.getContacts(null, true).then(function (raw) {
+                var contacts = Array.isArray(raw) ? raw : (raw && raw.get_contacts ? raw.get_contacts : (raw && raw.data ? raw.data : []));
+                if (!Array.isArray(contacts)) return;
+                var kernelCustomers = contacts.filter(function (c) { return c.contact_type === 'kernel_customer'; });
+                kernelCustomers.forEach(function (c) {
+                    var name = c.company_name || c.trading_name || c.primary_contact_name || c.id;
+                    if (!name) return;
+                    var opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = name;
+                    opt.setAttribute('data-buyer-name', name);
+                    buyerSelect.appendChild(opt);
+                });
+            }).catch(function () {});
+        },
+
+        showAddBuyerForm: function () {
+            var apiRef = api;
+            if (typeof Swal === 'undefined') {
+                var name = window.prompt('New buyer company name:');
+                if (name && name.trim()) apiRef.doCreateBuyer({ company_name: name.trim() });
+                return;
+            }
+            Swal.fire({
+                title: 'Create new buyer',
+                html:
+                    '<label class="form-label text-start d-block">Company name <span class="text-danger">*</span></label>' +
+                    '<input type="text" id="dispatchNewBuyerName" class="form-control mb-2" placeholder="e.g. Cape Roasters (Pty) Ltd" required>' +
+                    '<label class="form-label text-start d-block">Province</label>' +
+                    '<input type="text" id="dispatchNewBuyerProvince" class="form-control mb-2" placeholder="e.g. Western Cape">' +
+                    '<label class="form-label text-start d-block">Area / City</label>' +
+                    '<input type="text" id="dispatchNewBuyerArea" class="form-control mb-2" placeholder="e.g. Brackenfell">' +
+                    '<label class="form-label text-start d-block">Contact name</label>' +
+                    '<input type="text" id="dispatchNewBuyerContact" class="form-control mb-2" placeholder="Contact person">' +
+                    '<label class="form-label text-start d-block">Notes</label>' +
+                    '<input type="text" id="dispatchNewBuyerNotes" class="form-control" placeholder="e.g. Style SP">',
+                showCancelButton: true,
+                confirmButtonText: 'Add buyer',
+                focusConfirm: false,
+                preConfirm: function () {
+                    var nameEl = document.getElementById('dispatchNewBuyerName');
+                    var name = nameEl && nameEl.value ? nameEl.value.trim() : '';
+                    if (!name) {
+                        Swal.showValidationMessage('Company name is required');
+                        return false;
+                    }
+                    return {
+                        company_name: name,
+                        physical_province: (document.getElementById('dispatchNewBuyerProvince') && document.getElementById('dispatchNewBuyerProvince').value) ? document.getElementById('dispatchNewBuyerProvince').value.trim() : null,
+                        physical_city: (document.getElementById('dispatchNewBuyerArea') && document.getElementById('dispatchNewBuyerArea').value) ? document.getElementById('dispatchNewBuyerArea').value.trim() : null,
+                        primary_contact_name: (document.getElementById('dispatchNewBuyerContact') && document.getElementById('dispatchNewBuyerContact').value) ? document.getElementById('dispatchNewBuyerContact').value.trim() : null,
+                        notes: (document.getElementById('dispatchNewBuyerNotes') && document.getElementById('dispatchNewBuyerNotes').value) ? document.getElementById('dispatchNewBuyerNotes').value.trim() : null
+                    };
+                }
+            }).then(function (result) {
+                if (result && result.isConfirmed && result.value) apiRef.doCreateBuyer(result.value);
+            });
+        },
+
+        doCreateBuyer: function (data) {
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.createContact) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Create contact not available.', 'error');
+                return;
+            }
+            var payload = {
+                contact_type: 'kernel_customer',
+                company_name: data.company_name,
+                physical_province: data.physical_province || null,
+                physical_city: data.physical_city || null,
+                primary_contact_name: data.primary_contact_name || null,
+                notes: data.notes || null,
+                status: 'active'
+            };
+            dataFunctions.createContact(payload).then(function (res) {
+                var id = (res && res.id) || (res && res.data && res.data.id);
+                if (id) {
+                    api.populateBuyerDropdown();
+                    var buyerSelect = document.getElementById('dispatchBuyerContact');
+                    var buyerInput = document.getElementById('dispatchBuyer');
+                    if (buyerSelect) buyerSelect.value = id;
+                    if (buyerInput) {
+                        buyerInput.value = data.company_name;
+                        buyerInput.classList.remove('is-invalid');
+                    }
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Buyer added', timer: 1500, showConfirmButton: false });
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (res && res.error) || 'Failed to add buyer', 'error');
+                }
+            }).catch(function (e) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to add buyer', 'error');
+            });
+        },
+
         show: function () {
             _dispatchLines = [];
             _pendingDetails = null;
@@ -273,24 +376,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 deliveryInput.value = '';
                 deliveryInput.classList.remove('is-invalid');
             }
-            if (buyerSelect) {
-                buyerSelect.innerHTML = '<option value="">— Select contact —</option>';
-                if (typeof dataFunctions !== 'undefined' && dataFunctions.getContacts) {
-                    dataFunctions.getContacts(null, true).then(function (contacts) {
-                        if (Array.isArray(contacts)) {
-                            contacts.forEach(function (c) {
-                                var name = c.company_name || c.trading_name || c.primary_contact_name || c.id;
-                                if (!name) return;
-                                var opt = document.createElement('option');
-                                opt.value = c.id;
-                                opt.textContent = name;
-                                opt.setAttribute('data-buyer-name', name);
-                                buyerSelect.appendChild(opt);
-                            });
-                        }
-                    }).catch(function () {});
-                }
-            }
+            api.populateBuyerDropdown();
             var modalEl = document.getElementById('sendToDispatchModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 bootstrap.Modal.getOrCreateInstance(modalEl).show();

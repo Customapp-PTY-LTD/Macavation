@@ -68,6 +68,8 @@ var _modal_oil_production_sheet = (function () {
             if (form) form.reset();
             $('#oilBatchId').val('');
             $('#productName').val('Food grade oil');
+            var today = new Date().toISOString().split('T')[0];
+            $('#productionDate').val(today);
             $('#rawMaterialTableBody tr:not(:first)').remove();
             $('#rawMaterialTableBody tr:first input').val('');
             scope.calculateRawMaterialTotals();

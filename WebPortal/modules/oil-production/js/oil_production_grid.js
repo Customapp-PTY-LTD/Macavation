@@ -156,10 +156,9 @@ var _oilProductionGrid = function () {
             $('#opProdSheetUploadSection').hide();
             $('#opProdSheetFileInput').val('');
             $('#opProdSheetUploadStatus').text('');
-            var dateEl = document.getElementById('opDutyDate');
             var personEl = document.getElementById('opPersonOnDuty');
             var firstDate = document.querySelector('#opProdSheetFormBody [name="op_ps_date"]');
-            if (firstDate) firstDate.value = dateEl && dateEl.value ? dateEl.value : fromISO(new Date().toISOString().split('T')[0]);
+            if (firstDate) firstDate.value = fromISO(new Date().toISOString().split('T')[0]);
             var firstSupervisor = document.querySelector('#opProdSheetFormBody [name="op_ps_shift_supervisor"]');
             if (firstSupervisor && personEl && personEl.value) firstSupervisor.value = personEl.value;
             var modalEl = document.getElementById('opProductionSheetModal');
@@ -175,10 +174,12 @@ var _oilProductionGrid = function () {
             var body = document.getElementById('opProdSheetFormBody');
             if (!body) return;
             var html = '';
-            function fieldRow(label, name, type, labelClass) {
+            function fieldRow(label, name, type, labelClass, inputClass) {
                 type = type || 'text';
                 labelClass = labelClass || '';
+                inputClass = inputClass || '';
                 var cls = type === 'number' ? 'form-control op-ps-num' : 'form-control';
+                if (inputClass) cls = cls + ' ' + inputClass;
                 var inp = '<input type="' + (type === 'number' ? 'number' : 'text') + '" class="' + cls + '" name="' + name + '" step="' + (type === 'number' ? '0.01' : '') + '">';
                 return '<div class="op-ps-field-row"><span class="op-ps-label ' + labelClass + '">' + escapeHtml(label) + '</span>' + inp + '</div>';
             }
@@ -188,8 +189,8 @@ var _oilProductionGrid = function () {
             if (sheetType === 'food_grade_oil') {
                 html += '<div class="op-ps-paper">';
                 html += '<div class="op-ps-doc-title">Macadamia Food Grade Production sheet</div>';
-                html += section('Shift and supervisory details',
-                    fieldRow('Date', 'op_ps_date') + fieldRow('Shift', 'op_ps_shift') + fieldRow('Shift supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature'));
+                html +=                 section('Shift and supervisory details',
+                    fieldRow('Date', 'op_ps_date', 'text', '', 'flatpickr-date') + fieldRow('Shift', 'op_ps_shift') + fieldRow('Shift supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature'));
                 html += section('Product and batch information',
                     fieldRow('Batch Number of Product Produced', 'op_ps_batch_product', 'text', 'wide') +
                     fieldRow('Name of product produced', 'op_ps_name_product', 'text', 'wide') +
@@ -206,8 +207,8 @@ var _oilProductionGrid = function () {
             } else if (sheetType === 'protein_powder') {
                 html += '<div class="op-ps-paper">';
                 html += '<div class="op-ps-doc-title">Macadamia Food Grade Production sheet for Protein Powder</div>';
-                html += section('Shift and supervisory details',
-                    fieldRow('Date', 'op_ps_date') + fieldRow('Shift', 'op_ps_shift') + fieldRow('Press', 'op_ps_press') + fieldRow('Shift supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature'));
+                html +=                 section('Shift and supervisory details',
+                    fieldRow('Date', 'op_ps_date', 'text', '', 'flatpickr-date') + fieldRow('Shift', 'op_ps_shift') + fieldRow('Press', 'op_ps_press') + fieldRow('Shift supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature'));
                 html += section('Product and batch information',
                     fieldRow('Batch Number of Product Produced', 'op_ps_batch_product', 'text', 'wide') +
                     fieldRow('Batch number and Name of Oil produced', 'op_ps_batch_name_oil', 'text', 'wide') +
@@ -223,8 +224,8 @@ var _oilProductionGrid = function () {
             } else if (sheetType === 'cosmetic_oil') {
                 html += '<div class="op-ps-paper">';
                 html += '<div class="op-ps-doc-title">Macadamia Cosmetic Oil Production Sheet</div>';
-                html += section('Shift and supervisory details',
-                    fieldRow('Date', 'op_ps_date') + fieldRow('Shift', 'op_ps_shift') + fieldRow('Shift Supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature') + fieldRow('Start Oil BN', 'op_ps_start_oil_bn'));
+                html +=                 section('Shift and supervisory details',
+                    fieldRow('Date', 'op_ps_date', 'text', '', 'flatpickr-date') + fieldRow('Shift', 'op_ps_shift') + fieldRow('Shift Supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature') + fieldRow('Start Oil BN', 'op_ps_start_oil_bn'));
                 html += section('Production log (time, quantities kg)',
                     '<div class="op-ps-table-wrap"><table class="table table-sm op-ps-table"><thead><tr><th>No.</th><th>Time</th><th>Crude kernel</th><th>Kernel dust</th><th>Crush</th><th>Cracker dust</th><th>Cake</th><th>Raw Material Traceability – Description</th><th>Batch #</th></tr></thead><tbody id="opProdSheetTableCosmetic"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="cosmetic_oil">Add row</button>');
                 html += section('Totals and oil',
