@@ -25,15 +25,14 @@ var _menuFilter = function () {
         },
 
         /**
-         * Get accessible routes. Uses Session featureKeys when available (array, including empty);
-         * otherwise falls back to role-menu-config.
+         * Get accessible routes. Uses Session featureKeys when non-empty; otherwise falls back to role-menu-config.
          */
         _getAccessibleRoutes: function () {
             var keys = Session.get('featureKeys');
-            if (Array.isArray(keys)) {
+            if (Array.isArray(keys) && keys.length > 0) {
                 return keys;
             }
-            if (typeof roleMenuConfig !== 'undefined') {
+            if (typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getAccessibleMenus) {
                 return roleMenuConfig.getAccessibleMenus();
             }
             return [];
@@ -41,16 +40,26 @@ var _menuFilter = function () {
 
         /**
          * Filter menus: only show items whose feature key is in Session featureKeys (from Role Features).
-         * No fallback to "admin sees all" — Role Features is the single source of truth.
+         * When featureKeys is empty (API failed or role has no features in DB), fall back to role-menu-config
+         * so users still see menus for their role (e.g. super_user on demo when API/CORS fails).
          */
         filterMenus: function () {
             var keys = Session.get('featureKeys');
-            var accessibleMenus = Array.isArray(keys) ? keys : [];
-            var usingFeatureKeys = Array.isArray(keys);
+            var accessibleMenus;
+            var usingFeatureKeys = Array.isArray(keys) && keys.length > 0;
+            if (usingFeatureKeys) {
+                accessibleMenus = keys;
+            } else {
+                // No feature keys from API: use hardcoded role config so menu still shows (e.g. demo CORS/API failure)
+                if (typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getAccessibleMenus) {
+                    accessibleMenus = roleMenuConfig.getAccessibleMenus();
+                } else {
+                    accessibleMenus = [];
+                }
+            }
 
             console.log('[Menu Filter] Accessible menus:', accessibleMenus.length, 'from featureKeys:', usingFeatureKeys);
 
-            // Always use featureKeys when it's an array (including empty). Never show all for admin.
             this.hideAllMenus();
             var self = this;
             accessibleMenus.forEach(function (route) {
