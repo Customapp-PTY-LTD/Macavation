@@ -28,7 +28,7 @@
         "dashboard": {
             "description": "Dashboard",
             "path": "dashboard",
-            "html": "html/dashboard.html",
+            "html": "html/dashboard_unified.html",
             "js": [
                 "js/dashboard.js",
                 "js/amanda_dashboard.js",

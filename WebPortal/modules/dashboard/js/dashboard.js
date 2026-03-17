@@ -9,6 +9,14 @@ var _dashboard = function () {
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+    /** Update exceptions card header: green when no exceptions, red when there are */
+    const updateExceptionsHeaderState = (hasExceptions) => {
+        const $header = $('#exceptionsContainer').closest('.card').find('.card-header.dashboard-exceptions-header');
+        if ($header.length) {
+            $header.toggleClass('dashboard-exceptions-header--clear', !hasExceptions);
+        }
+    };
+
     /** Role name (normalized lowercase) -> data-access section key */
     const roleToDashboardSection = {
         'super admin': 'executive',
@@ -182,13 +190,15 @@ var _dashboard = function () {
                 if (typeof anomalyDetection === 'undefined' || !anomalyDetection.getActiveAnomalies) {
                     console.error('anomalyDetection.getActiveAnomalies is not available');
                     $container.html('<div class="alert alert-info">Exception detection not available.</div>');
+                    updateExceptionsHeaderState(false);
                     return;
                 }
                 const exceptions = await anomalyDetection.getActiveAnomalies();
+                const hasExceptions = exceptions && exceptions.length > 0;
                 if (typeof exceptionUI !== 'undefined' && exceptionUI.renderExceptionPanel) {
                     exceptionUI.renderExceptionPanel(exceptions, 'exceptionsContainer');
                 } else {
-                    if (exceptions && exceptions.length > 0) {
+                    if (hasExceptions) {
                         $container.html(exceptions.map(e => `
                             <div class="alert alert-${e.severity === 'critical' ? 'danger' : e.severity === 'warning' ? 'warning' : 'info'}">
                                 <strong>${e.title}:</strong> ${e.description}
@@ -198,9 +208,11 @@ var _dashboard = function () {
                         $container.html('<div class="alert alert-success">No exceptions at this time. All systems operating normally.</div>');
                     }
                 }
+                updateExceptionsHeaderState(hasExceptions);
             } catch (error) {
                 console.error('Error loading exceptions:', error);
                 $container.html('<div class="alert alert-warning">Unable to load exceptions. Please try again later.</div>');
+                updateExceptionsHeaderState(true);
             }
         },
 
@@ -215,34 +227,35 @@ var _dashboard = function () {
                 const kpis = await dataFunctions.getExecutiveKPIs().catch(() => ({}));
                 const batches = await dataFunctions.getProductionBatches().catch(() => []);
                 const stockItems = await dataFunctions.getStockItems().catch(() => []);
-        
-        // Calculate metrics with context - make them clickable
-        const metrics = [
-            {
-                title: 'Quality Pass Rate',
-                value: kpis.quality_pass_rate || 0,
-                unit: '%',
-                target: 95,
-                current: kpis.quality_pass_rate || 0,
-                trend: -2, // Example trend
-                trendPeriod: 'vs. last month',
-                icon: 'bi-check-circle',
-                color: kpis.quality_pass_rate >= 95 ? 'success' : kpis.quality_pass_rate >= 80 ? 'warning' : 'danger',
-                actionUrl: 'quality-assurance-grid' // Click to view quality tests
-            },
-            {
-                title: 'Total Production',
-                value: kpis.total_production_kg || 0,
-                unit: 'kg',
-                target: 50000,
-                current: kpis.total_production_kg || 0,
-                trend: 10,
-                trendPeriod: 'vs. last month',
-                icon: 'bi-graph-up',
-                color: 'info',
-                actionUrl: 'kernel-production-grid' // Click to view production batches
-            }
-        ];
+                const qualityRate = kpis.quality_pass_rate != null ? Number(kpis.quality_pass_rate) : 0;
+                const totalKg = kpis.total_production_kg != null ? Number(kpis.total_production_kg) : 0;
+                // No fake trend when data is zero; pass trend: null so "vs. last month" is not shown
+                const metrics = [
+                    {
+                        title: 'Quality Pass Rate',
+                        value: qualityRate,
+                        unit: '%',
+                        target: 95,
+                        current: qualityRate,
+                        trend: null,
+                        trendPeriod: 'vs. last month',
+                        icon: 'bi-check-circle',
+                        color: qualityRate >= 95 ? 'success' : qualityRate >= 80 ? 'warning' : 'danger',
+                        actionUrl: 'quality-assurance-grid'
+                    },
+                    {
+                        title: 'Total Production',
+                        value: totalKg,
+                        unit: 'kg',
+                        target: 50000,
+                        current: totalKg,
+                        trend: null,
+                        trendPeriod: 'vs. last month',
+                        icon: 'bi-graph-up',
+                        color: 'info',
+                        actionUrl: 'kernel-production-grid'
+                    }
+                ];
         
         if (typeof metricUI !== 'undefined' && metricUI.renderMetricPanel) {
             metricUI.renderMetricPanel(metrics, 'metricsContainer');

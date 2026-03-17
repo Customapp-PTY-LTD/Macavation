@@ -4,7 +4,7 @@
     padding: 0;
 }
 
-/* Exceptions card header: flat danger, theme radius */
+/* Exceptions card header: danger when there are exceptions, success when clear */
 .dashboard-container .card-header.dashboard-exceptions-header {
     background-color: var(--phoenix-danger);
     color: white;
@@ -12,6 +12,10 @@
     border-radius: var(--phoenix-border-radius);
     font-weight: 600;
     padding: 1rem 1.25rem;
+}
+.dashboard-container .card-header.dashboard-exceptions-header.dashboard-exceptions-header--clear {
+    background-color: var(--phoenix-success, #198754);
+    color: white;
 }
 
 /* Stats Cards */
