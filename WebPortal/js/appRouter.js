@@ -149,7 +149,20 @@ var _appRouter = function () {
                 // Role-based menu access check
                 // Skip check if role hasn't loaded yet (menu-filter will handle visibility once role arrives)
                 if (typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getUserRole()) {
-                    const hasAccess = roleMenuConfig.hasAccess(routeName);
+                    let hasAccess = roleMenuConfig.hasAccess(routeName);
+                    // If hasAccess says no, allow when: (1) sidebar link is visible, or (2) route is in getAccessibleMenus()
+                    // (avoids Access Denied when menu and access check get out of sync, e.g. cache or timing)
+                    if (!hasAccess) {
+                        const navItem = document.querySelector('#sidebarMenu .nav-item[data-route="' + routeName + '"]');
+                        const link = document.querySelector('#sidebarMenu a[route="' + routeName + '"]');
+                        const item = navItem || (link ? link.closest('.nav-item') : null);
+                        if (item && !item.classList.contains('d-none')) {
+                            hasAccess = true;
+                        }
+                        if (!hasAccess && roleMenuConfig.getAccessibleMenus && roleMenuConfig.getAccessibleMenus().indexOf(routeName) !== -1) {
+                            hasAccess = true;
+                        }
+                    }
                     if (!hasAccess) {
                         console.log(`[App Router] Access denied for route: ${routeName}`);
                         const contentArea = document.getElementById('content-area');
