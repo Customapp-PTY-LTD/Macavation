@@ -16,6 +16,10 @@ var _modal_grower_create_kernel_batch = (function () {
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
             var addSupplierBtn = document.getElementById('intakeAddSupplierBtn');
             if (addSupplierBtn) addSupplierBtn.addEventListener('click', function (e) { e.preventDefault(); api.showAddSupplierForm(); });
+            var newSupplierSubmit = document.getElementById('intakeNewSupplierSubmitBtn');
+            if (newSupplierSubmit) newSupplierSubmit.addEventListener('click', function (e) { e.preventDefault(); api.submitNewSupplierForm(); });
+            var newSupplierCancel = document.getElementById('intakeNewSupplierCancelBtn');
+            if (newSupplierCancel) newSupplierCancel.addEventListener('click', function (e) { e.preventDefault(); api.hideAddSupplierForm(); });
             var dateEl = document.getElementById('intakeBatchReceivedDate');
             if (dateEl) {
                 dateEl.removeEventListener('change', api._onDateOrGrowerChange);
@@ -48,60 +52,51 @@ var _modal_grower_create_kernel_batch = (function () {
         },
 
         showAddSupplierForm: function () {
-            var apiRef = api;
-            if (typeof Swal === 'undefined') {
-                var name = window.prompt('Supplier company name:');
-                var codeStr = window.prompt('Supplier code (number for batch naming, e.g. 1-99):');
-                if (name && name.trim() && codeStr != null && codeStr.trim() !== '') {
-                    var code = parseInt(codeStr.trim(), 10);
-                    if (!isNaN(code) && code >= 0) apiRef.doCreateSupplier({ company_name: name.trim(), supplier_number: code });
-                }
+            var formEl = document.getElementById('intakeNewSupplierForm');
+            var nameEl = document.getElementById('intakeNewSupplierName');
+            var errEl = document.getElementById('intakeNewSupplierError');
+            ['intakeNewSupplierName', 'intakeNewSupplierCode', 'intakeNewSupplierProvince', 'intakeNewSupplierArea', 'intakeNewSupplierContact', 'intakeNewSupplierNotes'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            if (formEl) formEl.style.display = '';
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+            if (nameEl) setTimeout(function () { nameEl.focus(); }, 50);
+        },
+
+        hideAddSupplierForm: function () {
+            var formEl = document.getElementById('intakeNewSupplierForm');
+            var errEl = document.getElementById('intakeNewSupplierError');
+            if (formEl) formEl.style.display = 'none';
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+        },
+
+        submitNewSupplierForm: function () {
+            var nameEl = document.getElementById('intakeNewSupplierName');
+            var codeEl = document.getElementById('intakeNewSupplierCode');
+            var errEl = document.getElementById('intakeNewSupplierError');
+            var companyName = nameEl && nameEl.value ? nameEl.value.trim() : '';
+            var codeVal = codeEl && codeEl.value !== '' ? parseInt(codeEl.value, 10) : NaN;
+            if (!companyName) {
+                if (errEl) { errEl.textContent = 'Company name is required.'; errEl.style.display = 'block'; }
+                if (nameEl) nameEl.focus();
                 return;
             }
-            Swal.fire({
-                title: 'Add new supplier',
-                html:
-                    '<label class="form-label text-start d-block">Company name <span class="text-danger">*</span></label>' +
-                    '<input type="text" id="intakeNewSupplierName" class="form-control mb-2" placeholder="e.g. Farm Name (Pty) Ltd" required>' +
-                    '<label class="form-label text-start d-block">Supplier code <span class="text-danger">*</span></label>' +
-                    '<input type="number" id="intakeNewSupplierCode" class="form-control mb-2" min="0" max="99" placeholder="e.g. 1 (used in batch number: Bn 01 26 01)" required>' +
-                    '<small class="text-muted d-block mb-2">This number appears in the batch name (Bn [code] [year] [seq]). Use a unique number per supplier.</small>' +
-                    '<label class="form-label text-start d-block">Province</label>' +
-                    '<input type="text" id="intakeNewSupplierProvince" class="form-control mb-2" placeholder="e.g. Limpopo">' +
-                    '<label class="form-label text-start d-block">Area / City</label>' +
-                    '<input type="text" id="intakeNewSupplierArea" class="form-control mb-2" placeholder="e.g. Tzaneen">' +
-                    '<label class="form-label text-start d-block">Contact name</label>' +
-                    '<input type="text" id="intakeNewSupplierContact" class="form-control mb-2" placeholder="Contact person">' +
-                    '<label class="form-label text-start d-block">Notes</label>' +
-                    '<input type="text" id="intakeNewSupplierNotes" class="form-control" placeholder="Optional">',
-                showCancelButton: true,
-                confirmButtonText: 'Add supplier',
-                focusConfirm: false,
-                preConfirm: function () {
-                    var nameEl = document.getElementById('intakeNewSupplierName');
-                    var codeEl = document.getElementById('intakeNewSupplierCode');
-                    var name = nameEl && nameEl.value ? nameEl.value.trim() : '';
-                    var codeVal = codeEl && codeEl.value !== '' ? parseInt(codeEl.value, 10) : NaN;
-                    if (!name) {
-                        Swal.showValidationMessage('Company name is required');
-                        return false;
-                    }
-                    if (isNaN(codeVal) || codeVal < 0) {
-                        Swal.showValidationMessage('Supplier code must be a number (0–99) used for batch naming');
-                        return false;
-                    }
-                    return {
-                        company_name: name,
-                        supplier_number: codeVal,
-                        physical_province: (document.getElementById('intakeNewSupplierProvince') && document.getElementById('intakeNewSupplierProvince').value) ? document.getElementById('intakeNewSupplierProvince').value.trim() : null,
-                        physical_city: (document.getElementById('intakeNewSupplierArea') && document.getElementById('intakeNewSupplierArea').value) ? document.getElementById('intakeNewSupplierArea').value.trim() : null,
-                        primary_contact_name: (document.getElementById('intakeNewSupplierContact') && document.getElementById('intakeNewSupplierContact').value) ? document.getElementById('intakeNewSupplierContact').value.trim() : null,
-                        notes: (document.getElementById('intakeNewSupplierNotes') && document.getElementById('intakeNewSupplierNotes').value) ? document.getElementById('intakeNewSupplierNotes').value.trim() : null
-                    };
-                }
-            }).then(function (result) {
-                if (result && result.isConfirmed && result.value) apiRef.doCreateSupplier(result.value);
-            });
+            if (isNaN(codeVal) || codeVal < 0) {
+                if (errEl) { errEl.textContent = 'Supplier code must be a number (0–99) used for batch naming.'; errEl.style.display = 'block'; }
+                if (codeEl) codeEl.focus();
+                return;
+            }
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+            var data = {
+                company_name: companyName,
+                supplier_number: codeVal,
+                physical_province: (document.getElementById('intakeNewSupplierProvince') && document.getElementById('intakeNewSupplierProvince').value) ? document.getElementById('intakeNewSupplierProvince').value.trim() : null,
+                physical_city: (document.getElementById('intakeNewSupplierArea') && document.getElementById('intakeNewSupplierArea').value) ? document.getElementById('intakeNewSupplierArea').value.trim() : null,
+                primary_contact_name: (document.getElementById('intakeNewSupplierContact') && document.getElementById('intakeNewSupplierContact').value) ? document.getElementById('intakeNewSupplierContact').value.trim() : null,
+                notes: (document.getElementById('intakeNewSupplierNotes') && document.getElementById('intakeNewSupplierNotes').value) ? document.getElementById('intakeNewSupplierNotes').value.trim() : null
+            };
+            api.doCreateSupplier(data);
         },
 
         doCreateSupplier: function (data) {
@@ -122,6 +117,7 @@ var _modal_grower_create_kernel_batch = (function () {
             dataFunctions.createContact(payload).then(function (res) {
                 var id = (res && res.id) || (res && res.data && res.data.id);
                 if (id) {
+                    api.hideAddSupplierForm();
                     api.populateSupplierDropdown();
                     var sel = document.getElementById('intakeBatchGrower');
                     if (sel) sel.value = id;
