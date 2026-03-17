@@ -397,8 +397,22 @@ var _roleMenuConfig = function () {
         },
 
         /**
+         * Get role config by name (case-insensitive match so DB "Quality assurance" matches "Quality Assurance").
+         */
+        _getRoleConfig: function (roleName) {
+            if (!roleName) return null;
+            var exact = this.menuConfig[roleName];
+            if (exact) return exact;
+            var lower = (typeof roleName === 'string' ? roleName : '').toLowerCase();
+            for (var key in this.menuConfig) {
+                if (key.toLowerCase() === lower) return this.menuConfig[key];
+            }
+            return null;
+        },
+
+        /**
          * Check if user has access to a specific route.
-         * Prefers DB-cached features, falls back to hardcoded config.
+         * Uses DB featureKeys when present; also allows access if fallback role config includes the route.
          */
         hasAccess: function (route) {
             if (!Session.get('user')) return false;
@@ -406,28 +420,26 @@ var _roleMenuConfig = function () {
             // Admin bypass
             if (this.isAdminUser()) return true;
 
-            // 1. DB-cached features (preferred)
+            // 1. DB-cached features: allow if route is in keys
             var keys = Session.get('featureKeys');
-            if (Array.isArray(keys) && keys.length > 0) {
-                return keys.indexOf(route) !== -1;
-            }
+            if (Array.isArray(keys) && keys.indexOf(route) !== -1) return true;
 
-            // 2. Fallback to hardcoded config
+            // 2. If we have keys but route not in keys, still allow if fallback config includes it (avoids deny when DB is out of sync)
             var roleName = this.getUserRole();
-            if (!roleName) return false;
-
-            var roleConfig = this.menuConfig[roleName];
-            if (!roleConfig) return false;
-
-            if (roleConfig.access === 'all') return true;
-            if (roleConfig.access === 'specific') return roleConfig.menus.indexOf(route) !== -1;
+            if (roleName) {
+                var roleConfig = this._getRoleConfig(roleName);
+                if (roleConfig) {
+                    if (roleConfig.access === 'all') return true;
+                    if (roleConfig.access === 'specific' && roleConfig.menus && roleConfig.menus.indexOf(route) !== -1) return true;
+                }
+            }
 
             return false;
         },
 
         /**
          * Get accessible menus for current user.
-         * Prefers DB-cached features, falls back to hardcoded config.
+         * Prefers DB-cached features, falls back to hardcoded config (case-insensitive role match).
          */
         getAccessibleMenus: function () {
             if (!Session.get('user')) return [];
@@ -443,7 +455,7 @@ var _roleMenuConfig = function () {
             var roleName = this.getUserRole();
             if (!roleName) return [];
 
-            var roleConfig = this.menuConfig[roleName];
+            var roleConfig = this._getRoleConfig(roleName);
             if (!roleConfig) return [];
 
             if (roleConfig.access === 'all') return Object.keys(this.menuStructure);
@@ -469,7 +481,7 @@ var _roleMenuConfig = function () {
             const roleName = this.getUserRole();
             if (!roleName) return false;
 
-            var roleConfig = this.menuConfig[roleName];
+            var roleConfig = this._getRoleConfig(roleName);
             return roleConfig && roleConfig.access === 'all';
         },
 
