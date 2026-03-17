@@ -1577,6 +1577,11 @@ h1, h2, h3, h4, h5, h6,
     color: var(--mac-text);
 }
 
+/* Create new buyer (Send to Dispatch): show above Bootstrap modal and avoid focus/aria-hidden issues */
+.swal-dispatch-buyer.swal2-container {
+    z-index: 1070 !important;
+}
+
 /* View toggle dark override */
 [data-theme-mode="dark"] .view-toggle {
     border-color: var(--mac-border);

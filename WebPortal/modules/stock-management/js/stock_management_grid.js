@@ -93,6 +93,13 @@ var _stockManagementGrid = function () {
                 });
             }
             Promise.all(loadPromises).then(function () {
+                // Move dispatch modals to body so they are outside container-fluid and not affected by aria-hidden
+                ['sendToDispatchModal', 'sendToDispatchOilModal'].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el && el.parentNode && el.parentNode !== document.body) {
+                        document.body.appendChild(el);
+                    }
+                });
                 if (typeof _modal_stock_stock_take !== 'undefined' && _modal_stock_stock_take.init) _modal_stock_stock_take.init();
                 if (typeof _modal_stock_raw_material_issued !== 'undefined' && _modal_stock_raw_material_issued.init) _modal_stock_raw_material_issued.init();
                 if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.init) _modal_stock_send_to_dispatch.init();

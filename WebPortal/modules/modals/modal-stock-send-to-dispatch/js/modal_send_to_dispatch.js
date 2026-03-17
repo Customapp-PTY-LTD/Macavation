@@ -52,10 +52,19 @@ var _modal_stock_send_to_dispatch = (function () {
                     buyerInput.classList.remove('is-invalid');
                 }
             });
-            // Create new buyer
+            // Create new buyer (inline form – no SweetAlert to avoid focus/aria-hidden issues)
             $(document).off('click.dispatchModal', '#dispatchAddBuyerBtn').on('click.dispatchModal', '#dispatchAddBuyerBtn', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
                 api.showAddBuyerForm();
+            });
+            $(document).off('click.dispatchModal', '#dispatchNewBuyerSubmitBtn').on('click.dispatchModal', '#dispatchNewBuyerSubmitBtn', function (e) {
+                e.preventDefault();
+                api.submitNewBuyerForm();
+            });
+            $(document).off('click.dispatchModal', '#dispatchNewBuyerCancelBtn').on('click.dispatchModal', '#dispatchNewBuyerCancelBtn', function (e) {
+                e.preventDefault();
+                api.hideAddBuyerForm();
             });
             // Clear invalid highlights on input
             $(document).off('input.dispatchModalValid', '#sendToDispatchModal .is-invalid').on('input.dispatchModalValid', '#sendToDispatchModal .is-invalid', function () {
@@ -286,46 +295,43 @@ var _modal_stock_send_to_dispatch = (function () {
         },
 
         showAddBuyerForm: function () {
-            var apiRef = api;
-            if (typeof Swal === 'undefined') {
-                var name = window.prompt('New buyer company name:');
-                if (name && name.trim()) apiRef.doCreateBuyer({ company_name: name.trim() });
+            var formEl = document.getElementById('dispatchNewBuyerForm');
+            var nameEl = document.getElementById('dispatchNewBuyerName');
+            var errEl = document.getElementById('dispatchNewBuyerError');
+            ['dispatchNewBuyerName', 'dispatchNewBuyerProvince', 'dispatchNewBuyerArea', 'dispatchNewBuyerContact', 'dispatchNewBuyerNotes'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            if (formEl) formEl.style.display = '';
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+            if (nameEl) setTimeout(function () { nameEl.focus(); }, 50);
+        },
+
+        hideAddBuyerForm: function () {
+            var formEl = document.getElementById('dispatchNewBuyerForm');
+            var errEl = document.getElementById('dispatchNewBuyerError');
+            if (formEl) formEl.style.display = 'none';
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+        },
+
+        submitNewBuyerForm: function () {
+            var nameEl = document.getElementById('dispatchNewBuyerName');
+            var errEl = document.getElementById('dispatchNewBuyerError');
+            var companyName = nameEl && nameEl.value ? nameEl.value.trim() : '';
+            if (!companyName) {
+                if (errEl) { errEl.textContent = 'Company name is required.'; errEl.style.display = 'block'; }
+                if (nameEl) nameEl.focus();
                 return;
             }
-            Swal.fire({
-                title: 'Create new buyer',
-                html:
-                    '<label class="form-label text-start d-block">Company name <span class="text-danger">*</span></label>' +
-                    '<input type="text" id="dispatchNewBuyerName" class="form-control mb-2" placeholder="e.g. Cape Roasters (Pty) Ltd" required>' +
-                    '<label class="form-label text-start d-block">Province</label>' +
-                    '<input type="text" id="dispatchNewBuyerProvince" class="form-control mb-2" placeholder="e.g. Western Cape">' +
-                    '<label class="form-label text-start d-block">Area / City</label>' +
-                    '<input type="text" id="dispatchNewBuyerArea" class="form-control mb-2" placeholder="e.g. Brackenfell">' +
-                    '<label class="form-label text-start d-block">Contact name</label>' +
-                    '<input type="text" id="dispatchNewBuyerContact" class="form-control mb-2" placeholder="Contact person">' +
-                    '<label class="form-label text-start d-block">Notes</label>' +
-                    '<input type="text" id="dispatchNewBuyerNotes" class="form-control" placeholder="e.g. Style SP">',
-                showCancelButton: true,
-                confirmButtonText: 'Add buyer',
-                focusConfirm: false,
-                preConfirm: function () {
-                    var nameEl = document.getElementById('dispatchNewBuyerName');
-                    var name = nameEl && nameEl.value ? nameEl.value.trim() : '';
-                    if (!name) {
-                        Swal.showValidationMessage('Company name is required');
-                        return false;
-                    }
-                    return {
-                        company_name: name,
-                        physical_province: (document.getElementById('dispatchNewBuyerProvince') && document.getElementById('dispatchNewBuyerProvince').value) ? document.getElementById('dispatchNewBuyerProvince').value.trim() : null,
-                        physical_city: (document.getElementById('dispatchNewBuyerArea') && document.getElementById('dispatchNewBuyerArea').value) ? document.getElementById('dispatchNewBuyerArea').value.trim() : null,
-                        primary_contact_name: (document.getElementById('dispatchNewBuyerContact') && document.getElementById('dispatchNewBuyerContact').value) ? document.getElementById('dispatchNewBuyerContact').value.trim() : null,
-                        notes: (document.getElementById('dispatchNewBuyerNotes') && document.getElementById('dispatchNewBuyerNotes').value) ? document.getElementById('dispatchNewBuyerNotes').value.trim() : null
-                    };
-                }
-            }).then(function (result) {
-                if (result && result.isConfirmed && result.value) apiRef.doCreateBuyer(result.value);
-            });
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+            var data = {
+                company_name: companyName,
+                physical_province: (document.getElementById('dispatchNewBuyerProvince') && document.getElementById('dispatchNewBuyerProvince').value) ? document.getElementById('dispatchNewBuyerProvince').value.trim() : null,
+                physical_city: (document.getElementById('dispatchNewBuyerArea') && document.getElementById('dispatchNewBuyerArea').value) ? document.getElementById('dispatchNewBuyerArea').value.trim() : null,
+                primary_contact_name: (document.getElementById('dispatchNewBuyerContact') && document.getElementById('dispatchNewBuyerContact').value) ? document.getElementById('dispatchNewBuyerContact').value.trim() : null,
+                notes: (document.getElementById('dispatchNewBuyerNotes') && document.getElementById('dispatchNewBuyerNotes').value) ? document.getElementById('dispatchNewBuyerNotes').value.trim() : null
+            };
+            api.doCreateBuyer(data);
         },
 
         doCreateBuyer: function (data) {
@@ -353,12 +359,17 @@ var _modal_stock_send_to_dispatch = (function () {
                         buyerInput.value = data.company_name;
                         buyerInput.classList.remove('is-invalid');
                     }
+                    api.hideAddBuyerForm();
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Buyer added', timer: 1500, showConfirmButton: false });
                 } else {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', (res && res.error) || 'Failed to add buyer', 'error');
                 }
             }).catch(function (e) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to add buyer', 'error');
+                var msg = e && e.message ? e.message : 'Failed to add buyer.';
+                if (e && (e.status === 404 || (typeof e.status === 'number' && e.status >= 400))) {
+                    msg = 'Could not create buyer. The server returned an error (' + (e.status || '') + '). Check that the backend proxy and create-contact (or contacts table) are configured.';
+                }
+                if (typeof Swal !== 'undefined') Swal.fire('Error', msg, 'error');
             });
         },
 
