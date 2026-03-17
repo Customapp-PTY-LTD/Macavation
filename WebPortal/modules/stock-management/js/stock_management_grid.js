@@ -176,6 +176,9 @@ var _stockManagementGrid = function () {
                         modal.show();
                     } else if (modalEl) modalEl.classList.add('show');
                 });
+                $('#refreshKernelStockBtn').off('click').on('click', function () {
+                    scope.loadKernelBatches(true);
+                });
                 $('#importHistoricalKernelRefreshBtn').off('click').on('click', function () {
                     scope.loadKernelBatches(true);
                     var modalEl = document.getElementById('importHistoricalKernelModal');

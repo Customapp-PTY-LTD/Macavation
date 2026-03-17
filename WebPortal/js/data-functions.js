@@ -413,10 +413,14 @@ var _dataFunctions = function () {
                         throw new Error(`Invalid JSON response from server: ${responseText.substring(0, 200)}`);
                     }
 
-                    // Cache successful responses
+                    // Cache successful responses (do not cache empty array for get_kernel_batches so we retry next load)
                     if (useCache && data && !data.error) {
-                        this.setCache(cacheKey, data, cacheTtl);
-                        console.log(`[Cache Set] ${functionName} (TTL: ${cacheTtl}ms)`);
+                        const isEmptyArray = Array.isArray(data) && data.length === 0;
+                        const isKernelBatchesEmpty = functionName === 'get_kernel_batches' && isEmptyArray;
+                        if (!isKernelBatchesEmpty) {
+                            this.setCache(cacheKey, data, cacheTtl);
+                            console.log(`[Cache Set] ${functionName} (TTL: ${cacheTtl}ms)`);
+                        }
                     }
 
                     return data;
@@ -480,15 +484,22 @@ var _dataFunctions = function () {
         // ===== USER MANAGEMENT FUNCTIONS =====
 
         /**
-         * Get all users (cached for 5 minutes)
+         * Get all users (cached for 5 minutes).
+         * Normalizes proxy response so callers always receive an array (with role_name from JOIN).
          */
         getUsers: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_users', {}, token, {
+            var raw = await this.callFunction('get_users', {}, token, {
                 cacheKey: 'users_list',
                 useCache: true,
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && Array.isArray(raw.get_users)) return raw.get_users;
+            if (raw && Array.isArray(raw.result)) return raw.result;
+            if (raw && Array.isArray(raw.body)) return raw.body;
+            return [];
         },
 
         /**
@@ -562,15 +573,22 @@ var _dataFunctions = function () {
         // ===== ROLE MANAGEMENT FUNCTIONS =====
 
         /**
-         * Get all roles (cached for 5 minutes)
+         * Get all roles (cached for 5 minutes).
+         * Normalizes proxy response so callers always receive an array.
          */
         getRoles: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_roles', {}, token, {
+            var raw = await this.callFunction('get_roles', {}, token, {
                 cacheKey: 'roles_list',
                 useCache: true,
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && Array.isArray(raw.get_roles)) return raw.get_roles;
+            if (raw && Array.isArray(raw.result)) return raw.result;
+            if (raw && Array.isArray(raw.body)) return raw.body;
+            return [];
         },
 
         /**
@@ -1387,6 +1405,12 @@ var _dataFunctions = function () {
             if (Array.isArray(raw)) return raw;
             if (raw && Array.isArray(raw.data)) return raw.data;
             if (raw && Array.isArray(raw.get_kernel_batches)) return raw.get_kernel_batches;
+            if (raw && Array.isArray(raw.result)) return raw.result;
+            if (raw && Array.isArray(raw.body)) return raw.body;
+            if (raw && (raw.error || raw.message)) {
+                console.warn('[getKernelBatches] API returned error:', raw.error || raw.message, raw);
+                throw new Error(raw.message || raw.error || 'Failed to load kernel batches');
+            }
             return [];
         },
 

@@ -105,8 +105,8 @@ var _usersGrid = function () {
                 const loadTime = performance.now() - startTime;
                 console.log('[Performance] Users loaded in ' + loadTime.toFixed(2) + 'ms');
 
-                scope.users = users;
-                scope.filteredUsers = users;
+                scope.users = Array.isArray(users) ? users : [];
+                scope.filteredUsers = scope.users;
                 scope.renderUsers();
                 await scope.loadRolesForDropdown();
                 scope.hideLoading();

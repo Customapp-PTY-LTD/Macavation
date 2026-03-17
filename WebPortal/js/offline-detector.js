@@ -109,10 +109,10 @@ var _offlineDetector = function () {
         checkConnectivity: async function () {
             try {
                 // Try to fetch a small resource to verify connectivity
-                const response = await fetch('/index.html', {
+                // Use path relative to current page so it works when app is under /WebPortal/
+                const response = await fetch('index.html', {
                     method: 'HEAD',
-                    cache: 'no-cache',
-                    timeout: 5000
+                    cache: 'no-cache'
                 });
 
                 if (response.ok && !this.isOnline) {

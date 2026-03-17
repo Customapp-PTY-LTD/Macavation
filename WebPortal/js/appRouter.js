@@ -520,6 +520,11 @@ var _appRouter = function () {
                     if (typeof _batchJourneyGrid !== 'undefined' && _batchJourneyGrid.init) {
                         _batchJourneyGrid.init();
                     }
+                },
+                'batch-history-modal': () => {
+                    if (typeof _modal_batch_history !== 'undefined' && _modal_batch_history.init) {
+                        _modal_batch_history.init();
+                    }
                 }
             };
 

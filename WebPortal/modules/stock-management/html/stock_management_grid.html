@@ -116,7 +116,12 @@
             <div id="ksByStylePanel">
             <p class="text-muted small mb-3">Batches released from Grower Intake go to Kernel Production; release to stock from there. Raw (NIS = R NIL) is legacy; finished (KERNEL R YES) are ready for dispatch.</p>
             <hr class="my-3">
-            <h6 class="text-secondary">Kernel Stock by style</h6>
+            <h6 class="text-secondary d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span>Kernel Stock by style</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshKernelStockBtn" title="Reload kernel stock data">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </h6>
             <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with available stock per style (from packing data). Click Send to Dispatch to choose a buyer, select items from the shopping cart, and submit a dispatch order.</p>
             <div class="table-responsive kernel-stock-table-wrapper">
                 <table class="table table-sm table-bordered" id="kernelStockByStyleTable">
