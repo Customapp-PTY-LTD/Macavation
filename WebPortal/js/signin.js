@@ -173,10 +173,19 @@ var _signin = function () {
                     Session.set('user', authResult.user);
                     Session.set('clientGuid', clientGUID);
                 }
+                // Enrich user with role_name before redirect so dashboard shows correct view (executive vs default) on first load
+                const userId = authResult.user && (authResult.user.id || authResult.user.user_id);
+                if (userId && !(authResult.user.role_name || authResult.user.role)) {
+                    const fullUser = await fetchFullUserData(authResult.token, userId);
+                    if (fullUser && (fullUser.role_name || fullUser.role)) {
+                        Session.set('user', { ...authResult.user, ...fullUser });
+                    }
+                }
 
                 scope.hideLoading();
 
-                const userRole = (authResult.user && (authResult.user.role_name || authResult.user.role)) || '';
+                const user = Session.get('user');
+                const userRole = (user && (user.role_name || user.role)) || '';
                 if (userRole.toLowerCase().indexOf('driver') >= 0) {
                     window.location.href = 'driver-inspection.html';
                 } else {
@@ -237,10 +246,19 @@ var _signin = function () {
                     Session.set('user', authResult.user);
                     Session.set('clientGuid', clientGUID);
                 }
+                // Enrich user with role_name before redirect so dashboard shows correct view on first load
+                const userId = authResult.user && (authResult.user.id || authResult.user.user_id);
+                if (userId && !(authResult.user.role_name || authResult.user.role)) {
+                    const fullUser = await fetchFullUserData(authResult.token, userId);
+                    if (fullUser && (fullUser.role_name || fullUser.role)) {
+                        Session.set('user', { ...authResult.user, ...fullUser });
+                    }
+                }
 
                 scope.hideLoading();
 
-                const userRole = (authResult.user && (authResult.user.role_name || authResult.user.role)) || '';
+                const user = Session.get('user');
+                const userRole = (user && (user.role_name || user.role)) || '';
                 if (userRole.toLowerCase().indexOf('driver') >= 0) {
                     window.location.href = 'driver-inspection.html';
                 } else {

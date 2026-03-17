@@ -23,6 +23,13 @@ var _dashboard = function () {
         'admin': 'executive',
         'executive': 'executive',
         'super_user': 'executive',
+        'general manager': 'executive',
+        'production manager': 'executive',
+        'qa supervisor': 'executive',
+        'oil plant manager': 'executive',
+        'office administrator': 'executive',
+        'pwa sales': 'executive',
+        'pwa finance': 'executive',
         'pallandium integrator': 'pallandium-integrator',
         'material journey': 'pallandium-integrator'
     };
@@ -40,28 +47,41 @@ var _dashboard = function () {
         data: null,
 
         /**
-         * Get current user role (role_name or role from auth/localStorage).
-         * @returns {string} Normalized role name or empty string
+         * Get current user role. Prefers roleMenuConfig (same source as menu access) then auth/Session.
+         * @returns {string} Normalized role name (lowercase) or empty string
          */
         getUserRole: () => {
-            if (typeof authService !== 'undefined' && authService.getUserRole) {
+            let role = '';
+            if (typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getUserRole) {
+                const r = roleMenuConfig.getUserRole();
+                role = (r != null && String(r).trim()) ? String(r).trim() : '';
+            }
+            if (!role && typeof authService !== 'undefined' && authService.getUserRole) {
                 const r = authService.getUserRole();
-                return (r && String(r).trim()) ? String(r).trim().toLowerCase() : '';
+                role = (r && String(r).trim()) ? String(r).trim() : '';
             }
-            try {
-                const user = Session.get('user');
-                if (!user) return '';
-                const role = user.role_name || user.role || '';
-                return (role && String(role).trim()) ? String(role).trim().toLowerCase() : '';
-            } catch (e) {
-                return '';
+            if (!role) {
+                try {
+                    const user = Session.get('user');
+                    if (user) role = (user.role_name || user.role || '').trim();
+                } catch (e) { /* ignore */ }
             }
+            return role ? String(role).toLowerCase() : '';
         },
 
         init: async () => {
             const scope = _dashboard;
             const role = scope.getUserRole();
-            const section = roleToDashboardSection[role] || 'default';
+            // Unified model: all roles with dashboard access see the executive (unified) dashboard unless they are Material Journey.
+            let section = roleToDashboardSection[role];
+            if (!section && role) {
+                // New roles not in the map get the unified (executive) dashboard
+                section = 'executive';
+            }
+            if (!section && typeof roleMenuConfig !== 'undefined' && roleMenuConfig.hasAccess && roleMenuConfig.hasAccess('executive-dashboard')) {
+                section = 'executive';
+            }
+            if (!section) section = 'default';
 
             // Show only the section for this role, hide all others (use d-none for consistency)
             document.querySelectorAll('[data-access]').forEach(function (el) {
@@ -85,6 +105,31 @@ var _dashboard = function () {
                     await _executiveDashboard.init();
                 }
                 return;
+            }
+
+            // Default dashboard – if user exists but role/featureKeys weren't ready yet (e.g. after login), re-check and switch to executive/amanda when they become available
+            const user = Session.get('user');
+            if (user && !role) {
+                const recheckSection = () => {
+                    const r = scope.getUserRole();
+                    let sec = roleToDashboardSection[r];
+                    if (!sec && r) sec = 'executive';
+                    if (!sec && typeof roleMenuConfig !== 'undefined' && roleMenuConfig.hasAccess && roleMenuConfig.hasAccess('executive-dashboard')) sec = 'executive';
+                    if (!sec) sec = 'default';
+                    if (sec === 'default') return;
+                    document.querySelectorAll('[data-access]').forEach(function (el) {
+                        var sectionAttr = el.getAttribute('data-access');
+                        el.classList.toggle('d-none', sectionAttr !== sec);
+                    });
+                    if (sec === 'executive' && typeof _executiveDashboard !== 'undefined' && _executiveDashboard.init) {
+                        _executiveDashboard.init();
+                    } else if (sec === 'pallandium-integrator' && typeof _amandaDashboard !== 'undefined' && _amandaDashboard.init) {
+                        _amandaDashboard.init();
+                    }
+                };
+                window.addEventListener('featureKeysUpdated', recheckSection, { once: true });
+                setTimeout(recheckSection, 800);
+                setTimeout(recheckSection, 2000);
             }
 
             // Default dashboard
