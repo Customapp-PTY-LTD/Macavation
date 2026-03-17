@@ -146,12 +146,13 @@ var _appRouter = function () {
                     return { success: false, errors: ['Authentication required'] };
                 }
 
-                // Role-based menu access check
-                // Skip check if role hasn't loaded yet (menu-filter will handle visibility once role arrives)
-                if (typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getUserRole()) {
+                // Role-based menu access check only when loading into the main content area.
+                // Skip when loading into a modal/other container (e.g. stock grid loading modal content) - parent route already passed.
+                var isMainContent = !elementSelector || elementSelector === _appRouter.contentContainer ||
+                    (elementSelector.indexOf('content-area') !== -1);
+                if (isMainContent && typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getUserRole()) {
                     let hasAccess = roleMenuConfig.hasAccess(routeName);
                     // If hasAccess says no, allow when: (1) sidebar link is visible, or (2) route is in getAccessibleMenus()
-                    // (avoids Access Denied when menu and access check get out of sync, e.g. cache or timing)
                     if (!hasAccess) {
                         const navItem = document.querySelector('#sidebarMenu .nav-item[data-route="' + routeName + '"]');
                         const link = document.querySelector('#sidebarMenu a[route="' + routeName + '"]');
