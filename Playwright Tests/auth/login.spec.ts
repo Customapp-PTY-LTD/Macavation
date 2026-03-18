@@ -1,4 +1,4 @@
-﻿import { test, expect } from '../fixtures';
+import { test, expect } from '../fixtures';
 
 // Client GUID for Macavation demo environment
 const CLIENT_GUID = process.env.CLIENT_GUID || '9e1d961a-bfc2-469d-8526-8af75f536656';
@@ -85,7 +85,7 @@ test.describe('Authentication - Login @critical', () => {
     /**
      * Test Production Manager login and redirect
      */
-    test.skip(!testData.users.productionManager.password, 'Production Manager password not configured');
+    test.skip(!testData.users.productionManager.email || !testData.users.productionManager.password, 'Set PRODUCTION_MANAGER_EMAIL and PRODUCTION_MANAGER_PASSWORD');
     
     const page = await loginAsProductionManager();
     await page.waitForLoadState('networkidle');
@@ -96,7 +96,7 @@ test.describe('Authentication - Login @critical', () => {
     /**
      * Test QA Supervisor login and redirect
      */
-    test.skip(!testData.users.qaSupervsor.password, 'QA Supervisor password not configured');
+    test.skip(!testData.users.qaSupervsor.email || !testData.users.qaSupervsor.password, 'Set QA_SUPERVISOR_EMAIL and QA_SUPERVISOR_PASSWORD');
     
     const page = await loginAsQASupervisor();
     await page.waitForLoadState('networkidle');
@@ -107,7 +107,7 @@ test.describe('Authentication - Login @critical', () => {
     /**
      * Test Sales Executive login and redirect
      */
-    test.skip(!testData.users.salesExecutive.password, 'Sales Executive password not configured');
+    test.skip(!testData.users.salesExecutive.email || !testData.users.salesExecutive.password, 'Set SALES_EXECUTIVE_EMAIL and SALES_EXECUTIVE_PASSWORD');
     
     const page = await loginAsSalesExecutive();
     await page.waitForLoadState('networkidle');
@@ -129,7 +129,7 @@ test.describe('Authentication - Login @critical', () => {
     /**
      * Test Office Administrator login and redirect
      */
-    test.skip(!testData.users.officeAdministrator.password, 'Office Administrator password not configured');
+    test.skip(!testData.users.officeAdministrator.email || !testData.users.officeAdministrator.password, 'Set OFFICE_ADMINISTRATOR_EMAIL and OFFICE_ADMINISTRATOR_PASSWORD');
     
     const page = await loginAsOfficeAdministrator();
     await page.waitForLoadState('networkidle');

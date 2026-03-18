@@ -57,7 +57,7 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
     /**
      * Production Manager has role_features including kernel-production-grid; should see module, not Access Denied.
      */
-    test.skip(!testData.users.productionManager?.password, 'Production Manager credentials not configured');
+    test.skip(!testData.users.productionManager?.email || !testData.users.productionManager?.password, 'Set PRODUCTION_MANAGER_EMAIL and PRODUCTION_MANAGER_PASSWORD');
     
     const page = await loginAsProductionManager();
     await page.waitForLoadState('networkidle');
@@ -73,7 +73,7 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
     /**
      * QA Supervisor has role_features including quality-assurance-grid; should see module, not Access Denied.
      */
-    test.skip(!testData.users.qaSupervsor?.password, 'QA Supervisor credentials not configured');
+    test.skip(!testData.users.qaSupervsor?.email || !testData.users.qaSupervsor?.password, 'Set QA_SUPERVISOR_EMAIL and QA_SUPERVISOR_PASSWORD');
     
     const page = await loginAsQASupervisor();
     await page.waitForLoadState('networkidle');
@@ -89,7 +89,7 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
     /**
      * Sales Exec role has sales-forecasting-grid in role_features; should see module, not Access Denied.
      */
-    test.skip(!testData.users.salesExecutive?.password, 'Sales Executive credentials not configured');
+    test.skip(!testData.users.salesExecutive?.email || !testData.users.salesExecutive?.password, 'Set SALES_EXECUTIVE_EMAIL and SALES_EXECUTIVE_PASSWORD');
     
     const page = await loginAsSalesExecutive();
     await page.waitForLoadState('networkidle');
@@ -122,7 +122,7 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
     /**
      * Office Administrator has role_features including grower-intake-grid; should see module, not Access Denied.
      */
-    test.skip(!testData.users.officeAdministrator?.password, 'Office Administrator credentials not configured');
+    test.skip(!testData.users.officeAdministrator?.email || !testData.users.officeAdministrator?.password, 'Set OFFICE_ADMINISTRATOR_EMAIL and OFFICE_ADMINISTRATOR_PASSWORD');
     
     const page = await loginAsOfficeAdministrator();
     await page.waitForLoadState('networkidle');
@@ -140,7 +140,7 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
      * Non-admin users should not have access to user management
      * Skipped if credentials not available
      */
-    test.skip(!testData.users.productionManager?.password, 'Production Manager credentials not configured');
+    test.skip(!testData.users.productionManager?.email || !testData.users.productionManager?.password, 'Set PRODUCTION_MANAGER_EMAIL and PRODUCTION_MANAGER_PASSWORD');
     
     const page = await loginAsProductionManager();
     await page.waitForLoadState('networkidle');
@@ -160,7 +160,7 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
      * Sidebar should only show modules user has permission to access
      * Skipped if credentials not available
      */
-    test.skip(!testData.users.qaSupervsor?.password, 'QA Supervisor credentials not configured');
+    test.skip(!testData.users.qaSupervsor?.email || !testData.users.qaSupervsor?.password, 'Set QA_SUPERVISOR_EMAIL and QA_SUPERVISOR_PASSWORD');
     
     const page = await loginAsQASupervisor();
     await page.waitForLoadState('networkidle');
@@ -174,7 +174,7 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
   });
 
   test('TC-RBAC-010a: Role users can access Dashboard', async ({ testData, loginAsProductionManager }) => {
-    test.skip(!testData.users.productionManager?.password, 'Production Manager credentials not configured');
+    test.skip(!testData.users.productionManager?.email || !testData.users.productionManager?.password, 'Set PRODUCTION_MANAGER_EMAIL and PRODUCTION_MANAGER_PASSWORD');
     const page = await loginAsProductionManager();
     await page.waitForLoadState('networkidle');
     await navigateToModule(page, 'dashboard');
