@@ -1,0 +1,42 @@
+{
+  "name": "macavation-playwright-tests",
+  "version": "1.0.0",
+  "description": "Playwright tests for Macavation (QA Blueprint: Playwright Tests/{module-name}/)",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "test:and-report": "playwright test && playwright show-report",
+    "test:auth": "playwright test auth/",
+    "test:users": "playwright test user-management/",
+    "test:users:crud": "playwright test user-management/user-crud.spec.ts",
+    "test:users:roles": "playwright test user-management/roles-crud.spec.ts",
+    "test:users:access": "playwright test user-management/role-screen-access.spec.ts",
+    "test:crm": "playwright test crm/",
+    "test:grower": "playwright test grower-intake/",
+    "test:kernel": "playwright test kernel-production/",
+    "test:kernel-dispatch": "playwright test kernel-dispatch/",
+    "test:stock-kernel": "playwright test stock-management/stock-kernel.spec.ts",
+    "test:kernel-modules": "playwright test kernel-production/ kernel-dispatch/ stock-management/stock-kernel.spec.ts",
+    "test:oil": "playwright test oil-production/",
+    "test:quality": "playwright test quality-assurance/",
+    "test:stock": "playwright test stock-management/",
+    "test:finance": "playwright test financial-management/",
+    "test:dashboard": "playwright test dashboard/",
+    "test:critical": "playwright test --grep @critical",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:rbac": "playwright test --grep @rbac",
+    "test:edge": "playwright test --grep @edge-case",
+    "test:security": "playwright test --grep @security"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1"
+  },
+  "keywords": ["playwright", "e2e", "testing", "macavation"],
+  "author": "Macavation Team",
+  "license": "ISC"
+}

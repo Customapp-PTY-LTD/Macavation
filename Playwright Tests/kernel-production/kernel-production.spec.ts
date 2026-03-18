@@ -1,9 +1,9 @@
-import { test, expect } from '../../fixtures';
-import { navigateToModule } from '../../helpers/navigation.helper';
+import { test, expect } from '../fixtures';
+import { navigateToModule } from '../helpers/navigation.helper';
 
 /**
  * Kernel Production Module Tests
- * 
+ * QA Blueprint: Playwright Tests/{module-name}/{module-name}.spec.ts
  * Tests for kernel production batch workflows
  */
 
@@ -12,53 +12,33 @@ test.describe('Kernel Production - Batch Management @kernel-production', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await navigateToModule(authenticatedPage, 'kernel-production-grid');
     await authenticatedPage.waitForLoadState('networkidle');
-    // Wait for any content to load - module might take time
     await authenticatedPage.waitForTimeout(1000);
   });
 
   test('TC-KP-001: View Production Batches List', async ({ authenticatedPage }) => {
-    /**
-     * Verify production batches grid/list loads (module-specific: Kernel Production Workflow, silos, kanban/table)
-     */
     await authenticatedPage.waitForTimeout(500);
     await expect(authenticatedPage.locator('h1:has-text("Kernel Production Workflow"), h2:has-text("Kernel Production")').first()).toBeVisible({ timeout: 10000 });
     await expect(authenticatedPage.locator('#kpSilosGrid, #kpKanbanBoard, #kpTableCard').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('TC-KP-002: Create New Production Batch Button', async ({ authenticatedPage }) => {
-    /**
-     * Verify Create Batch button is accessible
-     */
-    const addBatchBtn = authenticatedPage.locator(
-      'button:has-text("Add"), button:has-text("Create"), button:has-text("New Batch"), ' +
-      '#addBatchBtn, #createBatchBtn, [data-action="create-batch"]'
-    );
-    
-    // Button should exist (visibility depends on role permissions)
-    const count = await addBatchBtn.count();
-    if (count > 0) {
-      await expect(addBatchBtn.first()).toBeVisible();
-    }
+    // Kernel Production adds batches via silos (click empty silo), not a header button.
+    await expect(authenticatedPage.locator('h1:has-text("Kernel Production Workflow")')).toBeVisible({ timeout: 10000 });
+    await expect(authenticatedPage.locator('#kpSilosGrid')).toBeVisible({ timeout: 5000 });
+    // Silos are divs .kp-silo-box (loaded async); empty silo = entry point for "add batch"
+    await expect(authenticatedPage.locator('#kpSilosGrid .kp-silo-box').first()).toBeVisible({ timeout: 15000 });
   });
 
   test('TC-KP-003: Batch Status Workflow Steps', async ({ authenticatedPage }) => {
-    /**
-     * Verify workflow steps are displayed
-     */
-    // Look for workflow indicator or status column
     const workflowSteps = authenticatedPage.locator(
       '.workflow-steps, .step-indicator, [data-step], ' +
       '.status-badge, .batch-status, th:has-text("Status")'
     );
-    
     const count = await workflowSteps.count();
     expect(count).toBeGreaterThan(0);
   });
 
   test('TC-KP-004: Filter Batches by Status', async ({ authenticatedPage }) => {
-    /**
-     * Verify batch filtering functionality (module-specific: #filterBatchStatus)
-     */
     const filterElement = authenticatedPage.locator('#filterBatchStatus');
     await expect(filterElement).toBeVisible({ timeout: 5000 });
     const options = await filterElement.locator('option').allTextContents();
@@ -70,9 +50,6 @@ test.describe('Kernel Production - Batch Management @kernel-production', () => {
   });
 
   test('TC-KP-005: Search Batches', async ({ authenticatedPage }) => {
-    /**
-     * Verify batch search functionality (module-specific: #searchBatchesInput)
-     */
     const searchInput = authenticatedPage.locator('#searchBatchesInput');
     await expect(searchInput).toBeVisible({ timeout: 5000 });
     await searchInput.fill('KB-');
@@ -81,72 +58,39 @@ test.describe('Kernel Production - Batch Management @kernel-production', () => {
   });
 
   test('TC-KP-006: Batch Details View', async ({ authenticatedPage }) => {
-    /**
-     * Verify clicking on a batch shows details
-     */
-    // Find first batch row or card
     const batchRow = authenticatedPage.locator(
       'table tbody tr, .batch-card, .batch-item'
     ).first();
-    
     if (await batchRow.isVisible()) {
-      // Click to view details
       await batchRow.click();
-      
-      // Wait for details to appear
       await authenticatedPage.waitForTimeout(500);
-      
-      // Look for details panel, modal, or navigation
-      const detailsVisible = await authenticatedPage.locator(
-        '.batch-details, .modal.show, .detail-panel, [data-testid="batch-detail"]'
-      ).isVisible().catch(() => false);
-      
-      // Details should be shown (or navigation to detail page)
     }
   });
 
   test('TC-KP-007: Quality Hold Badge Visibility', async ({ authenticatedPage }) => {
-    /**
-     * Verify quality hold status is clearly indicated
-     */
-    // Look for quality hold indicators
     const qualityHoldBadge = authenticatedPage.locator(
       '.badge:has-text("Hold"), .quality-hold, [data-status="hold"], ' +
       '.text-warning:has-text("Hold"), .status-hold'
     );
-    
-    // Badge may or may not exist depending on data
     const count = await qualityHoldBadge.count();
-    // Just verify the query works without errors
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
   test('TC-KP-008: Batch Weight Display', async ({ authenticatedPage }) => {
-    /**
-     * Verify weight values are displayed correctly
-     */
-    // Look for weight column or display
     const weightElement = authenticatedPage.locator(
       'th:has-text("Weight"), td:has-text("kg"), .weight-display, ' +
       '[data-field="weight"], [data-field="nis_weight"]'
     );
-    
     const count = await weightElement.count();
     expect(count).toBeGreaterThan(0);
   });
 
   test('TC-KP-009: Export Functionality', async ({ authenticatedPage }) => {
-    /**
-     * Verify export button (module-specific: #exportBatchesBtn)
-     */
     const exportBtn = authenticatedPage.locator('#exportBatchesBtn');
     await expect(exportBtn).toBeVisible({ timeout: 5000 });
   });
 
   test('TC-KP-010: Silos section and Board/Table view toggle', async ({ authenticatedPage }) => {
-    /**
-     * Verify Silos card and view toggle (module-specific: #kpSilosGrid, #kpViewKanban, #kpViewTable)
-     */
     await expect(authenticatedPage.locator('#kpSilosGrid')).toBeVisible({ timeout: 10000 });
     await expect(authenticatedPage.locator('h5:has-text("Silos")')).toBeVisible();
     const boardBtn = authenticatedPage.locator('#kpViewKanban');
@@ -159,23 +103,15 @@ test.describe('Kernel Production - Batch Management @kernel-production', () => {
   });
 
   test('TC-KP-011: Pagination', async ({ authenticatedPage }) => {
-    /**
-     * Verify pagination controls if data exceeds page size
-     */
     const pagination = authenticatedPage.locator(
       '.pagination, [data-testid="pagination"], ' +
       'button:has-text("Next"), .page-link, .pager'
     );
-    
     const count = await pagination.count();
-    // Pagination may or may not be present depending on data volume
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
   test('TC-KP-012: Batch Number Format in Table view', async ({ authenticatedPage }) => {
-    /**
-     * In Table view, verify batch number column exists (format KB-YYYY-NNN or similar)
-     */
     await authenticatedPage.locator('#kpViewTable').click();
     await authenticatedPage.waitForTimeout(500);
     await expect(authenticatedPage.locator('#batchesTable')).toBeVisible({ timeout: 5000 });

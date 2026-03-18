@@ -1,6 +1,10 @@
-# Macavation E2E Tests
+# Macavation E2E Tests (legacy location)
 
-End-to-end tests for the Macavation farm management system using Playwright.
+> **Tests have been reorganized** per **BluePrint/QA_STRATEGY_BLUEPRINT** (Phase 3).
+> **Run and develop tests from the `Playwright Tests/` folder** at the repo root.
+> See **`../Playwright Tests/README.md`** for structure and commands.
+
+This folder is kept for reference; config and specs under `e2e/tests/` are superseded by `Playwright Tests/{module-name}/{module-name}.spec.ts`.
 
 ## Overview
 
