@@ -15,7 +15,7 @@ const KERNEL_ROUTES = [
 test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
 
   test('TC-KR-001: Sales Executive can access Stock (Kernel)', async ({ testData, loginAsSalesExecutive }) => {
-    test.skip(!testData.users.salesExecutive?.password, 'Sales Executive password not set');
+    test.skip(!testData.users.salesExecutive?.email || !testData.users.salesExecutive?.password, 'Set SALES_EXECUTIVE_EMAIL and SALES_EXECUTIVE_PASSWORD');
     const page = await loginAsSalesExecutive();
     await page.waitForLoadState('networkidle');
     await navigateToModule(page, 'stock-management-kernel');
@@ -25,7 +25,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
   });
 
   test('TC-KR-002: Sales Executive can access Kernel Production', async ({ testData, loginAsSalesExecutive }) => {
-    test.skip(!testData.users.salesExecutive?.password, 'Sales Executive password not set');
+    test.skip(!testData.users.salesExecutive?.email || !testData.users.salesExecutive?.password, 'Set SALES_EXECUTIVE_EMAIL and SALES_EXECUTIVE_PASSWORD');
     const page = await loginAsSalesExecutive();
     await page.waitForLoadState('networkidle');
     await navigateToModule(page, 'kernel-production-grid');
@@ -35,7 +35,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
   });
 
   test('TC-KR-003: Sales Executive can access Kernel Dispatch', async ({ testData, loginAsSalesExecutive }) => {
-    test.skip(!testData.users.salesExecutive?.password, 'Sales Executive password not set');
+    test.skip(!testData.users.salesExecutive?.email || !testData.users.salesExecutive?.password, 'Set SALES_EXECUTIVE_EMAIL and SALES_EXECUTIVE_PASSWORD');
     const page = await loginAsSalesExecutive();
     await page.waitForLoadState('networkidle');
     await navigateToModule(page, 'kernel-dispatch-grid');
@@ -45,7 +45,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
   });
 
   test('TC-KR-004: Production Manager can access Stock (Kernel)', async ({ testData, loginAsProductionManager }) => {
-    test.skip(!testData.users.productionManager?.password, 'Production Manager password not set');
+    test.skip(!testData.users.productionManager?.email || !testData.users.productionManager?.password, 'Set PRODUCTION_MANAGER_EMAIL and PRODUCTION_MANAGER_PASSWORD');
     const page = await loginAsProductionManager();
     await page.waitForLoadState('networkidle');
     await navigateToModule(page, 'stock-management-kernel');
@@ -55,7 +55,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
   });
 
   test('TC-KR-005: Production Manager can access Kernel Production', async ({ testData, loginAsProductionManager }) => {
-    test.skip(!testData.users.productionManager?.password, 'Production Manager password not set');
+    test.skip(!testData.users.productionManager?.email || !testData.users.productionManager?.password, 'Set PRODUCTION_MANAGER_EMAIL and PRODUCTION_MANAGER_PASSWORD');
     const page = await loginAsProductionManager();
     await page.waitForLoadState('networkidle');
     await navigateToModule(page, 'kernel-production-grid');
@@ -65,7 +65,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
   });
 
   test('TC-KR-006: Production Manager can access Kernel Dispatch', async ({ testData, loginAsProductionManager }) => {
-    test.skip(!testData.users.productionManager?.password, 'Production Manager password not set');
+    test.skip(!testData.users.productionManager?.email || !testData.users.productionManager?.password, 'Set PRODUCTION_MANAGER_EMAIL and PRODUCTION_MANAGER_PASSWORD');
     const page = await loginAsProductionManager();
     await page.waitForLoadState('networkidle');
     await navigateToModule(page, 'kernel-dispatch-grid');
@@ -75,7 +75,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
   });
 
   test('TC-KR-007: General Manager can access all Kernel modules', async ({ testData, loginAsGeneralManager }) => {
-    test.skip(!testData.users.generalManager?.password, 'General Manager password not set');
+    test.skip(!testData.users.generalManager?.email || !testData.users.generalManager?.password, 'Set GENERAL_MANAGER_EMAIL and GENERAL_MANAGER_PASSWORD');
     const page = await loginAsGeneralManager();
     await page.waitForLoadState('networkidle');
     for (const { route, selector } of KERNEL_ROUTES) {
@@ -87,7 +87,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
   });
 
   test('TC-KR-008: QA Supervisor can access Stock (Kernel) and Kernel Production', async ({ testData, loginAsQASupervisor }) => {
-    test.skip(!testData.users.qaSupervsor?.password, 'QA Supervisor password not set');
+    test.skip(!testData.users.qaSupervsor?.email || !testData.users.qaSupervsor?.password, 'Set QA_SUPERVISOR_EMAIL and QA_SUPERVISOR_PASSWORD');
     const page = await loginAsQASupervisor();
     await page.waitForLoadState('networkidle');
     await navigateToModule(page, 'stock-management-kernel');

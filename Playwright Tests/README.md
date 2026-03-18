@@ -44,3 +44,16 @@ npm run test:stock-kernel
 ```
 
 Set `BASE_URL` and `CLIENT_GUID` in `.env.e2e` (copy from `.env.e2e.example` if present). Do not commit `.env.e2e` or `test-results/`.
+
+### Role-based tests (RBAC, login redirects, kernel role ops)
+
+Each role needs **both** email and password env vars or those tests are **skipped**:
+
+| Role | Variables |
+|------|-----------|
+| General Manager | `GENERAL_MANAGER_EMAIL`, `GENERAL_MANAGER_PASSWORD` |
+| Production Manager | `PRODUCTION_MANAGER_EMAIL`, `PRODUCTION_MANAGER_PASSWORD` |
+| QA Supervisor | `QA_SUPERVISOR_EMAIL`, `QA_SUPERVISOR_PASSWORD` |
+| Sales Executive | `SALES_EXECUTIVE_EMAIL`, `SALES_EXECUTIVE_PASSWORD` |
+| Office Administrator | `OFFICE_ADMINISTRATOR_EMAIL`, `OFFICE_ADMINISTRATOR_PASSWORD` |
+| Oil Plant Manager | `OIL_PLANT_MANAGER_PASSWORD` (email defaults in fixture) |
