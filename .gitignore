@@ -26,5 +26,8 @@ build/
 
 # E2E test results (local artifacts only)
 e2e/test-results/
+Playwright Tests/test-results/
+Playwright Tests/playwright-report/
+Playwright Tests/.last-run.json
 
 nul

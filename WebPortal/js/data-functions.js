@@ -1214,12 +1214,17 @@ var _dataFunctions = function () {
 
         // CRM Functions
         getContacts: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_contacts', {}, token, {
+            var raw = await this.callFunction('get_contacts', {}, token, {
                 cacheKey: 'contacts_list',
                 useCache: true,
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (raw && Array.isArray(raw.get_contacts)) return raw.get_contacts;
+            if (raw && Array.isArray(raw.result)) return raw.result;
+            return [];
         },
 
         getContactById: async function (contactId, token = null, forceRefresh = false) {
