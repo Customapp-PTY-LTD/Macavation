@@ -47,7 +47,9 @@ Set `BASE_URL` and `CLIENT_GUID` in `.env.e2e` (copy from `.env.e2e.example` if 
 
 ### Role-based tests (RBAC, login redirects, kernel role ops)
 
-Each role needs **both** email and password env vars or those tests are **skipped**:
+**→ Full guide:** [README-ROLE-CREDENTIALS.md](./README-ROLE-CREDENTIALS.md)
+
+Set per-role **email + password** env vars for real users, or those tests are **skipped**. Quick reference:
 
 | Role | Variables |
 |------|-----------|
