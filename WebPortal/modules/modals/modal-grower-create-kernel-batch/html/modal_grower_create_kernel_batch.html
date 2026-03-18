@@ -53,10 +53,10 @@
                 <div class="mb-3">
                     <label for="intakeBatchNumber" class="form-label">Batch number</label>
                     <div class="d-flex gap-2 align-items-start flex-wrap">
-                        <input type="text" class="form-control flex-grow-1" id="intakeBatchNumber" placeholder="Select supplier for Bn format (e.g. Bn 01 26 01)" required autocomplete="off">
+                        <input type="text" class="form-control flex-grow-1" id="intakeBatchNumber" placeholder="Bn suggestion or any batch number you need" required autocomplete="off">
                         <button type="button" class="btn btn-outline-secondary text-nowrap" id="intakeRefreshBatchNumberBtn" title="Recalculate suggested number from batches in the system">Refresh suggested</button>
                     </div>
-                    <small class="text-muted d-block mt-1">Suggested from batches already in the system for this grower and year. <strong>Edit the last two digits</strong> (e.g. <code>01</code> → <code>05</code>) if batches already ran this year but are not recorded here.</small>
+                    <small class="text-muted d-block mt-1">With a grower selected, a <strong>Bn …</strong> name is suggested. You may replace it entirely with any batch number (legacy names, imports, etc.)—that value is what gets saved. Changing the received date only updates the suggestion if you have not edited this field; use <strong>Refresh suggested</strong> to re-apply the Bn format.</small>
                 </div>
                 <div class="mb-3">
                     <label for="intakeBatchReceivedDate" class="form-label">Received date</label>
