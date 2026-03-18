@@ -152,6 +152,8 @@ The suggested batch number is based on how many batches already exist in the sys
 
 No database migration is required for manual override; the backend accepts any valid `batch_id` you enter.
 
+You can **clear the suggested Bn name and type any batch number** (e.g. legacy or off-system IDs); that exact string is saved. After you edit the batch number field, changing the received date no longer overwrites it—use **Refresh suggested** if you want the Bn suggestion again.
+
 ---
 
 ## See also (other MCP migrations)
