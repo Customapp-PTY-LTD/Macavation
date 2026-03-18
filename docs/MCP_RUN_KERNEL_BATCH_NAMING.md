@@ -142,6 +142,18 @@ $$;
 
 ---
 
+## Manual batch number override (Grower Intake)
+
+The suggested batch number is based on how many batches already exist in the system for that supplier and year. If a grower has already run batches this year that are **not** in the system (e.g. processed elsewhere), you can override the sequence:
+
+- In **Create kernel batch**, after selecting the grower and date, the **Batch number** field is filled with the suggested value (e.g. `Bn 01 26 01`).
+- The field is **editable**: change the last two digits (e.g. `01` → `05`) to match the correct sequence for that grower this year.
+- Use **Refresh suggested** to re-fetch the next number from the system if you want to reset to the auto value.
+
+No database migration is required for manual override; the backend accepts any valid `batch_id` you enter.
+
+---
+
 ## See also (other MCP migrations)
 
 - **docs/MCP_RUN_DASHBOARD_KERNEL_STATS.md** – Fix "Kernel batches in production" dashboard card so the count matches the Kernel Production grid.

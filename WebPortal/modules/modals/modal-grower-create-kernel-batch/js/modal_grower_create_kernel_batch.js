@@ -20,6 +20,8 @@ var _modal_grower_create_kernel_batch = (function () {
             if (newSupplierSubmit) newSupplierSubmit.addEventListener('click', function (e) { e.preventDefault(); api.submitNewSupplierForm(); });
             var newSupplierCancel = document.getElementById('intakeNewSupplierCancelBtn');
             if (newSupplierCancel) newSupplierCancel.addEventListener('click', function (e) { e.preventDefault(); api.hideAddSupplierForm(); });
+            var refreshBatchBtn = document.getElementById('intakeRefreshBatchNumberBtn');
+            if (refreshBatchBtn) refreshBatchBtn.addEventListener('click', function (e) { e.preventDefault(); api._onDateOrGrowerChange(); });
             var dateEl = document.getElementById('intakeBatchReceivedDate');
             if (dateEl) {
                 dateEl.removeEventListener('change', api._onDateOrGrowerChange);
@@ -167,14 +169,13 @@ var _modal_grower_create_kernel_batch = (function () {
             }
             numberEl.value = '';
             numberEl.setAttribute('placeholder', 'Loading…');
-            numberEl.setAttribute('readonly', 'readonly');
             var dateEl = document.getElementById('intakeBatchReceivedDate');
             var year = dateEl && dateEl.value ? new Date(dateEl.value + 'T12:00:00').getFullYear() : new Date().getFullYear();
             dataFunctions.getNextBatchNumber(supplierId, year).then(function (nextId) {
                 var val = (nextId != null && typeof nextId === 'string') ? nextId : (nextId != null ? String(nextId) : '');
                 numberEl.value = val;
                 numberEl.setAttribute('placeholder', val ? '' : 'Will assign on save');
-                if (val) numberEl.setAttribute('readonly', 'readonly'); else numberEl.removeAttribute('readonly');
+                numberEl.removeAttribute('readonly');
             }).catch(function (err) {
                 console.error('getNextBatchNumber failed:', err);
                 numberEl.value = '';

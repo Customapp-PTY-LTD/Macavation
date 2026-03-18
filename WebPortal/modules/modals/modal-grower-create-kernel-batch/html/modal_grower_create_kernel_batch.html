@@ -52,7 +52,11 @@
                 </div>
                 <div class="mb-3">
                     <label for="intakeBatchNumber" class="form-label">Batch number</label>
-                    <input type="text" class="form-control" id="intakeBatchNumber" placeholder="Select supplier for Bn format (e.g. Bn 01 26 01)" required>
+                    <div class="d-flex gap-2 align-items-start flex-wrap">
+                        <input type="text" class="form-control flex-grow-1" id="intakeBatchNumber" placeholder="Select supplier for Bn format (e.g. Bn 01 26 01)" required autocomplete="off">
+                        <button type="button" class="btn btn-outline-secondary text-nowrap" id="intakeRefreshBatchNumberBtn" title="Recalculate suggested number from batches in the system">Refresh suggested</button>
+                    </div>
+                    <small class="text-muted d-block mt-1">Suggested from batches already in the system for this grower and year. <strong>Edit the last two digits</strong> (e.g. <code>01</code> → <code>05</code>) if batches already ran this year but are not recorded here.</small>
                 </div>
                 <div class="mb-3">
                     <label for="intakeBatchReceivedDate" class="form-label">Received date</label>
