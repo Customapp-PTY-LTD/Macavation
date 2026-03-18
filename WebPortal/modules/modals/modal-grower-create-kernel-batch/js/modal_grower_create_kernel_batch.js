@@ -240,15 +240,34 @@ var _modal_grower_create_kernel_batch = (function () {
                     throw new Error(batchResult && batchResult.error ? batchResult.error : 'Failed to create batch record');
                 }
 
+                var batchUuid = batchResult.id;
+                if (typeof dataFunctions.clearCachePattern === 'function') {
+                    dataFunctions.clearCachePattern('kernel_batches');
+                }
+                var existingRows = await dataFunctions.getKernelBatches(null, true, { search: batchNumber, limit: 200 });
+                var sameBatch = (existingRows || []).filter(function (r) {
+                    return String(r.batch_number || '').trim() === batchNumber;
+                }).find(function (r) {
+                    return String(r.batch_id) === String(batchUuid);
+                });
+                if (sameBatch) {
+                    var st = String(sameBatch.status || '').toLowerCase();
+                    if (st !== 'intake' && st !== 'receiving') {
+                        throw new Error('This batch number is already used (status: ' + (sameBatch.status || 'unknown') + '). It will not appear in Grower Intake. Use a **new, unique** batch number for a new intake batch.');
+                    }
+                }
+
                 // Step 2: create row in kernel (status = intake)
                 var kernelResult = await dataFunctions.initializeKernelForBatch({
-                    batch_uuid:           batchResult.id,
+                    batch_uuid:           batchUuid,
                     supplier_id:          supplierId   || null,
                     grower_name:          growerName   || null,
                     received_date:        receivedDate || null,
                     wet_nis_received_kg:  isNaN(wetNis) ? null : wetNis
                 });
-                if (!kernelResult || !kernelResult.success) {
+                var krOk = kernelResult && (kernelResult.success === true || kernelResult.success === 'true' ||
+                    (kernelResult.id && kernelResult.success !== false));
+                if (!krOk) {
                     throw new Error(kernelResult && kernelResult.error ? kernelResult.error : 'Failed to initialize kernel record');
                 }
 
@@ -268,8 +287,15 @@ var _modal_grower_create_kernel_batch = (function () {
                     showConfirmButton: false
                 });
 
-                if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.loadIntakeBatches) {
-                    await _growerIntakeGrid.loadIntakeBatches(true);
+                if (typeof dataFunctions.clearCachePattern === 'function') {
+                    dataFunctions.clearCachePattern('kernel_batches');
+                }
+                var grid = (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.loadIntakeBatches) ? _growerIntakeGrid
+                    : (typeof window.growerIntakeGrid !== 'undefined' && window.growerIntakeGrid.loadIntakeBatches ? window.growerIntakeGrid : null);
+                if (grid) {
+                    await grid.loadIntakeBatches(true);
+                } else {
+                    console.warn('[Create kernel batch] Grower Intake grid not found; refresh the page to see the new batch.');
                 }
             } catch (e) {
                 console.error(e);
