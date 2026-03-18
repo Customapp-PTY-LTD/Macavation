@@ -288,7 +288,7 @@ var _growerIntakeGrid = function () {
         loadIntakeBatches: async (forceRefresh) => {
             const scope = _growerIntakeGrid;
             try {
-                const all = await _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'intake,receiving' });
+                const all = await _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'intake,receiving', limit: 500 });
                 scope.intakeBatches = all || [];
                 scope.filterIntakeBatches();
             } catch (e) {
@@ -695,3 +695,6 @@ var _growerIntakeGrid = function () {
         }
     };
 }();
+if (typeof window !== 'undefined') {
+    window.growerIntakeGrid = _growerIntakeGrid;
+}

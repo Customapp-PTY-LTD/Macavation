@@ -152,6 +152,10 @@ The suggested batch number is based on how many batches already exist in the sys
 
 No database migration is required for manual override; the backend accepts any valid `batch_id` you enter.
 
+You can **clear the suggested Bn name and type any batch number** (e.g. legacy or off-system IDs); that exact string is saved. After you edit the batch number field, changing the received date no longer overwrites it—use **Refresh suggested** if you want the Bn suggestion again.
+
+**If the batch “disappears” after Create:** the batch number may already exist on a batch that has **left Grower Intake** (e.g. in production or complete). Reusing that number only updates the old row—it will not show on the intake list. Use a **new, unique** batch number, or the app will show an error explaining the conflict.
+
 ---
 
 ## See also (other MCP migrations)

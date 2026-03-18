@@ -9,6 +9,8 @@ var _modal_grower_create_kernel_batch = (function () {
     var CONTAINER_ID = 'createKernelBatchModal';
 
     var SUPPLIER_TYPES = ['nis_supplier', 'supplier', 'both'];
+    /** True after user edits batch number; date-only changes won't overwrite until grower changes or Refresh. */
+    var _batchNumberUserCustom = false;
 
     var api = {
         init: function () {
@@ -21,11 +23,15 @@ var _modal_grower_create_kernel_batch = (function () {
             var newSupplierCancel = document.getElementById('intakeNewSupplierCancelBtn');
             if (newSupplierCancel) newSupplierCancel.addEventListener('click', function (e) { e.preventDefault(); api.hideAddSupplierForm(); });
             var refreshBatchBtn = document.getElementById('intakeRefreshBatchNumberBtn');
-            if (refreshBatchBtn) refreshBatchBtn.addEventListener('click', function (e) { e.preventDefault(); api._onDateOrGrowerChange(); });
+            if (refreshBatchBtn) refreshBatchBtn.addEventListener('click', function (e) { e.preventDefault(); api._refreshSuggestedBatchNumber(true); });
+            var batchNumInput = document.getElementById('intakeBatchNumber');
+            if (batchNumInput) {
+                batchNumInput.addEventListener('input', function () { _batchNumberUserCustom = true; });
+            }
             var dateEl = document.getElementById('intakeBatchReceivedDate');
             if (dateEl) {
-                dateEl.removeEventListener('change', api._onDateOrGrowerChange);
-                dateEl.addEventListener('change', api._onDateOrGrowerChange);
+                dateEl.removeEventListener('change', api._onReceivedDateChange);
+                dateEl.addEventListener('change', api._onReceivedDateChange);
             }
         },
 
@@ -48,8 +54,8 @@ var _modal_grower_create_kernel_batch = (function () {
                     opts += '<option value="' + c.id + '">' + name + code + '</option>';
                 });
                 sel.innerHTML = opts;
-                sel.removeEventListener('change', api._onDateOrGrowerChange);
-                sel.addEventListener('change', api._onDateOrGrowerChange);
+                sel.removeEventListener('change', api._onGrowerChange);
+                sel.addEventListener('change', api._onGrowerChange);
             }).catch(function (e) { console.error('Error loading suppliers:', e); });
         },
 
@@ -123,7 +129,7 @@ var _modal_grower_create_kernel_batch = (function () {
                     api.populateSupplierDropdown();
                     var sel = document.getElementById('intakeBatchGrower');
                     if (sel) sel.value = id;
-                    api._onDateOrGrowerChange();
+                    api._onGrowerChange();
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Supplier added', timer: 1500, showConfirmButton: false });
                 } else {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', (res && res.error) || 'Failed to add supplier', 'error');
@@ -138,13 +144,14 @@ var _modal_grower_create_kernel_batch = (function () {
             var dateEl = document.getElementById('intakeBatchReceivedDate');
             if (dateEl) {
                 dateEl.value = today;
-                dateEl.removeEventListener('change', api._onDateOrGrowerChange);
-                dateEl.addEventListener('change', api._onDateOrGrowerChange);
+                dateEl.removeEventListener('change', api._onReceivedDateChange);
+                dateEl.addEventListener('change', api._onReceivedDateChange);
             }
 
+            _batchNumberUserCustom = false;
             var numberEl = document.getElementById('intakeBatchNumber');
             if (numberEl) numberEl.value = '';
-            numberEl && numberEl.setAttribute('placeholder', 'Select supplier for Bn format (e.g. Bn 01 26 01)');
+            numberEl && numberEl.setAttribute('placeholder', 'Bn suggestion or any batch number you need');
 
             var wetEl = document.getElementById('intakeBatchWetNis');
             if (wetEl) wetEl.value = '';
@@ -156,17 +163,31 @@ var _modal_grower_create_kernel_batch = (function () {
             else if (typeof $ !== 'undefined' && $.fn.modal) $('#' + CONTAINER_ID).modal('show');
         },
 
-        _onDateOrGrowerChange: function () {
+        _onGrowerChange: function () {
+            _batchNumberUserCustom = false;
+            api._refreshSuggestedBatchNumber(true);
+        },
+
+        _onReceivedDateChange: function () {
+            if (_batchNumberUserCustom) return;
+            api._refreshSuggestedBatchNumber(true);
+        },
+
+        /** @param {boolean} force - false only used internally when date changes and !custom; grower/refresh always pass true */
+        _refreshSuggestedBatchNumber: function (force) {
             var sel = document.getElementById('intakeBatchGrower');
             var numberEl = document.getElementById('intakeBatchNumber');
             if (!sel || !numberEl || typeof dataFunctions === 'undefined' || !dataFunctions.getNextBatchNumber) return;
             var supplierId = (sel.value || '').trim() || null;
             if (!supplierId) {
-                numberEl.value = '';
-                numberEl.setAttribute('placeholder', 'Select supplier for Bn format (e.g. Bn 01 26 01)');
-                numberEl.removeAttribute('readonly');
+                if (force) {
+                    numberEl.value = '';
+                    numberEl.setAttribute('placeholder', 'Suggested Bn… or type any batch number');
+                    numberEl.removeAttribute('readonly');
+                }
                 return;
             }
+            if (!force && _batchNumberUserCustom) return;
             numberEl.value = '';
             numberEl.setAttribute('placeholder', 'Loading…');
             var dateEl = document.getElementById('intakeBatchReceivedDate');
@@ -176,10 +197,11 @@ var _modal_grower_create_kernel_batch = (function () {
                 numberEl.value = val;
                 numberEl.setAttribute('placeholder', val ? '' : 'Will assign on save');
                 numberEl.removeAttribute('readonly');
+                _batchNumberUserCustom = false;
             }).catch(function (err) {
                 console.error('getNextBatchNumber failed:', err);
                 numberEl.value = '';
-                numberEl.setAttribute('placeholder', 'Select supplier for Bn format (e.g. Bn 01 26 01)');
+                numberEl.setAttribute('placeholder', 'Suggested Bn… or type any batch number');
                 numberEl.removeAttribute('readonly');
             });
         },
@@ -191,7 +213,7 @@ var _modal_grower_create_kernel_batch = (function () {
                 return;
             }
 
-            var batchNumber = document.getElementById('intakeBatchNumber') && document.getElementById('intakeBatchNumber').value;
+            var batchNumber = (document.getElementById('intakeBatchNumber') && document.getElementById('intakeBatchNumber').value || '').trim();
             var receivedDate = document.getElementById('intakeBatchReceivedDate') && document.getElementById('intakeBatchReceivedDate').value;
             var wetNis = parseFloat(document.getElementById('intakeBatchWetNis') && document.getElementById('intakeBatchWetNis').value, 10);
             var supplierEl = document.getElementById('intakeBatchGrower');
@@ -218,15 +240,34 @@ var _modal_grower_create_kernel_batch = (function () {
                     throw new Error(batchResult && batchResult.error ? batchResult.error : 'Failed to create batch record');
                 }
 
+                var batchUuid = batchResult.id;
+                if (typeof dataFunctions.clearCachePattern === 'function') {
+                    dataFunctions.clearCachePattern('kernel_batches');
+                }
+                var existingRows = await dataFunctions.getKernelBatches(null, true, { search: batchNumber, limit: 200 });
+                var sameBatch = (existingRows || []).filter(function (r) {
+                    return String(r.batch_number || '').trim() === batchNumber;
+                }).find(function (r) {
+                    return String(r.batch_id) === String(batchUuid);
+                });
+                if (sameBatch) {
+                    var st = String(sameBatch.status || '').toLowerCase();
+                    if (st !== 'intake' && st !== 'receiving') {
+                        throw new Error('This batch number is already used (status: ' + (sameBatch.status || 'unknown') + '). It will not appear in Grower Intake. Use a **new, unique** batch number for a new intake batch.');
+                    }
+                }
+
                 // Step 2: create row in kernel (status = intake)
                 var kernelResult = await dataFunctions.initializeKernelForBatch({
-                    batch_uuid:           batchResult.id,
+                    batch_uuid:           batchUuid,
                     supplier_id:          supplierId   || null,
                     grower_name:          growerName   || null,
                     received_date:        receivedDate || null,
                     wet_nis_received_kg:  isNaN(wetNis) ? null : wetNis
                 });
-                if (!kernelResult || !kernelResult.success) {
+                var krOk = kernelResult && (kernelResult.success === true || kernelResult.success === 'true' ||
+                    (kernelResult.id && kernelResult.success !== false));
+                if (!krOk) {
                     throw new Error(kernelResult && kernelResult.error ? kernelResult.error : 'Failed to initialize kernel record');
                 }
 
@@ -246,8 +287,15 @@ var _modal_grower_create_kernel_batch = (function () {
                     showConfirmButton: false
                 });
 
-                if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.loadIntakeBatches) {
-                    await _growerIntakeGrid.loadIntakeBatches(true);
+                if (typeof dataFunctions.clearCachePattern === 'function') {
+                    dataFunctions.clearCachePattern('kernel_batches');
+                }
+                var grid = (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.loadIntakeBatches) ? _growerIntakeGrid
+                    : (typeof window.growerIntakeGrid !== 'undefined' && window.growerIntakeGrid.loadIntakeBatches ? window.growerIntakeGrid : null);
+                if (grid) {
+                    await grid.loadIntakeBatches(true);
+                } else {
+                    console.warn('[Create kernel batch] Grower Intake grid not found; refresh the page to see the new batch.');
                 }
             } catch (e) {
                 console.error(e);
