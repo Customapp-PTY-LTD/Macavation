@@ -59,6 +59,7 @@ var _supplierIntakeGrid = function () {
         batches: [],
         filteredBatches: [],
         currentView: 'kanban',
+        _pendingOilRelease: null,
 
         init: () => {
             const scope = _supplierIntakeGrid;
@@ -107,6 +108,11 @@ var _supplierIntakeGrid = function () {
                 $('#searchSupplierIntakeInput').val('');
                 $('#filterSupplierIntakeStatus').val('');
                 scope.filterBatches();
+            });
+
+            $('#siWeightBeforeProdConfirmBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.confirmWeightBeforeProductionRelease();
             });
 
             $(document).on('click', '#supplierIntakeBatchesTableBody tr.js-supplier-intake-row', function (e) {
@@ -524,27 +530,110 @@ var _supplierIntakeGrid = function () {
             if (typeof Swal !== 'undefined') Swal.fire({ title: 'Batch details', html, confirmButtonText: 'OK', width: '420px' });
         },
 
-        releaseBatchToOilProduction: async (batchId, batch) => {
+        releaseBatchToOilProduction: (batchId, batch) => {
             const scope = _supplierIntakeGrid;
-            if (!batchId || typeof dataFunctions === 'undefined' || !dataFunctions.releaseSupplierIntakeBatchToOilProduction) {
+            if (!batchId || !batch || typeof dataFunctions === 'undefined' || !dataFunctions.releaseSupplierIntakeToProductionWithWeights) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Unable to release batch. Please try again.', 'error');
                 return;
             }
-            var idToSend = (batch && batch.id != null) ? String(batch.id) : batchId;
+            scope._pendingOilRelease = { batchId: String(batchId), batch: batch };
+            var first = batch.quantity_kg != null && batch.quantity_kg !== '' ? Number(batch.quantity_kg) : NaN;
+            var elFirst = document.getElementById('siFirstWeightDisplay');
+            var elInput = document.getElementById('siWeightBeforeProductionInput');
+            if (elFirst) elFirst.textContent = !isNaN(first) ? (first + ' kg') : '— (not recorded — still enter weight before production)';
+            if (elInput) elInput.value = '';
+            var modalEl = document.getElementById('supplierIntakeWeightBeforeProductionModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                setTimeout(function () { if (elInput) elInput.focus(); }, 300);
+            } else if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Weight before production (kg)',
+                    html: '<p class="text-start small text-muted mb-2">Intake reference: ' + (!isNaN(first) ? first + ' kg' : '—') + '</p><input type="number" id="swalSiWeightBeforeProd" class="form-control" step="0.01" min="0" placeholder="kg">',
+                    showCancelButton: true,
+                    confirmButtonText: 'Release to Oil Production',
+                    preConfirm: function () {
+                        var v = document.getElementById('swalSiWeightBeforeProd');
+                        var n = v && v.value !== '' ? parseFloat(v.value, 10) : NaN;
+                        if (isNaN(n) || n < 0) {
+                            Swal.showValidationMessage('Enter a valid weight (kg)');
+                            return false;
+                        }
+                        return n;
+                    }
+                }).then(function (res) {
+                    if (res.isConfirmed && res.value != null) scope._runOilProductionRelease(res.value);
+                });
+            }
+        },
+
+        confirmWeightBeforeProductionRelease: async () => {
+            const scope = _supplierIntakeGrid;
+            var input = document.getElementById('siWeightBeforeProductionInput');
+            var raw = input && input.value != null ? String(input.value).trim() : '';
+            if (raw === '') {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Enter weight before production (kg).', 'error');
+                return;
+            }
+            var w2 = parseFloat(raw, 10);
+            if (isNaN(w2) || w2 < 0) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Enter a valid weight in kg.', 'error');
+                return;
+            }
+            await scope._runOilProductionRelease(w2);
+        },
+
+        _runOilProductionRelease: async (weightBeforeKg) => {
+            const scope = _supplierIntakeGrid;
+            var p = scope._pendingOilRelease;
+            if (!p || !p.batch || typeof dataFunctions === 'undefined' || !dataFunctions.releaseSupplierIntakeToProductionWithWeights) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Release session expired. Please try again.', 'error');
+                return;
+            }
+            var batch = p.batch;
+            var first = batch.quantity_kg != null && batch.quantity_kg !== '' ? Number(batch.quantity_kg) : NaN;
+            var modalEl = document.getElementById('supplierIntakeWeightBeforeProductionModal');
             try {
-                const result = await dataFunctions.releaseSupplierIntakeBatchToOilProduction(idToSend, batch);
+                const result = await dataFunctions.releaseSupplierIntakeToProductionWithWeights(batch.id, {
+                    weight_before_production_kg: weightBeforeKg,
+                    first_weight_kg: !isNaN(first) ? first : null,
+                    batch_number: batch.batch_number || null
+                });
                 var resolved = result && (result.data !== undefined ? result.data : result);
                 var success = resolved && resolved.success !== false;
                 if (success) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch has been moved to Oil Production.', timer: 2500, showConfirmButton: false });
-                    scope.loadBatches(true);
-                    if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('oil-production-grid');
-                    else window.location.hash = '#oil-production-grid';
+                    var dropWarn = !isNaN(first) && first - weightBeforeKg > 50;
+                    if (modalEl && typeof bootstrap !== 'undefined') {
+                        var inst = bootstrap.Modal.getInstance(modalEl);
+                        if (inst) inst.hide();
+                    }
+                    scope._pendingOilRelease = null;
+                    if (typeof Swal !== 'undefined') {
+                        if (dropWarn) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Released — dashboard warning',
+                                html: 'The weight before production is more than <strong>50 kg</strong> below intake weight. A warning has been added to the <strong>dashboard</strong>.',
+                                confirmButtonText: 'OK'
+                            }).then(function () {
+                                scope.loadBatches(true);
+                                if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('oil-production-grid');
+                                else window.location.hash = '#oil-production-grid';
+                            });
+                        } else {
+                            Swal.fire({ icon: 'success', title: 'Released', text: 'Batch has been moved to Oil Production.', timer: 2500, showConfirmButton: false });
+                            scope.loadBatches(true);
+                            if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('oil-production-grid');
+                            else window.location.hash = '#oil-production-grid';
+                        }
+                    } else {
+                        scope.loadBatches(true);
+                    }
                 } else {
                     throw new Error(resolved && (resolved.error || resolved.message) ? (resolved.error || resolved.message) : 'Release failed');
                 }
             } catch (e) {
-                console.error('[Supplier Intake] releaseBatchToOilProduction failed:', e);
+                console.error('[Supplier Intake] release to oil production failed:', e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release batch to Oil Production.', 'error');
             }
         },

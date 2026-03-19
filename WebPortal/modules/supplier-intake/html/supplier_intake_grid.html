@@ -134,6 +134,33 @@
     </div>
 </div>
 
+<!-- Weight before production (required before Release to Oil Production) -->
+<div class="modal fade" id="supplierIntakeWeightBeforeProductionModal" tabindex="-1" aria-labelledby="supplierIntakeWeightBeforeProductionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="supplierIntakeWeightBeforeProductionLabel">Weight before production</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small">Confirm the batch weight after storage, before sending to Oil Production. If it is more than <strong>50 kg</strong> below the intake weight, a <strong>warning is added to the dashboard</strong>.</p>
+                <div class="mb-3">
+                    <label class="form-label">Intake weight (reference)</label>
+                    <div class="form-control-plaintext fw-semibold" id="siFirstWeightDisplay">—</div>
+                </div>
+                <div class="mb-0">
+                    <label for="siWeightBeforeProductionInput" class="form-label">Weight before production (kg) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="siWeightBeforeProductionInput" step="0.01" min="0" placeholder="Weigh now and enter kg" autocomplete="off">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="siWeightBeforeProdCancelBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="siWeightBeforeProdConfirmBtn"><i class="fas fa-arrow-right me-1"></i>Release to Oil Production</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal containers (content loaded by app router) -->
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="supplierOilBatchModal" role="dialog" route-name="supplier-oil-batch-modal" tabindex="-1" aria-labelledby="supplierOilBatchModalLabel" aria-hidden="true"></div>
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="receivingChecklistModal" role="dialog" route-name="receiving-checklist-modal" tabindex="-1" aria-labelledby="receivingChecklistModalLabel" aria-hidden="true"></div>

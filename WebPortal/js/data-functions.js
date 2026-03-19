@@ -1092,10 +1092,6 @@ var _dataFunctions = function () {
             return await this.callFunction('get_dashboard_stats', {}, token);
         },
 
-        getDashboardAlerts: async function (token = null) {
-            return await this.callFunction('get_dashboard_alerts', {}, token);
-        },
-
         /**
          * Get dashboard kernel stats: batches in production, kg cracked today, kg cracked this week.
          * Used by default dashboard.
@@ -1980,12 +1976,105 @@ var _dataFunctions = function () {
 
         // Dashboard Functions (cached for 30 seconds - near real-time)
         getDashboardAlerts: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_dashboard_alerts', {}, token, {
+            var raw = await this.callFunction('get_dashboard_alerts', {}, token, {
                 cacheKey: 'dashboard_alerts_list',
                 useCache: true,
                 cacheTtl: this.cache.ttl.dashboard,
                 forceRefresh: forceRefresh
             });
+            var list = [];
+            if (Array.isArray(raw)) list = raw;
+            else if (raw && Array.isArray(raw.get_dashboard_alerts)) list = raw.get_dashboard_alerts;
+            else if (raw && Array.isArray(raw.data)) list = raw.data;
+            return list.map(function (a) {
+                return Object.assign({}, a, {
+                    title: a.title || a.alert_title,
+                    message: a.message != null ? a.message : a.alert_message
+                });
+            });
+        },
+
+        /**
+         * Create a dashboard alert row (e.g. oil intake weight drop before production).
+         * Requires DB function create_dashboard_alert_simple (see migrations).
+         */
+        createDashboardAlert: async function (opts, token = null) {
+            if (!opts || !opts.title) {
+                return { success: false, error: 'title is required' };
+            }
+            var params = {
+                p_alert_title: opts.title,
+                p_alert_message: opts.message != null ? opts.message : null,
+                p_batch_number: opts.batch_number || null,
+                p_alert_type: opts.alert_type || 'stock_low',
+                p_severity: opts.severity || 'warning'
+            };
+            var result = await this.callFunction('create_dashboard_alert_simple', params, token, { useCache: false });
+            if (typeof this.clearCache === 'function') this.clearCache('dashboard_alerts_list');
+            var resolved = result && (result.data !== undefined ? result.data : result);
+            return resolved || result;
+        },
+
+        /**
+         * Release supplier oil batch to production after recording weight before production (merged into intake_data).
+         * If first_weight_kg - weight_before_production_kg > 50, creates a dashboard alert.
+         */
+        releaseSupplierIntakeToProductionWithWeights: async function (oilId, opts, token = null) {
+            if (!oilId || !opts || opts.weight_before_production_kg == null || opts.weight_before_production_kg === '') {
+                return { success: false, error: 'Oil id and weight before production are required' };
+            }
+            var w2 = Number(opts.weight_before_production_kg);
+            if (isNaN(w2) || w2 < 0) {
+                return { success: false, error: 'Weight before production must be a valid number (kg)' };
+            }
+            var row = await this.getOilBatchById(oilId, token);
+            var intake = row && row.intake_data;
+            if (typeof intake === 'string') {
+                try { intake = JSON.parse(intake); } catch (e) { intake = {}; }
+            }
+            if (!intake || typeof intake !== 'object') intake = {};
+            var firstKg = opts.first_weight_kg != null && !isNaN(Number(opts.first_weight_kg))
+                ? Number(opts.first_weight_kg)
+                : (intake.quantity_kg != null ? Number(intake.quantity_kg) : NaN);
+            var merged = Object.assign({}, intake, {
+                weight_before_production_kg: w2,
+                weight_before_production_recorded_at: new Date().toISOString(),
+                weight_at_intake_for_comparison_kg: !isNaN(firstKg) ? firstKg : null
+            });
+            var uid = this.getCurrentUserId();
+            var upsertParams = {
+                p_oil_id: oilId,
+                p_status: 'production',
+                p_intake_data: merged
+            };
+            if (uid) upsertParams.p_updated_by = uid;
+            var result = await this.callFunction('upsert_oil_batch', upsertParams, token, { useCache: false });
+            var resolved = result && (result.data !== undefined ? result.data : result);
+            if (!resolved || resolved.success === false) {
+                this.clearCachePattern('supplier_intake');
+                this.clearCachePattern('oil_batches');
+                this.clearCachePattern('oil_production');
+                return resolved || { success: false, error: 'Release failed' };
+            }
+            this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('oil_batches');
+            this.clearCachePattern('oil_production');
+            if (!isNaN(firstKg) && firstKg - w2 > 50) {
+                var bn = opts.batch_number || (row && row.batch_id) || '';
+                var msg = 'Weight before production (' + w2 + ' kg) is more than 50 kg below intake weight (' + firstKg + ' kg) for batch ' + bn + '.';
+                try {
+                    await this.createDashboardAlert({
+                        title: 'Oil intake: large weight loss before production',
+                        message: msg,
+                        batch_number: bn || null,
+                        alert_type: 'stock_low',
+                        severity: 'warning'
+                    }, token);
+                } catch (alertErr) {
+                    console.warn('[releaseSupplierIntakeToProductionWithWeights] Dashboard alert failed:', alertErr);
+                }
+            }
+            return result;
         },
 
         getExecutiveKPIs: async function (token = null, forceRefresh = false) {
