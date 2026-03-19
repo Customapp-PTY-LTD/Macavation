@@ -2292,6 +2292,19 @@ var _dataFunctions = function () {
             });
         },
 
+        /**
+         * Oil Production: mark a raw ingredient bag as emptied (status production → raw_empty).
+         */
+        markOilRawIngredientEmpty: async function (oilId, token = null) {
+            if (!oilId) return { success: false, error: 'oilId required' };
+            var params = { p_oil_id: oilId };
+            var uid = this.getCurrentUserId();
+            if (uid) params.p_updated_by = uid;
+            const result = await this.callFunction('mark_oil_raw_ingredient_empty', params, token, { useCache: false });
+            this.clearCachePattern('oil_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
         getOilBatchById: async function (oilId, token = null) {
             if (!oilId) return null;
             var raw = await this.callFunction('get_oil_batch_by_id', { p_oil_id: oilId }, token, { useCache: false });
@@ -2355,6 +2368,16 @@ var _dataFunctions = function () {
             return result;
         },
 
+        /**
+         * After saving person on duty: link shift + raw-ingredient snapshot to all oil_bin_batch rows in_production.
+         */
+        syncOilProductionDutyAudit: async function (shiftId, token = null) {
+            if (!shiftId) return { success: false, error: 'shiftId required' };
+            const result = await this.callFunction('sync_oil_production_duty_audit', { p_shift_id: shiftId }, token, { useCache: false });
+            this.clearCachePattern('oil_bin_batches');
+            return result && (result.data !== undefined ? result.data : result);
+        },
+
         getProductList: async function (options = {}, token = null, forceRefresh = false) {
             var params = {};
             if (options.type)   params.p_type   = options.type;
@@ -2408,9 +2431,11 @@ var _dataFunctions = function () {
 
         getOilBinBatches: async function (options = {}, token = null, forceRefresh = false) {
             var params = { p_limit: options.limit || 100, p_offset: options.offset || 0 };
-            if (options.status) params.p_status = options.status;
+            if (options.status !== undefined && options.status !== null && options.status !== '') {
+                params.p_status = options.status;
+            }
             return await this.callFunction('get_oil_bin_batches', params, token, {
-                cacheKey: 'oil_bin_batches' + (options.status ? '_' + options.status : ''),
+                cacheKey: 'oil_bin_batches_v2' + (options.status ? '_' + options.status : ''),
                 useCache: !forceRefresh,
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
@@ -2430,6 +2455,8 @@ var _dataFunctions = function () {
             if (result && result.success) {
                 this.clearCachePattern('oil_bin_batches');
                 this.clearCachePattern('oil_batches');
+                this.clearCachePattern('oil_stock_lots');
+                this.clearCachePattern('oil_stock_summary');
             }
             return result;
         },

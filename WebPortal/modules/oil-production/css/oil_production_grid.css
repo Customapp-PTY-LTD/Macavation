@@ -156,9 +156,10 @@
 }
 .op-oil-bin-batches-table .btn-sm { white-space: nowrap; }
 
-/* Raw ingredients table – Actions column and batch # styling (match oil bin batches) */
+/* Raw ingredients table – batch # styling (match oil bin batches) */
 .op-raw-ingredients-table thead th { border-top: none; font-weight: 600; }
 .op-raw-ingredients-table td:last-child { text-align: right; }
+.op-finished-raw-table td:last-child { text-align: left; }
 .op-raw-ingredients-table td:first-child {
     color: var(--forest-deep, var(--phoenix-primary));
     font-weight: 500;
