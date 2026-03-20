@@ -261,6 +261,10 @@ var _stockManagementGrid = function () {
                     var id = $(this).data('oil-lot-id');
                     if (id) scope.deleteOilLot(id);
                 });
+                $(document).on('click', '.oil-batch-ingredients-btn', function () {
+                    var bn = $(this).attr('data-oil-batch-number');
+                    if (bn) scope.showOilBatchIngredientsModal(String(bn));
+                });
             }
 
             var oilSearchInput = document.getElementById('oilSearchInput');
@@ -863,7 +867,8 @@ var _stockManagementGrid = function () {
                     '<td>' + bbDisplay + '</td>' +
                     '<td class="text-end ' + daysClass + '">' + (days !== '' ? days : '') + '</td>' +
                     '<td>' + (l.status || '') + '</td>' +
-                    '<td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary edit-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Edit"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-sm btn-outline-danger delete-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Remove"><i class="fas fa-trash"></i></button></td>';
+                    '<td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-info oil-batch-ingredients-btn" data-oil-batch-number="' + escapeHtml(String(l.batch_number || '')) + '" title="Ingredients used for this batch"><i class="fas fa-carrot"></i></button> ' +
+                    '<button type="button" class="btn btn-sm btn-outline-primary edit-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Edit"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-sm btn-outline-danger delete-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Remove"><i class="fas fa-trash"></i></button></td>';
                 tbody.appendChild(tr);
             }
 
@@ -884,6 +889,117 @@ var _stockManagementGrid = function () {
             var start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
             var end = new Date(d.getFullYear(), d.getMonth(), d.getDate());
             return Math.round((end - start) / (1000 * 60 * 60 * 24));
+        },
+
+        /** Build HTML for get_oil_batch_ingredients_detail JSON (SweetAlert2). */
+        formatOilBatchIngredientsHtml: function (d) {
+            if (!d || d.success === false) {
+                return '<p class="text-danger mb-0">' + escapeHtml((d && d.error) ? d.error : 'Unable to load ingredients.') + '</p>';
+            }
+            var parts = [];
+            parts.push('<p class="small text-muted mb-2">Batch <strong>' + escapeHtml(String(d.batch_number || '')) + '</strong>');
+            if (d.oil_stream) parts.push(' · Stream: <strong>' + escapeHtml(String(d.oil_stream)) + '</strong>');
+            parts.push('</p>');
+            if (!d.has_oil_bin_batch && !d.has_oil_row) {
+                parts.push('<p class="mb-0">No production ingredient record was found for this batch (e.g. manually added stock, imports, or legacy data).</p>');
+                return parts.join('');
+            }
+            /** Hide legacy rows where the whole bin "ingredients" string was copied into one line (comma-separated batch refs, no qty). */
+            function normIng(s) {
+                return String(s || '').replace(/\s+/g, ' ').trim();
+            }
+            function isJunkSegmentIngredientRow(ing, binIngredientsText) {
+                var desc = normIng(ing.description || ing.batch_id || ing.product_type || '');
+                if (!desc) return false;
+                var binT = normIng(binIngredientsText);
+                if (binT && desc === binT) return true;
+                var qty = ing.qty_kg != null ? ing.qty_kg : (ing.quantity_kg != null ? ing.quantity_kg : null);
+                var qtyEmpty = qty === null || qty === undefined || qty === '';
+                if (!qtyEmpty) return false;
+                if (!binT) return false;
+                if (desc.length < 15 || desc.indexOf(',') === -1) return false;
+                return desc === binT || desc.replace(/\s*,\s*/g, ',') === binT.replace(/\s*,\s*/g, ',');
+            }
+            if (d.shifts_text && String(d.shifts_text).trim()) {
+                parts.push('<h6 class="mt-2 mb-1 text-start">Shifts (text)</h6>');
+                parts.push('<p class="text-start small mb-2">' + escapeHtml(String(d.shifts_text)).replace(/\n/g, '<br>') + '</p>');
+            }
+            var segs = d.shift_segments;
+            if (segs && Array.isArray(segs) && segs.length > 0) {
+                parts.push('<h6 class="mt-2 mb-1 text-start">Shifts &amp; ingredients</h6>');
+                segs.forEach(function (seg, i) {
+                    parts.push('<div class="border rounded p-2 mb-2 text-start">');
+                    parts.push('<div class="fw-bold">' + escapeHtml('Segment ' + (i + 1) + (seg.shift_name ? ': ' + String(seg.shift_name) : '')) + '</div>');
+                    if (seg.shift_date) parts.push('<div class="small text-muted">' + escapeHtml(String(seg.shift_date)) + '</div>');
+                    var ings = seg.ingredients;
+                    if (ings && Array.isArray(ings) && ings.length) {
+                        ings = ings.filter(function (ing) {
+                            return !isJunkSegmentIngredientRow(ing, d.ingredients_text);
+                        });
+                    }
+                    if (ings && Array.isArray(ings) && ings.length) {
+                        parts.push('<table class="table table-sm table-bordered mt-1 mb-0"><thead><tr><th>Item</th><th>Supplier</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>');
+                        ings.forEach(function (ing) {
+                            var desc = ing.description || ing.batch_id || ing.product_type || '';
+                            var qty = ing.qty_kg != null ? ing.qty_kg : (ing.quantity_kg != null ? ing.quantity_kg : '');
+                            var sup = ing.supplier || ing.supplier_details || '';
+                            parts.push('<tr><td>' + escapeHtml(String(desc)) + '</td><td>' + escapeHtml(String(sup || '—')) + '</td><td class="text-end">' + escapeHtml(String(qty)) + '</td></tr>');
+                        });
+                        parts.push('</tbody></table>');
+                    }
+                    parts.push('</div>');
+                });
+            }
+            var audit = d.raw_ingredient_audit;
+            if (audit && Array.isArray(audit) && audit.length) {
+                parts.push('<h6 class="mt-2 mb-1 text-start">Raw ingredient audit</h6>');
+                parts.push('<table class="table table-sm table-bordered text-start"><thead><tr><th>Batch</th><th>Supplier</th><th>Product / description</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>');
+                audit.forEach(function (row) {
+                    var bid = row.batch_id != null ? row.batch_id : '';
+                    var pt = row.product_type || row.description || '';
+                    var qk = row.quantity_kg != null ? row.quantity_kg : '';
+                    var sup = row.supplier || row.supplier_details || '';
+                    parts.push('<tr><td>' + escapeHtml(String(bid)) + '</td><td>' + escapeHtml(String(sup || '—')) + '</td><td>' + escapeHtml(String(pt)) + '</td><td class="text-end">' + escapeHtml(String(qk)) + '</td></tr>');
+                });
+                parts.push('</tbody></table>');
+            }
+            var hasDetail = (d.shifts_text && String(d.shifts_text).trim()) ||
+                (segs && Array.isArray(segs) && segs.length) ||
+                (audit && Array.isArray(audit) && audit.length);
+            if ((d.has_oil_bin_batch || d.has_oil_row) && !hasDetail) {
+                parts.push('<p class="mb-0 text-muted">No detailed ingredient lines were recorded for this batch.</p>');
+            }
+            return parts.join('');
+        },
+
+        showOilBatchIngredientsModal: function (batchNumber) {
+            var scope = _stockManagementGrid;
+            if (!batchNumber || typeof dataFunctions === 'undefined' || !dataFunctions.getOilBatchIngredientsDetail) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Ingredients lookup is not available.', 'error');
+                return;
+            }
+            if (typeof Swal !== 'undefined') Swal.fire({ title: 'Loading…', didOpen: function () { Swal.showLoading(); }, allowOutsideClick: false, showConfirmButton: false });
+            dataFunctions.getOilBatchIngredientsDetail(batchNumber, null).then(function (d) {
+                if (typeof Swal !== 'undefined') Swal.close();
+                if (d && d.success === false) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', d.error || 'Could not load ingredients', 'error');
+                    return;
+                }
+                var html = scope.formatOilBatchIngredientsHtml(d);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Ingredients for batch',
+                        html: html,
+                        width: '48rem',
+                        confirmButtonText: 'OK',
+                        customClass: { htmlContainer: 'text-start' }
+                    });
+                }
+            }).catch(function (e) {
+                if (typeof Swal !== 'undefined') Swal.close();
+                console.error('[Stock Management] getOilBatchIngredientsDetail failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', (e && e.message) ? e.message : 'Failed to load ingredients', 'error');
+            });
         },
 
         deleteOilLot: function (lotId) {

@@ -171,17 +171,27 @@ var _oilProductionGrid = function () {
         return String(s);
     }
 
+    /** Supplier name on raw ingredient bag (stored in oil.intake_data). */
+    function supplierLabelFromOil(o) {
+        if (!o || typeof o !== 'object') return '';
+        var intake = o.intake_data || {};
+        var s = intake.supplier || intake.supplier_details;
+        return s ? String(s).trim() : '';
+    }
+
     /** Same shape as DB get_oil_production_raw_ingredients_snapshot() for raw_ingredient_audit */
     function buildRawIngredientAuditEntry(o) {
         if (!o || typeof o !== 'object') return null;
         var intake = o.intake_data || {};
         var qty = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
         var pt = intake.product_type || (o.name_of_product && String(o.name_of_product));
+        var sup = supplierLabelFromOil(o);
         return {
             oil_id: o.id,
             batch_id: o.batch_id,
             quantity_kg: qty != null && !isNaN(Number(qty)) ? Number(qty) : null,
-            product_type: pt ? String(pt).trim() : ''
+            product_type: pt ? String(pt).trim() : '',
+            supplier: sup || null
         };
     }
 
@@ -667,9 +677,9 @@ var _oilProductionGrid = function () {
                     var d = i.date_received || o.production_date;
                     return d ? fromISO(String(d).split('T')[0]) : '—';
                 };
-                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Product type</th><th>Quantity (kg)</th><th>Date received</th></tr></thead><tbody>';
+                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>Quantity (kg)</th><th>Date received</th></tr></thead><tbody>';
                 raw.forEach(function (o) {
-                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td></tr>';
+                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td></tr>';
                 });
                 tbl += '</tbody></table></div>';
                 return tbl;
@@ -697,9 +707,9 @@ var _oilProductionGrid = function () {
                         return String(t);
                     }
                 };
-                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Product type</th><th>Qty (kg)</th><th>Emptied at</th></tr></thead><tbody>';
+                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>Qty (kg)</th><th>Emptied at</th></tr></thead><tbody>';
                 rawFin.forEach(function (o) {
-                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(emptiedAt(o)) + '</td></tr>';
+                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(emptiedAt(o)) + '</td></tr>';
                 });
                 tbl += '</tbody></table></div>';
                 return tbl;
@@ -758,9 +768,9 @@ var _oilProductionGrid = function () {
                     return d ? fromISO(String(d).split('T')[0]) : '—';
                 };
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table"><thead><tr><th>Batch #</th><th>Product type</th><th>Quantity (kg)</th><th>Date received</th><th class="text-end">Action</th></tr></thead><tbody>';
+                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>Quantity (kg)</th><th>Date received</th><th class="text-end">Action</th></tr></thead><tbody>';
                 rows.forEach(function (o) {
-                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary op-raw-empty-btn" data-oil-id="' + escapeHtml(o.id) + '" title="Bag finished in press">Empty</button></td></tr>';
+                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary op-raw-empty-btn" data-oil-id="' + escapeHtml(o.id) + '" title="Bag finished in press">Empty</button></td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
@@ -809,9 +819,9 @@ var _oilProductionGrid = function () {
                     }
                 };
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table op-finished-raw-table"><thead><tr><th>Batch #</th><th>Product type</th><th>Quantity (kg)</th><th>Emptied at</th></tr></thead><tbody>';
+                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table op-finished-raw-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>Quantity (kg)</th><th>Emptied at</th></tr></thead><tbody>';
                 rows.forEach(function (o) {
-                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(emptiedAt(o)) + '</td></tr>';
+                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(emptiedAt(o)) + '</td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
@@ -1046,6 +1056,7 @@ var _oilProductionGrid = function () {
                     scope._linkIngredientsOilRows[oid] = o;
                     var checked = selectedIds[oid] ? ' checked' : '';
                     var intake = o.intake_data || {};
+                    var sup = intake.supplier || intake.supplier_details;
                     var pt = intake.product_type || (o.name_of_product && String(o.name_of_product));
                     if (pt) pt = String(pt).replace(/_/g, ' ');
                     else pt = '—';
@@ -1054,7 +1065,9 @@ var _oilProductionGrid = function () {
                     html += '<div class="form-check py-1 border-bottom op-link-ing-item mb-0">';
                     html += '<input class="form-check-input op-link-ing-cb" type="checkbox" value="' + escapeHtml(oid) + '" id="' + safeId + '"' + checked + '>';
                     html += '<label class="form-check-label w-100" for="' + safeId + '">';
-                    html += '<strong>' + escapeHtml(o.batch_id || oid) + '</strong> — ' + escapeHtml(pt);
+                    html += '<strong>' + escapeHtml(o.batch_id || oid) + '</strong>';
+                    if (sup) html += ' <span class="text-muted small">(' + escapeHtml(String(sup)) + ')</span>';
+                    html += ' — ' + escapeHtml(pt);
                     if (qty != null && qty !== '') html += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
                     html += '</label></div>';
                 });
@@ -1163,6 +1176,7 @@ var _oilProductionGrid = function () {
                     scope._linkProteinIngredientsOilRows[oid] = o;
                     var checked = selectedIds[oid] ? ' checked' : '';
                     var intake = o.intake_data || {};
+                    var sup = intake.supplier || intake.supplier_details;
                     var pt = intake.product_type || (o.name_of_product && String(o.name_of_product));
                     if (pt) pt = String(pt).replace(/_/g, ' ');
                     else pt = '—';
@@ -1171,7 +1185,9 @@ var _oilProductionGrid = function () {
                     html += '<div class="form-check py-1 border-bottom op-protein-link-ing-item mb-0">';
                     html += '<input class="form-check-input op-protein-link-ing-cb" type="checkbox" value="' + escapeHtml(oid) + '" id="' + safeId + '"' + checked + '>';
                     html += '<label class="form-check-label w-100" for="' + safeId + '">';
-                    html += '<strong>' + escapeHtml(o.batch_id || oid) + '</strong> — ' + escapeHtml(pt);
+                    html += '<strong>' + escapeHtml(o.batch_id || oid) + '</strong>';
+                    if (sup) html += ' <span class="text-muted small">(' + escapeHtml(String(sup)) + ')</span>';
+                    html += ' — ' + escapeHtml(pt);
                     if (qty != null && qty !== '') html += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
                     html += '</label></div>';
                 });

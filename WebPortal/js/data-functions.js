@@ -1980,6 +1980,38 @@ var _dataFunctions = function () {
             return this._unwrapOilStockLotsRpc(raw);
         },
 
+        /**
+         * Ingredients / shift segments for an oil stock batch (oil_bin_batch + oil.production_data).
+         */
+        getOilBatchIngredientsDetail: async function (batchNumber, token = null) {
+            const bn = batchNumber != null ? String(batchNumber).trim() : '';
+            if (!bn) {
+                return { success: false, error: 'Batch number is required' };
+            }
+            const raw = await this.callFunction('get_oil_batch_ingredients_detail', { p_batch_number: bn }, token, {
+                useCache: false
+            });
+            return this._unwrapOilBatchIngredientsDetailRpc(raw);
+        },
+
+        _unwrapOilBatchIngredientsDetailRpc: function (raw) {
+            if (raw == null) return { success: false, error: 'No response' };
+            if (typeof raw.success === 'boolean' && (raw.batch_number !== undefined || raw.error)) return raw;
+            var d = raw.data !== undefined ? raw.data : raw;
+            if (typeof d === 'string') {
+                try { d = JSON.parse(d); } catch (e) { return { success: false, error: 'Invalid response' }; }
+            }
+            if (d && d.get_oil_batch_ingredients_detail !== undefined) {
+                var inner = d.get_oil_batch_ingredients_detail;
+                if (typeof inner === 'string') {
+                    try { inner = JSON.parse(inner); } catch (e2) { return { success: false, error: 'Invalid JSON' }; }
+                }
+                return inner;
+            }
+            if (d && typeof d.success === 'boolean') return d;
+            return raw;
+        },
+
         /** Normalize Lambda / PostgREST shapes for get_oil_stock_lots (TABLE / jsonb wrappers). */
         _unwrapOilStockLotsRpc: function (raw) {
             if (raw == null) return [];

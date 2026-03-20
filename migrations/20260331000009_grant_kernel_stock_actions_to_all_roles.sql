@@ -58,6 +58,7 @@ DECLARE
         'get_kernel_production_history',
         'get_stock_items',
         'get_oil_stock_lots',
+        'get_oil_batch_ingredients_detail',
         'release_oil_stock_lots_to_oil_production'
     ];
 BEGIN
