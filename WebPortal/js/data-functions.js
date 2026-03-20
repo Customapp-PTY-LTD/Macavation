@@ -1929,12 +1929,16 @@ var _dataFunctions = function () {
                 p_limit: filters.limit || 200
             };
 
-            return await this.callFunction('get_oil_stock_lots', params, token, {
+            const raw = await this.callFunction('get_oil_stock_lots', params, token, {
                 cacheKey: `oil_stock_lots_${params.p_location_code || 'all'}_${params.p_stock_category || 'all'}_${params.p_status || 'all'}_${params.p_search || ''}_${params.p_offset}_${params.p_limit}`,
                 useCache: true,
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.get_oil_stock_lots)) return raw.get_oil_stock_lots;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
         },
 
         getOilStockSummary: async function (filters = {}, token = null, forceRefresh = false) {
@@ -1972,6 +1976,24 @@ var _dataFunctions = function () {
             this.clearCachePattern('oil_stock_lots');
             this.clearCachePattern('oil_stock_summary');
             return result;
+        },
+
+        /**
+         * Match selected oil_stock_lots to public.oil (supplier intake) by batch_number → batch_id; set status production.
+         * Requires migration release_oil_stock_lots_to_oil_production (see docs/MCP_RUN_OIL_STOCK_REDESIGN.md).
+         */
+        releaseOilStockLotsToOilProduction: async function (lotIds, token = null) {
+            if (!lotIds || !Array.isArray(lotIds) || lotIds.length === 0) {
+                return { success: false, error: 'No lot ids' };
+            }
+            const raw = await this.callFunction('release_oil_stock_lots_to_oil_production', { p_lot_ids: lotIds }, token, { useCache: false });
+            this.clearCachePattern('oil_stock_lots');
+            let r = raw && raw.data !== undefined ? raw.data : raw;
+            if (typeof r === 'string') {
+                try { r = JSON.parse(r); } catch (e) { r = { success: false, error: 'Invalid response' }; }
+            }
+            if (r && r.release_oil_stock_lots_to_oil_production) r = r.release_oil_stock_lots_to_oil_production;
+            return r;
         },
 
         // Dashboard Functions (cached for 30 seconds - near real-time)
@@ -2375,6 +2397,9 @@ var _dataFunctions = function () {
             if (!shiftId) return { success: false, error: 'shiftId required' };
             const result = await this.callFunction('sync_oil_production_duty_audit', { p_shift_id: shiftId }, token, { useCache: false });
             this.clearCachePattern('oil_bin_batches');
+            this.clearCachePattern('oil_bin_batches_v2');
+            this.clearCachePattern('oil_bin_batches_v3');
+            this.clearCachePattern('oil_bin_batches_v4');
             return result && (result.data !== undefined ? result.data : result);
         },
 
@@ -2434,19 +2459,58 @@ var _dataFunctions = function () {
             if (options.status !== undefined && options.status !== null && options.status !== '') {
                 params.p_status = options.status;
             }
-            return await this.callFunction('get_oil_bin_batches', params, token, {
-                cacheKey: 'oil_bin_batches_v2' + (options.status ? '_' + options.status : ''),
+            var raw = await this.callFunction('get_oil_bin_batches', params, token, {
+                cacheKey: 'oil_bin_batches_v4' + (options.status ? '_' + options.status : ''),
                 useCache: !forceRefresh,
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
+            return this._unwrapOilBinBatchesRpc(raw);
         },
 
-        startOilBinBatch: async function (startDate = null, token = null) {
-            var params = {};
-            if (startDate) params.p_start_date = startDate;
+        /** Normalize Lambda / PostgREST shapes so the grid always sees an array or { get_oil_bin_batches } */
+        _unwrapOilBinBatchesRpc: function (raw) {
+            if (raw == null) return raw;
+            if (Array.isArray(raw)) return raw;
+            if (raw.get_oil_bin_batches && Array.isArray(raw.get_oil_bin_batches)) return raw;
+            if (raw.data && raw.data.get_oil_bin_batches && Array.isArray(raw.data.get_oil_bin_batches)) {
+                return { get_oil_bin_batches: raw.data.get_oil_bin_batches };
+            }
+            if (raw.data && Array.isArray(raw.data)) return raw.data;
+            if (raw.result && Array.isArray(raw.result)) return { get_oil_bin_batches: raw.result };
+            if (raw.rows && Array.isArray(raw.rows)) return { get_oil_bin_batches: raw.rows };
+            return raw;
+        },
+
+        /**
+         * Start a new oil bin batch.
+         * @param {string|Date|null|object} first - Start date (ISO or Date), or options { startDate, oilStream } / { p_start_date, p_stream } (p_oil_stream accepted as alias)
+         * @param {string|null} second - Auth token when first is date/null; or token when first is options object
+         */
+        startOilBinBatch: async function (first, second) {
+            // PostgREST sorts param names A–Z; p_oil_stream before p_start_date breaks matching. Use p_stream (see docs/MCP_RUN_OIL_BIN_START_POSTGREST.md).
+            var pStart = null;
+            var pStream = null;
+            var token = null;
+            if (first !== undefined && first !== null && typeof first === 'object' && !Array.isArray(first) && !(first instanceof Date)) {
+                token = second;
+                if (first.p_start_date != null) pStart = first.p_start_date;
+                if (first.startDate != null) pStart = first.startDate;
+                if (first.p_stream != null) pStream = first.p_stream;
+                if (first.p_oil_stream != null) pStream = first.p_oil_stream;
+                if (first.oilStream != null) pStream = first.oilStream;
+            } else {
+                token = second;
+                if (first !== undefined && first !== null && first !== '') {
+                    pStart = first instanceof Date ? first.toISOString().split('T')[0] : first;
+                }
+            }
+            var params = { p_start_date: pStart, p_stream: pStream };
             const result = await this.callFunction('start_oil_bin_batch', params, token, { useCache: false });
             this.clearCachePattern('oil_bin_batches');
+            this.clearCachePattern('oil_bin_batches_v2');
+            this.clearCachePattern('oil_bin_batches_v3');
+            this.clearCachePattern('oil_bin_batches_v4');
             return result;
         },
 
@@ -2454,9 +2518,32 @@ var _dataFunctions = function () {
             const result = await this.callFunction('send_oil_bin_batch_to_stock', { p_oil_bin_batch_id: oilBinBatchId }, token, { useCache: false });
             if (result && result.success) {
                 this.clearCachePattern('oil_bin_batches');
+                this.clearCachePattern('oil_bin_batches_v2');
+                this.clearCachePattern('oil_bin_batches_v3');
+                this.clearCachePattern('oil_bin_batches_v4');
                 this.clearCachePattern('oil_batches');
                 this.clearCachePattern('oil_stock_lots');
                 this.clearCachePattern('oil_stock_summary');
+            }
+            return result;
+        },
+
+        /**
+         * Record FFA lab test on an in-production oil bin batch (updates ffa %, ffa_test_at, ffa_test_pass).
+         */
+        recordOilBinBatchFfaTest: async function (binId, ffaPct, pass, token = null) {
+            var pPass = pass === true ? true : pass === false ? false : null;
+            const result = await this.callFunction(
+                'record_oil_bin_batch_ffa_test',
+                { p_bin_id: binId, p_ffa_pct: ffaPct != null ? Number(ffaPct) : null, p_pass: pPass },
+                token,
+                { useCache: false }
+            );
+            if (result && result.success) {
+                this.clearCachePattern('oil_bin_batches');
+                this.clearCachePattern('oil_bin_batches_v2');
+                this.clearCachePattern('oil_bin_batches_v3');
+                this.clearCachePattern('oil_bin_batches_v4');
             }
             return result;
         },
@@ -2469,8 +2556,122 @@ var _dataFunctions = function () {
                 p_letrerage: data.letrerage != null ? data.letrerage : null,
                 p_ffa: data.ffa != null ? data.ffa : null
             };
+            var os = data.p_oil_stream != null ? data.p_oil_stream : data.oilStream;
+            if (os !== undefined && os !== null && String(os).trim() !== '') {
+                params.p_oil_stream = String(os).trim();
+            }
+            var seg = data.p_shift_segments != null ? data.p_shift_segments : data.shift_segments != null ? data.shift_segments : data.shiftSegments;
+            if (seg !== undefined && seg !== null) {
+                if (typeof seg === 'string') {
+                    try {
+                        params.p_shift_segments = JSON.parse(seg);
+                    } catch (e) {
+                        params.p_shift_segments = [];
+                    }
+                } else {
+                    params.p_shift_segments = seg;
+                }
+            }
             const result = await this.callFunction('update_oil_bin_batch', params, token, { useCache: false });
-            if (result && result.success) this.clearCachePattern('oil_bin_batches');
+            if (result && result.success) {
+                this.clearCachePattern('oil_bin_batches');
+                this.clearCachePattern('oil_bin_batches_v2');
+                this.clearCachePattern('oil_bin_batches_v3');
+                this.clearCachePattern('oil_bin_batches_v4');
+            }
+            return result;
+        },
+
+        /**
+         * Link raw ingredient supplier batches (oil rows in production) to an oil bin for traceability.
+         * Uses DB function set_oil_bin_batch_raw_ingredient_links (not update_oil_bin_batch) so PostgREST
+         * does not require an extended update_oil_bin_batch signature on the server.
+         */
+        setOilBinBatchRawIngredientLinks: async function (oilBinBatchId, rawIngredientAudit, ingredientsText, token = null) {
+            var params = {
+                p_oil_bin_batch_id: oilBinBatchId,
+                p_raw_ingredient_audit: rawIngredientAudit != null ? rawIngredientAudit : []
+            };
+            if (ingredientsText !== undefined) {
+                params.p_ingredients = ingredientsText === null ? null : String(ingredientsText);
+            }
+            const result = await this.callFunction('set_oil_bin_batch_raw_ingredient_links', params, token, { useCache: false });
+            if (result && result.success) {
+                this.clearCachePattern('oil_bin_batches');
+                this.clearCachePattern('oil_bin_batches_v2');
+                this.clearCachePattern('oil_bin_batches_v3');
+                this.clearCachePattern('oil_bin_batches_v4');
+            }
+            return result;
+        },
+
+        getProteinBinBatches: async function (options = {}, token = null, forceRefresh = false) {
+            var params = { p_limit: options.limit || 100, p_offset: options.offset || 0 };
+            if (options.status !== undefined && options.status !== null && options.status !== '') {
+                params.p_status = options.status;
+            }
+            var raw = await this.callFunction('get_protein_bin_batches', params, token, {
+                cacheKey: 'protein_bin_batches_v1' + (options.status ? '_' + options.status : ''),
+                useCache: !forceRefresh,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            return this._unwrapProteinBinBatchesRpc(raw);
+        },
+        _unwrapProteinBinBatchesRpc: function (raw) {
+            if (raw == null) return raw;
+            if (Array.isArray(raw)) return raw;
+            if (raw.get_protein_bin_batches && Array.isArray(raw.get_protein_bin_batches)) return raw;
+            if (raw.data && raw.data.get_protein_bin_batches && Array.isArray(raw.data.get_protein_bin_batches)) {
+                return { get_protein_bin_batches: raw.data.get_protein_bin_batches };
+            }
+            if (raw.data && Array.isArray(raw.data)) return raw.data;
+            if (raw.result && Array.isArray(raw.result)) return { get_protein_bin_batches: raw.result };
+            if (raw.rows && Array.isArray(raw.rows)) return { get_protein_bin_batches: raw.rows };
+            return raw;
+        },
+        startProteinBinBatch: async function (startDate, token = null) {
+            var params = {};
+            if (startDate !== undefined && startDate !== null && startDate !== '') {
+                params.p_start_date = startDate instanceof Date ? startDate.toISOString().split('T')[0] : startDate;
+            }
+            const result = await this.callFunction('start_protein_bin_batch', params, token, { useCache: false });
+            this.clearCachePattern('protein_bin_batches');
+            return result;
+        },
+        updateProteinBinBatch: async function (data, token = null) {
+            const result = await this.callFunction(
+                'update_protein_bin_batch',
+                {
+                    p_id: data.id,
+                    p_ingredients: data.ingredients !== undefined ? data.ingredients : null,
+                    p_batch_weight_kg: data.batch_weight_kg != null ? Number(data.batch_weight_kg) : null
+                },
+                token,
+                { useCache: false }
+            );
+            if (result && result.success) this.clearCachePattern('protein_bin_batches');
+            return result;
+        },
+        setProteinBinBatchRawIngredientLinks: async function (proteinBinBatchId, rawIngredientAudit, ingredientsText, token = null) {
+            var params = {
+                p_protein_bin_batch_id: proteinBinBatchId,
+                p_raw_ingredient_audit: rawIngredientAudit != null ? rawIngredientAudit : []
+            };
+            if (ingredientsText !== undefined) {
+                params.p_ingredients = ingredientsText === null ? null : String(ingredientsText);
+            }
+            const result = await this.callFunction('set_protein_bin_batch_raw_ingredient_links', params, token, { useCache: false });
+            if (result && result.success) this.clearCachePattern('protein_bin_batches');
+            return result;
+        },
+        sendProteinBinBatchToStock: async function (proteinBinBatchId, token = null) {
+            const result = await this.callFunction('send_protein_bin_batch_to_stock', { p_protein_bin_batch_id: proteinBinBatchId }, token, { useCache: false });
+            if (result && result.success) {
+                this.clearCachePattern('protein_bin_batches');
+                this.clearCachePattern('oil_stock_lots');
+                this.clearCachePattern('oil_stock_summary');
+            }
             return result;
         },
         // ─────────────────────────────────────────────────────────────────────
@@ -2695,9 +2896,10 @@ var _dataFunctions = function () {
             return result;
         },
 
-        getOilDispatchOrders: async function (token = null, forceRefresh = false) {
-            const raw = await this.callFunction('get_oil_dispatch_orders', { p_limit: 100, p_offset: 0 }, token, {
-                cacheKey: 'oil_dispatch_orders_list',
+        getOilDispatchOrders: async function (token = null, forceRefresh = false, pLimit = 100) {
+            const lim = typeof pLimit === 'number' && pLimit > 0 ? Math.min(pLimit, 1000) : 100;
+            const raw = await this.callFunction('get_oil_dispatch_orders', { p_limit: lim, p_offset: 0 }, token, {
+                cacheKey: 'oil_dispatch_orders_list_' + lim,
                 useCache: true,
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
@@ -2712,7 +2914,13 @@ var _dataFunctions = function () {
             const raw = await this.callFunction('get_oil_dispatch_order', { p_order_id: orderId }, token, { useCache: false });
             if (raw && raw.success !== false && raw.order) {
                 const order = raw.order;
-                return { order: order, lines: Array.isArray(order.lines) ? order.lines : [] };
+                let lines = order.lines;
+                if (lines == null && raw.lines != null) lines = raw.lines;
+                if (typeof lines === 'string') {
+                    try { lines = JSON.parse(lines); } catch (e) { lines = []; }
+                }
+                if (!Array.isArray(lines)) lines = [];
+                return { order: order, lines: lines };
             }
             return null;
         },

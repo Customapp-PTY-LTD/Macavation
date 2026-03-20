@@ -35,6 +35,13 @@ DECLARE
         'start_oil_bin_batch',
         'get_oil_bin_batches',
         'update_oil_bin_batch',
+        'set_oil_bin_batch_raw_ingredient_links',
+        'start_protein_bin_batch',
+        'get_protein_bin_batches',
+        'update_protein_bin_batch',
+        'set_protein_bin_batch_raw_ingredient_links',
+        'send_protein_bin_batch_to_stock',
+        'record_oil_bin_batch_ffa_test',
         'save_kernel_intake_sample',
         'upsert_kernel_checklist',
         'create_sample_submission_for_batch',
@@ -50,7 +57,8 @@ DECLARE
         'get_kernel_batch_detail',
         'get_kernel_production_history',
         'get_stock_items',
-        'get_oil_stock_lots'
+        'get_oil_stock_lots',
+        'release_oil_stock_lots_to_oil_production'
     ];
 BEGIN
     FOR v_role_id IN SELECT id FROM public.roles

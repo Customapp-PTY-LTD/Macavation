@@ -2,9 +2,11 @@
 .module-content { min-height: 400px; }
 #stockTable th { border-top: none; font-weight: 600; }
 
-/* Oil stock tables */
-#oilLotsTable th { white-space: nowrap; }
-#oilLotsTable td { vertical-align: middle; }
+/* Oil & protein stock tables */
+#oilStockOilTable th,
+#oilStockProteinTable th { white-space: nowrap; }
+#oilStockOilTable td,
+#oilStockProteinTable td { vertical-align: middle; }
 
 /* Kernel Stock by style: quantity cell dropdown - show upfront, not clipped by grid */
 #kernelBatchJourneyCard .card-body {
@@ -36,12 +38,13 @@
 .oil-stock-table-wrapper {
     overflow: visible !important;
 }
-#oilStockLedgerCard #oilLotsTable,
-#oilStockLedgerCard #oilSummaryTable {
+#oilStockLedgerCard #oilStockOilTable,
+#oilStockLedgerCard #oilStockProteinTable,
+#oilStockLedgerCard #osWeeklyTable {
     overflow: visible !important;
 }
-#oilStockLedgerCard #oilLotsTable tbody tr td,
-#oilStockLedgerCard #oilSummaryTable tbody tr td {
+#oilStockLedgerCard #oilStockOilTable tbody tr td,
+#oilStockLedgerCard #oilStockProteinTable tbody tr td {
     overflow: visible;
 }
 
@@ -53,11 +56,13 @@
     overflow: visible;
 }
 .stock-management-table-card #stockTable,
-.stock-management-table-card #oilLotsTable {
+.stock-management-table-card #oilStockOilTable,
+.stock-management-table-card #oilStockProteinTable {
     overflow: visible !important;
 }
 .stock-management-table-card #stockTable tbody tr td,
-.stock-management-table-card #oilLotsTable tbody tr td {
+.stock-management-table-card #oilStockOilTable tbody tr td,
+.stock-management-table-card #oilStockProteinTable tbody tr td {
     overflow: visible;
 }
 

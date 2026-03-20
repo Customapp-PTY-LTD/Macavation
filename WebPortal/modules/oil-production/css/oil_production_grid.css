@@ -155,6 +155,10 @@
     font-weight: 500;
 }
 .op-oil-bin-batches-table .btn-sm { white-space: nowrap; }
+.op-oil-bin-batches-table .op-ffa-test-cell {
+    min-width: 7.5rem;
+    vertical-align: top;
+}
 
 /* Raw ingredients table – batch # styling (match oil bin batches) */
 .op-raw-ingredients-table thead th { border-top: none; font-weight: 600; }
