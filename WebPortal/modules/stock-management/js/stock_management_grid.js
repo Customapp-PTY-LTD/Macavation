@@ -837,6 +837,17 @@ var _stockManagementGrid = function () {
             var protRows = rows.filter(function (l) { return scope.isProteinPowderLot(l); });
             var formatDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY) ? _common.formatDateDDMMYYYY : function (v) { return v || ''; };
 
+            /** Normalize grade for display: Food grade | Cosmetic | Protein powder | legacy snake_case. */
+            function displayOilLotGrade(lot) {
+                if (!lot) return '';
+                var g = (lot.grade != null && String(lot.grade).trim()) ? String(lot.grade).trim() : '';
+                if (!g) return '';
+                var low = g.toLowerCase().replace(/_/g, ' ');
+                if (low === 'food grade') return 'Food grade';
+                if (low === 'cosmetic') return 'Cosmetic';
+                return g;
+            }
+
             function renderRow(l, tbody) {
                 var days = scope.daysRemainingFromBbDate(l.bb_date);
                 var daysClass = (days !== '' && days < 0) ? 'text-danger fw-bold' : (days !== '' && days < 30) ? 'text-warning fw-bold' : '';
@@ -846,7 +857,7 @@ var _stockManagementGrid = function () {
                     '<td>' + (l.stock_category || '') + '</td>' +
                     '<td>' + (l.batch_number || '') + '</td>' +
                     '<td>' + (l.product_description || l.product_code || '') + '</td>' +
-                    '<td>' + (l.grade || '') + '</td>' +
+                    '<td>' + escapeHtml(displayOilLotGrade(l)) + '</td>' +
                     '<td class="text-end">' + (l.ffa !== null && l.ffa !== undefined ? Number(l.ffa).toFixed(2) : '') + '</td>' +
                     '<td class="text-end">' + (l.kilograms !== null && l.kilograms !== undefined ? Number(l.kilograms).toFixed(2) : '') + '</td>' +
                     '<td>' + bbDisplay + '</td>' +

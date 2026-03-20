@@ -31,3 +31,18 @@ If roles other than admin/super need access, add `EXECUTE` on `release_oil_stock
 When **Send to Dispatch (Oil & Protein)** creates an order, stock must **leave the ledger** and the order **enters dispatch**.
 
 **Apply this migration via Supabase MCP:** see **docs/MCP_RUN_OIL_DISPATCH_DEDUCT_STOCK.md** (`apply_migration` → `create_oil_dispatch_order_deduct_stock`, file `migrations/20260335000001_create_oil_dispatch_order_deduct_stock.sql`).
+
+---
+
+## Oil stock **Grade** (Food grade / Cosmetic)
+
+`send_oil_bin_batch_to_stock` now sets `oil_stock_lots.grade` from `oil_bin_batch.oil_stream` (`food_grade` → **Food grade**, `cosmetic` → **Cosmetic**). A one-time **UPDATE** backfills existing finished-good rows matched by `batch_number`.
+
+**Migrations (apply both, in order):**
+
+1. `migrations/20260336000001_oil_stock_lots_grade_from_oil_stream.sql` — persist grade on send-to-stock + backfill.
+2. `migrations/20260337000001_get_oil_stock_lots_coalesce_grade.sql` — **`get_oil_stock_lots`** coalesces grade from **`oil_bin_batch`** so the grid is not blank when `lot.grade` is still null.
+
+**Step-by-step (MCP):** **docs/MCP_RUN_OIL_STOCK_GRADE.md**
+
+**Frontend:** `stock_management_grid.js` normalizes `food_grade` / `food grade` display as **Food grade**.

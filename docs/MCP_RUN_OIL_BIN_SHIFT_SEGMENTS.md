@@ -1,6 +1,16 @@
 # Oil bin `shift_segments` — apply migration (Supabase MCP)
 
-## What this does
+## Error: `column "shift_segments" does not exist` when sending to stock
+
+If **`send_oil_bin_batch_to_stock`** was deployed before **`shift_segments`** existed on **`oil_bin_batch`**, add the column only (does not downgrade **`send_oil_bin_batch_to_stock`**):
+
+**Migration:** `migrations/20260338000001_add_oil_bin_batch_shift_segments_if_missing.sql`
+
+Apply via MCP **`apply_migration`** (same pattern as below) or SQL Editor, then hard-refresh.
+
+---
+
+## What this does (full feature migration)
 
 - Adds **`shift_segments jsonb`** on **`public.oil_bin_batch`**: structured rows per shift, each with its own **`ingredients`** array (and optional **`raw_ingredient_audit`**).
 - **`sync_oil_production_duty_audit`** updates or **appends** a segment when **Person on duty** is saved: same `shift_id` → replace last segment; new `shift_id` → **new row** in that bin’s segment list.
