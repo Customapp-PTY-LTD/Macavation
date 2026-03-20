@@ -70,7 +70,6 @@ var _stockManagementGrid = function () {
         oilDispatchOrdersWithLines: null,
         oilCurrentView: 'bystock',
         oilWeeklyMode: 'in',
-        oilSelectedLotIds: {},
         kernelRawBatches: [],
         kernelFinishedBatches: [],
         kernelDispatchOrders: [],
@@ -115,7 +114,7 @@ var _stockManagementGrid = function () {
                     scope.setupEventListeners();
                     scope.loadStockItems();
                     scope.toggleKernelBatchJourney(stream);
-                    if (document.getElementById('oilStockOilTableBody')) scope.loadOilLotsAndSummary();
+                    if (document.getElementById('oilStockOilTableBody')) scope.loadOilLotsAndSummary(true);
                 } else {
                     console.warn('[Stock Management] Toolbar not found after modal load');
                 }
@@ -137,7 +136,7 @@ var _stockManagementGrid = function () {
             } else if (route === 'stock-management-oil') {
                 stream = 'oil';
                 if (titleEl) titleEl.textContent = 'Stock (Oil & Protein)';
-                if (subtitleEl) subtitleEl.textContent = 'Oil stock on top, protein powder below. Select raw batches to send to production, weekly in/out, and dispatch when ready—export anytime.';
+                if (subtitleEl) subtitleEl.textContent = 'Oil stock on top, protein powder below. Weekly in/out, send to dispatch when ready—export anytime.';
             }
             var streamSel = document.getElementById('filterStockStream');
             if (streamSel) {
@@ -196,9 +195,6 @@ var _stockManagementGrid = function () {
                 $('#refreshOilStockBtn').off('click').on('click', function () {
                     scope.loadOilLotsAndSummary(true);
                 });
-                $('#oilStockSendToProductionBtn').off('click').on('click', function () {
-                    scope.confirmSendOilLotsToProduction();
-                });
                 $('#osViewByStock, #osViewWeekly, #osViewOverview').off('click').on('click', function () {
                     var v = $(this).data('oil-view');
                     if (v) scope.toggleOilView(v);
@@ -206,18 +202,6 @@ var _stockManagementGrid = function () {
                 $('#osWeeklyViewMode').off('change').on('change', function () {
                     scope.oilWeeklyMode = $(this).val() || 'in';
                     scope.renderOilWeekly();
-                });
-                $(document).off('change.oilSelectAll', '#oilStockSelectAllOil').on('change.oilSelectAll', '#oilStockSelectAllOil', function () {
-                    scope.toggleOilSelectAll('oil', $(this).prop('checked'));
-                });
-                $(document).off('change.oilSelectAllP', '#oilStockSelectAllProtein').on('change.oilSelectAllP', '#oilStockSelectAllProtein', function () {
-                    scope.toggleOilSelectAll('protein', $(this).prop('checked'));
-                });
-                $(document).off('change.oilLotCb', '.oil-stock-lot-cb').on('change.oilLotCb', '.oil-stock-lot-cb', function () {
-                    var id = $(this).data('lot-id');
-                    if (!id) return;
-                    if ($(this).prop('checked')) scope.oilSelectedLotIds[id] = true;
-                    else delete scope.oilSelectedLotIds[id];
                 });
                 $('#exportStockBtn').off('click').on('click', function () { scope.exportStock(); });
 
@@ -331,7 +315,7 @@ var _stockManagementGrid = function () {
                 if (oilCard) oilCard.style.display = '';
                 if (mainFiltersCard) mainFiltersCard.style.display = 'none';
                 if (mainTableCard) mainTableCard.style.display = 'none';
-                if (stream === 'oil' && document.getElementById('oilStockOilTableBody')) scope.loadOilLotsAndSummary();
+                if (stream === 'oil' && document.getElementById('oilStockOilTableBody')) scope.loadOilLotsAndSummary(true);
             }
         },
 
@@ -661,20 +645,14 @@ var _stockManagementGrid = function () {
             };
         },
 
-        /** Split ledger rows: protein powder vs everything else (oil). */
+        /** Split ledger rows: protein powder vs everything else (oil). Prefer grade + batch prefix so long ingredient text does not mis-route oil lots. */
         isProteinPowderLot: function (l) {
             if (!l) return false;
-            var g = (l.grade && String(l.grade).toLowerCase()) || '';
-            var p = (l.product_description && String(l.product_description).toLowerCase()) || '';
             var bn = (l.batch_number && String(l.batch_number)) || '';
-            if (g.indexOf('protein powder') !== -1) return true;
-            if (p.indexOf('protein powder') !== -1) return true;
             if (bn.indexOf('PP-') === 0) return true;
+            var g = (l.grade && String(l.grade).toLowerCase().trim()) || '';
+            if (g === 'protein powder' || g.indexOf('protein powder') === 0) return true;
             return false;
-        },
-
-        canSendOilLotToProduction: function (l) {
-            return !!(l && l.stock_category === 'raw_material' && l.status === 'on_hand' && l.batch_number && String(l.batch_number).trim() !== '');
         },
 
         loadOilLotsAndSummary: function (forceRefresh) {
@@ -709,6 +687,7 @@ var _stockManagementGrid = function () {
             $('#osViewOverview').toggleClass('active', view === 'overview');
             if (view === 'weekly') scope.renderOilWeekly();
             if (view === 'overview') scope.renderOilOverview();
+            if (view === 'bystock') scope.renderOilStockTables();
         },
 
         loadOilDispatchOrdersWithLines: function () {
@@ -837,68 +816,12 @@ var _stockManagementGrid = function () {
                 '<tr class="table-light fw-bold"><td>Total</td><td class="text-end">' + escapeHtml(Number(oilKg + protKg).toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</td></tr>';
         },
 
-        toggleOilSelectAll: function (stream, checked) {
+        /** Lots available in warehouse (excludes dispatched/sold). */
+        oilLotsAvailableForStockView: function () {
             var scope = _stockManagementGrid;
-            var lots = (scope.oilLots || []).filter(function (l) {
-                var isP = scope.isProteinPowderLot(l);
-                return stream === 'protein' ? isP : !isP;
-            });
-            lots.forEach(function (l) {
-                if (!scope.canSendOilLotToProduction(l)) return;
-                var id = l.id;
-                if (!id) return;
-                if (checked) scope.oilSelectedLotIds[id] = true;
-                else delete scope.oilSelectedLotIds[id];
-            });
-            scope.renderOilStockTables();
-        },
-
-        confirmSendOilLotsToProduction: function () {
-            var scope = _stockManagementGrid;
-            var ids = Object.keys(scope.oilSelectedLotIds || {});
-            if (!ids.length) {
-                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'info', title: 'No batches selected', text: 'Tick raw material on-hand rows that have a batch number, then try again.' });
-                return;
-            }
-            if (typeof Swal === 'undefined') {
-                scope.releaseOilStockLotsToProduction(ids);
-                return;
-            }
-            Swal.fire({
-                title: 'Send to oil production?',
-                html: 'This will set the matching <strong>supplier intake</strong> oil batch(es) to <strong>production</strong> (same batch number as the ledger).<br><br><span class="text-muted small">' + ids.length + ' lot(s) selected.</span>',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, send to production',
-                cancelButtonText: 'Cancel'
-            }).then(function (result) {
-                if (result && result.isConfirmed) scope.releaseOilStockLotsToProduction(ids);
-            });
-        },
-
-        releaseOilStockLotsToProduction: function (lotIdStrs) {
-            var scope = _stockManagementGrid;
-            if (!lotIdStrs || !lotIdStrs.length) return;
-            if (typeof dataFunctions === 'undefined' || !dataFunctions.releaseOilStockLotsToOilProduction) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'releaseOilStockLotsToOilProduction is not available.', 'error');
-                return;
-            }
-            dataFunctions.releaseOilStockLotsToOilProduction(lotIdStrs).then(function (raw) {
-                var r = raw && raw.data !== undefined ? raw.data : raw;
-                if (typeof r === 'string') { try { r = JSON.parse(r); } catch (e1) { r = {}; } }
-                if (r && r.release_oil_stock_lots_to_oil_production) r = r.release_oil_stock_lots_to_oil_production;
-                if (r && r.success === false) throw new Error((r.error && r.error.message) || r.error || 'Failed');
-                scope.oilSelectedLotIds = {};
-                var msg = (r && r.released_count != null) ? ('Released: ' + r.released_count + ' batch(es).') : 'Done.';
-                if (r && r.errors && (Array.isArray(r.errors) ? r.errors.length : Object.keys(r.errors).length)) {
-                    msg += ' Some rows could not be matched — see console.';
-                    console.warn('[Stock Management] release_oil_stock partial errors:', r.errors);
-                }
-                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Production', text: msg, timer: 3500, showConfirmButton: true });
-                scope.loadOilLotsAndSummary(true);
-            }).catch(function (e) {
-                console.error('[Stock Management] releaseOilStockLotsToProduction:', e);
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release', 'error');
+            return (scope.oilLots || []).filter(function (l) {
+                var s = (l.status && String(l.status).toLowerCase()) || '';
+                return s === 'on_hand' || s === 'hold';
             });
         },
 
@@ -909,7 +832,7 @@ var _stockManagementGrid = function () {
             if (!bodyOil || !bodyProt) return;
             bodyOil.innerHTML = '';
             bodyProt.innerHTML = '';
-            var rows = scope.oilLots || [];
+            var rows = scope.oilLotsAvailableForStockView();
             var oilRows = rows.filter(function (l) { return !scope.isProteinPowderLot(l); });
             var protRows = rows.filter(function (l) { return scope.isProteinPowderLot(l); });
             var formatDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY) ? _common.formatDateDDMMYYYY : function (v) { return v || ''; };
@@ -918,17 +841,8 @@ var _stockManagementGrid = function () {
                 var days = scope.daysRemainingFromBbDate(l.bb_date);
                 var daysClass = (days !== '' && days < 0) ? 'text-danger fw-bold' : (days !== '' && days < 30) ? 'text-warning fw-bold' : '';
                 var bbDisplay = formatDate(l.bb_date) || l.bb_date || '';
-                var eligible = scope.canSendOilLotToProduction(l);
-                var cb = '';
-                if (eligible) {
-                    var sel = scope.oilSelectedLotIds[l.id] ? ' checked' : '';
-                    cb = '<input type="checkbox" class="form-check-input oil-stock-lot-cb" data-lot-id="' + String(l.id).replace(/"/g, '&quot;') + '"' + sel + '>';
-                } else {
-                    cb = '<span class="text-muted">—</span>';
-                }
                 var tr = document.createElement('tr');
-                tr.innerHTML = '<td class="text-center">' + cb + '</td>' +
-                    '<td>' + (l.location_code || '') + '</td>' +
+                tr.innerHTML = '<td>' + (l.location_code || '') + '</td>' +
                     '<td>' + (l.stock_category || '') + '</td>' +
                     '<td>' + (l.batch_number || '') + '</td>' +
                     '<td>' + (l.product_description || l.product_code || '') + '</td>' +
@@ -943,11 +857,11 @@ var _stockManagementGrid = function () {
             }
 
             if (!oilRows.length) {
-                bodyOil.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">No oil stock lines match your search.</td></tr>';
+                bodyOil.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4">No oil stock lines match your search.</td></tr>';
             } else oilRows.forEach(function (l) { renderRow(l, bodyOil); });
 
             if (!protRows.length) {
-                bodyProt.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">No protein powder stock lines match your search.</td></tr>';
+                bodyProt.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4">No protein powder stock lines match your search.</td></tr>';
             } else protRows.forEach(function (l) { renderRow(l, bodyProt); });
         },
 

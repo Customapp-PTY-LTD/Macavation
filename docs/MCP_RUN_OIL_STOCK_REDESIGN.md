@@ -23,3 +23,11 @@
 ## RBAC
 
 If roles other than admin/super need access, add `EXECUTE` on `release_oil_stock_lots_to_oil_production` in `role_permissions` (same pattern as other oil stock functions).
+
+---
+
+## Send to Dispatch: deduct `oil_stock_lots`
+
+When **Send to Dispatch (Oil & Protein)** creates an order, stock must **leave the ledger** and the order **enters dispatch**.
+
+**Apply this migration via Supabase MCP:** see **docs/MCP_RUN_OIL_DISPATCH_DEDUCT_STOCK.md** (`apply_migration` → `create_oil_dispatch_order_deduct_stock`, file `migrations/20260335000001_create_oil_dispatch_order_deduct_stock.sql`).

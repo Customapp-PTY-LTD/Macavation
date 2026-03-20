@@ -1935,9 +1935,22 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
+            return this._unwrapOilStockLotsRpc(raw);
+        },
+
+        /** Normalize Lambda / PostgREST shapes for get_oil_stock_lots (TABLE / jsonb wrappers). */
+        _unwrapOilStockLotsRpc: function (raw) {
+            if (raw == null) return [];
             if (Array.isArray(raw)) return raw;
+            var d = raw.data !== undefined ? raw.data : raw;
+            if (typeof d === 'string') {
+                try { d = JSON.parse(d); } catch (e) { return []; }
+            }
+            if (Array.isArray(d)) return d;
+            if (d && Array.isArray(d.get_oil_stock_lots)) return d.get_oil_stock_lots;
+            if (d && Array.isArray(d.rows)) return d.rows;
+            if (d && Array.isArray(d.result)) return d.result;
             if (raw && Array.isArray(raw.get_oil_stock_lots)) return raw.get_oil_stock_lots;
-            if (raw && Array.isArray(raw.data)) return raw.data;
             return [];
         },
 
@@ -2516,7 +2529,14 @@ var _dataFunctions = function () {
 
         sendOilBinBatchToStock: async function (oilBinBatchId, token = null) {
             const result = await this.callFunction('send_oil_bin_batch_to_stock', { p_oil_bin_batch_id: oilBinBatchId }, token, { useCache: false });
-            if (result && result.success) {
+            var resolved = result && (result.data !== undefined ? result.data : result);
+            if (typeof resolved === 'string') {
+                try { resolved = JSON.parse(resolved); } catch (e) { resolved = result; }
+            }
+            if (resolved && resolved.send_oil_bin_batch_to_stock) {
+                resolved = resolved.send_oil_bin_batch_to_stock;
+            }
+            if (resolved && resolved.success !== false && !resolved.error) {
                 this.clearCachePattern('oil_bin_batches');
                 this.clearCachePattern('oil_bin_batches_v2');
                 this.clearCachePattern('oil_bin_batches_v3');
@@ -2525,7 +2545,7 @@ var _dataFunctions = function () {
                 this.clearCachePattern('oil_stock_lots');
                 this.clearCachePattern('oil_stock_summary');
             }
-            return result;
+            return resolved != null ? resolved : result;
         },
 
         /**
@@ -2650,8 +2670,12 @@ var _dataFunctions = function () {
                 token,
                 { useCache: false }
             );
-            if (result && result.success) this.clearCachePattern('protein_bin_batches');
-            return result;
+            var resolved = result && (result.data !== undefined ? result.data : result);
+            if (typeof resolved === 'string') {
+                try { resolved = JSON.parse(resolved); } catch (e) { resolved = result; }
+            }
+            if (resolved && resolved.success !== false && !resolved.error) this.clearCachePattern('protein_bin_batches');
+            return resolved != null ? resolved : result;
         },
         setProteinBinBatchRawIngredientLinks: async function (proteinBinBatchId, rawIngredientAudit, ingredientsText, token = null) {
             var params = {
@@ -2667,12 +2691,19 @@ var _dataFunctions = function () {
         },
         sendProteinBinBatchToStock: async function (proteinBinBatchId, token = null) {
             const result = await this.callFunction('send_protein_bin_batch_to_stock', { p_protein_bin_batch_id: proteinBinBatchId }, token, { useCache: false });
-            if (result && result.success) {
+            var resolved = result && (result.data !== undefined ? result.data : result);
+            if (typeof resolved === 'string') {
+                try { resolved = JSON.parse(resolved); } catch (e) { resolved = result; }
+            }
+            if (resolved && resolved.send_protein_bin_batch_to_stock) {
+                resolved = resolved.send_protein_bin_batch_to_stock;
+            }
+            if (resolved && resolved.success !== false && !resolved.error) {
                 this.clearCachePattern('protein_bin_batches');
                 this.clearCachePattern('oil_stock_lots');
                 this.clearCachePattern('oil_stock_summary');
             }
-            return result;
+            return resolved != null ? resolved : result;
         },
         // ─────────────────────────────────────────────────────────────────────
 
@@ -2886,6 +2917,8 @@ var _dataFunctions = function () {
             };
             const result = await this.callFunction('create_oil_dispatch_order', params, token, { useCache: false });
             this.clearCachePattern('oil_dispatch_orders_list');
+            this.clearCachePattern('oil_stock_lots');
+            this.clearCachePattern('oil_stock_summary');
             return result;
         },
 

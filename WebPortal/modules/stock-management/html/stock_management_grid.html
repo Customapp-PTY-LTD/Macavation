@@ -231,9 +231,6 @@
         <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Oil &amp; protein stock</h5>
             <div class="btn-toolbar flex-wrap gap-1">
-                <button type="button" class="btn btn-outline-primary btn-sm" id="oilStockSendToProductionBtn" title="Match ledger batch numbers to supplier intake and set status to production">
-                    <i class="fas fa-industry me-1"></i>Select batches → production
-                </button>
                 <button type="button" class="btn btn-success btn-sm" id="sendToDispatchOilBtn" title="Create an Oil &amp; Protein dispatch order">
                     <i class="fas fa-truck me-1"></i>Send to Dispatch
                 </button>
@@ -250,7 +247,7 @@
             </div>
         </div>
         <div class="card-body">
-            <p class="text-muted small mb-3">Oil finished goods and raw materials on top; protein powder stock below. Select raw-material lines and use <strong>Select batches → production</strong> when the same batch exists in Supplier Intake (oil table). Weekly views use stock ledger dates and dispatched oil orders.</p>
+            <p class="text-muted small mb-3">Oil finished goods and raw materials on top; protein powder stock below. Weekly views use stock ledger dates and dispatched oil orders.</p>
             <div class="d-flex justify-content-end mb-3 flex-wrap gap-2 align-items-center">
                 <div class="flex-grow-1" style="min-width: 12rem; max-width: 24rem;">
                     <label for="oilSearchInput" class="form-label small text-muted mb-0">Search</label>
@@ -277,7 +274,6 @@
                     <table class="table table-sm table-bordered table-hover" id="oilStockOilTable">
                         <thead class="table-light">
                             <tr>
-                                <th class="text-center" style="width:2.5rem;" title="Raw material on hand: send to oil production"><input type="checkbox" id="oilStockSelectAllOil" class="form-check-input" title="Select eligible raw lots"></th>
                                 <th>Location</th>
                                 <th>Category</th>
                                 <th>Batch #</th>
@@ -300,7 +296,6 @@
                     <table class="table table-sm table-bordered table-hover" id="oilStockProteinTable">
                         <thead class="table-light">
                             <tr>
-                                <th class="text-center" style="width:2.5rem;"><input type="checkbox" id="oilStockSelectAllProtein" class="form-check-input" title="Select eligible raw lots"></th>
                                 <th>Location</th>
                                 <th>Category</th>
                                 <th>Batch #</th>

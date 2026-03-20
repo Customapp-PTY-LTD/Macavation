@@ -1,7 +1,7 @@
 /**
  * Modal: Send to Dispatch (Oil & Protein).
- * Step 1: Enter buyer + delivery date.
- * Step 2: Select oil lots, enter qty (kg) to send, add to basket; then send dispatch order.
+ * Step 1: Buyer + delivery date.
+ * Step 2: Oil (letrerage / litres) and protein (kg) in separate tables. Basket stores oil as L + kg equivalent for API.
  */
 var _modal_stock_send_to_dispatch_oil = (function () {
     'use strict';
@@ -9,6 +9,45 @@ var _modal_stock_send_to_dispatch_oil = (function () {
     var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
     var _dispatchOilLines = [];
     var _pendingDetails = null;
+
+    /** Same rule as Stock (Oil) grid — protein powder vs oil streams. */
+    function isProteinPowderLot(l) {
+        if (!l) return false;
+        var bn = (l.batch_number && String(l.batch_number)) || '';
+        if (bn.indexOf('PP-') === 0) return true;
+        var g = (l.grade && String(l.grade).toLowerCase().trim()) || '';
+        if (g === 'protein powder' || g.indexOf('protein powder') === 0) return true;
+        return false;
+    }
+
+    function parseNum(v) {
+        if (v == null || v === '') return NaN;
+        return parseFloat(String(v).replace(',', '.'));
+    }
+
+    function getAvailableKg(lot) {
+        var kg = lot.kilograms != null && lot.kilograms !== '' ? parseFloat(lot.kilograms) : NaN;
+        return !isNaN(kg) && kg > 0 ? kg : 0;
+    }
+
+    /** Prefer stock volume (L); if missing, infer from kg using same 0.92 factor as oil production send-to-stock. */
+    function getAvailableLitres(lot) {
+        var v = lot.volume != null && lot.volume !== '' ? parseFloat(lot.volume) : NaN;
+        if (!isNaN(v) && v > 0) return v;
+        var kg = getAvailableKg(lot);
+        if (kg > 0) return Math.round((kg / 0.92) * 1000) / 1000;
+        return 0;
+    }
+
+    /** kg equivalent for a litre amount (full or partial oil line). */
+    function litresToKgEquivalent(litres, lot) {
+        var L = parseFloat(litres) || 0;
+        var availL = getAvailableLitres(lot);
+        var availKg = getAvailableKg(lot);
+        if (L <= 0) return 0;
+        if (availL > 0 && availKg > 0) return Math.round(L * (availKg / availL) * 100) / 100;
+        return Math.round(L * 0.92 * 100) / 100;
+    }
 
     function deliveryDateToISO(displayStr) {
         if (!displayStr || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(displayStr.trim())) return null;
@@ -51,33 +90,19 @@ var _modal_stock_send_to_dispatch_oil = (function () {
             $(document).off('click.dispatchOilAdd', '#sendToDispatchOilModal .js-dispatch-oil-add-btn').on('click.dispatchOilAdd', '#sendToDispatchOilModal .js-dispatch-oil-add-btn', function (e) {
                 e.preventDefault();
                 var lotId = $(this).data('lot-id');
+                var lineKind = $(this).data('line-kind') === 'oil' ? 'oil' : 'protein';
                 var input = document.getElementById('dispatchOilQty_' + lotId);
-                var qty = input ? parseFloat(input.value) : NaN;
-                if (!lotId || isNaN(qty) || qty <= 0) return;
-                var lots = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.oilLots) ? _stockManagementGrid.oilLots : [];
+                var lots = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.oilLotsAvailableForStockView)
+                    ? _stockManagementGrid.oilLotsAvailableForStockView()
+                    : ((typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.oilLots) ? _stockManagementGrid.oilLots : []);
                 var lot = lots.find(function (l) { return String(l.id) === String(lotId); });
-                if (!lot) return;
-                var available = (lot.kilograms != null && lot.kilograms !== '') ? parseFloat(lot.kilograms) : 0;
-                if (qty > available) {
-                    if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Invalid quantity', 'Qty cannot exceed available ' + available + ' kg for this lot.', 'warning');
-                    return;
-                }
-                var style = (lot.product_description || lot.product_code || '').trim() || '—';
-                var batchNumber = (lot.batch_number || '').toString();
-                var existing = _dispatchOilLines.find(function (l) { return String(l.oil_lot_id) === String(lotId); });
-                if (existing) {
-                    var newQty = (parseFloat(existing.quantity_kg) || 0) + qty;
-                    if (newQty > available) newQty = available;
-                    existing.quantity_kg = Math.round(newQty * 100) / 100;
+                if (!lotId || !lot) return;
+
+                if (lineKind === 'protein') {
+                    api._addProteinLine(lot, input);
                 } else {
-                    _dispatchOilLines.push({
-                        oil_lot_id: lot.id,
-                        batch_number: batchNumber,
-                        style: style,
-                        quantity_kg: Math.round(qty * 100) / 100
-                    });
+                    api._addOilLine(lot, input);
                 }
-                if (input) input.value = '';
                 api.renderOilLotsTable();
                 api.renderBasket();
             });
@@ -100,6 +125,76 @@ var _modal_stock_send_to_dispatch_oil = (function () {
                     }
                 });
             }
+        },
+
+        _addProteinLine: function (lot, input) {
+            var available = getAvailableKg(lot);
+            if (available <= 0) return;
+            var rawVal = input && input.value != null && String(input.value).trim() !== '' ? parseNum(input.value) : NaN;
+            var qty = !isNaN(rawVal) && rawVal > 0 ? rawVal : available;
+            if (qty > available) {
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Invalid quantity', 'Qty cannot exceed available ' + available + ' kg for this lot.', 'warning');
+                return;
+            }
+            var style = (lot.product_description || lot.product_code || '').trim() || '—';
+            var batchNumber = (lot.batch_number || '').toString();
+            var lotId = lot.id;
+            var existing = _dispatchOilLines.find(function (l) { return String(l.oil_lot_id) === String(lotId) && l.line_kind === 'protein'; });
+            if (existing) {
+                var newQty = (parseFloat(existing.quantity_kg) || 0) + qty;
+                if (newQty > available) newQty = available;
+                existing.quantity_kg = Math.round(newQty * 100) / 100;
+            } else {
+                _dispatchOilLines.push({
+                    line_kind: 'protein',
+                    oil_lot_id: lot.id,
+                    batch_number: batchNumber,
+                    style: style,
+                    quantity_kg: Math.round(qty * 100) / 100
+                });
+            }
+            var inBasketAfter = _dispatchOilLines.find(function (l) { return String(l.oil_lot_id) === String(lotId) && l.line_kind === 'protein'; });
+            var qAfter = inBasketAfter ? (parseFloat(inBasketAfter.quantity_kg) || 0) : 0;
+            var rem = Math.max(0, Math.round((available - qAfter) * 100) / 100);
+            if (input) input.value = rem > 0 ? String(rem) : '';
+        },
+
+        _addOilLine: function (lot, input) {
+            var availableL = getAvailableLitres(lot);
+            if (availableL <= 0) {
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('No letrerage', 'This lot has no volume (L) on file. Update the stock line or check intake.', 'warning');
+                return;
+            }
+            var rawVal = input && input.value != null && String(input.value).trim() !== '' ? parseNum(input.value) : NaN;
+            var qtyL = !isNaN(rawVal) && rawVal > 0 ? rawVal : availableL;
+            if (qtyL > availableL) {
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Invalid quantity', 'Letrerage cannot exceed available ' + availableL + ' L for this lot.', 'warning');
+                return;
+            }
+            var style = (lot.product_description || lot.product_code || '').trim() || '—';
+            var batchNumber = (lot.batch_number || '').toString();
+            var lotId = lot.id;
+            var kgEq = litresToKgEquivalent(qtyL, lot);
+            var existing = _dispatchOilLines.find(function (l) { return String(l.oil_lot_id) === String(lotId) && l.line_kind === 'oil'; });
+            if (existing) {
+                var newL = (parseFloat(existing.quantity_litres) || 0) + qtyL;
+                if (newL > availableL) newL = availableL;
+                existing.quantity_litres = Math.round(newL * 1000) / 1000;
+                existing.quantity_kg = litresToKgEquivalent(existing.quantity_litres, lot);
+            } else {
+                _dispatchOilLines.push({
+                    line_kind: 'oil',
+                    oil_lot_id: lot.id,
+                    batch_number: batchNumber,
+                    style: style,
+                    quantity_litres: Math.round(qtyL * 1000) / 1000,
+                    quantity_kg: kgEq
+                });
+            }
+            var inBasketAfter = _dispatchOilLines.find(function (l) { return String(l.oil_lot_id) === String(lotId) && l.line_kind === 'oil'; });
+            var lAfter = inBasketAfter ? (parseFloat(inBasketAfter.quantity_litres) || 0) : 0;
+            var rem = Math.max(0, Math.round((availableL - lAfter) * 1000) / 1000);
+            if (input) input.value = rem > 0 ? String(rem) : '';
         },
 
         showStep1: function () {
@@ -132,32 +227,89 @@ var _modal_stock_send_to_dispatch_oil = (function () {
         },
 
         renderOilLotsTable: function () {
-            var lots = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.oilLots) ? _stockManagementGrid.oilLots : [];
-            var body = document.getElementById('dispatchOilLotsTableBody');
-            if (!body) return;
-            body.innerHTML = '';
-            if (lots.length === 0) {
-                body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No oil lots available. Load Stock (Oil &amp; Protein) and ensure lots are loaded.</td></tr>';
-                return;
+            var lots = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.oilLotsAvailableForStockView)
+                ? _stockManagementGrid.oilLotsAvailableForStockView()
+                : ((typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.oilLots) ? _stockManagementGrid.oilLots : []);
+            var bodyOil = document.getElementById('dispatchOilStreamOilBody');
+            var bodyProt = document.getElementById('dispatchOilStreamProteinBody');
+            if (!bodyOil || !bodyProt) return;
+            bodyOil.innerHTML = '';
+            bodyProt.innerHTML = '';
+            var oilLots = lots.filter(function (l) { return !isProteinPowderLot(l); });
+            var protLots = lots.filter(function (l) { return isProteinPowderLot(l); });
+
+            if (oilLots.length === 0) {
+                bodyOil.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No oil lots in stock list.</td></tr>';
+            } else {
+                oilLots.forEach(function (lot) { api._appendOilRow(bodyOil, lot); });
             }
-            lots.forEach(function (lot) {
-                var available = (lot.kilograms != null && lot.kilograms !== '') ? parseFloat(lot.kilograms) : 0;
-                var displayKg = (available > 0) ? Number(lot.kilograms).toFixed(2) : '0.00';
-                var product = (lot.product_description || lot.product_code || '—').toString().replace(/"/g, '&quot;');
-                var batchNum = (lot.batch_number || '—').toString().replace(/"/g, '&quot;');
-                var inBasket = _dispatchOilLines.find(function (l) { return String(l.oil_lot_id) === String(lot.id); });
-                var basketQty = inBasket ? (inBasket.quantity_kg || 0) : 0;
-                var tr = document.createElement('tr');
-                tr.innerHTML = '<td>' + (lot.location_code || '') + '</td>' +
-                    '<td><span class="badge bg-secondary">' + batchNum + '</span></td>' +
-                    '<td>' + (lot.product_description || lot.product_code || '—') + '</td>' +
-                    '<td class="text-end">' + (lot.grade || '') + '</td>' +
-                    '<td class="text-end">' + displayKg + '</td>' +
-                    '<td class="text-end"><input type="number" step="0.01" min="0" max="' + available + '" class="form-control form-control-sm d-inline-block text-end" style="width:100px" id="dispatchOilQty_' + lot.id + '" placeholder="0"></td>' +
-                    '<td><button type="button" class="btn btn-sm btn-outline-primary js-dispatch-oil-add-btn" data-lot-id="' + lot.id + '" title="Add to basket">Add</button>' +
-                    (basketQty > 0 ? ' <span class="text-success small">(' + basketQty + ' kg in basket)</span>' : '') + '</td>';
-                body.appendChild(tr);
-            });
+            if (protLots.length === 0) {
+                bodyProt.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No protein powder lots in stock list.</td></tr>';
+            } else {
+                protLots.forEach(function (lot) { api._appendProteinRow(bodyProt, lot); });
+            }
+        },
+
+        _appendOilRow: function (body, lot) {
+            var availableL = getAvailableLitres(lot);
+            var displayL = availableL > 0 ? availableL.toFixed(2) : '0.00';
+            var batchNum = (lot.batch_number || '—').toString().replace(/"/g, '&quot;');
+            var inBasket = _dispatchOilLines.find(function (l) { return String(l.oil_lot_id) === String(lot.id) && l.line_kind === 'oil'; });
+            var basketL = inBasket ? (parseFloat(inBasket.quantity_litres) || 0) : 0;
+            var isFullLot = availableL > 0 && Math.abs(basketL - availableL) < 0.0001;
+            var remaining = Math.max(0, Math.round((availableL - basketL) * 1000) / 1000);
+            var qtyCell;
+            var actionCell;
+            var escId = String(lot.id).replace(/"/g, '&quot;');
+            if (isFullLot && basketL > 0) {
+                qtyCell = '<td class="text-end"><span class="text-success small fw-semibold">Full batch</span><br><span class="text-muted small">' + basketL.toFixed(2) + ' L</span></td>';
+                actionCell = '<td><span class="badge bg-light text-success border border-success">In basket</span> ' +
+                    '<button type="button" class="btn btn-sm btn-link text-danger p-0 js-dispatch-oil-basket-remove" data-lot-id="' + escId + '">Remove</button></td>';
+            } else {
+                var defaultVal = remaining > 0 ? remaining.toFixed(2) : (availableL > 0 ? availableL.toFixed(2) : '');
+                qtyCell = '<td class="text-end"><input type="number" step="any" min="0" class="form-control form-control-sm d-inline-block text-end" style="width:110px" id="dispatchOilQty_' + lot.id + '" value="' + defaultVal + '" placeholder="' + (availableL > 0 ? availableL.toFixed(2) : '0') + '" title="Letrerage to dispatch (L)"></td>';
+                actionCell = '<td><button type="button" class="btn btn-sm btn-outline-primary js-dispatch-oil-add-btn" data-lot-id="' + lot.id + '" data-line-kind="oil">Add</button>' +
+                    (basketL > 0 ? ' <span class="text-success small">(' + basketL.toFixed(2) + ' L)</span>' : '') + '</td>';
+            }
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + (lot.location_code || '') + '</td>' +
+                '<td><span class="badge bg-secondary">' + batchNum + '</span></td>' +
+                '<td>' + (lot.product_description || lot.product_code || '—') + '</td>' +
+                '<td class="text-end">' + (lot.grade || '') + '</td>' +
+                '<td class="text-end">' + displayL + '</td>' +
+                qtyCell + actionCell;
+            body.appendChild(tr);
+        },
+
+        _appendProteinRow: function (body, lot) {
+            var available = getAvailableKg(lot);
+            var displayKg = available > 0 ? available.toFixed(2) : '0.00';
+            var batchNum = (lot.batch_number || '—').toString().replace(/"/g, '&quot;');
+            var inBasket = _dispatchOilLines.find(function (l) { return String(l.oil_lot_id) === String(lot.id) && l.line_kind === 'protein'; });
+            var basketQty = inBasket ? (parseFloat(inBasket.quantity_kg) || 0) : 0;
+            var isFullLot = available > 0 && Math.abs(basketQty - available) < 0.0001;
+            var remaining = Math.max(0, Math.round((available - basketQty) * 100) / 100);
+            var qtyCell;
+            var actionCell;
+            var escId = String(lot.id).replace(/"/g, '&quot;');
+            if (isFullLot && basketQty > 0) {
+                qtyCell = '<td class="text-end"><span class="text-success small fw-semibold">Full batch</span><br><span class="text-muted small">' + basketQty.toFixed(2) + ' kg</span></td>';
+                actionCell = '<td><span class="badge bg-light text-success border border-success">In basket</span> ' +
+                    '<button type="button" class="btn btn-sm btn-link text-danger p-0 js-dispatch-oil-basket-remove" data-lot-id="' + escId + '">Remove</button></td>';
+            } else {
+                var defaultVal = remaining > 0 ? remaining.toFixed(2) : (available > 0 ? available.toFixed(2) : '');
+                qtyCell = '<td class="text-end"><input type="number" step="any" min="0" class="form-control form-control-sm d-inline-block text-end" style="width:110px" id="dispatchOilQty_' + lot.id + '" value="' + defaultVal + '" placeholder="' + (available > 0 ? available.toFixed(2) : '0') + '" title="kg to dispatch"></td>';
+                actionCell = '<td><button type="button" class="btn btn-sm btn-outline-primary js-dispatch-oil-add-btn" data-lot-id="' + lot.id + '" data-line-kind="protein">Add</button>' +
+                    (basketQty > 0 ? ' <span class="text-success small">(' + basketQty.toFixed(2) + ' kg)</span>' : '') + '</td>';
+            }
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + (lot.location_code || '') + '</td>' +
+                '<td><span class="badge bg-secondary">' + batchNum + '</span></td>' +
+                '<td>' + (lot.product_description || lot.product_code || '—') + '</td>' +
+                '<td class="text-end">' + (lot.grade || '') + '</td>' +
+                '<td class="text-end">' + displayKg + '</td>' +
+                qtyCell + actionCell;
+            body.appendChild(tr);
         },
 
         renderBasket: function () {
@@ -173,19 +325,33 @@ var _modal_stock_send_to_dispatch_oil = (function () {
             }
             if (basketEl) basketEl.style.display = '';
             if (sendBtn) sendBtn.disabled = false;
-            var totalKg = 0;
+            var sumOilL = 0;
+            var sumProtKg = 0;
             var html = '';
             _dispatchOilLines.forEach(function (line) {
-                var qty = parseFloat(line.quantity_kg) || 0;
-                totalKg += qty;
                 var lotId = (line.oil_lot_id !== undefined && line.oil_lot_id !== null) ? String(line.oil_lot_id).replace(/"/g, '&quot;') : '';
+                var qtyDisp;
+                if (line.line_kind === 'oil') {
+                    var ltr = parseFloat(line.quantity_litres) || 0;
+                    sumOilL += ltr;
+                    qtyDisp = ltr.toFixed(2) + ' L';
+                } else {
+                    var kg = parseFloat(line.quantity_kg) || 0;
+                    sumProtKg += kg;
+                    qtyDisp = kg.toFixed(2) + ' kg';
+                }
                 html += '<tr><td><span class="badge bg-primary">' + (line.batch_number || '—') + '</span></td>' +
                     '<td>' + (line.style !== undefined && line.style !== null ? String(line.style).replace(/</g, '&lt;') : '—') + '</td>' +
-                    '<td class="text-end">' + qty.toFixed(2) + ' kg</td>' +
+                    '<td class="text-end">' + qtyDisp + '</td>' +
                     '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger js-dispatch-oil-basket-remove" title="Remove" data-lot-id="' + lotId + '"><i class="fas fa-times"></i></button></td></tr>';
             });
             basketBody.innerHTML = html;
-            if (basketTotal) basketTotal.textContent = 'Total: ' + totalKg.toFixed(1) + ' kg';
+            if (basketTotal) {
+                var parts = [];
+                if (sumOilL > 0) parts.push('Oil ' + sumOilL.toFixed(1) + ' L');
+                if (sumProtKg > 0) parts.push('Protein ' + sumProtKg.toFixed(1) + ' kg');
+                basketTotal.textContent = parts.length ? parts.join(' · ') : '—';
+            }
         },
 
         show: function () {
@@ -267,12 +433,18 @@ var _modal_stock_send_to_dispatch_oil = (function () {
                 return;
             }
             var lines = _dispatchOilLines.map(function (l) {
-                return {
+                var row = {
                     batch_number: l.batch_number || null,
                     style: l.style || null,
-                    quantity_kg: l.quantity_kg != null ? l.quantity_kg : null,
                     oil_batch_id: l.oil_lot_id != null ? l.oil_lot_id : null
                 };
+                if (l.line_kind === 'oil') {
+                    row.quantity_litres = l.quantity_litres != null ? l.quantity_litres : null;
+                    row.quantity_kg = l.quantity_kg != null ? l.quantity_kg : null;
+                } else {
+                    row.quantity_kg = l.quantity_kg != null ? l.quantity_kg : null;
+                }
+                return row;
             });
             var sendBtn = document.getElementById('dispatchOilModalSendBtn');
             if (sendBtn) sendBtn.disabled = true;
@@ -293,6 +465,9 @@ var _modal_stock_send_to_dispatch_oil = (function () {
                         $('#sendToDispatchOilModal').modal('hide');
                     }
                     if (typeof _oilDispatchGrid !== 'undefined' && _oilDispatchGrid.loadOrders) _oilDispatchGrid.loadOrders(true);
+                    if (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.loadOilLotsAndSummary) {
+                        try { _stockManagementGrid.loadOilLotsAndSummary(true); } catch (x) { /* ignore */ }
+                    }
                 } else {
                     if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Error', (result && (result.error || result.message)) || 'Failed to create order', 'error');
                     if (sendBtn) sendBtn.disabled = false;
