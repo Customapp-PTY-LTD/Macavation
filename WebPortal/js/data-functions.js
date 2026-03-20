@@ -1701,6 +1701,48 @@ var _dataFunctions = function () {
         },
 
         /**
+         * All supplier-intake oil rows (awaiting_test, release_ready, production) for weekly in/out by ingredient.
+         * Stock out uses weight_before_production_kg and weight_before_production_recorded_at when present.
+         */
+        getSupplierIntakeWeeklyOilRows: async function (token = null, forceRefresh = false) {
+            var params = { p_status: 'awaiting_test,release_ready,production', p_limit: 2000, p_offset: 0 };
+            var raw = await this.callFunction('get_oil_batches', params, token, {
+                cacheKey: 'supplier_intake_weekly_oil_rows',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+            var rows = [];
+            if (Array.isArray(raw)) rows = raw;
+            else if (raw && Array.isArray(raw.data)) rows = raw.data;
+            else if (raw && raw.get_oil_batches && Array.isArray(raw.get_oil_batches)) rows = raw.get_oil_batches;
+            else if (raw && typeof raw === 'object' && raw[Symbol.iterator]) rows = Array.from(raw);
+
+            function mapWeekly(o) {
+                var intake = (o && o.intake_data) || {};
+                if (typeof intake === 'string') {
+                    try { intake = JSON.parse(intake); } catch (e1) { intake = {}; }
+                }
+                var pt = intake.product_type || (o.name_of_product && String(o.name_of_product).toLowerCase().replace(/\s+/g, '_')) || 'oil';
+                var qtyKg = intake.quantity_kg != null ? Number(intake.quantity_kg) : (intake.items && intake.items[0] && intake.items[0].quantity_kg != null ? Number(intake.items[0].quantity_kg) : NaN);
+                var wbp = intake.weight_before_production_kg != null ? Number(intake.weight_before_production_kg) : NaN;
+                return {
+                    id: o.id,
+                    batch_number: o.batch_id,
+                    product_type: pt,
+                    status: (o.status || 'awaiting_test').toString().trim(),
+                    date_received: intake.date_received || o.production_date,
+                    quantity_kg: !isNaN(qtyKg) ? qtyKg : null,
+                    weight_before_production_kg: !isNaN(wbp) ? wbp : null,
+                    weight_before_production_recorded_at: intake.weight_before_production_recorded_at || null,
+                    production_completed_at: o.production_completed_at || null,
+                    created_at: o.created_at || null
+                };
+            }
+            return rows.map(mapWeekly);
+        },
+
+        /**
          * Release a supplier intake batch to oil production. Updates the oil row status to 'production'.
          * Uses Supabase oil table via upsert_oil_batch.
          * @param {string} batchId - UUID id of the oil row (oil.id from the grid)
@@ -2092,6 +2134,7 @@ var _dataFunctions = function () {
                 return resolved || { success: false, error: 'Release failed' };
             }
             this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('supplier_intake_weekly_oil_rows');
             this.clearCachePattern('oil_batches');
             this.clearCachePattern('oil_production');
             if (!isNaN(firstKg) && firstKg - w2 > 50) {

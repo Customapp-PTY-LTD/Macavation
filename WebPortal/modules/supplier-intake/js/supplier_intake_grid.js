@@ -11,6 +11,29 @@ var _supplierIntakeGrid = function () {
         { key: 'release_ready', label: 'Ready for Oil Production' }
     ];
 
+    /**
+     * Fixed weekly pivot columns (order matches product-type dropdown + other).
+     * Keys must match intake product_type values (snake_case).
+     */
+    var WEEKLY_INGREDIENT_COLUMN_KEYS = [
+        'cracker_dust',
+        'kernel_dust',
+        'oil_kernel',
+        'crush',
+        'cake',
+        'other'
+    ];
+
+    /** Map any product_type from API to a weekly column key. */
+    function weeklyIngredientKeyFromBatch(b) {
+        var raw = (b && b.product_type && String(b.product_type).trim()) ? String(b.product_type).trim() : '';
+        var k = raw.toLowerCase().replace(/\s+/g, '_');
+        if (k === 'protein_powder' || k.indexOf('protein') >= 0) return 'other';
+        if (WEEKLY_INGREDIENT_COLUMN_KEYS.indexOf(k) >= 0) return k;
+        if (!k) return 'other';
+        return 'other';
+    }
+
     function getSupplierColumnKey(b) {
         if (!b) return 'awaiting_test';
         var s = (b.status || '').toString().trim();
@@ -21,7 +44,15 @@ var _supplierIntakeGrid = function () {
     }
 
     function productTypeLabel(value) {
-        var map = { oil_kernel: 'Oil kernel', cracker_dust: 'Cracker dust', kernel_dust: 'Kernel dust', crush: 'Crush', cake: 'Cake' };
+        var map = {
+            oil_kernel: 'Oil kernel',
+            cracker_dust: 'Cracker dust',
+            kernel_dust: 'Kernel dust',
+            crush: 'Crush',
+            cake: 'Cake',
+            protein_powder: 'Protein powder',
+            other: 'Other'
+        };
         return map[value] || value || '—';
     }
 
@@ -32,10 +63,15 @@ var _supplierIntakeGrid = function () {
         return s.split('T')[0];
     }
 
-    /** Return ISO week key "YYYY-Www" for grouping (e.g. 2026-W10). */
+    /** Return ISO week key "YYYY-Www" for grouping (e.g. 2026-W10). Accepts YYYY-MM-DD or full ISO datetimes. */
     function getIsoWeekKey(d) {
         if (!d) return '';
-        var date = typeof d === 'string' ? new Date(d + 'T12:00:00') : (d instanceof Date ? d : new Date(d));
+        var date;
+        if (typeof d === 'string') {
+            date = d.indexOf('T') !== -1 ? new Date(d) : new Date(d + 'T12:00:00');
+        } else {
+            date = d instanceof Date ? d : new Date(d);
+        }
         if (isNaN(date.getTime())) return '';
         var year = date.getFullYear();
         var start = new Date(year, 0, 1);
@@ -58,6 +94,9 @@ var _supplierIntakeGrid = function () {
     return {
         batches: [],
         filteredBatches: [],
+        weeklyOilRows: [],
+        weeklySnapshotLoaded: false,
+        siWeeklyMode: 'in',
         currentView: 'kanban',
         _pendingOilRelease: null,
 
@@ -108,6 +147,11 @@ var _supplierIntakeGrid = function () {
                 $('#searchSupplierIntakeInput').val('');
                 $('#filterSupplierIntakeStatus').val('');
                 scope.filterBatches();
+            });
+
+            $('#siWeeklyViewMode').off('change').on('change', function () {
+                scope.siWeeklyMode = $(this).val() || 'in';
+                if (scope.currentView === 'weekly') scope.renderWeekly();
             });
 
             $('#siWeightBeforeProdConfirmBtn').off('click').on('click', function (e) {
@@ -249,7 +293,7 @@ var _supplierIntakeGrid = function () {
             if (overview) overview.style.display = (view === 'overview') ? '' : 'none';
             if (view === 'kanban') scope.renderKanbanIntake();
             else if (view === 'table') scope.renderBatches();
-            else if (view === 'weekly') scope.renderWeekly();
+            else if (view === 'weekly') scope.loadWeeklySnapshot(false);
             else if (view === 'overview') scope.renderOverview();
             $('#siViewKanban').toggleClass('active', view === 'kanban');
             $('#siViewTable').toggleClass('active', view === 'table');
@@ -303,6 +347,9 @@ var _supplierIntakeGrid = function () {
                 scope.filterBatches();
                 if (scope.currentView === 'kanban') scope.renderKanbanIntake();
                 else scope.renderBatches();
+                scope.loadWeeklySnapshot(forceRefresh).catch(function (err) {
+                    console.warn('[Supplier Intake] loadWeeklySnapshot:', err);
+                });
             } catch (e) {
                 console.error('[Supplier Intake] loadBatches failed:', e);
                 scope.batches = [];
@@ -392,29 +439,130 @@ var _supplierIntakeGrid = function () {
             scope.initActionsDropdowns();
         },
 
+        loadWeeklySnapshot: function (forceRefresh) {
+            const scope = _supplierIntakeGrid;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getSupplierIntakeWeeklyOilRows) {
+                scope.weeklySnapshotLoaded = true;
+                scope.weeklyOilRows = [];
+                if (scope.currentView === 'weekly') scope.renderWeekly();
+                return Promise.resolve();
+            }
+            return dataFunctions.getSupplierIntakeWeeklyOilRows(null, !!forceRefresh).then(function (rows) {
+                scope.weeklyOilRows = Array.isArray(rows) ? rows : [];
+                scope.weeklySnapshotLoaded = true;
+                if (scope.currentView === 'weekly') scope.renderWeekly();
+            }).catch(function (e) {
+                console.error('[Supplier Intake] loadWeeklySnapshot:', e);
+                scope.weeklyOilRows = [];
+                scope.weeklySnapshotLoaded = true;
+                if (scope.currentView === 'weekly') scope.renderWeekly();
+            });
+        },
+
         renderWeekly: () => {
             const scope = _supplierIntakeGrid;
             var tbody = document.getElementById('siWeeklyTableBody');
+            var thead = document.getElementById('siWeeklyTableHead');
+            var modeEl = document.getElementById('siWeeklyViewMode');
+            var mode = (modeEl && modeEl.value) || scope.siWeeklyMode || 'in';
+            scope.siWeeklyMode = mode;
+            if (modeEl) modeEl.value = mode;
+            var helpEl = document.getElementById('siWeeklyHelpText');
+            if (helpEl) {
+                helpEl.textContent = mode === 'out'
+                    ? 'One row per week. Columns are ingredient types released to Oil Production (kg); Total is the row sum.'
+                    : 'One row per week. Columns are ingredient types received (kg); Total is the row sum.';
+            }
             if (!tbody) return;
-            var list = scope.filteredBatches && scope.filteredBatches.length > 0 ? scope.filteredBatches : (scope.batches || []);
+            var weeklyColSpan = 1 + WEEKLY_INGREDIENT_COLUMN_KEYS.length + 1;
+            if (!scope.weeklySnapshotLoaded) {
+                if (thead) thead.innerHTML = '<tr><th class="si-weekly-th-week">Week</th><th class="text-end text-muted small" colspan="' + (WEEKLY_INGREDIENT_COLUMN_KEYS.length + 1) + '">…</th></tr>';
+                tbody.innerHTML = '<tr><td colspan="' + weeklyColSpan + '" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>Loading…</td></tr>';
+                return;
+            }
+            var list = scope.weeklyOilRows || [];
+            if (list.length === 0) {
+                if (thead) {
+                    var emptyHead = '<tr><th class="si-weekly-th-week">Week</th>';
+                    WEEKLY_INGREDIENT_COLUMN_KEYS.forEach(function (k) {
+                        emptyHead += '<th class="text-end si-weekly-th-ing">' + escapeHtml(productTypeLabel(k)) + '</th>';
+                    });
+                    emptyHead += '<th class="text-end fw-semibold si-weekly-th-total">Total</th></tr>';
+                    thead.innerHTML = emptyHead;
+                }
+                tbody.innerHTML = '<tr><td colspan="' + weeklyColSpan + '" class="text-center text-muted py-4">No supplier intake rows for weekly breakdown.</td></tr>';
+                return;
+            }
+            var searchTerm = ($('#searchSupplierIntakeInput').val() || '').toLowerCase();
+            var filtered = list.filter(function (b) {
+                if (!searchTerm) return true;
+                var bn = (b.batch_number && b.batch_number.toString().toLowerCase()) || '';
+                var pt = (b.product_type && b.product_type.toString().toLowerCase()) || '';
+                return bn.indexOf(searchTerm) >= 0 || pt.indexOf(searchTerm) >= 0;
+            });
             var byWeek = {};
-            list.forEach(function (b) {
-                var key = getIsoWeekKey(b.date_received);
-                if (!key) return;
-                if (!byWeek[key]) byWeek[key] = { stockIn: 0, stockOut: 0 };
-                var qty = parseFloat(b.quantity_kg);
-                if (!isNaN(qty)) byWeek[key].stockIn += qty;
+            function ensureCell(wk, ing) {
+                if (!byWeek[wk]) byWeek[wk] = {};
+                if (!byWeek[wk][ing]) byWeek[wk][ing] = { stockIn: 0, stockOut: 0 };
+            }
+            filtered.forEach(function (b) {
+                var ing = weeklyIngredientKeyFromBatch(b);
+                if (b.date_received) {
+                    var wkIn = getIsoWeekKey(b.date_received);
+                    if (wkIn) {
+                        ensureCell(wkIn, ing);
+                        var qIn = parseFloat(b.quantity_kg);
+                        if (!isNaN(qIn)) byWeek[wkIn][ing].stockIn += qIn;
+                    }
+                }
+                var st = (b.status || '').toLowerCase();
+                if (st === 'production') {
+                    var rel = b.weight_before_production_recorded_at || b.production_completed_at || b.created_at;
+                    var wkOut = getIsoWeekKey(rel);
+                    if (wkOut) {
+                        ensureCell(wkOut, ing);
+                        var qOut = b.weight_before_production_kg != null ? parseFloat(b.weight_before_production_kg) : parseFloat(b.quantity_kg);
+                        if (!isNaN(qOut)) byWeek[wkOut][ing].stockOut += qOut;
+                    }
+                }
             });
             var weeks = Object.keys(byWeek).sort();
-            var rows = weeks.length === 0
-                ? '<tr><td colspan="3" class="text-center text-muted py-4">No data for the selected filters.</td></tr>'
-                : weeks.map(function (key) {
-                    var v = byWeek[key];
-                    var stockIn = (v.stockIn != null && !isNaN(v.stockIn)) ? Number(v.stockIn).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
-                    var stockOut = (v.stockOut != null && v.stockOut > 0) ? Number(v.stockOut).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
-                    return '<tr><td>' + escapeHtml(key) + '</td><td class="text-end">' + escapeHtml(String(stockIn)) + '</td><td class="text-end">' + escapeHtml(String(stockOut)) + '</td></tr>';
-                }).join('');
-            tbody.innerHTML = rows;
+            var colKeys = WEEKLY_INGREDIENT_COLUMN_KEYS.slice();
+            var numCols = 1 + colKeys.length + 1;
+            function fmtKg(n) {
+                if (n == null || isNaN(n) || n <= 0.0001) return '—';
+                return Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+            }
+            if (thead) {
+                var headCells = '<tr><th class="si-weekly-th-week">Week</th>';
+                colKeys.forEach(function (k) {
+                    headCells += '<th class="text-end si-weekly-th-ing">' + escapeHtml(productTypeLabel(k)) + '</th>';
+                });
+                headCells += '<th class="text-end fw-semibold si-weekly-th-total">Total</th></tr>';
+                thead.innerHTML = headCells;
+            }
+            if (weeks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="' + numCols + '" class="text-center text-muted py-4">No data for the current search.</td></tr>';
+                return;
+            }
+            var rowsHtml = [];
+            weeks.forEach(function (week) {
+                var ingMap = byWeek[week] || {};
+                var rowTotal = 0;
+                var tds = '<td class="si-weekly-td-week">' + escapeHtml(week) + '</td>';
+                colKeys.forEach(function (ingKey) {
+                    var v = ingMap[ingKey];
+                    var raw = mode === 'out'
+                        ? (v && v.stockOut != null ? v.stockOut : 0)
+                        : (v && v.stockIn != null ? v.stockIn : 0);
+                    var n = parseFloat(raw);
+                    if (!isNaN(n) && n > 0.0001) rowTotal += n;
+                    tds += '<td class="text-end si-weekly-td-num">' + escapeHtml(fmtKg(isNaN(n) ? 0 : n)) + '</td>';
+                });
+                tds += '<td class="text-end fw-semibold si-weekly-td-total">' + escapeHtml(fmtKg(rowTotal)) + '</td>';
+                rowsHtml.push('<tr>' + tds + '</tr>');
+            });
+            tbody.innerHTML = rowsHtml.join('');
         },
 
         renderOverview: () => {
