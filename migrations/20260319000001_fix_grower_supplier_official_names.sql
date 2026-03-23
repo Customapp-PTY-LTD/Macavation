@@ -38,5 +38,6 @@ WHERE grower_name IN ('Eucalypt Fo', 'Eucalypt Forestry');
 UPDATE public.kernel SET grower_name = 'Foster Farming Pty Ltd', updated_at = now()
 WHERE grower_name IN ('Foster Farm', 'Foster Farming');
 
-UPDATE public.kernel SET grower_name = 'Rope Miller', updated_at = now()
-WHERE grower_name = 'Ropa Miller';
+-- Supplier #51 canonical name is Ropa Miller (not Rope Miller). See migrations/20260341000001_kernel_nis_supplier_official_spellings.sql
+UPDATE public.kernel SET grower_name = 'Ropa Miller', updated_at = now()
+WHERE grower_name = 'Rope Miller';
