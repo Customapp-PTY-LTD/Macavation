@@ -27,8 +27,8 @@ WHERE contact_type = 'nis_supplier' AND notes LIKE 'Supplier #48%';
 UPDATE public.contacts SET company_name = 'Ropa Miller', updated_at = now()
 WHERE contact_type = 'nis_supplier' AND notes LIKE 'Supplier #51%';
 
-UPDATE public.contacts SET company_name = 'Big Five Mac', updated_at = now()
-WHERE contact_type = 'nis_supplier' AND notes LIKE 'Supplier #55%' AND company_name = 'Big G Mac';
+UPDATE public.contacts SET company_name = 'Big 5 Mac', updated_at = now()
+WHERE contact_type = 'nis_supplier' AND notes LIKE 'Supplier #55%' AND company_name IN ('Big G Mac', 'Big Five Mac');
 
 -- --- public.kernel: historical grower_name strings ---
 UPDATE public.kernel SET grower_name = 'JD Richter Familie Trust', updated_at = now()

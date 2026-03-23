@@ -23,7 +23,7 @@ var _crmGrid = function () {
         'Golden Grow', 'NDX', 'Honey Coastline Investments 134 CC', 'Agristar Macadamias (Pty) Ltd NutsAll',
         'Nombhaba Sugar (Pty) Ltd', 'RSM Farm and Factory (Pty) Ltd', 'R&K Estates - Fairview', 'Nseze Farm (Pty) Ltd',
         'Zenith Estates CC', 'Highrain Macs (Pty) Ltd', 'Ropa Miller', 'The Hayden Percival Family Trust',
-        'Van Eeden Projects Trust', 'Foster Farming Pty Ltd', 'Big Five Mac', 'Mac-Eden Estate',
+        'Van Eeden Projects Trust', 'Foster Farming Pty Ltd', 'Big 5 Mac', 'Mac-Eden Estate',
         'The Two Rivers Trust', 'Philip', 'Talbot', 'Brechoust CC'
     ];
 

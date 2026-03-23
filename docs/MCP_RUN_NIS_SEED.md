@@ -82,7 +82,7 @@ FROM (VALUES
   ('nis_supplier', 'The Hayden Percival Family Trust', 'active', 'Supplier #52, Code: MACTHP'),
   ('nis_supplier', 'Van Eeden Projects Trust', 'active', 'Supplier #53'),
   ('nis_supplier', 'Foster Farming Pty Ltd', 'active', 'Supplier #54, Code: MACFOS'),
-  ('nis_supplier', 'Big Five Mac', 'active', 'Supplier #55, Code: MACHES'),
+  ('nis_supplier', 'Big 5 Mac', 'active', 'Supplier #55, Code: MACHES'),
   ('nis_supplier', 'Mac-Eden Estate', 'active', 'Supplier #56, Code: MACMAC01'),
   ('nis_supplier', 'The Two Rivers Trust', 'active', 'Supplier #57, Code: MACTWO'),
   ('nis_supplier', 'Philip', 'active', 'Supplier #58'),
