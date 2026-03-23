@@ -15,4 +15,6 @@ Or run the same SQL in the Supabase SQL Editor.
 
 **Rename Supplier #55 (if DB still has “Big Five Mac”):** `migrations/20260341000002_rename_big_five_mac_to_big_5_mac.sql` (name: `rename_big_five_mac_to_big_5_mac`).
 
+**Supplier #57 (kernel vs CRM):** `migrations/20260341000003_kernel_two_rivers_trust_official_name.sql` (name: `kernel_two_rivers_trust_official_name`) — sets `kernel.grower_name` from `Two Rivers Trust` to **`The Two Rivers Trust`** to match NIS contacts.
+
 Seeds in repo (`20260316000001`, `20260316000002`, `NIS_suppliers.json`, CRM order) are already aligned for new installs.

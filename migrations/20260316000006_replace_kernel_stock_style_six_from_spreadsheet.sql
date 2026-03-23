@@ -18,7 +18,7 @@ BEGIN
         ('54.6.25.37',  'Foster Farming',               '2027-02-27'::date, NULL::numeric, NULL::numeric, 0, 0),
         ('55.1.25.38',  'Big 5',                         '2027-03-18'::date, NULL::numeric, NULL::numeric, 0, 0),
         ('44.2.25.40',  'Agristar Macadamias (Pty) Ltd NutsAll', '2027-04-01'::date, NULL::numeric, NULL::numeric, 1, 11.34),
-        ('57.1.25.42',  'Two Rivers Trust',              '2027-04-10'::date, NULL::numeric, NULL::numeric, 0, 0),
+        ('57.1.25.42',  'The Two Rivers Trust',          '2027-04-10'::date, NULL::numeric, NULL::numeric, 0, 0),
         ('55.1.25.43.1','Big 5',                         '2027-04-11'::date, NULL::numeric, NULL::numeric, 0, 0),
         ('55.1.25.43.2','Big 5',                         '2027-04-16'::date, NULL::numeric, NULL::numeric, 3, 34.02),
         ('56.1.25.45',  'Mac Eden Estate',               '2027-04-17'::date, NULL::numeric, NULL::numeric, 0, 0),
