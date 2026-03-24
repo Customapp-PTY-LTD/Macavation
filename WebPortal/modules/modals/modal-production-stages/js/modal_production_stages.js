@@ -182,9 +182,11 @@ var _modal_production_stages = (function () {
             $(document).on('change input', '#ps_crack_timespent1', function () {
                 scope.syncCrackTimeToSummary();
             });
-            // Crates/cartons → qty auto-calc (× 11.34)
+            // Washing/Sorting: kg fields are manual; only crate/carton counts drive row-independent totals where noted.
+            // Packing: cartons → kg uses × 11.34 (standard carton weight).
+            // Washing: only crate fields auto-update Total/Crate difference; all kg fields are manual (no ×11.34).
             $(document).on('input change', '.wash-crate-input', function () { scope.recalcWashingQty(); });
-            $(document).on('input change', '.sort-crate-input', function () { scope.recalcSortingQty(); });
+            $(document).on('input change', '.sort-crate-input, .ps-sort-manual-kg', function () { scope.recalcSortingQty(); });
             $(document).on('input change', '.pack-carton-input', function () { scope.recalcPackingQty(); });
             // Map section date field IDs to their section key
             var sectionDateFields = {
@@ -312,51 +314,44 @@ var _modal_production_stages = (function () {
         },
 
         recalcWashingQty: () => {
-            var KG = 11.34;
             var calc = function (id) { return parseFloat($('#' + id).val()) || 0; };
-            // Individual crate → qty
-            $('.wash-crate-input').each(function () {
-                var crates = parseFloat(this.value) || 0;
-                var qtyEl = document.getElementById(this.getAttribute('data-qty'));
-                if (qtyEl) qtyEl.value = crates ? +(crates * KG).toFixed(2) : '';
-            });
-            // Totals & diffs
             var floater = calc('ps_wash_floater_crates'), sinker = calc('ps_wash_sinker_crates');
-            var totalOut = floater + sinker;
+            var totalOutC = floater + sinker;
             var cratesIn = calc('ps_wash_crates_in');
-            var diff = Math.abs(cratesIn - totalOut);
-            $('#ps_wash_total_crates').val(totalOut || '');
-            $('#ps_wash_total_qty').val(totalOut ? +(totalOut * KG).toFixed(2) : '');
-            $('#ps_wash_crate_diff').val(diff || '');
-            $('#ps_wash_qty_diff').val(diff ? +(diff * KG).toFixed(2) : '');
+            var diffC = Math.abs(cratesIn - totalOutC);
+            $('#ps_wash_total_crates').val(totalOutC || '');
+            $('#ps_wash_crate_diff').val(diffC || '');
         },
 
         recalcSortingQty: () => {
-            var KG = 11.34;
-            var skTotal = 0, btTotal = 0;
-            // Individual crate → qty
+            var skCrates = 0, skQty = 0, btCrates = 0, btQty = 0;
             $('.sort-crate-input').each(function () {
-                var crates = parseFloat(this.value) || 0;
-                var qtyEl = document.getElementById(this.getAttribute('data-qty'));
-                if (qtyEl) qtyEl.value = crates ? +(crates * KG).toFixed(2) : '';
                 var group = this.getAttribute('data-group');
-                if (group === 'sk') skTotal += crates;
-                else if (group === 'bt') btTotal += crates;
+                if (group !== 'sk' && group !== 'bt') return;
+                var crates = parseFloat(this.value) || 0;
+                var qtyId = this.getAttribute('data-qty');
+                var qtyEl = qtyId ? document.getElementById(qtyId) : null;
+                var q = (qtyEl && qtyEl.value !== '') ? (parseFloat(qtyEl.value) || 0) : 0;
+                if (group === 'sk') {
+                    skCrates += crates;
+                    skQty += q;
+                } else if (group === 'bt') {
+                    btCrates += crates;
+                    btQty += q;
+                }
             });
-            // Sound Kernel totals (styles 0,1,1s,4l,5,6,7/8)
-            $('#ps_sort_sound_crates').val(skTotal || '');
-            $('#ps_sort_sound_qty').val(skTotal ? +(skTotal * KG).toFixed(2) : '');
-            // Butter totals (butter low oil only; 7/8 is in Sound Kernel)
-            $('#ps_sort_butter_crates').val(btTotal || '');
-            $('#ps_sort_butter_qty').val(btTotal ? +(btTotal * KG).toFixed(2) : '');
+            $('#ps_sort_sound_crates').val(skCrates || '');
+            $('#ps_sort_sound_qty').val(skQty ? +skQty.toFixed(2) : '');
+            $('#ps_sort_butter_crates').val(btCrates || '');
+            $('#ps_sort_butter_qty').val(btQty ? +btQty.toFixed(2) : '');
         },
 
         recalcPackingQty: () => {
-            var KG = 11.34;
+            var KG_PER_CARTON = 11.34;
             var skTotal = 0, btTotal = 0;
             $('.pack-carton-input').each(function () {
                 var cartons = parseFloat(this.value) || 0;
-                var qty = cartons ? +(cartons * KG).toFixed(2) : '';
+                var qty = cartons ? +(cartons * KG_PER_CARTON).toFixed(2) : '';
                 var qtyEl = document.getElementById(this.getAttribute('data-qty'));
                 if (qtyEl) qtyEl.value = qty;
                 if (this.getAttribute('data-group') === 'sk') skTotal += cartons;
@@ -364,11 +359,11 @@ var _modal_production_stages = (function () {
             });
             var grandTotal = skTotal + btTotal;
             $('#ps_pack_sk_total_cartons').val(skTotal || '');
-            $('#ps_pack_sk_total_qty').val(skTotal ? +(skTotal * KG).toFixed(2) : '');
+            $('#ps_pack_sk_total_qty').val(skTotal ? +(skTotal * KG_PER_CARTON).toFixed(2) : '');
             $('#ps_pack_bt_total_cartons').val(btTotal || '');
-            $('#ps_pack_bt_total_qty').val(btTotal ? +(btTotal * KG).toFixed(2) : '');
+            $('#ps_pack_bt_total_qty').val(btTotal ? +(btTotal * KG_PER_CARTON).toFixed(2) : '');
             $('#ps_pack_totals_cartons').val(grandTotal || '');
-            $('#ps_pack_totals_qty').val(grandTotal ? +(grandTotal * KG).toFixed(2) : '');
+            $('#ps_pack_totals_qty').val(grandTotal ? +(grandTotal * KG_PER_CARTON).toFixed(2) : '');
         },
 
         initSignaturePad: () => {
