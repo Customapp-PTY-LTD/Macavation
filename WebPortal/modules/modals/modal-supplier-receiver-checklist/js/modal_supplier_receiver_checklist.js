@@ -111,24 +111,89 @@ var _modal_supplier_receiver_checklist = (function () {
         return items;
     }
 
+    /**
+     * Oil & Protein supplier intake: only CRM contacts used for oil-side supply chain.
+     * Excludes kernel NIS growers (nis_supplier) and kernel customers (kernel_customer).
+     * Matches CRM tabs: Suppliers, Oil Processors — not "NIS Suppliers".
+     */
+    var OIL_INTAKE_SUPPLIER_CONTACT_TYPES = ['supplier', 'both', 'oil_processor'];
+
+    function filterContactsForOilIntake(contacts, selectedId) {
+        if (!contacts || !Array.isArray(contacts)) return [];
+        var allowed = function (c) {
+            var t = (c.contact_type || '').trim();
+            return OIL_INTAKE_SUPPLIER_CONTACT_TYPES.indexOf(t) >= 0;
+        };
+        var list = contacts.filter(allowed);
+        if (selectedId) {
+            var sel = contacts.find(function (c) { return String(c.id) === String(selectedId); });
+            if (sel && !allowed(sel)) {
+                list.push(sel);
+            }
+        }
+        list.sort(function (a, b) {
+            var na = (a.company_name || a.trading_name || a.primary_contact_name || '').toLowerCase();
+            var nb = (b.company_name || b.trading_name || b.primary_contact_name || '').toLowerCase();
+            return na.localeCompare(nb);
+        });
+        return list;
+    }
+
     async function loadSuppliers(selectedId) {
         if (typeof dataFunctions === 'undefined' || !dataFunctions.getContacts) return;
         try {
-            var contacts = await dataFunctions.getContacts();
+            var contacts = await dataFunctions.getContacts(null, true);
+            var forDropdown = filterContactsForOilIntake(contacts, selectedId);
             var select = document.getElementById('srcSupplierDetails');
             if (!select) return;
             var html = '<option value="">Select supplier</option>';
-            if (contacts && Array.isArray(contacts)) {
-                contacts.forEach(function (c) {
-                    var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
-                    var sel = selectedId && String(c.id) === String(selectedId) ? ' selected' : '';
-                    html += '<option value="' + escapeHtml(c.id) + '"' + sel + '>' + escapeHtml(name) + '</option>';
-                });
-            }
+            forDropdown.forEach(function (c) {
+                var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
+                var sel = selectedId && String(c.id) === String(selectedId) ? ' selected' : '';
+                html += '<option value="' + escapeHtml(c.id) + '"' + sel + '>' + escapeHtml(name) + '</option>';
+            });
             select.innerHTML = html;
         } catch (e) {
             console.error('[Receiver checklist] Failed to load suppliers', e);
         }
+    }
+
+    function hideNewSupplierPanel() {
+        var panel = document.getElementById('srcNewSupplierPanel');
+        var err = document.getElementById('srcNewSupplierError');
+        var addBtn = document.getElementById('srcAddSupplierBtn');
+        if (panel) panel.style.display = 'none';
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+        if (addBtn) addBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    function showNewSupplierPanel() {
+        var panel = document.getElementById('srcNewSupplierPanel');
+        var companyEl = document.getElementById('srcNewSupplierCompany');
+        var personEl = document.getElementById('srcNewSupplierPerson');
+        var typeEl = document.getElementById('srcNewSupplierContactType');
+        var err = document.getElementById('srcNewSupplierError');
+        if (companyEl) companyEl.value = '';
+        if (personEl) personEl.value = '';
+        if (typeEl) typeEl.value = 'supplier';
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+        if (panel) {
+            panel.style.display = '';
+            setTimeout(function () { if (companyEl) companyEl.focus(); }, 100);
+        }
+        var addBtn = document.getElementById('srcAddSupplierBtn');
+        if (addBtn) addBtn.setAttribute('aria-expanded', 'true');
+    }
+
+    function extractNewContactId(res) {
+        if (!res) return null;
+        if (res.id) return res.id;
+        if (res.contact_id) return res.contact_id;
+        if (res.data && res.data.id) return res.data.id;
+        if (Array.isArray(res.inserted_ids) && res.inserted_ids.length) return res.inserted_ids[0];
+        if (res.result && res.result.id) return res.result.id;
+        if (res.success !== false && res.p_id) return res.p_id;
+        return null;
     }
 
     var api = {
@@ -139,6 +204,20 @@ var _modal_supplier_receiver_checklist = (function () {
             if (addBtn) addBtn.addEventListener('click', function (e) { e.preventDefault(); api.addItemRow(); });
             var saveBtn = document.getElementById('srcCreateBatchesBtn');
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.createBatches(); });
+
+            var srcAddSupplierBtn = document.getElementById('srcAddSupplierBtn');
+            if (srcAddSupplierBtn) {
+                srcAddSupplierBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    var panel = document.getElementById('srcNewSupplierPanel');
+                    if (panel && panel.style.display === 'none') showNewSupplierPanel();
+                    else hideNewSupplierPanel();
+                });
+            }
+            var srcNewSupplierSave = document.getElementById('srcNewSupplierSaveBtn');
+            if (srcNewSupplierSave) srcNewSupplierSave.addEventListener('click', function (e) { e.preventDefault(); api.saveNewSupplier(); });
+            var srcNewSupplierCancel = document.getElementById('srcNewSupplierCancelBtn');
+            if (srcNewSupplierCancel) srcNewSupplierCancel.addEventListener('click', function (e) { e.preventDefault(); hideNewSupplierPanel(); });
 
             if (typeof $ !== 'undefined') {
                 $(document).off('click.srcRemoveItemRow', '.srcRemoveItemRow').on('click.srcRemoveItemRow', '.srcRemoveItemRow', function (e) {
@@ -155,6 +234,7 @@ var _modal_supplier_receiver_checklist = (function () {
             _editingBatchId = (editingBatch && editingBatch.id) ? editingBatch.id : null;
             _editingBatchStatus = (editingBatch && editingBatch.status) ? editingBatch.status : null;
             api.clearForm(false);
+            hideNewSupplierPanel();
 
             var titleEl = document.getElementById('supplierReceiverChecklistModalLabel');
             var addBagBtn = document.getElementById('srcAddItemRow');
@@ -217,6 +297,7 @@ var _modal_supplier_receiver_checklist = (function () {
             resetRows = resetRows !== false;
             _editingBatchId = null;
             _editingBatchStatus = null;
+            hideNewSupplierPanel();
             var form = document.getElementById('supplierReceiverChecklistForm');
             if (form) form.reset();
             if (typeof $ !== 'undefined' && resetRows) {
@@ -234,6 +315,61 @@ var _modal_supplier_receiver_checklist = (function () {
             if (addBagBtn) addBagBtn.style.display = '';
             if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Create batches';
             if (resetRows && typeof $ !== 'undefined') ensureAtLeastOneRow();
+        },
+
+        saveNewSupplier: async function () {
+            var companyEl = document.getElementById('srcNewSupplierCompany');
+            var personEl = document.getElementById('srcNewSupplierPerson');
+            var typeEl = document.getElementById('srcNewSupplierContactType');
+            var errEl = document.getElementById('srcNewSupplierError');
+            var company = companyEl && companyEl.value ? companyEl.value.trim() : '';
+            if (!company) {
+                if (errEl) { errEl.textContent = 'Enter a company name.'; errEl.style.display = ''; }
+                if (companyEl) companyEl.focus();
+                return;
+            }
+            var contactType = (typeEl && typeEl.value) ? typeEl.value.trim() : 'supplier';
+            if (OIL_INTAKE_SUPPLIER_CONTACT_TYPES.indexOf(contactType) < 0) contactType = 'supplier';
+
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.createContact) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Cannot create contacts. Refresh the page.', 'error');
+                return;
+            }
+
+            var saveBtn = document.getElementById('srcNewSupplierSaveBtn');
+            if (saveBtn) saveBtn.disabled = true;
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+            try {
+                var payload = {
+                    contact_type: contactType,
+                    company_name: company,
+                    primary_contact_name: (personEl && personEl.value) ? personEl.value.trim() : null,
+                    status: 'active'
+                };
+                var res = await dataFunctions.createContact(payload);
+                if (res && res.success === false) {
+                    throw new Error(res.error || res.message || 'Could not create contact');
+                }
+                var newId = extractNewContactId(res);
+                if (!newId) {
+                    throw new Error((res && (res.error || res.message)) || 'No id returned from server');
+                }
+                hideNewSupplierPanel();
+                await loadSuppliers(newId);
+                var sel = document.getElementById('srcSupplierDetails');
+                if (sel) sel.value = String(newId);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'success', title: 'Supplier added', text: company, timer: 1800, showConfirmButton: false });
+                }
+            } catch (err) {
+                console.error('[Receiver checklist] saveNewSupplier', err);
+                var msg = (err && err.message) ? err.message : String(err);
+                if (errEl) { errEl.textContent = msg; errEl.style.display = ''; }
+                else if (typeof Swal !== 'undefined') Swal.fire('Error', msg, 'error');
+            } finally {
+                if (saveBtn) saveBtn.disabled = false;
+            }
         },
 
         addItemRow: function () {

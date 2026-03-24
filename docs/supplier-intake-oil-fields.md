@@ -2,6 +2,23 @@
 
 Based on the supplier intake grid, Receiver checklist, New batch modal, Quality test modal, and `data-functions.js`, these are the **oil table fields** used for **display** and **functionality** in the Supplier Intake module.
 
+## Supplier dropdown (Receiver checklist)
+
+The **Supplier** select on the Supplier Intake receiver checklist (`modal_supplier_receiver_checklist.js`) loads contacts from `get_contacts` but **only includes oil-side CRM types**:
+
+- `supplier`, `both`, `oil_processor`
+
+It **excludes** kernel-only CRM types so NIS kernel growers do not appear here:
+
+- `nis_supplier` (NIS / kernel statistics suppliers)
+- `kernel_customer`
+
+When **editing** a batch whose `supplier_id` points at an excluded type (legacy data), that contact is still appended so the selection remains visible.
+
+**Add supplier:** the Supplier row has a **+** button that opens an inline form. Saving calls `dataFunctions.createContact` with `contact_type` **`supplier`** or **`oil_processor`** (user choice), then refreshes the dropdown and selects the new contact.
+
+No database migration is required — filtering is client-side. See also `docs/MCP_RUN_SUPPLIER_INTAKE_OIL_CONTACTS.md`.
+
 ---
 
 ## 1. Fields used for **display** (grid, Kanban, detail popup, export)
