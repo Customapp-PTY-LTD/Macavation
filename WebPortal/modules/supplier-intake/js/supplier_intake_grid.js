@@ -825,6 +825,7 @@ var _supplierIntakeGrid = function () {
                 { key: 'delivery_note_ref', label: 'Delivery note / PO' },
                 { key: 'supplier_details', label: 'Supplier' },
                 { key: 'quantity_kg', label: 'Quantity (kg)' },
+                { key: 'official_ffa', label: 'Official FFA (bag) %' },
                 { key: 'status', label: 'Status' }
             ];
             if (typeof exportUtils !== 'undefined' && exportUtils.exportToCSV) {

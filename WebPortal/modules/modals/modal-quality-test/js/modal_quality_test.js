@@ -5,7 +5,8 @@ var _modal_quality_test = (function () {
     'use strict';
 
     var _context = null; // optional caller context (e.g. Supplier Intake oil batch)
-    var _inited = false;
+    /** Delegated handlers attached once: modal inner HTML is re-injected when switching routes, so direct #saveTestBtn listeners are lost while loadJSCode skips re-running this script. */
+    var _delegatedHandlersBound = false;
 
     function makeTestNumber(prefix, batchNumber) {
         var bn = (batchNumber || '').toString().trim().replace(/\s+/g, '-');
@@ -20,14 +21,15 @@ var _modal_quality_test = (function () {
 
     var api = {
         init: function () {
-            if (_inited) return;
-            _inited = true;
-            var saveBtn = document.getElementById('saveTestBtn');
-            if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
-            var modalEl = document.getElementById('qualityTestModal');
-            if (modalEl && typeof $ !== 'undefined') {
-                $(modalEl).on('hidden.bs.modal', function () { api.clearForm(); });
-            }
+            if (_delegatedHandlersBound || typeof $ === 'undefined') return;
+            _delegatedHandlersBound = true;
+            $(document).on('click', '#qualityTestModal #saveTestBtn', function (e) {
+                e.preventDefault();
+                api.save();
+            });
+            $(document).on('hidden.bs.modal', '#qualityTestModal', function () {
+                api.clearForm();
+            });
         },
 
         show: async function (test, context) {

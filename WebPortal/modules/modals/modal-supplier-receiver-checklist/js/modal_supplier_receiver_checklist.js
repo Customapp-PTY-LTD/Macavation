@@ -233,10 +233,16 @@ var _modal_supplier_receiver_checklist = (function () {
         },
 
         show: async function (editingBatch) {
-            _editingBatchId = (editingBatch && editingBatch.id) ? editingBatch.id : null;
-            _editingBatchStatus = (editingBatch && editingBatch.status) ? editingBatch.status : null;
             api.clearForm(false);
-            _editingBatchSnapshot = (editingBatch && _editingBatchId) ? editingBatch : null;
+            if (editingBatch && editingBatch.id) {
+                _editingBatchId = editingBatch.id;
+                _editingBatchStatus = editingBatch.status || null;
+                _editingBatchSnapshot = editingBatch;
+            } else {
+                _editingBatchId = null;
+                _editingBatchStatus = null;
+                _editingBatchSnapshot = null;
+            }
             hideNewSupplierPanel();
 
             var titleEl = document.getElementById('supplierReceiverChecklistModalLabel');
@@ -298,9 +304,11 @@ var _modal_supplier_receiver_checklist = (function () {
 
         clearForm: function (resetRows) {
             resetRows = resetRows !== false;
-            _editingBatchId = null;
-            _editingBatchStatus = null;
-            if (resetRows) _editingBatchSnapshot = null;
+            if (resetRows) {
+                _editingBatchId = null;
+                _editingBatchStatus = null;
+                _editingBatchSnapshot = null;
+            }
             hideNewSupplierPanel();
             var form = document.getElementById('supplierReceiverChecklistForm');
             if (form) form.reset();
@@ -530,6 +538,7 @@ var _modal_supplier_receiver_checklist = (function () {
             } finally {
                 if (createBtn) createBtn.disabled = false;
                 _editingBatchId = null;
+                _editingBatchSnapshot = null;
             }
         }
     };
