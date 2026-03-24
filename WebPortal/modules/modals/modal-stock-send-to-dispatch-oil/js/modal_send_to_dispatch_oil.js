@@ -62,6 +62,85 @@ var _modal_stock_send_to_dispatch_oil = (function () {
         return parts[2] + '/' + parts[1] + '/' + parts[0];
     }
 
+    /** CRM contacts that can buy oil & protein (not NIS growers or kernel-only customers). */
+    var OIL_DISPATCH_BUYER_CONTACT_TYPES = ['customer', 'both'];
+
+    function filterContactsForOilBuyers(contacts, selectedId) {
+        if (!contacts || !Array.isArray(contacts)) return [];
+        var allowed = function (c) {
+            var t = (c.contact_type || '').trim();
+            return OIL_DISPATCH_BUYER_CONTACT_TYPES.indexOf(t) >= 0;
+        };
+        var list = contacts.filter(allowed);
+        if (selectedId) {
+            var sel = contacts.find(function (c) { return String(c.id) === String(selectedId); });
+            if (sel && !allowed(sel)) list.push(sel);
+        }
+        list.sort(function (a, b) {
+            var na = (a.company_name || a.trading_name || a.primary_contact_name || '').toLowerCase();
+            var nb = (b.company_name || b.trading_name || b.primary_contact_name || '').toLowerCase();
+            return na.localeCompare(nb);
+        });
+        return list;
+    }
+
+    function extractNewContactId(res) {
+        if (!res) return null;
+        if (res.id) return res.id;
+        if (res.contact_id) return res.contact_id;
+        if (res.data && res.data.id) return res.data.id;
+        if (Array.isArray(res.inserted_ids) && res.inserted_ids.length) return res.inserted_ids[0];
+        if (res.result && res.result.id) return res.result.id;
+        if (res.success !== false && res.p_id) return res.p_id;
+        return null;
+    }
+
+    function populateBuyerContacts(selectedId) {
+        var buyerSelect = document.getElementById('dispatchOilBuyerContact');
+        if (!buyerSelect) return;
+        buyerSelect.innerHTML = '<option value="">— Select contact —</option>';
+        if (typeof dataFunctions === 'undefined' || !dataFunctions.getContacts) return;
+        dataFunctions.getContacts(null, true).then(function (raw) {
+            var contacts = Array.isArray(raw) ? raw : (raw && raw.get_contacts ? raw.get_contacts : (raw && raw.data ? raw.data : []));
+            if (!Array.isArray(contacts)) return;
+            var forDropdown = filterContactsForOilBuyers(contacts, selectedId);
+            forDropdown.forEach(function (c) {
+                var name = c.company_name || c.trading_name || c.primary_contact_name || c.id;
+                if (!name) return;
+                var opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = name;
+                opt.setAttribute('data-buyer-name', name);
+                buyerSelect.appendChild(opt);
+            });
+            if (selectedId) buyerSelect.value = String(selectedId);
+        }).catch(function () {});
+    }
+
+    function hideOilNewBuyerForm() {
+        var formEl = document.getElementById('dispatchOilNewBuyerForm');
+        var errEl = document.getElementById('dispatchOilNewBuyerError');
+        if (formEl) formEl.style.display = 'none';
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    }
+
+    function showOilNewBuyerForm() {
+        var formEl = document.getElementById('dispatchOilNewBuyerForm');
+        var errEl = document.getElementById('dispatchOilNewBuyerError');
+        ['dispatchOilNewBuyerName', 'dispatchOilNewBuyerPerson', 'dispatchOilNewBuyerProvince', 'dispatchOilNewBuyerArea', 'dispatchOilNewBuyerNotes'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        var typeEl = document.getElementById('dispatchOilNewBuyerContactType');
+        if (typeEl) typeEl.value = 'customer';
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+        if (formEl) {
+            formEl.style.display = '';
+            var nameEl = document.getElementById('dispatchOilNewBuyerName');
+            if (nameEl) setTimeout(function () { nameEl.focus(); }, 50);
+        }
+    }
+
     var api = {
         init: function () {
             $(document).off('click.dispatchOilModal', '#dispatchOilModalSelectLotsBtn').on('click.dispatchOilModal', '#dispatchOilModalSelectLotsBtn', function (e) {
@@ -83,6 +162,20 @@ var _modal_stock_send_to_dispatch_oil = (function () {
                     buyerInput.value = sel.getAttribute('data-buyer-name') || sel.textContent || '';
                     buyerInput.classList.remove('is-invalid');
                 }
+            });
+            $(document).off('click.dispatchOilModal', '#dispatchOilAddBuyerBtn').on('click.dispatchOilModal', '#dispatchOilAddBuyerBtn', function (e) {
+                e.preventDefault();
+                var formEl = document.getElementById('dispatchOilNewBuyerForm');
+                if (formEl && formEl.style.display === 'none') showOilNewBuyerForm();
+                else hideOilNewBuyerForm();
+            });
+            $(document).off('click.dispatchOilModal', '#dispatchOilNewBuyerSubmitBtn').on('click.dispatchOilModal', '#dispatchOilNewBuyerSubmitBtn', function (e) {
+                e.preventDefault();
+                api.submitOilNewBuyerForm();
+            });
+            $(document).off('click.dispatchOilModal', '#dispatchOilNewBuyerCancelBtn').on('click.dispatchOilModal', '#dispatchOilNewBuyerCancelBtn', function (e) {
+                e.preventDefault();
+                hideOilNewBuyerForm();
             });
             $(document).off('input.dispatchOilModalValid', '#sendToDispatchOilModal .is-invalid').on('input.dispatchOilModalValid', '#sendToDispatchOilModal .is-invalid', function () {
                 $(this).removeClass('is-invalid');
@@ -198,6 +291,7 @@ var _modal_stock_send_to_dispatch_oil = (function () {
         },
 
         showStep1: function () {
+            hideOilNewBuyerForm();
             var step1 = document.getElementById('sendToDispatchOilStep1');
             var step2 = document.getElementById('sendToDispatchOilStep2');
             var footer1 = document.getElementById('sendToDispatchOilStep1Footer');
@@ -354,12 +448,82 @@ var _modal_stock_send_to_dispatch_oil = (function () {
             }
         },
 
+        submitOilNewBuyerForm: function () {
+            var nameEl = document.getElementById('dispatchOilNewBuyerName');
+            var errEl = document.getElementById('dispatchOilNewBuyerError');
+            var typeEl = document.getElementById('dispatchOilNewBuyerContactType');
+            var companyName = nameEl && nameEl.value ? nameEl.value.trim() : '';
+            if (!companyName) {
+                if (errEl) { errEl.textContent = 'Company name is required.'; errEl.style.display = 'block'; }
+                if (nameEl) nameEl.focus();
+                return;
+            }
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+            var contactType = (typeEl && typeEl.value) ? typeEl.value.trim() : 'customer';
+            if (OIL_DISPATCH_BUYER_CONTACT_TYPES.indexOf(contactType) < 0) contactType = 'customer';
+            var data = {
+                company_name: companyName,
+                contact_type: contactType,
+                physical_province: (document.getElementById('dispatchOilNewBuyerProvince') && document.getElementById('dispatchOilNewBuyerProvince').value) ? document.getElementById('dispatchOilNewBuyerProvince').value.trim() : null,
+                physical_city: (document.getElementById('dispatchOilNewBuyerArea') && document.getElementById('dispatchOilNewBuyerArea').value) ? document.getElementById('dispatchOilNewBuyerArea').value.trim() : null,
+                primary_contact_name: (document.getElementById('dispatchOilNewBuyerPerson') && document.getElementById('dispatchOilNewBuyerPerson').value) ? document.getElementById('dispatchOilNewBuyerPerson').value.trim() : null,
+                notes: (document.getElementById('dispatchOilNewBuyerNotes') && document.getElementById('dispatchOilNewBuyerNotes').value) ? document.getElementById('dispatchOilNewBuyerNotes').value.trim() : null
+            };
+            api.doCreateOilBuyer(data);
+        },
+
+        doCreateOilBuyer: function (data) {
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.createContact) {
+                if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Error', 'Create contact not available.', 'error');
+                return;
+            }
+            var submitBtn = document.getElementById('dispatchOilNewBuyerSubmitBtn');
+            if (submitBtn) submitBtn.disabled = true;
+            var payload = {
+                contact_type: data.contact_type || 'customer',
+                company_name: data.company_name,
+                physical_province: data.physical_province || null,
+                physical_city: data.physical_city || null,
+                primary_contact_name: data.primary_contact_name || null,
+                notes: data.notes || null,
+                status: 'active'
+            };
+            dataFunctions.createContact(payload).then(function (res) {
+                if (res && res.success === false) {
+                    throw new Error(res.error || res.message || 'Failed to create contact');
+                }
+                var id = extractNewContactId(res);
+                if (!id) {
+                    throw new Error((res && (res.error || res.message)) || 'No id returned');
+                }
+                populateBuyerContacts(id);
+                var buyerSelect = document.getElementById('dispatchOilBuyerContact');
+                var buyerInput = document.getElementById('dispatchOilBuyer');
+                if (buyerSelect) buyerSelect.value = String(id);
+                if (buyerInput) {
+                    buyerInput.value = data.company_name;
+                    buyerInput.classList.remove('is-invalid');
+                }
+                hideOilNewBuyerForm();
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({ icon: 'success', title: 'Buyer added', text: data.company_name, timer: 1800, showConfirmButton: false });
+                }
+            }).catch(function (e) {
+                var msg = e && e.message ? e.message : 'Failed to add buyer.';
+                var errEl = document.getElementById('dispatchOilNewBuyerError');
+                if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+                else if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire('Error', msg, 'error');
+            }).finally(function () {
+                if (submitBtn) submitBtn.disabled = false;
+            });
+        },
+
         show: function () {
             _dispatchOilLines = [];
             _pendingDetails = null;
+            hideOilNewBuyerForm();
             api.showStep1();
             var buyerInput = document.getElementById('dispatchOilBuyer');
-            var buyerSelect = document.getElementById('dispatchOilBuyerContact');
             var deliveryInput = document.getElementById('dispatchOilDeliveryDate');
             if (buyerInput) { buyerInput.value = ''; buyerInput.classList.remove('is-invalid'); }
             if (deliveryInput && deliveryInput._flatpickr) {
@@ -368,24 +532,7 @@ var _modal_stock_send_to_dispatch_oil = (function () {
                 deliveryInput.value = '';
                 deliveryInput.classList.remove('is-invalid');
             }
-            if (buyerSelect) {
-                buyerSelect.innerHTML = '<option value="">— Select contact —</option>';
-                if (typeof dataFunctions !== 'undefined' && dataFunctions.getContacts) {
-                    dataFunctions.getContacts(null, true).then(function (contacts) {
-                        if (Array.isArray(contacts)) {
-                            contacts.forEach(function (c) {
-                                var name = c.company_name || c.trading_name || c.primary_contact_name || c.id;
-                                if (!name) return;
-                                var opt = document.createElement('option');
-                                opt.value = c.id;
-                                opt.textContent = name;
-                                opt.setAttribute('data-buyer-name', name);
-                                buyerSelect.appendChild(opt);
-                            });
-                        }
-                    }).catch(function () {});
-                }
-            }
+            populateBuyerContacts(null);
             var modalEl = document.getElementById('sendToDispatchOilModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 bootstrap.Modal.getOrCreateInstance(modalEl).show();

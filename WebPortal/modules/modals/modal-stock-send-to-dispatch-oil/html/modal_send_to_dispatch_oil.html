@@ -15,9 +15,49 @@
                     </div>
                     <div class="mb-3">
                         <label for="dispatchOilBuyerContact" class="form-label">Buyer (from contacts)</label>
-                        <select class="form-select" id="dispatchOilBuyerContact">
-                            <option value="">— Select contact —</option>
-                        </select>
+                        <div class="input-group">
+                            <select class="form-select" id="dispatchOilBuyerContact">
+                                <option value="">— Select contact —</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="dispatchOilAddBuyerBtn" title="Add new buyer"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <div id="dispatchOilNewBuyerForm" class="mt-3 p-3 border rounded bg-light" style="display: none;">
+                            <h6 class="mb-2 small fw-semibold">New buyer (oil &amp; protein)</h6>
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <label for="dispatchOilNewBuyerName" class="form-label small mb-0">Company name <span class="text-danger">*</span></label>
+                                    <input type="text" id="dispatchOilNewBuyerName" class="form-control form-control-sm" placeholder="e.g. Buyer (Pty) Ltd" autocomplete="organization">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="dispatchOilNewBuyerContactType" class="form-label small mb-0">CRM type</label>
+                                    <select class="form-select form-select-sm" id="dispatchOilNewBuyerContactType">
+                                        <option value="customer">Customer</option>
+                                        <option value="both">Customer &amp; supplier</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="dispatchOilNewBuyerPerson" class="form-label small mb-0">Contact person</label>
+                                    <input type="text" id="dispatchOilNewBuyerPerson" class="form-control form-control-sm" placeholder="Optional" autocomplete="name">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="dispatchOilNewBuyerProvince" class="form-label small mb-0">Province</label>
+                                    <input type="text" id="dispatchOilNewBuyerProvince" class="form-control form-control-sm" placeholder="Optional" autocomplete="off">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="dispatchOilNewBuyerArea" class="form-label small mb-0">Area / City</label>
+                                    <input type="text" id="dispatchOilNewBuyerArea" class="form-control form-control-sm" placeholder="Optional" autocomplete="off">
+                                </div>
+                                <div class="col-12">
+                                    <label for="dispatchOilNewBuyerNotes" class="form-label small mb-0">Notes</label>
+                                    <input type="text" id="dispatchOilNewBuyerNotes" class="form-control form-control-sm" placeholder="Optional">
+                                </div>
+                            </div>
+                            <div id="dispatchOilNewBuyerError" class="text-danger small my-2" style="display: none;"></div>
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                <button type="button" class="btn btn-sm btn-primary" id="dispatchOilNewBuyerSubmitBtn">Add buyer</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="dispatchOilNewBuyerCancelBtn">Cancel</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="dispatchOilDeliveryDate" class="form-label required">Date of delivery</label>
