@@ -20,9 +20,37 @@
                             </div>
                             <div class="col-md-4">
                                 <label for="srcSupplierDetails" class="form-label required">Supplier</label>
-                                <select class="form-select" id="srcSupplierDetails" required>
-                                    <option value="">Select supplier</option>
-                                </select>
+                                <div class="input-group">
+                                    <select class="form-select" id="srcSupplierDetails" required>
+                                        <option value="">Select supplier</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" id="srcAddSupplierBtn" title="Add new supplier"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <div id="srcNewSupplierPanel" class="border rounded p-2 mt-2 bg-light" style="display: none;">
+                                    <div class="small fw-semibold mb-2">New supplier (oil &amp; protein)</div>
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label for="srcNewSupplierCompany" class="form-label small mb-0">Company name <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control form-control-sm" id="srcNewSupplierCompany" placeholder="Legal / trading name" autocomplete="organization">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="srcNewSupplierContactType" class="form-label small mb-0">CRM type</label>
+                                            <select class="form-select form-select-sm" id="srcNewSupplierContactType">
+                                                <option value="supplier">Supplier</option>
+                                                <option value="oil_processor">Oil processor</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="srcNewSupplierPerson" class="form-label small mb-0">Contact person</label>
+                                            <input type="text" class="form-control form-control-sm" id="srcNewSupplierPerson" placeholder="Optional" autocomplete="name">
+                                        </div>
+                                        <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                                            <button type="button" class="btn btn-sm btn-primary" id="srcNewSupplierSaveBtn"><i class="fas fa-save me-1"></i>Save supplier</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="srcNewSupplierCancelBtn">Cancel</button>
+                                            <span id="srcNewSupplierError" class="text-danger small" style="display: none;"></span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

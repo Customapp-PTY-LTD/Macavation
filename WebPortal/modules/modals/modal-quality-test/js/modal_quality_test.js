@@ -5,7 +5,8 @@ var _modal_quality_test = (function () {
     'use strict';
 
     var _context = null; // optional caller context (e.g. Supplier Intake oil batch)
-    var _inited = false;
+    /** Delegated handlers attached once: modal inner HTML is re-injected when switching routes, so direct #saveTestBtn listeners are lost while loadJSCode skips re-running this script. */
+    var _delegatedHandlersBound = false;
 
     function makeTestNumber(prefix, batchNumber) {
         var bn = (batchNumber || '').toString().trim().replace(/\s+/g, '-');
@@ -20,14 +21,15 @@ var _modal_quality_test = (function () {
 
     var api = {
         init: function () {
-            if (_inited) return;
-            _inited = true;
-            var saveBtn = document.getElementById('saveTestBtn');
-            if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
-            var modalEl = document.getElementById('qualityTestModal');
-            if (modalEl && typeof $ !== 'undefined') {
-                $(modalEl).on('hidden.bs.modal', function () { api.clearForm(); });
-            }
+            if (_delegatedHandlersBound || typeof $ === 'undefined') return;
+            _delegatedHandlersBound = true;
+            $(document).on('click', '#qualityTestModal #saveTestBtn', function (e) {
+                e.preventDefault();
+                api.save();
+            });
+            $(document).on('hidden.bs.modal', '#qualityTestModal', function () {
+                api.clearForm();
+            });
         },
 
         show: async function (test, context) {
@@ -156,27 +158,15 @@ var _modal_quality_test = (function () {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', 'FFA (%) is required. Please enter a number.', 'error');
                     return;
                 }
-                var bn = _context.batch_number || '';
-                var today = new Date().toISOString().split('T')[0];
-                var testData = {
-                    p_test_number: makeTestNumber('QT', bn),
-                    p_test_type: 'batch',
-                    p_product_type: 'oil',
-                    p_test_date: today,
-                    p_batch_number: bn,
-                    p_ffa_percentage: ffaNum,
-                    p_overall_result: 'pass',
-                    p_status: 'completed'
-                };
                 try {
-                    if (typeof dataFunctions === 'undefined' || !dataFunctions.callFunction) {
+                    if (typeof dataFunctions === 'undefined' || !dataFunctions.completeSupplierIntakeFirstSampleFfa) {
                         throw new Error('Save not available');
                     }
-                    await dataFunctions.callFunction('create_quality_test_simple', testData);
-                    if (_context.oil_id && typeof dataFunctions.updateOilBatchStatus === 'function') {
-                        await dataFunctions.updateOilBatchStatus(_context.oil_id, 'release_ready');
+                    var siRes = await dataFunctions.completeSupplierIntakeFirstSampleFfa(_context.oil_id, ffaNum, null);
+                    if (!siRes || siRes.success === false) {
+                        throw new Error((siRes && siRes.error) || 'Could not record official FFA');
                     }
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Sample test complete. Batch is now release ready.', timer: 2000, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Official bag FFA recorded. Batch is ready for Oil Production (release when you are ready).', timer: 2200, showConfirmButton: false });
                     var modalEl = document.getElementById('qualityTestModal');
                     if (modalEl && typeof bootstrap !== 'undefined') { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
                     else if (typeof $ !== 'undefined' && $.fn.modal) $('#qualityTestModal').modal('hide');

@@ -38,14 +38,22 @@
         $('#dateReceived').val(new Date().toISOString().split('T')[0]);
         try {
             var contacts = await dataFunctions.getContacts();
+            // Oil & Protein intake: same as Receiver checklist — exclude kernel NIS / kernel_customer
+            var oilTypes = ['supplier', 'both', 'oil_processor'];
+            var list = (contacts && Array.isArray(contacts))
+                ? contacts.filter(function (c) { return oilTypes.indexOf((c.contact_type || '').trim()) >= 0; })
+                : [];
+            list.sort(function (a, b) {
+                var na = (a.company_name || a.trading_name || a.primary_contact_name || '').toLowerCase();
+                var nb = (b.company_name || b.trading_name || b.primary_contact_name || '').toLowerCase();
+                return na.localeCompare(nb);
+            });
             var select = $('#supplierDetails');
             var html = '<option value="">Select Supplier</option>';
-            if (contacts && Array.isArray(contacts)) {
-                contacts.forEach(function (c) {
-                    var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
-                    html += '<option value="' + c.id + '">' + name + '</option>';
-                });
-            }
+            list.forEach(function (c) {
+                var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
+                html += '<option value="' + c.id + '">' + name + '</option>';
+            });
             select.html(html);
         } catch (e) { console.error('Error loading suppliers:', e); }
         var el = document.getElementById('receivingChecklistModal');

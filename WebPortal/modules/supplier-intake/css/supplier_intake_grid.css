@@ -185,3 +185,19 @@
         min-width: 2.25rem;
     }
 }
+
+/* Weekly stock: fixed ingredient columns, template-style header */
+#siWeeklyTable.si-weekly-stock-table thead.table-light th,
+#siWeeklyTable.si-weekly-stock-table thead th {
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: #495057;
+    font-weight: 600;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+#siWeeklyTable.si-weekly-stock-table tbody td.si-weekly-td-num,
+#siWeeklyTable.si-weekly-stock-table tbody td.si-weekly-td-total {
+    font-variant-numeric: tabular-nums;
+}

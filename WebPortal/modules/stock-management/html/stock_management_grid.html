@@ -226,100 +226,135 @@
         </div>
     </div>
 
-    <!-- Oil Stock Ledger (hidden when stream = Kernel) - Mirrored layout to Stock (Kernel) -->
+    <!-- Oil & protein stock (hidden when stream = Kernel) — layout aligned with Kernel Stock -->
     <div class="card mb-4 border-primary" id="oilStockLedgerCard" style="display: none;">
         <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Oil stock</h5>
-            <div class="btn-toolbar">
-                <button type="button" class="btn btn-primary" id="addOilLotBtn" data-oil-only="true">
-                    <i class="fas fa-plus-circle me-1"></i>Add Oil Lot
-                </button>
-                <button type="button" class="btn btn-outline-success" id="importOilLotsBtn" data-oil-only="true">
-                    <i class="fas fa-file-excel me-1"></i>Import Oil Stock (Excel)
-                </button>
-                <button type="button" class="btn btn-success" id="sendToDispatchOilBtn" title="Create an Oil &amp; Protein dispatch order from selected lots">
+            <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Oil &amp; protein stock</h5>
+            <div class="btn-toolbar flex-wrap gap-1">
+                <button type="button" class="btn btn-success btn-sm" id="sendToDispatchOilBtn" title="Create an Oil &amp; Protein dispatch order">
                     <i class="fas fa-truck me-1"></i>Send to Dispatch
                 </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshOilStockBtn" title="Reload stock">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">More</button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" id="addOilLotBtn"><i class="fas fa-plus-circle me-2"></i>Add lot</a></li>
+                        <li><a class="dropdown-item" href="#" id="importOilLotsBtn"><i class="fas fa-file-excel me-2"></i>Import from Excel</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
         <div class="card-body">
-            <p class="text-muted small mb-3">Add and import oil lots from Excel; track by location (801 Raw Materials / 850 Finished Goods), category, and status. Days Remaining is calculated from BB Date. Export when you're ready.</p>
-            <hr class="my-3">
-            <h6 class="text-secondary">Oil Stock Ledger (801 / 850 / Sold)</h6>
-            <div class="row g-3 mb-3">
-                <div class="col-md-3">
-                    <label for="oilLocationFilter" class="form-label">Location</label>
-                    <select id="oilLocationFilter" class="form-select">
-                        <option value="">All</option>
-                        <option value="801">801 (Raw Materials)</option>
-                        <option value="850">850 (Finished Goods)</option>
-                    </select>
+            <p class="text-muted small mb-3">Oil finished goods and raw materials on top; protein powder stock below. Weekly views use stock ledger dates and dispatched oil orders.</p>
+            <div class="d-flex justify-content-end mb-3 flex-wrap gap-2 align-items-center">
+                <div class="flex-grow-1" style="min-width: 12rem; max-width: 24rem;">
+                    <label for="oilSearchInput" class="form-label small text-muted mb-0">Search</label>
+                    <input type="text" class="form-control form-control-sm" id="oilSearchInput" placeholder="Batch, grade, supplier…">
                 </div>
-                <div class="col-md-3">
-                    <label for="oilCategoryFilter" class="form-label">Category</label>
-                    <select id="oilCategoryFilter" class="form-select">
-                        <option value="">All</option>
-                        <option value="raw_material">Raw Material</option>
-                        <option value="finished_good">Finished Good</option>
-                        <option value="sold">Sold</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="oilStatusFilter" class="form-label">Status</label>
-                    <select id="oilStatusFilter" class="form-select">
-                        <option value="">All</option>
-                        <option value="on_hand">On Hand</option>
-                        <option value="hold">Hold</option>
-                        <option value="dispatched">Dispatched</option>
-                        <option value="sold">Sold</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="oilSearchInput" class="form-label">Search</label>
-                    <input type="text" class="form-control" id="oilSearchInput" placeholder="Search supplier/customer, PO, batch, product, grade...">
+                <div class="view-toggle">
+                    <button type="button" class="view-toggle-btn active" data-oil-view="bystock" id="osViewByStock" title="Stock tables">
+                        <i class="fas fa-table me-1"></i>Stock
+                    </button>
+                    <button type="button" class="view-toggle-btn" data-oil-view="weekly" id="osViewWeekly" title="Weekly in / out">
+                        <i class="fas fa-calendar-week me-1"></i>Weekly
+                    </button>
+                    <button type="button" class="view-toggle-btn" data-oil-view="overview" id="osViewOverview" title="Totals">
+                        <i class="fas fa-chart-pie me-1"></i>Overview
+                    </button>
                 </div>
             </div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-12">
-                    <div class="table-responsive oil-stock-table-wrapper" style="max-height: 220px; overflow-y: auto;">
-                        <table class="table table-sm table-bordered mb-0" id="oilSummaryTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Row Label</th>
-                                    <th class="text-end">Avg FFA</th>
-                                    <th class="text-end">Sum of Kilograms</th>
-                                </tr>
-                            </thead>
-                            <tbody id="oilSummaryTableBody"></tbody>
-                        </table>
-                    </div>
+            <!-- Stock view: oil table first, then protein -->
+            <div id="osByStockPanel">
+                <h6 class="text-secondary"><i class="fas fa-oil-can me-2"></i>Oil</h6>
+                <p class="text-muted small mb-2">Crude / EV / cosmetic and other non–protein-powder lines (location 801 / 850).</p>
+                <div class="table-responsive oil-stock-table-wrapper mb-4">
+                    <table class="table table-sm table-bordered table-hover" id="oilStockOilTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Location</th>
+                                <th>Category</th>
+                                <th>Batch #</th>
+                                <th>Grade</th>
+                                <th class="text-end">FFA</th>
+                                <th class="text-end">Kg</th>
+                                <th>BB Date</th>
+                                <th class="text-end">Days left</th>
+                                <th>Status</th>
+                                <th class="text-nowrap">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="oilStockOilTableBody"></tbody>
+                    </table>
+                </div>
+                <h6 class="text-secondary"><i class="fas fa-flask me-2"></i>Protein powder</h6>
+                <p class="text-muted small mb-2">Finished protein powder lots (e.g. grade &quot;Protein powder&quot;).</p>
+                <div class="table-responsive oil-stock-table-wrapper">
+                    <table class="table table-sm table-bordered table-hover" id="oilStockProteinTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Location</th>
+                                <th>Category</th>
+                                <th>Batch #</th>
+                                <th>Grade</th>
+                                <th class="text-end">FFA</th>
+                                <th class="text-end">Kg</th>
+                                <th>BB Date</th>
+                                <th class="text-end">Days left</th>
+                                <th>Status</th>
+                                <th class="text-nowrap">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="oilStockProteinTableBody"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="table-responsive oil-stock-table-wrapper">
-                <table class="table table-hover table-sm" id="oilLotsTable">
-                    <thead>
-                        <tr>
-                            <th>Location</th>
-                            <th>Category</th>
-                            <th>Supplier/Customer</th>
-                            <th>PO Ref</th>
-                            <th>Batch #</th>
-                            <th>Product</th>
-                            <th>Grade</th>
-                            <th class="text-end">FFA</th>
-                            <th class="text-end">Units</th>
-                            <th class="text-end">Kg</th>
-                            <th>Mfg Date</th>
-                            <th>BB Date</th>
-                            <th class="text-end">Days Remaining</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="oilLotsTableBody"></tbody>
-                </table>
+            <div id="osWeeklyPanel" style="display: none;">
+                <h6 class="text-secondary"><i class="fas fa-calendar-week me-2"></i>Weekly stock (kg)</h6>
+                <p class="text-muted small mb-3">Stock <strong>in</strong> from ledger <code>created_at</code>; stock <strong>out</strong> from oil dispatch orders with a dispatch date. Split into oil vs protein powder.</p>
+                <div class="mb-3">
+                    <label for="osWeeklyViewMode" class="form-label small text-muted">View</label>
+                    <select id="osWeeklyViewMode" class="form-select form-select-sm" style="max-width: 16rem;">
+                        <option value="in">Weekly in</option>
+                        <option value="out">Weekly out</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm" id="osWeeklyTable">
+                        <thead>
+                            <tr>
+                                <th>Week</th>
+                                <th class="text-end">Oil (kg)</th>
+                                <th class="text-end">Protein (kg)</th>
+                                <th class="text-end fw-bold" id="osWeeklyTotalHeader">Total (kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="osWeeklyTableBody">
+                            <tr><td colspan="4" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="osOverviewPanel" style="display: none;">
+                <h6 class="text-secondary"><i class="fas fa-chart-pie me-2"></i>Overview (on-hand kg)</h6>
+                <p class="text-muted small mb-3">Totals for lots with status <strong>on hand</strong> only.</p>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Stream</th>
+                                <th class="text-end">Total (kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="osOverviewTableBody">
+                            <tr><td colspan="2" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

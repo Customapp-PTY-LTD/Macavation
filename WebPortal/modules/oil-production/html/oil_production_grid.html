@@ -1,4 +1,4 @@
-<!-- Oil Production: raw ingredients in production, person on duty, oil bins -->
+<!-- Oil Production: raw ingredients in production, oil bin batches -->
 <div class="module-content">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Oil Production</h1>
@@ -22,52 +22,15 @@
             <div id="opRawIngredientsList" class="op-raw-list">
                 <p class="text-muted mb-0">Loading…</p>
             </div>
-        </div>
-    </div>
-
-    <!-- 2. Person on duty (for the day) -->
-    <div class="card mb-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-user-clock me-2"></i>Person on duty</h5>
-        </div>
-        <div class="card-body">
-            <form id="opPersonOnDutyForm" class="row g-3">
-                <div class="col-md-3">
-                    <label for="opDutyDate" class="form-label">Date</label>
-                    <input type="text" class="form-control flatpickr-date" id="opDutyDate" data-input placeholder="dd/mm/yyyy">
-                </div>
-                <div class="col-md-4">
-                    <label for="opPersonOnDuty" class="form-label">Person on duty</label>
-                    <input type="text" class="form-control" id="opPersonOnDuty" placeholder="Name of person on duty">
-                </div>
-                <div class="col-md-3">
-                    <label for="opShiftName" class="form-label">Shift name</label>
-                    <input type="text" class="form-control" id="opShiftName" placeholder="e.g. Day shift">
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-primary w-100" id="opSaveDutyBtn">
-                        <i class="fas fa-save me-1"></i>Save
-                    </button>
-                </div>
-            </form>
             <div class="mt-3 pt-3 border-top">
-                <button type="button" class="btn btn-outline-primary" id="opGmpCheckSheetBtn">
-                    <i class="fas fa-clipboard-check me-1"></i>GMP Check Sheet (Shift Check)
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="opToggleFinishedRawBtn" aria-expanded="false">
+                    <i class="fas fa-chevron-down me-1 op-finished-raw-chevron" aria-hidden="true"></i>Finished (emptied) raw batches
                 </button>
             </div>
-            <div class="mt-3 pt-3 border-top">
-                <h6 class="text-muted mb-2">Production sheets</h6>
-                <p class="small text-muted mb-2">Fill out the digital form or upload a completed sheet (PDF/image).</p>
-                <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-outline-secondary op-production-sheet-btn" data-sheet-type="food_grade_oil">
-                        <i class="fas fa-tint me-1"></i>Food Grade Oil
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary op-production-sheet-btn" data-sheet-type="protein_powder">
-                        <i class="fas fa-mortar-pestle me-1"></i>Protein Powder
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary op-production-sheet-btn" data-sheet-type="cosmetic_oil">
-                        <i class="fas fa-flask me-1"></i>Cosmetic Oil
-                    </button>
+            <div id="opFinishedRawIngredientsWrap" class="mt-3 d-none border rounded p-3 bg-light">
+                <p class="text-muted small mb-2">Batches you mark <strong>Empty</strong> after the bag is finished in the press. They no longer appear in the list above.</p>
+                <div id="opFinishedRawIngredientsList" class="op-finished-raw-list">
+                    <p class="text-muted small mb-0">Loading…</p>
                 </div>
             </div>
         </div>
@@ -113,105 +76,13 @@
         </div>
     </div>
 
-    <!-- GMP Check Sheet modal (Oil Processing GMP – Shift Check) -->
-    <div class="modal fade" id="opGmpCheckSheetModal" tabindex="-1" aria-labelledby="opGmpCheckSheetModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="opGmpCheckSheetModalLabel">Oil Processing GMP Check Sheet (Shift Check) — MP5.2.1 Rev 03</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">How do you want to submit?</label>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="opGmpSubmitMode" id="opGmpModeForm" value="form" checked>
-                            <label class="form-check-label" for="opGmpModeForm">Fill out the form</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="opGmpSubmitMode" id="opGmpModeUpload" value="upload">
-                            <label class="form-check-label" for="opGmpModeUpload">Upload a file instead</label>
-                        </div>
-                    </div>
-
-                    <div id="opGmpUploadSection" class="op-gmp-upload-section mb-4" style="display: none;">
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                <p class="text-muted small">Upload a scanned or photo of the completed GMP check sheet. You can still add date and checked by below.</p>
-                                <div class="mb-3">
-                                    <label for="opGmpFileInput" class="form-label">File (PDF or image)</label>
-                                    <input type="file" class="form-control" id="opGmpFileInput" accept=".pdf,image/*">
-                                </div>
-                                <div id="opGmpUploadStatus" class="small text-muted"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="opGmpFormSection" class="op-gmp-form-section">
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-3">
-                                <label for="opGmpDate" class="form-label">Date</label>
-                                <input type="text" class="form-control flatpickr-date" id="opGmpDate" placeholder="dd/mm/yyyy">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="opGmpCheckedBy" class="form-label">Checked by</label>
-                                <input type="text" class="form-control" id="opGmpCheckedBy" placeholder="Name or initials">
-                            </div>
-                        </div>
-                        <div id="opGmpFormRows" class="op-gmp-rows"></div>
-                        <div class="mt-3">
-                            <label for="opGmpComments" class="form-label">Comments (General observations, areas for improvement, preventative actions)</label>
-                            <textarea class="form-control" id="opGmpComments" rows="3" placeholder="Optional"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="mt-3 pt-3 border-top" id="opGmpUploadOnlyFields" style="display: none;">
-                        <div class="row g-2">
-                            <div class="col-md-3">
-                                <label for="opGmpUploadDate" class="form-label">Date</label>
-                                <input type="text" class="form-control flatpickr-date" id="opGmpUploadDate" placeholder="dd/mm/yyyy">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="opGmpUploadCheckedBy" class="form-label">Checked by</label>
-                                <input type="text" class="form-control" id="opGmpUploadCheckedBy" placeholder="Name or initials">
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <label for="opGmpUploadComments" class="form-label">Comments (optional)</label>
-                            <textarea class="form-control" id="opGmpUploadComments" rows="2"></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="opGmpSubmitBtn">
-                        <i class="fas fa-paper-plane me-1"></i>Send
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. Oil bins being produced -->
-    <div class="card mb-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Oil bins</h5>
-        </div>
-        <div class="card-body">
-            <p class="text-muted small mb-3">Storage bins for oil produced.</p>
-            <div id="opOilBinsList" class="op-bins-list">
-                <p class="text-muted mb-0">Loading…</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- 4. Oil bin batches (production): Start oil bin / Send to stock -->
+    <!-- 2. Oil bin batches (production): Start oil bin / Send to stock -->
     <div class="card mb-4">
         <div class="card-header bg-light">
             <h5 class="mb-0"><i class="fas fa-flask me-2"></i>Oil bin batches (production)</h5>
         </div>
         <div class="card-body">
-            <p class="text-muted small mb-3">Start an oil bin to create a batch number and record. Edit shifts, ingredients, letrerage and FFA before sending to stock.</p>
+            <p class="text-muted small mb-3">Start an oil bin to create a batch number and record. <strong>Send to stock</strong> removes the batch from this list and creates a row in <strong>Stock Management</strong> (Oil stream — oil stock ledger, default location 801).</p>
             <div class="mt-2 mb-3">
                 <button type="button" class="btn btn-outline-primary" id="opStartOilBinBtn">
                     <i class="fas fa-play me-1"></i>Start oil bin
@@ -223,7 +94,55 @@
         </div>
     </div>
 
-    <!-- Edit oil bin batch modal (shifts, ingredients, letrerage, FFA) -->
+    <!-- 3. Protein production batches -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-drumstick-bite me-2"></i>Protein production (batches)</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">Start a protein powder batch, link the same raw ingredient batches as oil production, then send to stock. <strong>Send to stock</strong> asks for <strong>batch weight (kg)</strong> and creates a finished-good line in <strong>Stock Management</strong> (location 801).</p>
+            <div class="mt-2 mb-3">
+                <button type="button" class="btn btn-outline-primary" id="opStartProteinBinBtn">
+                    <i class="fas fa-play me-1"></i>Start protein batch
+                </button>
+            </div>
+            <div id="opProteinBinBatchesList" class="op-protein-bin-batches-list">
+                <p class="text-muted mb-0">Loading…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link raw ingredients to protein batch -->
+    <div class="modal fade" id="opProteinLinkIngredientsModal" tabindex="-1" aria-labelledby="opProteinLinkIngredientsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="opProteinLinkIngredientsModalLabel"><i class="fas fa-carrot me-2"></i>Ingredients — link to protein batch</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="opProteinLinkIngredientsBinId" value="">
+                    <p class="text-muted small mb-2">Protein batch <span id="opProteinLinkIngredientsBatchNumber" class="fw-semibold text-body">—</span></p>
+                    <p class="small mb-3">Select raw ingredient batches in production for traceability (same as oil bins). You can open this again later to add links.</p>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="opProteinLinkIngredientsSelectAll">Select all</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="opProteinLinkIngredientsClear">Clear</button>
+                    </div>
+                    <div id="opProteinLinkIngredientsList" class="border rounded p-2 bg-light" style="max-height: 320px; overflow-y: auto;">
+                        <p class="text-muted small mb-0">Loading…</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="opProteinLinkIngredientsSaveBtn">
+                        <i class="fas fa-save me-1"></i>Save links
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit oil bin batch modal (ingredients, letrerage, FFA) -->
     <div class="modal fade" id="opEditOilBinBatchModal" tabindex="-1" aria-labelledby="opEditOilBinBatchModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -235,20 +154,26 @@
                     <input type="hidden" id="opEditOilBinBatchId" value="">
                     <p class="text-muted small mb-3"><span id="opEditOilBinBatchNumber" class="fw-semibold">—</span></p>
                     <div class="mb-3">
-                        <label for="opEditOilBinShifts" class="form-label">Shifts</label>
-                        <input type="text" class="form-control" id="opEditOilBinShifts" placeholder="e.g. Day shift">
+                        <label for="opEditOilBinOilStream" class="form-label">Grade (food vs cosmetic)</label>
+                        <select class="form-select" id="opEditOilBinOilStream" aria-label="Food grade or cosmetic">
+                            <option value="">Not set (unchanged)</option>
+                            <option value="food_grade">Food grade</option>
+                            <option value="cosmetic">Cosmetic</option>
+                        </select>
+                        <div class="form-text">Food-grade and cosmetic runs are kept separate for compliance and stock. Set or change before <strong>Send to stock</strong>.</div>
                     </div>
                     <div class="mb-3">
                         <label for="opEditOilBinIngredients" class="form-label">Ingredients</label>
-                        <input type="text" class="form-control" id="opEditOilBinIngredients" placeholder="Ingredients used">
+                        <textarea class="form-control" id="opEditOilBinIngredients" rows="4" placeholder="Ingredients used in this bin"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="opEditOilBinLetrerage" class="form-label">Letrerage (litres)</label>
                         <input type="number" class="form-control" id="opEditOilBinLetrerage" step="0.01" min="0" placeholder="0">
                     </div>
                     <div class="mb-3">
-                        <label for="opEditOilBinFfa" class="form-label">FFA</label>
+                        <label for="opEditOilBinFfa" class="form-label">FFA (%)</label>
                         <input type="number" class="form-control" id="opEditOilBinFfa" step="0.01" min="0" placeholder="0">
+                        <div class="form-text">Optional manual entry. For a recorded lab test with pass/fail, use <strong>Test FFA</strong> on the batch row.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -261,7 +186,72 @@
         </div>
     </div>
 
-    <!-- View data modal: read-only summary of raw ingredients, oil bins, oil bin batches, shift -->
+    <!-- Link raw ingredients (production) to oil bin batch — traceability -->
+    <div class="modal fade" id="opLinkIngredientsModal" tabindex="-1" aria-labelledby="opLinkIngredientsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="opLinkIngredientsModalLabel"><i class="fas fa-carrot me-2"></i>Ingredients — link to bin</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="opLinkIngredientsBinId" value="">
+                    <p class="text-muted small mb-2">Oil bin batch <span id="opLinkIngredientsBatchNumber" class="fw-semibold text-body">—</span></p>
+                    <p class="small mb-3">Tick the <strong>raw ingredient batches</strong> currently in the production space that apply to this oil bin. This is stored for traceability (same structure as production snapshots) and shown when the batch is sent to stock. Open <strong>Ingredients</strong> again anytime to add or change links. Batches that are no longer in production stay on this record for audit.</p>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="opLinkIngredientsSelectAll">Select all</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="opLinkIngredientsClear">Clear</button>
+                    </div>
+                    <div id="opLinkIngredientsList" class="border rounded p-2 bg-light" style="max-height: 320px; overflow-y: auto;">
+                        <p class="text-muted small mb-0">Loading…</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="opLinkIngredientsSaveBtn">
+                        <i class="fas fa-save me-1"></i>Save links
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FFA lab test (oil bin batch in production) -->
+    <div class="modal fade" id="opFfaTestModal" tabindex="-1" aria-labelledby="opFfaTestModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="opFfaTestModalLabel"><i class="fas fa-vial me-2"></i>FFA test — oil bin</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="opFfaTestBatchId" value="">
+                    <p class="text-muted small mb-3">Batch <span id="opFfaTestBatchNumber" class="fw-semibold text-body">—</span></p>
+                    <div class="mb-3">
+                        <label for="opFfaTestPct" class="form-label">FFA result (%)</label>
+                        <input type="number" class="form-control" id="opFfaTestPct" step="0.01" min="0" max="100" placeholder="e.g. 0.35" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="opFfaTestMax" class="form-label">Site max FFA % (for auto pass)</label>
+                        <input type="number" class="form-control" id="opFfaTestMax" step="0.01" min="0" value="0.5" placeholder="0.5">
+                        <div class="form-text">If result is at or below this value, <strong>Pass</strong> is checked automatically (you can override).</div>
+                    </div>
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="opFfaTestPass" checked>
+                        <label class="form-check-label" for="opFfaTestPass">Pass</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="opFfaTestSaveBtn">
+                        <i class="fas fa-save me-1"></i>Save test
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View data modal: read-only summary -->
     <div class="modal fade" id="opViewDataModal" tabindex="-1" aria-labelledby="opViewDataModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
@@ -302,12 +292,12 @@
                             <input type="text" class="form-control" id="opPdNameOfProduct" placeholder="e.g. Food Grade Oil">
                         </div>
                         <div class="col-md-6">
-                            <label for="opPdShiftSupervisor" class="form-label">Shift supervisor</label>
+                            <label for="opPdShiftSupervisor" class="form-label">Supervisor</label>
                             <input type="text" class="form-control" id="opPdShiftSupervisor" placeholder="Name">
                         </div>
                         <div class="col-md-6">
-                            <label for="opPdShift" class="form-label">Shift</label>
-                            <input type="text" class="form-control" id="opPdShift" placeholder="e.g. Day shift">
+                            <label for="opPdShift" class="form-label">Production period</label>
+                            <input type="text" class="form-control" id="opPdShift" placeholder="e.g. morning run">
                         </div>
                     </div>
 

@@ -1,6 +1,7 @@
 /**
- * Oil Production: raw ingredients in production, person on duty form, oil bins.
+ * Oil Production: raw ingredients in production, production sheets, oil bin batches.
  * Raw ingredients = oil batches with status 'production' (released from Supplier Intake).
+ * Finished (emptied) = status 'raw_empty' after user marks bag empty in production.
  */
 var _oilProductionGrid = function () {
     'use strict';
@@ -38,57 +39,254 @@ var _oilProductionGrid = function () {
         return [];
     }
 
-    function normalizeOilBinList(raw) {
-        if (Array.isArray(raw)) return raw;
-        if (raw && raw.get_oil_bin_list && Array.isArray(raw.get_oil_bin_list)) return raw.get_oil_bin_list;
-        if (raw && raw.data && Array.isArray(raw.data)) return raw.data;
-        return [];
-    }
-
-    var GMP_CHECK_SHEET_ROWS = [
-        { num: 1, action: 'Check that cleaning has been done correctly', detail: 'Check according to cleaning schedule. Pass = ✓ Fail = x', type: 'pass_fail_4', labels: ['Food grade division', 'Boot room', 'Oil press room', 'Non-food grade division'] },
-        { num: 2, action: 'Check the daily processing temperatures', detail: 'Check temperatures of processing room. Pass = ✓ Fail = x', type: 'temperatures', items: [{ name: 'First oil press screw', spec: '80-95' }, { name: 'Second oil press screw', spec: '110-125' }, { name: 'Food grade line', spec: '115-135' }, { name: 'KEK', spec: '60-75' }] },
-        { num: 3, action: 'Check product in progress', detail: 'No product on floor, no containers left open.', type: 'pass_fail' },
-        { num: 4, action: 'Verify accuracy of final product scale', detail: 'Tolerance: 0.100kg', type: 'scale_3' },
-        { num: 5, action: 'Consumable utensil daily check', detail: 'Check for broken utensils or metal/plastic chips.', type: 'broken_3', labels: ['Stanley Knives', 'Cleaning Equipment', 'Scoops'] },
-        { num: 6, action: 'Check belts and machinery', detail: 'Complete maintenance job card if not in good repair.', type: 'pass_fail' },
-        { num: 7, action: 'Check production sheets', detail: 'Daily production sheets completed correctly.', type: 'pass_fail' },
-        { num: 8, action: 'Check glass and hard plastics', detail: 'Check for cracks and chips — refer to register.', type: 'pass_fail' },
-        { num: 9, action: 'Hand washing', detail: 'According to Hand Hygiene Policy.', type: 'pass_fail' },
-        { num: 10, action: 'Pallets', detail: 'Clean, not broken; stacked neatly.', type: 'pass_fail' },
-        { num: 11, action: 'Rare earth magnet checks', detail: 'Magnets cleaned, all metal removed.', type: 'magnet_4', times: ['07h00', '12h00', '14h00', '17h30'] },
-        { num: 12, action: 'Identification of product in the factory', detail: 'All product identifiable (name, dates, batch number, supplier).', type: 'comment' },
-        { num: 13, action: 'Protective clothing', detail: 'Staff wearing correct PPE, hair nets (new daily), boots, beard/wrist guards.', type: 'pass_fail' },
-        { num: 14, action: 'Cleaning of protective clothing', detail: 'Non-disposable washed at least twice a week.', type: 'pass_fail' },
-        { num: 15, action: 'Factory protocol', detail: 'No cell-phones, watches, jewellery, unapproved items, nail varnish.', type: 'pass_fail' },
-        { num: 16, action: 'Personal hygiene check', detail: 'Nails clean and clipped; illnesses reported.', type: 'pass_fail' },
-        { num: 17, action: 'Footbath sanitiser check', detail: 'Fill at 7am, replace after lunch 12.30pm. Pass = ✓ Fail = x', type: 'magnet_4', times: ['07h00', '12h30'] },
-        { num: 18, action: 'Open cuts on hands', detail: 'Check staff hands for any open cuts.', type: 'pass_fail' },
-        { num: 19, action: 'Check filters for build-up', detail: 'Cleared and cleaned according to cleaning schedule.', type: 'pass_fail' }
-    ];
-
     function normalizeOilBinBatches(raw) {
         if (Array.isArray(raw)) return raw;
         if (raw && raw.get_oil_bin_batches && Array.isArray(raw.get_oil_bin_batches)) return raw.get_oil_bin_batches;
+        if (raw && raw.data && raw.data.get_oil_bin_batches && Array.isArray(raw.data.get_oil_bin_batches)) return raw.data.get_oil_bin_batches;
         if (raw && raw.data && Array.isArray(raw.data)) return raw.data;
+        if (raw && raw.rows && Array.isArray(raw.rows)) return raw.rows;
+        if (raw && raw.result && Array.isArray(raw.result)) return raw.result;
+        if (raw && raw.records && Array.isArray(raw.records)) return raw.records;
         return [];
+    }
+
+    function normalizeProteinBinBatches(raw) {
+        if (Array.isArray(raw)) return raw;
+        if (raw && raw.get_protein_bin_batches && Array.isArray(raw.get_protein_bin_batches)) return raw.get_protein_bin_batches;
+        if (raw && raw.data && raw.data.get_protein_bin_batches && Array.isArray(raw.data.get_protein_bin_batches)) return raw.data.get_protein_bin_batches;
+        if (raw && raw.data && Array.isArray(raw.data)) return raw.data;
+        if (raw && raw.rows && Array.isArray(raw.rows)) return raw.rows;
+        if (raw && raw.result && Array.isArray(raw.result)) return raw.result;
+        return [];
+    }
+
+    function normalizeProteinBinBatchRow(b) {
+        if (!b || typeof b !== 'object') return b;
+        var audit = b.raw_ingredient_audit != null ? b.raw_ingredient_audit : b.rawIngredientAudit;
+        if (typeof audit === 'string') {
+            try {
+                audit = JSON.parse(audit);
+            } catch (e) {
+                audit = [];
+            }
+        }
+        return {
+            id: b.id,
+            batch_number: b.batch_number != null ? b.batch_number : b.batchNumber,
+            start_date: b.start_date != null ? b.start_date : b.startDate,
+            ingredients: b.ingredients,
+            batch_weight_kg: b.batch_weight_kg != null ? b.batch_weight_kg : b.batchWeightKg,
+            status: b.status,
+            stock_lot_id: b.stock_lot_id != null ? b.stock_lot_id : b.stockLotId,
+            raw_ingredient_audit: audit,
+            created_at: b.created_at != null ? b.created_at : b.createdAt
+        };
+    }
+
+    /** Grade column: Lambda may camelCase, duplicate as `grade`, or strip `oil_stream` */
+    function pickOilStreamField(b) {
+        if (!b || typeof b !== 'object') return null;
+        var v = b.oil_stream != null ? b.oil_stream : b.oilStream;
+        if (v == null || v === '') v = b.grade != null ? b.grade : b.Grade;
+        if (v == null || v === '') v = b.product_line != null ? b.product_line : b.productLine;
+        if (v != null && String(v).trim() !== '') return v;
+        var k;
+        for (k in b) {
+            if (!Object.prototype.hasOwnProperty.call(b, k)) continue;
+            if (/^oil_?stream$/i.test(k) && b[k] != null && String(b[k]).trim() !== '') return b[k];
+        }
+        return null;
+    }
+
+    /** Lambda / drivers may return camelCase or nested JSON strings for audit fields */
+    function normalizeOilBinBatchRow(b) {
+        if (!b || typeof b !== 'object') return b;
+        var audit = b.raw_ingredient_audit != null ? b.raw_ingredient_audit : b.rawIngredientAudit;
+        if (typeof audit === 'string') {
+            try {
+                audit = JSON.parse(audit);
+            } catch (e) {
+                audit = [];
+            }
+        }
+        return {
+            id: b.id,
+            batch_number: b.batch_number != null ? b.batch_number : b.batchNumber,
+            shifts: b.shifts,
+            ingredients: b.ingredients,
+            start_date: b.start_date != null ? b.start_date : b.startDate,
+            letrerage: b.letrerage,
+            ffa: b.ffa,
+            status: b.status,
+            oil_id: b.oil_id != null ? b.oil_id : b.oilId,
+            created_at: b.created_at != null ? b.created_at : b.createdAt,
+            shift_id: b.shift_id != null ? b.shift_id : b.shiftId,
+            raw_ingredient_audit: audit,
+            duty_shift_date: b.duty_shift_date != null ? b.duty_shift_date : b.dutyShiftDate,
+            duty_shift_supervisor: b.duty_shift_supervisor != null ? b.duty_shift_supervisor : b.dutyShiftSupervisor,
+            duty_shift_name: b.duty_shift_name != null ? b.duty_shift_name : b.dutyShiftName,
+            oil_stream: pickOilStreamField(b),
+            ffa_test_at: b.ffa_test_at != null ? b.ffa_test_at : b.ffaTestAt,
+            ffa_test_pass: (function () {
+                var p = b.ffa_test_pass !== undefined && b.ffa_test_pass !== null ? b.ffa_test_pass : b.ffaTestPass;
+                if (p === true || p === false) return p;
+                if (p === 'true' || p === 1) return true;
+                if (p === 'false' || p === 0) return false;
+                return null;
+            })()
+        };
+    }
+
+    function pickFfaTestAt(b) {
+        return b && (b.ffa_test_at != null ? b.ffa_test_at : b.ffaTestAt);
+    }
+
+    function pickFfaTestPass(b) {
+        if (!b) return null;
+        if (b.ffa_test_pass === true || b.ffa_test_pass === false) return b.ffa_test_pass;
+        if (b.ffaTestPass === true || b.ffaTestPass === false) return b.ffaTestPass;
+        return null;
+    }
+
+    /** HTML snippet for FFA test column (status + optional button added in row builder) */
+    function formatFfaTestStatusHtml(b) {
+        var at = pickFfaTestAt(b);
+        var pass = pickFfaTestPass(b);
+        if (!at && pass == null) {
+            return '<span class="text-muted small">Not tested</span>';
+        }
+        var d = '';
+        try {
+            if (at) d = new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+        } catch (e) { d = ''; }
+        var badge = pass === true ? '<span class="badge bg-success">Pass</span>' : pass === false ? '<span class="badge bg-danger">Fail</span>' : '<span class="badge bg-secondary">Recorded</span>';
+        return '<div class="d-flex flex-column gap-1">' + badge + (d ? '<span class="text-muted small">' + escapeHtml(d) + '</span>' : '') + '</div>';
+    }
+
+    function formatOilStreamLabel(s) {
+        if (!s) return '—';
+        var v = String(s).toLowerCase();
+        if (v === 'food_grade') return 'Food grade';
+        if (v === 'cosmetic') return 'Cosmetic';
+        return String(s);
+    }
+
+    /** Supplier name on raw ingredient bag (stored in oil.intake_data). */
+    function supplierLabelFromOil(o) {
+        if (!o || typeof o !== 'object') return '';
+        var intake = o.intake_data || {};
+        var s = intake.supplier || intake.supplier_details;
+        return s ? String(s).trim() : '';
+    }
+
+    /** Official bag FFA from supplier intake (first sample test); mirrors oil.intake_data.official_ffa / ffa. */
+    function officialBagFfaFromOil(o) {
+        if (!o || typeof o !== 'object') return null;
+        var intake = o.intake_data || {};
+        if (typeof intake === 'string') {
+            try { intake = JSON.parse(intake); } catch (e1) { intake = {}; }
+        }
+        var v = intake.official_ffa != null ? intake.official_ffa : intake.ffa;
+        if (v == null || v === '') return null;
+        var n = Number(v);
+        return isNaN(n) ? null : n;
+    }
+
+    /** Same shape as DB get_oil_production_raw_ingredients_snapshot() for raw_ingredient_audit */
+    function buildRawIngredientAuditEntry(o) {
+        if (!o || typeof o !== 'object') return null;
+        var intake = o.intake_data || {};
+        var qty = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
+        var pt = intake.product_type || (o.name_of_product && String(o.name_of_product));
+        var sup = supplierLabelFromOil(o);
+        return {
+            oil_id: o.id,
+            batch_id: o.batch_id,
+            quantity_kg: qty != null && !isNaN(Number(qty)) ? Number(qty) : null,
+            product_type: pt ? String(pt).trim() : '',
+            supplier: sup || null,
+            ffa: officialBagFfaFromOil(o)
+        };
+    }
+
+    function rawIngredientAuditCount(b) {
+        var a = b && b.raw_ingredient_audit;
+        if (!a) return 0;
+        return Array.isArray(a) ? a.length : 0;
+    }
+
+    /**
+     * Merge saved audit with current modal: keep entries for oils no longer in the production list;
+     * for rows in production, use checked boxes only (fresh snapshot). Allows adding more links later.
+     */
+    function mergeRawIngredientAuditForBin(batch, rowsMap, checkedOilIdSet) {
+        var productionIds = new Set(Object.keys(rowsMap));
+        var out = [];
+        var existing = batch && Array.isArray(batch.raw_ingredient_audit) ? batch.raw_ingredient_audit : [];
+        existing.forEach(function (e) {
+            var oid = e && (e.oil_id != null ? String(e.oil_id) : (e.oilId != null ? String(e.oilId) : ''));
+            if (!oid) return;
+            if (!productionIds.has(oid)) {
+                out.push(e);
+            }
+        });
+        checkedOilIdSet.forEach(function (oid) {
+            var o = rowsMap[oid];
+            if (!o) return;
+            var entry = buildRawIngredientAuditEntry(o);
+            if (entry) out.push(entry);
+        });
+        out.sort(function (a, b) {
+            var ba = (a && a.batch_id != null ? String(a.batch_id) : '');
+            var bb = (b && b.batch_id != null ? String(b.batch_id) : '');
+            return ba.localeCompare(bb);
+        });
+        return out;
+    }
+
+    /** Read-only line for saved audit rows not on the current production floor (bag emptied, etc.). */
+    function htmlForAuditOnlyIngredientRow(row) {
+        if (!row || typeof row !== 'object') return '';
+        var bid = row.batch_id != null ? String(row.batch_id) : '—';
+        var sup = row.supplier ? String(row.supplier) : '';
+        var pt = row.product_type ? String(row.product_type).replace(/_/g, ' ') : '—';
+        var qty = row.quantity_kg;
+        var line = '<strong>' + escapeHtml(bid) + '</strong>';
+        if (sup) line += ' <span class="text-muted small">(' + escapeHtml(sup) + ')</span>';
+        line += ' — ' + escapeHtml(pt);
+        var ffa = row.ffa != null ? row.ffa : null;
+        if (ffa != null && ffa !== '') line += ' <span class="text-muted">· FFA ' + escapeHtml(String(ffa)) + '%</span>';
+        if (qty != null && qty !== '') line += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
+        return '<div class="py-1 border-bottom op-link-ing-audit-only mb-0 small">' + line + '</div>';
+    }
+
+    function resolveUpsertShiftResult(result) {
+        var r = result && (result.data !== undefined ? result.data : result);
+        if (Array.isArray(r) && r.length) r = r[0];
+        if (r && typeof r === 'string') {
+            try {
+                r = JSON.parse(r);
+            } catch (e) {
+                r = result;
+            }
+        }
+        return r && typeof r === 'object' ? r : {};
     }
 
     return {
         rawIngredients: [],
-        oilBins: [],
+        rawIngredientsFinished: [],
         oilBinBatches: [],
-        currentShift: null,
+        /** Full list (all statuses) for View data modal; main grid uses only in_production */
+        oilBinBatchesReport: null,
+        /** Map oil id string → raw oil row while Link ingredients modal is open */
+        _linkIngredientsOilRows: {},
+        proteinBinBatches: [],
+        _linkProteinIngredientsOilRows: {},
 
         init: function () {
             var scope = _oilProductionGrid;
             scope.bindEvents();
-            var today = new Date().toISOString().split('T')[0];
-            var dateEl = document.getElementById('opDutyDate');
-            if (dateEl) {
-                dateEl.value = fromISO(today);
-                if (typeof flatpickr !== 'undefined' && !dateEl._flatpickr) flatpickr(dateEl, FLATPICKR_OPTS);
-            }
             scope.loadAll();
         },
 
@@ -96,21 +294,6 @@ var _oilProductionGrid = function () {
             var scope = _oilProductionGrid;
             $('#opRefreshBtn').off('click').on('click', function () { scope.loadAll(true); });
             $('#opViewDataBtn').off('click').on('click', function () { scope.showViewDataModal(); });
-            $('#opSaveDutyBtn').off('click').on('click', function (e) {
-                e.preventDefault();
-                scope.savePersonOnDuty();
-            });
-            $('#opDutyDate').on('change', function () {
-                scope.loadShiftForSelectedDate(true);
-            });
-            $('#opGmpCheckSheetBtn').off('click').on('click', function () { scope.showGmpCheckSheetModal(); });
-            $('input[name="opGmpSubmitMode"]').on('change', function () {
-                var upload = $('#opGmpModeUpload').is(':checked');
-                $('#opGmpFormSection').toggle(!upload);
-                $('#opGmpUploadSection').toggle(upload);
-                $('#opGmpUploadOnlyFields').toggle(upload);
-            });
-            $('#opGmpSubmitBtn').off('click').on('click', function () { scope.submitGmpCheckSheet(); });
             $(document).on('click', '.op-production-sheet-btn', function () {
                 var type = $(this).data('sheet-type');
                 if (type) scope.showProductionSheetModal(type);
@@ -133,6 +316,13 @@ var _oilProductionGrid = function () {
                 if (id) scope.showEditOilBinBatchModal(id);
             });
             $('#opEditOilBinBatchSaveBtn').off('click').on('click', function () { scope.saveEditOilBinBatch(); });
+            $(document).on('click', '.op-ffa-test-btn', function (e) {
+                e.preventDefault();
+                var id = $(this).data('oil-bin-batch-id');
+                if (id) scope.showFfaTestModal(id);
+            });
+            $('#opFfaTestSaveBtn').off('click').on('click', function () { scope.saveFfaTest(); });
+            $('#opFfaTestPct, #opFfaTestMax').off('input').on('input', function () { scope.syncOpFfaTestPass(); });
             $(document).on('click', '.op-production-data-btn', function (e) {
                 e.preventDefault();
                 var oilId = $(this).data('oil-id');
@@ -141,6 +331,54 @@ var _oilProductionGrid = function () {
             $('#opPdAddRawMaterialRow').off('click').on('click', function () { scope.addProductionDataRawMaterialRow(); });
             $('#opPdAddOilBinDetailRow').off('click').on('click', function () { scope.addProductionDataOilBinDetailRow(); });
             $('#opProductionDataSaveBtn').off('click').on('click', function () { scope.saveProductionData(); });
+            $('#opToggleFinishedRawBtn').off('click').on('click', function () {
+                var wrap = document.getElementById('opFinishedRawIngredientsWrap');
+                var btn = this;
+                if (!wrap) return;
+                var show = wrap.classList.contains('d-none');
+                wrap.classList.toggle('d-none', !show);
+                btn.setAttribute('aria-expanded', show ? 'true' : 'false');
+                var ch = btn.querySelector('.op-finished-raw-chevron');
+                if (ch) {
+                    ch.classList.remove('fa-chevron-down', 'fa-chevron-up');
+                    ch.classList.add(show ? 'fa-chevron-up' : 'fa-chevron-down');
+                }
+            });
+            $(document).on('click', '.op-raw-empty-btn', function (e) {
+                e.preventDefault();
+                var id = $(this).data('oil-id');
+                if (id) scope.confirmMarkRawIngredientEmpty(id);
+            });
+            $(document).on('click', '.op-link-ingredients-btn', function (e) {
+                e.preventDefault();
+                var id = $(this).data('oil-bin-batch-id');
+                if (id) scope.showLinkIngredientsModal(id);
+            });
+            $('#opLinkIngredientsSaveBtn').off('click').on('click', function () { scope.saveLinkIngredients(); });
+            $('#opLinkIngredientsSelectAll').off('click').on('click', function () {
+                document.querySelectorAll('#opLinkIngredientsList .op-link-ing-cb').forEach(function (c) { c.checked = true; });
+            });
+            $('#opLinkIngredientsClear').off('click').on('click', function () {
+                document.querySelectorAll('#opLinkIngredientsList .op-link-ing-cb').forEach(function (c) { c.checked = false; });
+            });
+            $('#opStartProteinBinBtn').off('click').on('click', function () { scope.startProteinBin(); });
+            $(document).on('click', '.op-link-protein-ingredients-btn', function (e) {
+                e.preventDefault();
+                var id = $(this).data('protein-bin-batch-id');
+                if (id) scope.showLinkProteinIngredientsModal(id);
+            });
+            $('#opProteinLinkIngredientsSaveBtn').off('click').on('click', function () { scope.saveLinkProteinIngredients(); });
+            $('#opProteinLinkIngredientsSelectAll').off('click').on('click', function () {
+                document.querySelectorAll('#opProteinLinkIngredientsList .op-protein-link-ing-cb').forEach(function (c) { c.checked = true; });
+            });
+            $('#opProteinLinkIngredientsClear').off('click').on('click', function () {
+                document.querySelectorAll('#opProteinLinkIngredientsList .op-protein-link-ing-cb').forEach(function (c) { c.checked = false; });
+            });
+            $(document).on('click', '.op-send-protein-bin-to-stock', function (e) {
+                e.preventDefault();
+                var id = $(this).data('protein-bin-batch-id');
+                if (id) scope.sendProteinBinBatchToStock(id);
+            });
         },
 
         showProductionSheetModal: function (sheetType) {
@@ -156,11 +394,8 @@ var _oilProductionGrid = function () {
             $('#opProdSheetUploadSection').hide();
             $('#opProdSheetFileInput').val('');
             $('#opProdSheetUploadStatus').text('');
-            var personEl = document.getElementById('opPersonOnDuty');
             var firstDate = document.querySelector('#opProdSheetFormBody [name="op_ps_date"]');
             if (firstDate) firstDate.value = fromISO(new Date().toISOString().split('T')[0]);
-            var firstSupervisor = document.querySelector('#opProdSheetFormBody [name="op_ps_shift_supervisor"]');
-            if (firstSupervisor && personEl && personEl.value) firstSupervisor.value = personEl.value;
             var modalEl = document.getElementById('opProductionSheetModal');
             if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
             setTimeout(function () {
@@ -189,8 +424,8 @@ var _oilProductionGrid = function () {
             if (sheetType === 'food_grade_oil') {
                 html += '<div class="op-ps-paper">';
                 html += '<div class="op-ps-doc-title">Macadamia Food Grade Production sheet</div>';
-                html +=                 section('Shift and supervisory details',
-                    fieldRow('Date', 'op_ps_date', 'text', '', 'flatpickr-date') + fieldRow('Shift', 'op_ps_shift') + fieldRow('Shift supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature'));
+                html +=                 section('Date and supervisory details',
+                    fieldRow('Date', 'op_ps_date', 'text', '', 'flatpickr-date') + fieldRow('Period', 'op_ps_shift') + fieldRow('Supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature'));
                 html += section('Product and batch information',
                     fieldRow('Batch Number of Product Produced', 'op_ps_batch_product', 'text', 'wide') +
                     fieldRow('Name of product produced', 'op_ps_name_product', 'text', 'wide') +
@@ -201,14 +436,14 @@ var _oilProductionGrid = function () {
                 html += section('Main production data',
                     '<div class="op-ps-table-wrap"><table class="table table-sm op-ps-table"><thead><tr><th>Batch number of Raw material used</th><th>Weight of Raw material in (kg)</th><th>Weight of Oil out (kg)</th><th>Weight of Cake out (kg)</th></tr></thead><tbody id="opProdSheetTableFoodGrade"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="food_grade_oil">Add row</button>');
                 html += section('Comments', '<textarea class="form-control" name="op_ps_comments" rows="2" placeholder="Comments"></textarea>');
-                html += section('Waste at end of shift', fieldRow('General waste (kg)', 'op_ps_waste_general', 'number') + fieldRow('Floor waste (kg)', 'op_ps_waste_floor', 'number') + fieldRow('Product waste (kg)', 'op_ps_waste_product', 'number'));
+                html += section('Waste at end of run', fieldRow('General waste (kg)', 'op_ps_waste_general', 'number') + fieldRow('Floor waste (kg)', 'op_ps_waste_floor', 'number') + fieldRow('Product waste (kg)', 'op_ps_waste_product', 'number'));
                 html += '<div class="op-ps-doc-ref">MP5.2.3.1 Rev 04 &nbsp; Date issued: 09.12.2025</div>';
                 html += '</div>';
             } else if (sheetType === 'protein_powder') {
                 html += '<div class="op-ps-paper">';
                 html += '<div class="op-ps-doc-title">Macadamia Food Grade Production sheet for Protein Powder</div>';
-                html +=                 section('Shift and supervisory details',
-                    fieldRow('Date', 'op_ps_date', 'text', '', 'flatpickr-date') + fieldRow('Shift', 'op_ps_shift') + fieldRow('Press', 'op_ps_press') + fieldRow('Shift supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature'));
+                html +=                 section('Date and supervisory details',
+                    fieldRow('Date', 'op_ps_date', 'text', '', 'flatpickr-date') + fieldRow('Period', 'op_ps_shift') + fieldRow('Press', 'op_ps_press') + fieldRow('Supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature'));
                 html += section('Product and batch information',
                     fieldRow('Batch Number of Product Produced', 'op_ps_batch_product', 'text', 'wide') +
                     fieldRow('Batch number and Name of Oil produced', 'op_ps_batch_name_oil', 'text', 'wide') +
@@ -218,14 +453,14 @@ var _oilProductionGrid = function () {
                 html += section('Main production data',
                     '<div class="op-ps-table-wrap"><table class="table table-sm op-ps-table"><thead><tr><th>Batch number of Raw material used</th><th>Weight of Raw material in (kg)</th><th>Weight of cake out (kg)</th><th>Total weight of Protein Powder hammermilled (kg)</th></tr></thead><tbody id="opProdSheetTableProtein"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="protein_powder">Add row</button>');
                 html += section('Comments', '<textarea class="form-control" name="op_ps_comments" rows="2" placeholder="Comments"></textarea>');
-                html += section('Waste at end of shift', fieldRow('General waste (kg)', 'op_ps_waste_general', 'number') + fieldRow('Floor waste (kg)', 'op_ps_waste_floor', 'number') + fieldRow('Product waste (kg)', 'op_ps_waste_product', 'number'));
+                html += section('Waste at end of run', fieldRow('General waste (kg)', 'op_ps_waste_general', 'number') + fieldRow('Floor waste (kg)', 'op_ps_waste_floor', 'number') + fieldRow('Product waste (kg)', 'op_ps_waste_product', 'number'));
                 html += '<div class="op-ps-doc-ref">MP5.2.3.5 Rev 01</div>';
                 html += '</div>';
             } else if (sheetType === 'cosmetic_oil') {
                 html += '<div class="op-ps-paper">';
                 html += '<div class="op-ps-doc-title">Macadamia Cosmetic Oil Production Sheet</div>';
-                html +=                 section('Shift and supervisory details',
-                    fieldRow('Date', 'op_ps_date', 'text', '', 'flatpickr-date') + fieldRow('Shift', 'op_ps_shift') + fieldRow('Shift Supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature') + fieldRow('Start Oil BN', 'op_ps_start_oil_bn'));
+                html +=                 section('Date and supervisory details',
+                    fieldRow('Date', 'op_ps_date', 'text', '', 'flatpickr-date') + fieldRow('Period', 'op_ps_shift') + fieldRow('Supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature') + fieldRow('Start Oil BN', 'op_ps_start_oil_bn'));
                 html += section('Production log (time, quantities kg)',
                     '<div class="op-ps-table-wrap"><table class="table table-sm op-ps-table"><thead><tr><th>No.</th><th>Time</th><th>Crude kernel</th><th>Kernel dust</th><th>Crush</th><th>Cracker dust</th><th>Cake</th><th>Raw Material Traceability – Description</th><th>Batch #</th></tr></thead><tbody id="opProdSheetTableCosmetic"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="cosmetic_oil">Add row</button>');
                 html += section('Totals and oil',
@@ -303,12 +538,19 @@ var _oilProductionGrid = function () {
             var sheetType = document.getElementById('opProductionSheetType') && document.getElementById('opProductionSheetType').value;
             if (!sheetType) return;
             var uploadMode = $('#opProdSheetModeUpload').is(':checked');
-            var dateEl = document.getElementById('opDutyDate');
-            var iso = toISO((uploadMode ? '' : (document.querySelector('#opProdSheetFormBody [name="op_ps_date"]') && document.querySelector('#opProdSheetFormBody [name="op_ps_date"]').value)) || (dateEl && dateEl.value));
+            var dateInput = document.querySelector('#opProdSheetFormBody [name="op_ps_date"]');
+            var supInput = document.querySelector('#opProdSheetFormBody [name="op_ps_shift_supervisor"]');
+            var iso;
+            if (uploadMode) {
+                iso = new Date().toISOString().split('T')[0];
+            } else {
+                iso = toISO(dateInput && dateInput.value ? dateInput.value.trim() : '');
+            }
             if (!iso) {
                 if (typeof Swal !== 'undefined') Swal.fire('Warning', 'Please select a date.', 'warning');
                 return;
             }
+            var shift_supervisor = (supInput && supInput.value && supInput.value.trim()) ? supInput.value.trim() : '';
             var gmpData = null;
             if (uploadMode) {
                 var fileInput = document.getElementById('opProdSheetFileInput');
@@ -329,26 +571,36 @@ var _oilProductionGrid = function () {
                 gmpData = scope.collectProductionSheetData(sheetType);
                 gmpData.date = iso;
             }
-            var tracking = (scope.currentShift && scope.currentShift.shift_tracking && typeof scope.currentShift.shift_tracking === 'object') ? Object.assign({}, scope.currentShift.shift_tracking) : {};
+            var existing = null;
+            try {
+                if (typeof dataFunctions !== 'undefined' && dataFunctions.getShiftList) {
+                    var rawList = await dataFunctions.getShiftList({ date_from: iso, date_to: iso, limit: 1 }, null, true);
+                    var list = normalizeShiftList(rawList);
+                    existing = list && list[0] ? list[0] : null;
+                }
+            } catch (e) {
+                console.warn('[Oil Production] submitProductionSheet getShiftList:', e);
+            }
+            var tracking = (existing && existing.shift_tracking && typeof existing.shift_tracking === 'object') ? Object.assign({}, existing.shift_tracking) : {};
             if (!tracking.production_sheets || typeof tracking.production_sheets !== 'object') tracking.production_sheets = {};
             tracking.production_sheets[sheetType] = gmpData;
             var payload = {
-                shift_id: scope.currentShift && scope.currentShift.id ? scope.currentShift.id : null,
+                shift_id: existing && existing.id ? existing.id : null,
                 shift_date: iso,
-                shift_supervisor: document.getElementById('opPersonOnDuty') ? document.getElementById('opPersonOnDuty').value : '',
-                shift_name: document.getElementById('opShiftName') ? document.getElementById('opShiftName').value : '',
+                shift_supervisor: shift_supervisor || (existing && existing.shift_supervisor) || null,
+                shift_name: null,
                 shift_tracking: tracking
             };
             try {
                 var result = await dataFunctions.upsertShift(payload);
-                var ok = result && (result.success !== false && !result.error);
+                var resolved = resolveUpsertShiftResult(result);
+                var ok = resolved && resolved.success !== false && !resolved.error;
                 if (ok) {
-                    if (scope.currentShift) scope.currentShift.shift_tracking = tracking;
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Sent', text: 'Production sheet saved.', timer: 2000, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Production sheet saved.', timer: 2000, showConfirmButton: false });
                     var modalEl = document.getElementById('opProductionSheetModal');
                     if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl).hide();
                 } else {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && (result.error || result.message)) || 'Save failed', 'error');
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (resolved && (resolved.error || resolved.message)) || (result && (result.error || result.message)) || 'Save failed', 'error');
                 }
             } catch (e) {
                 console.error('[Oil Production] submitProductionSheet:', e);
@@ -356,261 +608,87 @@ var _oilProductionGrid = function () {
             }
         },
 
-        showGmpCheckSheetModal: function () {
-            var scope = _oilProductionGrid;
-            var dateEl = document.getElementById('opDutyDate');
-            var personEl = document.getElementById('opPersonOnDuty');
-            var gmpDate = document.getElementById('opGmpDate');
-            var gmpCheckedBy = document.getElementById('opGmpCheckedBy');
-            var gmpUploadDate = document.getElementById('opGmpUploadDate');
-            var gmpUploadCheckedBy = document.getElementById('opGmpUploadCheckedBy');
-            if (gmpDate) gmpDate.value = dateEl && dateEl.value ? dateEl.value : fromISO(new Date().toISOString().split('T')[0]);
-            if (gmpCheckedBy) gmpCheckedBy.value = personEl && personEl.value ? personEl.value : '';
-            if (gmpUploadDate) gmpUploadDate.value = dateEl && dateEl.value ? dateEl.value : fromISO(new Date().toISOString().split('T')[0]);
-            if (gmpUploadCheckedBy) gmpUploadCheckedBy.value = personEl && personEl.value ? personEl.value : '';
-            if (!document.getElementById('opGmpFormRows').innerHTML.trim()) scope.buildGmpFormRows();
-            var gmp = scope.currentShift && scope.currentShift.shift_tracking && scope.currentShift.shift_tracking.gmp_check_sheet;
-            if (gmp) scope.populateGmpForm(gmp);
-            else scope.clearGmpForm();
-            $('#opGmpModeForm').prop('checked', true);
-            $('#opGmpFormSection').show();
-            $('#opGmpUploadSection, #opGmpUploadOnlyFields').hide();
-            $('#opGmpFileInput').val('');
-            $('#opGmpUploadStatus').text('');
-            var modalEl = document.getElementById('opGmpCheckSheetModal');
-            if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
-            setTimeout(function () {
-                [document.getElementById('opGmpDate'), document.getElementById('opGmpUploadDate')].forEach(function (el) {
-                    if (el && typeof flatpickr !== 'undefined' && !el._flatpickr) flatpickr(el, FLATPICKR_OPTS);
-                });
-            }, 100);
-        },
-
-        buildGmpFormRows: function () {
-            var container = document.getElementById('opGmpFormRows');
-            if (!container) return;
-            var html = '';
-            GMP_CHECK_SHEET_ROWS.forEach(function (r) {
-                html += '<div class="card mb-2 op-gmp-row" data-row="' + r.num + '">';
-                html += '<div class="card-body py-2">';
-                html += '<div class="row align-items-start">';
-                html += '<div class="col-md-4 small">';
-                html += '<strong>#' + r.num + ' ' + escapeHtml(r.action) + '</strong><br><span class="text-muted">' + escapeHtml(r.detail) + '</span>';
-                html += '</div><div class="col-md-8">';
-                if (r.type === 'pass_fail_4' && r.labels) {
-                    r.labels.forEach(function (lbl, i) {
-                        html += '<div class="form-check form-check-inline"><input class="form-check-input op-gmp-pf" type="radio" name="op_gmp_r' + r.num + '_' + i + '" id="op_gmp_r' + r.num + '_' + i + '_pass" value="pass"><label class="form-check-label" for="op_gmp_r' + r.num + '_' + i + '_pass">✓</label></div>';
-                        html += '<div class="form-check form-check-inline"><input class="form-check-input op-gmp-pf" type="radio" name="op_gmp_r' + r.num + '_' + i + '" value="fail"><label class="form-check-label">✗</label></div> ' + escapeHtml(lbl) + '<br>';
-                    });
-                } else if (r.type === 'temperatures' && r.items) {
-                    r.items.forEach(function (item, i) {
-                        html += '<div class="input-group input-group-sm mb-1"><span class="input-group-text" style="min-width:180px">' + escapeHtml(item.name) + ' (' + escapeHtml(item.spec) + ' °C)</span>';
-                        html += '<input type="number" class="form-control op-gmp-temp-actual" placeholder="Actual °C" data-row="' + r.num + '" data-idx="' + i + '">';
-                        html += '<div class="form-check form-check-inline ms-2"><input class="form-check-input op-gmp-temp-pf" type="radio" name="op_gmp_temp_' + r.num + '_' + i + '" value="pass"> ✓</div>';
-                        html += '<div class="form-check form-check-inline"><input class="form-check-input op-gmp-temp-pf" type="radio" name="op_gmp_temp_' + r.num + '_' + i + '" value="fail"> ✗</div></div>';
-                    });
-                } else if (r.type === 'scale_3') {
-                    for (var s = 1; s <= 3; s++) {
-                        html += '<div class="input-group input-group-sm mb-1"><span class="input-group-text">Scale ' + s + '</span><input type="text" class="form-control op-gmp-scale-actual" placeholder="Actual" data-row="' + r.num + '" data-scale="' + s + '">';
-                        html += '<div class="form-check form-check-inline ms-2"><input class="form-check-input op-gmp-scale-pf" type="radio" name="op_gmp_scale_' + r.num + '_' + s + '" value="pass"> ✓</div>';
-                        html += '<div class="form-check form-check-inline"><input class="form-check-input op-gmp-scale-pf" type="radio" name="op_gmp_scale_' + r.num + '_' + s + '" value="fail"> ✗</div></div>';
-                    }
-                } else if (r.type === 'broken_3' && r.labels) {
-                    r.labels.forEach(function (lbl, i) {
-                        html += '<div class="input-group input-group-sm mb-1"><span class="input-group-text" style="min-width:140px">' + escapeHtml(lbl) + '</span>';
-                        html += '<input type="text" class="form-control op-gmp-broken" placeholder="Broken" data-row="' + r.num + '" data-idx="' + i + '">';
-                        html += '<input type="text" class="form-control op-gmp-replaced" placeholder="Replaced" data-row="' + r.num + '" data-idx="' + i + '"></div>';
-                    });
-                } else if (r.type === 'magnet_4' && r.times) {
-                    r.times.forEach(function (t, i) {
-                        html += '<div class="form-check form-check-inline"><input class="form-check-input op-gmp-magnet" type="radio" name="op_gmp_mag_' + r.num + '_' + i + '" value="pass"> ' + t + ' Pass</div>';
-                        html += '<div class="form-check form-check-inline"><input class="form-check-input op-gmp-magnet" type="radio" name="op_gmp_mag_' + r.num + '_' + i + '" value="fail"> Fail</div> ';
-                    });
-                    html += '<br>';
-                } else if (r.type === 'pass_fail') {
-                    html += '<div class="form-check form-check-inline"><input class="form-check-input op-gmp-pf-single" type="radio" name="op_gmp_r' + r.num + '" value="pass"> Pass ✓</div>';
-                    html += '<div class="form-check form-check-inline"><input class="form-check-input op-gmp-pf-single" type="radio" name="op_gmp_r' + r.num + '" value="fail"> Fail ✗</div>';
-                } else if (r.type === 'comment') {
-                    html += '<input type="text" class="form-control form-control-sm op-gmp-comment" placeholder="Details / comments" data-row="' + r.num + '">';
-                }
-                html += '</div></div></div>';
-            });
-            container.innerHTML = html;
-        },
-
-        populateGmpForm: function (gmp) {
-            if (!gmp || gmp.uploaded) return;
-            var setVal = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.value = v; };
-            setVal('opGmpDate', gmp.date || '');
-            setVal('opGmpCheckedBy', gmp.checked_by || '');
-            setVal('opGmpComments', gmp.comments || '');
-            if (gmp.rows) {
-                Object.keys(gmp.rows).forEach(function (key) {
-                    var rowData = gmp.rows[key];
-                    var rowEl = document.querySelector('.op-gmp-row[data-row="' + key + '"]');
-                    if (!rowEl) return;
-                    if (rowData.pass_fail_4) rowData.pass_fail_4.forEach(function (v, i) { var r = rowEl.querySelector('input[name="op_gmp_r' + key + '_' + i + '"][value="' + v + '"]'); if (r) r.checked = true; });
-                    if (rowData.pass_fail != null) { var r = rowEl.querySelector('input[name="op_gmp_r' + key + '"][value="' + rowData.pass_fail + '"]'); if (r) r.checked = true; }
-                    if (rowData.comment) { var c = rowEl.querySelector('.op-gmp-comment'); if (c) c.value = rowData.comment; }
-                });
-            }
-        },
-
-        clearGmpForm: function () {
-            $('#opGmpFormRows input, #opGmpFormRows textarea').val('');
-            $('#opGmpFormRows input[type="radio"]').prop('checked', false);
-            $('#opGmpComments').val('');
-        },
-
-        collectGmpFormData: function () {
-            var data = { version: 'MP5.2.1 Rev 03', date: $('#opGmpDate').val() || '', checked_by: $('#opGmpCheckedBy').val() || '', comments: $('#opGmpComments').val() || '', rows: {} };
-            GMP_CHECK_SHEET_ROWS.forEach(function (r) {
-                var rowData = {};
-                if (r.type === 'pass_fail_4' && r.labels) {
-                    rowData.pass_fail_4 = r.labels.map(function (_, i) {
-                        var radio = document.querySelector('input[name="op_gmp_r' + r.num + '_' + i + '"]:checked');
-                        return radio ? radio.value : null;
-                    });
-                } else if (r.type === 'temperatures' && r.items) {
-                    rowData.temps = r.items.map(function (_, i) {
-                        var act = document.querySelector('.op-gmp-row[data-row="' + r.num + '"] .op-gmp-temp-actual[data-idx="' + i + '"]');
-                        var pf = document.querySelector('input[name="op_gmp_temp_' + r.num + '_' + i + '"]:checked');
-                        return { actual: act ? act.value : null, pass_fail: pf ? pf.value : null };
-                    });
-                } else if (r.type === 'scale_3') {
-                    rowData.scales = [1, 2, 3].map(function (s) {
-                        var act = document.querySelector('.op-gmp-row[data-row="' + r.num + '"] .op-gmp-scale-actual[data-scale="' + s + '"]');
-                        var pf = document.querySelector('input[name="op_gmp_scale_' + r.num + '_' + s + '"]:checked');
-                        return { actual: act ? act.value : null, pass_fail: pf ? pf.value : null };
-                    });
-                } else if (r.type === 'broken_3' && r.labels) {
-                    rowData.items = r.labels.map(function (_, i) {
-                        var broken = document.querySelector('.op-gmp-row[data-row="' + r.num + '"] .op-gmp-broken[data-idx="' + i + '"]');
-                        var repl = document.querySelector('.op-gmp-row[data-row="' + r.num + '"] .op-gmp-replaced[data-idx="' + i + '"]');
-                        return { broken: broken ? broken.value : null, replaced: repl ? repl.value : null };
-                    });
-                } else if (r.type === 'magnet_4' && r.times) {
-                    rowData.times = r.times.map(function (_, i) {
-                        var pf = document.querySelector('input[name="op_gmp_mag_' + r.num + '_' + i + '"]:checked');
-                        return pf ? pf.value : null;
-                    });
-                } else if (r.type === 'pass_fail') {
-                    var pf = document.querySelector('.op-gmp-row[data-row="' + r.num + '"] input[name="op_gmp_r' + r.num + '"]:checked');
-                    rowData.pass_fail = pf ? pf.value : null;
-                } else if (r.type === 'comment') {
-                    var c = document.querySelector('.op-gmp-row[data-row="' + r.num + '"] .op-gmp-comment');
-                    rowData.comment = c ? c.value : null;
-                }
-                data.rows[r.num] = rowData;
-            });
-            data.submitted_at = new Date().toISOString();
-            return data;
-        },
-
-        submitGmpCheckSheet: async function () {
-            var scope = _oilProductionGrid;
-            var uploadMode = $('#opGmpModeUpload').is(':checked');
-            var dateEl = document.getElementById('opDutyDate');
-            var iso = toISO((uploadMode ? $('#opGmpUploadDate').val() : $('#opGmpDate').val()) || (dateEl && dateEl.value));
-            if (!iso) {
-                if (typeof Swal !== 'undefined') Swal.fire('Warning', 'Please select a date.', 'warning');
-                return;
-            }
-            var checkedBy = uploadMode ? ($('#opGmpUploadCheckedBy').val() || '').trim() : ($('#opGmpCheckedBy').val() || '').trim();
-            var gmpData = null;
-            if (uploadMode) {
-                var fileInput = document.getElementById('opGmpFileInput');
-                if (!fileInput || !fileInput.files || !fileInput.files[0]) {
-                    if (typeof Swal !== 'undefined') Swal.fire('Warning', 'Please select a file to upload.', 'warning');
-                    return;
-                }
-                var file = fileInput.files[0];
-                $('#opGmpUploadStatus').text('Uploading…');
-                var uploadResult = null;
-                if (typeof _common !== 'undefined' && _common.uploadFile) {
-                    uploadResult = await _common.uploadFile({ file: file, resourceFolder: 'Macavation/OilGMP', fileId: 'gmp_' + iso + '_' + (checkedBy || 'duty') });
-                }
-                $('#opGmpUploadStatus').text('');
-                if (!uploadResult || !uploadResult.Success) {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', (uploadResult && uploadResult.LastErrorDescription) || 'Upload failed', 'error');
-                    return;
-                }
-                gmpData = { uploaded: true, file_name: file.name, file_id: (uploadResult.Data && uploadResult.Data[0]) ? (uploadResult.Data[0].fileId || uploadResult.Data[0].key) : null, date: iso, checked_by: checkedBy || null, comments: ($('#opGmpUploadComments').val() || '').trim() || null, submitted_at: new Date().toISOString() };
-            } else {
-                gmpData = scope.collectGmpFormData();
-                gmpData.date = iso;
-                gmpData.checked_by = checkedBy || null;
-            }
-            var tracking = (scope.currentShift && scope.currentShift.shift_tracking && typeof scope.currentShift.shift_tracking === 'object') ? Object.assign({}, scope.currentShift.shift_tracking) : {};
-            tracking.gmp_check_sheet = gmpData;
-            var payload = {
-                shift_id: scope.currentShift && scope.currentShift.id ? scope.currentShift.id : null,
-                shift_date: iso,
-                shift_supervisor: document.getElementById('opPersonOnDuty') ? document.getElementById('opPersonOnDuty').value : '',
-                shift_name: document.getElementById('opShiftName') ? document.getElementById('opShiftName').value : '',
-                shift_tracking: tracking
-            };
-            try {
-                var result = await dataFunctions.upsertShift(payload);
-                var ok = result && (result.success !== false && !result.error);
-                if (ok) {
-                    if (scope.currentShift) scope.currentShift.shift_tracking = tracking;
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Sent', text: 'GMP Check Sheet saved.', timer: 2000, showConfirmButton: false });
-                    var modalEl = document.getElementById('opGmpCheckSheetModal');
-                    if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl).hide();
-                } else {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && (result.error || result.message)) || 'Save failed', 'error');
-                }
-            } catch (e) {
-                console.error('[Oil Production] submitGmpCheckSheet:', e);
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Save failed', 'error');
-            }
-        },
-
         loadAll: function (forceRefresh) {
             var scope = _oilProductionGrid;
             scope.loadRawIngredients(forceRefresh);
-            scope.loadShiftForSelectedDate(forceRefresh);
-            scope.loadOilBins(forceRefresh);
+            scope.loadFinishedRawIngredients(forceRefresh);
             scope.loadOilBinBatches(forceRefresh);
+            scope.loadProteinBinBatches(forceRefresh);
         },
 
-        showViewDataModal: function () {
+        confirmMarkRawIngredientEmpty: function (oilId) {
+            var scope = _oilProductionGrid;
+            var row = (scope.rawIngredients || []).find(function (o) { return String(o.id) === String(oilId); });
+            var label = row && row.batch_id ? row.batch_id : oilId;
+            var run = function () {
+                scope.markRawIngredientEmpty(oilId);
+            };
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Mark bag empty?',
+                    html: 'Batch <strong>' + escapeHtml(String(label)) + '</strong> will move to <strong>Finished (emptied) raw batches</strong>.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, empty',
+                    cancelButtonText: 'Cancel'
+                }).then(function (r) { if (r.isConfirmed) run(); });
+            } else if (window.confirm('Mark batch ' + label + ' as empty?')) {
+                run();
+            }
+        },
+
+        markRawIngredientEmpty: async function (oilId) {
+            var scope = _oilProductionGrid;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.markOilRawIngredientEmpty) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'This action is not available.', 'error');
+                    return;
+                }
+                var result = await dataFunctions.markOilRawIngredientEmpty(oilId);
+                var ok = result && result.success !== false && !result.error;
+                if (ok) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'success', title: 'Marked empty', text: 'Batch moved to finished list.', timer: 2000, showConfirmButton: false });
+                    }
+                    scope.loadRawIngredients(true);
+                    scope.loadFinishedRawIngredients(true);
+                } else {
+                    var msg = (result && (result.error || result.message)) || 'Could not mark empty.';
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', msg, 'error');
+                }
+            } catch (e) {
+                console.error('[Oil Production] markRawIngredientEmpty:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Request failed', 'error');
+            }
+        },
+
+        showViewDataModal: async function () {
             var scope = _oilProductionGrid;
             var body = document.getElementById('opViewDataModalBody');
             var modalEl = document.getElementById('opViewDataModal');
             if (!body || !modalEl) return;
             body.innerHTML = '<p class="text-muted mb-0">Loading…</p>';
             if (typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            try {
+                await scope.loadOilBinBatchesReport(true);
+            } catch (e) {
+                console.warn('[Oil Production] loadOilBinBatchesReport:', e);
+            }
             scope.loadAll(true);
-            setTimeout(function () {
-                body.innerHTML = scope.buildViewDataHtml();
-            }, 800);
+            await new Promise(function (resolve) { setTimeout(resolve, 750); });
+            body.innerHTML = scope.buildViewDataHtml();
         },
 
         buildViewDataHtml: function () {
             var scope = _oilProductionGrid;
             var raw = scope.rawIngredients || [];
-            var bins = scope.oilBins || [];
-            var batches = scope.oilBinBatches || [];
-            var shift = scope.currentShift;
+            var rawFin = scope.rawIngredientsFinished || [];
+            var batches = scope.oilBinBatchesReport != null ? scope.oilBinBatchesReport : (scope.oilBinBatches || []);
             var html = '';
 
             function section(title, icon, content) {
                 return '<div class="card mb-3"><div class="card-header bg-light py-2"><h6 class="mb-0">' + (icon ? '<i class="' + icon + ' me-2"></i>' : '') + escapeHtml(title) + '</h6></div><div class="card-body p-2">' + content + '</div></div>';
             }
-
-            html += section('Shift (selected date)', 'fas fa-user-clock', (function () {
-                if (!shift) return '<p class="text-muted small mb-0">No shift recorded for the selected date.</p>';
-                var d = shift.shift_date ? fromISO(String(shift.shift_date).split('T')[0]) : '—';
-                var tr = '<p class="mb-1"><strong>Date:</strong> ' + escapeHtml(d) + '</p>';
-                tr += '<p class="mb-1"><strong>Person on duty:</strong> ' + escapeHtml(shift.shift_supervisor || '—') + '</p>';
-                tr += '<p class="mb-0"><strong>Shift name:</strong> ' + escapeHtml(shift.shift_name || '—') + '</p>';
-                if (shift.shift_tracking && (shift.shift_tracking.gmp_check_sheet || (shift.shift_tracking.production_sheets && Object.keys(shift.shift_tracking.production_sheets).length))) {
-                    tr += '<p class="mb-0 mt-2 small text-muted">GMP / production sheets recorded for this shift.</p>';
-                }
-                return tr;
-            })());
 
             html += section('Raw ingredients in production', 'fas fa-boxes', (function () {
                 if (!raw.length) return '<p class="text-muted small mb-0">No raw ingredients in production.</p>';
@@ -629,33 +707,57 @@ var _oilProductionGrid = function () {
                     var d = i.date_received || o.production_date;
                     return d ? fromISO(String(d).split('T')[0]) : '—';
                 };
-                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Product type</th><th>Quantity (kg)</th><th>Date received</th></tr></thead><tbody>';
+                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Quantity (kg)</th><th>Date received</th></tr></thead><tbody>';
                 raw.forEach(function (o) {
-                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td></tr>';
+                    var bf = officialBagFfaFromOil(o);
+                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (bf != null ? escapeHtml(String(bf)) : '—') + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td></tr>';
                 });
                 tbl += '</tbody></table></div>';
                 return tbl;
             })());
 
-            html += section('Oil bins', 'fas fa-tint', (function () {
-                if (!bins.length) return '<p class="text-muted small mb-0">No oil bins defined.</p>';
-                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Bin name</th><th>Start oil BN</th><th>Capacity (L)</th><th>Current level (L)</th></tr></thead><tbody>';
-                bins.forEach(function (b) {
-                    var bd = (b.bin_data && typeof b.bin_data === 'object') ? b.bin_data : {};
-                    var cap = bd.capacity_litres != null ? bd.capacity_litres : '—';
-                    var level = bd.current_level_litres != null ? bd.current_level_litres : '—';
-                    tbl += '<tr><td>' + escapeHtml(b.bin_name || '—') + '</td><td>' + escapeHtml(b.start_oil_bn || '—') + '</td><td>' + cap + '</td><td>' + level + '</td></tr>';
+            html += section('Finished (emptied) raw batches', 'fas fa-check-circle', (function () {
+                if (!rawFin.length) return '<p class="text-muted small mb-0">No emptied raw batches yet.</p>';
+                var intake = function (o) { return (o && o.intake_data) || {}; };
+                var productLabel = function (o) {
+                    var i = intake(o);
+                    var pt = i.product_type || (o.name_of_product && String(o.name_of_product));
+                    return pt ? String(pt).replace(/_/g, ' ') : '—';
+                };
+                var qty = function (o) {
+                    var i = intake(o);
+                    return i.quantity_kg != null ? i.quantity_kg : (i.items && i.items[0] && i.items[0].quantity_kg);
+                };
+                var emptiedAt = function (o) {
+                    var i = intake(o);
+                    var t = i.raw_emptied_at;
+                    if (!t) return '—';
+                    try {
+                        return new Date(t).toLocaleString();
+                    } catch (e) {
+                        return String(t);
+                    }
+                };
+                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Qty (kg)</th><th>Emptied at</th></tr></thead><tbody>';
+                rawFin.forEach(function (o) {
+                    var bf = officialBagFfaFromOil(o);
+                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (bf != null ? escapeHtml(String(bf)) : '—') + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(emptiedAt(o)) + '</td></tr>';
                 });
                 tbl += '</tbody></table></div>';
                 return tbl;
             })());
 
-            html += section('Oil bin batches (production)', 'fas fa-flask', (function () {
+            html += section(scope.oilBinBatchesReport != null ? 'Oil bin batches (all)' : 'Oil bin batches (production)', 'fas fa-flask', (function () {
                 if (!batches.length) return '<p class="text-muted small mb-0">No oil bin batches yet.</p>';
-                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch number</th><th>Shifts</th><th>Ingredients</th><th>Start date</th><th>Letrerage</th><th>FFA</th><th>Status</th></tr></thead><tbody>';
+                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch number</th><th>Grade</th><th>Ingredients</th><th>Start date</th><th>Letrerage</th><th>FFA %</th><th>FFA test</th><th>Status</th></tr></thead><tbody>';
                 batches.forEach(function (b) {
                     var startDate = b.start_date ? (typeof b.start_date === 'string' ? b.start_date.split('T')[0] : b.start_date) : '—';
-                    tbl += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + escapeHtml(b.shifts || '—') + '</td><td>' + escapeHtml(b.ingredients || '—') + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.letrerage != null ? b.letrerage : '—') + '</td><td>' + (b.ffa != null ? b.ffa : '—') + '</td><td>' + escapeHtml(b.status || '—') + '</td></tr>';
+                    var ffaPct = b.ffa != null ? escapeHtml(String(b.ffa)) + ' %' : '—';
+                    var ffaTestCol = formatFfaTestStatusHtml(b);
+                    if (b.status === 'in_production') {
+                        ffaTestCol += ' <button type="button" class="btn btn-sm btn-outline-warning op-ffa-test-btn mt-1" data-oil-bin-batch-id="' + escapeHtml(b.id) + '"><i class="fas fa-vial me-1"></i>Test FFA</button>';
+                    }
+                    tbl += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + escapeHtml(formatOilStreamLabel(b.oil_stream)) + '</td><td>' + escapeHtml(b.ingredients || '—') + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.letrerage != null ? b.letrerage : '—') + '</td><td>' + ffaPct + '</td><td class="text-nowrap">' + ffaTestCol + '</td><td>' + escapeHtml(b.status || '—') + '</td></tr>';
                 });
                 tbl += '</tbody></table></div>';
                 return tbl;
@@ -698,9 +800,11 @@ var _oilProductionGrid = function () {
                     return d ? fromISO(String(d).split('T')[0]) : '—';
                 };
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table"><thead><tr><th>Batch #</th><th>Product type</th><th>Quantity (kg)</th><th>Date received</th><th class="text-end">Actions</th></tr></thead><tbody>';
+                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Quantity (kg)</th><th>Date received</th><th class="text-end">Action</th></tr></thead><tbody>';
                 rows.forEach(function (o) {
-                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary op-production-data-btn" data-oil-id="' + escapeHtml(o.id) + '" title="Add/Edit production data">Production data</button></td></tr>';
+                    var bagFfa = officialBagFfaFromOil(o);
+                    var ffaCell = bagFfa != null ? escapeHtml(String(bagFfa)) : '—';
+                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + ffaCell + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary op-raw-empty-btn" data-oil-id="' + escapeHtml(o.id) + '" title="Bag finished in press">Empty</button></td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
@@ -710,111 +814,71 @@ var _oilProductionGrid = function () {
             }
         },
 
-        loadShiftForSelectedDate: async function (forceRefresh) {
-            var dateEl = document.getElementById('opDutyDate');
-            var personEl = document.getElementById('opPersonOnDuty');
-            var shiftNameEl = document.getElementById('opShiftName');
-            if (!dateEl || !personEl || !shiftNameEl) return;
-
-            var dateStr = dateEl.value && dateEl.value.trim();
-            var iso = toISO(dateStr);
-            if (!iso) {
-                personEl.value = '';
-                shiftNameEl.value = '';
-                return;
-            }
-
-            try {
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.getShiftList) {
-                    personEl.value = '';
-                    shiftNameEl.value = '';
-                    return;
-                }
-                var raw = await dataFunctions.getShiftList({ date_from: iso, date_to: iso, limit: 1 }, null, !!forceRefresh);
-                var list = normalizeShiftList(raw);
-                var shift = list && list[0] ? list[0] : null;
-                _oilProductionGrid.currentShift = shift;
-
-                if (shift) {
-                    personEl.value = shift.shift_supervisor || '';
-                    shiftNameEl.value = shift.shift_name || '';
-                } else {
-                    personEl.value = '';
-                    shiftNameEl.value = '';
-                }
-            } catch (e) {
-                console.error('[Oil Production] loadShiftForSelectedDate:', e);
-                personEl.value = '';
-                shiftNameEl.value = '';
-            }
-        },
-
-        savePersonOnDuty: async function () {
-            var dateEl = document.getElementById('opDutyDate');
-            var personEl = document.getElementById('opPersonOnDuty');
-            var shiftNameEl = document.getElementById('opShiftName');
-            if (!dateEl || !personEl) return;
-
-            var iso = toISO(dateEl.value && dateEl.value.trim());
-            if (!iso) {
-                if (typeof Swal !== 'undefined') Swal.fire('Warning', 'Please select a date.', 'warning');
-                return;
-            }
-
-            try {
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.upsertShift) {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Save not available.', 'error');
-                    return;
-                }
-                var payload = {
-                    shift_id: _oilProductionGrid.currentShift && _oilProductionGrid.currentShift.id ? _oilProductionGrid.currentShift.id : null,
-                    shift_date: iso,
-                    shift_supervisor: (personEl.value && personEl.value.trim()) || null,
-                    shift_name: (shiftNameEl.value && shiftNameEl.value.trim()) || null
-                };
-                var result = await dataFunctions.upsertShift(payload);
-                var ok = result && (result.success !== false && !result.error);
-                if (ok) {
-                    _oilProductionGrid.currentShift = result && result.id ? { id: result.id } : _oilProductionGrid.currentShift;
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Person on duty saved.', timer: 2000, showConfirmButton: false });
-                } else {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && (result.error || result.message)) || 'Save failed', 'error');
-                }
-            } catch (e) {
-                console.error('[Oil Production] savePersonOnDuty:', e);
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Save failed', 'error');
-            }
-        },
-
-        loadOilBins: async function (forceRefresh) {
-            var el = document.getElementById('opOilBinsList');
+        loadFinishedRawIngredients: async function (forceRefresh) {
+            var el = document.getElementById('opFinishedRawIngredientsList');
             if (!el) return;
             try {
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.getOilBinList) {
-                    el.innerHTML = '<p class="text-muted mb-0">Data not available.</p>';
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getOilBatches) {
+                    el.innerHTML = '<p class="text-muted small mb-0">Data not available.</p>';
                     return;
                 }
-                var raw = await dataFunctions.getOilBinList({ limit: 50 }, null, !!forceRefresh);
-                var rows = normalizeOilBinList(raw);
-                _oilProductionGrid.oilBins = rows || [];
+                var raw = await dataFunctions.getOilBatches({ status: 'raw_empty', limit: 200 }, null, !!forceRefresh);
+                var rows = normalizeOilBatches(raw);
+                _oilProductionGrid.rawIngredientsFinished = rows || [];
 
                 if (!rows || rows.length === 0) {
-                    el.innerHTML = '<p class="text-muted mb-0">No oil bins defined.</p>';
+                    el.innerHTML = '<p class="text-muted small mb-0">No finished (emptied) batches yet.</p>';
                     return;
                 }
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead><tr><th>Bin name</th><th>Start oil BN</th><th>Capacity (L)</th><th>Current level (L)</th></tr></thead><tbody>';
-                rows.forEach(function (b) {
-                    var bd = (b.bin_data && typeof b.bin_data === 'object') ? b.bin_data : {};
-                    var cap = bd.capacity_litres != null ? bd.capacity_litres : '—';
-                    var level = bd.current_level_litres != null ? bd.current_level_litres : '—';
-                    html += '<tr><td>' + escapeHtml(b.bin_name || '—') + '</td><td>' + escapeHtml(b.start_oil_bn || '—') + '</td><td>' + cap + '</td><td>' + level + '</td></tr>';
+                var intake = function (o) { return (o && o.intake_data) || {}; };
+                var productLabel = function (o) {
+                    var i = intake(o);
+                    var pt = i.product_type || (o.name_of_product && String(o.name_of_product));
+                    if (!pt) return '—';
+                    return String(pt).replace(/_/g, ' ');
+                };
+                var qty = function (o) {
+                    var i = intake(o);
+                    return i.quantity_kg != null ? i.quantity_kg : (i.items && i.items[0] && i.items[0].quantity_kg);
+                };
+                var emptiedAt = function (o) {
+                    var i = intake(o);
+                    var t = i.raw_emptied_at;
+                    if (!t) return '—';
+                    try {
+                        return new Date(t).toLocaleString();
+                    } catch (e) {
+                        return String(t);
+                    }
+                };
+
+                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table op-finished-raw-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Quantity (kg)</th><th>Emptied at</th></tr></thead><tbody>';
+                rows.forEach(function (o) {
+                    var bagFfa = officialBagFfaFromOil(o);
+                    var ffaCell = bagFfa != null ? escapeHtml(String(bagFfa)) : '—';
+                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + ffaCell + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(emptiedAt(o)) + '</td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
             } catch (e) {
-                console.error('[Oil Production] loadOilBins:', e);
-                el.innerHTML = '<p class="text-danger mb-0">Failed to load oil bins.</p>';
+                console.error('[Oil Production] loadFinishedRawIngredients:', e);
+                el.innerHTML = '<p class="text-danger small mb-0">Failed to load finished batches.</p>';
+            }
+        },
+
+        loadOilBinBatchesReport: async function (forceRefresh) {
+            var scope = _oilProductionGrid;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getOilBinBatches) {
+                    scope.oilBinBatchesReport = [];
+                    return;
+                }
+                var rawAll = await dataFunctions.getOilBinBatches({ limit: 200 }, null, !!forceRefresh);
+                scope.oilBinBatchesReport = normalizeOilBinBatches(rawAll).map(normalizeOilBinBatchRow) || [];
+            } catch (e) {
+                console.error('[Oil Production] loadOilBinBatchesReport:', e);
+                _oilProductionGrid.oilBinBatchesReport = [];
             }
         },
 
@@ -826,8 +890,8 @@ var _oilProductionGrid = function () {
                     el.innerHTML = '<p class="text-muted mb-0">Data not available.</p>';
                     return;
                 }
-                var raw = await dataFunctions.getOilBinBatches({ limit: 100 }, null, !!forceRefresh);
-                var rows = normalizeOilBinBatches(raw);
+                var raw = await dataFunctions.getOilBinBatches({ limit: 100, status: 'in_production' }, null, !!forceRefresh);
+                var rows = normalizeOilBinBatches(raw).map(normalizeOilBinBatchRow);
                 _oilProductionGrid.oilBinBatches = rows || [];
 
                 if (!rows || rows.length === 0) {
@@ -835,21 +899,31 @@ var _oilProductionGrid = function () {
                     return;
                 }
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-oil-bin-batches-table"><thead><tr><th>Batch number</th><th>Shifts</th><th>Ingredients</th><th>Start date</th><th>Letrerage</th><th>FFA</th><th class="text-end">Actions</th></tr></thead><tbody>';
+                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-oil-bin-batches-table"><thead><tr><th>Batch number</th><th>Grade</th><th>Ingredients</th><th>Start date</th><th>Letrerage</th><th>FFA %</th><th>FFA test</th><th class="text-end">Actions</th></tr></thead><tbody>';
                 rows.forEach(function (b) {
                     var startDate = b.start_date ? (typeof b.start_date === 'string' ? b.start_date.split('T')[0] : b.start_date) : '—';
                     var actions = '';
+                    var ffaPctCell = b.ffa != null ? escapeHtml(String(b.ffa)) + ' %' : '—';
+                    var ffaTestCell = '<div class="op-ffa-test-cell">' + formatFfaTestStatusHtml(b);
                     if (b.status === 'in_production') {
-                        actions += '<div class="d-flex flex-wrap gap-1 justify-content-end"><button type="button" class="btn btn-sm btn-outline-secondary op-edit-oil-bin-batch" data-oil-bin-batch-id="' + escapeHtml(b.id) + '" title="Edit"><i class="fas fa-edit"></i></button>';
+                        ffaTestCell += '<button type="button" class="btn btn-sm btn-outline-warning op-ffa-test-btn mt-1 d-block" data-oil-bin-batch-id="' + escapeHtml(b.id) + '"><i class="fas fa-vial me-1"></i>Test FFA</button>';
+                    }
+                    ffaTestCell += '</div>';
+                    if (b.status === 'in_production') {
+                        actions += '<div class="d-flex flex-wrap gap-1 justify-content-end"><button type="button" class="btn btn-sm btn-outline-success op-link-ingredients-btn" data-oil-bin-batch-id="' + escapeHtml(b.id) + '" title="Link raw ingredients in production to this bin"><i class="fas fa-link me-1"></i>Ingredients</button>';
+                        actions += '<button type="button" class="btn btn-sm btn-outline-secondary op-edit-oil-bin-batch" data-oil-bin-batch-id="' + escapeHtml(b.id) + '" title="Edit"><i class="fas fa-edit"></i></button>';
                         actions += '<button type="button" class="btn btn-sm btn-outline-primary op-send-oil-bin-to-stock" data-oil-bin-batch-id="' + escapeHtml(b.id) + '">Send to stock</button></div>';
                     } else {
                         if (b.oil_id) {
                             actions = '<div class="d-flex flex-wrap gap-1 justify-content-end"><span class="text-muted small align-self-center me-1">Sent</span><button type="button" class="btn btn-sm btn-outline-secondary op-production-data-btn" data-oil-id="' + escapeHtml(b.oil_id) + '" title="Edit production data">Production data</button></div>';
                         } else {
-                            actions = '<span class="text-muted small">Sent</span>';
+                            actions = '<div class="d-flex flex-wrap gap-1 justify-content-end"><span class="text-muted small align-self-center">Sent</span></div>';
                         }
                     }
-                    html += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + escapeHtml(b.shifts || '—') + '</td><td>' + escapeHtml(b.ingredients || '—') + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.letrerage != null ? b.letrerage : '—') + '</td><td>' + (b.ffa != null ? b.ffa : '—') + '</td><td class="text-end">' + actions + '</td></tr>';
+                    var ingN = rawIngredientAuditCount(b);
+                    var ingCell = '<span class="d-inline-block">' + escapeHtml(b.ingredients != null && String(b.ingredients).trim() !== '' ? String(b.ingredients) : '—') +
+                        (ingN ? ' <span class="badge bg-success align-middle" title="Raw batches linked for traceability">' + ingN + ' linked</span>' : '') + '</span>';
+                    html += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + escapeHtml(formatOilStreamLabel(b.oil_stream)) + '</td><td>' + ingCell + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.letrerage != null ? b.letrerage : '—') + '</td><td>' + ffaPctCell + '</td><td>' + ffaTestCell + '</td><td class="text-end">' + actions + '</td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
@@ -859,16 +933,82 @@ var _oilProductionGrid = function () {
             }
         },
 
+        loadProteinBinBatches: async function (forceRefresh) {
+            var el = document.getElementById('opProteinBinBatchesList');
+            if (!el) return;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getProteinBinBatches) {
+                    el.innerHTML = '<p class="text-muted mb-0">Data not available.</p>';
+                    return;
+                }
+                var raw = await dataFunctions.getProteinBinBatches({ limit: 100, status: 'in_production' }, null, !!forceRefresh);
+                var rows = normalizeProteinBinBatches(raw).map(normalizeProteinBinBatchRow);
+                _oilProductionGrid.proteinBinBatches = rows || [];
+
+                if (!rows || rows.length === 0) {
+                    el.innerHTML = '<p class="text-muted mb-0">No protein batches yet. Click <strong>Start protein batch</strong> to create one.</p>';
+                    return;
+                }
+
+                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-protein-bin-batches-table"><thead><tr><th>Batch number</th><th>Ingredients</th><th>Start date</th><th>Weight (kg)</th><th class="text-end">Actions</th></tr></thead><tbody>';
+                rows.forEach(function (b) {
+                    var startDate = b.start_date ? (typeof b.start_date === 'string' ? b.start_date.split('T')[0] : b.start_date) : '—';
+                    var actions = '';
+                    var ingN = rawIngredientAuditCount(b);
+                    var ingCell = '<span class="d-inline-block">' + escapeHtml(b.ingredients != null && String(b.ingredients).trim() !== '' ? String(b.ingredients) : '—') +
+                        (ingN ? ' <span class="badge bg-success align-middle" title="Raw batches linked">' + ingN + ' linked</span>' : '') + '</span>';
+                    if (b.status === 'in_production') {
+                        actions += '<div class="d-flex flex-wrap gap-1 justify-content-end">' +
+                            '<button type="button" class="btn btn-sm btn-outline-success op-link-protein-ingredients-btn" data-protein-bin-batch-id="' + escapeHtml(b.id) + '" title="Link raw ingredients"><i class="fas fa-link me-1"></i>Ingredients</button>' +
+                            '<button type="button" class="btn btn-sm btn-outline-primary op-send-protein-bin-to-stock" data-protein-bin-batch-id="' + escapeHtml(b.id) + '">Send to stock</button></div>';
+                    } else {
+                        actions = '<span class="text-muted small">Sent</span>';
+                    }
+                    html += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + ingCell + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.batch_weight_kg != null ? escapeHtml(String(b.batch_weight_kg)) : '—') + '</td><td class="text-end">' + actions + '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+                el.innerHTML = html;
+            } catch (e) {
+                console.error('[Oil Production] loadProteinBinBatches:', e);
+                el.innerHTML = '<p class="text-danger mb-0">Failed to load protein batches.</p>';
+            }
+        },
+
         startOilBin: async function () {
             var scope = _oilProductionGrid;
+            var oilStream = null;
+            if (typeof Swal !== 'undefined') {
+                var choice = await Swal.fire({
+                    title: 'Start oil bin',
+                    html: 'Is this run for <strong>food-grade</strong> oil or <strong>cosmetic</strong> (non-food) oil? This is recorded on the batch for traceability and stock.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: 'Food grade',
+                    denyButtonText: 'Cosmetic',
+                    cancelButtonText: 'Cancel'
+                });
+                if (choice.isConfirmed) oilStream = 'food_grade';
+                else if (choice.isDenied) oilStream = 'cosmetic';
+                else return;
+            } else {
+                var raw = window.prompt('Grade: type food_grade or cosmetic', 'food_grade');
+                if (raw === null) return;
+                oilStream = String(raw).trim().toLowerCase().replace(/\s+/g, '_');
+                if (oilStream !== 'food_grade' && oilStream !== 'cosmetic') {
+                    window.alert('Enter food_grade or cosmetic.');
+                    return;
+                }
+            }
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.startOilBinBatch) {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
                     return;
                 }
-                var result = await dataFunctions.startOilBinBatch(null, null);
+                var result = await dataFunctions.startOilBinBatch({ oilStream: oilStream }, null);
                 if (result && result.success && result.batch_number) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Oil bin started', text: 'Batch ' + result.batch_number + ' created.', timer: 2500, showConfirmButton: false });
+                    var streamLabel = formatOilStreamLabel(result.oil_stream || oilStream);
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Oil bin started', text: 'Batch ' + result.batch_number + ' created (' + streamLabel + ').', timer: 2800, showConfirmButton: false });
                     scope.loadOilBinBatches(true);
                 } else {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Failed to start oil bin', 'error');
@@ -879,26 +1019,437 @@ var _oilProductionGrid = function () {
             }
         },
 
+        startProteinBin: async function () {
+            var scope = _oilProductionGrid;
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.startProteinBinBatch) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
+                    return;
+                }
+                var result = await dataFunctions.startProteinBinBatch(null, null);
+                if (result && result.success && result.batch_number) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'success', title: 'Protein batch started', text: 'Batch ' + result.batch_number + ' created.', timer: 2800, showConfirmButton: false });
+                    }
+                    scope.loadProteinBinBatches(true);
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Failed to start protein batch', 'error');
+                }
+            } catch (e) {
+                console.error('[Oil Production] startProteinBin:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to start protein batch', 'error');
+            }
+        },
+
+        showLinkIngredientsModal: async function (oilBinBatchId) {
+            var scope = _oilProductionGrid;
+            var bid = oilBinBatchId != null ? String(oilBinBatchId) : '';
+            var batch = (scope.oilBinBatches || []).find(function (b) { return b && String(b.id) === bid; });
+            if (!batch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Not found', 'Refresh the list and try again.', 'info');
+                return;
+            }
+            if (batch.status !== 'in_production') {
+                if (typeof Swal !== 'undefined') Swal.fire('Not available', 'Ingredients can only be linked while the bin is in production.', 'info');
+                return;
+            }
+            var idEl = document.getElementById('opLinkIngredientsBinId');
+            var numEl = document.getElementById('opLinkIngredientsBatchNumber');
+            var listEl = document.getElementById('opLinkIngredientsList');
+            if (!idEl || !listEl) return;
+            idEl.value = batch.id || '';
+            if (numEl) numEl.textContent = batch.batch_number || '—';
+            listEl.innerHTML = '<p class="text-muted small mb-0">Loading raw ingredients…</p>';
+            scope._linkIngredientsOilRows = {};
+
+            var modalEl = document.getElementById('opLinkIngredientsModal');
+            if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+            var selectedIds = {};
+            var audit = batch.raw_ingredient_audit;
+            if (Array.isArray(audit)) {
+                audit.forEach(function (row) {
+                    var oid = row && (row.oil_id != null ? row.oil_id : row.oilId);
+                    if (oid) selectedIds[String(oid)] = true;
+                });
+            }
+
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getOilBatches) {
+                    listEl.innerHTML = '<p class="text-danger small mb-0">Cannot load raw ingredients.</p>';
+                    return;
+                }
+                var raw = await dataFunctions.getOilBatches({ status: 'production', limit: 200 }, null, true);
+                var rows = normalizeOilBatches(raw) || [];
+                var productionHtml = '';
+                rows.forEach(function (o) {
+                    var oid = o.id != null ? String(o.id) : '';
+                    if (!oid) return;
+                    scope._linkIngredientsOilRows[oid] = o;
+                    var checked = selectedIds[oid] ? ' checked' : '';
+                    var intake = o.intake_data || {};
+                    var sup = intake.supplier || intake.supplier_details;
+                    var pt = intake.product_type || (o.name_of_product && String(o.name_of_product));
+                    if (pt) pt = String(pt).replace(/_/g, ' ');
+                    else pt = '—';
+                    var qty = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
+                    var bagFfa = officialBagFfaFromOil(o);
+                    var safeId = 'op-ing-' + oid.replace(/[^a-zA-Z0-9\-]/g, '_');
+                    productionHtml += '<div class="form-check py-1 border-bottom op-link-ing-item mb-0">';
+                    productionHtml += '<input class="form-check-input op-link-ing-cb" type="checkbox" value="' + escapeHtml(oid) + '" id="' + safeId + '"' + checked + '>';
+                    productionHtml += '<label class="form-check-label w-100" for="' + safeId + '">';
+                    productionHtml += '<strong>' + escapeHtml(o.batch_id || oid) + '</strong>';
+                    if (sup) productionHtml += ' <span class="text-muted small">(' + escapeHtml(String(sup)) + ')</span>';
+                    productionHtml += ' — ' + escapeHtml(pt);
+                    if (bagFfa != null) productionHtml += ' <span class="text-muted">· FFA ' + escapeHtml(String(bagFfa)) + '%</span>';
+                    if (qty != null && qty !== '') productionHtml += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
+                    productionHtml += '</label></div>';
+                });
+                var auditOnlyHtml = '';
+                if (Array.isArray(audit)) {
+                    audit.forEach(function (row) {
+                        var oid = row && (row.oil_id != null ? String(row.oil_id) : (row.oilId != null ? String(row.oilId) : ''));
+                        if (oid && scope._linkIngredientsOilRows[oid]) return;
+                        auditOnlyHtml += htmlForAuditOnlyIngredientRow(row);
+                    });
+                }
+                if (rows.length === 0 && !auditOnlyHtml) {
+                    listEl.innerHTML = '<p class="text-muted small mb-0">No raw ingredient batches in production. Release batches from Supplier Intake first.</p>';
+                    return;
+                }
+                var chunks = [];
+                if (rows.length === 0) {
+                    chunks.push('<p class="text-muted small mb-2">No raw ingredient batches are currently in production. Entries below stay on this bin for audit when bags are emptied.</p>');
+                } else if (productionHtml) {
+                    chunks.push(productionHtml);
+                } else {
+                    chunks.push('<p class="text-muted small mb-0">No rows to display.</p>');
+                }
+                if (auditOnlyHtml) {
+                    chunks.push('<div class="mt-3 pt-2 border-top"><div class="small text-secondary fw-semibold mb-1">Linked for audit (no longer in production)</div>' + auditOnlyHtml + '</div>');
+                }
+                listEl.innerHTML = chunks.join('');
+            } catch (e) {
+                console.error('[Oil Production] showLinkIngredientsModal:', e);
+                listEl.innerHTML = '<p class="text-danger small mb-0">Failed to load raw ingredients.</p>';
+            }
+        },
+
+        saveLinkIngredients: async function () {
+            var scope = _oilProductionGrid;
+            var idEl = document.getElementById('opLinkIngredientsBinId');
+            var binId = idEl && idEl.value ? idEl.value.trim() : '';
+            if (!binId) return;
+            var rowsMap = scope._linkIngredientsOilRows || {};
+            var batch = (scope.oilBinBatches || []).find(function (b) { return b && String(b.id) === String(binId); });
+            if (!batch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Not found', 'Refresh the list and try again.', 'info');
+                return;
+            }
+            var checkedSet = new Set();
+            document.querySelectorAll('#opLinkIngredientsList .op-link-ing-cb:checked').forEach(function (cb) {
+                checkedSet.add(cb.value);
+            });
+            var audit = mergeRawIngredientAuditForBin(batch, rowsMap, checkedSet);
+            var labels = audit.map(function (a) { return a.batch_id ? String(a.batch_id) : ''; }).filter(function (s) { return s; });
+            var ingredientsStr = labels.join(', ');
+
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.setOilBinBatchRawIngredientLinks) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
+                    return;
+                }
+                var result = await dataFunctions.setOilBinBatchRawIngredientLinks(binId, audit, ingredientsStr, null);
+                if (result && result.success) {
+                    var modalEl = document.getElementById('opLinkIngredientsModal');
+                    if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl).hide();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Saved',
+                            text: audit.length ? ('Traceability updated: ' + audit.length + ' raw batch(es) linked to this oil bin.') : 'Cleared production links for this bin (historical entries kept if any).',
+                            timer: 2800,
+                            showConfirmButton: false
+                        });
+                    }
+                    scope.loadOilBinBatches(true);
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Save failed', 'error');
+                }
+            } catch (e) {
+                console.error('[Oil Production] saveLinkIngredients:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Save failed', 'error');
+            }
+        },
+
+        showLinkProteinIngredientsModal: async function (proteinBinBatchId) {
+            var scope = _oilProductionGrid;
+            var bid = proteinBinBatchId != null ? String(proteinBinBatchId) : '';
+            var batch = (scope.proteinBinBatches || []).find(function (b) { return b && String(b.id) === bid; });
+            if (!batch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Not found', 'Refresh the list and try again.', 'info');
+                return;
+            }
+            if (batch.status !== 'in_production') {
+                if (typeof Swal !== 'undefined') Swal.fire('Not available', 'Ingredients can only be linked while the batch is in production.', 'info');
+                return;
+            }
+            var idEl = document.getElementById('opProteinLinkIngredientsBinId');
+            var numEl = document.getElementById('opProteinLinkIngredientsBatchNumber');
+            var listEl = document.getElementById('opProteinLinkIngredientsList');
+            if (!idEl || !listEl) return;
+            idEl.value = batch.id || '';
+            if (numEl) numEl.textContent = batch.batch_number || '—';
+            listEl.innerHTML = '<p class="text-muted small mb-0">Loading raw ingredients…</p>';
+            scope._linkProteinIngredientsOilRows = {};
+
+            var modalEl = document.getElementById('opProteinLinkIngredientsModal');
+            if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+            var selectedIds = {};
+            var audit = batch.raw_ingredient_audit;
+            if (Array.isArray(audit)) {
+                audit.forEach(function (row) {
+                    var oid = row && (row.oil_id != null ? row.oil_id : row.oilId);
+                    if (oid) selectedIds[String(oid)] = true;
+                });
+            }
+
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.getOilBatches) {
+                    listEl.innerHTML = '<p class="text-danger small mb-0">Cannot load raw ingredients.</p>';
+                    return;
+                }
+                var raw = await dataFunctions.getOilBatches({ status: 'production', limit: 200 }, null, true);
+                var rows = normalizeOilBatches(raw) || [];
+                var productionHtml = '';
+                rows.forEach(function (o) {
+                    var oid = o.id != null ? String(o.id) : '';
+                    if (!oid) return;
+                    scope._linkProteinIngredientsOilRows[oid] = o;
+                    var checked = selectedIds[oid] ? ' checked' : '';
+                    var intake = o.intake_data || {};
+                    var sup = intake.supplier || intake.supplier_details;
+                    var pt = intake.product_type || (o.name_of_product && String(o.name_of_product));
+                    if (pt) pt = String(pt).replace(/_/g, ' ');
+                    else pt = '—';
+                    var qty = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
+                    var bagFfa = officialBagFfaFromOil(o);
+                    var safeId = 'op-ping-' + oid.replace(/[^a-zA-Z0-9\-]/g, '_');
+                    productionHtml += '<div class="form-check py-1 border-bottom op-protein-link-ing-item mb-0">';
+                    productionHtml += '<input class="form-check-input op-protein-link-ing-cb" type="checkbox" value="' + escapeHtml(oid) + '" id="' + safeId + '"' + checked + '>';
+                    productionHtml += '<label class="form-check-label w-100" for="' + safeId + '">';
+                    productionHtml += '<strong>' + escapeHtml(o.batch_id || oid) + '</strong>';
+                    if (sup) productionHtml += ' <span class="text-muted small">(' + escapeHtml(String(sup)) + ')</span>';
+                    productionHtml += ' — ' + escapeHtml(pt);
+                    if (bagFfa != null) productionHtml += ' <span class="text-muted">· FFA ' + escapeHtml(String(bagFfa)) + '%</span>';
+                    if (qty != null && qty !== '') productionHtml += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
+                    productionHtml += '</label></div>';
+                });
+                var auditOnlyHtml = '';
+                if (Array.isArray(audit)) {
+                    audit.forEach(function (row) {
+                        var oid = row && (row.oil_id != null ? String(row.oil_id) : (row.oilId != null ? String(row.oilId) : ''));
+                        if (oid && scope._linkProteinIngredientsOilRows[oid]) return;
+                        auditOnlyHtml += htmlForAuditOnlyIngredientRow(row);
+                    });
+                }
+                if (rows.length === 0 && !auditOnlyHtml) {
+                    listEl.innerHTML = '<p class="text-muted small mb-0">No raw ingredient batches in production. Release batches from Supplier Intake first.</p>';
+                    return;
+                }
+                var chunks = [];
+                if (rows.length === 0) {
+                    chunks.push('<p class="text-muted small mb-2">No raw ingredient batches are currently in production. Entries below stay on this batch for audit when bags are emptied.</p>');
+                } else if (productionHtml) {
+                    chunks.push(productionHtml);
+                } else {
+                    chunks.push('<p class="text-muted small mb-0">No rows to display.</p>');
+                }
+                if (auditOnlyHtml) {
+                    chunks.push('<div class="mt-3 pt-2 border-top"><div class="small text-secondary fw-semibold mb-1">Linked for audit (no longer in production)</div>' + auditOnlyHtml + '</div>');
+                }
+                listEl.innerHTML = chunks.join('');
+            } catch (e) {
+                console.error('[Oil Production] showLinkProteinIngredientsModal:', e);
+                listEl.innerHTML = '<p class="text-danger small mb-0">Failed to load raw ingredients.</p>';
+            }
+        },
+
+        saveLinkProteinIngredients: async function () {
+            var scope = _oilProductionGrid;
+            var idEl = document.getElementById('opProteinLinkIngredientsBinId');
+            var binId = idEl && idEl.value ? idEl.value.trim() : '';
+            if (!binId) return;
+            var rowsMap = scope._linkProteinIngredientsOilRows || {};
+            var batch = (scope.proteinBinBatches || []).find(function (b) { return b && String(b.id) === String(binId); });
+            if (!batch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Not found', 'Refresh the list and try again.', 'info');
+                return;
+            }
+            var checkedSet = new Set();
+            document.querySelectorAll('#opProteinLinkIngredientsList .op-protein-link-ing-cb:checked').forEach(function (cb) {
+                checkedSet.add(cb.value);
+            });
+            var audit = mergeRawIngredientAuditForBin(batch, rowsMap, checkedSet);
+            var labels = audit.map(function (a) { return a.batch_id ? String(a.batch_id) : ''; }).filter(function (s) { return s; });
+            var ingredientsStr = labels.join(', ');
+
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.setProteinBinBatchRawIngredientLinks) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
+                    return;
+                }
+                var result = await dataFunctions.setProteinBinBatchRawIngredientLinks(binId, audit, ingredientsStr, null);
+                if (result && result.success) {
+                    var modalEl = document.getElementById('opProteinLinkIngredientsModal');
+                    if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl).hide();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Saved',
+                            text: audit.length ? ('Traceability updated: ' + audit.length + ' raw batch(es) linked.') : 'Cleared production links (historical entries kept if any).',
+                            timer: 2800,
+                            showConfirmButton: false
+                        });
+                    }
+                    scope.loadProteinBinBatches(true);
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Save failed', 'error');
+                }
+            } catch (e) {
+                console.error('[Oil Production] saveLinkProteinIngredients:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Save failed', 'error');
+            }
+        },
+
+        sendProteinBinBatchToStock: async function (proteinBinBatchId) {
+            var scope = _oilProductionGrid;
+            var bid = proteinBinBatchId != null ? String(proteinBinBatchId) : '';
+            var batch = (scope.proteinBinBatches || []).find(function (b) { return b && String(b.id) === bid; });
+            var defaultKg = batch && batch.batch_weight_kg != null && !isNaN(Number(batch.batch_weight_kg)) ? String(batch.batch_weight_kg) : '';
+
+            var weightKg = null;
+            if (typeof Swal !== 'undefined') {
+                var promptResult = await Swal.fire({
+                    title: 'Send protein batch to stock?',
+                    html: 'Enter <strong>batch weight</strong> (kg) for this run. This is stored on the batch and used for the stock lot.',
+                    icon: 'question',
+                    input: 'number',
+                    inputLabel: 'Batch weight (kg)',
+                    inputAttributes: { step: 'any', min: '0' },
+                    inputValue: defaultKg,
+                    showCancelButton: true,
+                    confirmButtonText: 'Send to stock',
+                    focusConfirm: false,
+                    preConfirm: function (value) {
+                        var v = value === '' || value == null ? NaN : parseFloat(String(value).replace(',', '.'));
+                        if (isNaN(v) || v <= 0) {
+                            Swal.showValidationMessage('Please enter a positive weight in kg.');
+                            return false;
+                        }
+                        return v;
+                    }
+                });
+                if (!promptResult || !promptResult.isConfirmed) return;
+                weightKg = promptResult.value;
+            } else {
+                var raw = window.prompt('Batch weight (kg) before sending to stock:', defaultKg);
+                if (raw === null) return;
+                weightKg = parseFloat(String(raw).replace(',', '.'));
+                if (isNaN(weightKg) || weightKg <= 0) {
+                    window.alert('Please enter a positive weight in kg.');
+                    return;
+                }
+            }
+
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.updateProteinBinBatch || !dataFunctions.sendProteinBinBatchToStock) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
+                    return;
+                }
+                var upd = await dataFunctions.updateProteinBinBatch({ id: proteinBinBatchId, batch_weight_kg: weightKg }, null);
+                if (!upd || !upd.success) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (upd && (upd.error || upd.message)) || 'Could not save weight.', 'error');
+                    return;
+                }
+                var result = await dataFunctions.sendProteinBinBatchToStock(proteinBinBatchId, null);
+                if (result && result.success) {
+                    var bn = result.batch_number || (result.data && result.data.batch_number);
+                    var msg = (bn ? 'Batch ' + bn + ' ' : '') + 'added to Stock Management (protein powder, location 801).';
+                    if (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.loadOilLotsAndSummary) {
+                        try { await _stockManagementGrid.loadOilLotsAndSummary(true); } catch (x) { /* ignore */ }
+                    }
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Sent to stock', text: msg, timer: 3500, showConfirmButton: false });
+                    scope.loadProteinBinBatches(true);
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Failed to send to stock', 'error');
+                }
+            } catch (e) {
+                console.error('[Oil Production] sendProteinBinBatchToStock:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to send to stock', 'error');
+            }
+        },
+
         sendOilBinBatchToStock: async function (oilBinBatchId) {
             var scope = _oilProductionGrid;
+            var bid = oilBinBatchId != null ? String(oilBinBatchId) : '';
+            var batch = (scope.oilBinBatches || []).find(function (b) { return b && String(b.id) === bid; });
+            var defaultLitres = batch && batch.letrerage != null && !isNaN(Number(batch.letrerage)) ? String(batch.letrerage) : '';
+
+            var letrerage = null;
             if (typeof Swal !== 'undefined') {
-                var confirmed = await Swal.fire({
+                var promptResult = await Swal.fire({
                     title: 'Send to stock?',
-                    html: 'This will push the oil bin batch to stock.',
+                    html: 'Enter <strong>letrerage</strong> (litres) for this batch. This is used for stock volume and kilograms.',
                     icon: 'question',
+                    input: 'number',
+                    inputLabel: 'Letrerage (litres)',
+                    /* step+min must not conflict: min=0.0001 + step=0.01 rejects integers like 8000. Use step any; validate in preConfirm. */
+                    inputAttributes: { step: 'any', min: '0' },
+                    inputValue: defaultLitres,
                     showCancelButton: true,
-                    confirmButtonText: 'Send to stock'
+                    confirmButtonText: 'Send to stock',
+                    focusConfirm: false,
+                    preConfirm: function (value) {
+                        var v = value === '' || value == null ? NaN : parseFloat(String(value).replace(',', '.'));
+                        if (isNaN(v) || v <= 0) {
+                            Swal.showValidationMessage('Please enter a positive letrerage in litres.');
+                            return false;
+                        }
+                        return v;
+                    }
                 });
-                if (!confirmed || !confirmed.isConfirmed) return;
+                if (!promptResult || !promptResult.isConfirmed) return;
+                letrerage = promptResult.value;
+            } else {
+                var raw = window.prompt('Letrerage (litres) before sending to stock:', defaultLitres);
+                if (raw === null) return;
+                letrerage = parseFloat(String(raw).replace(',', '.'));
+                if (isNaN(letrerage) || letrerage <= 0) {
+                    window.alert('Please enter a positive letrerage in litres.');
+                    return;
+                }
             }
+
             try {
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.sendOilBinBatchToStock) {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.sendOilBinBatchToStock || !dataFunctions.updateOilBinBatch) {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
+                    return;
+                }
+                var upd = await dataFunctions.updateOilBinBatch({ id: oilBinBatchId, letrerage: letrerage }, null);
+                if (!upd || !upd.success) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (upd && (upd.error || upd.message)) || 'Could not save letrerage.', 'error');
                     return;
                 }
                 var result = await dataFunctions.sendOilBinBatchToStock(oilBinBatchId, null);
                 if (result && result.success) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Sent to stock', text: (result.batch_number ? 'Batch ' + result.batch_number + ' ' : '') + 'is now in stock.', timer: 2500, showConfirmButton: false });
+                    var bn = result.batch_number || (result.data && result.data.batch_number);
+                    var msg = (bn ? 'Batch ' + bn + ' ' : '') + 'removed from production and added to Stock Management (Oil stream, location 801).';
+                    if (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.loadOilLotsAndSummary) {
+                        try { await _stockManagementGrid.loadOilLotsAndSummary(true); } catch (x) { /* ignore */ }
+                    }
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Sent to stock', text: msg, timer: 3500, showConfirmButton: false });
                     scope.loadOilBinBatches(true);
                 } else {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Failed to send to stock', 'error');
@@ -911,16 +1462,92 @@ var _oilProductionGrid = function () {
 
         showEditOilBinBatchModal: function (oilBinBatchId) {
             var scope = _oilProductionGrid;
-            var batch = (scope.oilBinBatches || []).find(function (b) { return b.id === oilBinBatchId; });
+            var bid = oilBinBatchId != null ? String(oilBinBatchId) : '';
+            var batch = (scope.oilBinBatches || []).find(function (b) { return b && String(b.id) === bid; });
             if (!batch) return;
             document.getElementById('opEditOilBinBatchId').value = batch.id || '';
             document.getElementById('opEditOilBinBatchNumber').textContent = batch.batch_number || '—';
-            document.getElementById('opEditOilBinShifts').value = batch.shifts || '';
-            document.getElementById('opEditOilBinIngredients').value = batch.ingredients || '';
+            var streamSel = document.getElementById('opEditOilBinOilStream');
+            if (streamSel) {
+                var os = batch.oil_stream ? String(batch.oil_stream).toLowerCase() : '';
+                streamSel.value = (os === 'food_grade' || os === 'cosmetic') ? os : '';
+            }
+            var ingEl = document.getElementById('opEditOilBinIngredients');
+            if (ingEl) ingEl.value = batch.ingredients || '';
             document.getElementById('opEditOilBinLetrerage').value = batch.letrerage != null ? batch.letrerage : '';
             document.getElementById('opEditOilBinFfa').value = batch.ffa != null ? batch.ffa : '';
             var modalEl = document.getElementById('opEditOilBinBatchModal');
             if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        },
+
+        syncOpFfaTestPass: function () {
+            var pctEl = document.getElementById('opFfaTestPct');
+            var maxEl = document.getElementById('opFfaTestMax');
+            var passEl = document.getElementById('opFfaTestPass');
+            if (!pctEl || !maxEl || !passEl) return;
+            var pct = parseFloat(pctEl.value);
+            var max = parseFloat(maxEl.value);
+            if (isNaN(max) || max < 0) max = 0.5;
+            if (!isNaN(pct)) passEl.checked = pct <= max;
+        },
+
+        showFfaTestModal: function (oilBinBatchId) {
+            var scope = _oilProductionGrid;
+            var bid = oilBinBatchId != null ? String(oilBinBatchId) : '';
+            var batch = (scope.oilBinBatches || []).find(function (b) { return b && String(b.id) === bid; });
+            if (!batch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Not found', 'Refresh the list and try again.', 'info');
+                return;
+            }
+            if (batch.status !== 'in_production') {
+                if (typeof Swal !== 'undefined') Swal.fire('Not available', 'FFA test is only for batches still in production.', 'info');
+                return;
+            }
+            var idEl = document.getElementById('opFfaTestBatchId');
+            var numEl = document.getElementById('opFfaTestBatchNumber');
+            var pctEl = document.getElementById('opFfaTestPct');
+            var maxEl = document.getElementById('opFfaTestMax');
+            if (idEl) idEl.value = batch.id || '';
+            if (numEl) numEl.textContent = batch.batch_number || '—';
+            if (pctEl) pctEl.value = batch.ffa != null ? batch.ffa : '';
+            if (maxEl) {
+                if (maxEl.value === '' || maxEl.value == null) maxEl.value = '0.5';
+            }
+            scope.syncOpFfaTestPass();
+            var modalEl = document.getElementById('opFfaTestModal');
+            if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        },
+
+        saveFfaTest: async function () {
+            var scope = _oilProductionGrid;
+            var id = document.getElementById('opFfaTestBatchId') && document.getElementById('opFfaTestBatchId').value ? document.getElementById('opFfaTestBatchId').value.trim() : '';
+            var pctRaw = document.getElementById('opFfaTestPct') && document.getElementById('opFfaTestPct').value;
+            var pct = pctRaw === '' || pctRaw == null ? NaN : parseFloat(pctRaw);
+            var passEl = document.getElementById('opFfaTestPass');
+            var pass = passEl && passEl.checked;
+            if (!id) return;
+            if (isNaN(pct) || pct < 0 || pct > 100) {
+                if (typeof Swal !== 'undefined') Swal.fire('Invalid', 'Enter FFA % between 0 and 100.', 'warning');
+                return;
+            }
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.recordOilBinBatchFfaTest) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
+                    return;
+                }
+                var result = await dataFunctions.recordOilBinBatchFfaTest(id, pct, pass, null);
+                if (result && result.success) {
+                    var modalEl = document.getElementById('opFfaTestModal');
+                    if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'FFA test saved', timer: 2000, showConfirmButton: false });
+                    scope.loadOilBinBatches(true);
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Save failed', 'error');
+                }
+            } catch (e) {
+                console.error('[Oil Production] saveFfaTest:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Save failed', 'error');
+            }
         },
 
         saveEditOilBinBatch: async function () {
@@ -928,7 +1555,6 @@ var _oilProductionGrid = function () {
             var idEl = document.getElementById('opEditOilBinBatchId');
             var id = idEl && idEl.value ? idEl.value.trim() : null;
             if (!id) return;
-            var shifts = (document.getElementById('opEditOilBinShifts') && document.getElementById('opEditOilBinShifts').value) || '';
             var ingredients = (document.getElementById('opEditOilBinIngredients') && document.getElementById('opEditOilBinIngredients').value) || '';
             var letrerageRaw = document.getElementById('opEditOilBinLetrerage') && document.getElementById('opEditOilBinLetrerage').value;
             var ffaRaw = document.getElementById('opEditOilBinFfa') && document.getElementById('opEditOilBinFfa').value;
@@ -936,12 +1562,22 @@ var _oilProductionGrid = function () {
             var ffa = ffaRaw === '' || ffaRaw === null ? null : parseFloat(ffaRaw);
             if (isNaN(letrerage)) letrerage = null;
             if (isNaN(ffa)) ffa = null;
+            var streamEl = document.getElementById('opEditOilBinOilStream');
+            var streamVal = streamEl && streamEl.value ? streamEl.value.trim() : '';
+            var payload = {
+                id: id,
+                shifts: '',
+                ingredients: ingredients,
+                letrerage: letrerage,
+                ffa: ffa
+            };
+            if (streamVal === 'food_grade' || streamVal === 'cosmetic') payload.oilStream = streamVal;
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.updateOilBinBatch) {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
                 return;
                 }
-                var result = await dataFunctions.updateOilBinBatch({ id: id, shifts: shifts, ingredients: ingredients, letrerage: letrerage, ffa: ffa }, null);
+                var result = await dataFunctions.updateOilBinBatch(payload, null);
                 if (result && result.success) {
                     var modalEl = document.getElementById('opEditOilBinBatchModal');
                     if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).hide();

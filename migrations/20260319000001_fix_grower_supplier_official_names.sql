@@ -1,15 +1,15 @@
--- Align messed-up log/sheet grower labels and NIS contact to official names (NIS list + Big Five Mac).
+-- Align messed-up log/sheet grower labels and NIS contact to official names (NIS list + Big 5 Mac).
 
 -- 1) CRM: NIS supplier #55
 UPDATE public.contacts
-SET company_name = 'Big Five Mac',
+SET company_name = 'Big 5 Mac',
     updated_at = now()
 WHERE contact_type = 'nis_supplier'
   AND company_name = 'Big G Mac';
 
 -- 2) Kernel batch display names (exact-match replacements)
-UPDATE public.kernel SET grower_name = 'Big Five Mac', updated_at = now()
-WHERE grower_name IN ('Big 5', 'Big G Mac');
+UPDATE public.kernel SET grower_name = 'Big 5 Mac', updated_at = now()
+WHERE grower_name IN ('Big 5', 'Big G Mac', 'Big Five Mac');
 
 UPDATE public.kernel SET grower_name = 'Agristar Macadamias (Pty) Ltd NutsAll', updated_at = now()
 WHERE grower_name IN ('Agri mac', 'Agristar');
@@ -38,5 +38,10 @@ WHERE grower_name IN ('Eucalypt Fo', 'Eucalypt Forestry');
 UPDATE public.kernel SET grower_name = 'Foster Farming Pty Ltd', updated_at = now()
 WHERE grower_name IN ('Foster Farm', 'Foster Farming');
 
-UPDATE public.kernel SET grower_name = 'Rope Miller', updated_at = now()
-WHERE grower_name = 'Ropa Miller';
+-- Supplier #51 canonical name is Ropa Miller (not Rope Miller). See migrations/20260341000001_kernel_nis_supplier_official_spellings.sql
+UPDATE public.kernel SET grower_name = 'Ropa Miller', updated_at = now()
+WHERE grower_name = 'Rope Miller';
+
+-- Supplier #57: match NIS contact "The Two Rivers Trust". See migrations/20260341000003_kernel_two_rivers_trust_official_name.sql
+UPDATE public.kernel SET grower_name = 'The Two Rivers Trust', updated_at = now()
+WHERE grower_name = 'Two Rivers Trust';

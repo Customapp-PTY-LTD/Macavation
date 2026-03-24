@@ -450,16 +450,19 @@ var _dashboard = function () {
         
         if (alerts && alerts.length > 0) {
             $container.html(alerts.map(alert => {
-                const alertClass = alert.alert_type === 'critical' ? 'danger' : 
-                                 alert.alert_type === 'warning' ? 'warning' : 'info';
-                const icon = alert.alert_type === 'critical' ? 'bi-exclamation-triangle-fill' :
-                            alert.alert_type === 'warning' ? 'bi-info-circle-fill' : 'bi-info-circle';
+                const sev = (alert.severity || '').toLowerCase();
+                const alertClass = sev === 'critical' ? 'danger' :
+                    sev === 'warning' ? 'warning' :
+                    alert.alert_type === 'critical' ? 'danger' :
+                    alert.alert_type === 'warning' ? 'warning' : 'info';
+                const icon = alertClass === 'danger' ? 'bi-exclamation-triangle-fill' :
+                    alertClass === 'warning' ? 'bi-exclamation-triangle-fill' : 'bi-info-circle';
                 
                 return `
                     <div class="col-12">
                         <div class="alert alert-${alertClass}-custom" role="alert">
-                            <strong><i class="bi ${icon} me-2"></i>${alert.title || 'Alert'}:</strong> 
-                            ${alert.message} <a href="${alert.action_url || '#'}" class="alert-link">View details</a>
+                            <strong><i class="bi ${icon} me-2"></i>${alert.title || alert.alert_title || 'Alert'}:</strong> 
+                            ${alert.message || alert.alert_message || ''} <a href="${alert.action_url || '#'}" class="alert-link">View details</a>
                         </div>
                     </div>
                 `;

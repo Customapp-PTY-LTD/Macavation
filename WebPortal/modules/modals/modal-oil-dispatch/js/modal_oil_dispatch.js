@@ -55,10 +55,17 @@ var _modal_oil_dispatch = (function () {
                     tbody.innerHTML = '';
                     lines.forEach(function (line) {
                         var tr = document.createElement('tr');
+                        var qtyL = line.quantity_litres != null ? Number(line.quantity_litres) : null;
                         var qtyKg = line.quantity_kg != null ? Number(line.quantity_kg) : null;
-                        var qtyDisplay = (line.cartons != null && line.cartons >= 0)
-                            ? (line.cartons + ' ct · ' + (qtyKg != null ? qtyKg : '—') + ' kg')
-                            : (qtyKg != null ? qtyKg + ' kg' : '—');
+                        var qtyDisplay;
+                        if (qtyL != null && !isNaN(qtyL) && qtyL > 0) {
+                            qtyDisplay = qtyL.toFixed(2) + ' L';
+                            if (qtyKg != null && !isNaN(qtyKg)) qtyDisplay += ' <span class="text-muted small">(≈ ' + qtyKg.toFixed(1) + ' kg)</span>';
+                        } else if (line.cartons != null && line.cartons >= 0) {
+                            qtyDisplay = line.cartons + ' ct · ' + (qtyKg != null ? qtyKg : '—') + ' kg';
+                        } else {
+                            qtyDisplay = qtyKg != null ? qtyKg + ' kg' : '—';
+                        }
                         tr.innerHTML = '<td>' + (line.batch_number || '—') + '</td><td>' + (line.style || '—') + '</td><td class="text-end">' + qtyDisplay + '</td>';
                         tbody.appendChild(tr);
                     });

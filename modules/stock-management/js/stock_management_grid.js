@@ -29,7 +29,7 @@ var _stockManagementGrid = function () {
             var scope = _stockManagementGrid;
             console.log('[Stock Management] Initializing grid...');
             scope.applyStreamFromRoute();
-
+            
             var loadPromises = [];
             if (typeof $ !== 'undefined' && $('.modal[route-name]').length) {
                 $('.modal[route-name]').each(function (index, el) {
@@ -99,7 +99,7 @@ var _stockManagementGrid = function () {
         setupEventListeners: function () {
             var scope = _stockManagementGrid;
             console.log('[Stock Management] Setting up event listeners...');
-
+            
             if (typeof $ !== 'undefined') {
                 $('#stockTakeBtn').off('click').on('click', function (e) {
                     e.preventDefault();
@@ -122,18 +122,18 @@ var _stockManagementGrid = function () {
                     if (scope.dispatchSelectionMode) scope.onDispatchCellClick(this);
                 });
 
-                $('#searchStockInput').on('input', function () {
-                    clearTimeout(scope.searchTimeout);
+            $('#searchStockInput').on('input', function () {
+                clearTimeout(scope.searchTimeout);
                     scope.searchTimeout = setTimeout(function () { scope.filterStockItems(); }, 300);
                 });
                 $('#filterStockStatus, #filterStockProduct, #filterStockLocation').on('change', function () { scope.filterStockItems(); });
-                $('#clearStockFiltersBtn').on('click', function () {
-                    $('#searchStockInput').val('');
-                    $('#filterStockStatus').val('');
-                    $('#filterStockProduct').val('');
-                    $('#filterStockLocation').val('');
-                    scope.filterStockItems();
-                });
+            $('#clearStockFiltersBtn').on('click', function () {
+                $('#searchStockInput').val('');
+                $('#filterStockStatus').val('');
+                $('#filterStockProduct').val('');
+                $('#filterStockLocation').val('');
+                scope.filterStockItems();
+            });
                 $(document).on('click', '.js-release-batch-to-production', function () {
                     var id = $(this).data('batch-id');
                     if (id) scope.releaseBatchToProduction(id);
@@ -323,8 +323,8 @@ var _stockManagementGrid = function () {
             if (!scope.dispatchSelectionMode && (!scope.dispatchOrderDetails || !scope.dispatchOrderDetails.buyer_name)) {
                 if (typeof Swal !== 'undefined') Swal.fire('Info', 'Please fill in dispatch details first. Click "Send to Dispatch" to enter buyer and delivery date.', 'info');
                 if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.show) _modal_stock_send_to_dispatch.show();
-                return;
-            }
+                    return;
+                }
             scope.dispatchSelectionMode = !scope.dispatchSelectionMode;
             var selectBtn = document.getElementById('selectBoxesBtn');
             var summary = document.getElementById('dispatchSelectedSummary');
@@ -483,14 +483,14 @@ var _stockManagementGrid = function () {
 
         loadOilLotsAndSummary: function (forceRefresh) {
             var scope = _stockManagementGrid;
-            if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getOilStockLots !== 'function') {
-                console.warn('[Stock Management] Oil stock functions not available yet');
-                return;
-            }
+                if (typeof dataFunctions === 'undefined' || !dataFunctions || typeof dataFunctions.getOilStockLots !== 'function') {
+                    console.warn('[Stock Management] Oil stock functions not available yet');
+                    return;
+                }
             var filters = scope.getOilFilters();
             dataFunctions.getOilStockLots(filters, null, forceRefresh).catch(function (e) {
-                console.error('[Stock Management] getOilStockLots error:', e);
-                return [];
+                    console.error('[Stock Management] getOilStockLots error:', e);
+                    return [];
             }).then(function (lots) {
                 scope.oilLots = Array.isArray(lots) ? lots : (lots && lots.data ? lots.data : []);
                 var summaryFilters = { location_code: filters.location_code, stock_category: filters.stock_category, status: filters.status || 'on_hand' };
@@ -558,17 +558,17 @@ var _stockManagementGrid = function () {
             Swal.fire({ title: 'Remove oil lot?', text: 'This will hide the lot from the ledger (soft delete).', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, remove', cancelButtonText: 'Cancel' }).then(function (confirm) {
                 if (!confirm.isConfirmed) return;
                 dataFunctions.deactivateOilStockLot(lotId).then(function (result) {
-                    if (result && result.success !== false) {
-                        Swal.fire('Removed', 'Oil lot removed', 'success');
+                if (result && result.success !== false) {
+                    Swal.fire('Removed', 'Oil lot removed', 'success');
                         scope.loadOilLotsAndSummary(true);
                     } else Swal.fire('Error', (result && (result.error || result.message)) || 'Failed to remove oil lot', 'error');
                 }).catch(function (e) {
-                    console.error('[Stock Management] deleteOilLot failed:', e);
-                    Swal.fire('Error', e.message || 'Failed to remove oil lot', 'error');
+                console.error('[Stock Management] deleteOilLot failed:', e);
+                Swal.fire('Error', e.message || 'Failed to remove oil lot', 'error');
                 });
             });
         },
-
+        
         exportStock: function () {
             var scope = _stockManagementGrid;
             if (!scope.stockItems || scope.stockItems.length === 0) {
@@ -597,7 +597,7 @@ var _stockManagementGrid = function () {
 function initializeStockManagementGrid() {
     if (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.init) {
         _stockManagementGrid.init();
-    } else {
+        } else {
         console.error('[Stock Management] _stockManagementGrid not defined');
     }
 }
