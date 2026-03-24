@@ -860,7 +860,6 @@ var _stockManagementGrid = function () {
                 tr.innerHTML = '<td>' + (l.location_code || '') + '</td>' +
                     '<td>' + (l.stock_category || '') + '</td>' +
                     '<td>' + (l.batch_number || '') + '</td>' +
-                    '<td>' + (l.product_description || l.product_code || '') + '</td>' +
                     '<td>' + escapeHtml(displayOilLotGrade(l)) + '</td>' +
                     '<td class="text-end">' + (l.ffa !== null && l.ffa !== undefined ? Number(l.ffa).toFixed(2) : '') + '</td>' +
                     '<td class="text-end">' + (l.kilograms !== null && l.kilograms !== undefined ? Number(l.kilograms).toFixed(2) : '') + '</td>' +
@@ -873,11 +872,11 @@ var _stockManagementGrid = function () {
             }
 
             if (!oilRows.length) {
-                bodyOil.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4">No oil stock lines match your search.</td></tr>';
+                bodyOil.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No oil stock lines match your search.</td></tr>';
             } else oilRows.forEach(function (l) { renderRow(l, bodyOil); });
 
             if (!protRows.length) {
-                bodyProt.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4">No protein powder stock lines match your search.</td></tr>';
+                bodyProt.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No protein powder stock lines match your search.</td></tr>';
             } else protRows.forEach(function (l) { renderRow(l, bodyProt); });
         },
 
@@ -1033,7 +1032,6 @@ var _stockManagementGrid = function () {
                     { key: 'counterparty_name', label: 'Supplier/Customer' },
                     { key: 'po_reference', label: 'PO Ref' },
                     { key: 'batch_number', label: 'Batch #' },
-                    { key: 'product_description', label: 'Product' },
                     { key: 'grade', label: 'Grade' },
                     { key: 'ffa', label: 'FFA' },
                     { key: 'units', label: 'Units' },

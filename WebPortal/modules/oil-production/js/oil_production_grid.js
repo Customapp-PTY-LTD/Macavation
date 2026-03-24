@@ -230,6 +230,20 @@ var _oilProductionGrid = function () {
         return out;
     }
 
+    /** Read-only line for saved audit rows not on the current production floor (bag emptied, etc.). */
+    function htmlForAuditOnlyIngredientRow(row) {
+        if (!row || typeof row !== 'object') return '';
+        var bid = row.batch_id != null ? String(row.batch_id) : '—';
+        var sup = row.supplier ? String(row.supplier) : '';
+        var pt = row.product_type ? String(row.product_type).replace(/_/g, ' ') : '—';
+        var qty = row.quantity_kg;
+        var line = '<strong>' + escapeHtml(bid) + '</strong>';
+        if (sup) line += ' <span class="text-muted small">(' + escapeHtml(sup) + ')</span>';
+        line += ' — ' + escapeHtml(pt);
+        if (qty != null && qty !== '') line += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
+        return '<div class="py-1 border-bottom op-link-ing-audit-only mb-0 small">' + line + '</div>';
+    }
+
     function resolveUpsertShiftResult(result) {
         var r = result && (result.data !== undefined ? result.data : result);
         if (Array.isArray(r) && r.length) r = r[0];
@@ -1044,12 +1058,8 @@ var _oilProductionGrid = function () {
                     return;
                 }
                 var raw = await dataFunctions.getOilBatches({ status: 'production', limit: 200 }, null, true);
-                var rows = normalizeOilBatches(raw);
-                if (!rows || rows.length === 0) {
-                    listEl.innerHTML = '<p class="text-muted small mb-0">No raw ingredient batches in production. Release batches from Supplier Intake first.</p>';
-                    return;
-                }
-                var html = '';
+                var rows = normalizeOilBatches(raw) || [];
+                var productionHtml = '';
                 rows.forEach(function (o) {
                     var oid = o.id != null ? String(o.id) : '';
                     if (!oid) return;
@@ -1062,16 +1072,39 @@ var _oilProductionGrid = function () {
                     else pt = '—';
                     var qty = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
                     var safeId = 'op-ing-' + oid.replace(/[^a-zA-Z0-9\-]/g, '_');
-                    html += '<div class="form-check py-1 border-bottom op-link-ing-item mb-0">';
-                    html += '<input class="form-check-input op-link-ing-cb" type="checkbox" value="' + escapeHtml(oid) + '" id="' + safeId + '"' + checked + '>';
-                    html += '<label class="form-check-label w-100" for="' + safeId + '">';
-                    html += '<strong>' + escapeHtml(o.batch_id || oid) + '</strong>';
-                    if (sup) html += ' <span class="text-muted small">(' + escapeHtml(String(sup)) + ')</span>';
-                    html += ' — ' + escapeHtml(pt);
-                    if (qty != null && qty !== '') html += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
-                    html += '</label></div>';
+                    productionHtml += '<div class="form-check py-1 border-bottom op-link-ing-item mb-0">';
+                    productionHtml += '<input class="form-check-input op-link-ing-cb" type="checkbox" value="' + escapeHtml(oid) + '" id="' + safeId + '"' + checked + '>';
+                    productionHtml += '<label class="form-check-label w-100" for="' + safeId + '">';
+                    productionHtml += '<strong>' + escapeHtml(o.batch_id || oid) + '</strong>';
+                    if (sup) productionHtml += ' <span class="text-muted small">(' + escapeHtml(String(sup)) + ')</span>';
+                    productionHtml += ' — ' + escapeHtml(pt);
+                    if (qty != null && qty !== '') productionHtml += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
+                    productionHtml += '</label></div>';
                 });
-                listEl.innerHTML = html || '<p class="text-muted small mb-0">No rows to display.</p>';
+                var auditOnlyHtml = '';
+                if (Array.isArray(audit)) {
+                    audit.forEach(function (row) {
+                        var oid = row && (row.oil_id != null ? String(row.oil_id) : (row.oilId != null ? String(row.oilId) : ''));
+                        if (oid && scope._linkIngredientsOilRows[oid]) return;
+                        auditOnlyHtml += htmlForAuditOnlyIngredientRow(row);
+                    });
+                }
+                if (rows.length === 0 && !auditOnlyHtml) {
+                    listEl.innerHTML = '<p class="text-muted small mb-0">No raw ingredient batches in production. Release batches from Supplier Intake first.</p>';
+                    return;
+                }
+                var chunks = [];
+                if (rows.length === 0) {
+                    chunks.push('<p class="text-muted small mb-2">No raw ingredient batches are currently in production. Entries below stay on this bin for audit when bags are emptied.</p>');
+                } else if (productionHtml) {
+                    chunks.push(productionHtml);
+                } else {
+                    chunks.push('<p class="text-muted small mb-0">No rows to display.</p>');
+                }
+                if (auditOnlyHtml) {
+                    chunks.push('<div class="mt-3 pt-2 border-top"><div class="small text-secondary fw-semibold mb-1">Linked for audit (no longer in production)</div>' + auditOnlyHtml + '</div>');
+                }
+                listEl.innerHTML = chunks.join('');
             } catch (e) {
                 console.error('[Oil Production] showLinkIngredientsModal:', e);
                 listEl.innerHTML = '<p class="text-danger small mb-0">Failed to load raw ingredients.</p>';
@@ -1164,12 +1197,8 @@ var _oilProductionGrid = function () {
                     return;
                 }
                 var raw = await dataFunctions.getOilBatches({ status: 'production', limit: 200 }, null, true);
-                var rows = normalizeOilBatches(raw);
-                if (!rows || rows.length === 0) {
-                    listEl.innerHTML = '<p class="text-muted small mb-0">No raw ingredient batches in production. Release batches from Supplier Intake first.</p>';
-                    return;
-                }
-                var html = '';
+                var rows = normalizeOilBatches(raw) || [];
+                var productionHtml = '';
                 rows.forEach(function (o) {
                     var oid = o.id != null ? String(o.id) : '';
                     if (!oid) return;
@@ -1182,16 +1211,39 @@ var _oilProductionGrid = function () {
                     else pt = '—';
                     var qty = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
                     var safeId = 'op-ping-' + oid.replace(/[^a-zA-Z0-9\-]/g, '_');
-                    html += '<div class="form-check py-1 border-bottom op-protein-link-ing-item mb-0">';
-                    html += '<input class="form-check-input op-protein-link-ing-cb" type="checkbox" value="' + escapeHtml(oid) + '" id="' + safeId + '"' + checked + '>';
-                    html += '<label class="form-check-label w-100" for="' + safeId + '">';
-                    html += '<strong>' + escapeHtml(o.batch_id || oid) + '</strong>';
-                    if (sup) html += ' <span class="text-muted small">(' + escapeHtml(String(sup)) + ')</span>';
-                    html += ' — ' + escapeHtml(pt);
-                    if (qty != null && qty !== '') html += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
-                    html += '</label></div>';
+                    productionHtml += '<div class="form-check py-1 border-bottom op-protein-link-ing-item mb-0">';
+                    productionHtml += '<input class="form-check-input op-protein-link-ing-cb" type="checkbox" value="' + escapeHtml(oid) + '" id="' + safeId + '"' + checked + '>';
+                    productionHtml += '<label class="form-check-label w-100" for="' + safeId + '">';
+                    productionHtml += '<strong>' + escapeHtml(o.batch_id || oid) + '</strong>';
+                    if (sup) productionHtml += ' <span class="text-muted small">(' + escapeHtml(String(sup)) + ')</span>';
+                    productionHtml += ' — ' + escapeHtml(pt);
+                    if (qty != null && qty !== '') productionHtml += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
+                    productionHtml += '</label></div>';
                 });
-                listEl.innerHTML = html || '<p class="text-muted small mb-0">No rows to display.</p>';
+                var auditOnlyHtml = '';
+                if (Array.isArray(audit)) {
+                    audit.forEach(function (row) {
+                        var oid = row && (row.oil_id != null ? String(row.oil_id) : (row.oilId != null ? String(row.oilId) : ''));
+                        if (oid && scope._linkProteinIngredientsOilRows[oid]) return;
+                        auditOnlyHtml += htmlForAuditOnlyIngredientRow(row);
+                    });
+                }
+                if (rows.length === 0 && !auditOnlyHtml) {
+                    listEl.innerHTML = '<p class="text-muted small mb-0">No raw ingredient batches in production. Release batches from Supplier Intake first.</p>';
+                    return;
+                }
+                var chunks = [];
+                if (rows.length === 0) {
+                    chunks.push('<p class="text-muted small mb-2">No raw ingredient batches are currently in production. Entries below stay on this batch for audit when bags are emptied.</p>');
+                } else if (productionHtml) {
+                    chunks.push(productionHtml);
+                } else {
+                    chunks.push('<p class="text-muted small mb-0">No rows to display.</p>');
+                }
+                if (auditOnlyHtml) {
+                    chunks.push('<div class="mt-3 pt-2 border-top"><div class="small text-secondary fw-semibold mb-1">Linked for audit (no longer in production)</div>' + auditOnlyHtml + '</div>');
+                }
+                listEl.innerHTML = chunks.join('');
             } catch (e) {
                 console.error('[Oil Production] showLinkProteinIngredientsModal:', e);
                 listEl.innerHTML = '<p class="text-danger small mb-0">Failed to load raw ingredients.</p>';
