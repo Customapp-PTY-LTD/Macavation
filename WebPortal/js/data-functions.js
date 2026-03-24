@@ -1692,12 +1692,31 @@ var _dataFunctions = function () {
                     pallets_condition: vc.pallets_condition != null ? vc.pallets_condition : intake.pallets_condition,
                     raw_materials_condition: vc.raw_materials_condition != null ? vc.raw_materials_condition : intake.raw_materials_condition,
                     receiving_comments: intake.receiving_comments,
+                    official_ffa: intake.official_ffa != null ? intake.official_ffa : (intake.ffa != null ? intake.ffa : null),
+                    supplier_intake_official_ffa_at: intake.supplier_intake_official_ffa_at || null,
                     created_by_name: o.created_by_name,
                     updated_by_name: o.updated_by_name
                 };
             }
 
             return rows.map(mapOilRowToGrid);
+        },
+
+        /**
+         * First Supplier Intake sample test only: writes official FFA to oil.intake_data and sets status release_ready.
+         */
+        completeSupplierIntakeFirstSampleFfa: async function (oilId, ffaPct, token = null) {
+            if (!oilId || ffaPct == null || isNaN(Number(ffaPct))) {
+                return { success: false, error: 'Oil id and FFA % are required' };
+            }
+            var payload = { p_oil_id: oilId, p_ffa_pct: Number(ffaPct) };
+            var uid = this.getCurrentUserId();
+            if (uid) payload.p_updated_by = uid;
+            var result = await this.callFunction('complete_supplier_intake_first_sample_ffa', payload, token, { useCache: false });
+            this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('oil_batches');
+            this.clearCachePattern('oil_production');
+            return result && (result.data !== undefined ? result.data : result);
         },
 
         /**
@@ -1892,6 +1911,9 @@ var _dataFunctions = function () {
                     raw_materials_condition: data.raw_materials_condition
                 }
             };
+            if (data.official_ffa != null && data.official_ffa !== '') intakeData.official_ffa = Number(data.official_ffa);
+            if (data.supplier_intake_official_ffa_at) intakeData.supplier_intake_official_ffa_at = data.supplier_intake_official_ffa_at;
+            if (data.ffa != null && data.ffa !== '') intakeData.ffa = Number(data.ffa);
             var payload = {
                 p_oil_id: oilId,
                 p_batch_id: data.batch_number || null,

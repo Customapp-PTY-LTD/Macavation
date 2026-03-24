@@ -91,6 +91,14 @@ var _supplierIntakeGrid = function () {
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    /** True after the one-time supplier-intake sample FFA has been saved (official value on the bag). */
+    function hasSupplierIntakeOfficialFfa(b) {
+        if (!b) return false;
+        if (b.supplier_intake_official_ffa_at != null && String(b.supplier_intake_official_ffa_at).trim() !== '') return true;
+        if (b.official_ffa != null && String(b.official_ffa).trim() !== '') return true;
+        return false;
+    }
+
     return {
         batches: [],
         filteredBatches: [],
@@ -313,7 +321,12 @@ var _supplierIntakeGrid = function () {
                 var productStr = productTypeLabel(b.product_type) || '—';
                 var supplierStr = (b.supplier_details || '—').toString();
                 var colKey = getSupplierColumnKey(b);
-                var sampleBtn = '<button type="button" class="btn btn-sm btn-primary js-supplier-intake-sample-test-btn" data-batch-id="' + esc(batchId) + '" title="Sample test"><i class="fas fa-vial me-1"></i>Sample test</button>';
+                var sampleBtn = '';
+                if (colKey === 'release_ready' || hasSupplierIntakeOfficialFfa(b)) {
+                    sampleBtn = '';
+                } else {
+                    sampleBtn = '<button type="button" class="btn btn-sm btn-primary js-supplier-intake-sample-test-btn" data-batch-id="' + esc(batchId) + '" title="Record official bag FFA (one time)"><i class="fas fa-vial me-1"></i>Sample test</button>';
+                }
                 var releaseBtn = colKey === 'release_ready'
                     ? '<button type="button" class="btn btn-sm btn-primary js-supplier-intake-release-oil" data-batch-id="' + esc(batchId) + '" title="Release to Oil Production"><i class="fas fa-arrow-right me-1"></i>Release to Oil Production</button>'
                     : '';
@@ -393,11 +406,16 @@ var _supplierIntakeGrid = function () {
                 const batchNumEscaped = (b.batch_number || '—').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                 const batchNumberCell = '<a href="#" class="supplier-intake-batch-number-link" role="button" data-batch-id="' + batchId + '">' + batchNumEscaped + '</a>';
                 var colKey = getSupplierColumnKey(b);
-                const sampleBtn = '<button type="button" class="btn btn-sm btn-primary supplier-intake-step-btn js-supplier-intake-sample-test-btn" data-batch-id="' + escapeHtml(batchId) + '" title="Sample test"><i class="fas fa-vial me-1"></i><span class="supplier-intake-btn-text">Sample test</span></button>';
+                const sampleBtnHtml = '<button type="button" class="btn btn-sm btn-primary supplier-intake-step-btn js-supplier-intake-sample-test-btn" data-batch-id="' + escapeHtml(batchId) + '" title="Record official bag FFA (one time)"><i class="fas fa-vial me-1"></i><span class="supplier-intake-btn-text">Sample test</span></button>';
                 const releaseToOilBtn = '<button type="button" class="btn btn-sm btn-primary supplier-intake-step-btn js-supplier-intake-release-oil" data-batch-id="' + escapeHtml(batchId) + '" title="Release to Oil Production"><i class="fas fa-arrow-right me-1"></i><span class="supplier-intake-btn-text">Release to Oil Production</span></button>';
-                const receivingCell = colKey === 'release_ready'
-                    ? '<div class="supplier-intake-receiving-buttons">' + releaseToOilBtn + '</div>'
-                    : '<div class="supplier-intake-receiving-buttons">' + sampleBtn + '</div>';
+                var receivingCell;
+                if (colKey === 'release_ready') {
+                    receivingCell = '<div class="supplier-intake-receiving-buttons">' + releaseToOilBtn + '</div>';
+                } else if (hasSupplierIntakeOfficialFfa(b)) {
+                    receivingCell = '<div class="supplier-intake-receiving-buttons"><span class="text-muted small">Official FFA on file</span></div>';
+                } else {
+                    receivingCell = '<div class="supplier-intake-receiving-buttons">' + sampleBtnHtml + '</div>';
+                }
                 const releaseItem = (colKey === 'release_ready')
                     ? '<a class="dropdown-item js-supplier-intake-release-oil" href="#"><i class="fas fa-arrow-right me-2"></i>Release to Oil Production</a>'
                     : '<span class="dropdown-item text-muted" role="button" tabindex="0">Release to Oil Production</span>';
@@ -592,6 +610,12 @@ var _supplierIntakeGrid = function () {
         showSampleTest: (batch) => {
             const scope = _supplierIntakeGrid;
             if (!batch) return;
+            if (hasSupplierIntakeOfficialFfa(batch)) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Already recorded', 'Official FFA for this bag was already saved at supplier intake. Use the Quality Assurance module for any additional tests.', 'info');
+                }
+                return;
+            }
             if (typeof _modal_quality_test === 'undefined' || !_modal_quality_test.show) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Sample test modal not loaded. Please refresh the page.', 'error');
                 return;
@@ -651,6 +675,7 @@ var _supplierIntakeGrid = function () {
                 line('Carton / bulk bags', b.carton_bulk_bags) +
                 line('Manufactured date', formatDate(b.manufactured_date)) +
                 line('Best before date', formatDate(b.best_before_date)) +
+                line('Official FFA (bag) %', b.official_ffa != null && b.official_ffa !== '' ? b.official_ffa : '') +
                 line('Reference / PO', b.reference) +
                 line('Description', b.description) +
                 line('Status', (function () {

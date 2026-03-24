@@ -10,6 +10,8 @@ var _modal_supplier_receiver_checklist = (function () {
     var _inited = false;
     var _editingBatchId = null;
     var _editingBatchStatus = null;
+    /** Snapshot of grid batch while editing — preserves official FFA fields not on the form. */
+    var _editingBatchSnapshot = null;
 
     function toISO(dateStr) {
         if (!dateStr || typeof dateStr !== 'string') return null;
@@ -234,6 +236,7 @@ var _modal_supplier_receiver_checklist = (function () {
             _editingBatchId = (editingBatch && editingBatch.id) ? editingBatch.id : null;
             _editingBatchStatus = (editingBatch && editingBatch.status) ? editingBatch.status : null;
             api.clearForm(false);
+            _editingBatchSnapshot = (editingBatch && _editingBatchId) ? editingBatch : null;
             hideNewSupplierPanel();
 
             var titleEl = document.getElementById('supplierReceiverChecklistModalLabel');
@@ -297,6 +300,7 @@ var _modal_supplier_receiver_checklist = (function () {
             resetRows = resetRows !== false;
             _editingBatchId = null;
             _editingBatchStatus = null;
+            if (resetRows) _editingBatchSnapshot = null;
             hideNewSupplierPanel();
             var form = document.getElementById('supplierReceiverChecklistForm');
             if (form) form.reset();
@@ -461,6 +465,13 @@ var _modal_supplier_receiver_checklist = (function () {
                         receiving_comments: receiving_comments,
                         status: _editingBatchStatus || 'awaiting_test'
                     };
+                    if (_editingBatchSnapshot && _editingBatchSnapshot.official_ffa != null && _editingBatchSnapshot.official_ffa !== '') {
+                        payload.official_ffa = _editingBatchSnapshot.official_ffa;
+                        payload.ffa = _editingBatchSnapshot.official_ffa;
+                    }
+                    if (_editingBatchSnapshot && _editingBatchSnapshot.supplier_intake_official_ffa_at) {
+                        payload.supplier_intake_official_ffa_at = _editingBatchSnapshot.supplier_intake_official_ffa_at;
+                    }
                     var res = await dataFunctions.updateSupplierIntakeBatch(_editingBatchId, payload);
                     if (res && res.success === false) {
                         throw new Error(res.error || res.message || 'Failed to update batch');
