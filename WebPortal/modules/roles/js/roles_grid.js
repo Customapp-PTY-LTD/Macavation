@@ -161,7 +161,22 @@ var _rolesGrid = function () {
                 }).join('');
             }
             $('#rolesTableBody').html(rolesHtml);
+            scope.initRolesTableDropdowns();
             scope.renderPagination();
+        },
+
+        /** Bootstrap .table-responsive clips overflow; use fixed Popper so the menu is not cut off. */
+        initRolesTableDropdowns: () => {
+            if (typeof bootstrap === 'undefined' || !bootstrap.Dropdown) return;
+            document.querySelectorAll('#rolesTableBody [data-bs-toggle="dropdown"]').forEach(function (toggleEl) {
+                bootstrap.Dropdown.getOrCreateInstance(toggleEl, {
+                    popperConfig: function (defaultBsPopperConfig) {
+                        var cfg = defaultBsPopperConfig ? Object.assign({}, defaultBsPopperConfig) : {};
+                        cfg.strategy = 'fixed';
+                        return cfg;
+                    }
+                });
+            });
         },
 
         renderPagination: () => {

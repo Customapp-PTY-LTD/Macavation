@@ -319,7 +319,7 @@ var _kernelProductionGrid = function () {
                     var productionIcon = batch.production_finished_at ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     var qaIcon = batch.has_qa ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     var displayStatus = getBatchDisplayStatus(batch);
-                    var isJobCardApproved = batch.has_jobcard_approved === true;
+                    var isJobCardApproved = batch.has_jobcard_approved === true || (batch.has_jobcard_approved !== false && !!batch.has_job_card);
                     var jcIcon = (displayStatus.filterValue === 'release_ready' && isJobCardApproved) ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     return '<div class="kanban-card" data-batch-id="' + batch.id + '">' +
                         '<div class="kanban-card-title">' + KanbanHelper._esc(batch.batch_number || 'N/A') + '</div>' +
@@ -565,7 +565,7 @@ var _kernelProductionGrid = function () {
                 const bbDisplay = (batch.best_before_date && (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(batch.best_before_date) : batch.best_before_date)) || '—';
                 const productionLabel = batch.production_finished_at ? '&#10003; Production' : 'Production';
                 const endSampleLabel = batch.has_qa ? '&#10003; End sample' : 'End sample';
-                const jobCardLabel = (displayStatus.filterValue === 'release_ready' && batch.has_jobcard_approved === true) ? '&#10003; Job Card' : 'Job Card';
+                const jobCardLabel = (displayStatus.filterValue === 'release_ready' && isJobCardApproved) ? '&#10003; Job Card' : 'Job Card';
                 const jobCardItem = '<a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '">' + jobCardLabel + '</a>';
                 const summaryItem = '<a class="dropdown-item js-batch-summary" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-calculator me-1"></i>Batch summary</a>';
                 let menuItems = [

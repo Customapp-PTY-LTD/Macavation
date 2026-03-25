@@ -118,7 +118,7 @@ var _modal_supplier_receiver_checklist = (function () {
      * Excludes kernel NIS growers (nis_supplier) and kernel customers (kernel_customer).
      * Matches CRM tabs: Suppliers, Oil Processors — not "NIS Suppliers".
      */
-    var OIL_INTAKE_SUPPLIER_CONTACT_TYPES = ['supplier', 'both', 'oil_processor'];
+    var OIL_INTAKE_SUPPLIER_CONTACT_TYPES = ['supplier', 'both', 'oil_processor', 'oil_ingredient_supplier'];
 
     function filterContactsForOilIntake(contacts, selectedId) {
         if (!contacts || !Array.isArray(contacts)) return [];

@@ -26,6 +26,16 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="oil-ingredient-suppliers-tab" data-bs-toggle="tab" data-bs-target="#oil-ingredient-suppliers" type="button" role="tab" data-contact-type="oil_ingredient_supplier">
+                <i class="fas fa-flask me-2"></i>Oil Ingredient Suppliers
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="oil-protein-customers-tab" data-bs-toggle="tab" data-bs-target="#oil-protein-customers" type="button" role="tab" data-contact-type="oil_protein_customer">
+                <i class="fas fa-handshake me-2"></i>Oil &amp; Protein Customers
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" id="kernel-customers-tab" data-bs-toggle="tab" data-bs-target="#kernel-customers" type="button" role="tab" data-contact-type="kernel_customer">
                 <i class="fas fa-shopping-cart me-2"></i>Kernel Customers
             </button>
@@ -196,6 +206,146 @@
             </div>
         </div>
 
+        <!-- Oil Ingredient Suppliers Tab -->
+        <div class="tab-pane fade" id="oil-ingredient-suppliers" role="tabpanel">
+            <div id="oilIngredientSuppliersContent">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#oiFiltersCollapse">
+                                <i class="fas fa-filter me-1"></i>Filters
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="oiFiltersCollapse">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="oiFilterProvince" class="form-label">Province</label>
+                                    <select id="oiFilterProvince" class="form-select">
+                                        <option value="">All Provinces</option>
+                                        <option value="Mpumalanga">Mpumalanga</option>
+                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                        <option value="Limpopo">Limpopo</option>
+                                        <option value="Western Cape">Western Cape</option>
+                                        <option value="Eastern Cape">Eastern Cape</option>
+                                        <option value="Gauteng">Gauteng</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="oiFilterStatus" class="form-label">Status</label>
+                                    <select id="oiFilterStatus" class="form-select">
+                                        <option value="">All Statuses</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="oiSearchInput" class="form-label">Search</label>
+                                    <input type="text" id="oiSearchInput" class="form-control" placeholder="Search supplier name, contact, area...">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-primary me-2" id="oiApplyFiltersBtn"><i class="fas fa-search me-1"></i>Apply Filters</button>
+                                    <button type="button" class="btn btn-secondary" id="oiClearFiltersBtn"><i class="fas fa-times me-1"></i>Clear Filters</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive crm-table-wrap">
+                            <table class="table table-hover" id="oilIngredientSuppliersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Supplier Name</th>
+                                        <th>Province</th>
+                                        <th>Area</th>
+                                        <th>Contact #1</th>
+                                        <th>Contact #2</th>
+                                        <th>Cell #1</th>
+                                        <th>Cell #2</th>
+                                        <th>Email #1</th>
+                                        <th>Email #2</th>
+                                        <th>Status</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="oilIngredientSuppliersTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Oil & Protein Customers Tab -->
+        <div class="tab-pane fade" id="oil-protein-customers" role="tabpanel">
+            <div id="oilProteinCustomersContent">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#opcFiltersCollapse">
+                                <i class="fas fa-filter me-1"></i>Filters
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="opcFiltersCollapse">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="opcFilterProvince" class="form-label">Province</label>
+                                    <select id="opcFilterProvince" class="form-select">
+                                        <option value="">All Provinces</option>
+                                        <option value="Western Cape">Western Cape</option>
+                                        <option value="Eastern Cape">Eastern Cape</option>
+                                        <option value="Gauteng">Gauteng</option>
+                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                        <option value="Mpumalanga">Mpumalanga</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="opcSearchInput" class="form-label">Search</label>
+                                    <input type="text" id="opcSearchInput" class="form-control" placeholder="Search customer name, contact...">
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-primary me-2" id="opcApplyFiltersBtn"><i class="fas fa-search me-1"></i>Apply Filters</button>
+                                    <button type="button" class="btn btn-secondary" id="opcClearFiltersBtn"><i class="fas fa-times me-1"></i>Clear Filters</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive crm-table-wrap">
+                            <table class="table table-hover" id="oilProteinCustomersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Customer Name</th>
+                                        <th>Province</th>
+                                        <th>Area</th>
+                                        <th>Contact #1</th>
+                                        <th>Cell #1</th>
+                                        <th>Email #1</th>
+                                        <th>Preferred Styles</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="oilProteinCustomersTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Kernel Customers Tab -->
         <div class="tab-pane fade" id="kernel-customers" role="tabpanel">
             <div id="kernelCustomersContent">
@@ -282,7 +432,7 @@
                 <div class="form-check mb-3">
                     <input class="form-check-input" type="checkbox" id="importAllSheets">
                     <label class="form-check-label" for="importAllSheets">
-                        Import all 3 sheets from one workbook (NIS Suppliers, Oil Processors, Kernel Customers)
+                        Import all sheets from one workbook (auto-detect: NIS, Oil Processors, Oil Ingredient Suppliers, Oil &amp; Protein Customers, Kernel Customers)
                     </label>
                     <div class="form-text">If enabled, the Contact Type dropdown is ignored and we auto-detect sheet names.</div>
                 </div>
@@ -292,6 +442,8 @@
                         <option value="">Select Type</option>
                         <option value="nis_supplier">NIS Suppliers</option>
                         <option value="oil_processor">Oil Processors</option>
+                        <option value="oil_ingredient_supplier">Oil Ingredient Suppliers</option>
+                        <option value="oil_protein_customer">Oil &amp; Protein Customers</option>
                         <option value="kernel_customer">Kernel Customers</option>
                     </select>
                 </div>

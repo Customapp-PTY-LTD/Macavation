@@ -20,7 +20,7 @@ var _modal_crm_contact = (function () {
                     if (type === 'oil_processor') {
                         $('#oilProcessorRatesSection').show();
                         $('#kernelCustomerPreferencesSection').hide();
-                    } else if (type === 'kernel_customer') {
+                    } else if (type === 'kernel_customer' || type === 'oil_protein_customer') {
                         $('#oilProcessorRatesSection').hide();
                         $('#kernelCustomerPreferencesSection').show();
                     } else {
@@ -55,7 +55,7 @@ var _modal_crm_contact = (function () {
                 if (defaultContactType === 'oil_processor') {
                     $('#oilProcessorRatesSection').show();
                     $('#kernelCustomerPreferencesSection').hide();
-                } else if (defaultContactType === 'kernel_customer') {
+                } else if (defaultContactType === 'kernel_customer' || defaultContactType === 'oil_protein_customer') {
                     $('#oilProcessorRatesSection').hide();
                     $('#kernelCustomerPreferencesSection').show();
                 } else {
@@ -115,7 +115,7 @@ var _modal_crm_contact = (function () {
             } else {
                 $('#oilProcessorRatesSection').hide();
             }
-            if (contact.contact_type === 'kernel_customer') {
+            if (contact.contact_type === 'kernel_customer' || contact.contact_type === 'oil_protein_customer') {
                 $('#kernelCustomerPreferencesSection').show();
             } else {
                 $('#kernelCustomerPreferencesSection').hide();

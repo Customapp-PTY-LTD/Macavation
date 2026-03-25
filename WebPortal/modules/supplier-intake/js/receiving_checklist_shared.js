@@ -39,7 +39,7 @@
         try {
             var contacts = await dataFunctions.getContacts();
             // Oil & Protein intake: same as Receiver checklist — exclude kernel NIS / kernel_customer
-            var oilTypes = ['supplier', 'both', 'oil_processor'];
+            var oilTypes = ['supplier', 'both', 'oil_processor', 'oil_ingredient_supplier'];
             var list = (contacts && Array.isArray(contacts))
                 ? contacts.filter(function (c) { return oilTypes.indexOf((c.contact_type || '').trim()) >= 0; })
                 : [];

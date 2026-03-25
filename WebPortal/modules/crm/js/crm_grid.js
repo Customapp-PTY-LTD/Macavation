@@ -1,6 +1,6 @@
 /**
  * CRM Grid Module
- * Handles NIS Suppliers, Oil Processors, and Kernel Customers management
+ * Handles NIS Suppliers, Oil Processors, Oil Ingredient Suppliers, Oil & Protein Customers, Kernel Customers
  * Pattern: IIFE, single global _crmGrid, arrow methods, const scope for same-module calls.
  */
 var _crmGrid = function () {
@@ -31,6 +31,8 @@ var _crmGrid = function () {
         contacts: [],
         nisSuppliers: [],
         oilProcessors: [],
+        oilIngredientSuppliers: [],
+        oilProteinCustomers: [],
         kernelCustomers: [],
         currentContactType: 'nis_supplier',
         searchTimeout: null,
@@ -155,6 +157,31 @@ var _crmGrid = function () {
                 scope.filterKernelCustomers();
             });
 
+            $('#oiSearchInput').on('input', function () {
+                clearTimeout(scope.searchTimeout);
+                scope.searchTimeout = setTimeout(() => { scope.filterOilIngredientSuppliers(); }, 300);
+            });
+            $('#oiFilterProvince, #oiFilterStatus').on('change', function () { scope.filterOilIngredientSuppliers(); });
+            $('#oiApplyFiltersBtn').on('click', function () { scope.filterOilIngredientSuppliers(); });
+            $('#oiClearFiltersBtn').on('click', function () {
+                $('#oiSearchInput').val('');
+                $('#oiFilterProvince').val('');
+                $('#oiFilterStatus').val('');
+                scope.filterOilIngredientSuppliers();
+            });
+
+            $('#opcSearchInput').on('input', function () {
+                clearTimeout(scope.searchTimeout);
+                scope.searchTimeout = setTimeout(() => { scope.filterOilProteinCustomers(); }, 300);
+            });
+            $('#opcFilterProvince').on('change', function () { scope.filterOilProteinCustomers(); });
+            $('#opcApplyFiltersBtn').on('click', function () { scope.filterOilProteinCustomers(); });
+            $('#opcClearFiltersBtn').on('click', function () {
+                $('#opcSearchInput').val('');
+                $('#opcFilterProvince').val('');
+                scope.filterOilProteinCustomers();
+            });
+
             // Add contact button
             $('#addContactBtn').on('click', function () {
                 if (typeof _modal_crm_contact !== 'undefined' && _modal_crm_contact.show) _modal_crm_contact.show(null, scope.currentContactType);
@@ -222,6 +249,8 @@ var _crmGrid = function () {
                 .filter(c => c.contact_type === 'nis_supplier')
                 .sort((a, b) => scope.nisOrderIndex(a) - scope.nisOrderIndex(b));
             scope.oilProcessors = scope.contacts.filter(c => c.contact_type === 'oil_processor');
+            scope.oilIngredientSuppliers = scope.contacts.filter(c => c.contact_type === 'oil_ingredient_supplier');
+            scope.oilProteinCustomers = scope.contacts.filter(c => c.contact_type === 'oil_protein_customer');
             scope.kernelCustomers = scope.contacts.filter(c => c.contact_type === 'kernel_customer');
         },
 
@@ -239,6 +268,12 @@ var _crmGrid = function () {
                     break;
                 case 'oil_processor':
                     scope.renderOilProcessors();
+                    break;
+                case 'oil_ingredient_supplier':
+                    scope.renderOilIngredientSuppliers();
+                    break;
+                case 'oil_protein_customer':
+                    scope.renderOilProteinCustomers();
                     break;
                 case 'kernel_customer':
                     scope.renderKernelCustomers();
@@ -304,6 +339,39 @@ var _crmGrid = function () {
             });
 
             scope.renderKernelCustomers(filtered);
+        },
+
+        filterOilIngredientSuppliers: () => {
+            const scope = _crmGrid;
+            const searchTerm = $('#oiSearchInput').val().toLowerCase();
+            const provinceFilter = $('#oiFilterProvince').val();
+            const statusFilter = $('#oiFilterStatus').val();
+            let filtered = scope.oilIngredientSuppliers.filter(contact => {
+                const matchesSearch = !searchTerm ||
+                    (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
+                    (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
+                    (contact.physical_area && contact.physical_area.toLowerCase().includes(searchTerm)) ||
+                    (contact.notes && contact.notes.toLowerCase().includes(searchTerm));
+                const matchesProvince = !provinceFilter || contact.physical_province === provinceFilter;
+                const matchesStatus = !statusFilter || contact.status === statusFilter;
+                return matchesSearch && matchesProvince && matchesStatus;
+            });
+            scope.renderOilIngredientSuppliers(filtered);
+        },
+
+        filterOilProteinCustomers: () => {
+            const scope = _crmGrid;
+            const searchTerm = $('#opcSearchInput').val().toLowerCase();
+            const provinceFilter = $('#opcFilterProvince').val();
+            let filtered = scope.oilProteinCustomers.filter(contact => {
+                const matchesSearch = !searchTerm ||
+                    (contact.company_name && contact.company_name.toLowerCase().includes(searchTerm)) ||
+                    (contact.primary_contact_name && contact.primary_contact_name.toLowerCase().includes(searchTerm)) ||
+                    (contact.notes && contact.notes.toLowerCase().includes(searchTerm));
+                const matchesProvince = !provinceFilter || contact.physical_province === provinceFilter;
+                return matchesSearch && matchesProvince;
+            });
+            scope.renderOilProteinCustomers(filtered);
         },
 
         renderNISSuppliers: (suppliers = null) => {
@@ -407,6 +475,97 @@ var _crmGrid = function () {
                 `;
                 tbody.append(row);
             });
+        },
+
+        renderOilIngredientSuppliers: (suppliers = null) => {
+            const scope = _crmGrid;
+            const data = suppliers || scope.oilIngredientSuppliers;
+            const tbody = $('#oilIngredientSuppliersTableBody');
+            tbody.empty();
+            if (data.length === 0) {
+                tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No oil ingredient suppliers found</td></tr>');
+                return;
+            }
+            data.forEach(contact => {
+                const notesText = contact.notes || '';
+                const notesDisplay = notesText.length > 50 ? notesText.substring(0, 50) + '...' : notesText;
+                const row = `
+                    <tr>
+                        <td><strong>${scope.escapeHtml(contact.company_name || 'N/A')}</strong></td>
+                        <td>${scope.escapeHtml(contact.physical_province || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.physical_area || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.primary_contact_name || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.secondary_contact_name || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.primary_contact_mobile || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.secondary_contact_mobile || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.primary_contact_email || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.secondary_contact_email || 'N/A')}</td>
+                        <td><span class="badge ${contact.status === 'active' ? 'bg-success' : 'bg-secondary'}">${scope.escapeHtml(contact.status || 'N/A')}</span></td>
+                        <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${notesDisplay || 'N/A'}
+                        </td>
+                        <td class="text-nowrap">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        },
+
+        renderOilProteinCustomers: (customers = null) => {
+            const scope = _crmGrid;
+            const data = customers || scope.oilProteinCustomers;
+            const tbody = $('#oilProteinCustomersTableBody');
+            tbody.empty();
+            if (data.length === 0) {
+                tbody.html('<tr><td colspan="9" class="text-center py-4 text-muted">No oil &amp; protein customers found</td></tr>');
+                return;
+            }
+            data.forEach(contact => {
+                const preferredStyles = contact.preferred_styles || 'N/A';
+                const notesText = contact.notes || '';
+                const notesDisplay = notesText.length > 50 ? notesText.substring(0, 50) + '...' : notesText;
+                const row = `
+                    <tr>
+                        <td><strong>${scope.escapeHtml(contact.company_name || 'N/A')}</strong></td>
+                        <td>${scope.escapeHtml(contact.physical_province || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.physical_area || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.primary_contact_name || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.primary_contact_mobile || 'N/A')}</td>
+                        <td>${scope.escapeHtml(contact.primary_contact_email || 'N/A')}</td>
+                        <td><small>${scope.escapeHtml(String(preferredStyles))}</small></td>
+                        <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${notesDisplay || 'N/A'}
+                        </td>
+                        <td class="text-nowrap">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        },
+
+        escapeHtml: (text) => {
+            if (text == null || text === '') return '';
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         },
 
         renderKernelCustomers: (customers = null) => {
@@ -566,13 +725,16 @@ var _crmGrid = function () {
         detectContactTypeForSheet: (sheetName) => {
             const scope = _crmGrid;
             const n = scope.normalizeSheetName(sheetName);
-            // Match common variations in your workbook tabs
-            // NIS Suppliers can be "Nut in Shell Suppliers - Current (Past 2 Years)" or "Nut in Shell Suppliers - Inactive"
-            if (n.includes('nut in shell') || n.includes('nis') || (n.includes('supplier') && !n.includes('oil'))) {
-                return 'nis_supplier';
+            if (n.includes('ingredient')) return 'oil_ingredient_supplier';
+            if ((n.includes('oil') && n.includes('protein')) || n.includes('oil & protein') || n.includes('oil and protein')) {
+                return 'oil_protein_customer';
             }
-            if (n.includes('oil') || n.includes('processor')) return 'oil_processor';
-            if (n.includes('kernel') || n.includes('customer')) return 'kernel_customer';
+            if (n.includes('protein') && n.includes('customer')) return 'oil_protein_customer';
+            if (n.includes('nut in shell') || (n.includes('nis') && !n.includes('ingredient'))) return 'nis_supplier';
+            if (n.includes('kernel') && n.includes('customer')) return 'kernel_customer';
+            if (n.includes('oil') && n.includes('processor')) return 'oil_processor';
+            if (n.includes('processor')) return 'oil_processor';
+            if (n.includes('supplier') && !n.includes('oil')) return 'nis_supplier';
             return null;
         },
 
@@ -597,6 +759,18 @@ var _crmGrid = function () {
                     // Try both "Note/s" and "Notes" column names
                     contact.notes = scope.getColumnValue(row, headers, 'Note/s') || scope.getColumnValue(row, headers, 'Notes');
                     contact.status = isInactive ? 'inactive' : 'active';
+                } else if (contactType === 'oil_ingredient_supplier') {
+                    contact.company_name = scope.getColumnValue(row, headers, 'Supplier Name');
+                    contact.physical_province = scope.getColumnValue(row, headers, 'Province');
+                    contact.physical_area = scope.getColumnValue(row, headers, 'Area');
+                    contact.primary_contact_name = scope.getColumnValue(row, headers, 'Contact #1');
+                    contact.secondary_contact_name = scope.getColumnValue(row, headers, 'Contact #2');
+                    contact.primary_contact_mobile = scope.getColumnValue(row, headers, 'Cell #1');
+                    contact.secondary_contact_mobile = scope.getColumnValue(row, headers, 'Cell #2');
+                    contact.primary_contact_email = scope.getColumnValue(row, headers, 'Email #1');
+                    contact.secondary_contact_email = scope.getColumnValue(row, headers, 'Email #2');
+                    contact.notes = scope.getColumnValue(row, headers, 'Note/s') || scope.getColumnValue(row, headers, 'Notes');
+                    contact.status = isInactive ? 'inactive' : 'active';
                 } else if (contactType === 'oil_processor') {
                     // Oil Processors sheet has contact info in one table and rates in another
                     // We'll map from the "Oil Kernel Suppliers" table (contact info)
@@ -618,6 +792,20 @@ var _crmGrid = function () {
                     contact.rate_kernel_dust = scope.parseRate(scope.getColumnValue(row, headers, 'Kernel Dust Rate/kg'));
                     contact.rate_cracker_dust = scope.parseRate(scope.getColumnValue(row, headers, 'Cracker Dust Rate/kg'));
                     contact.rate_crush = scope.parseRate(scope.getColumnValue(row, headers, 'Crush Rate/kg'));
+                    contact.status = 'active';
+                } else if (contactType === 'oil_protein_customer') {
+                    contact.company_name = scope.getColumnValue(row, headers, 'Customer Name');
+                    contact.physical_province = scope.getColumnValue(row, headers, 'Province');
+                    contact.physical_area = scope.getColumnValue(row, headers, 'Area');
+                    contact.primary_contact_name = scope.getColumnValue(row, headers, 'Contact #1');
+                    contact.primary_contact_mobile = scope.getColumnValue(row, headers, 'Cell #1') || null;
+                    contact.primary_contact_email = scope.getColumnValue(row, headers, 'Email #1') || null;
+                    const notes = scope.getColumnValue(row, headers, 'Note/s') || scope.getColumnValue(row, headers, 'Notes');
+                    if (notes) {
+                        const stylesMatch = notes.match(/^(Style\s+[^-\n]+|.*?)(?:\s*-\s*|$)/i);
+                        contact.preferred_styles = stylesMatch ? stylesMatch[1].trim() : notes.trim();
+                        contact.notes = notes;
+                    }
                     contact.status = 'active';
                 } else if (contactType === 'kernel_customer') {
                     // Kernel Customers sheet: Customer Name, Province, Area, Contact #1, Note/s (preferred styles)
@@ -780,7 +968,7 @@ var _crmGrid = function () {
                     if (!importBatches.length) {
                         const sheetList = scope.importWorkbook.SheetNames.join(', ');
                         console.error('[CRM Import] ERROR: No matching sheets found');
-                        Swal.fire('Error', `No matching sheets found in: ${sheetList}<br><br>Expected names like "NIS Suppliers", "Oil Processors", "Kernel Customers".`, 'error');
+                        Swal.fire('Error', `No matching sheets found in: ${sheetList}<br><br>Expected names like "NIS Suppliers", "Oil Processors", "Oil Ingredient Suppliers", "Oil & Protein Customers", "Kernel Customers".`, 'error');
                         return;
                     }
                 } else {

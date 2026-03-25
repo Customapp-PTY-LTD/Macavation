@@ -1466,11 +1466,14 @@ var _dataFunctions = function () {
          * If backend only has 2-param function (migration not run), retries without p_jobcard_approved so save still works.
          */
         upsertKernelJobCard: async function (kernelId, jobCardData, token = null, options = {}) {
+            // Only send p_jobcard_approved when explicitly approving. Sending false would clear the flag on autosave.
             const paramsWithApproved = {
                 p_kernel_id: kernelId,
-                p_job_card_data: jobCardData,
-                p_jobcard_approved: options.approved === true
+                p_job_card_data: jobCardData
             };
+            if (options.approved === true) {
+                paramsWithApproved.p_jobcard_approved = true;
+            }
             const paramsTwoOnly = { p_kernel_id: kernelId, p_job_card_data: jobCardData };
             const clearCache = () => {
                 this.clearCachePattern('kernel_batch_detail_' + kernelId);
