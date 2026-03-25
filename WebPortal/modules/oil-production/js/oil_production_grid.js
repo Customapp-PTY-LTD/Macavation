@@ -1000,12 +1000,43 @@ var _oilProductionGrid = function () {
                     return;
                 }
             }
+            var batchNumber = null;
+            if (typeof Swal !== 'undefined') {
+                var bnSwal = await Swal.fire({
+                    title: 'Oil bin batch number',
+                    html: 'Enter the <strong>batch number</strong> for this oil bin run (required; not auto-generated).',
+                    input: 'text',
+                    inputPlaceholder: 'e.g. OIL-2026-03-001',
+                    inputAttributes: { autocapitalize: 'off', autocorrect: 'off' },
+                    showCancelButton: true,
+                    confirmButtonText: 'Start',
+                    inputValidator: function (value) {
+                        if (!value || !String(value).trim()) return 'Enter a batch number';
+                    }
+                });
+                if (!bnSwal.isConfirmed) return;
+                batchNumber = String(bnSwal.value || '').trim();
+            } else {
+                var rawBn = window.prompt('Oil bin batch number (required)');
+                if (rawBn === null) return;
+                batchNumber = String(rawBn).trim();
+                if (!batchNumber) {
+                    window.alert('Batch number is required.');
+                    return;
+                }
+            }
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.startOilBinBatch) {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
                     return;
                 }
-                var result = await dataFunctions.startOilBinBatch({ oilStream: oilStream }, null);
+                var result = await dataFunctions.startOilBinBatch({ oilStream: oilStream, batchNumber: batchNumber }, null);
+                var resolved = result && (result.data !== undefined ? result.data : result);
+                if (resolved && typeof resolved === 'string') {
+                    try { resolved = JSON.parse(resolved); } catch (e) { resolved = result; }
+                }
+                if (resolved && resolved.start_oil_bin_batch) resolved = resolved.start_oil_bin_batch;
+                result = resolved || result;
                 if (result && result.success && result.batch_number) {
                     var streamLabel = formatOilStreamLabel(result.oil_stream || oilStream);
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Oil bin started', text: 'Batch ' + result.batch_number + ' created (' + streamLabel + ').', timer: 2800, showConfirmButton: false });
@@ -1021,12 +1052,43 @@ var _oilProductionGrid = function () {
 
         startProteinBin: async function () {
             var scope = _oilProductionGrid;
+            var batchNumber = null;
+            if (typeof Swal !== 'undefined') {
+                var bnSwal = await Swal.fire({
+                    title: 'Protein batch number',
+                    html: 'Enter the <strong>batch number</strong> for this protein production run (required; not auto-generated).',
+                    input: 'text',
+                    inputPlaceholder: 'e.g. PROT-2026-01-001',
+                    inputAttributes: { autocapitalize: 'off', autocorrect: 'off' },
+                    showCancelButton: true,
+                    confirmButtonText: 'Start',
+                    inputValidator: function (value) {
+                        if (!value || !String(value).trim()) return 'Enter a batch number';
+                    }
+                });
+                if (!bnSwal.isConfirmed) return;
+                batchNumber = String(bnSwal.value || '').trim();
+            } else {
+                var rawBn = window.prompt('Protein batch number (required)');
+                if (rawBn === null) return;
+                batchNumber = String(rawBn).trim();
+                if (!batchNumber) {
+                    window.alert('Batch number is required.');
+                    return;
+                }
+            }
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.startProteinBinBatch) {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
                     return;
                 }
-                var result = await dataFunctions.startProteinBinBatch(null, null);
+                var result = await dataFunctions.startProteinBinBatch({ batchNumber: batchNumber }, null);
+                var resolved = result && (result.data !== undefined ? result.data : result);
+                if (resolved && typeof resolved === 'string') {
+                    try { resolved = JSON.parse(resolved); } catch (e) { resolved = result; }
+                }
+                if (resolved && resolved.start_protein_bin_batch) resolved = resolved.start_protein_bin_batch;
+                result = resolved || result;
                 if (result && result.success && result.batch_number) {
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({ icon: 'success', title: 'Protein batch started', text: 'Batch ' + result.batch_number + ' created.', timer: 2800, showConfirmButton: false });

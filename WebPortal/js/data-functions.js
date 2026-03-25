@@ -1829,6 +1829,10 @@ var _dataFunctions = function () {
          * @returns {Promise<object>} result from upsert_oil_batch { success, id, batch_id }
          */
         createSupplierIntakeBatch: async function (data, token = null) {
+            var bn = (data.batch_number != null && String(data.batch_number).trim()) ? String(data.batch_number).trim() : '';
+            if (!bn) {
+                return { success: false, error: 'Batch number is required for each new oil/protein ingredient batch.' };
+            }
             var intakeData = {
                 date_received: data.date_received || data.received_date || null,
                 delivery_note_reference: data.delivery_note_ref || null,
@@ -1862,7 +1866,7 @@ var _dataFunctions = function () {
             };
             var payload = {
                 p_oil_id: null,
-                p_batch_id: data.batch_number || null,
+                p_batch_id: bn,
                 p_production_date: data.date_received || data.received_date || null,
                 p_status: data.status || 'awaiting_test',
                 p_total_oil_litre: null,
@@ -2597,13 +2601,13 @@ var _dataFunctions = function () {
 
         /**
          * Start a new oil bin batch.
-         * @param {string|Date|null|object} first - Start date (ISO or Date), or options { startDate, oilStream } / { p_start_date, p_stream } (p_oil_stream accepted as alias)
-         * @param {string|null} second - Auth token when first is date/null; or token when first is options object
+         * @param {string|Date|null|object} first - Options: { batchNumber, startDate, oilStream } / { p_batch_number, p_start_date, p_stream } (aliases accepted). Legacy: date string as first arg.
+         * @param {string|null} second - Auth token when first is options object or date
          */
         startOilBinBatch: async function (first, second) {
-            // PostgREST sorts param names A–Z; p_oil_stream before p_start_date breaks matching. Use p_stream (see docs/MCP_RUN_OIL_BIN_START_POSTGREST.md).
             var pStart = null;
             var pStream = null;
+            var pBatchNumber = null;
             var token = null;
             if (first !== undefined && first !== null && typeof first === 'object' && !Array.isArray(first) && !(first instanceof Date)) {
                 token = second;
@@ -2612,13 +2616,16 @@ var _dataFunctions = function () {
                 if (first.p_stream != null) pStream = first.p_stream;
                 if (first.p_oil_stream != null) pStream = first.p_oil_stream;
                 if (first.oilStream != null) pStream = first.oilStream;
+                if (first.p_batch_number != null) pBatchNumber = first.p_batch_number;
+                if (first.batchNumber != null) pBatchNumber = first.batchNumber;
             } else {
                 token = second;
                 if (first !== undefined && first !== null && first !== '') {
                     pStart = first instanceof Date ? first.toISOString().split('T')[0] : first;
                 }
             }
-            var params = { p_start_date: pStart, p_stream: pStream };
+            var bn = pBatchNumber != null && String(pBatchNumber).trim() !== '' ? String(pBatchNumber).trim() : null;
+            var params = { p_batch_number: bn, p_start_date: pStart, p_stream: pStream };
             const result = await this.callFunction('start_oil_bin_batch', params, token, { useCache: false });
             this.clearCachePattern('oil_bin_batches');
             this.clearCachePattern('oil_bin_batches_v2');
@@ -2750,10 +2757,30 @@ var _dataFunctions = function () {
             if (raw.rows && Array.isArray(raw.rows)) return { get_protein_bin_batches: raw.rows };
             return raw;
         },
-        startProteinBinBatch: async function (startDate, token = null) {
-            var params = {};
-            if (startDate !== undefined && startDate !== null && startDate !== '') {
-                params.p_start_date = startDate instanceof Date ? startDate.toISOString().split('T')[0] : startDate;
+        /**
+         * Start a protein bin batch. Pass { batchNumber, startDate } or { p_batch_number, p_start_date }.
+         * Legacy: (startDate, token) without batch number is no longer supported — batch number is required.
+         */
+        startProteinBinBatch: async function (first, second) {
+            var pStart = null;
+            var pBatchNumber = null;
+            var token = null;
+            if (first !== undefined && first !== null && typeof first === 'object' && !Array.isArray(first) && !(first instanceof Date)) {
+                token = second;
+                if (first.p_batch_number != null) pBatchNumber = first.p_batch_number;
+                if (first.batchNumber != null) pBatchNumber = first.batchNumber;
+                if (first.p_start_date != null) pStart = first.p_start_date;
+                if (first.startDate != null) pStart = first.startDate;
+            } else {
+                token = second;
+                if (first !== undefined && first !== null && first !== '') {
+                    pStart = first instanceof Date ? first.toISOString().split('T')[0] : first;
+                }
+            }
+            var bn = pBatchNumber != null && String(pBatchNumber).trim() !== '' ? String(pBatchNumber).trim() : null;
+            var params = { p_batch_number: bn };
+            if (pStart != null && pStart !== '') {
+                params.p_start_date = pStart instanceof Date ? pStart.toISOString().split('T')[0] : pStart;
             }
             const result = await this.callFunction('start_protein_bin_batch', params, token, { useCache: false });
             this.clearCachePattern('protein_bin_batches');

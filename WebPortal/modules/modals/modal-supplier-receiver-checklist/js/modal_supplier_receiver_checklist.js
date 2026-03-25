@@ -277,7 +277,7 @@ var _modal_supplier_receiver_checklist = (function () {
                         '<td><select class="form-select form-select-sm" name="productType" required>' +
                         optionForProductType(editingBatch.product_type || '') +
                         '</select></td>' +
-                        '<td><input type="text" class="form-control form-control-sm" name="batch" placeholder="e.g. OIL-2026-03-001" value="' + escapeHtml((editingBatch.batch_number || '').toString()) + '"></td>' +
+                        '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001" value="' + escapeHtml((editingBatch.batch_number || '').toString()) + '"></td>' +
                         '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required value="' + (editingBatch.quantity_kg != null ? escapeHtml(String(editingBatch.quantity_kg)) : '') + '"></td>' +
                         '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy" value="' + (editingBatch.manufactured_date ? escapeHtml(fromISO(String(editingBatch.manufactured_date).split('T')[0])) : '') + '"></td>' +
                         '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="bestBeforeDate" placeholder="dd/mm/yyyy" value="' + (editingBatch.best_before_date ? escapeHtml(fromISO(String(editingBatch.best_before_date).split('T')[0])) : '') + '"></td>' +
@@ -396,7 +396,7 @@ var _modal_supplier_receiver_checklist = (function () {
                 '<option value="crush">Crush</option>' +
                 '<option value="cake">Cake</option>' +
                 '</select></td>' +
-                '<td><input type="text" class="form-control form-control-sm" name="batch" placeholder="e.g. OIL-2026-03-001"></td>' +
+                '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001"></td>' +
                 '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required></td>' +
                 '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy"></td>' +
                 '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="bestBeforeDate" placeholder="dd/mm/yyyy"></td>' +
@@ -439,6 +439,11 @@ var _modal_supplier_receiver_checklist = (function () {
             var invalid = rows.find(function (r) { return !r.product_type || !r.quantity_kg || r.quantity_kg <= 0; });
             if (invalid) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Each bag needs a product type and a quantity (kg).', 'error');
+                return;
+            }
+            var missingBatch = rows.find(function (r) { return !r.batch_number || !String(r.batch_number).trim(); });
+            if (missingBatch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Enter a batch number for each bag row (not auto-generated).', 'error');
                 return;
             }
 
