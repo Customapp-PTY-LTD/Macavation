@@ -1747,6 +1747,8 @@ var _dataFunctions = function () {
                 }
                 var pt = intake.product_type || (o.name_of_product && String(o.name_of_product).toLowerCase().replace(/\s+/g, '_')) || 'oil';
                 var qtyKg = intake.quantity_kg != null ? Number(intake.quantity_kg) : (intake.items && intake.items[0] && intake.items[0].quantity_kg != null ? Number(intake.items[0].quantity_kg) : NaN);
+                var wCompare = intake.weight_at_intake_for_comparison_kg != null ? Number(intake.weight_at_intake_for_comparison_kg) : NaN;
+                var receivingKg = !isNaN(wCompare) ? wCompare : (!isNaN(qtyKg) ? qtyKg : NaN);
                 var wbp = intake.weight_before_production_kg != null ? Number(intake.weight_before_production_kg) : NaN;
                 return {
                     id: o.id,
@@ -1755,6 +1757,7 @@ var _dataFunctions = function () {
                     status: (o.status || 'awaiting_test').toString().trim(),
                     date_received: intake.date_received || o.production_date,
                     quantity_kg: !isNaN(qtyKg) ? qtyKg : null,
+                    receiving_kg: !isNaN(receivingKg) ? receivingKg : null,
                     weight_before_production_kg: !isNaN(wbp) ? wbp : null,
                     weight_before_production_recorded_at: intake.weight_before_production_recorded_at || null,
                     production_completed_at: o.production_completed_at || null,
@@ -2174,10 +2177,16 @@ var _dataFunctions = function () {
             var firstKg = opts.first_weight_kg != null && !isNaN(Number(opts.first_weight_kg))
                 ? Number(opts.first_weight_kg)
                 : (intake.quantity_kg != null ? Number(intake.quantity_kg) : NaN);
+            var receivingSnapshot = !isNaN(firstKg) ? firstKg : null;
             var merged = Object.assign({}, intake, {
                 weight_before_production_kg: w2,
                 weight_before_production_recorded_at: new Date().toISOString(),
-                weight_at_intake_for_comparison_kg: !isNaN(firstKg) ? firstKg : null
+                weight_at_intake_for_comparison_kg: receivingSnapshot != null
+                    ? receivingSnapshot
+                    : (intake.weight_at_intake_for_comparison_kg != null && !isNaN(Number(intake.weight_at_intake_for_comparison_kg))
+                        ? Number(intake.weight_at_intake_for_comparison_kg)
+                        : null),
+                quantity_kg: w2
             });
             var uid = this.getCurrentUserId();
             var upsertParams = {
@@ -2198,9 +2207,9 @@ var _dataFunctions = function () {
             this.clearCachePattern('supplier_intake_weekly_oil_rows');
             this.clearCachePattern('oil_batches');
             this.clearCachePattern('oil_production');
-            if (!isNaN(firstKg) && firstKg - w2 > 50) {
+            if (receivingSnapshot != null && receivingSnapshot - w2 > 50) {
                 var bn = opts.batch_number || (row && row.batch_id) || '';
-                var msg = 'Weight before production (' + w2 + ' kg) is more than 50 kg below intake weight (' + firstKg + ' kg) for batch ' + bn + '.';
+                var msg = 'Weight before production (' + w2 + ' kg) is more than 50 kg below receiving weight (' + receivingSnapshot + ' kg) for batch ' + bn + '.';
                 try {
                     await this.createDashboardAlert({
                         title: 'Oil intake: large weight loss before production',

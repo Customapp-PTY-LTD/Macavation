@@ -192,17 +192,56 @@ var _oilProductionGrid = function () {
         return isNaN(n) ? null : n;
     }
 
+    /** Intake JSON may be a string from some API shapes. */
+    function parseIntakeJson(intake) {
+        if (!intake || typeof intake !== 'object') return {};
+        if (typeof intake === 'string') {
+            try { return JSON.parse(intake); } catch (e) { return {}; }
+        }
+        return intake;
+    }
+
+    /** Receiving weight (first weigh at intake). After release to production, stored in weight_at_intake_for_comparison_kg. */
+    function receivingKgFromIntake(intake) {
+        intake = parseIntakeJson(intake);
+        var w = intake.weight_at_intake_for_comparison_kg;
+        if (w != null && w !== '' && !isNaN(Number(w))) return Number(w);
+        var q = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
+        return q != null && !isNaN(Number(q)) ? Number(q) : null;
+    }
+
+    /** Operational weight on the batch (second weigh = before production) once released; same as receiving until then. */
+    function operationalKgFromIntake(intake) {
+        intake = parseIntakeJson(intake);
+        var q = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
+        return q != null && !isNaN(Number(q)) ? Number(q) : null;
+    }
+
+    /** Primary cell: operational kg; sub-line when receiving (first weigh) differs. */
+    function formatKgPairHtml(intake) {
+        var op = operationalKgFromIntake(intake);
+        var recv = receivingKgFromIntake(intake);
+        if (op == null && recv == null) return '—';
+        var line = op != null ? (escapeHtml(String(op)) + ' kg') : '—';
+        if (recv != null && op != null && Math.abs(Number(recv) - Number(op)) > 0.0001) {
+            line += '<span class="text-muted small d-block">Receiving: ' + escapeHtml(String(recv)) + ' kg</span>';
+        }
+        return line;
+    }
+
     /** Same shape as DB get_oil_production_raw_ingredients_snapshot() for raw_ingredient_audit */
     function buildRawIngredientAuditEntry(o) {
         if (!o || typeof o !== 'object') return null;
         var intake = o.intake_data || {};
-        var qty = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
+        var qty = operationalKgFromIntake(intake);
+        var recv = receivingKgFromIntake(intake);
         var pt = intake.product_type || (o.name_of_product && String(o.name_of_product));
         var sup = supplierLabelFromOil(o);
         return {
             oil_id: o.id,
             batch_id: o.batch_id,
-            quantity_kg: qty != null && !isNaN(Number(qty)) ? Number(qty) : null,
+            quantity_kg: qty != null ? qty : null,
+            weight_at_intake_for_comparison_kg: recv != null ? recv : null,
             product_type: pt ? String(pt).trim() : '',
             supplier: sup || null,
             ffa: officialBagFfaFromOil(o)
@@ -250,13 +289,17 @@ var _oilProductionGrid = function () {
         var bid = row.batch_id != null ? String(row.batch_id) : '—';
         var sup = row.supplier ? String(row.supplier) : '';
         var pt = row.product_type ? String(row.product_type).replace(/_/g, ' ') : '—';
-        var qty = row.quantity_kg;
+        var synthetic = {
+            quantity_kg: row.quantity_kg,
+            weight_at_intake_for_comparison_kg: row.weight_at_intake_for_comparison_kg
+        };
         var line = '<strong>' + escapeHtml(bid) + '</strong>';
         if (sup) line += ' <span class="text-muted small">(' + escapeHtml(sup) + ')</span>';
         line += ' — ' + escapeHtml(pt);
         var ffa = row.ffa != null ? row.ffa : null;
         if (ffa != null && ffa !== '') line += ' <span class="text-muted">· FFA ' + escapeHtml(String(ffa)) + '%</span>';
-        if (qty != null && qty !== '') line += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
+        var wHtml = formatKgPairHtml(synthetic);
+        if (wHtml !== '—') line += ' <span class="ms-1">' + wHtml + '</span>';
         return '<div class="py-1 border-bottom op-link-ing-audit-only mb-0 small">' + line + '</div>';
     }
 
@@ -698,19 +741,16 @@ var _oilProductionGrid = function () {
                     var pt = i.product_type || (o.name_of_product && String(o.name_of_product));
                     return pt ? String(pt).replace(/_/g, ' ') : '—';
                 };
-                var qty = function (o) {
-                    var i = intake(o);
-                    return i.quantity_kg != null ? i.quantity_kg : (i.items && i.items[0] && i.items[0].quantity_kg);
-                };
                 var dateReceived = function (o) {
                     var i = intake(o);
                     var d = i.date_received || o.production_date;
                     return d ? fromISO(String(d).split('T')[0]) : '—';
                 };
-                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Quantity (kg)</th><th>Date received</th></tr></thead><tbody>';
+                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Date received</th></tr></thead><tbody>';
                 raw.forEach(function (o) {
                     var bf = officialBagFfaFromOil(o);
-                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (bf != null ? escapeHtml(String(bf)) : '—') + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td></tr>';
+                    var i = intake(o);
+                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (bf != null ? escapeHtml(String(bf)) : '—') + '</td><td>' + formatKgPairHtml(i) + '</td><td>' + escapeHtml(dateReceived(o)) + '</td></tr>';
                 });
                 tbl += '</tbody></table></div>';
                 return tbl;
@@ -724,10 +764,6 @@ var _oilProductionGrid = function () {
                     var pt = i.product_type || (o.name_of_product && String(o.name_of_product));
                     return pt ? String(pt).replace(/_/g, ' ') : '—';
                 };
-                var qty = function (o) {
-                    var i = intake(o);
-                    return i.quantity_kg != null ? i.quantity_kg : (i.items && i.items[0] && i.items[0].quantity_kg);
-                };
                 var emptiedAt = function (o) {
                     var i = intake(o);
                     var t = i.raw_emptied_at;
@@ -738,10 +774,11 @@ var _oilProductionGrid = function () {
                         return String(t);
                     }
                 };
-                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Qty (kg)</th><th>Emptied at</th></tr></thead><tbody>';
+                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Emptied at</th></tr></thead><tbody>';
                 rawFin.forEach(function (o) {
                     var bf = officialBagFfaFromOil(o);
-                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (bf != null ? escapeHtml(String(bf)) : '—') + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(emptiedAt(o)) + '</td></tr>';
+                    var i = intake(o);
+                    tbl += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + (bf != null ? escapeHtml(String(bf)) : '—') + '</td><td>' + formatKgPairHtml(i) + '</td><td>' + escapeHtml(emptiedAt(o)) + '</td></tr>';
                 });
                 tbl += '</tbody></table></div>';
                 return tbl;
@@ -790,21 +827,18 @@ var _oilProductionGrid = function () {
                     if (!pt) return '—';
                     return String(pt).replace(/_/g, ' ');
                 };
-                var qty = function (o) {
-                    var i = intake(o);
-                    return i.quantity_kg != null ? i.quantity_kg : (i.items && i.items[0] && i.items[0].quantity_kg);
-                };
                 var dateReceived = function (o) {
                     var i = intake(o);
                     var d = i.date_received || o.production_date;
                     return d ? fromISO(String(d).split('T')[0]) : '—';
                 };
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Quantity (kg)</th><th>Date received</th><th class="text-end">Action</th></tr></thead><tbody>';
+                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Date received</th><th class="text-end">Action</th></tr></thead><tbody>';
                 rows.forEach(function (o) {
                     var bagFfa = officialBagFfaFromOil(o);
                     var ffaCell = bagFfa != null ? escapeHtml(String(bagFfa)) : '—';
-                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + ffaCell + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(dateReceived(o)) + '</td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary op-raw-empty-btn" data-oil-id="' + escapeHtml(o.id) + '" title="Bag finished in press">Empty</button></td></tr>';
+                    var i = intake(o);
+                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + ffaCell + '</td><td>' + formatKgPairHtml(i) + '</td><td>' + escapeHtml(dateReceived(o)) + '</td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary op-raw-empty-btn" data-oil-id="' + escapeHtml(o.id) + '" title="Bag finished in press">Empty</button></td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
@@ -838,10 +872,6 @@ var _oilProductionGrid = function () {
                     if (!pt) return '—';
                     return String(pt).replace(/_/g, ' ');
                 };
-                var qty = function (o) {
-                    var i = intake(o);
-                    return i.quantity_kg != null ? i.quantity_kg : (i.items && i.items[0] && i.items[0].quantity_kg);
-                };
                 var emptiedAt = function (o) {
                     var i = intake(o);
                     var t = i.raw_emptied_at;
@@ -853,11 +883,12 @@ var _oilProductionGrid = function () {
                     }
                 };
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table op-finished-raw-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Quantity (kg)</th><th>Emptied at</th></tr></thead><tbody>';
+                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table op-finished-raw-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Emptied at</th></tr></thead><tbody>';
                 rows.forEach(function (o) {
                     var bagFfa = officialBagFfaFromOil(o);
                     var ffaCell = bagFfa != null ? escapeHtml(String(bagFfa)) : '—';
-                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + ffaCell + '</td><td>' + (qty(o) != null ? qty(o) : '—') + '</td><td>' + escapeHtml(emptiedAt(o)) + '</td></tr>';
+                    var i = intake(o);
+                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + ffaCell + '</td><td>' + formatKgPairHtml(i) + '</td><td>' + escapeHtml(emptiedAt(o)) + '</td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
@@ -1154,9 +1185,9 @@ var _oilProductionGrid = function () {
                     var pt = intake.product_type || (o.name_of_product && String(o.name_of_product));
                     if (pt) pt = String(pt).replace(/_/g, ' ');
                     else pt = '—';
-                    var qty = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
                     var bagFfa = officialBagFfaFromOil(o);
                     var safeId = 'op-ing-' + oid.replace(/[^a-zA-Z0-9\-]/g, '_');
+                    var wPart = formatKgPairHtml(intake);
                     productionHtml += '<div class="form-check py-1 border-bottom op-link-ing-item mb-0">';
                     productionHtml += '<input class="form-check-input op-link-ing-cb" type="checkbox" value="' + escapeHtml(oid) + '" id="' + safeId + '"' + checked + '>';
                     productionHtml += '<label class="form-check-label w-100" for="' + safeId + '">';
@@ -1164,7 +1195,7 @@ var _oilProductionGrid = function () {
                     if (sup) productionHtml += ' <span class="text-muted small">(' + escapeHtml(String(sup)) + ')</span>';
                     productionHtml += ' — ' + escapeHtml(pt);
                     if (bagFfa != null) productionHtml += ' <span class="text-muted">· FFA ' + escapeHtml(String(bagFfa)) + '%</span>';
-                    if (qty != null && qty !== '') productionHtml += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
+                    if (wPart !== '—') productionHtml += ' <span class="text-muted ms-1">' + wPart + '</span>';
                     productionHtml += '</label></div>';
                 });
                 var auditOnlyHtml = '';
@@ -1295,9 +1326,9 @@ var _oilProductionGrid = function () {
                     var pt = intake.product_type || (o.name_of_product && String(o.name_of_product));
                     if (pt) pt = String(pt).replace(/_/g, ' ');
                     else pt = '—';
-                    var qty = intake.quantity_kg != null ? intake.quantity_kg : (intake.items && intake.items[0] && intake.items[0].quantity_kg);
                     var bagFfa = officialBagFfaFromOil(o);
                     var safeId = 'op-ping-' + oid.replace(/[^a-zA-Z0-9\-]/g, '_');
+                    var wPart = formatKgPairHtml(intake);
                     productionHtml += '<div class="form-check py-1 border-bottom op-protein-link-ing-item mb-0">';
                     productionHtml += '<input class="form-check-input op-protein-link-ing-cb" type="checkbox" value="' + escapeHtml(oid) + '" id="' + safeId + '"' + checked + '>';
                     productionHtml += '<label class="form-check-label w-100" for="' + safeId + '">';
@@ -1305,7 +1336,7 @@ var _oilProductionGrid = function () {
                     if (sup) productionHtml += ' <span class="text-muted small">(' + escapeHtml(String(sup)) + ')</span>';
                     productionHtml += ' — ' + escapeHtml(pt);
                     if (bagFfa != null) productionHtml += ' <span class="text-muted">· FFA ' + escapeHtml(String(bagFfa)) + '%</span>';
-                    if (qty != null && qty !== '') productionHtml += ' <span class="text-muted">(' + escapeHtml(String(qty)) + ' kg)</span>';
+                    if (wPart !== '—') productionHtml += ' <span class="text-muted ms-1">' + wPart + '</span>';
                     productionHtml += '</label></div>';
                 });
                 var auditOnlyHtml = '';

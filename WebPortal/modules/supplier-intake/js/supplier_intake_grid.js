@@ -529,7 +529,7 @@ var _supplierIntakeGrid = function () {
                     var wkIn = getIsoWeekKey(b.date_received);
                     if (wkIn) {
                         ensureCell(wkIn, ing);
-                        var qIn = parseFloat(b.quantity_kg);
+                        var qIn = parseFloat(b.receiving_kg != null ? b.receiving_kg : b.quantity_kg);
                         if (!isNaN(qIn)) byWeek[wkIn][ing].stockIn += qIn;
                     }
                 }
@@ -671,7 +671,7 @@ var _supplierIntakeGrid = function () {
                 line('Date received', formatDate(b.date_received)) +
                 line('Delivery note / PO', b.delivery_note_ref) +
                 line('Supplier', b.supplier_details) +
-                line('Quantity (kg)', b.quantity_kg != null ? b.quantity_kg : '') +
+                line('Receiving weight (kg)', b.quantity_kg != null ? b.quantity_kg : '') +
                 line('Carton / bulk bags', b.carton_bulk_bags) +
                 line('Manufactured date', formatDate(b.manufactured_date)) +
                 line('Best before date', formatDate(b.best_before_date)) +
