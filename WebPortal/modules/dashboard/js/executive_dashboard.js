@@ -30,6 +30,7 @@ var _executiveDashboard = function () {
         productionTrendsData: null,
         productionTrendsChart: null,
         productionTrendsPageOffset: 0,
+        productionTrendsRangeKey: '1Y',
 
 
         init: async () => {
@@ -210,9 +211,19 @@ var _executiveDashboard = function () {
             });
             $('#productionTrendsView').off('change').on('change', function () {
                 scope.productionTrendsPageOffset = 0;
+                var v = (this && this.value) ? String(this.value) : 'monthly';
+                if (v === 'yearly' && (scope.productionTrendsRangeKey === '1M' || scope.productionTrendsRangeKey === '3M' || scope.productionTrendsRangeKey === '6M')) {
+                    scope.productionTrendsRangeKey = '1Y';
+                }
                 scope.updateProductionTrendsChart();
             });
             $('#productionTrendsChartType').off('change').on('change', function () {
+                scope.updateProductionTrendsChart();
+            });
+            $('.production-trends-range-btn').off('click').on('click', function () {
+                var r = $(this).data('range');
+                scope.productionTrendsRangeKey = r ? String(r).toUpperCase() : '1Y';
+                scope.productionTrendsPageOffset = 0;
                 scope.updateProductionTrendsChart();
             });
             $('#productionTrendsPrev').off('click').on('click', function () {
@@ -256,6 +267,24 @@ var _executiveDashboard = function () {
             const chartType = (typeSel && typeSel.value) ? typeSel.value : 'bar';
             var pageOffset = Number(scope.productionTrendsPageOffset) || 0;
             if (pageOffset < 0) pageOffset = 0;
+            var rangeKey = (scope.productionTrendsRangeKey || '1Y').toUpperCase();
+
+            function spanForRange(view, key) {
+                if (key === 'ALL') return null;
+                if (view === 'yearly') {
+                    if (key === '1Y') return 12;
+                    if (key === '3Y') return 36;
+                    if (key === '5Y') return 60;
+                    return 12;
+                }
+                if (key === '1M') return 31;
+                if (key === '3M') return 93;
+                if (key === '6M') return 186;
+                if (key === '1Y') return 366;
+                if (key === '3Y') return 1096;
+                if (key === '5Y') return 1826;
+                return 366;
+            }
 
             var prepared = [];
             var totalWindows = 1;
@@ -273,26 +302,40 @@ var _executiveDashboard = function () {
                     var m = monthKey.slice(5, 7);
                     return { label: m + '/' + y, value: byMonth[monthKey] };
                 });
-                var yearWindow = 12;
-                totalWindows = Math.max(1, Math.ceil(monthly.length / yearWindow));
-                if (pageOffset > totalWindows - 1) pageOffset = totalWindows - 1;
-                scope.productionTrendsPageOffset = pageOffset;
-                var endY = monthly.length - (pageOffset * yearWindow);
-                var startY = Math.max(0, endY - yearWindow);
-                prepared = monthly.slice(startY, endY);
+                var yearWindow = spanForRange('yearly', rangeKey);
+                if (yearWindow == null) {
+                    prepared = monthly.slice();
+                    totalWindows = 1;
+                    scope.productionTrendsPageOffset = 0;
+                } else {
+                    totalWindows = Math.max(1, Math.ceil(monthly.length / yearWindow));
+                    if (pageOffset > totalWindows - 1) pageOffset = totalWindows - 1;
+                    scope.productionTrendsPageOffset = pageOffset;
+                    var endY = monthly.length - (pageOffset * yearWindow);
+                    var startY = Math.max(0, endY - yearWindow);
+                    prepared = monthly.slice(startY, endY);
+                }
             } else {
                 var daily = data.slice().sort(function (a, b) {
                     var da = a && a.trend_date ? String(a.trend_date) : '';
                     var db = b && b.trend_date ? String(b.trend_date) : '';
                     return da.localeCompare(db);
                 });
-                var dayWindow = 31;
-                totalWindows = Math.max(1, Math.ceil(daily.length / dayWindow));
-                if (pageOffset > totalWindows - 1) pageOffset = totalWindows - 1;
-                scope.productionTrendsPageOffset = pageOffset;
-                var endD = daily.length - (pageOffset * dayWindow);
-                var startD = Math.max(0, endD - dayWindow);
-                daily.slice(startD, endD).forEach(function (r) {
+                var dayWindow = spanForRange('monthly', rangeKey);
+                var dailySlice = [];
+                if (dayWindow == null) {
+                    dailySlice = daily.slice();
+                    totalWindows = 1;
+                    scope.productionTrendsPageOffset = 0;
+                } else {
+                    totalWindows = Math.max(1, Math.ceil(daily.length / dayWindow));
+                    if (pageOffset > totalWindows - 1) pageOffset = totalWindows - 1;
+                    scope.productionTrendsPageOffset = pageOffset;
+                    var endD = daily.length - (pageOffset * dayWindow);
+                    var startD = Math.max(0, endD - dayWindow);
+                    dailySlice = daily.slice(startD, endD);
+                }
+                dailySlice.forEach(function (r) {
                     var d = r && r.trend_date ? String(r.trend_date).split('T')[0] : '';
                     if (!d) return;
                     var parts = d.split('-');
@@ -312,6 +355,15 @@ var _executiveDashboard = function () {
             var nextBtn = document.getElementById('productionTrendsNext');
             if (prevBtn) prevBtn.disabled = (scope.productionTrendsPageOffset >= totalWindows - 1);
             if (nextBtn) nextBtn.disabled = (scope.productionTrendsPageOffset <= 0);
+            var currentView = viewMode;
+            document.querySelectorAll('.production-trends-range-btn').forEach(function (btn) {
+                var key = (btn.getAttribute('data-range') || '').toUpperCase();
+                var unsupportedInYearly = currentView === 'yearly' && (key === '1M' || key === '3M' || key === '6M');
+                btn.disabled = unsupportedInYearly;
+                var active = key === rangeKey;
+                btn.classList.toggle('btn-primary', active && !unsupportedInYearly);
+                btn.classList.toggle('btn-outline-secondary', !(active && !unsupportedInYearly));
+            });
             if (scope.productionTrendsChart) {
                 if (scope.productionTrendsChart.config.type !== chartType) {
                     scope.productionTrendsChart.destroy();
