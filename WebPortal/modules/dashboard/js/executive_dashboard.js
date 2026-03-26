@@ -8,7 +8,6 @@ var _executiveDashboard = function () {
     var DASHBOARD_VISIBILITY_KEY = 'executive_dashboard_visible_widgets';
     var DASHBOARD_WIDGET_LABELS = {
         totalProduction: 'Total Production (kg)',
-        qualityPassRate: 'Quality Pass Rate',
         execStatBatchesInProduction: 'Kernel batches in production',
         execStatKgCrackedToday: 'Kg cracked today',
         execStatKgCrackedWeek: 'Kg cracked this week',
@@ -18,12 +17,8 @@ var _executiveDashboard = function () {
         execStatBatchesReleaseReady: 'Release ready',
         execStatBatchesCompletedWeek: 'Completed this week',
         execStatBatchesInIntake: 'In intake',
-        execStatBatchesOnHold: 'On hold',
-        execStatOilLitresToday: 'Oil (L) today',
-        execStatOilLitresWeek: 'Oil (L) this week',
-        execStatOilSheetsWeek: 'Oil sheets this week',
-        execStatQualityPassRate: 'Quality pass rate',
-        execStatQualityTestsWeek: 'Quality tests this week',
+        execStatOilLitresToday: 'Oil bins today',
+        execStatOilLitresWeek: 'Oil bins this week',
         execStatDispatchWeek: 'Dispatch this week',
         execStatDispatchPending: 'Dispatch pending',
         execDailyMinuteTests: 'Daily minute tests',
@@ -179,8 +174,8 @@ var _executiveDashboard = function () {
                 $('#execStatBatchesCompletedWeek').text(fmt(s.batches_completed_week));
                 $('#execStatBatchesInIntake').text(fmt(s.batches_in_intake));
                 $('#execStatBatchesOnHold').text(fmt(s.batches_on_hold));
-                $('#execStatOilLitresToday').text(fmtDec(s.oil_litres_today, 1));
-                $('#execStatOilLitresWeek').text(fmtDec(s.oil_litres_week, 1));
+                $('#execStatOilLitresToday').text(fmt(s.oil_litres_today));
+                $('#execStatOilLitresWeek').text(fmt(s.oil_litres_week));
                 $('#execStatOilSheetsWeek').text(fmt(s.oil_sheets_week));
                 $('#execStatQualityPassRate').text(fmtDec(s.quality_pass_rate, 1) + '%');
                 $('#execStatQualityTestsWeek').text(fmt(s.quality_tests_week));
@@ -212,6 +207,9 @@ var _executiveDashboard = function () {
             $('#productionTrendsMetric').off('change').on('change', function () {
                 scope.updateProductionTrendsChart();
             });
+            $('#productionTrendsView').off('change').on('change', function () {
+                scope.updateProductionTrendsChart();
+            });
         },
 
         loadProductionTrendsChart: async () => {
@@ -220,7 +218,7 @@ var _executiveDashboard = function () {
             if (!canvas) return;
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getProductionTrendsDaily) return;
             try {
-                const raw = await dataFunctions.getProductionTrendsDaily(30);
+                const raw = await dataFunctions.getProductionTrendsDaily(370);
                 scope.productionTrendsData = Array.isArray(raw) ? raw : [];
                 scope.renderProductionTrendsChart();
             } catch (e) {
@@ -236,18 +234,39 @@ var _executiveDashboard = function () {
             const data = scope.productionTrendsData || [];
             const canvas = document.getElementById('productionTrendsChart');
             if (!canvas || !data.length) return;
-            const labels = data.map(function (r) {
-                var d = r.trend_date;
-                if (!d) return '';
-                if (typeof d === 'string') d = d.split('T')[0];
-                var parts = d.split('-');
-                if (parts.length === 3) return parts[2] + '/' + parts[1];
-                return d;
-            });
             const metric = document.getElementById('productionTrendsMetric');
             const key = (metric && metric.value) ? metric.value : 'kg_cracked';
             const datasetLabel = metric && metric.options[metric.selectedIndex] ? metric.options[metric.selectedIndex].text : 'kg';
-            const values = data.map(function (r) { return Number(r[key]) || 0; });
+            const viewSel = document.getElementById('productionTrendsView');
+            const viewMode = (viewSel && viewSel.value) ? viewSel.value : 'monthly';
+
+            var prepared = [];
+            if (viewMode === 'yearly') {
+                var byMonth = {};
+                data.forEach(function (r) {
+                    var iso = (r && r.trend_date) ? String(r.trend_date).split('T')[0] : '';
+                    if (!iso || iso.length < 7) return;
+                    var monthKey = iso.slice(0, 7); // YYYY-MM
+                    if (!byMonth[monthKey]) byMonth[monthKey] = 0;
+                    byMonth[monthKey] += Number(r[key]) || 0;
+                });
+                Object.keys(byMonth).sort().slice(-12).forEach(function (monthKey) {
+                    prepared.push({ label: monthKey, value: byMonth[monthKey] });
+                });
+            } else {
+                data.slice(-31).forEach(function (r) {
+                    var d = r && r.trend_date ? String(r.trend_date).split('T')[0] : '';
+                    if (!d) return;
+                    var parts = d.split('-');
+                    prepared.push({
+                        label: parts.length === 3 ? (parts[2] + '/' + parts[1]) : d,
+                        value: Number(r[key]) || 0
+                    });
+                });
+            }
+
+            const labels = prepared.map(function (p) { return p.label; });
+            const values = prepared.map(function (p) { return p.value; });
             if (scope.productionTrendsChart) {
                 scope.productionTrendsChart.data.labels = labels;
                 scope.productionTrendsChart.data.datasets[0].label = datasetLabel;

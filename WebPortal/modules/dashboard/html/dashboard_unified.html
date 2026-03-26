@@ -173,20 +173,16 @@
             </div>
         </div>
 
+        <div class="mb-2">
+            <h5 class="fw-bold mb-0">Kernel Production</h5>
+        </div>
+
         <div class="row mb-4" id="execDashboardKpiRow">
             <div class="col-md-3 mb-3" data-dashboard-widget="totalProduction">
                 <div class="card border-primary">
                     <div class="card-body">
                         <h6 class="text-muted">Total Production (kg)</h6>
                         <h3 id="totalProduction">0</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3" data-dashboard-widget="qualityPassRate">
-                <div class="card border-warning">
-                    <div class="card-body">
-                        <h6 class="text-muted">Quality Pass Rate</h6>
-                        <h3 id="qualityPassRate">0%</h3>
                     </div>
                 </div>
             </div>
@@ -265,57 +261,6 @@
                     <div class="card-body text-center">
                         <h6 class="text-muted text-uppercase small mb-1">In intake</h6>
                         <h3 class="mb-0" id="execStatBatchesInIntake">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesOnHold">
-                <div class="card h-100 border-danger">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">On hold</h6>
-                        <h3 class="mb-0" id="execStatBatchesOnHold">—</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatOilLitresToday">
-                <div class="card h-100 border-primary">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Oil (L) today</h6>
-                        <h3 class="mb-0" id="execStatOilLitresToday">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatOilLitresWeek">
-                <div class="card h-100 border-success">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Oil (L) this week</h6>
-                        <h3 class="mb-0" id="execStatOilLitresWeek">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatOilSheetsWeek">
-                <div class="card h-100 border-info">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Oil sheets this week</h6>
-                        <h3 class="mb-0" id="execStatOilSheetsWeek">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatQualityPassRate">
-                <div class="card h-100 border-warning">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Quality pass rate</h6>
-                        <h3 class="mb-0" id="execStatQualityPassRate">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatQualityTestsWeek">
-                <div class="card h-100 border-secondary">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Quality tests this week</h6>
-                        <h3 class="mb-0" id="execStatQualityTestsWeek">—</h3>
                     </div>
                 </div>
             </div>
@@ -402,11 +347,17 @@
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <h5 class="mb-0">Production Trends</h5>
-                        <select id="productionTrendsMetric" class="form-select form-select-sm" style="max-width: 12rem;" aria-label="Metric">
-                            <option value="kg_cracked">Daily cracked (kg)</option>
-                            <option value="kg_packed">Daily packed (kg)</option>
-                            <option value="kg_dispatched">Daily dispatched (kg)</option>
-                        </select>
+                        <div class="d-flex gap-2">
+                            <select id="productionTrendsView" class="form-select form-select-sm" style="max-width: 8rem;" aria-label="View">
+                                <option value="monthly" selected>Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                            <select id="productionTrendsMetric" class="form-select form-select-sm" style="max-width: 12rem;" aria-label="Metric">
+                                <option value="kg_cracked">Daily cracked (kg)</option>
+                                <option value="kg_packed">Daily packed (kg)</option>
+                                <option value="kg_dispatched">Daily dispatched (kg)</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="position-relative" style="height: 280px;">
@@ -415,13 +366,25 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Sales Performance</h5>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <h5 class="fw-bold mb-0 mt-1">Oil Production</h5>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatOilLitresToday">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Oil bins today</h6>
+                        <h3 class="mb-0" id="execStatOilLitresToday">—</h3>
                     </div>
-                    <div class="card-body">
-                        <p class="text-muted">Chart will be displayed here</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatOilLitresWeek">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Oil bins this week</h6>
+                        <h3 class="mb-0" id="execStatOilLitresWeek">—</h3>
                     </div>
                 </div>
             </div>
