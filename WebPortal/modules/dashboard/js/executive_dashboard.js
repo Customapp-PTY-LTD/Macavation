@@ -29,6 +29,7 @@ var _executiveDashboard = function () {
         kpis: {},
         productionTrendsData: null,
         productionTrendsChart: null,
+        productionTrendsPageOffset: 0,
 
 
         init: async () => {
@@ -208,9 +209,18 @@ var _executiveDashboard = function () {
                 scope.updateProductionTrendsChart();
             });
             $('#productionTrendsView').off('change').on('change', function () {
+                scope.productionTrendsPageOffset = 0;
                 scope.updateProductionTrendsChart();
             });
             $('#productionTrendsChartType').off('change').on('change', function () {
+                scope.updateProductionTrendsChart();
+            });
+            $('#productionTrendsPrev').off('click').on('click', function () {
+                scope.productionTrendsPageOffset += 1;
+                scope.updateProductionTrendsChart();
+            });
+            $('#productionTrendsNext').off('click').on('click', function () {
+                scope.productionTrendsPageOffset = Math.max(0, (scope.productionTrendsPageOffset || 0) - 1);
                 scope.updateProductionTrendsChart();
             });
         },
@@ -221,7 +231,7 @@ var _executiveDashboard = function () {
             if (!canvas) return;
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getProductionTrendsDaily) return;
             try {
-                const raw = await dataFunctions.getProductionTrendsDaily(370);
+                const raw = await dataFunctions.getProductionTrendsDaily(1825);
                 scope.productionTrendsData = Array.isArray(raw) ? raw : [];
                 scope.renderProductionTrendsChart();
             } catch (e) {
@@ -244,8 +254,11 @@ var _executiveDashboard = function () {
             const viewMode = (viewSel && viewSel.value) ? viewSel.value : 'monthly';
             const typeSel = document.getElementById('productionTrendsChartType');
             const chartType = (typeSel && typeSel.value) ? typeSel.value : 'bar';
+            var pageOffset = Number(scope.productionTrendsPageOffset) || 0;
+            if (pageOffset < 0) pageOffset = 0;
 
             var prepared = [];
+            var totalWindows = 1;
             if (viewMode === 'yearly') {
                 var byMonth = {};
                 data.forEach(function (r) {
@@ -255,11 +268,31 @@ var _executiveDashboard = function () {
                     if (!byMonth[monthKey]) byMonth[monthKey] = 0;
                     byMonth[monthKey] += Number(r[key]) || 0;
                 });
-                Object.keys(byMonth).sort().slice(-12).forEach(function (monthKey) {
-                    prepared.push({ label: monthKey, value: byMonth[monthKey] });
+                var monthly = Object.keys(byMonth).sort().map(function (monthKey) {
+                    var y = monthKey.slice(0, 4);
+                    var m = monthKey.slice(5, 7);
+                    return { label: m + '/' + y, value: byMonth[monthKey] };
                 });
+                var yearWindow = 12;
+                totalWindows = Math.max(1, Math.ceil(monthly.length / yearWindow));
+                if (pageOffset > totalWindows - 1) pageOffset = totalWindows - 1;
+                scope.productionTrendsPageOffset = pageOffset;
+                var endY = monthly.length - (pageOffset * yearWindow);
+                var startY = Math.max(0, endY - yearWindow);
+                prepared = monthly.slice(startY, endY);
             } else {
-                data.slice(-31).forEach(function (r) {
+                var daily = data.slice().sort(function (a, b) {
+                    var da = a && a.trend_date ? String(a.trend_date) : '';
+                    var db = b && b.trend_date ? String(b.trend_date) : '';
+                    return da.localeCompare(db);
+                });
+                var dayWindow = 31;
+                totalWindows = Math.max(1, Math.ceil(daily.length / dayWindow));
+                if (pageOffset > totalWindows - 1) pageOffset = totalWindows - 1;
+                scope.productionTrendsPageOffset = pageOffset;
+                var endD = daily.length - (pageOffset * dayWindow);
+                var startD = Math.max(0, endD - dayWindow);
+                daily.slice(startD, endD).forEach(function (r) {
                     var d = r && r.trend_date ? String(r.trend_date).split('T')[0] : '';
                     if (!d) return;
                     var parts = d.split('-');
@@ -273,6 +306,12 @@ var _executiveDashboard = function () {
             const labels = prepared.map(function (p) { return p.label; });
             const values = prepared.map(function (p) { return p.value; });
             if (!labels.length) return;
+            var rangeEl = document.getElementById('productionTrendsRange');
+            if (rangeEl) rangeEl.textContent = 'Showing ' + labels[0] + ' - ' + labels[labels.length - 1];
+            var prevBtn = document.getElementById('productionTrendsPrev');
+            var nextBtn = document.getElementById('productionTrendsNext');
+            if (prevBtn) prevBtn.disabled = (scope.productionTrendsPageOffset >= totalWindows - 1);
+            if (nextBtn) nextBtn.disabled = (scope.productionTrendsPageOffset <= 0);
             if (scope.productionTrendsChart) {
                 if (scope.productionTrendsChart.config.type !== chartType) {
                     scope.productionTrendsChart.destroy();
@@ -285,6 +324,7 @@ var _executiveDashboard = function () {
                 scope.productionTrendsChart.data.datasets[0].data = values;
                 scope.productionTrendsChart.data.datasets[0].fill = (chartType === 'line');
                 scope.productionTrendsChart.data.datasets[0].tension = chartType === 'line' ? 0.35 : 0;
+                scope.productionTrendsChart.data.datasets[0].pointRadius = chartType === 'line' ? 3 : 0;
                 scope.productionTrendsChart.update();
                 return;
             }
@@ -301,7 +341,8 @@ var _executiveDashboard = function () {
                         borderColor: 'rgba(13, 110, 253, 1)',
                         borderWidth: 1,
                         fill: chartType === 'line',
-                        tension: chartType === 'line' ? 0.35 : 0
+                        tension: chartType === 'line' ? 0.35 : 0,
+                        pointRadius: chartType === 'line' ? 3 : 0
                     }]
                 },
                 options: {
