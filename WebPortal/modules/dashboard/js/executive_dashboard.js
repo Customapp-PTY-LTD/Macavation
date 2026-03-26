@@ -210,6 +210,9 @@ var _executiveDashboard = function () {
             $('#productionTrendsView').off('change').on('change', function () {
                 scope.updateProductionTrendsChart();
             });
+            $('#productionTrendsChartType').off('change').on('change', function () {
+                scope.updateProductionTrendsChart();
+            });
         },
 
         loadProductionTrendsChart: async () => {
@@ -239,6 +242,8 @@ var _executiveDashboard = function () {
             const datasetLabel = metric && metric.options[metric.selectedIndex] ? metric.options[metric.selectedIndex].text : 'kg';
             const viewSel = document.getElementById('productionTrendsView');
             const viewMode = (viewSel && viewSel.value) ? viewSel.value : 'monthly';
+            const typeSel = document.getElementById('productionTrendsChartType');
+            const chartType = (typeSel && typeSel.value) ? typeSel.value : 'bar';
 
             var prepared = [];
             if (viewMode === 'yearly') {
@@ -267,17 +272,26 @@ var _executiveDashboard = function () {
 
             const labels = prepared.map(function (p) { return p.label; });
             const values = prepared.map(function (p) { return p.value; });
+            if (!labels.length) return;
+            if (scope.productionTrendsChart) {
+                if (scope.productionTrendsChart.config.type !== chartType) {
+                    scope.productionTrendsChart.destroy();
+                    scope.productionTrendsChart = null;
+                }
+            }
             if (scope.productionTrendsChart) {
                 scope.productionTrendsChart.data.labels = labels;
                 scope.productionTrendsChart.data.datasets[0].label = datasetLabel;
                 scope.productionTrendsChart.data.datasets[0].data = values;
+                scope.productionTrendsChart.data.datasets[0].fill = (chartType === 'line');
+                scope.productionTrendsChart.data.datasets[0].tension = chartType === 'line' ? 0.35 : 0;
                 scope.productionTrendsChart.update();
                 return;
             }
             if (typeof Chart === 'undefined') return;
             var ctx = canvas.getContext('2d');
             scope.productionTrendsChart = new Chart(ctx, {
-                type: 'bar',
+                type: chartType,
                 data: {
                     labels: labels,
                     datasets: [{
@@ -285,7 +299,9 @@ var _executiveDashboard = function () {
                         data: values,
                         backgroundColor: 'rgba(13, 110, 253, 0.6)',
                         borderColor: 'rgba(13, 110, 253, 1)',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        fill: chartType === 'line',
+                        tension: chartType === 'line' ? 0.35 : 0
                     }]
                 },
                 options: {
