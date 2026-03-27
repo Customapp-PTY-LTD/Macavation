@@ -1549,7 +1549,6 @@
             { set_name: 'crm_test_data', module: 'crm', description: 'Test contacts, suppliers, and customers for CRM testing' },
             { set_name: 'grower_intake_test_data', module: 'grower-intake', description: 'Test samples and grower data for intake testing' },
             { set_name: 'kernel_production_test_data', module: 'kernel-production', description: 'Test batches and production data for kernel processing' },
-            { set_name: 'oil_production_test_data', module: 'oil-production', description: 'Test oil batches and temperature data' },
             { set_name: 'quality_test_data', module: 'quality-assurance', description: 'Test quality records and thresholds' },
             { set_name: 'stock_test_data', module: 'stock-management', description: 'Test inventory and warehouse data' },
             { set_name: 'financial_test_data', module: 'financial-management', description: 'Test payments, pricing, and calculations' }
@@ -1584,11 +1583,6 @@
             { set_name: 'kernel_production_test_data', data_key: 'batch_in_progress', entity_type: 'batch', purpose: 'In-progress batch testing', data_json: { batch_number: 'KB-EC-001', nis_weight_kg: 5000, current_step: 3, status: 'cracking' }},
             { set_name: 'kernel_production_test_data', data_key: 'batch_max_weight', entity_type: 'batch', purpose: 'Maximum weight boundary testing', data_json: { nis_weight_kg: 5000, expected_result: 'accepted' }},
             { set_name: 'kernel_production_test_data', data_key: 'batch_over_weight', entity_type: 'batch', purpose: 'Over weight rejection testing', data_json: { nis_weight_kg: 5001, expected_result: 'rejected' }},
-
-            // Oil Production test data
-            { set_name: 'oil_production_test_data', data_key: 'oil_batch_completed', entity_type: 'oil_batch', purpose: 'Completed oil batch testing', data_json: { batch_number: 'OB-2026-002', kernel_input_kg: 350, oil_output_litres: 238, press_temperature_celsius: 41, oil_yield_percentage: 68 }},
-            { set_name: 'oil_production_test_data', data_key: 'oil_batch_temp_max', entity_type: 'oil_batch', purpose: 'Temperature at max threshold', data_json: { press_temperature_celsius: 42, expected_result: 'accepted' }},
-            { set_name: 'oil_production_test_data', data_key: 'oil_batch_temp_over', entity_type: 'oil_batch', purpose: 'Temperature over threshold', data_json: { press_temperature_celsius: 42.1, expected_result: 'warning' }},
 
             // Quality test data
             { set_name: 'quality_test_data', data_key: 'quality_thresholds', entity_type: 'threshold', purpose: 'Quality threshold reference', data_json: { kernel_max_moisture: 1.5, kernel_min_crackout: 25, kernel_premium_min: 32, oil_max_ffa: 0.1, oil_max_peroxide: 10, oil_max_moisture: 0.05, oil_min_yield: 65 }},
