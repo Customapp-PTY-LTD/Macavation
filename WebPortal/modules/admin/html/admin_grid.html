@@ -3,6 +3,7 @@
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Admin</h1>
         <div class="btn-toolbar mb-2 mb-md-0 ms-auto">
+            <a href="help/index.html#admin-users-permissions" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide" data-macavation-help-tablist="#adminTab"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#addRoleModal">
                 <i class="fas fa-shield-alt me-1"></i>Add Role
             </button>
@@ -59,17 +60,17 @@
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-4" id="adminTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
+            <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" data-help-anchor="admin-users-permissions">
                 <i class="fas fa-users me-2"></i>Users & Permissions
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button">
+            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab" data-help-anchor="admin-roles-management">
                 <i class="fas fa-shield-alt me-2"></i>Roles Management
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button">
+            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab" data-help-anchor="admin-system-configuration">
                 <i class="fas fa-cog me-2"></i>System Configuration
             </button>
         </li>

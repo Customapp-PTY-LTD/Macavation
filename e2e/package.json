@@ -24,6 +24,7 @@
     "test:stock": "playwright test tests/stock-management/",
     "test:finance": "playwright test tests/financial-management/",
     "test:dashboard": "playwright test tests/dashboard/",
+    "capture-user-guide": "playwright test tests/user-guide/capture-module-screenshots.spec.ts",
     "test:critical": "playwright test --grep @critical",
     "test:smoke": "playwright test --grep @smoke",
     "test:rbac": "playwright test --grep @rbac",

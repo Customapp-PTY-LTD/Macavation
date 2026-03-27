@@ -10,42 +10,49 @@ const NAVIGATION_MAP: Record<string, { collapseId?: string; linkSelector: string
   // Main routes (no collapse)
   'dashboard': { linkSelector: 'a[route="dashboard"]' },
   'my-day': { linkSelector: 'a[route="my-day"]' },
+  'batch-journey': { linkSelector: 'a[route="batch-journey"]' },
   'amanda-dashboard': { linkSelector: 'a[route="amanda-dashboard"]' },
   'executive-dashboard': { linkSelector: 'a[route="executive-dashboard"]' },
-  
+
   // CRM
-  'crm-grid': { collapseId: 'crmCollapse', linkSelector: 'a[route="crm-grid"]' },
-  
-  // Production
-  'grower-intake-grid': { collapseId: 'productionCollapse', linkSelector: 'a[route="grower-intake-grid"]' },
-  'kernel-production-grid': { collapseId: 'productionCollapse', linkSelector: 'a[route="kernel-production-grid"]' },
-  'oil-production-grid': { collapseId: 'productionCollapse', linkSelector: 'a[route="oil-production-grid"]' },
-  
-  // Quality & Stock
-  'quality-assurance-grid': { collapseId: 'qualityCollapse', linkSelector: 'a[route="quality-assurance-grid"]' },
-  'stock-management-grid': { collapseId: 'qualityCollapse', linkSelector: 'a[route="stock-management-grid"]' },
-  'stock-management-kernel': { collapseId: 'qualityCollapse', linkSelector: 'a[route="stock-management-kernel"]' },
-  'kernel-dispatch-grid': { collapseId: 'qualityCollapse', linkSelector: 'a[route="kernel-dispatch-grid"]' },
-  
+  'crm-grid': { collapseId: 'crmCollapse', linkSelector: '#crmCollapse a[route="crm-grid"]' },
+
+  // Kernel stream (sidebar #kernelCollapse)
+  'grower-intake-grid': { collapseId: 'kernelCollapse', linkSelector: '#kernelCollapse a[route="grower-intake-grid"]' },
+  'kernel-production-grid': { collapseId: 'kernelCollapse', linkSelector: '#kernelCollapse a[route="kernel-production-grid"]' },
+  'stock-management-kernel': { collapseId: 'kernelCollapse', linkSelector: '#kernelCollapse a[route="stock-management-kernel"]' },
+  'kernel-dispatch-grid': { collapseId: 'kernelCollapse', linkSelector: '#kernelCollapse a[route="kernel-dispatch-grid"]' },
+
+  // Oil & protein stream (#oilCollapse)
+  'supplier-intake-grid': { collapseId: 'oilCollapse', linkSelector: '#oilCollapse a[route="supplier-intake-grid"]' },
+  'oil-production-grid': { collapseId: 'oilCollapse', linkSelector: '#oilCollapse a[route="oil-production-grid"]' },
+  'stock-management-oil': { collapseId: 'oilCollapse', linkSelector: '#oilCollapse a[route="stock-management-oil"]' },
+  'oil-dispatch-grid': { collapseId: 'oilCollapse', linkSelector: '#oilCollapse a[route="oil-dispatch-grid"]' },
+
+  // Quality (no stock link here — stock lives under Kernel / Oil sections)
+  'quality-assurance-grid': { collapseId: 'qualityCollapse', linkSelector: '#qualityCollapse a[route="quality-assurance-grid"]' },
+
+  // Generic stock route (not always in sidebar; loadContent still works)
+  'stock-management-grid': { linkSelector: 'a[route="stock-management-grid"]' },
+
   // Business
-  'sales-forecasting-grid': { collapseId: 'businessCollapse', linkSelector: 'a[route="sales-forecasting-grid"]' },
-  'financial-management-grid': { collapseId: 'businessCollapse', linkSelector: 'a[route="financial-management-grid"]' },
-  
-  // Document Management (no collapse)
+  'sales-forecasting-grid': { collapseId: 'businessCollapse', linkSelector: '#businessCollapse a[route="sales-forecasting-grid"]' },
+  'financial-management-grid': { collapseId: 'businessCollapse', linkSelector: '#businessCollapse a[route="financial-management-grid"]' },
+
   'document-management-grid': { linkSelector: 'a[route="document-management-grid"]' },
-  
-  // Palladium Integration (no collapse)
   'palladium-integration-grid': { linkSelector: 'a[route="palladium-integration-grid"]' },
-  
-  // User Management (use more specific selector to avoid navbar brand)
+
   'users-grid': { collapseId: 'userManagementCollapse', linkSelector: '#userManagementCollapse a[route="users-grid"]' },
   'roles-grid': { collapseId: 'userManagementCollapse', linkSelector: '#userManagementCollapse a[route="roles-grid"]' },
   'role-permissions-grid': { collapseId: 'userManagementCollapse', linkSelector: '#userManagementCollapse a[route="role-permissions-grid"]' },
   'role-features-grid': { collapseId: 'userManagementCollapse', linkSelector: '#userManagementCollapse a[route="role-features-grid"]' },
-  
-  // System Administration (no collapse)
+  'features-grid': { collapseId: 'userManagementCollapse', linkSelector: '#userManagementCollapse a[route="features-grid"]' },
+
   'admin-grid': { linkSelector: 'a[route="admin-grid"]' },
-  'data-import-grid': { collapseId: 'dataImportCollapse', linkSelector: 'a[route="data-import-grid"]' },
+  'data-import-grid': { linkSelector: 'button[route="data-import-grid"]' },
+
+  'test-scenarios-grid': { collapseId: 'testManagementCollapse', linkSelector: '#testManagementCollapse a[route="test-scenarios-grid"]' },
+  'test-data-grid': { collapseId: 'testManagementCollapse', linkSelector: '#testManagementCollapse a[route="test-data-grid"]' },
 };
 
 /**

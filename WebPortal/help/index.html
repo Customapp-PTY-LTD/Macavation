@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Macavation User Guide</title>
+  <link rel="stylesheet" href="help-shell.css" />
+</head>
+<body>
+  <div id="guide-single-bar">
+    <div class="single-bar-top">
+      <span class="single-title"></span>
+      <a href="index.html?full=1" class="btn-link secondary" data-action="full-guide">Full user guide</a>
+    </div>
+  </div>
+
+  <h1 id="guide-main-title">Macavation User Guide</h1>
+  <p id="guide-intro">Use <strong>Help</strong> for this topic: what it is for, how to work through it, and—where relevant—<strong>numbered steps</strong> for that screen. Open the <strong>full user guide</strong> for every section and the table of contents.</p>
+
+  <div id="guide-toc">
+    <h2>Contents</h2>
+  </div>
+
+  <div id="guide-process">
+    <h2>Supply chain at a glance</h2>
+    <p class="guide-lead">Macavation follows two product streams plus shared support. Each topic below describes a specific screen.</p>
+    <ol class="guide-page-steps">
+      <li><strong>Kernel stream:</strong> Grower intake → Kernel production → Stock (kernel) → Kernel dispatch.</li>
+      <li><strong>Oil &amp; protein stream:</strong> Supplier intake → Oil production → Stock (oil/protein) → Oil &amp; protein dispatch.</li>
+      <li><strong>Shared &amp; admin:</strong> CRM, Quality, Documents, integrations, Users, Admin, and My Day support both streams.</li>
+    </ol>
+  </div>
+
+  <section id="admin-roles-management" class="guide-section" data-guide-id="admin-roles-management">
+    <h2>Admin — Roles management</h2>
+<p class="guide-lead"><strong>Roles management</strong> — define and maintain roles used for menu and permission assignment.</p>
+    <p class="guide-how">Edit roles here; deep permission matrices may live in User Management modules depending on deployment.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Admin</strong> → <strong>Roles management</strong> tab.</li>
+      <li>Review existing roles in the grid; use search, status filter, and <strong>Clear</strong> as needed.</li>
+      <li>Click <strong>Add Role</strong> on the toolbar (or the equivalent in your build) to define a new role name and description.</li>
+      <li>After saving roles, assign <strong>Role permissions</strong> and <strong>Role features</strong> in User Management so menus match responsibility.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="admin-system-configuration" class="guide-section" data-guide-id="admin-system-configuration">
+    <h2>Admin — System configuration</h2>
+<p class="guide-lead"><strong>System configuration</strong> — environment and system settings (as exposed for your deployment).</p>
+    <p class="guide-how">Record values before changing system settings; some options need vendor support to roll back safely.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Admin</strong> → <strong>System configuration</strong> tab.</li>
+      <li>Record current values (screenshot or export) before changing environment or integration settings.</li>
+      <li>Edit only fields you understand; some options may require vendor support to reverse.</li>
+      <li>Save and verify behaviour in a non-critical module before announcing the change to all users.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="admin-users-permissions" class="guide-section" data-guide-id="admin-users-permissions">
+    <h2>Admin — Users &amp; permissions</h2>
+<p class="guide-lead"><strong>Users &amp; permissions</strong> — system users table, role filter, and add user. Summary cards above show counts for the whole admin module.</p>
+    <p class="guide-how">Start from summary cards, then filter the users grid. Add User follows the same validation as other admin entry points.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Admin</strong> from the menu.</li>
+      <li>Stay on the <strong>Users &amp; Permissions</strong> tab (first tab).</li>
+      <li>Read the summary cards (totals for users, roles, permissions, sessions) for a quick health check.</li>
+      <li>Use the users grid filters and search; click <strong>Add User</strong> to open the add-user dialog with the right role from the start.</li>
+      <li>Use row actions to edit or deactivate users; changes typically apply on next login.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-admin-add-role" class="guide-section" data-guide-id="modal-admin-add-role">
+    <h2>Admin Add Role (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from <strong>Admin</strong> → <strong>Add role</strong>.</li>
+      <li>Enter a clear role name and description other admins will recognise.</li>
+      <li>Save, then open <strong>Role permissions</strong> and <strong>Role features</strong> to wire the role to real access.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-admin-add-role.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-admin-add-user" class="guide-section" data-guide-id="modal-admin-add-user">
+    <h2>Admin Add User (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from <strong>Admin</strong> → <strong>Add user</strong>.</li>
+      <li>Enter name, email/username, and temporary password policy per your organisation.</li>
+      <li>Assign the primary <strong>role</strong> before saving—this controls the menu tree on first login.</li>
+      <li>Send the user your standard onboarding steps (password change, MFA if enabled).</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-admin-add-user.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-batch-history" class="guide-section" data-guide-id="modal-batch-history">
+    <h2>Batch History (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open to read the audit-style history of status changes and user actions on a batch.</li>
+      <li>Use during investigations; do not edit history entries.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-batch-history.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="batch-journey-grid" class="guide-section" data-guide-id="batch-journey-grid">
+    <h2>Batch Journey (module)</h2>
+<p class="guide-lead">Cross-batch search and status across intake, production, QA, and dispatch.</p>
+    <p class="guide-how">Search by batch or filters, open a row’s detail, then jump to owning module for the next action. Ideal when you know the batch ID but not where it sits.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Batch journey</strong> when you know a batch id or grower but not which module currently owns the work.</li>
+      <li>Type in the search field (batch, grower, etc.); set <strong>Status</strong> and <strong>Sort</strong> (newest, by status, by grower, weight, moisture) to shorten the list.</li>
+      <li>Read the <strong>Status</strong> column for Intake, Receiving, Production, QA, Dispatch, or Complete.</li>
+      <li>Click the <strong>batch number</strong> link to open detail or the next workflow screen.</li>
+      <li>Use row actions or links from detail to jump straight into intake, production, QA, or dispatch—complete the action there, then return to Batch journey if you need another batch.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/batch-journey-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-batch-summary" class="guide-section" data-guide-id="modal-batch-summary">
+    <h2>Batch Summary (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from batch cards or journey views to see consolidated batch metadata.</li>
+      <li>Use it to confirm grower, weights, moisture, and status before answering customer queries.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-batch-summary.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="crm-kernel-customers" class="guide-section" data-guide-id="crm-kernel-customers">
+    <h2>CRM — Kernel customers</h2>
+<p class="guide-lead"><strong>Kernel customers</strong> — kernel-side customers. Use filters and <strong>Add Contact</strong> to keep the list current for kernel dispatch and CRM.</p>
+    <p class="guide-how">Supports kernel sales and dispatch: accurate delivery contacts reduce errors on despatch documents.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> — Contact Database Management from the menu.</li>
+      <li>Click the <strong>Kernel Customers</strong> tab.</li>
+      <li>Expand <strong>Filters</strong> to locate a customer before editing.</li>
+      <li>Use <strong>Add Contact</strong> or <strong>Import from Excel</strong> to keep delivery and commercial details current.</li>
+      <li>Edit from the grid as needed; updates feed through to kernel dispatch and CRM views that use these customers.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="crm-nis-suppliers" class="guide-section" data-guide-id="crm-nis-suppliers">
+    <h2>CRM — NIS suppliers</h2>
+<p class="guide-lead"><strong>NIS suppliers</strong> — numbered grower/supplier list used with kernel intake and reporting. Import from Excel or add contacts; used across grower intake and dispatch.</p>
+    <p class="guide-how">Keep the numbered list aligned with operations: import from Excel when bulk-updating, or Add Contact for one-offs. These names appear in grower intake and kernel reporting.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> — Contact Database Management from the menu.</li>
+      <li>Click the <strong>NIS Suppliers</strong> tab so the grid shows the numbered grower / supplier list.</li>
+      <li>Expand <strong>Filters</strong> when you need to narrow by province, status, or other fields on that tab.</li>
+      <li>Use <strong>Add Contact</strong> for a single record, or <strong>Import from Excel</strong> for bulk updates — keep the template column headers unchanged.</li>
+      <li>Open a row to edit; saved details are used in grower intake, kernel reporting, and kernel dispatch wherever that supplier appears.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="crm-oil-protein-customers" class="guide-section" data-guide-id="crm-oil-protein-customers">
+    <h2>CRM — Oil &amp; protein customers</h2>
+<p class="guide-lead"><strong>Oil &amp; protein customers</strong> — buyers for oil/protein products. Maintain names, contacts, and status for sales and dispatch.</p>
+    <p class="guide-how">Keep commercial contacts current for sales and dispatch paperwork. Status and emails should match what dispatch and account teams use offline.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> — Contact Database Management from the menu.</li>
+      <li>Click the <strong>Oil &amp; Protein Customers</strong> tab.</li>
+      <li>Expand <strong>Filters</strong> to narrow buyers or commercial contacts.</li>
+      <li>Use <strong>Add Contact</strong> or <strong>Import from Excel</strong> to add or refresh customer records.</li>
+      <li>Open a row to edit; accurate names and contacts reduce errors on oil &amp; protein sales and dispatch paperwork.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="crm-oil-ingredient-suppliers" class="guide-section" data-guide-id="crm-oil-ingredient-suppliers">
+    <h2>CRM — Oil ingredient suppliers</h2>
+<p class="guide-lead"><strong>Oil ingredient suppliers</strong> — raw material and ingredient suppliers for oil &amp; protein operations. Same tools as other CRM tabs: filters, import, add contact.</p>
+    <p class="guide-how">Used for raw-material suppliers feeding oil &amp; protein. After changes, notify planners so stock and intake expectations stay aligned.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> — Contact Database Management from the menu.</li>
+      <li>Click the <strong>Oil Ingredient Suppliers</strong> tab.</li>
+      <li>Expand <strong>Filters</strong> to find raw-material or ingredient suppliers quickly.</li>
+      <li>Use <strong>Add Contact</strong> or <strong>Import from Excel</strong> to maintain the list.</li>
+      <li>Edit a row to update supplier data used by oil &amp; protein intake, stock, and production screens that reference these contacts.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="crm-oil-processors" class="guide-section" data-guide-id="crm-oil-processors">
+    <h2>CRM — Oil processors</h2>
+<p class="guide-lead"><strong>Oil processors</strong> — organisations classified as oil processors. Filter the grid, export, and add or edit contacts for the oil stream.</p>
+    <p class="guide-how">Maintain processor details for the oil stream; filters and export help audits. Edits apply wherever that contact is picked (intake, production, dispatch).</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> — Contact Database Management from the menu.</li>
+      <li>Click the <strong>Oil Processors</strong> tab.</li>
+      <li>Expand <strong>Filters</strong> to narrow the list before you add or edit records.</li>
+      <li>Use <strong>Add Contact</strong> or <strong>Import from Excel</strong> as appropriate; do not alter import template headers.</li>
+      <li>Open a row to edit processor details; changes apply anywhere oil processors are selected in the oil &amp; protein stream.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-crm-contact" class="guide-section" data-guide-id="modal-crm-contact">
+    <h2>Crm Contact (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from CRM: <strong>Add contact</strong> or when editing an existing row.</li>
+      <li>Pick or confirm the contact type tab context (NIS supplier, oil customer, etc.) so the record lands in the right list.</li>
+      <li>Complete identity fields, phones, emails, and addresses as your dispatch and finance teams expect.</li>
+      <li>Save; the grid refreshes and downstream modules (intake, dispatch) can pick up the contact immediately.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-crm-contact.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="dashboard-overview" class="guide-section" data-guide-id="dashboard-overview">
+    <h2>Dashboard overview</h2>
+<p class="guide-lead">Default operations dashboard: kernel production stats, packing, and task lists. Use the sidebar to open other modules.</p>
+    <p class="guide-how">Use cards and lists as a daily snapshot; follow links or the sidebar to open the full grids behind each metric. Refresh the page if numbers look stale.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Dashboard overview</strong> from the sidebar, or land here by default after sign-in if your site is configured that way.</li>
+      <li>Read the summary cards (users, roles, production, packing, tasks—depending on what your build shows) for a snapshot of the day.</li>
+      <li>Click any card or embedded link that opens a drill-down grid or module; use the sidebar for everything else.</li>
+      <li>If figures look stale compared to the shop floor, refresh the browser page once before raising a support issue.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/dashboard-overview.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="data-import-grid" class="guide-section" data-guide-id="data-import-grid">
+    <h2>Data Import (module)</h2>
+<p class="guide-lead">Upload Excel templates into selected tables (contacts, stock, oil sheets, etc.).</p>
+    <p class="guide-how">Download the right template, fill without altering column headers, upload, and read the import log. Fix the spreadsheet rather than re-importing the same errors.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Data import (Excel)</strong> from the menu.</li>
+      <li>Click <strong>Download template</strong> when you need the correct column layout for your target table.</li>
+      <li>Choose the Excel file, pick the <strong>target table</strong> (contacts, stock_items, oil_production_sheets, etc.), then click <strong>Preview</strong>.</li>
+      <li>In <strong>Map columns</strong>, match each spreadsheet column to the database field; fix the file if a column cannot map cleanly.</li>
+      <li>Review the preview row count, then click <strong>Import</strong>; read any log or error output and correct the sheet rather than re-uploading the same mistakes.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/data-import-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="document-management-grid" class="guide-section" data-guide-id="document-management-grid">
+    <h2>Document Management (module)</h2>
+<p class="guide-lead">Store and organise operational documents linked to the business.</p>
+    <p class="guide-how">Upload with clear titles and categories; link to entities when offered so colleagues find files from batches or contacts later.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Document management</strong> from the menu.</li>
+      <li>Maintain <strong>Categories</strong> first if your process needs new filing buckets—deleting a category hides it from pickers but keeps existing file links.</li>
+      <li>Click <strong>Upload document</strong>, pick a file, set title/category, and link to an entity if the form offers it.</li>
+      <li>Use the search box to find documents by name or category; clear the search to see the full list.</li>
+      <li>Use row actions to download, replace metadata, or remove files according to your retention rules.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/document-management-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-end-sample" class="guide-section" data-guide-id="modal-end-sample">
+    <h2>End Sample (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from grower or QA flows when closing out a sample workflow.</li>
+      <li>Record final disposition and any retest requirement.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-end-sample.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-end-sample-view" class="guide-section" data-guide-id="modal-end-sample-view">
+    <h2>End Sample View (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open for read-only review of how a sample was closed.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-end-sample-view.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="executive-dashboard" class="guide-section" data-guide-id="executive-dashboard">
+    <h2>Executive dashboard &amp; reporting</h2>
+<p class="guide-lead">KPIs and reporting for leadership. Use <strong>Customize</strong> to choose visible widgets and <strong>Generate Report</strong> for PDF output.</p>
+    <p class="guide-how">Choose widgets with Customize, export PDFs with Generate Report, and treat figures as summaries—drill into Kernel / Oil &amp; protein modules for detail.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Executive dashboard</strong> from the menu.</li>
+      <li>Click <strong>Customize</strong> (or equivalent) to choose which KPI widgets and charts appear.</li>
+      <li>Use <strong>Generate report</strong> or export controls when you need a PDF or file for meetings.</li>
+      <li>Treat numbers as summaries—open Kernel or Oil &amp; protein modules for line-level detail when something needs investigation.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/executive-dashboard.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-feature" class="guide-section" data-guide-id="modal-feature">
+    <h2>Feature (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from <strong>Features</strong> grid to define or edit a feature key and description.</li>
+      <li>Use stable keys—changing keys later breaks role assignments.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-feature.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="features-grid" class="guide-section" data-guide-id="features-grid">
+    <h2>Features (module)</h2>
+<p class="guide-lead">Catalogue of application features for assignment to roles.</p>
+    <p class="guide-how">Treat as the catalogue of toggles—actual access still requires role assignment and menu configuration.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Features</strong> from User Management (or your menu path).</li>
+      <li>Search by name, key, or description; filter by active/inactive; click <strong>Clear</strong> to reset.</li>
+      <li>Use <strong>Add feature</strong> to register a new application feature key for role assignment.</li>
+      <li>Use <strong>Refresh</strong> and <strong>Export</strong> when auditing which flags exist before a rollout.</li>
+      <li>Actual user access still requires that feature to be turned on for a role in <strong>Role features</strong>.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/features-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="financial-management-grid" class="guide-section" data-guide-id="financial-management-grid">
+    <h2>Financial Management (module)</h2>
+<p class="guide-lead">Financial views and calculations supporting operations (where enabled).</p>
+    <p class="guide-how">Use for enabled financial snapshots; always reconcile with your authoritative ledger—this view supports operations, not statutory reporting.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Financial management</strong> when your deployment enables it.</li>
+      <li>Click <strong>New invoice</strong> or <strong>Record payment</strong> from the toolbar to add transactions.</li>
+      <li>Review the grid columns (document number, type, contact, amount, date, status) before posting.</li>
+      <li>Use row <strong>Actions</strong> to open, edit, or void per your business rules.</li>
+      <li>Use <strong>Export</strong> for finance hand-off; reconcile against your ledger—this screen supports operations, not statutory reporting on its own.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/financial-management-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-grower-create-kernel-batch" class="guide-section" data-guide-id="modal-grower-create-kernel-batch">
+    <h2>Grower Create Kernel Batch (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from grower intake via <strong>Create kernel batch</strong>.</li>
+      <li>Enter grower, delivery metadata, and wet NIS details as prompted—tie to CRM NIS suppliers where pickers exist.</li>
+      <li>Save to create the intake batch; you will return to the board/table to run checklist and tests.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-grower-create-kernel-batch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="grower-intake-grid" class="guide-section" data-guide-id="grower-intake-grid">
+    <h2>Grower Intake (module)</h2>
+<p class="guide-lead">Kernel-side intake: receiving checklists, batch testing, and creating kernel batches before production.</p>
+    <p class="guide-how">Work delivery-by-delivery: complete receiving checklists, capture samples if required, then create or link kernel batches so production can start.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Grower intake</strong> from the sidebar.</li>
+      <li>Use <strong>Search</strong>, <strong>Status</strong>, and <strong>Clear</strong> to find the batch; switch <strong>Board</strong> vs <strong>Table</strong> to match how you like to work.</li>
+      <li>For each delivery: complete the <strong>Receiving checklist</strong> (Stage 1) from the batch card or row actions—both batch test and batch sample unlock only after the checklist is done.</li>
+      <li>Use <strong>Create kernel batch</strong> when you need a new intake record; use <strong>Export</strong> for a spreadsheet snapshot when auditing.</li>
+      <li>When quality steps are satisfied, use <strong>Release to production</strong> (and silo selection if prompted) so Kernel Production can receive the batch.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/grower-intake-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-grower-link-sample-to-batch" class="guide-section" data-guide-id="modal-grower-link-sample-to-batch">
+    <h2>Grower Link Sample To Batch (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open when linking a lab sample result to an intake batch.</li>
+      <li>Select the correct batch and sample identifiers; do not guess batch numbers.</li>
+      <li>Save so quality status can move to approved/pending per your rules.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-grower-link-sample-to-batch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-grower-receiving-checklist" class="guide-section" data-guide-id="modal-grower-receiving-checklist">
+    <h2>Grower Receiving Checklist (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from a grower intake batch card or row when Stage 1 (receiving) is due.</li>
+      <li>Work through each checklist line (weights, dockets, quality flags) exactly as operations defined.</li>
+      <li>Save; the batch card should show the checklist as complete so batch test and sample actions unlock.</li>
+      <li>If something is wrong with the delivery, record it here and escalate per QA before releasing forward.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-grower-receiving-checklist.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-import-oil-lots" class="guide-section" data-guide-id="modal-import-oil-lots">
+    <h2>Import Oil Lots (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from stock when importing oil lots from Excel.</li>
+      <li>Use the template your admin provided; do not rename columns.</li>
+      <li>Preview and confirm row counts before committing.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-import-oil-lots.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-job-card-view" class="guide-section" data-guide-id="modal-job-card-view">
+    <h2>Job Card View (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from production or dispatch when viewing a read-only job card summary.</li>
+      <li>Use it to verify styles and quantities before authorising dispatch or QA.</li>
+      <li>Close when finished—no edits here if the dialog is view-only in your build.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-job-card-view.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-kernel-dispatch" class="guide-section" data-guide-id="modal-kernel-dispatch">
+    <h2>Kernel Dispatch (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from kernel dispatch when creating or editing a dispatch basket header (buyer, delivery date).</li>
+      <li>Pick kernel customers from CRM; lines usually come from stock send-to-dispatch.</li>
+      <li>Save before opening line-level or inspection forms.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-kernel-dispatch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="kernel-dispatch-grid" class="guide-section" data-guide-id="kernel-dispatch-grid">
+    <h2>Kernel Dispatch (module)</h2>
+<p class="guide-lead">Kernel finished goods: board/table views, dispatch basket, and inspection forms before despatch.</p>
+    <p class="guide-how">Build the dispatch basket from approved stock, complete inspections, then finalise documents. Fixes to stock usually happen in Stock Management, not here.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Kernel dispatch</strong>; use <strong>Board</strong> vs <strong>Table</strong> and <strong>Refresh</strong> to align with how your despatch team works.</li>
+      <li>Remember the flow: inventory from finished warehouse <strong>KERNEL R YES</strong> moves to <strong>Kernel customers</strong> and debtors—baskets are built from stock sends.</li>
+      <li>In table view, open <strong>View basket</strong> to check styles and quantities before loading; use <strong>Dispatch</strong> to complete inspection and dispatch forms.</li>
+      <li>Review the <strong>Baskets marked as dispatched</strong> section for completed paperwork and proof of shipment.</li>
+      <li>If quantities are wrong, fix stock or the basket in <strong>Stock management</strong> rather than forcing a dispatch through.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/kernel-dispatch-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-kernel-dispatch-form" class="guide-section" data-guide-id="modal-kernel-dispatch-form">
+    <h2>Kernel Dispatch Form (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open when completing inspection and dispatch paperwork for a kernel order.</li>
+      <li>Fill vehicle, seal, weight checks, and sign-offs as your logistics SOP requires.</li>
+      <li>Submit only after physical load matches the basket; fixes go back to stock or the basket, not forged paperwork.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-kernel-dispatch-form.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-kernel-job-card" class="guide-section" data-guide-id="modal-kernel-job-card">
+    <h2>Kernel Job Card (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from kernel production for a batch entering or progressing production.</li>
+      <li>Fill job card fields (styles, yields, equipment) per your factory standard.</li>
+      <li>Save; downstream release-to-stock steps depend on accurate job card data.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-kernel-job-card.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="kernel-production-grid" class="guide-section" data-guide-id="kernel-production-grid">
+    <h2>Kernel Production (module)</h2>
+<p class="guide-lead">Production workflow: job cards, production stages, batch summaries, and QA hand-offs.</p>
+    <p class="guide-how">Drive job cards through stages; use board or list views as your site prefers. QA and stock hand-offs depend on accurate stage completion.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Kernel production</strong> from the menu.</li>
+      <li>Review the <strong>Silos</strong> panel: click an occupied (red) silo to mark empty, or an empty (white) silo to mark full and pick a production batch from the list modal.</li>
+      <li>Search and filter batches; use <strong>Clear</strong> to reset. Toggle <strong>Board</strong>, <strong>Table</strong>, or <strong>Approved jobcards</strong> as needed.</li>
+      <li>Open a batch card or row to manage job cards, production stages, and QA hand-offs—complete stages in order so stock and release status stay truthful.</li>
+      <li>Use <strong>Export</strong> for reporting; when release-ready, follow the in-app actions to send finished product toward stock and dispatch per your process.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/kernel-production-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="material-journey-dashboard" class="guide-section" data-guide-id="material-journey-dashboard">
+    <h2>Material journey dashboard</h2>
+<p class="guide-lead">Tracks material movement and alerts for integrator-style roles. Use <strong>Refresh</strong> to reload cards.</p>
+    <p class="guide-how">Reload with Refresh, then open linked modules from each card to clear alerts or continue a batch. Suited to roles watching movement across sites or stages.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Material journey</strong> from the menu (typically used by integrator-style roles watching movement and risk).</li>
+      <li>Click <strong>Refresh</strong> to reload cards and alerts so you are not acting on cached data.</li>
+      <li>Scan each card for status, exceptions, or batches needing attention.</li>
+      <li>Use links or actions on a card to jump into the owning module (intake, production, stock, dispatch) and complete the work there.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/material-journey-dashboard.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="my-day" class="guide-section" data-guide-id="my-day">
+    <h2>My day (module)</h2>
+<p class="guide-lead">Role-based landing view: your assigned workflows and shortcuts. Content loads after sign-in.</p>
+    <p class="guide-how">Work the list top-down: each item should route you to the right module. Completing work there updates what others see on dashboards and queues.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>My Day</strong> after sign-in (or from the sidebar) to see tasks and shortcuts assigned to your role.</li>
+      <li>Work items in priority order, or pick the highest-impact line first if your team agrees that rule.</li>
+      <li>Click each task or shortcut; the app should route you to the module that owns that step.</li>
+      <li>Completing work in those modules updates dashboards and queues for everyone else.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/my-day.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-oil-dispatch" class="guide-section" data-guide-id="modal-oil-dispatch">
+    <h2>Oil Dispatch (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from <strong>Oil dispatch</strong> when creating or editing a dispatch basket header (customer, delivery window, references).</li>
+      <li>Pick oil &amp; protein customers from CRM where the form offers a lookup—match the sold-to party on the order.</li>
+      <li>Confirm only <strong>released</strong> oil lots and finished stock lines are referenced; if something is missing, fix it in <strong>Stock management</strong> first.</li>
+      <li>Save the header before opening line inspection or dispatch forms tied to this basket.</li>
+      <li>If validation fails, read the message—usually a missing customer, date, or line mismatch.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-oil-dispatch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="oil-dispatch-grid" class="guide-section" data-guide-id="oil-dispatch-grid">
+    <h2>Oil Dispatch (module)</h2>
+<p class="guide-lead">Oil &amp; protein dispatch: mirror of kernel dispatch for the finished oil/protein warehouse location.</p>
+    <p class="guide-how">Same pattern as kernel dispatch for the oil/protein warehouse: basket, checks, then shipment. Ensure oil lots are released before loading.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Oil &amp; protein dispatch</strong> from the menu (mirror of kernel dispatch for the finished oil/protein warehouse).</li>
+      <li>Use the same board/table pattern and refresh habit as kernel dispatch.</li>
+      <li>Build or review baskets from released oil lots; complete inspection and dispatch forms before the truck leaves.</li>
+      <li>Ensure oil lots are released and available in stock before you add them to a load.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/oil-dispatch-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-oil-dispatch-form" class="guide-section" data-guide-id="modal-oil-dispatch-form">
+    <h2>Oil Dispatch Form (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open for oil/protein inspection and despatch paperwork.</li>
+      <li>Complete checks, signatures, and transport details; submit when the load is true.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-oil-dispatch-form.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-oil-lot" class="guide-section" data-guide-id="modal-oil-lot">
+    <h2>Oil Lot (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open when creating or editing an oil lot record tied to stock.</li>
+      <li>Enter best-before, quantity, and location; align with physical labels on drums or tanks.</li>
+      <li>Save before sending the lot to dispatch.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-oil-lot.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="oil-production-grid" class="guide-section" data-guide-id="oil-production-grid">
+    <h2>Oil Production (module)</h2>
+<p class="guide-lead">Oil production sheets and related processing steps for the oil/protein stream.</p>
+    <p class="guide-how">Record production sheets and relate them to lots or batches as the UI prompts. This closes the loop between intake stock and finished oil/protein.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Oil production</strong> from the menu.</li>
+      <li>Review <strong>Raw ingredients in production</strong> (batches released from Supplier Intake); open a batch to run extraction steps or mark a bag <strong>Empty</strong> when the press run is finished.</li>
+      <li>Expand <strong>Finished (emptied) raw batches</strong> if you need to audit what already left the active list.</li>
+      <li>Open or create a <strong>Production sheet</strong> (Food Grade Oil / Protein Powder / Cosmetic Oil) from the UI—choose form entry vs file upload if both are offered.</li>
+      <li>Use <strong>View data</strong> and <strong>Refresh</strong> on the toolbar for analytics and to reload lists after others have changed data.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/oil-production-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-oil-production-sheet" class="guide-section" data-guide-id="modal-oil-production-sheet">
+    <h2>Oil Production Sheet (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from oil production when starting or editing a production sheet.</li>
+      <li>Choose <strong>Fill out the form</strong> vs <strong>Upload a file</strong> if both modes exist.</li>
+      <li>Enter yields, losses, and product splits; attach files if the run used external lab results.</li>
+      <li>Save so finished goods and stock can reflect the run.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-oil-production-sheet.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="palladium-integration-grid" class="guide-section" data-guide-id="palladium-integration-grid">
+    <h2>Palladium Integration (module)</h2>
+<p class="guide-lead">ERP integration settings and sync status with Palladium.</p>
+    <p class="guide-how">Check sync health and mapping; day-to-day posting still happens from operational modules according to your integration design.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Palladium ERP integration</strong> from the menu.</li>
+      <li>Review the <strong>Sync status</strong> table: entity type, last sync, status, records synced.</li>
+      <li>Click <strong>Sync now</strong> only when your runbook allows (avoid double-runs during month-end unless approved).</li>
+      <li>Use row actions to inspect errors or retry failed entities as the UI permits.</li>
+      <li>Day-to-day operational posting still happens in Macavation modules; this screen is health and mapping for ERP bridge.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/palladium-integration-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-production-stages" class="guide-section" data-guide-id="modal-production-stages">
+    <h2>Production Stages (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from kernel production to advance or edit production stages for a batch.</li>
+      <li>Move stages in order; do not skip mandatory QA stages if the UI enforces them.</li>
+      <li>Save after each meaningful change so the board reflects true floor status.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-production-stages.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-production-stages-view" class="guide-section" data-guide-id="modal-production-stages-view">
+    <h2>Production Stages View (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open to review stage history and timestamps without changing current state (if configured as read-only).</li>
+      <li>Use it during investigations when dispatch or QA questions where a batch stalled.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-production-stages-view.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="quality-assurance-grid" class="guide-section" data-guide-id="quality-assurance-grid">
+    <h2>Quality Assurance (module)</h2>
+<p class="guide-lead">Quality tests, thresholds, and food-safety related records.</p>
+    <p class="guide-how">Log tests against the referenced batch or item; failed or out-of-spec results may block the next step depending on configuration—follow local QA rules.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Quality assurance</strong> from the menu.</li>
+      <li>Use <strong>Search</strong>, <strong>Test type</strong>, <strong>Result</strong>, and <strong>Clear</strong> to find the right record.</li>
+      <li>Click <strong>New quality test</strong> to log a new sample, batch, or final-product test as your process requires.</li>
+      <li>Open a row to enter results, attachments, or sign-off; failed or conditional results may block release depending on configuration—follow your local QA playbook.</li>
+      <li>Use <strong>Export</strong> when auditors or customers need evidence outside the app.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/quality-assurance-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-quality-test" class="guide-section" data-guide-id="modal-quality-test">
+    <h2>Quality Test (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from QA grid when logging or editing a specific test result.</li>
+      <li>Choose pass/fail/conditional and attach evidence files if required.</li>
+      <li>Save; failed tests may block release depending on configuration.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-quality-test.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-raw-material-issued" class="guide-section" data-guide-id="modal-raw-material-issued">
+    <h2>Raw Material Issued (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open when recording raw material issued to production from stock.</li>
+      <li>Link to the correct batch or job; quantities reduce raw stock when saved.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-raw-material-issued.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-receiving-checklist" class="guide-section" data-guide-id="modal-receiving-checklist">
+    <h2>Receiving Checklist (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from stock or supplier flows when a receiving checklist is required for a movement.</li>
+      <li>Complete quantities, condition checks, and sign-off fields.</li>
+      <li>Save so stock and intake statuses can advance.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-receiving-checklist.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-role" class="guide-section" data-guide-id="modal-role">
+    <h2>Role (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from <strong>Roles</strong> grid when adding or editing a role inline.</li>
+      <li>Match naming conventions your organisation uses for SSO or audits.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-role.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-role-feature" class="guide-section" data-guide-id="modal-role-feature">
+    <h2>Role Feature (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from <strong>Role features</strong> to tie a feature flag to a role.</li>
+      <li>Toggle once per combination; document the change.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-role-feature.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="role-features-grid" class="guide-section" data-guide-id="role-features-grid">
+    <h2>Role features (module)</h2>
+<p class="guide-lead">Toggle feature flags per role for progressive rollout.</p>
+    <p class="guide-how">Toggle features per role for phased rollouts; document what each flag unlocks so support can answer user questions.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Role features</strong> from User Management.</li>
+      <li>Locate the role and feature combination; toggle flags for phased rollouts of new UI or APIs.</li>
+      <li>Use export/refresh controls like other admin grids.</li>
+      <li>Document what each feature flag unlocks so support can answer “why don’t I see X?”.</li>
+      <li>Remember: users must still have the underlying role assignment and menu access—features are not a substitute for permissions.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/role-features-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-role-permission" class="guide-section" data-guide-id="modal-role-permission">
+    <h2>Role Permission (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from <strong>Role permissions</strong> when mapping a role to a database object.</li>
+      <li>Pick object type, object name, and allowed operations—grant least privilege.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-role-permission.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="role-permissions-grid" class="guide-section" data-guide-id="role-permissions-grid">
+    <h2>Role permissions (module)</h2>
+<p class="guide-lead">Map roles to database permissions (functions, tables).</p>
+    <p class="guide-how">Grant least privilege: add permissions incrementally and test with a non-admin login before rolling out broadly.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Role permissions</strong> from User Management.</li>
+      <li>Filter by role, object type (function/table), and operation (EXECUTE, Read, Create, Update, Delete); use <strong>Clear</strong> when needed.</li>
+      <li>Click <strong>Add permission</strong> to grant a role access to a specific object—add the minimum set first.</li>
+      <li>Use <strong>Refresh</strong> and <strong>Export</strong> when documenting access reviews.</li>
+      <li>Test with a non-admin login after changes; verify the user can do their job but cannot see restricted modules.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/role-permissions-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="roles-grid" class="guide-section" data-guide-id="roles-grid">
+    <h2>Roles (module)</h2>
+<p class="guide-lead">Define named roles used for menu and permission assignment.</p>
+    <p class="guide-how">Name roles clearly for admins; after saving, assign permissions and features in their dedicated screens.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Roles</strong> from User Management.</li>
+      <li>Search and filter by active/inactive; click <strong>Clear</strong> to reset the grid.</li>
+      <li>Click <strong>Add role</strong> for a new named role, or open a row to edit description and status.</li>
+      <li>Use <strong>Refresh</strong> after others change data; <strong>Export</strong> before audits.</li>
+      <li>Pair each role with entries in <strong>Role permissions</strong> and <strong>Role features</strong> so menus and APIs stay aligned.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/roles-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="sales-forecasting-grid" class="guide-section" data-guide-id="sales-forecasting-grid">
+    <h2>Sales Forecasting (module)</h2>
+<p class="guide-lead">Demand and forecasting inputs for planning.</p>
+    <p class="guide-how">Maintain forecast versions planners compare to production capacity and stock. Coordinate with finance or supply if numbers feed external systems.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Sales forecasting</strong> from the menu.</li>
+      <li>Click <strong>New forecast</strong> to add a period, product type, quantity, confidence, and status.</li>
+      <li>Review existing rows in the table; use actions to revise or close versions planners no longer use.</li>
+      <li>Click <strong>Export</strong> when supply or finance needs the numbers in Excel.</li>
+      <li>Align forecast versions with production capacity meetings—do not treat this as the only source of truth if finance maintains a master file.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/sales-forecasting-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-send-to-dispatch" class="guide-section" data-guide-id="modal-send-to-dispatch">
+    <h2>Send To Dispatch (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from <strong>Stock management</strong> (kernel) after selecting finished kernel lines to move toward dispatch.</li>
+      <li>Confirm customer, delivery date, and quantities match what sales agreed.</li>
+      <li>Submit; the basket should appear in <strong>Kernel dispatch</strong> for final inspection.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-send-to-dispatch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-send-to-dispatch-oil" class="guide-section" data-guide-id="modal-send-to-dispatch-oil">
+    <h2>Send To Dispatch Oil (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from oil stock when sending finished oil/protein lots toward oil dispatch.</li>
+      <li>Verify lot numbers, best-before, and quantities against the warehouse.</li>
+      <li>Submit; complete oil dispatch forms from the dispatch module.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-send-to-dispatch-oil.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="stock-management-grid" class="guide-section" data-guide-id="stock-management-grid">
+    <h2>Stock Management (module)</h2>
+<p class="guide-lead">Warehouse views for kernel and oil/protein stock; filters, export, send to dispatch, and oil lot management.</p>
+    <p class="guide-how">Confirm location and product filters before transactions. Send-to-dispatch and oil-lot actions should only run when physical stock matches the system.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Stock management</strong>; note whether you are on the <strong>Kernel</strong> or <strong>Oil &amp; protein</strong> stream (subtitle and filters adapt).</li>
+      <li>For the main stock table: use <strong>Search</strong>, <strong>Status</strong>, <strong>Product type</strong>, and <strong>Location</strong> (warehouse section); click <strong>Clear</strong> to reset.</li>
+      <li>On <strong>Kernel batch journey</strong>: use <strong>By style</strong> / <strong>Weekly</strong> / <strong>Overview</strong>; select lines and use <strong>Send to Dispatch</strong> only when physical stock matches the system.</li>
+      <li>For oil: add or import oil lots (e.g. from Excel) and monitor days-remaining from best-before where shown; use export when you need a file copy.</li>
+      <li>Use <strong>Import historical</strong> only for the controlled kernel historical load your admin approved—never as a substitute for normal intake and production postings.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/stock-management-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-stock-take" class="guide-section" data-guide-id="modal-stock-take">
+    <h2>Stock Take (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from stock management when running a stock-take or adjustment workflow.</li>
+      <li>Count physically first, then enter counted quantities; explain variances in notes if required.</li>
+      <li>Submit for approval if your workflow includes a reviewer.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-stock-take.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="supplier-intake-grid" class="guide-section" data-guide-id="supplier-intake-grid">
+    <h2>Supplier Intake (module)</h2>
+<p class="guide-lead">Oil &amp; protein intake: supplier oil batches and receiver checklists tied to CRM suppliers.</p>
+    <p class="guide-how">Register supplier oil batches and receiver checklists; they must tie to CRM suppliers. Downstream stock and production consume these records.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Supplier intake</strong> from the menu.</li>
+      <li>Use search, status filter, and <strong>Clear</strong>; choose <strong>Board</strong>, <strong>Table</strong>, <strong>Weekly</strong>, or <strong>Overview</strong> from the view toggle.</li>
+      <li>Start new oil-side deliveries with <strong>Receiver checklist</strong>; that creates the batch you will track through sample tests.</li>
+      <li>Complete sample tests from the card/table when the UI enables them; status moves toward ready for oil production.</li>
+      <li>Use <strong>Export</strong> when you need to share the current intake list outside the app.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/supplier-intake-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-supplier-oil-batch" class="guide-section" data-guide-id="modal-supplier-oil-batch">
+    <h2>Supplier Oil Batch (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from supplier intake row actions when editing batch header details.</li>
+      <li>Adjust only fields your role is allowed to change after receiving; some values may be locked post-test.</li>
+      <li>Save and confirm status still matches physical stock before releasing to production.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-supplier-oil-batch.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-supplier-receiver-checklist" class="guide-section" data-guide-id="modal-supplier-receiver-checklist">
+    <h2>Supplier Receiver Checklist (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from supplier intake via <strong>Receiver checklist</strong> to start a new supplier oil delivery.</li>
+      <li>Capture delivery note, supplier from CRM, quantities, and product type.</li>
+      <li>Submit to create the batch that will appear on the board for sample testing and release to oil production.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-supplier-receiver-checklist.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="supply-chain-flow" class="guide-section" data-guide-id="supply-chain-flow">
+    <h2>Supply chain &amp; process flow</h2>
+<p class="guide-lead">Read-only process diagram and quick links into Grower Intake, Stock, and Oil Production. (Not all deployments expose this as a route.)</p>
+    <p class="guide-how">Use this page to orient new users: follow <strong>Open</strong> links into live modules. This screen does not edit operational data — use intake, production, stock, and dispatch modules for that.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Supply chain &amp; process flow</strong> when you need the big picture (Mermaid diagram: intake → warehouse raws → production → finished → customers / debtors).</li>
+      <li>Read the document-type hints (<strong>GRV</strong>, <strong>IBT</strong>, <strong>INV</strong>) so paperwork in dispatch matches what finance expects.</li>
+      <li>Use the toolbar shortcuts to jump to <strong>Grower intake</strong>, <strong>Stock</strong>, or <strong>Oil production</strong> in one click.</li>
+      <li>This page is read-only for orientation—create and edit batches only inside the operational modules.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/supply-chain-flow.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="test-data-sets" class="guide-section" data-guide-id="test-data-sets" data-exclude-from-full-guide="1">
+    <h2>Test data — Data sets</h2>
+<p class="guide-lead"><strong>Data sets</strong> — create and manage synthetic data sets for test scenarios. Use filters, search, and export.</p>
+    <p class="guide-how">Define a set per scenario or feature area, then seed records. Export sets to share fixtures across testers.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Test data management</strong> (non-production / QA environments).</li>
+      <li>Select the <strong>Data sets</strong> tab; expand <strong>Filters</strong> (module, entity type, purpose) and click <strong>Apply filters</strong> / <strong>Clear</strong> as needed.</li>
+      <li>Click <strong>Add data set</strong>; name it for the scenario or feature you are testing.</li>
+      <li>Open a set from the grid to review or edit metadata; export sets to share fixtures with other testers.</li>
+      <li>Never use test data tools on production databases.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/test-data-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="test-data-records" class="guide-section" data-guide-id="test-data-records" data-exclude-from-full-guide="1">
+    <h2>Test data — Records</h2>
+<p class="guide-lead"><strong>Records</strong> — individual test data records within sets. Add records after selecting or creating a data set.</p>
+    <p class="guide-how">Add records after choosing a parent set; bulk tools (if shown) should stay within test data only.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Test data management</strong> → <strong>Records</strong> tab.</li>
+      <li>Select or create a parent <strong>data set</strong> first—the add-record button is enabled in context.</li>
+      <li>Click <strong>Add record</strong> and fill entity fields that mirror production shape but with synthetic values.</li>
+      <li>Use filters to find records; bulk actions (if shown) must stay within test data tables only.</li>
+      <li>Export or duplicate sets when multiple testers need the same baseline.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/test-data-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-test-data-record" class="guide-section" data-guide-id="modal-test-data-record" data-exclude-from-full-guide="1">
+    <h2>Test Data Record (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open to edit one synthetic record’s JSON/fields for a scenario.</li>
+      <li>Keep values obviously non-production.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-test-data-record.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-test-data-set" class="guide-section" data-guide-id="modal-test-data-set" data-exclude-from-full-guide="1">
+    <h2>Test Data Set (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from test data to define or edit a synthetic data set name, module, and purpose.</li>
+      <li>Save before adding child records.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-test-data-set.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-test-scenario" class="guide-section" data-guide-id="modal-test-scenario" data-exclude-from-full-guide="1">
+    <h2>Test Scenario (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open to name and describe an automation scenario; link data sets if required.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-test-scenario.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="test-scenarios-grid" class="guide-section" data-guide-id="test-scenarios-grid" data-exclude-from-full-guide="1">
+    <h2>Test Scenarios (module)</h2>
+<p class="guide-lead">QA automation scenarios (test environments).</p>
+    <p class="guide-how">For non-production environments: scenarios wrap automated tests—keep naming consistent with CI or Playwright jobs.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Test scenarios</strong> in QA environments.</li>
+      <li>Create or edit scenarios that wrap automated tests; keep names aligned with CI or Playwright job names.</li>
+      <li>Link scenarios to data sets where your workflow requires seeded data.</li>
+      <li>Run or trigger tests only through approved automation paths—do not run destructive scripts against shared environments without notice.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/test-scenarios-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-user" class="guide-section" data-guide-id="modal-user" data-exclude-from-full-guide="1">
+    <h2>User (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open from <strong>Users</strong> when editing profile, role, or activation state.</li>
+      <li>Avoid shared accounts; use reset-password instead of telling another person the password.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-user.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="users-grid" class="guide-section" data-guide-id="users-grid" data-exclude-from-full-guide="1">
+    <h2>Users (module)</h2>
+<p class="guide-lead">Create and maintain portal users, passwords, and assignments.</p>
+    <p class="guide-how">Create users with correct roles from the start; password resets and deactivation are safer than sharing accounts. Changes apply on next login.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Users</strong> from User Management.</li>
+      <li>Search and filter the grid; click <strong>Add user</strong> (or equivalent) for a new login.</li>
+      <li>Assign the correct <strong>role</strong> immediately; fixing role mistakes later is harder than setting them at creation.</li>
+      <li>Use password reset flows instead of sharing credentials between people.</li>
+      <li>Deactivate leavers; permission changes apply on next login in most configurations.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/users-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <script src="help-shell.js" defer></script>
+</body>
+</html>
