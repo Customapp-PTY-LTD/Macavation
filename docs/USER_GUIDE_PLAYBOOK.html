@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Macavation — User Guide Playbook for Developers</title>
+  <style>
+    :root {
+      --ink: #1a2e26;
+      --brand: #2d4a3e;
+      --muted: #5a6b63;
+      --border: #d8e0db;
+      --bg: #fafcfb;
+      --code-bg: #f0f4f1;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      max-width: 50rem;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+      line-height: 1.6;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    h1 { color: var(--brand); font-size: 1.8rem; margin-bottom: 0.25rem; }
+    h2 { color: var(--brand); font-size: 1.35rem; margin-top: 2.5rem; border-bottom: 2px solid var(--brand); padding-bottom: 0.3rem; }
+    h3 { color: var(--brand); font-size: 1.1rem; margin-top: 1.5rem; }
+    .subtitle { color: var(--muted); font-size: 1rem; margin-top: 0; }
+    .meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+
+    code {
+      font-family: "SF Mono", "Fira Code", Consolas, monospace;
+      font-size: 0.88em;
+      background: var(--code-bg);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      color: #2d5a40;
+    }
+    pre {
+      background: #1a2e26;
+      color: #d4e8dc;
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin: 1rem 0;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+    .highlight { color: #7fca9f; }
+    .comment { color: #6b8a7a; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin: 1rem 0;
+    }
+    th, td {
+      padding: 0.5rem 0.7rem;
+      border: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f4f7f5; font-weight: 600; color: var(--brand); }
+
+    .rule {
+      margin: 1rem 0;
+      padding: 0.7rem 0.9rem;
+      border-left: 3px solid #c8a020;
+      background: #fdf8ec;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.92rem;
+    }
+    .rule strong { color: #7a6212; }
+
+    .do-dont {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .do, .dont {
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .do { background: #edf7f0; border: 1px solid #b8dcc4; }
+    .dont { background: #fdf0ef; border: 1px solid #e0b8b5; }
+    .do::before { content: "Do"; font-weight: 700; color: #2d6a4f; display: block; margin-bottom: 0.3rem; }
+    .dont::before { content: "Don't"; font-weight: 700; color: #a04030; display: block; margin-bottom: 0.3rem; }
+
+    ol.checklist { padding-left: 1.5rem; }
+    ol.checklist li { margin: 0.5rem 0; }
+
+    @media print {
+      body { max-width: none; padding: 0.75cm; font-size: 10.5pt; }
+      h2 { break-before: auto; break-after: avoid; }
+      pre { break-inside: avoid; font-size: 8pt; }
+      .do-dont { break-inside: avoid; }
+      a { color: var(--brand); text-decoration: none; }
+    }
+    @media (max-width: 640px) {
+      .do-dont { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>User Guide Playbook</h1>
+<p class="subtitle">How to write and maintain Macavation user guide sections</p>
+<p class="meta">For developers &amp; contributors &mdash; Macavation, March 2026</p>
+
+<!-- ─── TOC ─── -->
+<nav>
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#architecture">How the help system works</a></li>
+    <li><a href="#file-map">File map</a></li>
+    <li><a href="#anatomy">Anatomy of a guide section</a></li>
+    <li><a href="#tone">Writing tone &amp; voice</a></li>
+    <li><a href="#do-dont">Do / Don't examples</a></li>
+    <li><a href="#new-module">Adding a section for a new module</a></li>
+    <li><a href="#new-modal">Adding a modal subsection</a></li>
+    <li><a href="#svg">SVG diagram conventions</a></li>
+    <li><a href="#css-classes">CSS classes reference</a></li>
+    <li><a href="#js-behaviour">JS behaviour summary</a></li>
+    <li><a href="#checklist">Developer checklist</a></li>
+  </ol>
+</nav>
+
+<!-- ─── 1 ─── -->
+<h2 id="architecture">1. How the help system works</h2>
+
+<p>The user guide is a <strong>single HTML file</strong> (<code>WebPortal/help/user-guide-v2.html</code>) that serves two purposes:</p>
+
+<table>
+  <tr><th>Mode</th><th>How it's opened</th><th>What the user sees</th></tr>
+  <tr>
+    <td><strong>Single-section</strong></td>
+    <td>In-app Help button links to <code>user-guide-v2.html#section-id</code></td>
+    <td>Only that one section, with a "Full user guide" link at the top</td>
+  </tr>
+  <tr>
+    <td><strong>Full guide</strong></td>
+    <td>User clicks "Full user guide" or opens <code>user-guide-v2.html?full=1</code></td>
+    <td>All sections in order, table of contents, SVG diagrams, chapter dividers</td>
+  </tr>
+</table>
+
+<p>The JS (<code>help-shell.js</code>) handles the toggle. You don't need a build step, static site generator, or framework. Everything is vanilla HTML, CSS, and JS.</p>
+
+<div class="rule"><strong>Golden rule:</strong> Every deep-linkable screen in the app must have a matching <code>&lt;section&gt;</code> in the guide with the correct <code>id</code> and <code>data-guide-id</code>.</div>
+
+<!-- ─── 2 ─── -->
+<h2 id="file-map">2. File map</h2>
+
+<pre><code>WebPortal/help/
+├── user-guide-v2.html    <span class="comment"># The guide (all content lives here)</span>
+├── index.html            <span class="comment"># Original guide (kept for reference)</span>
+├── help-shell.css        <span class="comment"># All styles (shared by both guides)</span>
+├── help-shell.js         <span class="comment"># TOC builder, single/full toggle, back-to-top</span>
+└── assets/
+    ├── process-overview.svg
+    └── screenshots/      <span class="comment"># Playwright-generated screenshots</span>
+        ├── admin-grid.png
+        ├── crm-grid.png
+        └── ...
+</code></pre>
+
+<p>Screenshots are auto-generated by Playwright (<code>e2e/tests/user-guide/capture-module-screenshots.spec.ts</code>). You don't create them manually — just reference them with the correct filename and they'll appear when the test suite runs.</p>
+
+<!-- ─── 3 ─── -->
+<h2 id="anatomy">3. Anatomy of a guide section</h2>
+
+<h3>Major module section (appears in TOC)</h3>
+
+<pre><code><span class="comment">&lt;!-- The id MUST match the route name or data-guide-id used by the app --&gt;</span>
+&lt;section id="<span class="highlight">grower-intake-grid</span>"
+         class="<span class="highlight">guide-section</span>"
+         data-guide-id="<span class="highlight">grower-intake-grid</span>"&gt;
+
+  &lt;h2&gt;Grower Intake&lt;/h2&gt;
+
+  <span class="comment">&lt;!-- Lead: 1-2 sentences. What is this and why does it exist? --&gt;</span>
+  &lt;p class="<span class="highlight">guide-lead</span>"&gt;This is where macadamia nuts arrive...&lt;/p&gt;
+
+  <span class="comment">&lt;!-- How: practical context. When to use it, what to watch for. --&gt;</span>
+  &lt;p class="<span class="highlight">guide-how</span>"&gt;Work delivery by delivery. The flow is...&lt;/p&gt;
+
+  <span class="comment">&lt;!-- Steps: numbered, action-oriented --&gt;</span>
+  &lt;h3 class="<span class="highlight">guide-subhead</span>"&gt;How to use it&lt;/h3&gt;
+  &lt;ol class="<span class="highlight">guide-page-steps</span>"&gt;
+    &lt;li&gt;Open &lt;strong&gt;Grower Intake&lt;/strong&gt; from the sidebar.&lt;/li&gt;
+    &lt;li&gt;Switch between &lt;strong&gt;Board&lt;/strong&gt; and &lt;strong&gt;Table&lt;/strong&gt; view.&lt;/li&gt;
+    &lt;li&gt;...&lt;/li&gt;
+  &lt;/ol&gt;
+
+  <span class="comment">&lt;!-- Optional: tip callout --&gt;</span>
+  &lt;div class="<span class="highlight">guide-tip</span>"&gt;&lt;strong&gt;Tip:&lt;/strong&gt; Use Export for...&lt;/div&gt;
+
+  <span class="comment">&lt;!-- Screenshot (auto-generated by Playwright) --&gt;</span>
+  &lt;figure class="<span class="highlight">guide-shot</span>"&gt;
+    &lt;img src="./assets/screenshots/<span class="highlight">grower-intake-grid</span>.png"
+         width="1200" height="675" alt="Grower Intake" loading="lazy" /&gt;
+  &lt;/figure&gt;
+&lt;/section&gt;
+</code></pre>
+
+<h3>Modal / subsection (hidden from TOC)</h3>
+
+<pre><code>&lt;section id="<span class="highlight">modal-grower-receiving-checklist</span>"
+         class="guide-section"
+         data-guide-id="<span class="highlight">modal-grower-receiving-checklist</span>"
+         <span class="highlight">data-toc="0"</span>&gt;
+
+  &lt;h2&gt;Receiving checklist (grower)&lt;/h2&gt;
+  &lt;p class="guide-lead"&gt;This is Stage 1 of intake...&lt;/p&gt;
+
+  &lt;ol class="guide-page-steps"&gt;
+    &lt;li&gt;Open from a batch card or row actions.&lt;/li&gt;
+    &lt;li&gt;Complete every line item.&lt;/li&gt;
+    &lt;li&gt;Save.&lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/section&gt;
+</code></pre>
+
+<h3>Required attributes</h3>
+
+<table>
+  <tr><th>Attribute</th><th>Purpose</th><th>Required?</th></tr>
+  <tr><td><code>id</code></td><td>Deep-link target. Must match the app's route name or help-button anchor.</td><td>Always</td></tr>
+  <tr><td><code>class="guide-section"</code></td><td>JS uses this to find all sections for TOC building, show/hide logic.</td><td>Always</td></tr>
+  <tr><td><code>data-guide-id</code></td><td>Should match <code>id</code>. Used by the app for contextual help lookups.</td><td>Always</td></tr>
+  <tr><td><code>data-toc="0"</code></td><td>Excludes the section from the table of contents. Still visible in full mode, still deep-linkable.</td><td>Modals &amp; subsections only</td></tr>
+  <tr><td><code>data-exclude-from-full-guide="1"</code></td><td>Hides from TOC <strong>and</strong> from full guide view entirely. Used for test management sections.</td><td>Internal/test sections only</td></tr>
+</table>
+
+<!-- ─── 4 ─── -->
+<h2 id="tone">4. Writing tone &amp; voice</h2>
+
+<p>The guide is read by factory floor operators and office managers — not developers. Write like you're explaining it to a smart colleague on their first day.</p>
+
+<table>
+  <tr><th>Principle</th><th>What it means in practice</th></tr>
+  <tr><td><strong>Use "you"</strong></td><td>"You'll see the batch appear on the board" — not "The batch will appear on the board for the user."</td></tr>
+  <tr><td><strong>Short sentences</strong></td><td>Max 20 words per sentence where possible. Break long thoughts into two.</td></tr>
+  <tr><td><strong>Active voice</strong></td><td>"Click <strong>Save</strong>" — not "The Save button should be clicked."</td></tr>
+  <tr><td><strong>Concrete</strong></td><td>"Open <strong>CRM</strong> → <strong>NIS Suppliers</strong> tab" — not "Navigate to the appropriate contact management section."</td></tr>
+  <tr><td><strong>Explain why, not just what</strong></td><td>"Keep contacts accurate because dispatch paperwork pulls from here" — not just "Maintain contacts."</td></tr>
+  <tr><td><strong>No jargon without definition</strong></td><td>First use of NIS, FFA, GRV etc. should be explained or linked to the glossary.</td></tr>
+  <tr><td><strong>Workflow-first</strong></td><td>Describe the process, mention key fields, skip obvious form labels.</td></tr>
+</table>
+
+<!-- ─── 5 ─── -->
+<h2 id="do-dont">5. Do / Don't examples</h2>
+
+<h3>Lead paragraph</h3>
+<div class="do-dont">
+  <div class="do">"This is where macadamia nuts arrive. When a grower delivers NIS, you log the delivery, run through a receiving checklist, and create a kernel batch."</div>
+  <div class="dont">"Dialog opened from the related module. Complete required fields (marked), then save. Use Cancel or the close button to dismiss without saving."</div>
+</div>
+
+<h3>Steps</h3>
+<div class="do-dont">
+  <div class="do">"For each new delivery: start with the <strong>Receiving checklist</strong> — it's Stage 1 and unlocks everything else."</div>
+  <div class="dont">"The user should complete the receiving checklist form by filling in all required fields and submitting the form."</div>
+</div>
+
+<h3>Tips</h3>
+<div class="do-dont">
+  <div class="do">"If quantities don't match, fix it in Stock Management. Forcing mismatches through dispatch creates downstream problems."</div>
+  <div class="dont">"Ensure data integrity by verifying quantities prior to dispatch operations."</div>
+</div>
+
+<h3>Modal descriptions</h3>
+<div class="do-dont">
+  <div class="do">"The job card captures production detail — styles, yields, equipment. Fill it per your factory standard."</div>
+  <div class="dont">"Dialog opened from the related module. Complete required fields (marked), then save."</div>
+</div>
+
+<!-- ─── 6 ─── -->
+<h2 id="new-module">6. Adding a section for a new module</h2>
+
+<p>When you build a new module, add its guide section <strong>in the same commit</strong>. Here's where to put it and what to write:</p>
+
+<ol class="checklist">
+  <li><strong>Find the right chapter.</strong> Sections are grouped by workflow:
+    <table>
+      <tr><th>Chapter</th><th>What goes here</th></tr>
+      <tr><td>Your daily view</td><td>Dashboards, My Day</td></tr>
+      <tr><td>Contacts (CRM)</td><td>CRM tabs and contact types</td></tr>
+      <tr><td>Kernel stream</td><td>Grower intake → production → stock → dispatch</td></tr>
+      <tr><td>Oil &amp; protein stream</td><td>Supplier intake → production → stock → dispatch</td></tr>
+      <tr><td>Quality &amp; traceability</td><td>QA, batch journey</td></tr>
+      <tr><td>Business &amp; reporting</td><td>Sales, finance</td></tr>
+      <tr><td>Documents &amp; integrations</td><td>Docs, Palladium, data import</td></tr>
+      <tr><td>Administration</td><td>Users, roles, permissions, features, admin</td></tr>
+    </table>
+  </li>
+  <li><strong>Add the section</strong> in the HTML, inside the right chapter, in workflow order.</li>
+  <li><strong>Write the content</strong> following the anatomy in section 3 above:
+    <ul>
+      <li>Lead paragraph — what is it, why does it exist (1-2 sentences)</li>
+      <li>How paragraph — practical context (1-2 sentences)</li>
+      <li>"How to use it" steps — 4-6 numbered actions</li>
+      <li>Optional tip callout</li>
+      <li>Screenshot reference</li>
+    </ul>
+  </li>
+  <li><strong>Add the route</strong> to <code>appRouteConfig.json</code> and the Help button to your module HTML:
+<pre><code>&lt;a href="/help/user-guide-v2.html#<span class="highlight">your-module-grid</span>"
+   target="_blank" class="btn btn-sm btn-outline-secondary"&gt;
+  &lt;i class="bi bi-question-circle"&gt;&lt;/i&gt; Help
+&lt;/a&gt;
+</code></pre>
+  </li>
+  <li><strong>Add a glossary entry</strong> if your module introduces new terms.</li>
+</ol>
+
+<!-- ─── 7 ─── -->
+<h2 id="new-modal">7. Adding a modal subsection</h2>
+
+<p>Not every modal needs its own section. Use this decision tree:</p>
+
+<table>
+  <tr><th>Modal type</th><th>What to do</th></tr>
+  <tr><td>Simple Add/Edit form (name, description, save)</td><td><strong>Skip it.</strong> The parent section's steps should mention it in passing.</td></tr>
+  <tr><td>Multi-step dialog (checklist, dispatch form, production stages)</td><td><strong>Add a subsection</strong> with <code>data-toc="0"</code>. Write 1-2 lines of lead + 3-4 steps.</td></tr>
+  <tr><td>Read-only view dialog (job card view, batch history)</td><td><strong>Add a minimal subsection</strong> — 1 line of lead, no steps needed.</td></tr>
+</table>
+
+<p>Place the modal section <strong>immediately after its parent module section</strong> in the HTML. This keeps related content together when reading the source.</p>
+
+<!-- ─── 8 ─── -->
+<h2 id="svg">8. SVG diagram conventions</h2>
+
+<p>Inline SVGs are used for workflow diagrams. Follow these rules:</p>
+
+<table>
+  <tr><th>Rule</th><th>Detail</th></tr>
+  <tr><td>Colour scheme</td><td>Boxes: <code>#e8f0ec</code> (green) or <code>#e8edf0</code> (blue-green for oil). Borders: <code>#2d4a3e</code>. Arrows: <code>#4a6b5c</code>. Text: <code>#1a2e26</code>. Sub-text: <code>#5a6b63</code>.</td></tr>
+  <tr><td>Font</td><td><code>system-ui, "Segoe UI", sans-serif</code> — matches the guide body text.</td></tr>
+  <tr><td>Clickable boxes</td><td>Wrap in <code>&lt;a href="#section-id"&gt;</code> with a <code>&lt;title&gt;</code> for accessibility.</td></tr>
+  <tr><td>Hover state</td><td>Add <code>:hover</code> rule to lighten the box fill.</td></tr>
+  <tr><td>Container</td><td>Wrap the SVG in <code>&lt;div class="guide-flow"&gt;</code> — this adds the white card, border, and horizontal scroll on narrow screens.</td></tr>
+  <tr><td>Hidden in single mode</td><td>The CSS hides <code>.guide-flow</code> when viewing a single section.</td></tr>
+</table>
+
+<!-- ─── 9 ─── -->
+<h2 id="css-classes">9. CSS classes reference</h2>
+
+<table>
+  <tr><th>Class</th><th>Element</th><th>Purpose</th></tr>
+  <tr><td><code>guide-section</code></td><td><code>&lt;section&gt;</code></td><td>Every section. JS uses this for TOC and show/hide.</td></tr>
+  <tr><td><code>guide-lead</code></td><td><code>&lt;p&gt;</code></td><td>Muted intro paragraph. 1-2 sentences.</td></tr>
+  <tr><td><code>guide-how</code></td><td><code>&lt;p&gt;</code></td><td>Green left-border callout. Practical context.</td></tr>
+  <tr><td><code>guide-subhead</code></td><td><code>&lt;h3&gt;</code></td><td>Sub-heading within a section ("How to use it").</td></tr>
+  <tr><td><code>guide-page-steps</code></td><td><code>&lt;ol&gt;</code></td><td>Numbered steps list.</td></tr>
+  <tr><td><code>guide-tip</code></td><td><code>&lt;div&gt;</code></td><td>Amber left-border tip callout.</td></tr>
+  <tr><td><code>guide-shot</code></td><td><code>&lt;figure&gt;</code></td><td>Screenshot container. Handles missing images gracefully.</td></tr>
+  <tr><td><code>guide-fields</code></td><td><code>&lt;table&gt;</code></td><td>Data table (glossary, field reference, etc.).</td></tr>
+  <tr><td><code>guide-chapter</code></td><td><code>&lt;div&gt;</code></td><td>Chapter divider. Hidden in single-section mode.</td></tr>
+  <tr><td><code>guide-flow</code></td><td><code>&lt;div&gt;</code></td><td>SVG diagram container. Hidden in single-section mode.</td></tr>
+</table>
+
+<!-- ─── 10 ─── -->
+<h2 id="js-behaviour">10. JS behaviour summary</h2>
+
+<p>You shouldn't need to edit <code>help-shell.js</code> when adding content. But here's what it does so you understand the constraints:</p>
+
+<table>
+  <tr><th>Feature</th><th>How it works</th></tr>
+  <tr><td><strong>TOC generation</strong></td><td>On load, finds all <code>section.guide-section[id]</code> elements. Skips those with <code>data-exclude-from-full-guide="1"</code> or <code>data-toc="0"</code>. Builds a <code>&lt;ul&gt;</code> of anchor links.</td></tr>
+  <tr><td><strong>Single/full toggle</strong></td><td>If the URL has a <code>#hash</code> pointing to a <code>.guide-section</code> (without <code>?full=1</code>), only that section is shown. Everything else is hidden.</td></tr>
+  <tr><td><strong>Full guide link</strong></td><td>Detects the current filename dynamically — works for both <code>index.html</code> and <code>user-guide-v2.html</code>.</td></tr>
+  <tr><td><strong>Missing screenshots</strong></td><td>If an image in <code>.guide-shot</code> fails to load, the figure gets <code>.is-missing</code> and is hidden.</td></tr>
+  <tr><td><strong>Back to top</strong></td><td>Shows <code>#back-to-top</code> after 400px scroll. Hidden in single-section mode and when the element doesn't exist.</td></tr>
+</table>
+
+<!-- ─── 11 ─── -->
+<h2 id="checklist">11. Developer checklist</h2>
+
+<p>Use this every time you add or change a user-facing module:</p>
+
+<ol class="checklist">
+  <li>
+    <strong>Add the guide section</strong> in <code>user-guide-v2.html</code> inside the correct chapter.
+    <ul>
+      <li>Use the section anatomy from <a href="#anatomy">section 3</a>.</li>
+      <li>Set <code>id</code> and <code>data-guide-id</code> to match the app route.</li>
+    </ul>
+  </li>
+  <li>
+    <strong>Write in the right tone.</strong> Re-read the <a href="#do-dont">Do / Don't</a> section if unsure.
+    <ul>
+      <li>Lead: what is it, why does it matter?</li>
+      <li>Steps: what does the user actually do? (4-6 steps)</li>
+      <li>Tip: anything non-obvious that saves time or prevents mistakes?</li>
+    </ul>
+  </li>
+  <li>
+    <strong>Add modal subsections</strong> only for complex dialogs. Use <code>data-toc="0"</code>.
+  </li>
+  <li>
+    <strong>Add a Help button</strong> in your module HTML that links to <code>#your-section-id</code>.
+  </li>
+  <li>
+    <strong>Add glossary entries</strong> for any new terms (NIS, FFA, etc.).
+  </li>
+  <li>
+    <strong>Add the screenshot filename</strong> so Playwright captures it: <code>./assets/screenshots/your-module-grid.png</code>.
+  </li>
+  <li>
+    <strong>Update an SVG diagram</strong> if your module adds a new step to the kernel or oil stream flow.
+  </li>
+  <li>
+    <strong>Commit the guide update in the same commit</strong> as the module code. Don't defer it.
+  </li>
+  <li>
+    <strong>Test both modes:</strong>
+    <ul>
+      <li>Open <code>user-guide-v2.html#your-section-id</code> — does it show just your section?</li>
+      <li>Open <code>user-guide-v2.html?full=1</code> — does it appear in the right place in the TOC?</li>
+    </ul>
+  </li>
+</ol>
+
+<div class="rule"><strong>Remember:</strong> Documentation that ships with the code is documentation that stays current. If it's not in the commit, it doesn't exist.</div>
+
+</body>
+</html>
