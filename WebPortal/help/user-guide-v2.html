@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Macavation User Guide</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="stylesheet" href="help-shell.css" />
+</head>
+<body>
+  <div id="guide-single-bar">
+    <div class="single-bar-top">
+      <span class="single-title"></span>
+      <a href="user-guide-v2.html?full=1" class="btn-link secondary" data-action="full-guide">Full user guide</a>
+    </div>
+  </div>
+
+  <div id="guide-brand">
+    <svg class="brand-logo" viewBox="0 0 100 100" width="44" height="44" aria-hidden="true">
+      <defs>
+        <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#2d6a4f" />
+          <stop offset="100%" style="stop-color:#52b788" />
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="48" fill="url(#logo-grad)"/>
+      <path d="M 50 20 Q 35 30 30 45 Q 25 60 35 70 Q 45 80 50 75 Q 55 80 65 70 Q 75 60 70 45 Q 65 30 50 20 Z" fill="white" opacity="0.9"/>
+      <circle cx="45" cy="50" r="3" fill="#2d6a4f"/>
+      <circle cx="55" cy="50" r="3" fill="#2d6a4f"/>
+      <path d="M 50 60 Q 48 65 50 70" stroke="#2d6a4f" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>
+    <div class="brand-text">
+      <h1 id="guide-main-title">Macavation User Guide</h1>
+      <p class="brand-tagline">Premium Macadamia Excellence</p>
+    </div>
+  </div>
+  <p id="guide-intro">This guide walks you through every part of Macavation — from receiving raw material to dispatching finished product. Use <strong>Help</strong> on any screen to jump straight to that topic, or open the <strong>full user guide</strong> to browse everything. <span class="search-hint">Press <kbd>Ctrl</kbd>+<kbd>F</kbd> (<kbd>⌘</kbd>+<kbd>F</kbd> on Mac) to search this page.</span></p>
+
+  <div id="guide-toc">
+    <h2>Contents</h2>
+  </div>
+
+  <!-- ─── PROCESS OVERVIEW ─── -->
+  <div id="guide-process">
+    <h2>How Macavation works — at a glance</h2>
+    <p class="guide-lead">Macavation follows two product streams that share a common set of support modules. Material flows left to right — from intake through production and stock into dispatch. Click any box to jump to that section.</p>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" role="img" aria-label="Macavation supply-chain overview">
+      <title>Macavation supply-chain overview</title>
+      <defs>
+        <style>
+          .po-box{fill:#f4f7f5;stroke:#2d4a3e;stroke-width:2;rx:8}
+          .po-step{fill:#e8f0ec;stroke:#2d4a3e;stroke-width:1.5;rx:6}
+          .po-lbl{font-family:system-ui,"Segoe UI",sans-serif;font-size:13px;fill:#1a2e26;pointer-events:none}
+          .po-hdr{font-weight:700;font-size:14px}
+          .po-sub{font-size:11px;fill:#5a6b63}
+          .po-arrow{stroke:#4a6b5c;stroke-width:2;fill:none}
+          .po-hit{cursor:pointer;outline:none}
+          .po-hit:hover .po-step{fill:#d5e8dc}
+          .po-hit:focus-visible .po-step{stroke:#0d4a32;stroke-width:3}
+        </style>
+        <marker id="poa" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4a6b5c"/></marker>
+      </defs>
+      <rect class="po-box" x="8" y="8" width="904" height="384"/>
+      <text class="po-lbl po-hdr" x="24" y="36">Macavation — supply-chain map</text>
+
+      <text class="po-lbl po-hdr" x="24" y="70">Kernel stream</text>
+      <text class="po-lbl po-sub" x="24" y="86">Macadamia nuts in shell → processed kernel → packed &amp; shipped</text>
+      <path class="po-arrow" d="M186 118 H206" marker-end="url(#poa)"/>
+      <path class="po-arrow" d="M376 118 H396" marker-end="url(#poa)"/>
+      <path class="po-arrow" d="M536 118 H556" marker-end="url(#poa)"/>
+      <a tabindex="0" href="#grower-intake-grid" class="po-hit"><title>Grower Intake</title>
+        <rect class="po-step" x="24" y="96" width="158" height="44"/><text class="po-lbl" x="52" y="122">Grower Intake</text></a>
+      <a tabindex="0" href="#kernel-production-grid" class="po-hit"><title>Kernel Production</title>
+        <rect class="po-step" x="210" y="96" width="162" height="44"/><text class="po-lbl" x="228" y="122">Kernel Production</text></a>
+      <a tabindex="0" href="#stock-management-grid" class="po-hit"><title>Stock (Kernel)</title>
+        <rect class="po-step" x="400" y="96" width="132" height="44"/><text class="po-lbl" x="418" y="122">Stock (Kernel)</text></a>
+      <a tabindex="0" href="#kernel-dispatch-grid" class="po-hit"><title>Kernel Dispatch</title>
+        <rect class="po-step" x="560" y="96" width="156" height="44"/><text class="po-lbl" x="580" y="122">Kernel Dispatch</text></a>
+
+      <text class="po-lbl po-hdr" x="24" y="178">Oil &amp; protein stream</text>
+      <text class="po-lbl po-sub" x="24" y="194">Raw ingredients → oil / protein production → packed &amp; shipped</text>
+      <path class="po-arrow" d="M186 226 H206" marker-end="url(#poa)"/>
+      <path class="po-arrow" d="M366 226 H386" marker-end="url(#poa)"/>
+      <path class="po-arrow" d="M546 226 H566" marker-end="url(#poa)"/>
+      <a tabindex="0" href="#supplier-intake-grid" class="po-hit"><title>Supplier Intake</title>
+        <rect class="po-step" x="24" y="204" width="158" height="44"/><text class="po-lbl" x="48" y="230">Supplier Intake</text></a>
+      <a tabindex="0" href="#oil-production-grid" class="po-hit"><title>Oil Production</title>
+        <rect class="po-step" x="210" y="204" width="152" height="44"/><text class="po-lbl" x="234" y="230">Oil Production</text></a>
+      <a tabindex="0" href="#stock-management-grid" class="po-hit"><title>Stock (Oil &amp; Protein)</title>
+        <rect class="po-step" x="390" y="204" width="152" height="44"/><text class="po-lbl" x="396" y="230">Stock (Oil/Protein)</text></a>
+      <a tabindex="0" href="#oil-dispatch-grid" class="po-hit"><title>Oil &amp; Protein Dispatch</title>
+        <rect class="po-step" x="570" y="204" width="170" height="44"/><text class="po-lbl" x="584" y="230">Oil &amp; Protein Dispatch</text></a>
+
+      <text class="po-lbl po-hdr" x="24" y="290">Shared modules</text>
+      <a tabindex="0" href="#crm-grid" class="po-hit"><title>CRM</title>
+        <rect class="po-step" x="24" y="302" width="80" height="36"/><text class="po-lbl" x="44" y="324">CRM</text></a>
+      <a tabindex="0" href="#quality-assurance-grid" class="po-hit"><title>Quality</title>
+        <rect class="po-step" x="116" y="302" width="80" height="36"/><text class="po-lbl" x="128" y="324">Quality</text></a>
+      <a tabindex="0" href="#batch-journey-grid" class="po-hit"><title>Batch Journey</title>
+        <rect class="po-step" x="208" y="302" width="110" height="36"/><text class="po-lbl" x="216" y="324">Batch Journey</text></a>
+      <a tabindex="0" href="#dashboard-overview" class="po-hit"><title>Dashboard</title>
+        <rect class="po-step" x="330" y="302" width="100" height="36"/><text class="po-lbl" x="342" y="324">Dashboard</text></a>
+      <a tabindex="0" href="#document-management-grid" class="po-hit"><title>Documents</title>
+        <rect class="po-step" x="442" y="302" width="100" height="36"/><text class="po-lbl" x="452" y="324">Documents</text></a>
+      <a tabindex="0" href="#palladium-integration-grid" class="po-hit"><title>Palladium</title>
+        <rect class="po-step" x="554" y="302" width="100" height="36"/><text class="po-lbl" x="566" y="324">Palladium</text></a>
+      <a tabindex="0" href="#users-grid" class="po-hit"><title>Users &amp; Admin</title>
+        <rect class="po-step" x="666" y="302" width="110" height="36"/><text class="po-lbl" x="672" y="324">Users &amp; Admin</text></a>
+      <a tabindex="0" href="#my-day" class="po-hit"><title>My Day</title>
+        <rect class="po-step" x="788" y="302" width="90" height="36"/><text class="po-lbl" x="808" y="324">My Day</text></a>
+    </svg>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- CHAPTER: Getting started                                          -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="guide-chapter">
+    <h2>Getting started</h2>
+    <p class="chapter-lead">Signing in, finding your way around, and understanding what you can see.</p>
+  </div>
+
+  <section id="getting-started" class="guide-section" data-guide-id="getting-started">
+    <h2>Signing in &amp; navigating</h2>
+    <p class="guide-lead">Everything starts with your browser. Open the Macavation address your organisation gave you (bookmark it), sign in, and you're ready to go.</p>
+
+    <h3 class="guide-subhead">Signing in</h3>
+    <ol class="guide-page-steps">
+      <li>Open the Macavation URL in <strong>Chrome</strong>, <strong>Edge</strong>, or <strong>Firefox</strong> (latest version).</li>
+      <li>Sign in with the method your admin set up — usually <strong>Google</strong> or <strong>email and password</strong>.</li>
+      <li>If it fails, check caps lock, try a password reset, or ask your <strong>system administrator</strong>.</li>
+    </ol>
+
+    <h3 class="guide-subhead">The layout</h3>
+    <p>Once you're in, you'll see three areas:</p>
+    <table class="guide-fields">
+      <tr><th>Area</th><th>What it does</th></tr>
+      <tr><td><strong>Top bar</strong></td><td>Shows the <strong>My Day</strong> icon (quick tasks for your role), a notification bell, and your <strong>profile</strong> menu (change password, sign out).</td></tr>
+      <tr><td><strong>Sidebar</strong> (left)</td><td>Your main menu. Sections expand with a chevron — click to see sub-pages. If something is missing, your role doesn't include it.</td></tr>
+      <tr><td><strong>Content area</strong></td><td>The main working area. This is where grids, forms, dashboards, and modals appear.</td></tr>
+    </table>
+
+    <div class="guide-tip"><strong>Tip:</strong> On tablets or narrow screens the sidebar collapses. Tap the hamburger icon (☰) to bring it back.</div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- CHAPTER: Your daily view                                          -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="guide-chapter">
+    <h2>Your daily view</h2>
+    <p class="chapter-lead">Dashboards, My Day, and at-a-glance summaries to start your shift.</p>
+  </div>
+
+  <section id="dashboard-overview" class="guide-section" data-guide-id="dashboard-overview">
+    <h2>Dashboard</h2>
+    <p class="guide-lead">The dashboard is your landing page — a snapshot of today's numbers. What you see depends on your role: some users get production stats, others get KPI cards or task lists.</p>
+    <p class="guide-how">Think of the dashboard as a daily health check. Glance at the cards, then dive into the modules that need attention. If the numbers look stale, hit refresh in your browser.</p>
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Dashboard</strong> from the sidebar (or land here automatically after sign-in).</li>
+      <li>Read the summary cards — users, production batches, packing, tasks — for a quick snapshot.</li>
+      <li>Click any card or link to jump into the relevant module for detail.</li>
+      <li>Use the sidebar for everything else.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/dashboard-overview.png" width="1200" height="675" alt="Dashboard overview" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="my-day" class="guide-section" data-guide-id="my-day">
+    <h2>My Day</h2>
+    <p class="guide-lead">My Day is your personal to-do list — it shows what needs your attention based on your role. Approvals waiting, batches to check, tasks to complete.</p>
+    <p class="guide-how">Work through items top to bottom. Each one links straight to the module where you'll do the actual work. Completing tasks there updates everyone else's dashboards automatically.</p>
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Click the <strong>My Day</strong> icon in the top bar, or open it from the sidebar.</li>
+      <li>Scan your task list — items are sorted by priority or time.</li>
+      <li>Click a task to jump to the right module (intake, production, dispatch, etc.).</li>
+      <li>Complete the work there, and My Day updates automatically.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/my-day.png" width="1200" height="675" alt="My Day" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="material-journey-dashboard" class="guide-section" data-guide-id="material-journey-dashboard">
+    <h2>Material journey dashboard</h2>
+    <p class="guide-lead">This dashboard shows you where material is right now — from intake through production and into the warehouse. Think of it as a bird's-eye view of everything in motion.</p>
+    <p class="guide-how">Best for roles that watch movement across sites or stages (operations managers, integrators). Each card links to the module that owns that step.</p>
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Material journey</strong> from the dashboard or sidebar.</li>
+      <li>Click <strong>Refresh</strong> to make sure you're seeing live data.</li>
+      <li>Scan the cards for exceptions or batches that need action.</li>
+      <li>Click a card to jump into the owning module and take action there.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/material-journey-dashboard.png" width="1200" height="675" alt="Material journey dashboard" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="executive-dashboard" class="guide-section" data-guide-id="executive-dashboard">
+    <h2>Executive dashboard</h2>
+    <p class="guide-lead">Built for leadership — KPIs, charts, and export-ready reports. Choose which widgets to show and generate PDFs when you need them for meetings.</p>
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Executive dashboard</strong> from the sidebar.</li>
+      <li>Click <strong>Customize</strong> to choose which KPI widgets and charts appear.</li>
+      <li>Use <strong>Generate report</strong> for a PDF you can share.</li>
+      <li>For line-level detail, drill into Kernel or Oil &amp; protein modules — these numbers are summaries.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/executive-dashboard.png" width="1200" height="675" alt="Executive dashboard" loading="lazy" />
+    </figure>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- CHAPTER: Contacts (CRM)                                           -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="guide-chapter">
+    <h2>Contacts (CRM)</h2>
+    <p class="chapter-lead">Everyone you work with — growers, suppliers, customers, and processors — lives here.</p>
+  </div>
+
+  <section id="crm-grid" class="guide-section" data-guide-id="crm-grid">
+    <h2>CRM — Contact database</h2>
+    <p class="guide-lead">CRM is your single source of truth for people and organisations. Growers, suppliers, customers, oil processors — they're all here, organised into tabs.</p>
+    <p class="guide-how">Keep contacts accurate because other modules (intake, dispatch, invoicing) pull names and details from here. A wrong email in CRM means a wrong email on dispatch paperwork.</p>
+
+    <h3 class="guide-subhead">Tabs you'll see</h3>
+    <table class="guide-fields">
+      <tr><th>Tab</th><th>Who's in it</th><th>Used by</th></tr>
+      <tr><td><strong>NIS Suppliers</strong></td><td>Kernel growers (numbered supplier list)</td><td>Grower intake, kernel reporting</td></tr>
+      <tr><td><strong>Kernel Customers</strong></td><td>Buyers of kernel products</td><td>Kernel dispatch, sales</td></tr>
+      <tr><td><strong>Oil &amp; Protein Customers</strong></td><td>Buyers of oil and protein</td><td>Oil dispatch, sales</td></tr>
+      <tr><td><strong>Oil Ingredient Suppliers</strong></td><td>Raw material suppliers for oil/protein</td><td>Supplier intake</td></tr>
+      <tr><td><strong>Oil Processors</strong></td><td>Organisations classified as processors</td><td>Oil production, intake</td></tr>
+    </table>
+
+    <h3 class="guide-subhead">Common actions</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> from the sidebar and pick the right tab for the contact type.</li>
+      <li>Use <strong>Search</strong> and <strong>Filters</strong> to find who you're looking for.</li>
+      <li>Click <strong>Add Contact</strong> for a single new record, or <strong>Import from Excel</strong> for bulk updates (don't rename the template columns).</li>
+      <li>Click a row to edit — changes flow through to every module that references that contact.</li>
+    </ol>
+    <div class="guide-tip"><strong>Tip:</strong> After adding or editing a contact, refresh the page in any module that uses a contact dropdown (like intake or dispatch) so the new name appears.</div>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="CRM contact grid" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="crm-nis-suppliers" class="guide-section" data-guide-id="crm-nis-suppliers" data-toc="0">
+    <h2>CRM — NIS suppliers</h2>
+    <p class="guide-lead">The numbered grower/supplier list used with kernel intake and reporting. These names appear in grower intake batches and kernel statistics.</p>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> → <strong>NIS Suppliers</strong> tab.</li>
+      <li>Use <strong>Add Contact</strong> for a single grower, or <strong>Import from Excel</strong> for bulk updates.</li>
+      <li>Edits here feed into grower intake, kernel reporting, and dispatch wherever that supplier appears.</li>
+    </ol>
+  </section>
+
+  <section id="crm-kernel-customers" class="guide-section" data-guide-id="crm-kernel-customers" data-toc="0">
+    <h2>CRM — Kernel customers</h2>
+    <p class="guide-lead">Buyers of kernel products. Keep delivery addresses and commercial details current — dispatch paperwork pulls from here.</p>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> → <strong>Kernel Customers</strong> tab.</li>
+      <li>Add or edit customers as needed. Accurate contacts mean fewer errors on kernel dispatch documents.</li>
+    </ol>
+  </section>
+
+  <section id="crm-oil-protein-customers" class="guide-section" data-guide-id="crm-oil-protein-customers" data-toc="0">
+    <h2>CRM — Oil &amp; protein customers</h2>
+    <p class="guide-lead">Buyers of oil and protein products. Same tools as other tabs — search, filter, add, import.</p>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> → <strong>Oil &amp; Protein Customers</strong> tab.</li>
+      <li>Keep commercial contacts current for sales and oil dispatch paperwork.</li>
+    </ol>
+  </section>
+
+  <section id="crm-oil-ingredient-suppliers" class="guide-section" data-guide-id="crm-oil-ingredient-suppliers" data-toc="0">
+    <h2>CRM — Oil ingredient suppliers</h2>
+    <p class="guide-lead">Raw material and ingredient suppliers for the oil &amp; protein stream. These contacts appear in supplier intake dropdowns.</p>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> → <strong>Oil Ingredient Suppliers</strong> tab.</li>
+      <li>After changes, notify planners so stock and intake expectations stay aligned.</li>
+    </ol>
+  </section>
+
+  <section id="crm-oil-processors" class="guide-section" data-guide-id="crm-oil-processors" data-toc="0">
+    <h2>CRM — Oil processors</h2>
+    <p class="guide-lead">Organisations classified as oil processors. Edits apply wherever that contact is picked — intake, production, dispatch.</p>
+    <ol class="guide-page-steps">
+      <li>Open <strong>CRM</strong> → <strong>Oil Processors</strong> tab.</li>
+      <li>Use filters and export for audit and review purposes.</li>
+    </ol>
+  </section>
+
+  <section id="modal-crm-contact" class="guide-section" data-guide-id="modal-crm-contact" data-toc="0">
+    <h2>Add / edit contact (dialog)</h2>
+    <p class="guide-lead">Opens when you click <strong>Add Contact</strong> or edit a row. Fill in identity, phone, email, and address fields — then save. Downstream modules pick up the contact immediately.</p>
+    <ol class="guide-page-steps">
+      <li>Confirm the contact type (NIS supplier, oil customer, etc.) so the record lands in the right tab.</li>
+      <li>Complete identity and address fields as dispatch and finance teams expect them.</li>
+      <li>Save — the grid refreshes and downstream modules can use the contact straight away.</li>
+    </ol>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- CHAPTER: Kernel stream                                            -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="guide-chapter">
+    <h2>Kernel stream</h2>
+    <p class="chapter-lead">From grower delivery through cracking, drying, sorting, and packing — all the way to dispatch.</p>
+  </div>
+
+  <div class="guide-flow">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 170" role="img" aria-label="Kernel stream workflow">
+      <defs>
+        <style>
+          .kf-step{fill:#e8f0ec;stroke:#2d4a3e;stroke-width:1.5;rx:6}
+          .kf-lbl{font-family:system-ui,"Segoe UI",sans-serif;font-size:13px;fill:#1a2e26;font-weight:700;pointer-events:none}
+          .kf-sub{font-family:system-ui,"Segoe UI",sans-serif;font-size:10.5px;fill:#5a6b63;pointer-events:none}
+          .kf-arr{stroke:#4a6b5c;stroke-width:2;fill:none}
+          .kf-hit{cursor:pointer;outline:none}
+          .kf-hit:hover .kf-step{fill:#d5e8dc}
+        </style>
+        <marker id="ka" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4a6b5c"/></marker>
+      </defs>
+      <path class="kf-arr" d="M218 70 H238" marker-end="url(#ka)"/>
+      <path class="kf-arr" d="M458 70 H478" marker-end="url(#ka)"/>
+      <path class="kf-arr" d="M658 70 H678" marker-end="url(#ka)"/>
+
+      <a href="#grower-intake-grid" class="kf-hit"><title>Grower Intake</title>
+        <rect class="kf-step" x="16" y="20" width="198" height="100"/>
+        <text class="kf-lbl" x="60" y="48">Grower Intake</text>
+        <text class="kf-sub" x="28" y="68">Receiving checklist</text>
+        <text class="kf-sub" x="28" y="82">Create batch &amp; samples</text>
+        <text class="kf-sub" x="28" y="96">Quality test</text>
+        <text class="kf-sub" x="28" y="110">Release to production</text>
+      </a>
+
+      <a href="#kernel-production-grid" class="kf-hit"><title>Kernel Production</title>
+        <rect class="kf-step" x="242" y="20" width="212" height="100"/>
+        <text class="kf-lbl" x="286" y="48">Kernel Production</text>
+        <text class="kf-sub" x="254" y="68">Silo assignment</text>
+        <text class="kf-sub" x="254" y="82">Production stages</text>
+        <text class="kf-sub" x="254" y="96">Job card &amp; QA</text>
+        <text class="kf-sub" x="254" y="110">Complete batch</text>
+      </a>
+
+      <a href="#stock-management-grid" class="kf-hit"><title>Stock (Kernel)</title>
+        <rect class="kf-step" x="482" y="20" width="172" height="100"/>
+        <text class="kf-lbl" x="516" y="48">Stock (Kernel)</text>
+        <text class="kf-sub" x="494" y="68">Warehouse view</text>
+        <text class="kf-sub" x="494" y="82">Stock take</text>
+        <text class="kf-sub" x="494" y="96">By style / weekly</text>
+        <text class="kf-sub" x="494" y="110">Send to dispatch</text>
+      </a>
+
+      <a href="#kernel-dispatch-grid" class="kf-hit"><title>Kernel Dispatch</title>
+        <rect class="kf-step" x="682" y="20" width="220" height="100"/>
+        <text class="kf-lbl" x="736" y="48">Kernel Dispatch</text>
+        <text class="kf-sub" x="694" y="68">Build dispatch basket</text>
+        <text class="kf-sub" x="694" y="82">Vehicle inspection</text>
+        <text class="kf-sub" x="694" y="96">Dispatch form &amp; sign-off</text>
+        <text class="kf-sub" x="694" y="110">Mark as dispatched</text>
+      </a>
+
+      <text class="kf-sub" x="16" y="148" style="font-style:italic">Click any box above to jump to that section of the guide.</text>
+    </svg>
+  </div>
+
+  <!-- Grower Intake -->
+  <section id="grower-intake-grid" class="guide-section" data-guide-id="grower-intake-grid">
+    <h2>Grower Intake</h2>
+    <p class="guide-lead">This is where macadamia nuts arrive. When a grower delivers NIS (nut in shell), you log the delivery, run through a receiving checklist, capture samples, and create a kernel batch that production can pick up.</p>
+    <p class="guide-how">Work delivery by delivery. The flow is: <strong>receive → checklist → batch → sample/test → release</strong>. Nothing moves to production until the checklist is done and quality is satisfied.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Grower Intake</strong> from the sidebar under <strong>Kernel</strong>.</li>
+      <li>Switch between <strong>Board</strong> (kanban-style) and <strong>Table</strong> view — use whichever your team prefers.</li>
+      <li>Use <strong>Search</strong> and <strong>Status</strong> filters to find a specific batch.</li>
+      <li>For each new delivery: start with the <strong>Receiving checklist</strong> — it's Stage 1 and unlocks everything else.</li>
+      <li>After the checklist, run <strong>Batch test</strong> and <strong>Batch sample</strong> as your quality process requires.</li>
+      <li>When quality is satisfied, use <strong>Release to production</strong> (and pick a silo if prompted).</li>
+    </ol>
+    <div class="guide-tip"><strong>Tip:</strong> Use <strong>Export</strong> to get a spreadsheet snapshot — handy for audits or end-of-day reports.</div>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/grower-intake-grid.png" width="1200" height="675" alt="Grower Intake" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-grower-receiving-checklist" class="guide-section" data-guide-id="modal-grower-receiving-checklist" data-toc="0">
+    <h2>Receiving checklist (grower)</h2>
+    <p class="guide-lead">This is Stage 1 of intake. Work through each line — weights, dockets, quality flags — exactly as your operations team defined. Everything else (batch test, sample, release) stays locked until this is done.</p>
+    <ol class="guide-page-steps">
+      <li>Open from a batch card or row actions when the delivery is ready for checking.</li>
+      <li>Complete every line item: weights, delivery docket, quality flags.</li>
+      <li>If something's wrong with the delivery, record it here and escalate to QA before releasing forward.</li>
+      <li>Save — the batch card updates to show the checklist as complete.</li>
+    </ol>
+  </section>
+
+  <section id="modal-grower-create-kernel-batch" class="guide-section" data-guide-id="modal-grower-create-kernel-batch" data-toc="0">
+    <h2>Create kernel batch (dialog)</h2>
+    <p class="guide-lead">Opens from <strong>Create kernel batch</strong> on the intake screen. Enter the grower (from CRM), delivery details, and wet NIS data. Save to create the batch — you'll return to the board to run checklist and tests.</p>
+  </section>
+
+  <section id="modal-grower-link-sample-to-batch" class="guide-section" data-guide-id="modal-grower-link-sample-to-batch" data-toc="0">
+    <h2>Link sample to batch (dialog)</h2>
+    <p class="guide-lead">Links a lab sample result to an intake batch. Select the correct batch and sample identifiers — don't guess batch numbers. Save so quality status can progress.</p>
+  </section>
+
+  <section id="modal-end-sample" class="guide-section" data-guide-id="modal-end-sample" data-toc="0">
+    <h2>End sample (dialog)</h2>
+    <p class="guide-lead">Records the final disposition of a sample. Note any retest requirements before saving.</p>
+  </section>
+
+  <section id="modal-end-sample-view" class="guide-section" data-guide-id="modal-end-sample-view" data-toc="0">
+    <h2>End sample — view (dialog)</h2>
+    <p class="guide-lead">Read-only view of how a sample was closed. Open for reference during investigations.</p>
+  </section>
+
+  <!-- Kernel Production -->
+  <section id="kernel-production-grid" class="guide-section" data-guide-id="kernel-production-grid">
+    <h2>Kernel Production</h2>
+    <p class="guide-lead">Once a batch is released from intake, it arrives here. Kernel production tracks each batch through its stages — receiving, cracking, drying, sorting, packing, and any QA steps your factory defines.</p>
+    <p class="guide-how">Drive each batch through its stages in order. The board shows you what's where. Job cards capture the detail. QA and stock hand-offs depend on accurate stage completion — so keep it truthful.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Kernel Production</strong> from the sidebar under <strong>Kernel</strong>.</li>
+      <li>Check the <strong>Silos</strong> panel first — red means occupied, white means empty. Click to toggle.</li>
+      <li>Search and filter batches. Toggle between <strong>Board</strong>, <strong>Table</strong>, or <strong>Approved jobcards</strong> views.</li>
+      <li>Open a batch to manage its <strong>job card</strong>, advance <strong>production stages</strong>, and handle QA hand-offs.</li>
+      <li>Complete stages in order so status stays accurate for everyone downstream.</li>
+      <li>When finished, the batch moves to <strong>Stock (Kernel)</strong> automatically.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/kernel-production-grid.png" width="1200" height="675" alt="Kernel Production" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-kernel-job-card" class="guide-section" data-guide-id="modal-kernel-job-card" data-toc="0">
+    <h2>Kernel job card (dialog)</h2>
+    <p class="guide-lead">The job card captures production detail for a batch — styles, yields, equipment used. Fill it per your factory standard and save. Downstream release-to-stock steps depend on accurate job card data.</p>
+  </section>
+
+  <section id="modal-job-card-view" class="guide-section" data-guide-id="modal-job-card-view" data-toc="0">
+    <h2>Job card — view (dialog)</h2>
+    <p class="guide-lead">Read-only view of a job card. Use it to verify styles and quantities before authorising dispatch or QA sign-off.</p>
+  </section>
+
+  <section id="modal-production-stages" class="guide-section" data-guide-id="modal-production-stages" data-toc="0">
+    <h2>Production stages (dialog)</h2>
+    <p class="guide-lead">Advance or edit the production stages for a batch. Move stages in order — don't skip mandatory QA stages. Save after each meaningful change so the board reflects true floor status.</p>
+  </section>
+
+  <section id="modal-production-stages-view" class="guide-section" data-guide-id="modal-production-stages-view" data-toc="0">
+    <h2>Production stages — view (dialog)</h2>
+    <p class="guide-lead">Read-only history of stage changes with timestamps. Useful when dispatch or QA asks where a batch stalled.</p>
+  </section>
+
+  <!-- Stock Management (Kernel focus) -->
+  <section id="stock-management-grid" class="guide-section" data-guide-id="stock-management-grid">
+    <h2>Stock Management</h2>
+    <p class="guide-lead">Stock management gives you a live view of your warehouse — both kernel and oil/protein, depending on which route you came from. You can see what's on hand, run stock takes, and send finished goods toward dispatch.</p>
+    <p class="guide-how">The key rule: <strong>only send to dispatch when physical stock matches the system.</strong> If something doesn't line up, fix it here first.</p>
+
+    <h3 class="guide-subhead">For kernel stock</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Stock (Kernel)</strong> from the sidebar under <strong>Kernel</strong>.</li>
+      <li>Use <strong>By style</strong>, <strong>Weekly</strong>, or <strong>Overview</strong> tabs to see stock from different angles.</li>
+      <li>Select finished kernel lines and click <strong>Send to Dispatch</strong> to build a dispatch basket.</li>
+      <li>Use <strong>Import historical</strong> only for the controlled kernel load your admin approved.</li>
+    </ol>
+
+    <h3 class="guide-subhead">For oil &amp; protein stock</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Stock (Oil &amp; Protein)</strong> from the sidebar under <strong>Oil &amp; Protein</strong>.</li>
+      <li>Add or import oil lots (from Excel if needed). Watch <strong>best-before</strong> dates and days remaining.</li>
+      <li>Use <strong>Send to Dispatch</strong> to move released oil lots toward the oil dispatch module.</li>
+    </ol>
+
+    <div class="guide-tip"><strong>Tip:</strong> Use <strong>Export</strong> regularly for warehouse reports. Run stock takes through the app rather than ad-hoc spreadsheets — it keeps the audit trail clean.</div>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/stock-management-grid.png" width="1200" height="675" alt="Stock Management" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-send-to-dispatch" class="guide-section" data-guide-id="modal-send-to-dispatch" data-toc="0">
+    <h2>Send to dispatch — kernel (dialog)</h2>
+    <p class="guide-lead">Opens from kernel stock when you select finished lines. Confirm the customer, delivery date, and quantities match what sales agreed. Submit and the basket appears in <strong>Kernel Dispatch</strong> for final inspection.</p>
+  </section>
+
+  <section id="modal-send-to-dispatch-oil" class="guide-section" data-guide-id="modal-send-to-dispatch-oil" data-toc="0">
+    <h2>Send to dispatch — oil (dialog)</h2>
+    <p class="guide-lead">Same idea but for oil/protein lots. Verify lot numbers, best-before dates, and quantities against the physical warehouse before submitting.</p>
+  </section>
+
+  <section id="modal-stock-take" class="guide-section" data-guide-id="modal-stock-take" data-toc="0">
+    <h2>Stock take (dialog)</h2>
+    <p class="guide-lead">Opens during a stock-take workflow. Count physically first, then enter counted quantities. Explain any variances in the notes field. Submit for approval if your workflow includes a reviewer.</p>
+  </section>
+
+  <section id="modal-oil-lot" class="guide-section" data-guide-id="modal-oil-lot" data-toc="0">
+    <h2>Oil lot (dialog)</h2>
+    <p class="guide-lead">Create or edit an oil lot record. Enter best-before date, quantity, location, and grade. Make sure labels on physical drums or tanks match what you enter here.</p>
+  </section>
+
+  <section id="modal-import-oil-lots" class="guide-section" data-guide-id="modal-import-oil-lots" data-toc="0">
+    <h2>Import oil lots (dialog)</h2>
+    <p class="guide-lead">Bulk-import oil lots from an Excel template. Don't rename columns in the template. Preview row counts before committing.</p>
+  </section>
+
+  <section id="modal-raw-material-issued" class="guide-section" data-guide-id="modal-raw-material-issued" data-toc="0">
+    <h2>Raw material issued (dialog)</h2>
+    <p class="guide-lead">Records raw material issued from stock to production. Link to the correct batch or job — quantities reduce raw stock when saved.</p>
+  </section>
+
+  <section id="modal-receiving-checklist" class="guide-section" data-guide-id="modal-receiving-checklist" data-toc="0">
+    <h2>Receiving checklist — stock (dialog)</h2>
+    <p class="guide-lead">Used for stock or supplier receiving checks. Complete quantities, condition checks, and sign-off fields. Save so stock and intake statuses can advance.</p>
+  </section>
+
+  <!-- Kernel Dispatch -->
+  <section id="kernel-dispatch-grid" class="guide-section" data-guide-id="kernel-dispatch-grid">
+    <h2>Kernel Dispatch</h2>
+    <p class="guide-lead">The final step in the kernel stream. Dispatch baskets are built from stock, inspected, and shipped to customers. Nothing leaves without paperwork.</p>
+    <p class="guide-how">The flow is: stock sends lines here → you build a basket → complete the inspection and dispatch form → mark as dispatched. If quantities don't match, fix it in Stock Management, not here.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Kernel Dispatch</strong> from the sidebar under <strong>Kernel</strong>.</li>
+      <li>Use <strong>Board</strong> or <strong>Table</strong> view and hit <strong>Refresh</strong> to see the latest baskets.</li>
+      <li>Open <strong>View basket</strong> to check styles and quantities before loading.</li>
+      <li>Click <strong>Dispatch</strong> to open the inspection and dispatch form.</li>
+      <li>Complete vehicle details, seal numbers, weight checks, and sign-offs per your logistics SOP.</li>
+      <li>Review <strong>Baskets marked as dispatched</strong> for completed paperwork and proof of shipment.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/kernel-dispatch-grid.png" width="1200" height="675" alt="Kernel Dispatch" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-kernel-dispatch" class="guide-section" data-guide-id="modal-kernel-dispatch" data-toc="0">
+    <h2>Kernel dispatch basket (dialog)</h2>
+    <p class="guide-lead">Create or edit a dispatch basket header — buyer, delivery date, references. Pick kernel customers from CRM. Save the header before opening line-level or inspection forms.</p>
+  </section>
+
+  <section id="modal-kernel-dispatch-form" class="guide-section" data-guide-id="modal-kernel-dispatch-form" data-toc="0">
+    <h2>Kernel dispatch form (dialog)</h2>
+    <p class="guide-lead">The inspection and dispatch paperwork. Fill vehicle details, seal numbers, weight checks, and sign-offs. Submit only after the physical load matches the basket — no forcing through mismatches.</p>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- CHAPTER: Oil & protein stream                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="guide-chapter">
+    <h2>Oil &amp; protein stream</h2>
+    <p class="chapter-lead">From raw ingredient delivery through oil and protein production to packed and dispatched product.</p>
+  </div>
+
+  <div class="guide-flow">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 170" role="img" aria-label="Oil &amp; protein stream workflow">
+      <defs>
+        <style>
+          .of-step{fill:#e8edf0;stroke:#2d4a3e;stroke-width:1.5;rx:6}
+          .of-lbl{font-family:system-ui,"Segoe UI",sans-serif;font-size:13px;fill:#1a2e26;font-weight:700;pointer-events:none}
+          .of-sub{font-family:system-ui,"Segoe UI",sans-serif;font-size:10.5px;fill:#5a6b63;pointer-events:none}
+          .of-arr{stroke:#4a6b5c;stroke-width:2;fill:none}
+          .of-hit{cursor:pointer;outline:none}
+          .of-hit:hover .of-step{fill:#d5dce0}
+        </style>
+        <marker id="oa" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4a6b5c"/></marker>
+      </defs>
+      <path class="of-arr" d="M218 70 H238" marker-end="url(#oa)"/>
+      <path class="of-arr" d="M458 70 H478" marker-end="url(#oa)"/>
+      <path class="of-arr" d="M658 70 H678" marker-end="url(#oa)"/>
+
+      <a href="#supplier-intake-grid" class="of-hit"><title>Supplier Intake</title>
+        <rect class="of-step" x="16" y="20" width="198" height="100"/>
+        <text class="of-lbl" x="56" y="48">Supplier Intake</text>
+        <text class="of-sub" x="28" y="68">Receiver checklist</text>
+        <text class="of-sub" x="28" y="82">Batch &amp; delivery note</text>
+        <text class="of-sub" x="28" y="96">FFA / sample test</text>
+        <text class="of-sub" x="28" y="110">Release to production</text>
+      </a>
+
+      <a href="#oil-production-grid" class="of-hit"><title>Oil Production</title>
+        <rect class="of-step" x="242" y="20" width="212" height="100"/>
+        <text class="of-lbl" x="298" y="48">Oil Production</text>
+        <text class="of-sub" x="254" y="68">Raw ingredients in production</text>
+        <text class="of-sub" x="254" y="82">Oil bins &amp; shifts</text>
+        <text class="of-sub" x="254" y="96">Production sheet</text>
+        <text class="of-sub" x="254" y="110">Mark bag empty</text>
+      </a>
+
+      <a href="#stock-management-grid" class="of-hit"><title>Stock (Oil/Protein)</title>
+        <rect class="of-step" x="482" y="20" width="172" height="100"/>
+        <text class="of-lbl" x="502" y="48">Stock (Oil/Protein)</text>
+        <text class="of-sub" x="494" y="68">Oil lots &amp; grades</text>
+        <text class="of-sub" x="494" y="82">Best-before tracking</text>
+        <text class="of-sub" x="494" y="96">Import / adjust</text>
+        <text class="of-sub" x="494" y="110">Send to dispatch</text>
+      </a>
+
+      <a href="#oil-dispatch-grid" class="of-hit"><title>Oil &amp; Protein Dispatch</title>
+        <rect class="of-step" x="682" y="20" width="220" height="100"/>
+        <text class="of-lbl" x="716" y="48">Oil &amp; Protein Dispatch</text>
+        <text class="of-sub" x="694" y="68">Build dispatch basket</text>
+        <text class="of-sub" x="694" y="82">Vehicle inspection</text>
+        <text class="of-sub" x="694" y="96">Dispatch form &amp; sign-off</text>
+        <text class="of-sub" x="694" y="110">Mark as dispatched</text>
+      </a>
+
+      <text class="of-sub" x="16" y="148" style="font-style:italic">Click any box above to jump to that section of the guide.</text>
+    </svg>
+  </div>
+
+  <!-- Supplier Intake -->
+  <section id="supplier-intake-grid" class="guide-section" data-guide-id="supplier-intake-grid">
+    <h2>Supplier Intake</h2>
+    <p class="guide-lead">This is where raw ingredients arrive for the oil &amp; protein stream — macadamia oil kernel, cracker dust, kernel dust, crush, cake, and similar materials from external suppliers.</p>
+    <p class="guide-how">The flow mirrors kernel intake but for oil ingredients: <strong>receive → checklist → batch → test → release</strong>. Each delivery creates one or more batches that move through sample testing before they're released to oil production.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Supplier Intake</strong> from the sidebar under <strong>Oil &amp; Protein</strong>.</li>
+      <li>Toggle between <strong>Board</strong>, <strong>Table</strong>, <strong>Weekly</strong>, and <strong>Overview</strong> views.</li>
+      <li>Start a new delivery with <strong>Receiver checklist</strong> — this captures the delivery note, supplier, vehicle checks, and creates the batch.</li>
+      <li>Once the batch appears on the board, complete <strong>sample tests</strong> (e.g. FFA) from the card or row actions.</li>
+      <li>When testing is done and the batch is approved, it moves to <strong>Ready for oil production</strong>.</li>
+    </ol>
+    <div class="guide-tip"><strong>Tip:</strong> You can add a new supplier on the fly using the <strong>+</strong> button next to the supplier dropdown in the receiver checklist — no need to leave the page.</div>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/supplier-intake-grid.png" width="1200" height="675" alt="Supplier Intake" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-supplier-receiver-checklist" class="guide-section" data-guide-id="modal-supplier-receiver-checklist" data-toc="0">
+    <h2>Supplier receiver checklist (dialog)</h2>
+    <p class="guide-lead">The starting point for oil-side deliveries. Capture the delivery note, pick the supplier from CRM, check vehicle and pallet condition, then add bag rows — each row can become its own batch with product type, batch number, and quantity (kg).</p>
+    <ol class="guide-page-steps">
+      <li>Fill in the delivery note, date, and supplier.</li>
+      <li>Complete vehicle and condition checks (clean truck, pests, pallets).</li>
+      <li>Add one or more bag rows with product type, quantity, and optional dates.</li>
+      <li>Submit — the batch appears on the board ready for sample testing.</li>
+    </ol>
+  </section>
+
+  <section id="modal-supplier-oil-batch" class="guide-section" data-guide-id="modal-supplier-oil-batch" data-toc="0">
+    <h2>Supplier oil batch (dialog)</h2>
+    <p class="guide-lead">Edit batch header details from the intake row actions. Some fields may be locked after testing is complete — only change what your role allows. Confirm status still matches physical stock before releasing to production.</p>
+  </section>
+
+  <!-- Oil Production -->
+  <section id="oil-production-grid" class="guide-section" data-guide-id="oil-production-grid">
+    <h2>Oil Production</h2>
+    <p class="guide-lead">Oil production is where raw ingredient batches become food-grade oil, cosmetic oil, or protein powder. You'll manage production sheets, oil bins, and shift data here.</p>
+    <p class="guide-how">Raw batches released from supplier intake appear in the <strong>Raw ingredients in production</strong> list. Run extraction, record production data, mark bags empty when done, and create production sheets for each product type.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Oil Production</strong> from the sidebar under <strong>Oil &amp; Protein</strong>.</li>
+      <li>Review <strong>Raw ingredients in production</strong> — these are batches released from Supplier Intake.</li>
+      <li>Open a batch to run extraction steps. Mark a bag <strong>Empty</strong> when the press run is finished.</li>
+      <li>Check <strong>Finished (emptied) raw batches</strong> to see what's already left the active list.</li>
+      <li>Create a <strong>Production sheet</strong> (Food Grade Oil / Protein Powder / Cosmetic Oil) — choose form entry vs file upload if both are offered.</li>
+      <li>Use <strong>View data</strong> and <strong>Refresh</strong> for analytics and to reload after others have changed data.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/oil-production-grid.png" width="1200" height="675" alt="Oil Production" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-oil-production-sheet" class="guide-section" data-guide-id="modal-oil-production-sheet" data-toc="0">
+    <h2>Oil production sheet (dialog)</h2>
+    <p class="guide-lead">Create or edit a production sheet. Choose <strong>Fill out the form</strong> or <strong>Upload a file</strong> if both modes exist. Enter yields, losses, and product splits. Attach lab results if needed. Save so finished goods and stock reflect the run.</p>
+  </section>
+
+  <!-- Oil Dispatch -->
+  <section id="oil-dispatch-grid" class="guide-section" data-guide-id="oil-dispatch-grid">
+    <h2>Oil &amp; Protein Dispatch</h2>
+    <p class="guide-lead">The mirror of kernel dispatch, but for oil and protein products. Build baskets from released oil lots, run inspections, complete dispatch forms, and ship.</p>
+    <p class="guide-how">Same pattern as kernel dispatch: <strong>basket → checks → ship</strong>. Make sure oil lots are released and available in stock before adding them to a load.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Oil &amp; Protein Dispatch</strong> from the sidebar.</li>
+      <li>Use <strong>Board</strong> or <strong>Table</strong> view. Hit <strong>Refresh</strong> to see the latest baskets.</li>
+      <li>Build or review baskets from released oil lots.</li>
+      <li>Complete the inspection and dispatch form before the truck leaves.</li>
+      <li>Only load lots that are released and available in stock.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/oil-dispatch-grid.png" width="1200" height="675" alt="Oil &amp; Protein Dispatch" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-oil-dispatch" class="guide-section" data-guide-id="modal-oil-dispatch" data-toc="0">
+    <h2>Oil dispatch basket (dialog)</h2>
+    <p class="guide-lead">Create or edit a dispatch basket header — customer, delivery window, references. Pick oil &amp; protein customers from CRM. Confirm only <strong>released</strong> lots are referenced. Save the header before opening inspection or dispatch forms.</p>
+  </section>
+
+  <section id="modal-oil-dispatch-form" class="guide-section" data-guide-id="modal-oil-dispatch-form" data-toc="0">
+    <h2>Oil dispatch form (dialog)</h2>
+    <p class="guide-lead">Inspection and despatch paperwork for oil/protein. Complete checks, transport details, and signatures. Submit when the load is confirmed.</p>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- CHAPTER: Quality & traceability                                   -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="guide-chapter">
+    <h2>Quality &amp; traceability</h2>
+    <p class="chapter-lead">Recording tests, tracking batches across the system, and keeping the audit trail clean.</p>
+  </div>
+
+  <section id="quality-assurance-grid" class="guide-section" data-guide-id="quality-assurance-grid">
+    <h2>Quality Assurance</h2>
+    <p class="guide-lead">Quality is where you record tests — moisture, FFA, peroxide, organoleptic, and whatever else your food-safety programme requires. Failed or out-of-spec results can block the next step, depending on how your site is configured.</p>
+    <p class="guide-how">Log tests against the right batch or item. Follow your local QA playbook for pass/fail thresholds — the system keeps a trail of who did what and when.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Quality Assurance</strong> from the sidebar.</li>
+      <li>Use <strong>Search</strong>, <strong>Test type</strong>, and <strong>Result</strong> filters to find the record you need.</li>
+      <li>Click <strong>New quality test</strong> to log a new sample, batch, or final-product test.</li>
+      <li>Open a row to enter results, attach evidence files, or sign off.</li>
+      <li>Failed or conditional results may block release — follow your QA rules.</li>
+      <li>Use <strong>Export</strong> when auditors or customers need evidence outside the app.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/quality-assurance-grid.png" width="1200" height="675" alt="Quality Assurance" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-quality-test" class="guide-section" data-guide-id="modal-quality-test" data-toc="0">
+    <h2>Quality test (dialog)</h2>
+    <p class="guide-lead">Log or edit a specific test result. Choose pass/fail/conditional and attach evidence files if required. Save — failed tests may block release depending on your configuration.</p>
+  </section>
+
+  <section id="batch-journey-grid" class="guide-section" data-guide-id="batch-journey-grid">
+    <h2>Batch Journey</h2>
+    <p class="guide-lead">Batch Journey is your cross-cutting search tool. If you know a batch number (or a grower, or a status) but not which module currently owns the work, start here. It shows every batch across intake, production, QA, and dispatch in one view.</p>
+    <p class="guide-how">Think of it as a universal search for batches. Find the batch, read its status, then click through to the owning module to take the next action.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Batch Journey</strong> from the sidebar.</li>
+      <li>Type in the search field — batch number, grower name, etc.</li>
+      <li>Set <strong>Status</strong> and <strong>Sort</strong> (newest, by status, by grower, weight, moisture) to narrow the list.</li>
+      <li>Read the <strong>Status</strong> column: Intake, Receiving, Production, QA, Dispatch, or Complete.</li>
+      <li>Click the <strong>batch number</strong> link to open detail or jump into the owning module.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/batch-journey-grid.png" width="1200" height="675" alt="Batch Journey" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-batch-history" class="guide-section" data-guide-id="modal-batch-history" data-toc="0">
+    <h2>Batch history (dialog)</h2>
+    <p class="guide-lead">An audit-style log of every status change and user action on a batch. Read-only — use it during investigations. Don't edit history entries.</p>
+  </section>
+
+  <section id="modal-batch-summary" class="guide-section" data-guide-id="modal-batch-summary" data-toc="0">
+    <h2>Batch summary (dialog)</h2>
+    <p class="guide-lead">Consolidated batch metadata — grower, weights, moisture, status — in one view. Use it to confirm details before answering customer queries or signing off.</p>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- CHAPTER: Business & reporting                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="guide-chapter">
+    <h2>Business &amp; reporting</h2>
+    <p class="chapter-lead">Sales forecasting and financial views that support operations.</p>
+  </div>
+
+  <section id="sales-forecasting-grid" class="guide-section" data-guide-id="sales-forecasting-grid">
+    <h2>Sales Forecasting</h2>
+    <p class="guide-lead">Maintain demand forecasts that planners compare against production capacity and stock. This isn't the final source of truth if finance maintains a master file — it's an operational planning tool.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Sales Forecasting</strong> from the sidebar under <strong>Business</strong>.</li>
+      <li>Click <strong>New forecast</strong> to add a period, product type, quantity, confidence, and status.</li>
+      <li>Review existing rows. Use actions to revise or close versions planners no longer use.</li>
+      <li>Click <strong>Export</strong> when supply or finance needs the numbers in Excel.</li>
+    </ol>
+    <div class="guide-tip"><strong>Tip:</strong> Align forecast versions with production capacity meetings so everyone's working from the same numbers.</div>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/sales-forecasting-grid.png" width="1200" height="675" alt="Sales Forecasting" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="financial-management-grid" class="guide-section" data-guide-id="financial-management-grid">
+    <h2>Financial Management</h2>
+    <p class="guide-lead">Financial views and transaction management. Use this for operational finance — invoices, payments, and document tracking. Always reconcile with your authoritative ledger; this screen supports operations, not statutory reporting.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Financial Management</strong> from the sidebar.</li>
+      <li>Use <strong>New invoice</strong> or <strong>Record payment</strong> from the toolbar.</li>
+      <li>Review grid columns: document number, type, contact, amount, date, status.</li>
+      <li>Use row <strong>Actions</strong> to open, edit, or void per your business rules.</li>
+      <li>Use <strong>Export</strong> for finance hand-off.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/financial-management-grid.png" width="1200" height="675" alt="Financial Management" loading="lazy" />
+    </figure>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- CHAPTER: Documents & integrations                                 -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="guide-chapter">
+    <h2>Documents &amp; integrations</h2>
+    <p class="chapter-lead">Central document storage, ERP integration, data import, and the supply-chain process diagram.</p>
+  </div>
+
+  <section id="document-management-grid" class="guide-section" data-guide-id="document-management-grid">
+    <h2>Document Management</h2>
+    <p class="guide-lead">Store and organise operational documents — SOPs, certificates, delivery notes, reports. Upload with clear titles and categories so colleagues can find them later.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Document Management</strong> from the sidebar.</li>
+      <li>Set up <strong>Categories</strong> first if you need new filing buckets. Deleting a category hides it from pickers but keeps existing links.</li>
+      <li>Click <strong>Upload document</strong>, pick a file, set a title and category, and link to an entity if the form offers it.</li>
+      <li>Search by name or category. Use row actions to download, update metadata, or remove files per your retention policy.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/document-management-grid.png" width="1200" height="675" alt="Document Management" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="palladium-integration-grid" class="guide-section" data-guide-id="palladium-integration-grid">
+    <h2>Palladium Integration</h2>
+    <p class="guide-lead">If your site uses Palladium ERP, this screen shows sync health and mapping between Macavation and Palladium. Day-to-day postings still happen in the operational modules — this is the monitoring dashboard for the bridge.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Palladium Integration</strong> from the sidebar.</li>
+      <li>Review the <strong>Sync status</strong> table: entity type, last sync, status, records synced.</li>
+      <li>Click <strong>Sync now</strong> only when your runbook allows — avoid double-runs during month-end unless approved.</li>
+      <li>Use row actions to inspect errors or retry failed entities.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/palladium-integration-grid.png" width="1200" height="675" alt="Palladium Integration" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="data-import-grid" class="guide-section" data-guide-id="data-import-grid">
+    <h2>Data Import</h2>
+    <p class="guide-lead">Bulk-import data from Excel into Macavation — contacts, stock items, oil production sheets, and more. Download the template first, fill it without changing column headers, then upload and preview before committing.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Data Import</strong> from the sidebar.</li>
+      <li>Click <strong>Download template</strong> for the correct column layout.</li>
+      <li>Choose your Excel file, pick the <strong>target table</strong>, then click <strong>Preview</strong>.</li>
+      <li>In <strong>Map columns</strong>, match each spreadsheet column to the right database field.</li>
+      <li>Review the preview row count, then click <strong>Import</strong>. Read any error output and fix the spreadsheet rather than re-uploading the same mistakes.</li>
+    </ol>
+    <div class="guide-tip"><strong>Tip:</strong> Never rename or reorder the template column headers. The mapping relies on exact names.</div>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/data-import-grid.png" width="1200" height="675" alt="Data Import" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="supply-chain-flow" class="guide-section" data-guide-id="supply-chain-flow">
+    <h2>Supply chain &amp; process flow</h2>
+    <p class="guide-lead">A read-only process diagram with quick links into Grower Intake, Stock, and Oil Production. Great for orienting new users or explaining the big picture.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Supply chain &amp; process flow</strong> to see the Mermaid diagram: intake → warehouse raws → production → finished → customers.</li>
+      <li>Note the document-type hints (<strong>GRV</strong>, <strong>IBT</strong>, <strong>INV</strong>) so paperwork in dispatch matches what finance expects.</li>
+      <li>Use the toolbar shortcuts to jump straight to <strong>Grower Intake</strong>, <strong>Stock</strong>, or <strong>Oil Production</strong>.</li>
+      <li>This page is read-only — create and edit batches in the operational modules.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/supply-chain-flow.png" width="1200" height="675" alt="Supply chain &amp; process flow" loading="lazy" />
+    </figure>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- CHAPTER: Administration                                           -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="guide-chapter">
+    <h2>Administration</h2>
+    <p class="chapter-lead">Users, roles, permissions, features, and system settings. For administrators only.</p>
+  </div>
+
+  <div class="guide-flow">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 140" role="img" aria-label="How access control works">
+      <defs>
+        <style>
+          .ac-step{fill:#f0ece8;stroke:#5a4a3e;stroke-width:1.5;rx:6}
+          .ac-lbl{font-family:system-ui,"Segoe UI",sans-serif;font-size:13px;fill:#1a2e26;font-weight:700;pointer-events:none}
+          .ac-sub{font-family:system-ui,"Segoe UI",sans-serif;font-size:10.5px;fill:#5a6b63;pointer-events:none}
+          .ac-arr{stroke:#6b5a4c;stroke-width:2;fill:none}
+        </style>
+        <marker id="aca" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#6b5a4c"/></marker>
+      </defs>
+      <rect class="ac-step" x="16" y="20" width="130" height="56"/>
+      <text class="ac-lbl" x="52" y="44">Users</text>
+      <text class="ac-sub" x="28" y="62">email, password, role</text>
+
+      <path class="ac-arr" d="M150 48 H190" marker-end="url(#aca)"/>
+      <text class="ac-sub" x="152" y="40">assigned to</text>
+
+      <rect class="ac-step" x="194" y="20" width="130" height="56"/>
+      <text class="ac-lbl" x="234" y="44">Roles</text>
+      <text class="ac-sub" x="206" y="62">admin, user, etc.</text>
+
+      <path class="ac-arr" d="M328 36 H390" marker-end="url(#aca)"/>
+      <path class="ac-arr" d="M328 60 H390" marker-end="url(#aca)"/>
+      <text class="ac-sub" x="332" y="30">have</text>
+      <text class="ac-sub" x="332" y="70">have</text>
+
+      <rect class="ac-step" x="394" y="6" width="190" height="44"/>
+      <text class="ac-lbl" x="420" y="28">Permissions</text>
+      <text class="ac-sub" x="406" y="42">database functions &amp; tables</text>
+
+      <rect class="ac-step" x="394" y="58" width="190" height="44"/>
+      <text class="ac-lbl" x="440" y="80">Features</text>
+      <text class="ac-sub" x="406" y="94">UI feature flags</text>
+
+      <path class="ac-arr" d="M588 28 H630" marker-end="url(#aca)"/>
+      <path class="ac-arr" d="M588 80 H630" marker-end="url(#aca)"/>
+
+      <rect class="ac-step" x="634" y="20" width="260" height="56" style="fill:#e8f0ec;stroke:#2d4a3e"/>
+      <text class="ac-lbl" x="674" y="44" style="fill:#2d4a3e">What the user sees &amp; can do</text>
+      <text class="ac-sub" x="646" y="62">menu items, buttons, data access</text>
+
+      <text class="ac-sub" x="16" y="128" style="font-style:italic">Both permissions and features must be set for a role. Missing either one means the user can't access that function.</text>
+    </svg>
+  </div>
+
+  <section id="admin-grid" class="guide-section" data-guide-id="admin-grid">
+    <h2>System Administration</h2>
+    <p class="guide-lead">The admin module gives you a bird's-eye view of the system — summary counts, quick user/role entry, and system configuration. It's organised into tabs.</p>
+    <p class="guide-how">Use this for quick administrative tasks. For detailed user management, role permissions, and feature flags, use the dedicated screens in <strong>User Management</strong>.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Admin</strong> from the sidebar.</li>
+      <li>Read the summary cards at the top (users, roles, permissions, sessions).</li>
+      <li>Use the tabs: <strong>Users &amp; Permissions</strong>, <strong>Roles Management</strong>, <strong>System Configuration</strong>.</li>
+      <li>For deep configuration, use the dedicated <strong>User Management</strong> screens instead.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="System Administration" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="admin-users-permissions" class="guide-section" data-guide-id="admin-users-permissions" data-toc="0">
+    <h2>Admin — Users &amp; permissions tab</h2>
+    <p class="guide-lead">First tab in Admin. Shows the users grid with filters and role counts. Use <strong>Add User</strong> to create a new login with the right role from the start. Row actions let you edit or deactivate users — changes apply on next login.</p>
+  </section>
+
+  <section id="admin-roles-management" class="guide-section" data-guide-id="admin-roles-management" data-toc="0">
+    <h2>Admin — Roles management tab</h2>
+    <p class="guide-lead">Define and maintain roles here. After saving a role, pair it with permissions and features in the dedicated screens so menus match responsibility.</p>
+  </section>
+
+  <section id="admin-system-configuration" class="guide-section" data-guide-id="admin-system-configuration" data-toc="0">
+    <h2>Admin — System configuration tab</h2>
+    <p class="guide-lead">Environment and integration settings. Record current values (screenshot or export) before changing anything — some options need vendor support to roll back safely.</p>
+  </section>
+
+  <section id="modal-admin-add-role" class="guide-section" data-guide-id="modal-admin-add-role" data-toc="0">
+    <h2>Add role (admin dialog)</h2>
+    <p class="guide-lead">Enter a clear role name and description other admins will recognise. Save, then open <strong>Role permissions</strong> and <strong>Role features</strong> to wire the role to actual access.</p>
+  </section>
+
+  <section id="modal-admin-add-user" class="guide-section" data-guide-id="modal-admin-add-user" data-toc="0">
+    <h2>Add user (admin dialog)</h2>
+    <p class="guide-lead">Enter name, email/username, and assign the primary <strong>role</strong> before saving — this controls the menu tree on first login. Send onboarding steps (password change, MFA if enabled) per your organisation's process.</p>
+  </section>
+
+  <!-- User Management -->
+  <section id="users-grid" class="guide-section" data-guide-id="users-grid">
+    <h2>Users</h2>
+    <p class="guide-lead">Create and maintain portal users. Assign the right role from the start — fixing role mistakes later is harder than getting it right at creation.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Users</strong> from <strong>User Management</strong> in the sidebar.</li>
+      <li>Search and filter the grid. Click <strong>Add user</strong> for a new login.</li>
+      <li>Assign the correct <strong>role</strong> immediately.</li>
+      <li>Use password reset flows instead of sharing credentials.</li>
+      <li>Deactivate leavers — permission changes apply on next login.</li>
+    </ol>
+    <div class="guide-tip"><strong>Tip:</strong> Never share accounts between people. Each person should have their own login for clean audit trails.</div>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/users-grid.png" width="1200" height="675" alt="Users" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-user" class="guide-section" data-guide-id="modal-user" data-toc="0">
+    <h2>User (dialog)</h2>
+    <p class="guide-lead">Edit a user's profile, role, or activation state. Use password reset rather than telling someone their password.</p>
+  </section>
+
+  <section id="roles-grid" class="guide-section" data-guide-id="roles-grid">
+    <h2>Roles</h2>
+    <p class="guide-lead">Define named roles (e.g. super_user, admin, user). Each role is paired with permissions (what data they can access) and features (what UI elements they see).</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Roles</strong> from <strong>User Management</strong>.</li>
+      <li>Click <strong>Add role</strong> for a new named role, or open a row to edit.</li>
+      <li>After saving, pair the role with entries in <strong>Role Permissions</strong> and <strong>Role Features</strong>.</li>
+      <li>Use <strong>Export</strong> before audits for a clean record.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/roles-grid.png" width="1200" height="675" alt="Roles" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-role" class="guide-section" data-guide-id="modal-role" data-toc="0">
+    <h2>Role (dialog)</h2>
+    <p class="guide-lead">Add or edit a role name and description. Match your organisation's naming conventions for SSO or audits.</p>
+  </section>
+
+  <section id="role-permissions-grid" class="guide-section" data-guide-id="role-permissions-grid">
+    <h2>Role Permissions</h2>
+    <p class="guide-lead">This is where you map roles to database-level permissions — which functions a role can execute and which tables it can read or write. Grant least privilege: start minimal and add as needed.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Role Permissions</strong> from <strong>User Management</strong>.</li>
+      <li>Filter by role, object type (function/table), and operation (EXECUTE, SELECT, INSERT, UPDATE, DELETE).</li>
+      <li>Click <strong>Add permission</strong> to grant a role access to a specific object.</li>
+      <li>Test with a non-admin login after changes to verify the user can do their job but not see restricted modules.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/role-permissions-grid.png" width="1200" height="675" alt="Role Permissions" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-role-permission" class="guide-section" data-guide-id="modal-role-permission" data-toc="0">
+    <h2>Role permission (dialog)</h2>
+    <p class="guide-lead">Pick the object type, object name, and allowed operations. Grant the minimum set — you can always add more later.</p>
+  </section>
+
+  <section id="role-features-grid" class="guide-section" data-guide-id="role-features-grid">
+    <h2>Role Features</h2>
+    <p class="guide-lead">Feature flags per role — toggle which UI features each role can see. Use this for phased rollouts of new functionality. Features are not a substitute for permissions — both must be set.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Role Features</strong> from <strong>User Management</strong>.</li>
+      <li>Locate the role and feature combination. Toggle flags for phased rollouts.</li>
+      <li>Document what each feature flag unlocks so support can answer "why don't I see X?"</li>
+    </ol>
+    <div class="guide-tip"><strong>Tip:</strong> Users must still have the underlying role and permissions. Features control UI visibility — permissions control data access. Both are needed.</div>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/role-features-grid.png" width="1200" height="675" alt="Role Features" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-role-feature" class="guide-section" data-guide-id="modal-role-feature" data-toc="0">
+    <h2>Role feature (dialog)</h2>
+    <p class="guide-lead">Tie a feature flag to a role. Toggle once per combination and document the change.</p>
+  </section>
+
+  <section id="features-grid" class="guide-section" data-guide-id="features-grid">
+    <h2>Features</h2>
+    <p class="guide-lead">The catalogue of all application features available for assignment to roles. Think of it as the master list of toggles — actual access still requires role assignment in <strong>Role Features</strong>.</p>
+
+    <h3 class="guide-subhead">How to use it</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Features</strong> from <strong>User Management</strong>.</li>
+      <li>Search by name, key, or description. Filter by active/inactive.</li>
+      <li>Use <strong>Add feature</strong> to register a new feature key.</li>
+      <li>Use <strong>Export</strong> when auditing which flags exist before a rollout.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/features-grid.png" width="1200" height="675" alt="Features" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-feature" class="guide-section" data-guide-id="modal-feature" data-toc="0">
+    <h2>Feature (dialog)</h2>
+    <p class="guide-lead">Define or edit a feature key and description. Use stable keys — changing them later breaks existing role assignments.</p>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- CHAPTER: Reference                                                -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="guide-chapter">
+    <h2>Reference</h2>
+    <p class="chapter-lead">Glossary, tips, browser advice, and how to get help.</p>
+  </div>
+
+  <section id="glossary" class="guide-section" data-guide-id="glossary">
+    <h2>Glossary</h2>
+    <p class="guide-lead">Quick definitions for terms you'll see throughout Macavation.</p>
+    <table class="guide-fields">
+      <tr><th>Term</th><th>What it means</th></tr>
+      <tr><td><strong>NIS</strong></td><td>Nut in shell — a whole macadamia with its shell still on.</td></tr>
+      <tr><td><strong>Kernel</strong></td><td>The processed macadamia nut after the shell is removed. The kernel stream covers everything from intake to dispatch.</td></tr>
+      <tr><td><strong>Batch</strong></td><td>A tracked lot of product with a unique ID. Batches move through intake → production → stock → dispatch.</td></tr>
+      <tr><td><strong>Grower intake</strong></td><td>Where NIS arrives from growers — the starting point of the kernel stream.</td></tr>
+      <tr><td><strong>Supplier intake</strong></td><td>Where raw ingredients arrive for oil &amp; protein — the starting point of the oil stream. Not the same as the NIS grower list.</td></tr>
+      <tr><td><strong>Job card</strong></td><td>A production record for a kernel batch — styles, yields, equipment, and QA notes.</td></tr>
+      <tr><td><strong>Production sheet</strong></td><td>An oil production record — product type (food-grade oil, cosmetic oil, protein powder), yields, and losses.</td></tr>
+      <tr><td><strong>Oil lot</strong></td><td>A specific quantity of oil or protein product in stock, tracked by lot number, grade, and best-before date.</td></tr>
+      <tr><td><strong>Silo</strong></td><td>A storage unit for kernel batches during production. Shown as red (occupied) or white (empty).</td></tr>
+      <tr><td><strong>FFA</strong></td><td>Free fatty acid — a common quality test for oil batches.</td></tr>
+      <tr><td><strong>Dispatch basket</strong></td><td>A collection of stock lines grouped for shipment to a customer. Built from stock, inspected, then shipped.</td></tr>
+      <tr><td><strong>GRV</strong></td><td>Goods received voucher — document raised when material arrives.</td></tr>
+      <tr><td><strong>IBT</strong></td><td>Inter-branch transfer — document for moving stock between locations.</td></tr>
+      <tr><td><strong>CRM</strong></td><td>Contact database — all customers, suppliers, growers, and processors.</td></tr>
+      <tr><td><strong>RBAC</strong></td><td>Role-based access control — the system that decides who can see and do what.</td></tr>
+      <tr><td><strong>Palladium</strong></td><td>Palladium Accounting — the ERP system some sites integrate with Macavation.</td></tr>
+    </table>
+  </section>
+
+  <section id="tips-and-support" class="guide-section" data-guide-id="tips-and-support">
+    <h2>Tips &amp; support</h2>
+    <p class="guide-lead">A few habits that will save you time and headaches.</p>
+
+    <h3 class="guide-subhead">Good habits</h3>
+    <ol class="guide-page-steps">
+      <li><strong>Save before closing.</strong> Watch for the on-screen success message before moving on.</li>
+      <li><strong>Refresh after changes.</strong> If a dropdown looks out of date (e.g. after adding a CRM contact), refresh or reopen the page.</li>
+      <li><strong>Use consistent batch numbering.</strong> Agree on naming conventions with your team — kernel and oil rules may differ.</li>
+      <li><strong>Don't force dispatch.</strong> If quantities don't match, fix it in Stock Management. Forcing mismatches through dispatch creates downstream problems.</li>
+      <li><strong>Keep test data separate.</strong> Never run test scenarios or import test data on a production database.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Browsers</h3>
+    <p>Use a current version of <strong>Chrome</strong>, <strong>Edge</strong>, or <strong>Firefox</strong>. If the app behaves oddly after an update, clear your browser cache or try a private/incognito window.</p>
+
+    <h3 class="guide-subhead">Getting help</h3>
+    <table class="guide-fields">
+      <tr><th>Question type</th><th>Who to ask</th></tr>
+      <tr><td>Day-to-day process questions</td><td>Your <strong>internal super user</strong> or <strong>production manager</strong></td></tr>
+      <tr><td>Login, roles, new users</td><td>Your <strong>system administrator</strong></td></tr>
+      <tr><td>Bugs or change requests</td><td>Your <strong>Macavation project contact</strong> — include a screenshot, URL, time, and what you clicked</td></tr>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- TEST MANAGEMENT (excluded from full guide)                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section id="test-scenarios-grid" class="guide-section" data-guide-id="test-scenarios-grid" data-exclude-from-full-guide="1">
+    <h2>Test Scenarios</h2>
+    <p class="guide-lead">QA automation scenarios for non-production environments. Create or edit scenarios that wrap automated tests — keep names aligned with CI or Playwright job names.</p>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Test Scenarios</strong> in QA environments.</li>
+      <li>Create or edit scenarios. Link to data sets where your workflow requires seeded data.</li>
+      <li>Run tests only through approved automation paths.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/test-scenarios-grid.png" width="1200" height="675" alt="Test Scenarios" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-test-scenario" class="guide-section" data-guide-id="modal-test-scenario" data-exclude-from-full-guide="1">
+    <h2>Test Scenario (dialog)</h2>
+    <p class="guide-lead">Name and describe an automation scenario. Link data sets if required.</p>
+  </section>
+
+  <section id="test-data-sets" class="guide-section" data-guide-id="test-data-sets" data-exclude-from-full-guide="1">
+    <h2>Test data — Data sets</h2>
+    <p class="guide-lead">Create and manage synthetic data sets for test scenarios. Define a set per scenario or feature area, then seed records.</p>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Test data management</strong> → <strong>Data sets</strong> tab.</li>
+      <li>Click <strong>Add data set</strong> and name it for the scenario you're testing.</li>
+      <li>Export sets to share fixtures with other testers.</li>
+      <li>Never use test data tools on production databases.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/test-data-grid.png" width="1200" height="675" alt="Test Data" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="test-data-records" class="guide-section" data-guide-id="test-data-records" data-exclude-from-full-guide="1">
+    <h2>Test data — Records</h2>
+    <p class="guide-lead">Individual test data records within sets. Select a parent data set first, then add records with synthetic values.</p>
+  </section>
+
+  <section id="modal-test-data-set" class="guide-section" data-guide-id="modal-test-data-set" data-exclude-from-full-guide="1">
+    <h2>Test Data Set (dialog)</h2>
+    <p class="guide-lead">Define or edit a synthetic data set — name, module, and purpose. Save before adding child records.</p>
+  </section>
+
+  <section id="modal-test-data-record" class="guide-section" data-guide-id="modal-test-data-record" data-exclude-from-full-guide="1">
+    <h2>Test Data Record (dialog)</h2>
+    <p class="guide-lead">Edit one synthetic record's fields for a test scenario. Keep values obviously non-production.</p>
+  </section>
+
+  <a href="#guide-main-title" id="back-to-top" aria-label="Back to top" title="Back to top">&#9650; Contents</a>
+
+  <script src="help-shell.js" defer></script>
+</body>
+</html>

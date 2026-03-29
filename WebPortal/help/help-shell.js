@@ -33,9 +33,11 @@
       var id = sec.id;
       if (!id) return;
       if (sec.getAttribute("data-exclude-from-full-guide") === "1") return;
+      if (sec.getAttribute("data-toc") === "0") return;
       var li = document.createElement("li");
       var a = document.createElement("a");
-      a.href = "index.html?full=1#" + encodeURIComponent(id);
+      var base = window.location.pathname.split("/").pop() || "index.html";
+      a.href = base + "?full=1#" + encodeURIComponent(id);
       a.textContent = getTitleForSection(sec);
       li.appendChild(a);
       ul.appendChild(li);
@@ -77,7 +79,8 @@
       if (titleEl) titleEl.textContent = getTitleForSection(target);
       var fullLink = bar.querySelector('a[data-action="full-guide"]');
       if (fullLink) {
-        fullLink.href = "index.html?full=1" + (id ? "#" + encodeURIComponent(id) : "");
+        var baseName = window.location.pathname.split("/").pop() || "index.html";
+        fullLink.href = baseName + "?full=1" + (id ? "#" + encodeURIComponent(id) : "");
       }
     }
 
@@ -112,10 +115,24 @@
     });
   }
 
+  function initBackToTop() {
+    var btn = document.getElementById("back-to-top");
+    if (!btn) return;
+    var visible = false;
+    window.addEventListener("scroll", function () {
+      var show = window.scrollY > 400;
+      if (show !== visible) {
+        visible = show;
+        btn.style.display = show ? "block" : "none";
+      }
+    }, { passive: true });
+  }
+
   function init() {
     buildToc();
     markMissingImages();
     applyLayout();
+    initBackToTop();
     window.addEventListener("hashchange", applyLayout);
   }
 
