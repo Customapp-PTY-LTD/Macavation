@@ -1,0 +1,10 @@
+---
+description: Never commit or suggest committing e2e test result files
+alwaysApply: true
+---
+
+# Do not commit e2e test results
+
+- **Never** stage, commit, or suggest adding `e2e/test-results/` or any file inside it (including `.last-run.json` and artifact folders).
+- Treat e2e test results as local artifacts only. Do not offer to "add e2e test result files in a follow-up commit" or similar.
+- When committing/pushing, exclude these paths by default and do not mention them as something the user might want to add.

@@ -6,8 +6,12 @@
 *.swo
 *~
 
+# Cursor: ignore local IDE data; track shared project rules only
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**/*.mdc
+
 # Debug logs
-.cursor/
 debug.log
 
 # Node modules (if added later)

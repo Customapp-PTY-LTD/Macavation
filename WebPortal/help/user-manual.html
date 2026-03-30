@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Macavation User Manual — By Module</title>
+  <link rel="stylesheet" href="user-manual.css" />
+</head>
+<body>
+  <a class="manual-skip" href="#main">Skip to manual content</a>
+
+  <header class="manual-header">
+    <h1>Macavation User Manual</h1>
+    <p class="manual-meta">Operations portal for macadamia supply chain: grower kernel stream, oil and protein stream, stock, dispatch, quality, CRM, and administration. This document is organised by application module.</p>
+    <div class="manual-actions">
+      <a class="btn-ghost" href="index.html?full=1">In-app user guide (topics and screenshots)</a>
+      <a class="btn-ghost" href="../index.html">Open Web Portal</a>
+    </div>
+  </header>
+
+  <div class="manual-layout">
+    <nav class="manual-nav" aria-label="Manual table of contents">
+      <h2>Start here</h2>
+      <ul>
+        <li><a href="#intro">Introduction</a></li>
+        <li><a href="#manual-scope">Scope of this manual</a></li>
+        <li><a href="#access">Sign-in and access</a></li>
+        <li><a href="#navigation">Navigation and roles</a></li>
+        <li><a href="#app-shell">Application shell</a></li>
+        <li><a href="#process">End-to-end process</a></li>
+        <li><a href="#supply-chain-module">Supply chain diagram (repo)</a></li>
+      </ul>
+      <h2>Planning and overview</h2>
+      <ul>
+        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#my-day">My Day</a></li>
+        <li><a href="#batch-journey">Batch Journey</a></li>
+      </ul>
+      <h2>Kernel stream</h2>
+      <ul>
+        <li><a href="#crm">CRM (contacts)</a></li>
+        <li><a href="#grower-intake">Grower Intake</a></li>
+        <li><a href="#kernel-production">Kernel Production</a></li>
+        <li><a href="#stock-kernel">Stock (Kernel)</a></li>
+        <li><a href="#kernel-dispatch">Kernel Dispatch</a></li>
+      </ul>
+      <h2>Oil and protein stream</h2>
+      <ul>
+        <li><a href="#supplier-intake">Supplier Intake</a></li>
+        <li><a href="#oil-production">Oil Production</a></li>
+        <li><a href="#stock-oil">Stock (Oil and Protein)</a></li>
+        <li><a href="#oil-dispatch">Oil and Protein Dispatch</a></li>
+      </ul>
+      <h2>Shared operations</h2>
+      <ul>
+        <li><a href="#quality">Quality Assurance</a></li>
+        <li><a href="#sales-forecasting">Sales Forecasting</a></li>
+        <li><a href="#financial">Financial Management</a></li>
+        <li><a href="#documents">Document Management</a></li>
+        <li><a href="#data-import">Data Import (Excel)</a></li>
+        <li><a href="#palladium">Palladium Integration</a></li>
+      </ul>
+      <h2>Administration</h2>
+      <ul>
+        <li><a href="#admin">System Administration</a></li>
+        <li><a href="#user-mgmt">User Management</a></li>
+        <li><a href="#test-tools">Test tools (non-production)</a></li>
+      </ul>
+      <h2>Reference</h2>
+      <ul>
+        <li><a href="#appendix-routes">Route catalogue (config)</a></li>
+      </ul>
+    </nav>
+
+    <main id="main" class="manual-main">
+      <p class="manual-lead">Use this manual for training, onboarding, and reference. Each chapter names the sidebar menu entry, explains why the module exists, and lists the steps people usually follow. For step-by-step help on a single screen while you work, open <strong>Help</strong> on that screen (links into the <a href="index.html">contextual user guide</a>).</p>
+
+      <article id="intro" class="manual-chapter">
+        <h2>Introduction</h2>
+        <p><strong>Macavation</strong> is a web application for tracking macadamia material from intake through production, quality checks, warehouse stock, and dispatch. Two product streams run in parallel:</p>
+        <div class="process-mini">
+          <p><strong>Kernel stream</strong></p>
+          <ol>
+            <li>Grower Intake (wet NIS, receiving, samples)</li>
+            <li>Kernel Production (job cards, stages, silos)</li>
+            <li>Stock (Kernel) and Kernel Dispatch</li>
+          </ol>
+          <p><strong>Oil and protein stream</strong></p>
+          <ol>
+            <li>Supplier Intake (oil-side receiving and batches)</li>
+            <li>Oil Production (sheets, finished goods)</li>
+            <li>Stock (Oil and Protein) and Oil Dispatch</li>
+          </ol>
+        </div>
+        <p>CRM, Quality Assurance, documents, forecasting, finance views, and ERP integration support both streams. What you see in the menu depends on your <strong>role</strong>; some items are hidden until an administrator grants access.</p>
+      </article>
+
+      <article id="manual-scope" class="manual-chapter">
+        <h2>Scope of this manual</h2>
+        <p>This document is built from the <strong>Web Portal</strong> as shipped in the repo: sidebar structure in <code>index.html</code>, registered routes in <code>js/appRouteConfig.json</code>, and the contextual topics in <code>help/index.html</code>. It is meant for <strong>end users and administrators</strong> of the UI.</p>
+        <div class="callout">
+          <strong>What this manual does not replace.</strong> It does not document Supabase schemas, Row Level Security, Lambda proxy APIs, Palladium field mappings, deployment environments, or custom client branding. Those belong in technical runbooks or vendor documentation. It also does not walk every dialog line-by-line—that detail is in the in-app guide’s per-screen topics.
+        </div>
+        <p><strong>Overlay routes:</strong> Many <code>*-modal</code> entries in the route config load as dialogs on top of a grid. They usually have no sidebar link; you open them from buttons or row actions inside the owning module.</p>
+      </article>
+
+      <article id="access" class="manual-chapter">
+        <h2>Sign-in and access</h2>
+        <p>You sign in through the portal sign-in page. Your organisation may give you a link that includes a client code (<code>cc</code> in the URL). Use the credentials issued by your administrator.</p>
+        <div class="callout">
+          <strong>Session and security.</strong> Do not share accounts. If you forget your password, ask an administrator to reset it. Sign out or lock your device when you leave a shared PC.
+        </div>
+        <p>After sign-in, the app loads your last page or the default dashboard. If you are sent back to sign-in, your session expired or you are not authenticated.</p>
+      </article>
+
+      <article id="navigation" class="manual-chapter">
+        <h2>Navigation and roles</h2>
+        <p>The <strong>sidebar</strong> lists modules your role may open. Click a link to load that module in the main content area. Some modules offer <strong>Board</strong>, <strong>Table</strong>, or other view toggles; pick the view your team prefers.</p>
+        <h3>Access denied</h3>
+        <p>If you open a route you are not allowed to use, you may see a warning and a short redirect to the dashboard. Ask an administrator to check your role, <strong>Role features</strong>, and <strong>Role permissions</strong> if you need a module for your job.</p>
+        <h3>User Management (restricted)</h3>
+        <p>Grids such as Users, Roles, Role permissions, Role features, and Features are typically limited to administrators or managers. <strong>System Administration</strong> may combine user counts, configuration, and related tabs in one place depending on your build.</p>
+      </article>
+
+      <article id="app-shell" class="manual-chapter">
+        <h2>Application shell (global UI)</h2>
+        <p>Beyond individual modules, the portal provides shared controls:</p>
+        <ul>
+          <li><strong>Sign-in</strong> (<code>signin.html</code>) — authentication and optional client code in the URL; successful login loads <code>index.html</code>.</li>
+          <li><strong>Top navbar</strong> — user menu, profile access, and <strong>Sign out</strong>.</li>
+          <li><strong>My Day</strong> — compact task list in the header dropdown; <strong>View full</strong> opens route <code>my-day</code> for the complete workflow page.</li>
+          <li><strong>Sidebar</strong> — collapsible menu with grouped sections that mirror operations: Dashboard, Batch Journey, CRM, Kernel, Oil &amp; Protein, Quality, Business (Sales / Financial), Document Management, Palladium, User Management, System Administration, and (where enabled) Test Management.</li>
+          <li><strong>Sidebar footer</strong> — <strong>Dark mode</strong> toggle and <strong>Collapse</strong> to widen the content area.</li>
+        </ul>
+        <p>The main <strong>content area</strong> loads HTML/JS per route; breadcrumbs and last page may be restored from storage after refresh.</p>
+      </article>
+
+      <article id="process" class="manual-chapter">
+        <h2>End-to-end process</h2>
+        <p>Before working in a single module, it helps to know where a batch “lives” in the flow:</p>
+        <ol>
+          <li><strong>Intake</strong> records the delivery and initial checks (grower or supplier).</li>
+          <li><strong>Production</strong> transforms material; job cards and production sheets document the run.</li>
+          <li><strong>Quality Assurance</strong> may hold or release material based on tests and your rules.</li>
+          <li><strong>Stock</strong> reflects warehouse location, status, and quantities available for dispatch.</li>
+          <li><strong>Dispatch</strong> builds baskets, runs inspection paperwork, and completes shipment.</li>
+        </ol>
+        <p>For a visual overview, open <a href="assets/process-overview.svg" target="_blank" rel="noopener">process overview (SVG)</a> or the contextual <a href="index.html#supply-chain-flow">Supply chain and process flow</a> topic in the in-app guide.</p>
+      </article>
+
+      <article id="supply-chain-module" class="manual-chapter">
+        <h2>Supply chain diagram page (source module)</h2>
+        <p>The repository includes a <strong>Supply chain &amp; process flow</strong> UI under <code>modules/supply-chain-flow/</code> (Mermaid diagram and shortcuts into Grower Intake, Stock, and Oil Production). The in-app user guide already documents that screen under <a href="index.html#supply-chain-flow">Supply chain and process flow</a>.</p>
+        <div class="callout">
+          <strong>Deployment note.</strong> That page is <strong>not</strong> listed in <code>appRouteConfig.json</code> in the current tree, so it may not appear in the sidebar until a route is registered for it. If your environment does not show it, use the SVG overview and the operational modules linked from this manual instead.
+        </div>
+      </article>
+
+      <article id="dashboard" class="manual-chapter">
+        <h2>Dashboard</h2>
+        <span class="route-tag">dashboard</span>
+        <p>The dashboard is the default landing area for many users. It can include multiple views depending on configuration:</p>
+        <ul>
+          <li><strong>Dashboard overview</strong> — operational snapshot: production, packing, tasks, and links into deeper grids.</li>
+          <li><strong>Material journey</strong> — integrator-style view of movement and alerts; use Refresh before acting on cards.</li>
+          <li><strong>Executive dashboard</strong> — KPI-style widgets and reporting; use Customize and export options where available.</li>
+        </ul>
+        <h3>Typical tasks</h3>
+        <ol>
+          <li>Open the dashboard from the sidebar after sign-in.</li>
+          <li>Read summary cards for the day; drill into linked modules if a number needs investigation.</li>
+          <li>If figures look wrong, refresh the browser once before assuming a data fault.</li>
+        </ol>
+        <p class="contextual-help">Contextual help: <a href="index.html#dashboard-overview">Dashboard overview</a> · <a href="index.html#material-journey-dashboard">Material journey</a> · <a href="index.html#executive-dashboard">Executive dashboard</a></p>
+      </article>
+
+      <article id="my-day" class="manual-chapter">
+        <h2>My Day</h2>
+        <span class="route-tag">my-day</span>
+        <p><strong>My Day</strong> is a role-based workflow view: shortcuts and tasks relevant to your job. It is useful when you want a short list instead of browsing every module.</p>
+        <ol>
+          <li>Open <strong>My Day</strong> from the sidebar (or the “full view” link from the compact widget if shown).</li>
+          <li>Work items in an order your team agrees (priority, age, or customer urgency).</li>
+          <li>Follow each item into the owning module; completing work there updates queues and dashboards for others.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#my-day">My Day topic</a></p>
+      </article>
+
+      <article id="batch-journey" class="manual-chapter">
+        <h2>Batch Journey</h2>
+        <span class="route-tag">batch-journey</span>
+        <p>Use <strong>Batch Journey</strong> when you know a batch or grower but not which module currently owns the work. It searches across intake, production, QA, and dispatch-style statuses.</p>
+        <ol>
+          <li>Search by batch, grower, or other supported fields.</li>
+          <li>Filter and sort (for example by status or date) to shorten the list.</li>
+          <li>Open the batch link or row actions to jump to the correct operational screen.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#batch-journey-grid">Batch Journey topic</a></p>
+      </article>
+
+      <article id="crm" class="manual-chapter">
+        <h2>CRM — Contact database</h2>
+        <span class="route-tag">crm-grid</span>
+        <p><strong>CRM</strong> holds contacts used across the system: growers (NIS suppliers), kernel customers, oil and protein customers, ingredient suppliers, and oil processors. Accurate CRM data reduces errors on dispatch documents and reports.</p>
+        <h3>Tabs (typical)</h3>
+        <ul>
+          <li><strong>NIS suppliers</strong> — numbered grower or supplier list for kernel intake and related reporting.</li>
+          <li><strong>Kernel customers</strong> — buyers for kernel dispatch.</li>
+          <li><strong>Oil and protein customers</strong> — buyers for oil dispatch and sales.</li>
+          <li><strong>Oil ingredient suppliers</strong> and <strong>Oil processors</strong> — upstream oil stream contacts.</li>
+        </ul>
+        <h3>Typical tasks</h3>
+        <ol>
+          <li>Open <strong>CRM</strong> from the sidebar.</li>
+          <li>Select the tab that matches the contact type you need.</li>
+          <li>Use filters and search; add or edit contacts, or import from Excel using the approved template (do not change column headers).</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#crm-nis-suppliers">NIS suppliers</a> · <a href="index.html#crm-kernel-customers">Kernel customers</a> · <a href="index.html#crm-oil-protein-customers">Oil and protein customers</a> · <a href="index.html#crm-oil-ingredient-suppliers">Ingredient suppliers</a> · <a href="index.html#crm-oil-processors">Oil processors</a> · <a href="index.html#modal-crm-contact">Contact dialog</a></p>
+      </article>
+
+      <article id="grower-intake" class="manual-chapter">
+        <h2>Grower Intake</h2>
+        <span class="route-tag">grower-intake-grid</span>
+        <p><strong>Grower Intake</strong> is the kernel-side receiving process: deliveries from growers, receiving checklists, batch testing and samples, and creation of kernel batches before production.</p>
+        <h3>Concepts</h3>
+        <ul>
+          <li><strong>Receiving checklist</strong> (stage 1) usually must be completed before batch test and sample actions unlock.</li>
+          <li><strong>Create kernel batch</strong> registers a new intake record tied to CRM growers where pickers exist.</li>
+          <li><strong>Release to production</strong> hands the batch to Kernel Production when quality and checklist rules are satisfied (silo selection may apply).</li>
+        </ul>
+        <h3>Typical tasks</h3>
+        <ol>
+          <li>Open <strong>Grower Intake</strong>; use Board or Table view as preferred.</li>
+          <li>Find the delivery with search and status filters.</li>
+          <li>Complete the receiving checklist from the batch card or row actions.</li>
+          <li>Run batch test and sample steps when the UI enables them; link samples to batches when required.</li>
+          <li>Release to production when allowed.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#grower-intake-grid">Grower Intake</a> · <a href="index.html#modal-grower-receiving-checklist">Receiving checklist</a> · <a href="index.html#modal-grower-create-kernel-batch">Create kernel batch</a> · <a href="index.html#modal-grower-link-sample-to-batch">Link sample to batch</a></p>
+      </article>
+
+      <article id="kernel-production" class="manual-chapter">
+        <h2>Kernel Production</h2>
+        <span class="route-tag">kernel-production-grid</span>
+        <p><strong>Kernel Production</strong> tracks batches through factory steps: silo status, job cards, production stages, batch summary, history, and hand-off toward stock.</p>
+        <h3>Silos</h3>
+        <p>The silo panel shows occupancy. Click occupied or empty silos according to your SOP to mark state changes and associate batches when prompted.</p>
+        <h3>Typical tasks</h3>
+        <ol>
+          <li>Open <strong>Kernel Production</strong>; review silos and filters.</li>
+          <li>Open a batch card or row to manage job cards and production stages in order.</li>
+          <li>Use Batch summary, Batch history, or view-only job card dialogs for audits and customer queries.</li>
+          <li>Complete release steps when the batch is ready for stock (per your process).</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#kernel-production-grid">Kernel Production</a> · <a href="index.html#modal-kernel-job-card">Job card</a> · <a href="index.html#modal-production-stages">Production stages</a> · <a href="index.html#modal-batch-summary">Batch summary</a> · <a href="index.html#modal-batch-history">Batch history</a></p>
+      </article>
+
+      <article id="stock-kernel" class="manual-chapter">
+        <h2>Stock (Kernel)</h2>
+        <span class="route-tag">stock-management-kernel</span>
+        <p><strong>Stock (Kernel)</strong> shows kernel warehouse positions and movements. Finished kernel stock that is eligible for sale is associated with the kernel finished location (your organisation may refer to this as KERNEL R YES versus raw NIS).</p>
+        <h3>Typical tasks</h3>
+        <ol>
+          <li>Open <strong>Stock (Kernel)</strong> from the sidebar.</li>
+          <li>Filter by status, product type, and location; confirm the on-screen list matches the physical warehouse.</li>
+          <li>Use <strong>Send to Dispatch</strong> when moving selected lines toward a kernel dispatch basket (quantities must match reality).</li>
+          <li>Use stock take, receiving checklist, or raw material issued dialogs when your process requires adjustments or issues to production.</li>
+        </ol>
+        <div class="callout">
+          <strong>Historical import.</strong> Use any “import historical” function only when administrators have approved a controlled load. It is not a substitute for normal intake and production postings.
+        </div>
+        <p class="contextual-help"><a href="index.html#stock-management-grid">Stock Management</a> · <a href="index.html#modal-send-to-dispatch">Send to dispatch</a></p>
+      </article>
+
+      <article id="kernel-dispatch" class="manual-chapter">
+        <h2>Kernel Dispatch</h2>
+        <span class="route-tag">kernel-dispatch-grid</span>
+        <p><strong>Kernel Dispatch</strong> manages despatch baskets for kernel customers: view basket, inspection, and dispatch paperwork. Baskets are built from stock movements and CRM kernel customers.</p>
+        <ol>
+          <li>Open <strong>Kernel Dispatch</strong>; use Board or Table as preferred.</li>
+          <li>Review open baskets; open <strong>View basket</strong> to verify styles and quantities before loading.</li>
+          <li>Complete <strong>Dispatch</strong> and the dispatch form (vehicle, seals, weights, sign-offs) per logistics SOP.</li>
+          <li>Review dispatched baskets for completed paperwork.</li>
+        </ol>
+        <p>If quantities are wrong, correct stock or the basket in <strong>Stock Management</strong> rather than dispatching incorrect loads.</p>
+        <p class="contextual-help"><a href="index.html#kernel-dispatch-grid">Kernel Dispatch</a> · <a href="index.html#modal-kernel-dispatch">Dispatch modal</a> · <a href="index.html#modal-kernel-dispatch-form">Dispatch form</a></p>
+      </article>
+
+      <article id="supplier-intake" class="manual-chapter">
+        <h2>Supplier Intake</h2>
+        <span class="route-tag">supplier-intake-grid</span>
+        <p><strong>Supplier Intake</strong> covers oil and protein raw material arriving from suppliers: receiver checklists create batches; oil batch headers and tests move material toward oil production.</p>
+        <ol>
+          <li>Open <strong>Supplier Intake</strong>; choose Board, Table, Weekly, or Overview as needed.</li>
+          <li>Start a new delivery with <strong>Receiver checklist</strong>; tie the supplier to CRM.</li>
+          <li>Complete sample tests when enabled; release batches toward oil production when rules pass.</li>
+          <li>Edit batch headers through row actions only where your role allows post-receipt changes.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#supplier-intake-grid">Supplier Intake</a> · <a href="index.html#modal-supplier-receiver-checklist">Receiver checklist</a> · <a href="index.html#modal-supplier-oil-batch">Oil batch</a></p>
+      </article>
+
+      <article id="oil-production" class="manual-chapter">
+        <h2>Oil Production</h2>
+        <span class="route-tag">oil-production-grid</span>
+        <p><strong>Oil Production</strong> manages extraction and finishing steps for the oil stream: raw batches released from supplier intake, production sheets (food-grade oil, protein powder, cosmetic oil, and similar), and links to finished stock.</p>
+        <ol>
+          <li>Open <strong>Oil Production</strong>.</li>
+          <li>Review <strong>Raw ingredients in production</strong>; open batches to run steps or mark bags empty when the press run is finished.</li>
+          <li>Create or open <strong>Production sheets</strong>; use form entry or file upload if both are offered.</li>
+          <li>Use toolbar refresh and analytics where available after others change data.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#oil-production-grid">Oil Production</a> · <a href="index.html#modal-oil-production-sheet">Production sheet</a></p>
+      </article>
+
+      <article id="stock-oil" class="manual-chapter">
+        <h2>Stock (Oil and Protein)</h2>
+        <span class="route-tag">stock-management-oil</span>
+        <p>This view focuses on oil and protein stock: lots, best-before, locations, import of oil lots from Excel (template-driven), and sending material toward oil dispatch.</p>
+        <ol>
+          <li>Open <strong>Stock (Oil and Protein)</strong>.</li>
+          <li>Filter and search; align lot records with physical labels on drums or tanks.</li>
+          <li>Create or edit oil lots; use import only with the correct template.</li>
+          <li>Use <strong>Send to Dispatch (Oil)</strong> when moving released lines to the dispatch process.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#stock-management-grid">Stock Management</a> · <a href="index.html#modal-oil-lot">Oil lot</a> · <a href="index.html#modal-import-oil-lots">Import oil lots</a> · <a href="index.html#modal-send-to-dispatch-oil">Send to dispatch (oil)</a></p>
+      </article>
+
+      <article id="oil-dispatch" class="manual-chapter">
+        <h2>Oil and Protein Dispatch</h2>
+        <span class="route-tag">oil-dispatch-grid</span>
+        <p>Mirrors kernel dispatch for the finished oil and protein warehouse: baskets, customer selection from CRM, inspection, and dispatch forms. Only released lots and agreed customer details should appear on loads.</p>
+        <ol>
+          <li>Open <strong>Oil and Protein Dispatch</strong>.</li>
+          <li>Build or review baskets; confirm customers match the commercial order.</li>
+          <li>Complete inspection and dispatch forms before shipment.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#oil-dispatch-grid">Oil Dispatch</a> · <a href="index.html#modal-oil-dispatch">Dispatch modal</a> · <a href="index.html#modal-oil-dispatch-form">Dispatch form</a></p>
+      </article>
+
+      <article id="quality" class="manual-chapter">
+        <h2>Quality Assurance</h2>
+        <span class="route-tag">quality-assurance-grid</span>
+        <p><strong>Quality Assurance</strong> logs tests (intake, in-process, finished product) and outcomes. Failed or conditional results may block release depending on configuration—follow your local QA playbook.</p>
+        <ol>
+          <li>Open <strong>Quality Assurance</strong>.</li>
+          <li>Filter by test type, result, or search text.</li>
+          <li>Create new tests or open existing rows to enter results and attachments.</li>
+          <li>Export when auditors or customers need evidence outside the app.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#quality-assurance-grid">Quality Assurance</a> · <a href="index.html#modal-quality-test">Quality test dialog</a></p>
+      </article>
+
+      <article id="sales-forecasting" class="manual-chapter">
+        <h2>Sales Forecasting</h2>
+        <span class="route-tag">sales-forecasting-grid</span>
+        <p>Maintains demand forecasts for planning: periods, product types, quantities, confidence, and status. Align versions with production capacity reviews; finance may still own a master forecast file.</p>
+        <ol>
+          <li>Open <strong>Sales Forecasting</strong>.</li>
+          <li>Add or revise forecasts; close obsolete versions.</li>
+          <li>Export for supply or finance hand-off when needed.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#sales-forecasting-grid">Sales Forecasting</a></p>
+      </article>
+
+      <article id="financial" class="manual-chapter">
+        <h2>Financial Management</h2>
+        <span class="route-tag">financial-management-grid</span>
+        <p>Where enabled, provides operational financial views (for example invoices and payments). Always reconcile with your authoritative accounting system; this module supports operations, not statutory reporting on its own.</p>
+        <ol>
+          <li>Open <strong>Financial Management</strong> when your deployment exposes it.</li>
+          <li>Create or open transactions from the toolbar and row actions.</li>
+          <li>Export for finance hand-off and reconciliation.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#financial-management-grid">Financial Management</a></p>
+      </article>
+
+      <article id="documents" class="manual-chapter">
+        <h2>Document Management</h2>
+        <span class="route-tag">document-management-grid</span>
+        <p>Stores operational documents with categories and optional links to business entities so teams can find certificates, contracts, and run files later.</p>
+        <ol>
+          <li>Open <strong>Document Management</strong>.</li>
+          <li>Maintain categories if your process needs new filing buckets.</li>
+          <li>Upload with clear titles; link to entities when the form supports it.</li>
+          <li>Search, download, or update metadata per retention rules.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#document-management-grid">Document Management</a></p>
+      </article>
+
+      <article id="data-import" class="manual-chapter">
+        <h2>Data Import (Excel)</h2>
+        <span class="route-tag">data-import-grid</span>
+        <p>Bulk-loads rows from Excel into selected tables using templates. Wrong headers or mapped columns cause failed rows—fix the spreadsheet rather than repeating the same import.</p>
+        <ol>
+          <li>Open <strong>Data import (Excel)</strong>.</li>
+          <li>Download the template for your target table.</li>
+          <li>Preview and map columns; resolve mapping errors before importing.</li>
+          <li>Run import and read the log; correct data and re-import if needed.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#data-import-grid">Data Import</a></p>
+      </article>
+
+      <article id="palladium" class="manual-chapter">
+        <h2>Palladium Integration</h2>
+        <span class="route-tag">palladium-integration-grid</span>
+        <p>Monitors and controls sync between Macavation and Palladium ERP: entity status, last sync, and manual sync where permitted. Day-to-day operational posting still happens in Macavation modules according to your integration design.</p>
+        <ol>
+          <li>Open <strong>Palladium Integration</strong>.</li>
+          <li>Review sync status and errors.</li>
+          <li>Run <strong>Sync now</strong> only when your runbook allows (avoid duplicate runs during sensitive periods unless approved).</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#palladium-integration-grid">Palladium Integration</a></p>
+      </article>
+
+      <article id="admin" class="manual-chapter">
+        <h2>System Administration</h2>
+        <span class="route-tag">admin-grid</span>
+        <p><strong>System Administration</strong> consolidates admin-facing functions in many deployments: user counts, user list, roles, and system configuration tabs. Exact tabs depend on your build.</p>
+        <h3>Typical tasks</h3>
+        <ol>
+          <li>Open <strong>System Administration</strong> from the sidebar.</li>
+          <li>Use <strong>Users and permissions</strong> for day-to-day user maintenance and Add User.</li>
+          <li>Use <strong>Roles management</strong> and related areas for role names and descriptions.</li>
+          <li>Use <strong>System configuration</strong> only with care; record values before change and involve vendor support for risky options.</li>
+        </ol>
+        <p class="contextual-help"><a href="index.html#admin-users-permissions">Users and permissions</a> · <a href="index.html#admin-roles-management">Roles management</a> · <a href="index.html#admin-system-configuration">System configuration</a> · <a href="index.html#modal-admin-add-user">Add user</a> · <a href="index.html#modal-admin-add-role">Add role</a></p>
+      </article>
+
+      <article id="user-mgmt" class="manual-chapter">
+        <h2>User Management (detailed grids)</h2>
+        <p>Some sites expose separate menu entries under User Management:</p>
+        <ul>
+          <li><strong>Users</strong> (<span class="route-tag" style="margin:0">users-grid</span>) — create and maintain logins; assign roles; deactivate leavers.</li>
+          <li><strong>Roles</strong> (<span class="route-tag" style="margin:0">roles-grid</span>) — named roles for menu and permission assignment.</li>
+          <li><strong>Database Role Permissions</strong> (<span class="route-tag" style="margin:0">role-permissions-grid</span>) — map roles to database objects with least privilege.</li>
+          <li><strong>Role Features</strong> (<span class="route-tag" style="margin:0">role-features-grid</span>) — toggle feature flags per role for phased rollouts.</li>
+          <li><strong>Features</strong> (<span class="route-tag" style="margin:0">features-grid</span>) — catalogue of feature keys assigned to roles.</li>
+        </ul>
+        <div class="callout">
+          <strong>After permission changes,</strong> test with a non-admin user. Features and permissions work together with menu visibility; fixing “cannot see menu X” often requires more than one grid.
+        </div>
+        <p class="contextual-help"><a href="index.html#users-grid">Users</a> · <a href="index.html#roles-grid">Roles</a> · <a href="index.html#role-permissions-grid">Role permissions</a> · <a href="index.html#role-features-grid">Role features</a> · <a href="index.html#features-grid">Features</a></p>
+      </article>
+
+      <article id="test-tools" class="manual-chapter">
+        <h2>Test tools (non-production)</h2>
+        <p><strong>Test Scenarios</strong> and <strong>Test Data</strong> appear only in QA or non-production environments. They support automation and synthetic datasets—never use them against production databases.</p>
+        <ul>
+          <li><span class="route-tag">test-scenarios-grid</span> — define scenarios aligned with CI or Playwright jobs.</li>
+          <li><span class="route-tag">test-data-grid</span> — data sets and records for seeded tests.</li>
+        </ul>
+        <p class="contextual-help"><a href="index.html#test-scenarios-grid">Test scenarios</a> · <a href="index.html#test-data-sets">Test data sets</a></p>
+      </article>
+
+      <article id="appendix-routes" class="manual-chapter">
+        <h2>Appendix — Route catalogue from app configuration</h2>
+        <p>Every entry below comes from <code>WebPortal/js/appRouteConfig.json</code> (<code>appRoutes</code>). <strong>Route</strong> means a navigable or alias target (some share the same HTML as another route, for example dashboard variants). <strong>Overlay</strong> means a modal route loaded on top of a parent screen.</p>
+        <div class="manual-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Route key</th>
+                <th>Kind</th>
+                <th>Description (config)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>dashboard</code></td><td>Route</td><td>Dashboard</td></tr>
+              <tr><td><code>my-day</code></td><td>Route</td><td>My Day - Role-Based Workflow</td></tr>
+              <tr><td><code>users-grid</code></td><td>Route</td><td>User Management</td></tr>
+              <tr><td><code>user-modal</code></td><td>Overlay</td><td>Add/Edit User Modal</td></tr>
+              <tr><td><code>roles-grid</code></td><td>Route</td><td>Role Management</td></tr>
+              <tr><td><code>role-modal</code></td><td>Overlay</td><td>Add/Edit Role Modal</td></tr>
+              <tr><td><code>role-permissions-grid</code></td><td>Route</td><td>Database Role Permissions Management</td></tr>
+              <tr><td><code>role-permission-modal</code></td><td>Overlay</td><td>Add/Edit Role Permission Modal</td></tr>
+              <tr><td><code>role-features-grid</code></td><td>Route</td><td>Role Features Management</td></tr>
+              <tr><td><code>role-feature-modal</code></td><td>Overlay</td><td>Add/Edit Role Feature Modal</td></tr>
+              <tr><td><code>features-grid</code></td><td>Route</td><td>Features Management</td></tr>
+              <tr><td><code>feature-modal</code></td><td>Overlay</td><td>Add/Edit Feature Modal</td></tr>
+              <tr><td><code>admin-grid</code></td><td>Route</td><td>System Administration</td></tr>
+              <tr><td><code>add-user-modal</code></td><td>Overlay</td><td>Admin Add User Modal</td></tr>
+              <tr><td><code>add-role-modal</code></td><td>Overlay</td><td>Admin Add Role Modal</td></tr>
+              <tr><td><code>crm-grid</code></td><td>Route</td><td>Customer Relationship Management</td></tr>
+              <tr><td><code>crm-contact-modal</code></td><td>Overlay</td><td>CRM Add/Edit Contact Modal</td></tr>
+              <tr><td><code>grower-intake-grid</code></td><td>Route</td><td>Grower Intake Management</td></tr>
+              <tr><td><code>supplier-intake-grid</code></td><td>Route</td><td>Supplier Intake - Oil &amp; Protein</td></tr>
+              <tr><td><code>supplier-oil-batch-modal</code></td><td>Overlay</td><td>Supplier Intake - New oil batch (batches + oil table)</td></tr>
+              <tr><td><code>supplier-receiver-checklist-modal</code></td><td>Overlay</td><td>Supplier Intake - Receiver checklist (create batches)</td></tr>
+              <tr><td><code>kernel-production-grid</code></td><td>Route</td><td>Kernel Production Workflow</td></tr>
+              <tr><td><code>kernel-job-card-modal</code></td><td>Overlay</td><td>Kernel Job Card Modal</td></tr>
+              <tr><td><code>production-stages-modal</code></td><td>Overlay</td><td>Production Stages Modal</td></tr>
+              <tr><td><code>batch-summary-modal</code></td><td>Overlay</td><td>Batch Summary Modal</td></tr>
+              <tr><td><code>production-stages-view-modal</code></td><td>Overlay</td><td>Production Stages View Modal</td></tr>
+              <tr><td><code>job-card-view-modal</code></td><td>Overlay</td><td>Job Card View Modal</td></tr>
+              <tr><td><code>end-sample-modal</code></td><td>Overlay</td><td>End Sample Modal</td></tr>
+              <tr><td><code>end-sample-view-modal</code></td><td>Overlay</td><td>End Sample View Modal</td></tr>
+              <tr><td><code>batch-history-modal</code></td><td>Overlay</td><td>Batch History Modal</td></tr>
+              <tr><td><code>kernel-dispatch-grid</code></td><td>Route</td><td>Kernel Dispatch</td></tr>
+              <tr><td><code>kernel-dispatch-modal</code></td><td>Overlay</td><td>Kernel Dispatch batch modal</td></tr>
+              <tr><td><code>kernel-dispatch-form-modal</code></td><td>Overlay</td><td>Kernel Dispatch inspection and dispatch form</td></tr>
+              <tr><td><code>oil-dispatch-grid</code></td><td>Route</td><td>Oil &amp; Protein Dispatch</td></tr>
+              <tr><td><code>oil-dispatch-modal</code></td><td>Overlay</td><td>Oil Dispatch view basket modal</td></tr>
+              <tr><td><code>oil-dispatch-form-modal</code></td><td>Overlay</td><td>Oil Dispatch inspection and dispatch form</td></tr>
+              <tr><td><code>quality-assurance-grid</code></td><td>Route</td><td>Quality Assurance &amp; Food Safety</td></tr>
+              <tr><td><code>quality-test-modal</code></td><td>Overlay</td><td>Quality Test Modal (New/Edit)</td></tr>
+              <tr><td><code>stock-management-grid</code></td><td>Route</td><td>Stock Management</td></tr>
+              <tr><td><code>stock-management-kernel</code></td><td>Route</td><td>Stock (Kernel) - NIS = R NIL, KERNEL R YES</td></tr>
+              <tr><td><code>stock-management-oil</code></td><td>Route</td><td>Stock (Oil &amp; Protein)</td></tr>
+              <tr><td><code>oil-lot-modal</code></td><td>Overlay</td><td>Oil Stock Lot Modal</td></tr>
+              <tr><td><code>import-oil-lots-modal</code></td><td>Overlay</td><td>Import Oil Lots Modal</td></tr>
+              <tr><td><code>receiving-checklist-modal</code></td><td>Overlay</td><td>Receiving Checklist Modal</td></tr>
+              <tr><td><code>grower-receiving-checklist-modal</code></td><td>Overlay</td><td>Grower Intake Receiving Checklist Modal</td></tr>
+              <tr><td><code>grower-create-kernel-batch-modal</code></td><td>Overlay</td><td>Grower Intake Create Kernel Batch Modal</td></tr>
+              <tr><td><code>grower-link-sample-to-batch-modal</code></td><td>Overlay</td><td>Grower Intake Link Sample to Batch Modal</td></tr>
+              <tr><td><code>raw-material-issued-modal</code></td><td>Overlay</td><td>Raw Material Issued Modal</td></tr>
+              <tr><td><code>stock-take-modal</code></td><td>Overlay</td><td>Stock Take Modal</td></tr>
+              <tr><td><code>send-to-dispatch-modal</code></td><td>Overlay</td><td>Send to Dispatch Modal</td></tr>
+              <tr><td><code>send-to-dispatch-oil-modal</code></td><td>Overlay</td><td>Send to Dispatch (Oil &amp; Protein) Modal</td></tr>
+              <tr><td><code>sales-forecasting-grid</code></td><td>Route</td><td>Sales Forecasting</td></tr>
+              <tr><td><code>oil-production-grid</code></td><td>Route</td><td>Oil Production Workflow</td></tr>
+              <tr><td><code>oil-production-sheet-modal</code></td><td>Overlay</td><td>Oil Production Sheet modal (add/edit)</td></tr>
+              <tr><td><code>financial-management-grid</code></td><td>Route</td><td>Financial Management</td></tr>
+              <tr><td><code>amanda-dashboard</code></td><td>Route</td><td>Material Journey Dashboard - Track material from intake to dispatch</td></tr>
+              <tr><td><code>executive-dashboard</code></td><td>Route</td><td>Executive Dashboard &amp; Reporting</td></tr>
+              <tr><td><code>document-management-grid</code></td><td>Route</td><td>Document Management</td></tr>
+              <tr><td><code>palladium-integration-grid</code></td><td>Route</td><td>Palladium ERP Integration</td></tr>
+              <tr><td><code>data-import-grid</code></td><td>Route</td><td>Data Import (Excel)</td></tr>
+              <tr><td><code>test-scenarios-grid</code></td><td>Route</td><td>Test Scenarios Management</td></tr>
+              <tr><td><code>test-scenario-modal</code></td><td>Overlay</td><td>Add/Edit Test Scenario Modal</td></tr>
+              <tr><td><code>test-data-grid</code></td><td>Route</td><td>Test Data Management</td></tr>
+              <tr><td><code>test-data-set-modal</code></td><td>Overlay</td><td>Add/Edit Test Data Set Modal</td></tr>
+              <tr><td><code>test-data-record-modal</code></td><td>Overlay</td><td>Add/Edit Test Data Record Modal</td></tr>
+              <tr><td><code>batch-journey</code></td><td>Route</td><td>Batch Journey - All Batches Overview</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>If this table and the sidebar disagree, trust the build you are running—menu visibility is also filtered by <strong>role</strong>.</p>
+      </article>
+    </main>
+  </div>
+
+  <footer class="manual-footer">
+    Macavation User Manual — module reference. For screen-by-screen steps with figures, use the <a href="index.html?full=1">full in-app user guide</a>.
+  </footer>
+</body>
+</html>
