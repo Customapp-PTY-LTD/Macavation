@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Macavation User Manual — By Module</title>
+  <link rel="stylesheet" href="help-return-bar.css" />
   <link rel="stylesheet" href="user-manual.css" />
 </head>
 <body>
@@ -13,6 +14,7 @@
     <h1>Macavation User Manual</h1>
     <p class="manual-meta">Operations portal for macadamia supply chain: grower kernel stream, oil and protein stream, stock, dispatch, quality, CRM, and administration. This document is organised by application module.</p>
     <div class="manual-actions">
+      <a class="btn-ghost" href="help-index.html">Documentation index</a>
       <a class="btn-ghost" href="index.html?full=1">In-app user guide (topics and screenshots)</a>
       <a class="btn-ghost" href="../index.html">Open Web Portal</a>
     </div>
@@ -73,7 +75,7 @@
     </nav>
 
     <main id="main" class="manual-main">
-      <p class="manual-lead">Use this manual for training, onboarding, and reference. Each chapter names the sidebar menu entry, explains why the module exists, and lists the steps people usually follow. For step-by-step help on a single screen while you work, open <strong>Help</strong> on that screen (links into the <a href="index.html">contextual user guide</a>).</p>
+      <p class="manual-lead">Use this manual for training, onboarding, and reference. Each chapter names the sidebar menu entry, explains why the module exists, and lists the steps people usually follow. Use the <strong>sticky bar at the top</strong> to return to the <a href="help-index.html">documentation index</a> or open other guides. For step-by-step help on a single screen while you work, use <strong>Help</strong> on that screen in the app (opens the <a href="index.html" target="_blank" rel="noopener">contextual user guide</a> in a <strong>new tab</strong>).</p>
 
       <article id="intro" class="manual-chapter">
         <h2>Introduction</h2>
@@ -540,7 +542,10 @@
   </div>
 
   <footer class="manual-footer">
-    Macavation User Manual — module reference. For screen-by-screen steps with figures, use the <a href="index.html?full=1">full in-app user guide</a>.
+    <a href="help-index.html">Documentation index</a> · Macavation User Manual — module reference. For screen-by-screen steps with figures, use the <a href="index.html?full=1">full in-app user guide</a>.
   </footer>
+
+  <script src="help-return-inject.js" defer></script>
+  <script src="manual-chapter-nav.js" defer></script>
 </body>
 </html>

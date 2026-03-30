@@ -26,6 +26,25 @@ body.guide-single {
   max-width: 48rem;
 }
 
+.guide-hub-strip {
+  margin: -0.15rem 0 0.85rem;
+  font-size: 0.92rem;
+}
+.guide-hub-strip a {
+  color: #1e5a4a;
+  text-decoration: none;
+}
+.guide-hub-strip a:hover {
+  text-decoration: underline;
+}
+.guide-hub-sep {
+  color: var(--ug-muted);
+  margin: 0 0.35rem;
+}
+body.guide-single .guide-hub-strip {
+  display: none;
+}
+
 #guide-brand {
   display: flex;
   align-items: center;
@@ -87,6 +106,13 @@ h1 {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+#guide-single-bar .single-bar-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
 }
 
 body.guide-single #guide-single-bar {

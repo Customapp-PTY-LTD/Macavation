@@ -1,5 +1,5 @@
 /**
- * Help shell inside iframe: single-topic vs full guide, TOC, missing screenshots.
+ * Help shell in a browser tab: single-topic vs full guide, TOC, missing screenshots.
  */
 (function () {
   "use strict";
@@ -70,6 +70,9 @@
     if (intro) intro.hidden = single;
     if (toc) toc.hidden = single;
     if (mainTitle) mainTitle.hidden = single;
+
+    var hubStrip = document.getElementById("guide-hub-strip");
+    if (hubStrip) hubStrip.hidden = single;
 
     if (process) process.hidden = single;
 

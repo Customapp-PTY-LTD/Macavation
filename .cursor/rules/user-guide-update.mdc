@@ -9,12 +9,13 @@ Whenever you **introduce, change, or remove** anything that affects **what users
 
 ## What to update
 
-1. **In-app user guide** (modal + full guide): `WebPortal/help/index.html`, and when layout/behaviour of the help UI itself changes: `WebPortal/help/help-shell.css`, `WebPortal/help/help-shell.js`, `WebPortal/help/assets/`.
-2. **Module manual** (printable / by-module reference): `WebPortal/help/user-manual.html` and `WebPortal/help/user-manual.css` — add or revise the chapter for the affected module, and if `WebPortal/js/appRouteConfig.json` changed, update the **Appendix — Route catalogue** in `user-manual.html` to match.
-3. **Help links on screens**: run `node scripts/apply_user_guide_help_links.mjs` from the repo root after adding or renaming help anchors, so each screen keeps a `macavation-help-link` to `help/index.html#…`.
-4. **Screenshots** (when the visible UI changed): `cd e2e && npm run capture-user-guide` per project convention.
+1. **In-app user guide** (new tab + full guide): `WebPortal/help/index.html`, and when layout/behaviour of the help UI itself changes: `WebPortal/help/help-shell.css`, `WebPortal/help/help-shell.js`, `WebPortal/help/assets/`. The **documentation hub** is `WebPortal/help/help-index.html` (links between guides and manual chapters); update its links when you add routes or major topics.
+2. **Standalone overview doc** (`WebPortal/assets/docs/user-guide.html` + `user-guide.css`): public-style single-page guide (quick start, navigation, workflows, modules, roles, troubleshooting). Update it when you add or rename major sidebar areas, streams, or troubleshooting tips—keep it aligned with `user-manual.html` at a high level.
+3. **Module manual** (printable / by-module reference): `WebPortal/help/user-manual.html` and `WebPortal/help/user-manual.css` — add or revise the chapter for the affected module, and if `WebPortal/js/appRouteConfig.json` changed, update the **Appendix — Route catalogue** in `user-manual.html` to match.
+4. **Help links on screens**: run `node scripts/apply_user_guide_help_links.mjs` from the repo root after adding or renaming help anchors, so each screen keeps a `macavation-help-link` to `help/index.html#…`.
+5. **Screenshots** (when the visible UI changed): `cd e2e && npm run capture-user-guide` per project convention.
 
-Help opens in a **modal** with **one topic** plus a compact **SVG** where relevant; **Full user guide** / `?full=1` lists every section. The **User manual (by module)** is linked from the help intro (`user-manual.html`).
+From the Web Portal, **Help** (`macavation-help-link`) opens `help/index.html` in a **new browser tab** (not an in-app modal), with **one topic** when a hash is present plus a compact **SVG** where relevant; **Full user guide** / `?full=1` lists every section. Sticky **Documentation navigation** on help pages links back to **`help-index.html`**. The **User manual (by module)** is linked from the help intro (`user-manual.html`).
 
 ## Checklist for a new or changed feature
 
@@ -27,7 +28,7 @@ Diagrams:             [flow diagram / screenshot callout / none]
 Help button location: [file path, e.g. modules/dashboard/html/dashboard.html]
 ```
 
-Add a section in `WebPortal/help/index.html` with matching `id` (and generator/script workflow your team uses), add the **Help** link on the screen, and update **`user-manual.html`** if the module’s purpose, steps, or routes changed.
+Add a section in `WebPortal/help/index.html` with matching `id` (and generator/script workflow your team uses), add the **Help** link on the screen, and update **`user-manual.html`** and the **`assets/docs`** overview (`user-guide.html`) if the module’s purpose, navigation, or high-level workflow changed.
 
 ## Do not commit
 

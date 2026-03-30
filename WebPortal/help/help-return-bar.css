@@ -1,0 +1,67 @@
+/**
+ * Sticky navigation back to documentation hub and related guides.
+ * Used on help/index.html, user-manual.html; hub variant on help-index.html
+ */
+.help-return-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #fff;
+  border-bottom: 1px solid var(--ug-border, #d8e0db);
+  box-shadow: 0 1px 4px rgba(45, 74, 62, 0.08);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.help-return-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  padding: 0.45rem 1rem;
+  max-width: 52rem;
+  margin: 0 auto;
+  font-size: 0.875rem;
+}
+
+body.guide-single .help-return-bar-inner {
+  max-width: 48rem;
+}
+
+.help-return-bar a {
+  color: #1e5a4a;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.help-return-bar a:hover {
+  text-decoration: underline;
+}
+
+.help-return-bar .help-return-bar-sep {
+  color: var(--ug-muted, #5a6b63);
+  user-select: none;
+}
+
+.help-return-bar--hub .help-return-bar-current {
+  color: var(--ug-brand, #2d4a3e);
+  font-size: 0.875rem;
+  margin-right: 0.25rem;
+}
+
+/* user-manual.html uses user-manual.css variables */
+body:not(.guide-full):not(.guide-single) .help-return-bar-inner,
+body.help-hub .help-return-bar-inner {
+  max-width: 72rem;
+}
+
+body.help-hub .help-return-bar-inner {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+@media print {
+  .help-return-bar {
+    display: none !important;
+  }
+}

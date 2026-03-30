@@ -1,5 +1,5 @@
 /**
- * Opens in-app help in a modal iframe (WebPortal/help/index.html).
+ * Opens user guide in a new browser tab (WebPortal/help/index.html).
  * Help links use class "macavation-help-link" and href "help/index.html#topic-id".
  */
 (function () {
@@ -7,13 +7,12 @@
 
   var HELP_PAGE = "help/index.html";
 
-  function openHelpModal(hash) {
-    var frame = document.getElementById("helpGuideFrame");
-    var modalEl = document.getElementById("helpGuideModal");
-    if (!frame || !modalEl || typeof bootstrap === "undefined") return;
+  function openHelpInNewTab(hash) {
     var url = HELP_PAGE + (hash ? "#" + encodeURIComponent(hash) : "");
-    frame.src = url;
-    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    var win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win) {
+      window.location.href = url;
+    }
   }
 
   document.addEventListener("click", function (e) {
@@ -47,14 +46,6 @@
         }
       }
     }
-    openHelpModal(hash);
+    openHelpInNewTab(hash);
   });
-
-  var modalEl = document.getElementById("helpGuideModal");
-  if (modalEl) {
-    modalEl.addEventListener("hidden.bs.modal", function () {
-      var frame = document.getElementById("helpGuideFrame");
-      if (frame) frame.src = "about:blank";
-    });
-  }
 })();

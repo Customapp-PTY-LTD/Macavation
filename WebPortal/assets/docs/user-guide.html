@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Macavation — User Guide</title>
+  <link rel="stylesheet" href="user-guide.css" />
+</head>
+<body>
+  <div class="doc-wrap">
+    <nav class="doc-topbar" aria-label="Quick links">
+      <a href="../../index.html">Web Portal</a>
+      <span class="doc-topbar-sep" aria-hidden="true">|</span>
+      <a href="../../help/help-index.html">Documentation index</a>
+      <span class="doc-topbar-sep" aria-hidden="true">|</span>
+      <a href="../../help/index.html?full=1">Full user guide (topics)</a>
+      <span class="doc-topbar-sep" aria-hidden="true">|</span>
+      <a href="../../help/user-manual.html">User manual (by module)</a>
+    </nav>
+
+    <header>
+      <h1 id="top">Macavation User Guide</h1>
+      <p class="doc-tagline">How to use the operations portal for macadamia intake, production, stock, dispatch, quality, and administration.</p>
+      <p class="doc-note">
+        <strong>About this page.</strong> This guide is a single readable overview (structure similar to the
+        <a href="https://dev.tracker-academy.co.za/WebPortal/assets/docs/user-guide.html" target="_blank" rel="noopener">Tracker Academy user guide</a>).
+        The live app usually requires sign-in. For screen-by-screen help with screenshots, use <a href="../../help/index.html?full=1">Full user guide</a> from the portal <strong>Help</strong> button (opens in a new tab) or the links above.
+      </p>
+    </header>
+
+    <nav class="doc-toc" aria-labelledby="toc-heading">
+      <h2 id="toc-heading">Contents</h2>
+      <ul>
+        <li><a href="#quick-start">Quick start</a></li>
+        <li><a href="#navigation">Navigation overview</a></li>
+        <li><a href="#workflows">Core workflows</a></li>
+        <li><a href="#modules">Operations modules</a></li>
+        <li><a href="#results">Dashboards, journey, and exports</a></li>
+        <li><a href="#roles">Roles and permissions</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+      </ul>
+    </nav>
+
+    <section class="doc-section" id="quick-start" aria-labelledby="quick-start-heading">
+      <h2 id="quick-start-heading">Quick start</h2>
+      <ol>
+        <li>Open the <a href="../../index.html">sign-in page</a> and log in with the account your administrator provided (your organisation may include a client link with a <code class="doc-kbd">cc</code> code in the URL).</li>
+        <li>Use the <strong>left sidebar</strong> to open a module. What you see depends on your <strong>role</strong>.</li>
+        <li>Start from <strong>grid</strong> or <strong>board</strong> views to see batches, stock lines, or records; open row actions, toolbars, or cards to run checklists, job cards, and forms.</li>
+        <li>Use toolbar actions such as <strong>Create</strong>, <strong>Release to production</strong>, <strong>Send to Dispatch</strong>, <strong>Export</strong>, and <strong>Refresh</strong> as your screen provides them.</li>
+        <li>Use <strong>Help</strong> on a screen to open the contextual topic for that module in a <strong>new browser tab</strong>.</li>
+        <li>Use <strong>Batch Journey</strong> when you know a batch identifier but not which module currently owns the work.</li>
+      </ol>
+      <a class="back-to-top" href="#top">Back to top</a>
+    </section>
+
+    <section class="doc-section" id="navigation" aria-labelledby="navigation-heading">
+      <h2 id="navigation-heading">Navigation overview</h2>
+      <p>The portal uses a <strong>sidebar</strong> plus <strong>top bar</strong> layout.</p>
+
+      <h3>Sidebar sections (typical)</h3>
+      <ul>
+        <li><strong>Dashboard</strong> — operational overview; may include Material Journey and Executive views.</li>
+        <li><strong>Batch Journey</strong> — search batches across intake, production, QA, and dispatch.</li>
+        <li><strong>CRM</strong> — contacts (NIS suppliers, kernel customers, oil and protein customers, ingredient suppliers, processors).</li>
+        <li><strong>Kernel</strong> — Grower Intake, Kernel Production, Stock (Kernel), Kernel Dispatch.</li>
+        <li><strong>Oil &amp; Protein</strong> — Supplier Intake, Oil Production, Stock (Oil &amp; Protein), Oil &amp; Protein Dispatch.</li>
+        <li><strong>Quality</strong> — Quality Assurance tests and records.</li>
+        <li><strong>Business</strong> — Sales Forecasting, Financial Management (where enabled).</li>
+        <li><strong>Document Management</strong> and <strong>Palladium Integration</strong> — documents and ERP sync status.</li>
+        <li><strong>User Management</strong> — Users, Roles, Database Role Permissions, Role Features, Features.</li>
+        <li><strong>System Administration</strong> — consolidated admin views (varies by deployment).</li>
+        <li><strong>Test Management</strong> — test scenarios and data (non-production environments only).</li>
+      </ul>
+
+      <h3>Top bar and global actions</h3>
+      <ul>
+        <li><strong>My Day</strong> — role-based tasks and shortcuts (dropdown and full page).</li>
+        <li><strong>User menu</strong> and <strong>Sign out</strong>.</li>
+        <li><strong>Dark mode</strong> and <strong>sidebar collapse</strong> (footer of the sidebar).</li>
+        <li><strong>Data Import (Excel)</strong> may appear as a quick action from the dashboard area when enabled.</li>
+      </ul>
+      <a class="back-to-top" href="#top">Back to top</a>
+    </section>
+
+    <section class="doc-section" id="workflows" aria-labelledby="workflows-heading">
+      <h2 id="workflows-heading">Core workflows</h2>
+
+      <h3>1) Kernel stream (grower to kernel dispatch)</h3>
+      <ul>
+        <li>Register and receive material in <strong>Grower Intake</strong> (receiving checklist, samples, batch tests as required).</li>
+        <li>Create or release kernel batches toward <strong>Kernel Production</strong> (job cards, production stages, silos).</li>
+        <li>Move finished kernel stock in <strong>Stock (Kernel)</strong>; use <strong>Send to Dispatch</strong> toward sales baskets.</li>
+        <li>Complete <strong>Kernel Dispatch</strong> (basket, inspection, dispatch paperwork) using CRM kernel customers.</li>
+      </ul>
+
+      <h3>2) Oil and protein stream (supplier to oil dispatch)</h3>
+      <ul>
+        <li>Receive supplier material in <strong>Supplier Intake</strong> (receiver checklist, oil batches, tests).</li>
+        <li>Run <strong>Oil Production</strong> (raw batches in production, production sheets, finished goods).</li>
+        <li>Manage lots and finished oil/protein in <strong>Stock (Oil &amp; Protein)</strong>; send lines toward dispatch when released.</li>
+        <li>Complete <strong>Oil &amp; Protein Dispatch</strong> with the same basket and inspection pattern as kernel dispatch.</li>
+      </ul>
+
+      <h3>3) Quality and compliance</h3>
+      <ul>
+        <li>Log tests in <strong>Quality Assurance</strong>; failed or conditional results may block the next step depending on configuration.</li>
+        <li>Keep <strong>CRM</strong> contacts accurate so intake and dispatch paperwork match real customers and suppliers.</li>
+      </ul>
+
+      <h3>4) Administration and integration</h3>
+      <ul>
+        <li>Maintain users, roles, permissions, and feature flags in <strong>User Management</strong> (restricted roles).</li>
+        <li>Use <strong>Palladium Integration</strong> for sync health; follow your runbook for manual sync.</li>
+        <li>Use <strong>Data Import (Excel)</strong> only with approved templates; fix spreadsheets using import logs rather than repeating bad files.</li>
+      </ul>
+      <a class="back-to-top" href="#top">Back to top</a>
+    </section>
+
+    <section class="doc-section" id="modules" aria-labelledby="modules-heading">
+      <h2 id="modules-heading">Operations modules</h2>
+      <p>Most operational modules follow a similar rhythm: <strong>find the record</strong> (search, filters, board/table) → <strong>complete the required steps in order</strong> → <strong>export or hand off</strong> to the next stage. Exact buttons depend on your role and batch status.</p>
+
+      <p class="module-grid" aria-label="Module names">
+        <span class="module-pill">Grower Intake</span>
+        <span class="module-pill">Kernel Production</span>
+        <span class="module-pill">Stock (Kernel)</span>
+        <span class="module-pill">Kernel Dispatch</span>
+        <span class="module-pill">Supplier Intake</span>
+        <span class="module-pill">Oil Production</span>
+        <span class="module-pill">Stock (Oil)</span>
+        <span class="module-pill">Oil Dispatch</span>
+        <span class="module-pill">Quality Assurance</span>
+        <span class="module-pill">CRM</span>
+      </p>
+
+      <h3>Grower Intake</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Kernel-side receiving: checklists, samples, linking batches before production.</li>
+        <li><strong>Typical flow:</strong> Complete <strong>Receiving checklist</strong> → run enabled test/sample steps → <strong>Create kernel batch</strong> or release when rules allow → <strong>Release to production</strong> (silo selection if prompted).</li>
+        <li><strong>Hand-off:</strong> Kernel Production receives released batches.</li>
+      </ul>
+
+      <h3>Kernel Production</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Factory execution: silos, job cards, production stages, batch summary and history.</li>
+        <li><strong>Typical flow:</strong> Manage <strong>silos</strong> → open a batch → job card and stages in order → QA hand-offs per your rules → release toward stock when complete.</li>
+        <li><strong>Hand-off:</strong> Stock (Kernel) and dispatch when product is finished and released.</li>
+      </ul>
+
+      <h3>Stock (Kernel) and Kernel Dispatch</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Warehouse truth for kernel lines; building and shipping customer baskets.</li>
+        <li><strong>Typical flow:</strong> Filter by location/status → align counts with the floor → <strong>Send to Dispatch</strong> → complete dispatch forms only when the physical load matches the basket.</li>
+      </ul>
+
+      <h3>Supplier Intake and Oil Production</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Oil-side receiving and conversion to finished oil/protein records.</li>
+        <li><strong>Typical flow:</strong> <strong>Receiver checklist</strong> for new deliveries → batch tests as enabled → production sheets and raw batch processing on the oil grid.</li>
+      </ul>
+
+      <h3>Stock (Oil &amp; Protein) and Oil Dispatch</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Lots, best-before, and despatch of oil/protein finished goods.</li>
+        <li><strong>Typical flow:</strong> Maintain oil lots (including import where allowed) → send released lines to dispatch → inspection and paperwork before shipment.</li>
+      </ul>
+
+      <h3>Quality Assurance</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Record tests and evidence; outcomes may gate release.</li>
+        <li><strong>Typical flow:</strong> Filter → <strong>New quality test</strong> or open a row → attach files if required → <strong>Export</strong> for audits.</li>
+      </ul>
+
+      <h3>CRM</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Master data for growers, customers, and suppliers used on intake and dispatch screens.</li>
+        <li><strong>Typical flow:</strong> Choose the correct tab → filters → <strong>Add Contact</strong> or import from Excel without changing template headers.</li>
+      </ul>
+
+      <h3>Module status mindset</h3>
+      <ul>
+        <li><strong>In progress:</strong> Checklists incomplete, tests pending, or production stages not finished — editing is usually allowed where the UI enables it.</li>
+        <li><strong>Released / dispatched:</strong> Treat data as committed for operations; corrections follow your SOP (often stock or admin).</li>
+        <li><strong>Read-only views:</strong> Job card view, production stages view, batch history — for verification, not editing.</li>
+      </ul>
+      <a class="back-to-top" href="#top">Back to top</a>
+    </section>
+
+    <section class="doc-section" id="results" aria-labelledby="results-heading">
+      <h2 id="results-heading">Dashboards, journey, and exports</h2>
+      <ul>
+        <li><strong>Dashboard</strong> — snapshot cards and links; refresh the browser if numbers look stale.</li>
+        <li><strong>Material Journey / Executive</strong> — integrator or leadership views; use in-page refresh where provided.</li>
+        <li><strong>Batch Journey</strong> — cross-module batch search; follow links into the owning module to complete work.</li>
+        <li><strong>Exports</strong> — many grids offer <strong>Export</strong> for spreadsheets; Data Import runs the opposite direction with strict templates.</li>
+        <li><strong>Process diagram</strong> — see <a href="../../help/assets/process-overview.svg" target="_blank" rel="noopener">process overview (SVG)</a> in the help folder.</li>
+      </ul>
+      <a class="back-to-top" href="#top">Back to top</a>
+    </section>
+
+    <section class="doc-section" id="roles" aria-labelledby="roles-heading">
+      <h2 id="roles-heading">Roles and permissions</h2>
+      <p>What you can open in the sidebar and which API operations succeed depend on <strong>roles</strong>, <strong>role permissions</strong>, and <strong>role features</strong> configured in User Management.</p>
+      <ul>
+        <li>If a <strong>menu item is missing</strong>, your role may not include that feature, or a feature flag may be off.</li>
+        <li>If you see <strong>Access denied</strong> and a redirect to the dashboard, ask an administrator to review role assignment and permissions.</li>
+        <li><strong>User Management</strong> grids are usually limited to administrators or managers.</li>
+        <li>Avoid shared logins; use password reset or admin-assisted recovery instead of sharing credentials.</li>
+      </ul>
+      <a class="back-to-top" href="#top">Back to top</a>
+    </section>
+
+    <section class="doc-section" id="troubleshooting" aria-labelledby="troubleshooting-heading">
+      <h2 id="troubleshooting-heading">Troubleshooting</h2>
+      <ul>
+        <li><strong>Stale grids:</strong> Use the screen <strong>Refresh</strong> control if present, then reload the browser once.</li>
+        <li><strong>Actions disabled:</strong> Earlier steps may be incomplete (for example receiving checklist before tests), or the batch may be in a read-only state.</li>
+        <li><strong>Wrong quantities on dispatch:</strong> Fix stock or the basket in <strong>Stock Management</strong>; do not force dispatch paperwork to match incorrect inventory.</li>
+        <li><strong>Import failures:</strong> Correct column mapping and template headers; read the import log.</li>
+        <li><strong>Cannot access a section:</strong> Ask an administrator to verify role, role features, and database role permissions.</li>
+        <li><strong>Login issues:</strong> Use your organisation’s password reset or contact support; ensure you use the correct client link if your site requires <code class="doc-kbd">cc</code>.</li>
+      </ul>
+      <a class="back-to-top" href="#top">Back to top</a>
+    </section>
+
+    <footer class="doc-note" style="margin-top: 2.5rem;">
+      <strong>More detail.</strong>
+      <a href="../../help/user-manual.html">User manual (by module)</a> ·
+      <a href="../../help/index.html?full=1">Full user guide with screenshots</a> ·
+      <a href="../../help/help-index.html">Documentation index</a>
+    </footer>
+  </div>
+</body>
+</html>

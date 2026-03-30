@@ -1,5 +1,5 @@
 /**
- * Generate WebPortal/help/index.html and insert Help links (modal) in WebPortal modules.
+ * Generate WebPortal/help/index.html and insert Help links (open guide in new tab) in WebPortal modules.
  * Run from repo root: node scripts/apply_user_guide_help_links.mjs
  */
 import fs from "fs";
