@@ -353,6 +353,11 @@ var _oilProductionGrid = function () {
                 var id = $(this).data('oil-bin-batch-id');
                 if (id) scope.sendOilBinBatchToStock(id);
             });
+            $(document).on('click', '.op-delete-oil-bin-batch', function (e) {
+                e.preventDefault();
+                var id = $(this).data('oil-bin-batch-id');
+                if (id) scope.deleteOilBinBatch(id);
+            });
             $(document).on('click', '.op-edit-oil-bin-batch', function (e) {
                 e.preventDefault();
                 var id = $(this).data('oil-bin-batch-id');
@@ -943,6 +948,7 @@ var _oilProductionGrid = function () {
                     if (b.status === 'in_production') {
                         actions += '<div class="d-flex flex-wrap gap-1 justify-content-end"><button type="button" class="btn btn-sm btn-outline-success op-link-ingredients-btn" data-oil-bin-batch-id="' + escapeHtml(b.id) + '" title="Link raw ingredients in production to this bin"><i class="fas fa-link me-1"></i>Ingredients</button>';
                         actions += '<button type="button" class="btn btn-sm btn-outline-secondary op-edit-oil-bin-batch" data-oil-bin-batch-id="' + escapeHtml(b.id) + '" title="Edit"><i class="fas fa-edit"></i></button>';
+                        actions += '<button type="button" class="btn btn-sm btn-outline-danger op-delete-oil-bin-batch" data-oil-bin-batch-id="' + escapeHtml(b.id) + '" title="Delete batch"><i class="fas fa-trash-alt"></i></button>';
                         actions += '<button type="button" class="btn btn-sm btn-outline-primary op-send-oil-bin-to-stock" data-oil-bin-batch-id="' + escapeHtml(b.id) + '">Send to stock</button></div>';
                     } else {
                         if (b.oil_id) {
@@ -1550,6 +1556,52 @@ var _oilProductionGrid = function () {
             } catch (e) {
                 console.error('[Oil Production] sendOilBinBatchToStock:', e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to send to stock', 'error');
+            }
+        },
+
+        deleteOilBinBatch: async function (oilBinBatchId) {
+            var scope = _oilProductionGrid;
+            var bid = oilBinBatchId != null ? String(oilBinBatchId) : '';
+            var batch = (scope.oilBinBatches || []).find(function (b) { return b && String(b.id) === bid; });
+            var batchNumber = batch && batch.batch_number ? String(batch.batch_number) : bid;
+            var confirmed = false;
+
+            if (typeof Swal !== 'undefined') {
+                var res = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Delete oil bin batch?',
+                    html: 'Delete <strong>' + escapeHtml(batchNumber) + '</strong>?<br><span class="text-muted small">Only in-production batches that have not been sent to stock can be deleted.</span>',
+                    showCancelButton: true,
+                    confirmButtonText: 'Delete',
+                    confirmButtonColor: '#d33'
+                });
+                confirmed = !!(res && res.isConfirmed);
+            } else {
+                confirmed = window.confirm('Delete oil bin batch ' + batchNumber + '?');
+            }
+            if (!confirmed) return;
+
+            try {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.deleteOilBinBatch) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data functions not available', 'error');
+                    return;
+                }
+                var result = await dataFunctions.deleteOilBinBatch(oilBinBatchId, null);
+                if (result && result.success) {
+                    scope.oilBinBatches = (scope.oilBinBatches || []).filter(function (b) { return !b || String(b.id) !== bid; });
+                    scope.oilBinBatchesReport = (scope.oilBinBatchesReport || []).filter(function (b) { return !b || String(b.id) !== bid; });
+                    scope.loadOilBinBatches(true);
+                    scope.loadOilBinBatchesReport(true);
+                    scope.loadAll(true);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'success', title: 'Deleted', text: 'Batch ' + batchNumber + ' was deleted.', timer: 2200, showConfirmButton: false });
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Failed to delete batch', 'error');
+                }
+            } catch (e) {
+                console.error('[Oil Production] deleteOilBinBatch:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to delete batch', 'error');
             }
         },
 

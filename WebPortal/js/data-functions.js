@@ -2664,6 +2664,25 @@ var _dataFunctions = function () {
             return resolved != null ? resolved : result;
         },
 
+        deleteOilBinBatch: async function (oilBinBatchId, token = null) {
+            const result = await this.callFunction('delete_oil_bin_batch', { p_oil_bin_batch_id: oilBinBatchId }, token, { useCache: false });
+            var resolved = result && (result.data !== undefined ? result.data : result);
+            if (typeof resolved === 'string') {
+                try { resolved = JSON.parse(resolved); } catch (e) { resolved = result; }
+            }
+            if (resolved && resolved.delete_oil_bin_batch) {
+                resolved = resolved.delete_oil_bin_batch;
+            }
+            if (resolved && resolved.success !== false && !resolved.error) {
+                this.clearCachePattern('oil_bin_batches');
+                this.clearCachePattern('oil_bin_batches_v2');
+                this.clearCachePattern('oil_bin_batches_v3');
+                this.clearCachePattern('oil_bin_batches_v4');
+                this.clearCachePattern('oil_production');
+            }
+            return resolved != null ? resolved : result;
+        },
+
         /**
          * Record FFA lab test on an in-production oil bin batch (updates ffa %, ffa_test_at, ffa_test_pass).
          */
