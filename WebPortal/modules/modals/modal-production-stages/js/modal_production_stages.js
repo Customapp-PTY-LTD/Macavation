@@ -173,9 +173,6 @@ var _modal_production_stages = (function () {
             $(document).on('change input', '#ps_crack_start1, #ps_crack_end1', function () {
                 scope.updateCrackTimeSpentRow(1);
             });
-            $(document).on('change input', '#ps_crack_startqty1, #ps_crack_endqty1', function () {
-                scope.updateCrackSiloQty();
-            });
             $(document).on('change input', '#ps_wash_waste_shellfines, #ps_wash_waste_compost', function () {
                 scope.updateWashWasteTotal();
             });
@@ -272,20 +269,6 @@ var _modal_production_stages = (function () {
             $('#ps_crack_timespent' + rowNum).val(spent);
             scope.updateCrackTotalTime();
             scope.syncCrackTimeToSummary();
-        },
-
-        updateCrackSiloQty: () => {
-            var startQty = parseFloat($('#ps_crack_startqty1').val(), 10);
-            var endQty = parseFloat($('#ps_crack_endqty1').val(), 10);
-            if (isNaN(startQty)) startQty = 0;
-            if (isNaN(endQty)) endQty = 0;
-            var siloQty = startQty - endQty;
-            var siloEl = $('#ps_crack_silo1');
-            if (siloQty === 0 && ($('#ps_crack_startqty1').val() === '' || $('#ps_crack_endqty1').val() === '')) {
-                siloEl.val('');
-            } else {
-                siloEl.val(siloQty);
-            }
         },
 
         updateCrackTotalTime: () => {
@@ -432,7 +415,6 @@ var _modal_production_stages = (function () {
                 }
             });
             if (prefix === 'wash') { scope.updateWashWasteTotal(); scope.recalcWashingQty(); }
-            if (prefix === 'crack') scope.updateCrackSiloQty();
             if (prefix === 'sort') scope.recalcSortingQty();
             if (prefix === 'pack') scope.recalcPackingQty();
             if (prefix === 'pack' && data.signature && scope._signaturePad) {
