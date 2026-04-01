@@ -95,6 +95,76 @@ var _kernelProductionGrid = function () {
         return { label: 'Awaiting production', filterValue: 'awaiting_production' };
     };
 
+    const PRODUCTION_STAGE_LABELS = {
+        cracking_data: 'Cracking',
+        washing_data: 'Washing',
+        sorting_data: 'Sorting',
+        packing_data: 'Packing'
+    };
+
+    const isoFromDate = (date) => {
+        if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+        return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+    };
+
+    const parseIsoDate = (iso) => {
+        if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(String(iso))) return null;
+        const parts = String(iso).split('-');
+        return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    };
+
+    const formatMonthYear = (date) => {
+        if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+        return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    };
+
+    const formatDisplayDate = (iso) => {
+        const date = parseIsoDate(iso);
+        if (!date) return iso || '';
+        return date.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+    };
+
+    const buildBatchProductionCalendarEntries = (batch, detail) => {
+        const byDate = {};
+        Object.keys(PRODUCTION_STAGE_LABELS).forEach((key) => {
+            const arr = detail && Array.isArray(detail[key]) ? detail[key] : [];
+            arr.forEach((entry) => {
+                const iso = entry && entry.date ? String(entry.date).split('T')[0] : '';
+                if (!iso || !hasMeaningfulStageData(entry)) return;
+                if (!byDate[iso]) {
+                    byDate[iso] = {
+                        date: iso,
+                        batchId: batch.id,
+                        batchNumber: batch.batch_number || 'N/A',
+                        growerName: batch.grower_name || 'N/A',
+                        stages: []
+                    };
+                }
+                if (byDate[iso].stages.indexOf(PRODUCTION_STAGE_LABELS[key]) === -1) {
+                    byDate[iso].stages.push(PRODUCTION_STAGE_LABELS[key]);
+                }
+            });
+        });
+        return Object.keys(byDate).sort().map((iso) => {
+            byDate[iso].stages.sort();
+            return byDate[iso];
+        });
+    };
+
+    const buildProductionCalendarIndex = (batches) => {
+        const index = {};
+        (batches || []).forEach((batch) => {
+            (batch._productionCalendarEntries || []).forEach((entry) => {
+                if (!index[entry.date]) index[entry.date] = [];
+                index[entry.date].push(entry);
+            });
+        });
+        Object.keys(index).forEach((iso) => {
+            index[iso].sort((a, b) => String(a.batchNumber || '').localeCompare(String(b.batchNumber || '')));
+        });
+        return index;
+    };
+
     const KANBAN_COLUMNS = [
         { key: 'awaiting_production', label: 'Awaiting Production' },
         { key: 'in_production', label: 'In Production' },
@@ -111,6 +181,9 @@ var _kernelProductionGrid = function () {
         approvedJobcardsOnly: false,
         /** When user clicks an empty silo, this is the silo number (1–12) for "Mark as full". */
         selectedEmptySiloNumber: null,
+        productionCalendarMonth: null,
+        selectedProductionCalendarDate: null,
+        productionCalendarEntriesByDate: {},
 
         /** Same derived status as in the grid table (for use by batch history modal etc.). */
         getBatchDisplayStatus: getBatchDisplayStatus,
@@ -267,6 +340,28 @@ var _kernelProductionGrid = function () {
                 $('#kpViewApprovedJobcards').toggleClass('active', scope.approvedJobcardsOnly);
                 scope.filterBatches();
             });
+            $('#kpProductionCalendarPrevBtn').off('click').on('click', function () {
+                _kernelProductionGrid.shiftProductionCalendarMonth(-1);
+            });
+            $('#kpProductionCalendarNextBtn').off('click').on('click', function () {
+                _kernelProductionGrid.shiftProductionCalendarMonth(1);
+            });
+            $('#kpProductionCalendarCollapse').off('shown.bs.collapse hidden.bs.collapse').on('shown.bs.collapse hidden.bs.collapse', function () {
+                var isExpanded = this.classList.contains('show');
+                $('#kpProductionCalendarToggleBtn').attr('aria-expanded', isExpanded ? 'true' : 'false');
+            });
+            $('#kpSilosCollapse').off('shown.bs.collapse hidden.bs.collapse').on('shown.bs.collapse hidden.bs.collapse', function () {
+                var isExpanded = this.classList.contains('show');
+                $('#kpSilosToggleBtn').attr('aria-expanded', isExpanded ? 'true' : 'false');
+            });
+            $(document).on('click', '#kpProductionCalendarGrid .kp-production-calendar-day', function () {
+                var iso = $(this).attr('data-iso');
+                if (!iso) return;
+                var date = parseIsoDate(iso);
+                if (date) _kernelProductionGrid.productionCalendarMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+                _kernelProductionGrid.selectedProductionCalendarDate = iso;
+                _kernelProductionGrid.renderProductionCalendar();
+            });
             // Silos grid: click occupied silo to mark as empty
             $(document).on('click', '#kpSilosGrid .kp-silo-occupied', function () {
                 const num = $(this).data('silo-number');
@@ -332,6 +427,7 @@ var _kernelProductionGrid = function () {
                 $('#kpViewKanban').removeClass('active');
                 scope.renderBatches();
             }
+            scope.renderProductionCalendar();
         },
 
         renderKanban: () => {
@@ -415,6 +511,7 @@ var _kernelProductionGrid = function () {
             } else {
                 scope.renderBatches();
             }
+            scope.renderProductionCalendar();
         },
 
         loadBatches: (forceRefresh) => {
@@ -430,32 +527,118 @@ var _kernelProductionGrid = function () {
             _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'intake,receiving,production,qa' }).then(async (batches) => {
                 scope.batches = (batches || []).map(function (b) {
                     var displayKg = (b.actual_wet_nis_kg != null && b.actual_wet_nis_kg !== '') ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
-                    return Object.assign({}, b, { display_wet_nis_kg: displayKg, _hasMeaningfulProductionData: null });
+                    return Object.assign({}, b, { display_wet_nis_kg: displayKg, _hasMeaningfulProductionData: null, _productionCalendarEntries: [] });
                 });
                 var batchesNeedingDetail = scope.batches.filter(function (b) {
-                    return !b.production_finished_at && !b.has_job_card && (b.production_day_count > 0);
+                    return b.production_day_count > 0;
                 });
                 if (batchesNeedingDetail.length && typeof _dataFunctions.getKernelBatchDetail === 'function') {
                     await Promise.all(batchesNeedingDetail.map(async function (batch) {
                         try {
                             var detail = await _dataFunctions.getKernelBatchDetail(batch.id, null, forceRefresh);
                             batch._hasMeaningfulProductionData = batchHasMeaningfulProductionData(batch, detail);
+                            batch._productionCalendarEntries = buildBatchProductionCalendarEntries(batch, detail);
                         } catch (e) {
                             console.warn('[Kernel Production] Failed to inspect production detail for batch', batch.id, e);
                             batch._hasMeaningfulProductionData = batch.production_day_count > 0;
+                            batch._productionCalendarEntries = [];
                         }
                     }));
                 }
                 scope.filteredBatches = scope.batches;
+                if (!scope.productionCalendarMonth) {
+                    var today = new Date();
+                    scope.productionCalendarMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                }
                 if (scope.currentView === 'kanban') {
                     scope.renderKanban();
                 } else {
                     scope.renderBatches();
                 }
+                scope.renderProductionCalendar();
                 console.log('[Kernel Production] Batches loaded in ' + (performance.now() - startTime).toFixed(2) + 'ms, count: ' + scope.batches.length);
             }).catch((err) => {
                 console.error('[Kernel Production] Error loading batches:', err);
             });
+        },
+
+        shiftProductionCalendarMonth: (delta) => {
+            const scope = _kernelProductionGrid;
+            var base = scope.productionCalendarMonth instanceof Date ? scope.productionCalendarMonth : new Date();
+            scope.productionCalendarMonth = new Date(base.getFullYear(), base.getMonth() + delta, 1);
+            scope.selectedProductionCalendarDate = null;
+            scope.renderProductionCalendar();
+        },
+
+        renderProductionCalendar: () => {
+            const scope = _kernelProductionGrid;
+            var gridEl = document.getElementById('kpProductionCalendarGrid');
+            var detailEl = document.getElementById('kpProductionCalendarDetail');
+            var labelEl = document.getElementById('kpProductionCalendarMonthLabel');
+            if (!gridEl || !detailEl || !labelEl) return;
+
+            var monthDate = scope.productionCalendarMonth instanceof Date ? scope.productionCalendarMonth : new Date();
+            monthDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+            scope.productionCalendarMonth = monthDate;
+            labelEl.textContent = formatMonthYear(monthDate);
+
+            var index = buildProductionCalendarIndex(scope.filteredBatches);
+            scope.productionCalendarEntriesByDate = index;
+
+            if (!scope.selectedProductionCalendarDate) {
+                var monthPrefix = monthDate.getFullYear() + '-' + String(monthDate.getMonth() + 1).padStart(2, '0');
+                var firstMatch = Object.keys(index).sort().filter(function (iso) { return iso.indexOf(monthPrefix + '-') === 0; })[0] || null;
+                scope.selectedProductionCalendarDate = firstMatch;
+            }
+
+            var firstCellDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1 - monthDate.getDay());
+            var html = '';
+            for (var i = 0; i < 42; i++) {
+                var cellDate = new Date(firstCellDate.getFullYear(), firstCellDate.getMonth(), firstCellDate.getDate() + i);
+                var iso = isoFromDate(cellDate);
+                var entries = index[iso] || [];
+                var isCurrentMonth = cellDate.getMonth() === monthDate.getMonth();
+                var classes = ['kp-production-calendar-day'];
+                if (!isCurrentMonth) classes.push('is-outside-month');
+                if (entries.length > 0) classes.push('has-production');
+                if (scope.selectedProductionCalendarDate === iso) classes.push('is-active');
+                html += '<button type="button" class="' + classes.join(' ') + '" data-iso="' + escapeHtml(iso) + '">';
+                html += '<div class="kp-production-calendar-daynum">' + cellDate.getDate() + '</div>';
+                if (entries.length > 0) html += '<div class="kp-production-calendar-count">' + entries.length + ' batch' + (entries.length === 1 ? '' : 'es') + '</div>';
+                html += '</button>';
+            }
+            gridEl.innerHTML = html;
+
+            scope.renderProductionCalendarDetail(scope.selectedProductionCalendarDate);
+        },
+
+        renderProductionCalendarDetail: (iso) => {
+            const scope = _kernelProductionGrid;
+            var detailEl = document.getElementById('kpProductionCalendarDetail');
+            if (!detailEl) return;
+            if (!iso) {
+                detailEl.innerHTML = '<div class="kp-production-calendar-detail-title">No day selected</div><div class="kp-production-calendar-detail-empty">Select a blue day to view production activity.</div>';
+                return;
+            }
+            var entries = scope.productionCalendarEntriesByDate[iso] || [];
+            if (!entries.length) {
+                detailEl.innerHTML = '<div class="kp-production-calendar-detail-title">' + escapeHtml(formatDisplayDate(iso)) + '</div><div class="kp-production-calendar-detail-empty">No saved production activity for this day.</div>';
+                return;
+            }
+            var html = '<div class="kp-production-calendar-detail-title">' + escapeHtml(formatDisplayDate(iso)) + '</div>';
+            entries.forEach(function (entry) {
+                html += '<div class="kp-production-calendar-entry">';
+                html += '<div class="kp-production-calendar-entry-head">';
+                html += '<div><div class="kp-production-calendar-entry-batch">' + escapeHtml(entry.batchNumber) + '</div><div class="kp-production-calendar-entry-grower">' + escapeHtml(entry.growerName) + '</div></div>';
+                html += '</div>';
+                html += '<div class="kp-production-calendar-stage-badges">';
+                (entry.stages || []).forEach(function (stage) {
+                    html += '<span class="kp-production-calendar-stage">' + escapeHtml(stage) + '</span>';
+                });
+                html += '</div>';
+                html += '</div>';
+            });
+            detailEl.innerHTML = html;
         },
 
         loadSilosGrid: async () => {

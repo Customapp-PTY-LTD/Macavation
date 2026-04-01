@@ -625,6 +625,10 @@ var _modal_production_stages = (function () {
             var wash = scope.getProductionStagesSectionData('wash');
             var sort = scope.getProductionStagesSectionData('sort');
             var pack = scope.getProductionStagesSectionData('pack');
+            if (!scope.hasAnyMeaningfulProductionData(crack, wash, sort, pack)) {
+                scope.clearProductionStagesDraft(batchId);
+                return;
+            }
             var draft = {
                 cracking_data: crack,
                 washing_data: wash,
@@ -649,6 +653,10 @@ var _modal_production_stages = (function () {
             var draft;
             try { draft = JSON.parse(json); } catch (e) { return; }
             if (!draft || typeof draft !== 'object') return;
+            if (!scope.hasAnyMeaningfulProductionData(draft.cracking_data, draft.washing_data, draft.sorting_data, draft.packing_data)) {
+                scope.clearProductionStagesDraft(batchId);
+                return;
+            }
             if (draft.cracking_data) scope.setProductionStagesSectionData('crack', draft.cracking_data);
             if (draft.washing_data) scope.setProductionStagesSectionData('wash', draft.washing_data);
             if (draft.sorting_data) scope.setProductionStagesSectionData('sort', draft.sorting_data);
@@ -1672,7 +1680,7 @@ var _modal_production_stages = (function () {
                 var allDates = {};
                 [cracking, washing, sorting, packing].forEach(function (arr) {
                     (arr || []).forEach(function (entry) {
-                        if (entry && entry.date && entry.date !== '') allDates[entry.date] = true;
+                        if (entry && entry.date && entry.date !== '' && scope.hasMeaningfulStageData(entry)) allDates[entry.date] = true;
                     });
                 });
                 var dates = Object.keys(allDates).sort();
