@@ -119,11 +119,19 @@
             <hr class="my-3">
             <h6 class="text-secondary d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <span>Kernel Stock by style</span>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshKernelStockBtn" title="Reload kernel stock data">
-                    <i class="fas fa-sync-alt me-1"></i>Refresh
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="toggleKernelAdjustModeBtn" title="Turn stock adjustment mode on or off">
+                        <i class="fas fa-balance-scale me-1"></i>Adjust Stock
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshKernelStockBtn" title="Reload kernel stock data">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
             </h6>
             <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with available stock per style (from packing data). Click Send to Dispatch to choose a buyer, select items from the shopping cart, and submit a dispatch order.</p>
+            <div class="alert alert-info py-2 px-3 small mb-2" id="kernelAdjustModeHint" style="display: none;">
+                Adjustment mode is on. Click the batch/style cell you want to change, then enter <code>+</code> or <code>-</code> and the amount.
+            </div>
             <div class="table-responsive kernel-stock-table-wrapper">
                 <table class="table table-sm table-bordered" id="kernelStockByStyleTable">
                     <thead>
@@ -132,7 +140,7 @@
                             <th class="text-center">SP</th><th class="text-center">0</th><th class="text-center">1</th><th class="text-center">1S</th><th class="text-center">4L</th><th class="text-center">5</th><th class="text-center">6</th>
                             <th class="text-center">7/8</th><th class="text-center">Butter High Oil</th><th class="text-center">Butter Low Oil</th>
                             <th class="text-center" title="Free Fatty Acids (from QA)">FFA</th><th class="text-center" title="Best Before Date (from Job Card or packing completion + 18 months)">Best Before Date</th>
-                            <th class="text-center">Actions</th>
+                            <th class="text-center">Batch action</th>
                         </tr>
                         <tr id="kernelStockByStyleTotalsRow" class="table-light fw-bold">
                             <td>Totals</td>

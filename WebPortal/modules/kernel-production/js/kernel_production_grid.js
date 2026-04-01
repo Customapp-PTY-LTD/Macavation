@@ -49,13 +49,43 @@ var _kernelProductionGrid = function () {
         return div.innerHTML;
     };
 
+    const hasMeaningfulStageData = (data) => {
+        if (!data || typeof data !== 'object') return false;
+        for (const key in data) {
+            if (!Object.prototype.hasOwnProperty.call(data, key) || key === 'date') continue;
+            const val = data[key];
+            if (typeof val === 'boolean') {
+                if (val) return true;
+                continue;
+            }
+            if (val == null) continue;
+            if (typeof val === 'string') {
+                if (val.trim() !== '') return true;
+                continue;
+            }
+            return true;
+        }
+        return false;
+    };
+
+    const batchHasMeaningfulProductionData = (batch, detail) => {
+        if (batch && batch._hasMeaningfulProductionData != null) return !!batch._hasMeaningfulProductionData;
+        if (batch && batch.production_finished_at) return true;
+        if (batch && batch.has_job_card) return true;
+        const stageKeys = ['cracking_data', 'washing_data', 'sorting_data', 'packing_data'];
+        return stageKeys.some((key) => {
+            const arr = detail && Array.isArray(detail[key]) ? detail[key] : [];
+            return arr.some((entry) => hasMeaningfulStageData(entry));
+        });
+    };
+
     /**
      * Derive display status from actual production data, not just DB status.
      * Batches with no production days/history show "Awaiting production"; only batches with real production data show "In production".
      * Returns { label: string, filterValue: string }.
      */
     const getBatchDisplayStatus = (batch) => {
-        const hasProductionData = (batch.production_day_count > 0) || !!batch.has_job_card;
+        const hasProductionData = batchHasMeaningfulProductionData(batch);
         const productionFinished = !!batch.production_finished_at;
         const hasEndSample = !!batch.has_qa;
 
@@ -397,11 +427,25 @@ var _kernelProductionGrid = function () {
             const startTime = performance.now();
             // Only fetch batches that are in the production pipeline (not yet released to stock).
             // Stock (Kernel) uses status 'complete'; we exclude that so the board stays empty when all are in stock.
-            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'intake,receiving,production,qa' }).then((batches) => {
+            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'intake,receiving,production,qa' }).then(async (batches) => {
                 scope.batches = (batches || []).map(function (b) {
                     var displayKg = (b.actual_wet_nis_kg != null && b.actual_wet_nis_kg !== '') ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
-                    return Object.assign({}, b, { display_wet_nis_kg: displayKg });
+                    return Object.assign({}, b, { display_wet_nis_kg: displayKg, _hasMeaningfulProductionData: null });
                 });
+                var batchesNeedingDetail = scope.batches.filter(function (b) {
+                    return !b.production_finished_at && !b.has_job_card && (b.production_day_count > 0);
+                });
+                if (batchesNeedingDetail.length && typeof _dataFunctions.getKernelBatchDetail === 'function') {
+                    await Promise.all(batchesNeedingDetail.map(async function (batch) {
+                        try {
+                            var detail = await _dataFunctions.getKernelBatchDetail(batch.id, null, forceRefresh);
+                            batch._hasMeaningfulProductionData = batchHasMeaningfulProductionData(batch, detail);
+                        } catch (e) {
+                            console.warn('[Kernel Production] Failed to inspect production detail for batch', batch.id, e);
+                            batch._hasMeaningfulProductionData = batch.production_day_count > 0;
+                        }
+                    }));
+                }
                 scope.filteredBatches = scope.batches;
                 if (scope.currentView === 'kanban') {
                     scope.renderKanban();

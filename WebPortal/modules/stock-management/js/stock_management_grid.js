@@ -63,6 +63,14 @@ var _stockManagementGrid = function () {
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function parseNum(val) {
+        if (val == null || val === '') return 0;
+        var n = typeof val === 'number' ? val : parseFloat(val);
+        return isNaN(n) ? 0 : n;
+    }
+
+    var KERNEL_STYLE_OPTIONS = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
+
     return {
         stockItems: [],
         filteredStockItems: [],
@@ -76,6 +84,7 @@ var _stockManagementGrid = function () {
         kernelDispatchOrdersWithLines: null,
         kernelCurrentView: 'bystyle',
         kernelWeeklyMode: 'in',
+        kernelAdjustMode: false,
         oilSearchTimeout: null,
         searchTimeout: null,
 
@@ -181,6 +190,9 @@ var _stockManagementGrid = function () {
                 $('#refreshKernelStockBtn').off('click').on('click', function () {
                     scope.loadKernelBatches(true);
                 });
+                $('#toggleKernelAdjustModeBtn').off('click').on('click', function () {
+                    scope.setKernelAdjustMode(!scope.kernelAdjustMode);
+                });
                 $('#importHistoricalKernelRefreshBtn').off('click').on('click', function () {
                     scope.loadKernelBatches(true);
                     var modalEl = document.getElementById('importHistoricalKernelModal');
@@ -229,6 +241,14 @@ var _stockManagementGrid = function () {
                     var id = $(this).data('batch-id');
                     if (id) scope.confirmAndReleaseBatchToProduction(id);
                 });
+                $(document).on('click', '.js-kernel-stock-cell', function () {
+                    if (!scope.kernelAdjustMode) return;
+                    var kernelId = $(this).data('kernel-id');
+                    var style = $(this).data('style');
+                    if (!kernelId || !style) return;
+                    var batch = (scope.kernelFinishedBatches || []).find(function (x) { return String(x.id) === String(kernelId); });
+                    if (batch) scope.promptAdjustKernelStockCell(batch, style);
+                });
                 $(document).on('click', '[data-view-item]', function () {
                     var id = $(this).attr('data-view-item');
                     if (id) scope.viewItem(id);
@@ -260,6 +280,11 @@ var _stockManagementGrid = function () {
                 $(document).on('click', '.delete-oil-lot-btn', function () {
                     var id = $(this).data('oil-lot-id');
                     if (id) scope.deleteOilLot(id);
+                });
+                $(document).on('click', '.adjust-oil-lot-btn', function () {
+                    var id = $(this).data('oil-lot-id');
+                    var lot = (scope.oilLots || []).find(function (x) { return String(x.id) === String(id); });
+                    if (lot) scope.promptAdjustOilLot(lot);
                 });
                 $(document).on('click', '.oil-batch-ingredients-btn', function () {
                     var bn = $(this).attr('data-oil-batch-number');
@@ -380,15 +405,38 @@ var _stockManagementGrid = function () {
             _stockManagementGrid.renderKernelStockByStyle();
         },
 
+        setKernelAdjustMode: function (enabled) {
+            var scope = _stockManagementGrid;
+            scope.kernelAdjustMode = enabled === true;
+            var btn = document.getElementById('toggleKernelAdjustModeBtn');
+            var hint = document.getElementById('kernelAdjustModeHint');
+            if (btn) {
+                btn.classList.toggle('btn-outline-primary', !scope.kernelAdjustMode);
+                btn.classList.toggle('btn-primary', scope.kernelAdjustMode);
+                btn.innerHTML = scope.kernelAdjustMode
+                    ? '<i class="fas fa-times me-1"></i>Exit Adjust Stock'
+                    : '<i class="fas fa-balance-scale me-1"></i>Adjust Stock';
+            }
+            if (hint) hint.style.display = scope.kernelAdjustMode ? '' : 'none';
+            $('#kernelStockByStyleBody .js-kernel-stock-cell').toggleClass('table-warning', scope.kernelAdjustMode);
+        },
+
         renderKernelStockByStyle: function () {
             var scope = _stockManagementGrid;
             var body = $('#kernelStockByStyleBody');
             var totalsRow = $('#kernelStockByStyleTotalsRow');
             if (!body.length || !totalsRow.length) return;
             body.empty();
-            var batches = scope.kernelFinishedBatches || [];
+            var batches = (scope.kernelFinishedBatches || []).filter(function (b) {
+                var cells = (b && b.remaining_by_style_cartons && typeof b.remaining_by_style_cartons === 'object')
+                    ? b.remaining_by_style_cartons
+                    : ((b && b.yield_by_style_cartons && typeof b.yield_by_style_cartons === 'object') ? b.yield_by_style_cartons : {});
+                return KERNEL_STYLE_OPTIONS.some(function (k) {
+                    return parseNum(cells[k]) > 0;
+                });
+            });
             var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
-            var styleKeys = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
+            var styleKeys = KERNEL_STYLE_OPTIONS.slice();
             batches.forEach(function (b) {
                 // Prefer cartons (remaining_by_style_cartons / yield_by_style_cartons)
                 var cells = (b.remaining_by_style_cartons && typeof b.remaining_by_style_cartons === 'object') ? b.remaining_by_style_cartons : null;
@@ -399,7 +447,7 @@ var _stockManagementGrid = function () {
                     var val = cells[k] != null ? cells[k] : 0;
                     if (typeof val === 'number') totals[k] += val;
                     var displayVal = (val !== 0 && val !== '' && val != null) ? val : '—';
-                    row += '<td class="text-end">' + displayVal + '</td>';
+                    row += '<td class="text-end js-kernel-stock-cell' + (scope.kernelAdjustMode ? ' table-warning' : '') + '" data-kernel-id="' + escapeHtml(String(b.id || '')) + '" data-style="' + escapeHtml(k) + '" style="' + (scope.kernelAdjustMode ? 'cursor:pointer;' : '') + '">' + displayVal + '</td>';
                 });
                 var ffaVal = (b.ffa != null && b.ffa !== '') ? (typeof b.ffa === 'number' ? b.ffa : parseFloat(b.ffa)) : null;
                 var ffaDisplay = (ffaVal != null && !isNaN(ffaVal)) ? ffaVal : '—';
@@ -581,6 +629,83 @@ var _stockManagementGrid = function () {
                 cancelButtonText: 'Cancel'
             }).then(function (result) {
                 if (result && result.isConfirmed) scope.releaseBatchToProduction(batchId);
+            });
+        },
+
+        promptAdjustKernelStockCell: function (batch, style) {
+            var scope = _stockManagementGrid;
+            if (!batch || !batch.id) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Kernel batch not found. Refresh and try again.', 'error');
+                return;
+            }
+            if (typeof Swal === 'undefined') return;
+            var titleBatch = escapeHtml(batch.batch_number || 'Kernel batch');
+            Swal.fire({
+                title: 'Adjust Stock',
+                html:
+                    '<div class="text-start">' +
+                    '<div class="small text-muted mb-2">Batch: <strong>' + titleBatch + '</strong></div>' +
+                    '<div class="small text-muted mb-2">Style: <strong>' + escapeHtml(style) + '</strong></div>' +
+                    '<label class="form-label">Type <code>+</code> or <code>-</code></label>' +
+                    '<input id="swalAdjustKernelSign" type="text" class="form-control mb-2" maxlength="1" placeholder="+ or -">' +
+                    '<label class="form-label">Kg</label>' +
+                    '<input id="swalAdjustKernelKg" type="number" class="form-control mb-2" step="0.01" min="0" value="0">' +
+                    '<label class="form-label">Cartons</label>' +
+                    '<input id="swalAdjustKernelCartons" type="number" class="form-control mb-2" step="1" min="0" value="0">' +
+                    '<label class="form-label">Reason</label>' +
+                    '<input id="swalAdjustKernelReason" type="text" class="form-control" maxlength="250" placeholder="Optional note">' +
+                    '</div>',
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Save adjustment',
+                preConfirm: function () {
+                    var signInput = (document.getElementById('swalAdjustKernelSign').value || '').trim();
+                    var kgAbs = parseNum(document.getElementById('swalAdjustKernelKg').value);
+                    var cartonsAbs = parseNum(document.getElementById('swalAdjustKernelCartons').value);
+                    var reason = document.getElementById('swalAdjustKernelReason').value || null;
+                    if (signInput !== '+' && signInput !== '-') {
+                        Swal.showValidationMessage('Type + or - to show whether stock must increase or decrease.');
+                        return false;
+                    }
+                    if (kgAbs === 0 && cartonsAbs === 0) {
+                        Swal.showValidationMessage('Enter a kg or cartons adjustment.');
+                        return false;
+                    }
+                    var sign = signInput === '-' ? -1 : 1;
+                    return {
+                        style: style,
+                        qtyDelta: sign * kgAbs,
+                        cartonsDelta: sign * cartonsAbs,
+                        reason: reason
+                    };
+                }
+            }).then(function (result) {
+                if (!result || !result.isConfirmed || !result.value) return;
+                scope.saveKernelStockAdjustment(batch, result.value);
+            });
+        },
+
+        saveKernelStockAdjustment: function (batch, adjustment) {
+            var scope = _stockManagementGrid;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.adjustKernelStockOnHand) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Kernel stock adjustment is not available. Please refresh.', 'error');
+                return;
+            }
+            dataFunctions.adjustKernelStockOnHand(batch.id, adjustment).then(function (result) {
+                if (result && result.success === false) throw new Error(result.error || 'Failed to adjust stock');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Stock adjusted',
+                        text: (batch.batch_number || 'Batch') + ' was updated.',
+                        timer: 1800,
+                        showConfirmButton: false
+                    });
+                }
+                scope.loadKernelBatches(true);
+            }).catch(function (e) {
+                console.error('[Stock Management] saveKernelStockAdjustment failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to adjust stock', 'error');
             });
         },
 
@@ -867,6 +992,7 @@ var _stockManagementGrid = function () {
                     '<td class="text-end ' + daysClass + '">' + (days !== '' ? days : '') + '</td>' +
                     '<td>' + (l.status || '') + '</td>' +
                     '<td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-info oil-batch-ingredients-btn" data-oil-batch-number="' + escapeHtml(String(l.batch_number || '')) + '" title="Ingredients used for this batch"><i class="fas fa-carrot"></i></button> ' +
+                    '<button type="button" class="btn btn-sm btn-outline-primary adjust-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Adjust stock on hand"><i class="fas fa-balance-scale"></i></button> ' +
                     '<button type="button" class="btn btn-sm btn-outline-primary edit-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Edit"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-sm btn-outline-danger delete-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Remove"><i class="fas fa-trash"></i></button></td>';
                 tbody.appendChild(tr);
             }
@@ -1014,6 +1140,76 @@ var _stockManagementGrid = function () {
                     console.error('[Stock Management] deleteOilLot failed:', e);
                     Swal.fire('Error', e.message || 'Failed to remove oil lot', 'error');
                 });
+            });
+        },
+
+        promptAdjustOilLot: function (lot) {
+            var scope = _stockManagementGrid;
+            if (!lot || !lot.id || typeof Swal === 'undefined') return;
+            Swal.fire({
+                title: 'Adjust Stock',
+                html:
+                    '<div class="text-start">' +
+                    '<div class="small text-muted mb-2">Lot: <strong>' + escapeHtml(lot.batch_number || lot.location_code || 'Oil lot') + '</strong></div>' +
+                    '<label class="form-label">Direction</label>' +
+                    '<select id="swalAdjustOilDirection" class="form-select mb-2">' +
+                    '<option value="plus">Plus to stock</option>' +
+                    '<option value="minus">Minus from stock</option>' +
+                    '</select>' +
+                    '<label class="form-label">Kg</label>' +
+                    '<input id="swalAdjustOilKg" type="number" class="form-control mb-2" step="0.01" min="0" value="0">' +
+                    '<label class="form-label">Reason</label>' +
+                    '<input id="swalAdjustOilReason" type="text" class="form-control" maxlength="250" placeholder="Optional note">' +
+                    '</div>',
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Save adjustment',
+                preConfirm: function () {
+                    var kgAbs = parseNum(document.getElementById('swalAdjustOilKg').value);
+                    var direction = document.getElementById('swalAdjustOilDirection').value;
+                    var reason = document.getElementById('swalAdjustOilReason').value || null;
+                    if (kgAbs <= 0) {
+                        Swal.showValidationMessage('Enter an adjustment greater than zero.');
+                        return false;
+                    }
+                    var currentKg = parseNum(lot.kilograms);
+                    var nextKg = direction === 'minus' ? currentKg - kgAbs : currentKg + kgAbs;
+                    if (nextKg < 0) {
+                        Swal.showValidationMessage('Adjustment would make stock on hand negative.');
+                        return false;
+                    }
+                    return {
+                        p_kilograms: nextKg,
+                        p_notes: reason ? ((lot.notes ? String(lot.notes) + '\n' : '') + '[Stock adjustment] ' + reason) : lot.notes
+                    };
+                }
+            }).then(function (result) {
+                if (!result || !result.isConfirmed || !result.value) return;
+                scope.saveOilLotAdjustment(lot, result.value);
+            });
+        },
+
+        saveOilLotAdjustment: function (lot, updatePayload) {
+            var scope = _stockManagementGrid;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.updateOilStockLot) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Oil stock adjustment is not available. Please refresh.', 'error');
+                return;
+            }
+            dataFunctions.updateOilStockLot(lot.id, updatePayload).then(function (result) {
+                if (result && result.success === false) throw new Error(result.error || result.message || 'Failed to adjust stock');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Stock adjusted',
+                        text: (lot.batch_number || 'Lot') + ' was updated.',
+                        timer: 1800,
+                        showConfirmButton: false
+                    });
+                }
+                scope.loadOilLotsAndSummary(true);
+            }).catch(function (e) {
+                console.error('[Stock Management] saveOilLotAdjustment failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to adjust stock', 'error');
             });
         },
 

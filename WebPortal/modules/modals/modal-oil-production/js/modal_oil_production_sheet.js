@@ -6,6 +6,9 @@ var _modal_oil_production_sheet = (function () {
 
     var AUTO_SAVE_DELAY_MS = 900;
     var _autoSaveTimer = null;
+    function todayISO() {
+        return new Date().toISOString().split('T')[0];
+    }
 
     return {
         init: () => {
@@ -51,8 +54,7 @@ var _modal_oil_production_sheet = (function () {
                 $('#oilProductionModalLabel').text('New Oil Production Sheet');
                 $('#oilBatchId').val('');
                 scope.clearForm();
-                var today = new Date().toISOString().split('T')[0];
-                $('#productionDate').val(today);
+                $('#productionDate').val(todayISO());
             }
             if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
@@ -68,15 +70,14 @@ var _modal_oil_production_sheet = (function () {
             if (form) form.reset();
             $('#oilBatchId').val('');
             $('#productName').val('Food grade oil');
-            var today = new Date().toISOString().split('T')[0];
-            $('#productionDate').val(today);
+            $('#productionDate').val(todayISO());
             $('#rawMaterialTableBody tr:not(:first)').remove();
             $('#rawMaterialTableBody tr:first input').val('');
             scope.calculateRawMaterialTotals();
         },
 
         populateForm: (batch) => {
-            $('#productionDate').val(batch.production_date || '');
+            $('#productionDate').val(batch.production_date || todayISO());
             $('#shift').val(batch.shift || '');
             $('#shiftSupervisor').val(batch.shift_supervisor || '');
             $('#supervisorSignature').val(batch.supervisor_signature || '');
@@ -160,7 +161,7 @@ var _modal_oil_production_sheet = (function () {
                 }
             });
             return {
-                p_production_date: $('#productionDate').val(),
+                p_production_date: $('#productionDate').val() || todayISO(),
                 p_shift: $('#shift').val(),
                 p_shift_supervisor: $('#shiftSupervisor').val(),
                 p_batch_number: $('#batchNumber').val(),

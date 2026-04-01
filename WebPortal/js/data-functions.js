@@ -1553,6 +1553,24 @@ var _dataFunctions = function () {
         },
 
         /**
+         * adjustKernelStockOnHand — manually add/subtract one kernel stock style.
+         * Persists an adjustment row into packing_data so stock views update.
+         */
+        adjustKernelStockOnHand: async function (kernelId, adjustment, token = null) {
+            const params = {
+                p_kernel_id: kernelId,
+                p_style: adjustment && adjustment.style != null ? adjustment.style : null,
+                p_qty_delta: adjustment && adjustment.qtyDelta != null ? adjustment.qtyDelta : 0,
+                p_cartons_delta: adjustment && adjustment.cartonsDelta != null ? adjustment.cartonsDelta : 0,
+                p_reason: adjustment && adjustment.reason != null ? adjustment.reason : null
+            };
+            const result = await this.callFunction('adjust_kernel_stock_on_hand', params, token, { useCache: false });
+            this.clearCachePattern('kernel_batch_detail_' + kernelId);
+            this.clearCachePattern('kernel_batches');
+            return result;
+        },
+
+        /**
          * deactivateKernelBatch — soft delete: set kernel.is_active = false. Batch is hidden from all lists.
          * Used by: Kernel Production and Grower Intake "Delete batch" actions.
          */

@@ -130,6 +130,58 @@ var _modal_production_stages = (function () {
             pack: { section: 'pack', paneId: 'pane-packing', dataKey: 'packing_data' }
         },
 
+        getMarkedProductionDates: () => {
+            var scope = _modal_production_stages;
+            var detail = scope._loadedKernelDetail;
+            var marked = {};
+            ['cracking_data', 'washing_data', 'sorting_data', 'packing_data'].forEach(function (key) {
+                var arr = (detail && Array.isArray(detail[key])) ? detail[key] : [];
+                arr.forEach(function (entry) {
+                    var iso = entry && entry.date ? String(entry.date).split('T')[0] : '';
+                    if (iso) marked[iso] = true;
+                });
+            });
+            return marked;
+        },
+
+        decorateFlatpickrDay: function (dayElem, dateObj) {
+            var scope = _modal_production_stages;
+            if (!dayElem || !dateObj) return;
+            var iso = dateObj.getFullYear() + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(dateObj.getDate()).padStart(2, '0');
+            var marked = scope.getMarkedProductionDates();
+            var hasData = marked[iso] === true;
+            dayElem.classList.toggle('production-date-has-data', hasData);
+            dayElem.title = hasData ? 'Production saved for this date' : '';
+            var dot = dayElem.querySelector('.production-date-dot');
+            if (hasData) {
+                if (!dot) {
+                    dot = document.createElement('span');
+                    dot.className = 'production-date-dot';
+                    dot.style.position = 'absolute';
+                    dot.style.bottom = '4px';
+                    dot.style.left = '50%';
+                    dot.style.transform = 'translateX(-50%)';
+                    dot.style.width = '6px';
+                    dot.style.height = '6px';
+                    dot.style.borderRadius = '50%';
+                    dot.style.background = '#8a6d1f';
+                    dot.style.pointerEvents = 'none';
+                    dayElem.style.position = 'relative';
+                    dayElem.appendChild(dot);
+                }
+            } else if (dot) {
+                dot.remove();
+            }
+        },
+
+        refreshProductionDatePickers: () => {
+            document.querySelectorAll('#productionStagesModal .flatpickr-date').forEach(function (el) {
+                if (el && el._flatpickr && typeof el._flatpickr.redraw === 'function') {
+                    el._flatpickr.redraw();
+                }
+            });
+        },
+
         init: () => {
             const scope = _modal_production_stages;
             $('#productionStagesTabs').off('shown.bs.tab').on('shown.bs.tab', function (e) {
@@ -200,8 +252,20 @@ var _modal_production_stages = (function () {
                     if (el._flatpickr) return;
                     if (typeof flatpickr !== 'undefined') {
                         flatpickr(el, Object.assign({}, FLATPICKR_DDMMYYYY, {
+                            onDayCreate: function (dObj, dStr, fp, dayElem) {
+                                scope.decorateFlatpickrDay(dayElem, dayElem.dateObj);
+                            },
                             onChange: function (selectedDates, dateStr) {
                                 if (dateStr != null && dateStr !== '') _modal_production_stages.onProductionDateChanged(dateStr);
+                            },
+                            onOpen: function () {
+                                scope.refreshProductionDatePickers();
+                            },
+                            onMonthChange: function () {
+                                scope.refreshProductionDatePickers();
+                            },
+                            onYearChange: function () {
+                                scope.refreshProductionDatePickers();
                             }
                         }));
                         if (!el.value && todayPlaceholder) el.placeholder = todayPlaceholder;
@@ -453,6 +517,33 @@ var _modal_production_stages = (function () {
             var ddmmyyyy = fromISO(today);
             $('#ps_crack_date, #ps_wash_date, #ps_sort_date, #ps_pack_date').val(ddmmyyyy);
             setTimeout(function () { scope._suppressDateChangeClear = false; }, 0);
+        },
+
+        hasMeaningfulStageData: (data) => {
+            if (!data || typeof data !== 'object') return false;
+            for (var key in data) {
+                if (!Object.prototype.hasOwnProperty.call(data, key) || key === 'date') continue;
+                var val = data[key];
+                if (typeof val === 'boolean') {
+                    if (val) return true;
+                    continue;
+                }
+                if (val == null) continue;
+                if (typeof val === 'string') {
+                    if (val.trim() !== '') return true;
+                    continue;
+                }
+                return true;
+            }
+            return false;
+        },
+
+        hasAnyMeaningfulProductionData: (cracking_data, washing_data, sorting_data, packing_data) => {
+            const scope = _modal_production_stages;
+            return scope.hasMeaningfulStageData(cracking_data) ||
+                scope.hasMeaningfulStageData(washing_data) ||
+                scope.hasMeaningfulStageData(sorting_data) ||
+                scope.hasMeaningfulStageData(packing_data);
         },
 
         /** Called when user changes any stage date in the picker. Saves current day, loads data for the new date (or clears), and syncs all four dates. */
@@ -1429,10 +1520,22 @@ var _modal_production_stages = (function () {
             var sorting_data = scope.getProductionStagesSectionData('sort');
             var packing_data = scope.getProductionStagesSectionData('pack');
             var summary_data = deriveSummaryFromStages(cracking_data, washing_data, sorting_data, packing_data);
+            var hasMeaningfulData = scope.hasAnyMeaningfulProductionData(cracking_data, washing_data, sorting_data, packing_data);
 
             // Validate: at least cracking must have a date
             if (!cracking_data.date || cracking_data.date === '') {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Cracking date is required. Please set a date on the Cracking tab.', 'error');
+                return;
+            }
+
+            if (!hasMeaningfulData) {
+                scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
+                scope.updateProductionActionButtonTicks();
+                if (silent) {
+                    if ($status.length) $status.text('');
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire('Nothing to save', 'Date only does not count as production data. Add production details first.', 'info');
+                }
                 return;
             }
 
@@ -1518,8 +1621,6 @@ var _modal_production_stages = (function () {
             scope.clearProductionStagesForm();
             scope._loadedKernelDetail = null;
 
-            var dateVal = batch.received_date ? (batch.received_date.toString().split('T')[0]) : (new Date().toISOString().split('T')[0]);
-
             // Load full kernel detail (stage arrays) via getKernelBatchDetail
             dataFunctions.getKernelBatchDetail(batchId).then(function (detail) {
                 scope._loadedKernelDetail = detail;
@@ -1556,6 +1657,7 @@ var _modal_production_stages = (function () {
                 }
 
                 scope.modalProductionDays = list;
+                scope.refreshProductionDatePickers();
                 scope.setProductionStagesTabsVisibility(true);
                 var first = list[0];
                 $('#productionStagesDayId').val(first.id);
@@ -1565,11 +1667,7 @@ var _modal_production_stages = (function () {
                 }).then(function () {
                     // For new days (no saved data), set default dates in all section date fields
                     if (!first.date || first.date === '') {
-                        var defaultDisplay = fromISO(dateVal);
-                        $('#ps_crack_date').val(defaultDisplay);
-                        $('#ps_wash_date').val(defaultDisplay);
-                        $('#ps_sort_date').val(defaultDisplay);
-                        $('#ps_pack_date').val(defaultDisplay);
+                        scope.setTodayDatesInProductionForm();
                     }
                     scope.renderProductionDaysList(list);
                     scope.setProductionDayActive(first.id);
@@ -1577,6 +1675,7 @@ var _modal_production_stages = (function () {
                 });
             }).then(function () {
                 scope.restoreProductionStagesDraft(batchId);
+                scope.refreshProductionDatePickers();
                 var modalEl = document.getElementById('productionStagesModal');
                 var doRestoreTab = function () {
                     var savedTab = null;

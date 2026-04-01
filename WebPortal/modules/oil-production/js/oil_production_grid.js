@@ -316,6 +316,16 @@ var _oilProductionGrid = function () {
         return r && typeof r === 'object' ? r : {};
     }
 
+    function getProductionSheetEntriesForType(tracking, sheetType) {
+        if (!tracking || typeof tracking !== 'object') return [];
+        var prodSheets = tracking.production_sheets;
+        if (!prodSheets || typeof prodSheets !== 'object') return [];
+        var slot = prodSheets[sheetType];
+        if (!slot) return [];
+        if (Array.isArray(slot)) return slot;
+        return [slot];
+    }
+
     return {
         rawIngredients: [],
         rawIngredientsFinished: [],
@@ -326,6 +336,7 @@ var _oilProductionGrid = function () {
         _linkIngredientsOilRows: {},
         proteinBinBatches: [],
         _linkProteinIngredientsOilRows: {},
+        currentProductionSheetDate: null,
 
         init: function () {
             var scope = _oilProductionGrid;
@@ -339,7 +350,7 @@ var _oilProductionGrid = function () {
             $('#opViewDataBtn').off('click').on('click', function () { scope.showViewDataModal(); });
             $(document).on('click', '.op-production-sheet-btn', function () {
                 var type = $(this).data('sheet-type');
-                if (type) scope.showProductionSheetModal(type);
+                if (type) scope.showProductionSheetModal(type, { sourceLabel: $(this).data('source-label') || null });
             });
             $('input[name="opProdSheetMode"]').on('change', function () {
                 var upload = $('#opProdSheetModeUpload').is(':checked');
@@ -347,6 +358,10 @@ var _oilProductionGrid = function () {
                 $('#opProdSheetUploadSection').toggle(upload);
             });
             $('#opProdSheetSubmitBtn').off('click').on('click', function () { scope.submitProductionSheet(); });
+            $(document).on('change', '#opProdSheetFormBody [name="op_ps_date"]', function () {
+                var iso = toISO(this.value || '');
+                if (iso) scope.refreshProductionSheetDateInfo(iso);
+            });
             $('#opStartOilBinBtn').off('click').on('click', function () { scope.startOilBin(); });
             $(document).on('click', '.op-send-oil-bin-to-stock', function (e) {
                 e.preventDefault();
@@ -429,11 +444,12 @@ var _oilProductionGrid = function () {
             });
         },
 
-        showProductionSheetModal: function (sheetType) {
+        showProductionSheetModal: function (sheetType, options) {
             var scope = _oilProductionGrid;
+            options = options || {};
             var titles = { food_grade_oil: 'Macadamia Food Grade Production sheet (MP5.2.3.1 Rev 04)', protein_powder: 'Macadamia Food Grade Production sheet for Protein Powder (MP5.2.3.5 Rev 01)', cosmetic_oil: 'Macadamia Cosmetic Oil Production Sheet (MP5.2.3 Rev 06)' };
             var el = document.getElementById('opProductionSheetModalLabel');
-            if (el) el.textContent = titles[sheetType] || 'Production sheet';
+            if (el) el.textContent = (titles[sheetType] || 'Production sheet').replace('Production sheet', 'Add Production Sheet');
             var typeEl = document.getElementById('opProductionSheetType');
             if (typeEl) typeEl.value = sheetType;
             scope.buildProductionSheetForm(sheetType);
@@ -443,7 +459,10 @@ var _oilProductionGrid = function () {
             $('#opProdSheetFileInput').val('');
             $('#opProdSheetUploadStatus').text('');
             var firstDate = document.querySelector('#opProdSheetFormBody [name="op_ps_date"]');
-            if (firstDate) firstDate.value = fromISO(new Date().toISOString().split('T')[0]);
+            var todayIso = new Date().toISOString().split('T')[0];
+            if (firstDate) firstDate.value = fromISO(todayIso);
+            scope.currentProductionSheetDate = todayIso;
+            scope.refreshProductionSheetDateInfo(todayIso, options.sourceLabel || null);
             var modalEl = document.getElementById('opProductionSheetModal');
             if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
             setTimeout(function () {
@@ -581,6 +600,43 @@ var _oilProductionGrid = function () {
             return data;
         },
 
+        refreshProductionSheetDateInfo: async function (iso, sourceLabel) {
+            var scope = _oilProductionGrid;
+            scope.currentProductionSheetDate = iso || null;
+            var infoEl = document.getElementById('opProdSheetDateInfo');
+            var sheetType = document.getElementById('opProductionSheetType') && document.getElementById('opProductionSheetType').value;
+            if (!infoEl || !sheetType || !iso) return;
+            infoEl.style.display = '';
+            infoEl.innerHTML = 'Checking existing sheets for <strong>' + escapeHtml(fromISO(iso)) + '</strong>…';
+            try {
+                var rawList = await dataFunctions.getShiftList({ date_from: iso, date_to: iso, limit: 10 }, null, true);
+                var list = normalizeShiftList(rawList);
+                var existing = list && list[0] ? list[0] : null;
+                var entries = getProductionSheetEntriesForType(existing && existing.shift_tracking, sheetType);
+                var msg = 'Adding a new production sheet for <strong>' + escapeHtml(fromISO(iso)) + '</strong>.';
+                if (sourceLabel) msg += ' Source: <strong>' + escapeHtml(String(sourceLabel)) + '</strong>.';
+                if (entries.length > 0) {
+                    msg += ' This date already has <strong>' + entries.length + '</strong> attached ' + (entries.length === 1 ? 'sheet' : 'sheets') + ' for this type.';
+                } else {
+                    msg += ' No sheets are attached for this type yet.';
+                }
+                var prevDate = new Date(iso + 'T12:00:00');
+                prevDate.setDate(prevDate.getDate() - 1);
+                var prevIso = prevDate.toISOString().split('T')[0];
+                var prevRaw = await dataFunctions.getShiftList({ date_from: prevIso, date_to: prevIso, limit: 10 }, null, true);
+                var prevList = normalizeShiftList(prevRaw);
+                var prevExisting = prevList && prevList[0] ? prevList[0] : null;
+                var prevEntries = getProductionSheetEntriesForType(prevExisting && prevExisting.shift_tracking, sheetType);
+                if (prevEntries.length > 0) {
+                    msg += ' Yesterday (' + escapeHtml(fromISO(prevIso)) + ') has <strong>' + prevEntries.length + '</strong> attached ' + (prevEntries.length === 1 ? 'sheet' : 'sheets') + '.';
+                }
+                infoEl.innerHTML = msg;
+            } catch (e) {
+                console.warn('[Oil Production] refreshProductionSheetDateInfo:', e);
+                infoEl.innerHTML = 'Adding a new production sheet for <strong>' + escapeHtml(fromISO(iso)) + '</strong>.';
+            }
+        },
+
         submitProductionSheet: async function () {
             var scope = _oilProductionGrid;
             var sheetType = document.getElementById('opProductionSheetType') && document.getElementById('opProductionSheetType').value;
@@ -631,7 +687,9 @@ var _oilProductionGrid = function () {
             }
             var tracking = (existing && existing.shift_tracking && typeof existing.shift_tracking === 'object') ? Object.assign({}, existing.shift_tracking) : {};
             if (!tracking.production_sheets || typeof tracking.production_sheets !== 'object') tracking.production_sheets = {};
-            tracking.production_sheets[sheetType] = gmpData;
+            var existingEntries = getProductionSheetEntriesForType(tracking, sheetType);
+            existingEntries.push(gmpData);
+            tracking.production_sheets[sheetType] = existingEntries;
             var payload = {
                 shift_id: existing && existing.id ? existing.id : null,
                 shift_date: iso,
@@ -644,9 +702,10 @@ var _oilProductionGrid = function () {
                 var resolved = resolveUpsertShiftResult(result);
                 var ok = resolved && resolved.success !== false && !resolved.error;
                 if (ok) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Production sheet saved.', timer: 2000, showConfirmButton: false });
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Saved', text: 'Production sheet attached to ' + fromISO(iso) + '.', timer: 2000, showConfirmButton: false });
                     var modalEl = document.getElementById('opProductionSheetModal');
                     if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl).hide();
+                    scope.loadAll(true);
                 } else {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', (resolved && (resolved.error || resolved.message)) || (result && (result.error || result.message)) || 'Save failed', 'error');
                 }
