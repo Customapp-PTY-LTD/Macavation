@@ -138,7 +138,7 @@ var _modal_production_stages = (function () {
                 var arr = (detail && Array.isArray(detail[key])) ? detail[key] : [];
                 arr.forEach(function (entry) {
                     var iso = entry && entry.date ? String(entry.date).split('T')[0] : '';
-                    if (iso) marked[iso] = true;
+                    if (iso && scope.hasMeaningfulStageData(entry)) marked[iso] = true;
                 });
             });
             return marked;
@@ -224,6 +224,15 @@ var _modal_production_stages = (function () {
             });
             $(document).on('change input', '#ps_crack_start1, #ps_crack_end1', function () {
                 scope.updateCrackTimeSpentRow(1);
+            });
+            $(document).on('click', '.js-clear-time-input', function (e) {
+                e.preventDefault();
+                var targetSel = this.getAttribute('data-target');
+                if (!targetSel) return;
+                var input = document.querySelector(targetSel);
+                if (!input) return;
+                input.value = '';
+                $(input).trigger('input').trigger('change');
             });
             $(document).on('change input', '#ps_wash_waste_shellfines, #ps_wash_waste_compost', function () {
                 scope.updateWashWasteTotal();
@@ -1459,13 +1468,16 @@ var _modal_production_stages = (function () {
         _upsertByDate: (arr, data) => {
             if (!data || !data.date || data.date === '') return Array.isArray(arr) ? arr : [];
             arr = Array.isArray(arr) ? arr.slice() : [];
+            var scope = _modal_production_stages;
+            var shouldRemove = !scope.hasMeaningfulStageData(data);
             for (var i = 0; i < arr.length; i++) {
                 if (arr[i] && arr[i].date === data.date) {
-                    arr[i] = data;
+                    if (shouldRemove) arr.splice(i, 1);
+                    else arr[i] = data;
                     return arr;
                 }
             }
-            arr.push(data);
+            if (!shouldRemove) arr.push(data);
             return arr;
         },
 
@@ -1521,6 +1533,13 @@ var _modal_production_stages = (function () {
             var packing_data = scope.getProductionStagesSectionData('pack');
             var summary_data = deriveSummaryFromStages(cracking_data, washing_data, sorting_data, packing_data);
             var hasMeaningfulData = scope.hasAnyMeaningfulProductionData(cracking_data, washing_data, sorting_data, packing_data);
+            var currentDate = cracking_data.date || washing_data.date || sorting_data.date || packing_data.date || null;
+            var hadExistingDataForDate = !!(currentDate && scope._loadedKernelDetail && (
+                scope.hasMeaningfulStageData(scope._findByDate(scope._loadedKernelDetail.cracking_data, currentDate)) ||
+                scope.hasMeaningfulStageData(scope._findByDate(scope._loadedKernelDetail.washing_data, currentDate)) ||
+                scope.hasMeaningfulStageData(scope._findByDate(scope._loadedKernelDetail.sorting_data, currentDate)) ||
+                scope.hasMeaningfulStageData(scope._findByDate(scope._loadedKernelDetail.packing_data, currentDate))
+            ));
 
             // Validate: at least cracking must have a date
             if (!cracking_data.date || cracking_data.date === '') {
@@ -1529,14 +1548,17 @@ var _modal_production_stages = (function () {
             }
 
             if (!hasMeaningfulData) {
-                scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
-                scope.updateProductionActionButtonTicks();
-                if (silent) {
-                    if ($status.length) $status.text('');
-                } else if (typeof Swal !== 'undefined') {
-                    Swal.fire('Nothing to save', 'Date only does not count as production data. Add production details first.', 'info');
+                if (hadExistingDataForDate !== true) {
+                    scope.modalProductionDayStages = { cracking_data: {}, washing_data: {}, sorting_data: {}, packing_data: {}, summary_data: {} };
+                    scope.updateProductionActionButtonTicks();
+                    if (silent) {
+                        if ($status.length) $status.text('');
+                    } else if (typeof Swal !== 'undefined') {
+                        Swal.fire('Nothing to save', 'Date only does not count as production data. Add production details first.', 'info');
+                    }
+                    return;
                 }
-                return;
+                summary_data = {};
             }
 
             // Do not auto-finish production when packing is complete — there may be multiple days (e.g. 3 days).
@@ -1561,18 +1583,26 @@ var _modal_production_stages = (function () {
                 // Rebuild the day list from cached arrays and set active day to cracking date
                 scope._rebuildDayListFromCache();
                 var primaryDate = cracking_data.date || washing_data.date || sorting_data.date || packing_data.date;
-                if (primaryDate) {
+                if (primaryDate && scope.hasAnyMeaningfulProductionData(cracking_data, washing_data, sorting_data, packing_data)) {
                     $('#productionStagesDayId').val(primaryDate);
                     scope.setProductionDayActive(primaryDate);
+                } else if (!scope.modalProductionDays || scope.modalProductionDays.length === 0) {
+                    $('#productionStagesDayId').val('new');
+                } else {
+                    var firstDay = scope.modalProductionDays[0];
+                    var nextDayId = firstDay ? (firstDay.id || firstDay.date || '') : '';
+                    $('#productionStagesDayId').val(nextDayId);
+                    if (nextDayId) scope.setProductionDayActive(nextDayId);
                 }
+                scope.refreshProductionDatePickers();
                 scope.updateProductionActionButtonTicks();
                 scope.clearProductionStagesDraft(batchId);
                 if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
                 if (silent) {
-                    if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); }
+                    if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text(hadExistingDataForDate && !hasMeaningfulData ? 'Cleared' : 'Saved'); }
                     setTimeout(function () { if ($status.length) $status.text(''); }, 2000);
                 } else {
-                    if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Production stages saved for this day.', 'success');
+                    if (typeof Swal !== 'undefined') Swal.fire('Saved', hadExistingDataForDate && !hasMeaningfulData ? 'Production data cleared for this day.' : 'Production stages saved for this day.', 'success');
                 }
             }).catch(function (e) {
                 if ($status.length) { $status.removeClass('text-success').addClass('text-danger').text('Save failed'); }
