@@ -149,7 +149,7 @@
             <form id="newBatchForm">
                 <input type="hidden" id="batchId" value="">
                 <div class="modal-body">
-                    <p class="text-muted small mb-2">Batch number is assigned on save (format: Bn [supplier #] [year] [seq]).</p>
+                    <p class="text-muted small mb-2">Suggested batch number: Bn [supplier #] [2-digit year] [seq], where seq is the next number for that calendar year (all kernel batches). Leave blank to auto-assign on save, or edit as needed.</p>
                     <div class="mb-3">
                         <label for="batchSupplier" class="form-label">Supplier <span class="text-danger">*</span></label>
                         <select class="form-select" id="batchSupplier" required>
@@ -157,8 +157,8 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="batchNumber" class="form-label">Batch number (preview)</label>
-                        <input type="text" class="form-control" id="batchNumber" readonly placeholder="Select supplier to see next number">
+                        <label for="batchNumber" class="form-label">Batch number</label>
+                        <input type="text" class="form-control" id="batchNumber" placeholder="Select supplier to see suggestion" autocomplete="off">
                     </div>
                     <div class="mb-3">
                         <label for="batchReceivedDate" class="form-label">Received date <span class="text-danger">*</span></label>

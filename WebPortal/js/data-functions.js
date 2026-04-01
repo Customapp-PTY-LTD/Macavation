@@ -1233,12 +1233,67 @@ var _dataFunctions = function () {
         },
 
         createContact: async function (contactData, token = null) {
-            // Try using importTableRows as a workaround since the function signature doesn't match
-            // This bypasses the Lambda proxy's schema cache issue
-            console.log('[Data Functions] createContact - attempting direct table insert via importTableRows');
-            
+            const normalizeCreateContactResult = (result) => {
+                if (!result) return { success: false, error: 'Failed to create contact' };
+                if (result.success === false) return result;
+                if (result.id || result.inserted_ids?.[0]) {
+                    return {
+                        ...result,
+                        success: result.success !== false,
+                        id: result.id || result.inserted_ids?.[0] || null
+                    };
+                }
+                if (result.data && typeof result.data === 'object') {
+                    return {
+                        ...result.data,
+                        success: result.data.success !== false,
+                        id: result.data.id || null
+                    };
+                }
+                return result;
+            };
+
+            const params = {
+                p_company_name: contactData.company_name || contactData.p_company_name || '',
+                p_contact_type: contactData.contact_type || contactData.p_contact_type || '',
+                p_account_manager_id: contactData.account_manager_id || contactData.p_account_manager_id || null,
+                p_key_account: contactData.key_account !== undefined ? contactData.key_account : (contactData.p_key_account !== undefined ? contactData.p_key_account : false),
+                p_notes: contactData.notes || contactData.p_notes || null,
+                p_physical_area: contactData.physical_area || contactData.p_physical_area || null,
+                p_physical_city: contactData.physical_city || contactData.p_physical_city || null,
+                p_physical_postal_code: contactData.physical_postal_code || contactData.p_physical_postal_code || null,
+                p_physical_province: contactData.physical_province || contactData.p_physical_province || null,
+                p_preferred_styles: contactData.preferred_styles || contactData.p_preferred_styles || null,
+                p_primary_contact_email: contactData.primary_contact_email || contactData.p_primary_contact_email || null,
+                p_primary_contact_mobile: contactData.primary_contact_mobile || contactData.p_primary_contact_mobile || null,
+                p_primary_contact_name: contactData.primary_contact_name || contactData.p_primary_contact_name || null,
+                p_primary_contact_phone: contactData.primary_contact_phone || contactData.p_primary_contact_phone || null,
+                p_rate_cracker_dust: contactData.rate_cracker_dust !== undefined ? contactData.rate_cracker_dust : (contactData.p_rate_cracker_dust !== undefined ? contactData.p_rate_cracker_dust : null),
+                p_rate_crude_kernel: contactData.rate_crude_kernel !== undefined ? contactData.rate_crude_kernel : (contactData.p_rate_crude_kernel !== undefined ? contactData.p_rate_crude_kernel : null),
+                p_rate_crush: contactData.rate_crush !== undefined ? contactData.rate_crush : (contactData.p_rate_crush !== undefined ? contactData.p_rate_crush : null),
+                p_rate_food_kernel: contactData.rate_food_kernel !== undefined ? contactData.rate_food_kernel : (contactData.p_rate_food_kernel !== undefined ? contactData.p_rate_food_kernel : null),
+                p_rate_kernel_dust: contactData.rate_kernel_dust !== undefined ? contactData.rate_kernel_dust : (contactData.p_rate_kernel_dust !== undefined ? contactData.p_rate_kernel_dust : null),
+                p_secondary_contact_email: contactData.secondary_contact_email || contactData.p_secondary_contact_email || null,
+                p_secondary_contact_mobile: contactData.secondary_contact_mobile || contactData.p_secondary_contact_mobile || null,
+                p_secondary_contact_name: contactData.secondary_contact_name || contactData.p_secondary_contact_name || null,
+                p_secondary_contact_phone: contactData.secondary_contact_phone || contactData.p_secondary_contact_phone || null,
+                p_status: contactData.status || contactData.p_status || 'active',
+                p_trading_name: contactData.trading_name || contactData.p_trading_name || null
+            };
+
             try {
-                // Map contactData to table row format
+                console.log('[Data Functions] createContact - trying create_contact_simple first');
+                const functionResult = await this.callFunction('create_contact_simple', params, token, { useCache: false });
+                const normalizedFunctionResult = normalizeCreateContactResult(functionResult);
+                console.log('[Data Functions] createContact RPC result:', normalizedFunctionResult);
+                if (normalizedFunctionResult && normalizedFunctionResult.success !== false && normalizedFunctionResult.id) {
+                    this.clearCachePattern('contacts');
+                    return normalizedFunctionResult;
+                }
+                throw new Error(normalizedFunctionResult?.error || normalizedFunctionResult?.message || 'Failed to create contact');
+            } catch (functionError) {
+                console.warn('[Data Functions] create_contact_simple failed, trying importTableRows:', functionError);
+
                 const contactRow = {
                     contact_type: contactData.contact_type || contactData.p_contact_type,
                     company_name: contactData.company_name || contactData.p_company_name,
@@ -1247,12 +1302,6 @@ var _dataFunctions = function () {
                     primary_contact_email: contactData.primary_contact_email || contactData.p_primary_contact_email || null,
                     primary_contact_phone: contactData.primary_contact_phone || contactData.p_primary_contact_phone || null,
                     primary_contact_mobile: contactData.primary_contact_mobile || contactData.p_primary_contact_mobile || null,
-                    secondary_contact_name: contactData.secondary_contact_name || contactData.p_secondary_contact_name || null,
-                    secondary_contact_phone: contactData.secondary_contact_phone || contactData.p_secondary_contact_phone || null,
-                    secondary_contact_mobile: contactData.secondary_contact_mobile || contactData.p_secondary_contact_mobile || null,
-                    secondary_contact_email: contactData.secondary_contact_email || contactData.p_secondary_contact_email || null,
-                    preferred_styles: contactData.preferred_styles || contactData.p_preferred_styles || null,
-                    physical_area: contactData.physical_area || contactData.p_physical_area || null,
                     physical_city: contactData.physical_city || contactData.p_physical_city || null,
                     physical_province: contactData.physical_province || contactData.p_physical_province || null,
                     physical_postal_code: contactData.physical_postal_code || contactData.p_physical_postal_code || null,
@@ -1260,68 +1309,17 @@ var _dataFunctions = function () {
                     status: contactData.status || contactData.p_status || 'active',
                     key_account: contactData.key_account !== undefined ? contactData.key_account : (contactData.p_key_account !== undefined ? contactData.p_key_account : false),
                     notes: contactData.notes || contactData.p_notes || null,
-                    rate_crude_kernel: contactData.rate_crude_kernel !== undefined ? contactData.rate_crude_kernel : (contactData.p_rate_crude_kernel !== undefined ? contactData.p_rate_crude_kernel : null),
-                    rate_food_kernel: contactData.rate_food_kernel !== undefined ? contactData.rate_food_kernel : (contactData.p_rate_food_kernel !== undefined ? contactData.p_rate_food_kernel : null),
-                    rate_kernel_dust: contactData.rate_kernel_dust !== undefined ? contactData.rate_kernel_dust : (contactData.p_rate_kernel_dust !== undefined ? contactData.p_rate_kernel_dust : null),
-                    rate_cracker_dust: contactData.rate_cracker_dust !== undefined ? contactData.rate_cracker_dust : (contactData.p_rate_cracker_dust !== undefined ? contactData.p_rate_cracker_dust : null),
-                    rate_crush: contactData.rate_crush !== undefined ? contactData.rate_crush : (contactData.p_rate_crush !== undefined ? contactData.p_rate_crush : null),
                     supplier_number: contactData.supplier_number !== undefined ? contactData.supplier_number : (contactData.p_supplier_number !== undefined ? contactData.p_supplier_number : null)
                 };
-                
-                console.log('[Data Functions] Using importTableRows workaround with row:', contactRow);
-                
-                const result = await this.importTableRows('contacts', [contactRow], token);
-                
-                if (result && result.success !== false) {
-                    console.log('[Data Functions] createContact via importTableRows - SUCCESS:', result);
-                    // Invalidate contacts cache
+
+                console.log('[Data Functions] importTableRows fallback with row:', contactRow);
+                const importResult = await this.importTableRows('contacts', [contactRow], token);
+                const normalizedImportResult = normalizeCreateContactResult(importResult);
+                if (normalizedImportResult && normalizedImportResult.success !== false) {
                     this.clearCachePattern('contacts');
-                    return {
-                        success: true,
-                        id: result.id || result.inserted_ids?.[0] || null,
-                        message: 'Contact created successfully'
-                    };
-                } else {
-                    throw new Error(result?.error || result?.message || 'Failed to create contact');
+                    return normalizedImportResult;
                 }
-            } catch (importError) {
-                console.warn('[Data Functions] importTableRows failed, trying function call:', importError);
-                
-                // Fallback to function call with all parameters
-                const params = {
-                    p_company_name: contactData.company_name || contactData.p_company_name || '',
-                    p_contact_type: contactData.contact_type || contactData.p_contact_type || '',
-                    p_account_manager_id: contactData.account_manager_id || contactData.p_account_manager_id || null,
-                    p_key_account: contactData.key_account !== undefined ? contactData.key_account : (contactData.p_key_account !== undefined ? contactData.p_key_account : false),
-                    p_notes: contactData.notes || contactData.p_notes || null,
-                    p_physical_area: contactData.physical_area || contactData.p_physical_area || null,
-                    p_physical_city: contactData.physical_city || contactData.p_physical_city || null,
-                    p_physical_postal_code: contactData.physical_postal_code || contactData.p_physical_postal_code || null,
-                    p_physical_province: contactData.physical_province || contactData.p_physical_province || null,
-                    p_preferred_styles: contactData.preferred_styles || contactData.p_preferred_styles || null,
-                    p_primary_contact_email: contactData.primary_contact_email || contactData.p_primary_contact_email || null,
-                    p_primary_contact_mobile: contactData.primary_contact_mobile || contactData.p_primary_contact_mobile || null,
-                    p_primary_contact_name: contactData.primary_contact_name || contactData.p_primary_contact_name || null,
-                    p_primary_contact_phone: contactData.primary_contact_phone || contactData.p_primary_contact_phone || null,
-                    p_rate_cracker_dust: contactData.rate_cracker_dust !== undefined ? contactData.rate_cracker_dust : (contactData.p_rate_cracker_dust !== undefined ? contactData.p_rate_cracker_dust : null),
-                    p_rate_crude_kernel: contactData.rate_crude_kernel !== undefined ? contactData.rate_crude_kernel : (contactData.p_rate_crude_kernel !== undefined ? contactData.p_rate_crude_kernel : null),
-                    p_rate_crush: contactData.rate_crush !== undefined ? contactData.rate_crush : (contactData.p_rate_crush !== undefined ? contactData.p_rate_crush : null),
-                    p_rate_food_kernel: contactData.rate_food_kernel !== undefined ? contactData.rate_food_kernel : (contactData.p_rate_food_kernel !== undefined ? contactData.p_rate_food_kernel : null),
-                    p_rate_kernel_dust: contactData.rate_kernel_dust !== undefined ? contactData.rate_kernel_dust : (contactData.p_rate_kernel_dust !== undefined ? contactData.p_rate_kernel_dust : null),
-                    p_secondary_contact_email: contactData.secondary_contact_email || contactData.p_secondary_contact_email || null,
-                    p_secondary_contact_mobile: contactData.secondary_contact_mobile || contactData.p_secondary_contact_mobile || null,
-                    p_secondary_contact_name: contactData.secondary_contact_name || contactData.p_secondary_contact_name || null,
-                    p_secondary_contact_phone: contactData.secondary_contact_phone || contactData.p_secondary_contact_phone || null,
-                    p_status: contactData.status || contactData.p_status || 'active',
-                    p_trading_name: contactData.trading_name || contactData.p_trading_name || null
-                };
-                
-                console.log('[Data Functions] Fallback: trying function call with params:', JSON.stringify(params, null, 2));
-                const result = await this.callFunction('create_contact_simple', params, token, { useCache: false });
-                console.log('[Data Functions] createContact result:', result);
-                // Invalidate contacts cache
-                this.clearCachePattern('contacts');
-                return result;
+                throw new Error(normalizedImportResult?.error || normalizedImportResult?.message || functionError?.message || 'Failed to create contact');
             }
         },
 
@@ -1509,8 +1507,8 @@ var _dataFunctions = function () {
         },
 
         /**
-         * getNextBatchNumber — returns next batch id in format "Bn SS YY NN" (supplier #, year, sequence).
-         * Used when creating kernel batches to show preview; actual number is assigned on create when batch_number is null.
+         * getNextBatchNumber — returns next batch id in format "Bn SS YY NN" (supplier #, year, yearly seq).
+         * NN is the first unused sequence for that calendar year across all kernel batches. Used as a suggestion; create may pass a custom batch_number.
          */
         getNextBatchNumber: async function (supplierId, year, token = null) {
             const y = year != null ? Number(year) % 100 : (new Date().getFullYear() % 100);

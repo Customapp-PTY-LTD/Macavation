@@ -73,25 +73,34 @@ var _kernelProductionBatchActions = function () {
             });
         },
 
+        /** Prefill batch number from DB; uses received date year (matches create_kernel_batch). */
+        refreshSuggestedBatchNumber: () => {
+            var supplierId = $('#batchSupplier').val() || null;
+            var dateStr = $('#batchReceivedDate').val();
+            var year = dateStr && dateStr.length >= 4 ? parseInt(dateStr.slice(0, 4), 10) : new Date().getFullYear();
+            if (!supplierId) {
+                $('#batchNumber').val('').attr('placeholder', 'Select supplier to see suggestion');
+                return;
+            }
+            (dataFunctions.getNextBatchNumber && dataFunctions.getNextBatchNumber(supplierId, year) || Promise.resolve(null))
+                .then(function (nextId) {
+                    $('#batchNumber').val(nextId || '').attr('placeholder', nextId ? '' : 'Will assign on save');
+                })
+                .catch(function () { $('#batchNumber').val('').attr('placeholder', 'Will assign on save'); });
+        },
+
         showNewBatchModal: () => {
             const scope = _kernelProductionBatchActions;
             $('#newBatchModalLabel').text('New Production Batch');
             $('#batchId').val('');
             scope.clearNewBatchForm();
             $('#batchReceivedDate').val(new Date().toISOString().split('T')[0]);
-            $('#batchNumber').val('').attr('placeholder', 'Select supplier to see next number');
+            $('#batchNumber').val('').attr('placeholder', 'Select supplier to see suggestion');
             $('#batchSupplier').off('change.kernelNextBatch').on('change.kernelNextBatch', function () {
-                var supplierId = $(this).val() || null;
-                if (!supplierId) {
-                    $('#batchNumber').val('').attr('placeholder', 'Select supplier to see next number');
-                    return;
-                }
-                var year = new Date().getFullYear();
-                (dataFunctions.getNextBatchNumber && dataFunctions.getNextBatchNumber(supplierId, year) || Promise.resolve(null))
-                    .then(function (nextId) {
-                        $('#batchNumber').val(nextId || '').attr('placeholder', nextId ? '' : 'Will assign on save');
-                    })
-                    .catch(function () { $('#batchNumber').val('').attr('placeholder', 'Will assign on save'); });
+                scope.refreshSuggestedBatchNumber();
+            });
+            $('#batchReceivedDate').off('change.kernelNextBatchDate').on('change.kernelNextBatchDate', function () {
+                scope.refreshSuggestedBatchNumber();
             });
             var p = dataFunctions.getContacts && dataFunctions.getContacts();
             (p || Promise.resolve([])).then((contacts) => {
@@ -128,8 +137,10 @@ var _kernelProductionBatchActions = function () {
             }
             var getVal = (id) => $('#' + id).val() || null;
             var getFloat = (id) => { var v = $('#' + id).val(); return v ? parseFloat(v) : null; };
+            var batchNumRaw = $('#batchNumber').val();
+            var batchNumTrim = batchNumRaw != null ? String(batchNumRaw).trim() : '';
             var batchData = {
-                batch_number:        null,
+                batch_number:        batchNumTrim.length ? batchNumTrim : null,
                 received_date:       getVal('batchReceivedDate'),
                 wet_nis_received_kg: getFloat('batchWetNIS'),
                 supplier_id:         getVal('batchSupplier') || null,
