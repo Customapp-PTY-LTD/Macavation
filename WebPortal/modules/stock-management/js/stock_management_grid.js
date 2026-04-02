@@ -93,25 +93,26 @@ var _stockManagementGrid = function () {
     }
 
     var KERNEL_STYLE_OPTIONS = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
+    /** Same nominal kg/carton as dispatch / get_kernel_batches (for carton equivalent when only kg is recorded). */
+    var KERNEL_KG_PER_CARTON = 11.34;
 
     /**
-     * Per-style on-hand: prefer remaining kg; else cartons. If yield existed in kg but remaining kg is 0, do not show
-     * leftover carton counts alone (kg-only adjustments leave cartons in packing_data; row should be able to clear).
+     * Per-style on-hand in cartons: use remaining cartons from the API; if none but remaining kg exists, show carton equivalent (kg / 11.34).
      */
     function getKernelStyleCellsForDisplay(batch) {
-        var yieldKg = kernelStyleMapFromBatch(batch, 'yield_by_style');
         var remKg = kernelStyleMapFromBatch(batch, 'remaining_by_style');
         var remCart = kernelStyleMapFromBatch(batch, 'remaining_by_style_cartons');
         var out = {};
         KERNEL_STYLE_OPTIONS.forEach(function (k) {
-            var yk = parseNum(yieldKg[k]);
             var rk = parseNum(remKg[k]);
             var rc = parseNum(remCart[k]);
-            if (yk > 0 && rk <= 0 && rc > 0) {
+            if (rc > 0) {
+                out[k] = rc;
+            } else if (rk > 0) {
+                out[k] = Math.round((rk / KERNEL_KG_PER_CARTON) * 100) / 100;
+            } else {
                 out[k] = 0;
-                return;
             }
-            out[k] = rk > 0 ? rk : (rc > 0 ? rc : 0);
         });
         return out;
     }
@@ -999,14 +1000,7 @@ var _stockManagementGrid = function () {
                 else window.alert('Kernel stock adjustment is not available. Please refresh.');
                 return;
             }
-            var remKgMap = kernelStyleMapFromBatch(batch, 'remaining_by_style');
-            var remCartMap = kernelStyleMapFromBatch(batch, 'remaining_by_style_cartons');
-            var st = adjustment.style;
-            var payload = Object.assign({}, adjustment, {
-                _remainingKgForStyle: parseNum(remKgMap[st]),
-                _remainingCartonsForStyle: parseNum(remCartMap[st])
-            });
-            df.adjustKernelStockOnHand(kernelId, payload).then(function (result) {
+            df.adjustKernelStockOnHand(kernelId, adjustment).then(function (result) {
                 var r = result;
                 if (r && r.data !== undefined) r = r.data;
                 if (typeof r === 'string') {

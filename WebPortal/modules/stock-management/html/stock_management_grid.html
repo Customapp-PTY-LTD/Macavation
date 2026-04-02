@@ -128,7 +128,7 @@
                     </button>
                 </div>
             </h6>
-            <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with available stock per style (from packing data). Click Send to Dispatch to choose a buyer, select items from the shopping cart, and submit a dispatch order.</p>
+            <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with <strong>remaining cartons</strong> per style (from packing data). If a row only has kg recorded, the grid shows a carton equivalent at 11.34&nbsp;kg per carton. Click Send to Dispatch to choose a buyer, select items from the shopping cart, and submit a dispatch order.</p>
             <div class="alert alert-info py-2 px-3 small mb-2" id="kernelAdjustModeHint" style="display: none;">
                 Adjustment mode is on. Click the batch/style cell you want to change, then enter <code>+</code> or <code>-</code> and the number of cartons.
             </div>
@@ -188,16 +188,16 @@
                     </table>
                 </div>
             </div>
-            <!-- Overview view: total kg by style -->
+            <!-- Overview view: total cartons by style -->
             <div class="card mb-0 border-0" id="ksOverviewPanel" style="display: none;">
                 <h6 class="text-secondary"><i class="fas fa-chart-pie me-2"></i>Overview by style</h6>
-                <p class="text-muted small mb-3">Total remaining quantity (kg) by style across all batches in kernel stock.</p>
+                <p class="text-muted small mb-3">Total remaining <strong>cartons</strong> (or carton equivalent from kg) by style across all batches in kernel stock.</p>
                 <div class="table-responsive">
                     <table class="table table-hover table-sm">
                         <thead>
                             <tr>
                                 <th>Style</th>
-                                <th class="text-end">Total (kg)</th>
+                                <th class="text-end">Total (cartons)</th>
                             </tr>
                         </thead>
                         <tbody id="ksOverviewTableBody">

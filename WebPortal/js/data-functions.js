@@ -1640,37 +1640,13 @@ var _dataFunctions = function () {
 
         /**
          * adjustKernelStockOnHand — manually add/subtract one kernel stock style.
-         * Persists an adjustment row into packing_data so stock views update.
-         * Carton-only UI sends qtyDelta 0: mirror kg using 11.34 kg/carton when remaining kg for the style is positive,
-         * capped to _remainingKgForStyle so we never reduce packed kg below dispatched. When no remaining kg but
-         * cartons remain, apply carton delta only (no mirror).
+         * Persists an adjustment row into packing_data. Stock UI uses cartons only (qtyDelta 0 from client).
          */
         adjustKernelStockOnHand: async function (kernelId, adjustment, token = null) {
-            const KG_PER_STD_CARTON = 11.34;
             let qtyDelta = adjustment && adjustment.qtyDelta != null ? Number(adjustment.qtyDelta) : 0;
             let cartonsDelta = adjustment && adjustment.cartonsDelta != null ? Number(adjustment.cartonsDelta) : 0;
             if (!isFinite(qtyDelta)) qtyDelta = 0;
             if (!isFinite(cartonsDelta)) cartonsDelta = 0;
-            const remK = adjustment && adjustment._remainingKgForStyle != null ? Number(adjustment._remainingKgForStyle) : NaN;
-            const remC = adjustment && adjustment._remainingCartonsForStyle != null ? Number(adjustment._remainingCartonsForStyle) : NaN;
-            if (qtyDelta === 0 && cartonsDelta !== 0) {
-                if (isFinite(remK) && remK > 0) {
-                    qtyDelta = Math.round(cartonsDelta * KG_PER_STD_CARTON * 100) / 100;
-                    if (qtyDelta < 0) {
-                        qtyDelta = Math.max(qtyDelta, -remK);
-                    }
-                    if (isFinite(remC) && remC <= 0) {
-                        cartonsDelta = 0;
-                    }
-                } else if (isFinite(remC) && remC > 0 && (!isFinite(remK) || remK <= 0)) {
-                    qtyDelta = 0;
-                } else {
-                    qtyDelta = Math.round(cartonsDelta * KG_PER_STD_CARTON * 100) / 100;
-                    if (qtyDelta < 0 && isFinite(remK) && remK >= 0) {
-                        qtyDelta = Math.max(qtyDelta, -remK);
-                    }
-                }
-            }
             const params = {
                 p_kernel_id: kernelId,
                 p_style: adjustment && adjustment.style != null && adjustment.style !== ''
