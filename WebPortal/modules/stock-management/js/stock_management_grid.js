@@ -37,10 +37,10 @@ var _stockManagementGrid = function () {
 
     /** Sum total kg from yield_by_style object (all style keys). */
     function totalKgFromYield(b) {
-        if (!b || !b.yield_by_style || typeof b.yield_by_style !== 'object') return 0;
+        var o = kernelStyleMapFromBatch(b, 'yield_by_style');
         var sum = 0;
-        Object.keys(b.yield_by_style).forEach(function (k) {
-            var v = b.yield_by_style[k];
+        Object.keys(o).forEach(function (k) {
+            var v = o[k];
             if (v != null && v !== '') sum += (typeof v === 'number' ? v : parseFloat(v)) || 0;
         });
         return sum;
@@ -48,10 +48,10 @@ var _stockManagementGrid = function () {
 
     /** Sum total kg from remaining_by_style object. */
     function totalKgFromRemaining(b) {
-        if (!b || !b.remaining_by_style || typeof b.remaining_by_style !== 'object') return 0;
+        var o = kernelStyleMapFromBatch(b, 'remaining_by_style');
         var sum = 0;
-        Object.keys(b.remaining_by_style).forEach(function (k) {
-            var v = b.remaining_by_style[k];
+        Object.keys(o).forEach(function (k) {
+            var v = o[k];
             if (v != null && v !== '') sum += (typeof v === 'number' ? v : parseFloat(v)) || 0;
         });
         return sum;
@@ -69,6 +69,22 @@ var _stockManagementGrid = function () {
         return isNaN(n) ? 0 : n;
     }
 
+    /** Style maps from API may be plain objects or JSON strings (proxy); normalize for sums and display. */
+    function kernelStyleMapFromBatch(batch, prop) {
+        var v = batch && batch[prop];
+        if (v == null) return {};
+        if (typeof v === 'object' && !Array.isArray(v)) return v;
+        if (typeof v === 'string') {
+            var s = v.trim();
+            if (s === '' || s === 'null') return {};
+            try {
+                var p = JSON.parse(s);
+                if (typeof p === 'object' && p !== null && !Array.isArray(p)) return p;
+            } catch (e) { /* ignore */ }
+        }
+        return {};
+    }
+
     /** Kernel row id for RPCs (proxy may use Id / KernelId). */
     function kernelIdFromBatch(b) {
         if (!b) return '';
@@ -79,14 +95,13 @@ var _stockManagementGrid = function () {
     var KERNEL_STYLE_OPTIONS = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
 
     /**
-     * Per-style on-hand for the grid. Resolves kg vs cartons from get_kernel_batches without "ghost" cartons:
-     * if packed kg ever existed for a style but remaining kg is 0, do not show leftover carton counts
-     * (e.g. after a kg-only stock adjustment left sk_*_cartons unchanged in packing_data).
+     * Per-style on-hand: prefer remaining kg; else cartons. If yield existed in kg but remaining kg is 0, do not show
+     * leftover carton counts alone (kg-only adjustments leave cartons in packing_data; row should be able to clear).
      */
     function getKernelStyleCellsForDisplay(batch) {
-        var yieldKg = (batch && batch.yield_by_style && typeof batch.yield_by_style === 'object') ? batch.yield_by_style : {};
-        var remKg = (batch && batch.remaining_by_style && typeof batch.remaining_by_style === 'object') ? batch.remaining_by_style : {};
-        var remCart = (batch && batch.remaining_by_style_cartons && typeof batch.remaining_by_style_cartons === 'object') ? batch.remaining_by_style_cartons : {};
+        var yieldKg = kernelStyleMapFromBatch(batch, 'yield_by_style');
+        var remKg = kernelStyleMapFromBatch(batch, 'remaining_by_style');
+        var remCart = kernelStyleMapFromBatch(batch, 'remaining_by_style_cartons');
         var out = {};
         KERNEL_STYLE_OPTIONS.forEach(function (k) {
             var yk = parseNum(yieldKg[k]);
@@ -96,15 +111,7 @@ var _stockManagementGrid = function () {
                 out[k] = 0;
                 return;
             }
-            if (rc > 0 && (rk > 0 || yk <= 0)) {
-                out[k] = rc;
-                return;
-            }
-            if (rk > 0) {
-                out[k] = rk;
-                return;
-            }
-            out[k] = rc > 0 ? rc : 0;
+            out[k] = rk > 0 ? rk : (rc > 0 ? rc : 0);
         });
         return out;
     }
@@ -644,10 +651,40 @@ var _stockManagementGrid = function () {
                         : 0;
                 });
                 delete result.value.style_values;
-                var createResult = await dataFunctions.importHistoricalKernelBatch(result.value);
-                var inner = (createResult && createResult.create_kernel_batch) ? createResult.create_kernel_batch : createResult;
-                if (inner && inner.success === false) throw new Error(inner.error || 'Failed to create batch');
-                await Swal.fire({ icon: 'success', title: 'Batch created', text: 'New kernel batch added successfully.', timer: 1800, showConfirmButton: false });
+                var payload = result.value;
+                var df = (typeof _dataFunctions !== 'undefined' && _dataFunctions && _dataFunctions.importHistoricalKernelBatch)
+                    ? _dataFunctions
+                    : dataFunctions;
+                if (!df || !df.importHistoricalKernelBatch) throw new Error('importHistoricalKernelBatch is not available');
+                var bn = (payload.batch_number && String(payload.batch_number).trim()) ? String(payload.batch_number).trim() : '';
+                if (!bn) {
+                    var y = payload.received_date && String(payload.received_date).length >= 4
+                        ? parseInt(String(payload.received_date).slice(0, 4), 10)
+                        : new Date().getFullYear();
+                    var nextBn = await ((df.getNextBatchNumber && df.getNextBatchNumber(payload.supplier_id, y)) || Promise.resolve(null));
+                    if (!nextBn) throw new Error('Batch number is required, or supplier/date could not suggest one.');
+                    payload.batch_number = nextBn;
+                } else {
+                    payload.batch_number = bn;
+                }
+                var rd = payload.received_date || '';
+                if (rd && (!payload.production_finished_at || String(payload.production_finished_at).length <= 10)) {
+                    payload.production_finished_at = String(rd).indexOf('T') === -1 ? (rd + 'T12:00:00') : payload.production_finished_at;
+                }
+                var createResult = await df.importHistoricalKernelBatch(payload);
+                var inner = createResult;
+                if (inner && inner.import_historical_kernel_batch !== undefined) {
+                    inner = inner.import_historical_kernel_batch;
+                    if (typeof inner === 'string') {
+                        try { inner = JSON.parse(inner); } catch (e2) { inner = createResult; }
+                    }
+                }
+                if (inner && inner.create_kernel_batch) inner = inner.create_kernel_batch;
+                var ok = inner && (inner.success === true || inner.Success === true);
+                var kid = inner && (inner.id != null ? inner.id : inner.Id);
+                if (!ok) throw new Error((inner && (inner.error || inner.Error)) || 'Failed to create batch');
+                if (kid == null) throw new Error('Server did not return a kernel id — batch may not be linked. Check proxy logs.');
+                await Swal.fire({ icon: 'success', title: 'Batch created', text: 'New kernel batch added to the database.', timer: 2000, showConfirmButton: false });
                 scope.loadKernelBatches(true);
             } catch (e) {
                 console.error('[Stock Management] promptCreateKernelBatchFromStock failed:', e);
@@ -798,7 +835,7 @@ var _stockManagementGrid = function () {
                 var key = getIsoWeekKey(dt);
                 if (!key) return;
                 ensureWeek(key);
-                var yieldObj = (b.yield_by_style && typeof b.yield_by_style === 'object') ? b.yield_by_style : {};
+                var yieldObj = kernelStyleMapFromBatch(b, 'yield_by_style');
                 styleKeys.forEach(function (styleKey) {
                     var v = yieldObj[styleKey];
                     var kg = (v != null && v !== '') ? (typeof v === 'number' ? v : parseFloat(v)) : 0;
@@ -835,7 +872,7 @@ var _stockManagementGrid = function () {
             var byStyle = {};
             styleKeys.forEach(function (k) { byStyle[k] = 0; });
             (scope.kernelFinishedBatches || []).forEach(function (b) {
-                var cells = (b.remaining_by_style && typeof b.remaining_by_style === 'object') ? b.remaining_by_style : (b.yield_by_style || {});
+                var cells = getKernelStyleCellsForDisplay(b);
                 styleKeys.forEach(function (k) {
                     var v = cells[k];
                     if (v != null && v !== '') byStyle[k] += (typeof v === 'number' ? v : parseFloat(v)) || 0;
@@ -888,8 +925,6 @@ var _stockManagementGrid = function () {
                     '<div class="small text-muted mb-2">Style: <strong>' + escapeHtml(style) + '</strong></div>' +
                     '<label class="form-label">Type <code>+</code> or <code>-</code></label>' +
                     '<input id="swalAdjustKernelSign" type="text" class="form-control mb-2" maxlength="1" placeholder="+ or -">' +
-                    '<label class="form-label">Kg</label>' +
-                    '<input id="swalAdjustKernelKg" type="number" class="form-control mb-2" step="0.01" min="0" value="0">' +
                     '<label class="form-label">Cartons</label>' +
                     '<input id="swalAdjustKernelCartons" type="number" class="form-control mb-2" step="1" min="0" value="0">' +
                     '<label class="form-label">Reason</label>' +
@@ -900,21 +935,20 @@ var _stockManagementGrid = function () {
                 confirmButtonText: 'Save adjustment',
                 preConfirm: function () {
                     var signInput = (document.getElementById('swalAdjustKernelSign').value || '').trim();
-                    var kgAbs = parseNum(document.getElementById('swalAdjustKernelKg').value);
                     var cartonsAbs = parseNum(document.getElementById('swalAdjustKernelCartons').value);
                     var reason = document.getElementById('swalAdjustKernelReason').value || null;
                     if (signInput !== '+' && signInput !== '-') {
                         Swal.showValidationMessage('Type + or - to show whether stock must increase or decrease.');
                         return false;
                     }
-                    if (kgAbs === 0 && cartonsAbs === 0) {
-                        Swal.showValidationMessage('Enter a kg or cartons adjustment.');
+                    if (cartonsAbs === 0) {
+                        Swal.showValidationMessage('Enter a non-zero cartons adjustment.');
                         return false;
                     }
                     var sign = signInput === '-' ? -1 : 1;
                     return {
                         style: style,
-                        qtyDelta: sign * kgAbs,
+                        qtyDelta: 0,
                         cartonsDelta: sign * cartonsAbs,
                         reason: reason
                     };
@@ -930,26 +964,20 @@ var _stockManagementGrid = function () {
             var bn = batch.batch_number || 'batch';
             var sign = (window.prompt('Batch ' + bn + ', style ' + style + ' — type + or -', '+') || '').trim();
             if (sign !== '+' && sign !== '-') return;
-            var kgStr = window.prompt('Kilograms to change (number only, 0 allowed with cartons)', '0');
-            var kgAbs = kgStr === '' || kgStr == null ? 0 : parseFloat(kgStr);
-            if (isNaN(kgAbs) || kgAbs < 0) {
-                window.alert('Invalid kg amount');
-                return;
-            }
-            var cartStr = window.prompt('Cartons to change (number only, 0 if not used)', '0');
+            var cartStr = window.prompt('Cartons to change (number only)', '0');
             var cartAbs = cartStr === '' || cartStr == null ? 0 : parseFloat(cartStr);
             if (isNaN(cartAbs) || cartAbs < 0) {
                 window.alert('Invalid cartons amount');
                 return;
             }
-            if (kgAbs === 0 && cartAbs === 0) {
-                window.alert('Enter a non-zero kg or cartons adjustment');
+            if (cartAbs === 0) {
+                window.alert('Enter a non-zero cartons adjustment');
                 return;
             }
             var mult = sign === '-' ? -1 : 1;
             scope.saveKernelStockAdjustment(batch, {
                 style: style,
-                qtyDelta: mult * kgAbs,
+                qtyDelta: 0,
                 cartonsDelta: mult * cartAbs,
                 reason: null
             });
@@ -971,13 +999,24 @@ var _stockManagementGrid = function () {
                 else window.alert('Kernel stock adjustment is not available. Please refresh.');
                 return;
             }
-            df.adjustKernelStockOnHand(kernelId, adjustment).then(function (result) {
+            var remKgMap = kernelStyleMapFromBatch(batch, 'remaining_by_style');
+            var remCartMap = kernelStyleMapFromBatch(batch, 'remaining_by_style_cartons');
+            var st = adjustment.style;
+            var payload = Object.assign({}, adjustment, {
+                _remainingKgForStyle: parseNum(remKgMap[st]),
+                _remainingCartonsForStyle: parseNum(remCartMap[st])
+            });
+            df.adjustKernelStockOnHand(kernelId, payload).then(function (result) {
                 var r = result;
                 if (r && r.data !== undefined) r = r.data;
                 if (typeof r === 'string') {
                     try { r = JSON.parse(r); } catch (e) { r = result; }
                 }
-                if (r && r.success === false) throw new Error(r.error || 'Failed to adjust stock');
+                if (!r || typeof r !== 'object') throw new Error('No response from server');
+                if (r.success === false || r.Success === false) throw new Error(r.error || r.Error || 'Failed to adjust stock');
+                if (r.success !== true && r.Success !== true) {
+                    throw new Error(r.error || r.Error || 'Stock adjustment did not succeed');
+                }
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'success',

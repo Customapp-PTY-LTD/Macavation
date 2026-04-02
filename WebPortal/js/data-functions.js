@@ -1388,6 +1388,25 @@ var _dataFunctions = function () {
         },
         
         /**
+         * Proxies may return jsonb style maps as JSON strings — parse so remaining/yield keys work in JS.
+         */
+        normalizeKernelJsonbStyleMap: function (val) {
+            if (val == null) return {};
+            if (typeof val === 'object' && !Array.isArray(val)) return val;
+            if (typeof val === 'string') {
+                const s = val.trim();
+                if (s === '' || s === 'null') return {};
+                try {
+                    const p = JSON.parse(s);
+                    return typeof p === 'object' && p !== null && !Array.isArray(p) ? p : {};
+                } catch (e) {
+                    return {};
+                }
+            }
+            return {};
+        },
+
+        /**
          * Lambda / .NET proxies sometimes return PascalCase property names. Kernel stock UI needs stable id + jsonb keys.
          */
         normalizeKernelBatchRow: function (r) {
@@ -1403,6 +1422,10 @@ var _dataFunctions = function () {
             if (o.grower_name == null && o.GrowerName != null) o.grower_name = o.GrowerName;
             if (o.supplier_id == null && o.SupplierId != null) o.supplier_id = o.SupplierId;
             if (o.status == null && o.Status != null) o.status = o.Status;
+            o.yield_by_style = this.normalizeKernelJsonbStyleMap(o.yield_by_style);
+            o.remaining_by_style = this.normalizeKernelJsonbStyleMap(o.remaining_by_style);
+            o.yield_by_style_cartons = this.normalizeKernelJsonbStyleMap(o.yield_by_style_cartons);
+            o.remaining_by_style_cartons = this.normalizeKernelJsonbStyleMap(o.remaining_by_style_cartons);
             return o;
         },
 
@@ -1412,6 +1435,45 @@ var _dataFunctions = function () {
             return rows.map(function (row) {
                 return scope.normalizeKernelBatchRow(row);
             });
+        },
+
+        /**
+         * Lambda / .NET proxies return get_kernel_batches rows under different keys or as JSON strings.
+         */
+        extractKernelBatchesRowsFromRaw: function (raw, depth) {
+            const d = depth == null ? 0 : depth;
+            if (d > 8 || raw == null) return [];
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === 'string') {
+                const s = raw.trim();
+                if (s === '' || s === 'null') return [];
+                try {
+                    return this.extractKernelBatchesRowsFromRaw(JSON.parse(s), d + 1);
+                } catch (e) {
+                    return [];
+                }
+            }
+            if (typeof raw !== 'object') return [];
+            const keys = [
+                'data', 'Data',
+                'get_kernel_batches', 'GetKernelBatches', 'getKernelBatches',
+                'result', 'Result',
+                'rows', 'Rows',
+                'records', 'Records',
+                'items', 'Items',
+                'body', 'Body',
+                'value', 'Value'
+            ];
+            for (let i = 0; i < keys.length; i++) {
+                const k = keys[i];
+                if (raw[k] == null) continue;
+                const got = this.extractKernelBatchesRowsFromRaw(raw[k], d + 1);
+                if (got.length > 0) return got;
+            }
+            if ((raw.id != null || raw.Id != null) && (raw.batch_number != null || raw.BatchNumber != null)) {
+                return [raw];
+            }
+            return [];
         },
 
         getKernelBatches: async function (token = null, forceRefresh = false, options = {}) {
@@ -1428,15 +1490,10 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
-            let rows = [];
-            if (Array.isArray(raw)) rows = raw;
-            else if (raw && Array.isArray(raw.data)) rows = raw.data;
-            else if (raw && Array.isArray(raw.get_kernel_batches)) rows = raw.get_kernel_batches;
-            else if (raw && Array.isArray(raw.result)) rows = raw.result;
-            else if (raw && Array.isArray(raw.body)) rows = raw.body;
-            if (rows.length === 0 && raw && (raw.error || raw.message)) {
-                console.warn('[getKernelBatches] API returned error:', raw.error || raw.message, raw);
-                throw new Error(raw.message || raw.error || 'Failed to load kernel batches');
+            let rows = this.extractKernelBatchesRowsFromRaw(raw, 0);
+            if (rows.length === 0 && raw && (raw.error || raw.message || raw.Error || raw.Message)) {
+                console.warn('[getKernelBatches] API returned error:', raw.error || raw.message || raw.Error, raw);
+                throw new Error(raw.message || raw.Message || raw.error || raw.Error || 'Failed to load kernel batches');
             }
             return this.normalizeKernelBatchRows(rows);
         },
@@ -1546,6 +1603,7 @@ var _dataFunctions = function () {
             if (typeof result === 'string') return result;
             if (result.data != null && typeof result.data === 'string') return result.data;
             if (result.get_next_batch_number != null) return String(result.get_next_batch_number);
+            if (result.GetNextBatchNumber != null) return String(result.GetNextBatchNumber);
             if (Array.isArray(result) && result.length > 0 && typeof result[0] === 'string') return result[0];
             if (typeof result === 'object' && result.value != null) return String(result.value);
             return null;
@@ -1583,27 +1641,67 @@ var _dataFunctions = function () {
         /**
          * adjustKernelStockOnHand — manually add/subtract one kernel stock style.
          * Persists an adjustment row into packing_data so stock views update.
+         * Carton-only UI sends qtyDelta 0: mirror kg using 11.34 kg/carton when remaining kg for the style is positive,
+         * capped to _remainingKgForStyle so we never reduce packed kg below dispatched. When no remaining kg but
+         * cartons remain, apply carton delta only (no mirror).
          */
         adjustKernelStockOnHand: async function (kernelId, adjustment, token = null) {
+            const KG_PER_STD_CARTON = 11.34;
+            let qtyDelta = adjustment && adjustment.qtyDelta != null ? Number(adjustment.qtyDelta) : 0;
+            let cartonsDelta = adjustment && adjustment.cartonsDelta != null ? Number(adjustment.cartonsDelta) : 0;
+            if (!isFinite(qtyDelta)) qtyDelta = 0;
+            if (!isFinite(cartonsDelta)) cartonsDelta = 0;
+            const remK = adjustment && adjustment._remainingKgForStyle != null ? Number(adjustment._remainingKgForStyle) : NaN;
+            const remC = adjustment && adjustment._remainingCartonsForStyle != null ? Number(adjustment._remainingCartonsForStyle) : NaN;
+            if (qtyDelta === 0 && cartonsDelta !== 0) {
+                if (isFinite(remK) && remK > 0) {
+                    qtyDelta = Math.round(cartonsDelta * KG_PER_STD_CARTON * 100) / 100;
+                    if (qtyDelta < 0) {
+                        qtyDelta = Math.max(qtyDelta, -remK);
+                    }
+                    if (isFinite(remC) && remC <= 0) {
+                        cartonsDelta = 0;
+                    }
+                } else if (isFinite(remC) && remC > 0 && (!isFinite(remK) || remK <= 0)) {
+                    qtyDelta = 0;
+                } else {
+                    qtyDelta = Math.round(cartonsDelta * KG_PER_STD_CARTON * 100) / 100;
+                    if (qtyDelta < 0 && isFinite(remK) && remK >= 0) {
+                        qtyDelta = Math.max(qtyDelta, -remK);
+                    }
+                }
+            }
             const params = {
                 p_kernel_id: kernelId,
-                p_style: adjustment && adjustment.style != null ? adjustment.style : null,
-                p_qty_delta: adjustment && adjustment.qtyDelta != null ? adjustment.qtyDelta : 0,
-                p_cartons_delta: adjustment && adjustment.cartonsDelta != null ? adjustment.cartonsDelta : 0,
+                p_style: adjustment && adjustment.style != null && adjustment.style !== ''
+                    ? String(adjustment.style)
+                    : null,
+                p_qty_delta: qtyDelta,
+                p_cartons_delta: cartonsDelta,
                 p_reason: adjustment && adjustment.reason != null ? adjustment.reason : null
             };
             let result = await this.callFunction('adjust_kernel_stock_on_hand', params, token, { useCache: false });
-            if (result && result.adjust_kernel_stock_on_hand !== undefined) {
-                result = result.adjust_kernel_stock_on_hand;
+            if (result && result.offline && result.queued) {
+                throw new Error('Cannot apply stock change while offline. Connect and try again.');
             }
-            if (result && result.data !== undefined) {
-                result = result.data;
+            let r = result;
+            for (let i = 0; i < 10 && r && typeof r === 'object' && !Array.isArray(r); i++) {
+                if (r.adjust_kernel_stock_on_hand !== undefined) r = r.adjust_kernel_stock_on_hand;
+                else if (r.AdjustKernelStockOnHand !== undefined) r = r.AdjustKernelStockOnHand;
+                else if (r.data !== undefined) r = r.data;
+                else if (r.Data !== undefined) r = r.Data;
+                else if (r.result !== undefined) r = r.result;
+                else if (r.Result !== undefined) r = r.Result;
+                else if (r.body !== undefined) r = r.body;
+                else if (r.Body !== undefined) r = r.Body;
+                else break;
             }
-            if (typeof result === 'string') {
+            if (typeof r === 'string') {
                 try {
-                    result = JSON.parse(result);
-                } catch (e) { /* keep string */ }
+                    r = JSON.parse(r);
+                } catch (e) { /* keep */ }
             }
+            result = r;
             if (result && typeof result === 'object') {
                 if (result.success === undefined && result.Success !== undefined) result.success = result.Success;
                 if (result.error === undefined && result.Error !== undefined) result.error = result.Error;
@@ -1652,9 +1750,26 @@ var _dataFunctions = function () {
                 p_best_before_date: data.best_before_date || null,
                 p_ffa: data.ffa != null ? data.ffa : null
             };
-            const result = await this.callFunction('import_historical_kernel_batch', params, token, { useCache: false });
+            let result = await this.callFunction('import_historical_kernel_batch', params, token, { useCache: false });
+            if (result && result.import_historical_kernel_batch !== undefined) {
+                result = result.import_historical_kernel_batch;
+            }
+            if (result && result.data !== undefined) {
+                result = result.data;
+            }
+            if (typeof result === 'string') {
+                try {
+                    result = JSON.parse(result);
+                } catch (e) { /* keep */ }
+            }
+            if (result && typeof result === 'object') {
+                if (result.success === undefined && result.Success !== undefined) result.success = result.Success;
+                if (result.error === undefined && result.Error !== undefined) result.error = result.Error;
+                if (result.id === undefined && result.Id !== undefined) result.id = result.Id;
+                if (result.batch_number === undefined && result.BatchNumber !== undefined) result.batch_number = result.BatchNumber;
+            }
             this.clearCachePattern('kernel_batches');
-            return result && (result.data !== undefined ? result.data : result);
+            return result;
         },
 
         /**
