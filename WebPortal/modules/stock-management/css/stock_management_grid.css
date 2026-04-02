@@ -24,6 +24,13 @@
     overflow: visible !important;
 }
 #kernelStockByStyleTable .kernel-qty-cell { overflow: visible !important; }
+/* Adjust-stock mode: stop the browser from treating quantities as selectable text (steals clicks). */
+#kernelStockByStyleTable td[data-kernel-stock-adjust="1"],
+#kernelStockByStyleTable td[data-kernel-stock-adjust="1"] .kernel-stock-adjust-value {
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+}
 #kernelStockByStyleTable .kernel-qty-cell .dropdown-menu {
     z-index: 1080;
     max-height: 280px;

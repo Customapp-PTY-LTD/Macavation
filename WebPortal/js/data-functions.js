@@ -1387,6 +1387,33 @@ var _dataFunctions = function () {
             return [];
         },
         
+        /**
+         * Lambda / .NET proxies sometimes return PascalCase property names. Kernel stock UI needs stable id + jsonb keys.
+         */
+        normalizeKernelBatchRow: function (r) {
+            if (!r || typeof r !== 'object') return r;
+            const o = Object.assign({}, r);
+            if (o.id == null && o.Id != null) o.id = o.Id;
+            if (o.batch_id == null && o.BatchId != null) o.batch_id = o.BatchId;
+            if (o.batch_number == null && o.BatchNumber != null) o.batch_number = o.BatchNumber;
+            if (o.yield_by_style == null && o.YieldByStyle != null) o.yield_by_style = o.YieldByStyle;
+            if (o.remaining_by_style == null && o.RemainingByStyle != null) o.remaining_by_style = o.RemainingByStyle;
+            if (o.yield_by_style_cartons == null && o.YieldByStyleCartons != null) o.yield_by_style_cartons = o.YieldByStyleCartons;
+            if (o.remaining_by_style_cartons == null && o.RemainingByStyleCartons != null) o.remaining_by_style_cartons = o.RemainingByStyleCartons;
+            if (o.grower_name == null && o.GrowerName != null) o.grower_name = o.GrowerName;
+            if (o.supplier_id == null && o.SupplierId != null) o.supplier_id = o.SupplierId;
+            if (o.status == null && o.Status != null) o.status = o.Status;
+            return o;
+        },
+
+        normalizeKernelBatchRows: function (rows) {
+            if (!Array.isArray(rows)) return [];
+            const scope = this;
+            return rows.map(function (row) {
+                return scope.normalizeKernelBatchRow(row);
+            });
+        },
+
         getKernelBatches: async function (token = null, forceRefresh = false, options = {}) {
             const params = {
                 p_status: options.status != null ? options.status : null,
@@ -1401,16 +1428,17 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
-            if (Array.isArray(raw)) return raw;
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            if (raw && Array.isArray(raw.get_kernel_batches)) return raw.get_kernel_batches;
-            if (raw && Array.isArray(raw.result)) return raw.result;
-            if (raw && Array.isArray(raw.body)) return raw.body;
-            if (raw && (raw.error || raw.message)) {
+            let rows = [];
+            if (Array.isArray(raw)) rows = raw;
+            else if (raw && Array.isArray(raw.data)) rows = raw.data;
+            else if (raw && Array.isArray(raw.get_kernel_batches)) rows = raw.get_kernel_batches;
+            else if (raw && Array.isArray(raw.result)) rows = raw.result;
+            else if (raw && Array.isArray(raw.body)) rows = raw.body;
+            if (rows.length === 0 && raw && (raw.error || raw.message)) {
                 console.warn('[getKernelBatches] API returned error:', raw.error || raw.message, raw);
                 throw new Error(raw.message || raw.error || 'Failed to load kernel batches');
             }
-            return [];
+            return this.normalizeKernelBatchRows(rows);
         },
 
         /**
@@ -1564,7 +1592,22 @@ var _dataFunctions = function () {
                 p_cartons_delta: adjustment && adjustment.cartonsDelta != null ? adjustment.cartonsDelta : 0,
                 p_reason: adjustment && adjustment.reason != null ? adjustment.reason : null
             };
-            const result = await this.callFunction('adjust_kernel_stock_on_hand', params, token, { useCache: false });
+            let result = await this.callFunction('adjust_kernel_stock_on_hand', params, token, { useCache: false });
+            if (result && result.adjust_kernel_stock_on_hand !== undefined) {
+                result = result.adjust_kernel_stock_on_hand;
+            }
+            if (result && result.data !== undefined) {
+                result = result.data;
+            }
+            if (typeof result === 'string') {
+                try {
+                    result = JSON.parse(result);
+                } catch (e) { /* keep string */ }
+            }
+            if (result && typeof result === 'object') {
+                if (result.success === undefined && result.Success !== undefined) result.success = result.Success;
+                if (result.error === undefined && result.Error !== undefined) result.error = result.Error;
+            }
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
             this.clearCachePattern('kernel_batches');
             return result;
