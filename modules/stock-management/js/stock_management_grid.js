@@ -307,7 +307,7 @@ var _stockManagementGrid = function () {
         releaseBatchToProduction: function (batchId) {
             var scope = _stockManagementGrid;
             if (!batchId) return;
-            dataFunctions.updateProductionBatch(batchId, { status: 'receiving', current_step: 1, stage: 'production' }).then(function (result) {
+            dataFunctions.updateProductionBatch(batchId, { status: 'production', current_step: 1, stage: 'production' }).then(function (result) {
                 if (result && result.success !== false) {
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in production. Use Kernel Production to advance steps.', timer: 2000, showConfirmButton: false });
                     scope.loadKernelBatches(true);

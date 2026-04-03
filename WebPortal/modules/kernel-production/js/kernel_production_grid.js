@@ -522,9 +522,9 @@ var _kernelProductionGrid = function () {
                 return;
             }
             const startTime = performance.now();
-            // Only fetch batches that are in the production pipeline (not yet released to stock).
+            // Only batches released from Grower Intake (status production/qa). Intake/receiving stay on Grower Intake only.
             // Stock (Kernel) uses status 'complete'; we exclude that so the board stays empty when all are in stock.
-            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'intake,receiving,production,qa' }).then(async (batches) => {
+            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'production,qa' }).then(async (batches) => {
                 scope.batches = (batches || []).map(function (b) {
                     var displayKg = (b.actual_wet_nis_kg != null && b.actual_wet_nis_kg !== '') ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
                     return Object.assign({}, b, { display_wet_nis_kg: displayKg, _hasMeaningfulProductionData: null, _productionCalendarEntries: [] });

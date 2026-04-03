@@ -10,6 +10,200 @@ function formatStageDate(isoStr) {
     return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
+/** Display string for empty / blank values in batch history (user-facing spelling). */
+var BATCH_HISTORY_NIL = 'nill';
+
+function historyEscapeHtml(s) {
+    if (s == null || s === '') return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function historyFmt(v, nilStr) {
+    nilStr = nilStr == null ? BATCH_HISTORY_NIL : nilStr;
+    if (v == null) return nilStr;
+    if (typeof v === 'string' && v.trim() === '') return nilStr;
+    return historyEscapeHtml(String(v));
+}
+
+function historyFmtProductionDate(raw, nilStr) {
+    nilStr = nilStr == null ? BATCH_HISTORY_NIL : nilStr;
+    if (raw == null || raw === '') return nilStr;
+    var s = String(raw).split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return formatStageDate(s);
+    return historyEscapeHtml(String(raw));
+}
+
+function mergeBatchHistoryStageObjects(entries) {
+    var o = {};
+    (entries || []).forEach(function (e) {
+        if (!e || typeof e !== 'object') return;
+        for (var k in e) {
+            if (Object.prototype.hasOwnProperty.call(e, k)) o[k] = e[k];
+        }
+    });
+    return o;
+}
+
+/**
+ * Canonical production stage fields (keys match getProductionStagesSectionData / JSON saved by Production modal).
+ */
+var BATCH_HISTORY_CRACKING_SCHEMA = [
+    { key: 'date', label: 'Date', type: 'date' },
+    { key: 'start1', label: 'Start time' },
+    { key: 'end1', label: 'End time' },
+    { key: 'timespent1', label: 'Time spent' },
+    { key: 'startqty1', label: 'Start qty', unit: 'kg' },
+    { key: 'endqty1', label: 'End qty', unit: 'kg' },
+    { key: 'silo1', label: 'Silo qty', unit: 'kg' },
+    { key: 'totaltime', label: 'Total time' },
+    { key: 'totalqty', label: 'Total qty', unit: 'kg' },
+    { key: 'wholes_07', label: 'Wholes 07h00', unit: 'kg' },
+    { key: 'uncracks_07', label: 'Uncracks 07h00', unit: 'kg' },
+    { key: 'total_07', label: 'Total 07h00', unit: 'kg' },
+    { key: 'wholes_10', label: 'Wholes 10h00', unit: 'kg' },
+    { key: 'uncracks_10', label: 'Uncracks 10h00', unit: 'kg' },
+    { key: 'total_10', label: 'Total 10h00', unit: 'kg' },
+    { key: 'wholes_13', label: 'Wholes 13h00', unit: 'kg' },
+    { key: 'uncracks_13', label: 'Uncracks 13h00', unit: 'kg' },
+    { key: 'total_13', label: 'Total 13h00', unit: 'kg' },
+    { key: 'avg_wholes', label: 'Average wholes', unit: 'kg' },
+    { key: 'avg_uncracks', label: 'Average uncracks', unit: 'kg' },
+    { key: 'avg_total', label: 'Average total', unit: 'kg' },
+    { key: 'shell_bag1', label: 'Shell bag #1' },
+    { key: 'shell_batch1', label: 'Shell batch #1' },
+    { key: 'shell_qty1', label: 'Shell qty #1', unit: 'kg' },
+    { key: 'shell_bag2', label: 'Shell bag #2' },
+    { key: 'shell_batch2', label: 'Shell batch #2' },
+    { key: 'shell_qty2', label: 'Shell qty #2', unit: 'kg' },
+    { key: 'shell_total', label: 'Total shell waste', unit: 'kg' }
+];
+
+var BATCH_HISTORY_WASHING_SCHEMA = [
+    { key: 'date', label: 'Date', type: 'date' },
+    { key: 'crates_in', label: 'Crates in' },
+    { key: 'qty_in', label: 'Quantity in', unit: 'kg' },
+    { key: 'floater_crates', label: 'Floater crates out' },
+    { key: 'floater_qty', label: 'Floater qty out', unit: 'kg' },
+    { key: 'sinker_crates', label: 'Sinker crates out' },
+    { key: 'sinker_qty', label: 'Sinker qty out', unit: 'kg' },
+    { key: 'total_crates', label: 'Total crates out' },
+    { key: 'total_qty', label: 'Total qty out', unit: 'kg' },
+    { key: 'crate_diff', label: 'Crate difference' },
+    { key: 'qty_diff', label: 'Quantity difference', unit: 'kg' },
+    { key: 'test1_time', label: 'Peracetic test 1 time' },
+    { key: 'test1_pass', label: 'Peracetic test 1 pass', type: 'bool' },
+    { key: 'test2_time', label: 'Peracetic test 2 time' },
+    { key: 'test2_pass', label: 'Peracetic test 2 pass', type: 'bool' },
+    { key: 'test3_time', label: 'Peracetic test 3 time' },
+    { key: 'test3_pass', label: 'Peracetic test 3 pass', type: 'bool' },
+    { key: 'waste_shellfines', label: 'Shell fines waste', unit: 'kg' },
+    { key: 'waste_compost', label: 'Compost waste', unit: 'kg' },
+    { key: 'waste_total', label: 'Waste total', unit: 'kg' }
+];
+
+var BATCH_HISTORY_SORTING_SCHEMA = [
+    { key: 'date', label: 'Date', type: 'date' },
+    { key: 'floater_crates_in', label: 'Floater crates in' },
+    { key: 'floater_qty_in', label: 'Floater qty in', unit: 'kg' },
+    { key: 'style0_crates', label: 'Style 0 crates out' },
+    { key: 'style0_qty', label: 'Style 0 qty out', unit: 'kg' },
+    { key: 'style1_crates', label: 'Style 1 crates out' },
+    { key: 'style1_qty', label: 'Style 1 qty out', unit: 'kg' },
+    { key: 'style1s_crates', label: 'Style 1S crates out' },
+    { key: 'style1s_qty', label: 'Style 1S qty out', unit: 'kg' },
+    { key: 'style4l_crates', label: 'Style 4L crates out' },
+    { key: 'style4l_qty', label: 'Style 4L qty out', unit: 'kg' },
+    { key: 'style5_crates', label: 'Style 5 crates out' },
+    { key: 'style5_qty', label: 'Style 5 qty out', unit: 'kg' },
+    { key: 'style6_crates', label: 'Style 6 crates out' },
+    { key: 'style6_qty', label: 'Style 6 qty out', unit: 'kg' },
+    { key: 'style78_crates', label: 'Style 7/8 crates out' },
+    { key: 'style78_qty', label: 'Style 7/8 qty out', unit: 'kg' },
+    { key: 'sound_crates', label: 'Sound kernel total crates' },
+    { key: 'sound_qty', label: 'Sound kernel total qty', unit: 'kg' },
+    { key: 'sinker_crates_in', label: 'Sinker crates in' },
+    { key: 'sinker_qty_in', label: 'Sinker qty in', unit: 'kg' },
+    { key: 'butterlow_crates', label: 'Butter low oil crates out' },
+    { key: 'butterlow_qty', label: 'Butter low oil qty out', unit: 'kg' },
+    { key: 'butter_crates', label: 'Butter kernel total crates' },
+    { key: 'butter_qty', label: 'Butter kernel total qty', unit: 'kg' },
+    { key: 'oil_qty', label: 'Oil qty out', unit: 'kg' },
+    { key: 'compost_qty', label: 'Compost qty out', unit: 'kg' }
+];
+
+var BATCH_HISTORY_PACKING_SCHEMA = [
+    { key: 'date', label: 'Date', type: 'date' },
+    { key: 'sk_sp_cartons', label: 'SP cartons' },
+    { key: 'sk_sp_qty', label: 'SP quantity', unit: 'kg' },
+    { key: 'sk_0_cartons', label: 'Style 0 cartons' },
+    { key: 'sk_0_qty', label: 'Style 0 quantity', unit: 'kg' },
+    { key: 'sk_1_cartons', label: 'Style 1 cartons' },
+    { key: 'sk_1_qty', label: 'Style 1 quantity', unit: 'kg' },
+    { key: 'sk_1s_cartons', label: 'Style 1S cartons' },
+    { key: 'sk_1s_qty', label: 'Style 1S quantity', unit: 'kg' },
+    { key: 'sk_4l_cartons', label: 'Style 4L cartons' },
+    { key: 'sk_4l_qty', label: 'Style 4L quantity', unit: 'kg' },
+    { key: 'sk_5_cartons', label: 'Style 5 cartons' },
+    { key: 'sk_5_qty', label: 'Style 5 quantity', unit: 'kg' },
+    { key: 'sk_6_cartons', label: 'Style 6 cartons' },
+    { key: 'sk_6_qty', label: 'Style 6 quantity', unit: 'kg' },
+    { key: 'sk_total_cartons', label: 'Sound kernel total cartons' },
+    { key: 'sk_total_qty', label: 'Sound kernel total qty', unit: 'kg' },
+    { key: 'bt_78_cartons', label: 'Butter 7/8 cartons' },
+    { key: 'bt_78_qty', label: 'Butter 7/8 quantity', unit: 'kg' },
+    { key: 'bt_high_cartons', label: 'Butter high oil cartons' },
+    { key: 'bt_high_qty', label: 'Butter high oil quantity', unit: 'kg' },
+    { key: 'bt_low_cartons', label: 'Butter low oil cartons' },
+    { key: 'bt_low_qty', label: 'Butter low oil quantity', unit: 'kg' },
+    { key: 'bt_total_cartons', label: 'Butter kernel total cartons' },
+    { key: 'bt_total_qty', label: 'Butter kernel total qty', unit: 'kg' },
+    { key: 'totals_cartons', label: 'Grand total cartons' },
+    { key: 'totals_qty', label: 'Grand total qty', unit: 'kg' },
+    { key: 'signature', label: 'Packed by (signature)', type: 'signature' }
+];
+
+function renderBatchHistoryProductionSchemaTable(schema, obj, nilStr) {
+    nilStr = nilStr == null ? BATCH_HISTORY_NIL : nilStr;
+    if (!schema || !schema.length) return '';
+    obj = obj || {};
+    var rows = schema.map(function (spec) {
+        var raw = obj[spec.key];
+        var cell;
+        if (spec.type === 'bool') {
+            if (raw === true || raw === 'true' || raw === 1 || raw === '1') cell = 'Yes';
+            else if (raw === false || raw === 'false' || raw === 0 || raw === '0') cell = 'No';
+            else cell = nilStr;
+        } else if (spec.type === 'signature') {
+            if (raw && typeof raw === 'string' && raw.indexOf('data:image') === 0) cell = 'On file';
+            else if (raw != null && String(raw).trim() !== '') cell = historyEscapeHtml(String(raw).length > 120 ? String(raw).substring(0, 120) + '…' : String(raw));
+            else cell = nilStr;
+        } else if (spec.type === 'date') {
+            cell = historyFmtProductionDate(raw, nilStr);
+        } else if (raw != null && raw !== '' && spec.unit) {
+            cell = historyEscapeHtml(String(raw)) + ' ' + spec.unit;
+        } else {
+            cell = raw != null && raw !== '' ? historyEscapeHtml(String(raw)) : nilStr;
+        }
+        return '<tr><th class="text-nowrap bg-light" style="width:38%">' + historyEscapeHtml(spec.label) + '</th><td>' + cell + '</td></tr>';
+    }).join('');
+    return '<table class="table table-sm table-bordered mb-3"><tbody>' + rows + '</tbody></table>';
+}
+
+function buildProductionDayHistoryBody(dayGroup, nilStr) {
+    nilStr = nilStr == null ? BATCH_HISTORY_NIL : nilStr;
+    var h = '<div class="small">';
+    h += '<h6 class="small fw-semibold mb-1">Cracking</h6>';
+    h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_CRACKING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.cracking), nilStr);
+    h += '<h6 class="small fw-semibold mb-1">Washing</h6>';
+    h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_WASHING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.washing), nilStr);
+    h += '<h6 class="small fw-semibold mb-1">Sorting</h6>';
+    h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_SORTING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.sorting), nilStr);
+    h += '<h6 class="small fw-semibold mb-1">Packing</h6>';
+    h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_PACKING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.packing), nilStr);
+    h += '</div>';
+    return h;
+}
+
 function getStageSummarySnippets(cracking_data, washing_data, sorting_data, packing_data) {
     var c = cracking_data || {};
     var w = washing_data || {};
@@ -72,6 +266,56 @@ function getProductionDayDateLatest(stages) {
     if (dates.length === 0) return null;
     dates.sort();
     return dates[dates.length - 1];
+}
+
+/** One calendar day's grouped cracking/washing/sorting/packing rows → display lines (HTML fragments). Empty if nothing meaningful to show. */
+function buildProductionDayTimelineLines(g) {
+    if (!g) return [];
+    var nv = function (v) { var x = parseFloat(v); return isNaN(x) ? null : x; };
+    var lines = [];
+    (g.cracking || []).forEach(function (c) {
+        var crackTime = (c.timespent1 || c.totaltime || '').toString().trim();
+        var crackQty = nv(c.totalqty);
+        if (crackTime || crackQty != null) {
+            lines.push('<strong>Cracking:</strong> ' + (crackTime ? crackTime : '') + (crackTime && crackQty != null ? ', ' : '') + (crackQty != null ? crackQty + ' kg' : ''));
+        }
+    });
+    (g.washing || []).forEach(function (w) {
+        var washIn = nv(w.qty_in);
+        var washOut = nv(w.total_qty);
+        if (washIn != null || washOut != null) {
+            lines.push('<strong>Washing:</strong> ' + (washIn != null ? washIn + ' kg in' : '') + (washIn != null && washOut != null ? ' &rarr; ' : '') + (washOut != null ? washOut + ' kg out' : ''));
+        }
+    });
+    (g.sorting || []).forEach(function (s) {
+        var sortFields = [
+            { key: 'sound_qty', label: 'Sound' },
+            { key: 'butter_qty', label: 'Butter' },
+            { key: 'butterlow_qty', label: 'Butter Low' },
+            { key: 'oil_qty', label: 'Oil' },
+            { key: 'compost_qty', label: 'Compost' }
+        ];
+        var sp = [];
+        sortFields.forEach(function (f) {
+            var v = nv(s[f.key]);
+            if (v != null) sp.push(f.label + ' ' + v + ' kg');
+        });
+        if (sp.length > 0) lines.push('<strong>Sorting:</strong> ' + sp.join(', '));
+    });
+    (g.packing || []).forEach(function (p) {
+        var packSk = nv(p.sk_total_qty);
+        var packBt = nv(p.bt_total_qty);
+        var packTot = nv(p.totals_qty);
+        if (packSk != null || packBt != null || packTot != null) {
+            var pp = [];
+            if (packSk != null) pp.push('SK ' + packSk + ' kg');
+            if (packBt != null) pp.push('Butter ' + packBt + ' kg');
+            if (packTot != null && packSk == null && packBt == null) pp.push(packTot + ' kg');
+            if (packTot != null && (packSk != null || packBt != null)) pp.push('Total ' + packTot + ' kg');
+            lines.push('<strong>Packing:</strong> ' + pp.join(', '));
+        }
+    });
+    return lines;
 }
 
 var _modal_batch_history = (function () {
@@ -146,64 +390,79 @@ var _modal_batch_history = (function () {
                 $('#batchHistoryBatchInfo').text(getBatchInfoText(displayBatch));
 
                 var entries = [];
-                var fmt = function (v) { return v != null && v !== '' ? String(v) : '—'; };
+                var nil = BATCH_HISTORY_NIL;
+                var fmt = function (v) { return historyFmt(v, nil); };
 
                 // --- Intake: receiving checklist ---
                 var intake = detail.intake_data || {};
                 var cl = intake.receiving_checklist;
                 if (cl) {
                     var html = '<div class="small">';
-                    html += '<p class="mb-1"><strong>Date received:</strong> ' + fmt(cl.date_received) + '</p>';
-                    html += '<p class="mb-1"><strong>Delivery note ref:</strong> ' + fmt(cl.delivery_note_ref) + '</p>';
-                    if (cl.vehicle_clean || cl.vehicle_enclosed) {
-                        html += '<p class="mb-1"><strong>Vehicle clean:</strong> ' + fmt(cl.vehicle_clean) + ' &nbsp; <strong>Enclosed:</strong> ' + fmt(cl.vehicle_enclosed) + '</p>';
-                    }
-                    if (cl.pallets_condition) html += '<p class="mb-1"><strong>Pallets condition:</strong> ' + fmt(cl.pallets_condition) + '</p>';
-                    if (cl.comments) html += '<p class="mb-2"><strong>Comments:</strong> ' + fmt(cl.comments) + '</p>';
-                    var items = cl.received_items || [];
-                    if (items.length > 0) {
-                        html += '<table class="table table-sm table-bordered mt-2"><thead><tr><th>Description</th><th>Qty (kg)</th><th>Manufactured Date</th></tr></thead><tbody>';
+                    html += '<table class="table table-sm table-bordered mb-2"><tbody>';
+                    html += '<tr><th class="text-nowrap bg-light" style="width:35%">Date received</th><td>' + historyFmtProductionDate(cl.date_received, nil) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Delivery note ref</th><td>' + fmt(cl.delivery_note_ref) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Vehicle clean</th><td>' + fmt(cl.vehicle_clean) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Enclosed</th><td>' + fmt(cl.vehicle_enclosed) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Pallets condition</th><td>' + fmt(cl.pallets_condition) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Comments</th><td>' + fmt(cl.comments) + '</td></tr>';
+                    html += '</tbody></table>';
+                    var items = Array.isArray(cl.received_items) ? cl.received_items : [];
+                    html += '<p class="small fw-semibold mb-1">Received items</p>';
+                    html += '<table class="table table-sm table-bordered mt-0"><thead><tr><th>Description</th><th>Qty (kg)</th><th>Manufactured date</th></tr></thead><tbody>';
+                    if (items.length === 0) {
+                        html += '<tr><td>' + nil + '</td><td>' + nil + '</td><td>' + nil + '</td></tr>';
+                    } else {
                         items.forEach(function (it) {
-                            html += '<tr><td>' + fmt(it.description) + '</td><td>' + fmt(it.quantity_kg) + '</td><td>' + fmt(it.manufactured_date) + '</td></tr>';
+                            html += '<tr><td>' + fmt(it && it.description) + '</td><td>' + fmt(it && it.quantity_kg) + '</td><td>' + historyFmtProductionDate(it && it.manufactured_date, nil) + '</td></tr>';
                         });
-                        html += '</tbody></table>';
                     }
-                    html += '</div>';
+                    html += '</tbody></table></div>';
                     entries.push({ type: 'checklist', title: 'Receiving checklist', bodyHtml: html, date: cl.date_received || null });
                 }
 
                 // --- Intake: ziplock sample ---
                 var zl = intake.ziplock_sample;
-                if (zl && zl.completed_at) {
+                if (zl != null && typeof zl === 'object') {
+                    var zlReq = function (v) {
+                        if (v === true || v === 'true' || v === 1 || v === '1') return '&#10003;';
+                        if (v === false || v === 'false' || v === 0 || v === '0') return historyEscapeHtml('No');
+                        return nil;
+                    };
+                    var zlRes = function (v, suffix) {
+                        if (v == null || v === '') return nil;
+                        return historyEscapeHtml(String(v)) + (suffix || '');
+                    };
                     var html = '<div class="small">';
-                    html += '<p class="mb-2"><strong>Completed:</strong> ' + fmt(String(zl.completed_at).split('T')[0]) + '</p>';
-                    html += '<table class="table table-sm table-bordered mb-0"><thead><tr><th>Test</th><th>Required</th><th>Result</th></tr></thead><tbody>';
-                    if (zl.moisture_required || zl.moisture_result != null) {
-                        html += '<tr><td>Moisture</td><td>' + (zl.moisture_required ? '&#10003;' : '—') + '</td><td>' + (zl.moisture_result != null ? zl.moisture_result + '%' : '—') + '</td></tr>';
-                    }
-                    if (zl.peroxide_required || zl.peroxide_result != null) {
-                        html += '<tr><td>Peroxide Value</td><td>' + (zl.peroxide_required ? '&#10003;' : '—') + '</td><td>' + (zl.peroxide_result != null ? zl.peroxide_result + ' meqO&#8322;/kg' : '—') + '</td></tr>';
-                    }
-                    if (zl.ffa_required || zl.ffa_result != null) {
-                        html += '<tr><td>Free Fatty Acids</td><td>' + (zl.ffa_required ? '&#10003;' : '—') + '</td><td>' + (zl.ffa_result != null ? zl.ffa_result + '%' : '—') + '</td></tr>';
-                    }
+                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += '<tr><th class="text-nowrap bg-light" style="width:35%">Completed</th><td>' + historyFmtProductionDate(zl.completed_at ? String(zl.completed_at).split('T')[0] : null, nil) + '</td></tr>';
+                    html += '</tbody></table>';
+                    html += '<table class="table table-sm table-bordered mt-2 mb-0"><thead><tr><th>Test</th><th>Required</th><th>Result</th></tr></thead><tbody>';
+                    html += '<tr><td>Moisture</td><td>' + zlReq(zl.moisture_required) + '</td><td>' + zlRes(zl.moisture_result, '%') + '</td></tr>';
+                    html += '<tr><td>Peroxide value</td><td>' + zlReq(zl.peroxide_required) + '</td><td>' + zlRes(zl.peroxide_result, ' meqO&#8322;/kg') + '</td></tr>';
+                    html += '<tr><td>Free fatty acids</td><td>' + zlReq(zl.ffa_required) + '</td><td>' + zlRes(zl.ffa_result, '%') + '</td></tr>';
                     html += '</tbody></table></div>';
-                    entries.push({ type: 'sample', title: 'Ziplock sample', bodyHtml: html, date: String(zl.completed_at).split('T')[0] || null });
+                    entries.push({ type: 'sample', title: 'Ziplock sample', bodyHtml: html, date: zl.completed_at ? String(zl.completed_at).split('T')[0] : null });
                 }
 
                 // --- Intake: 5kg sample ---
                 var kg5 = intake.five_kg_sample;
-                if (kg5 && kg5.completed_at) {
+                if (kg5 != null && typeof kg5 === 'object') {
+                    var co = kg5.crack_out && typeof kg5.crack_out === 'object' ? kg5.crack_out : {};
+                    var ft = kg5.float_test && typeof kg5.float_test === 'object' ? kg5.float_test : {};
+                    var gCell = function (v) {
+                        if (v == null || v === '') return nil;
+                        return historyEscapeHtml(String(v)) + ' g';
+                    };
                     var html = '<div class="small">';
-                    html += '<p class="mb-1"><strong>Completed:</strong> ' + fmt(String(kg5.completed_at).split('T')[0]) + '</p>';
-                    if (kg5.crack_out) {
-                        html += '<p class="mb-1"><strong>Crack out:</strong> Sound ' + fmt(kg5.crack_out.sound_kernel_g) + 'g, Unsound ' + fmt(kg5.crack_out.unsound_kernel_g) + 'g, Shell ' + fmt(kg5.crack_out.shell_g) + 'g</p>';
-                    }
-                    if (kg5.float_test) {
-                        html += '<p class="mb-0"><strong>Float test:</strong> Floating ' + fmt(kg5.float_test.floating_g) + 'g, Sinking ' + fmt(kg5.float_test.sinking_g) + 'g</p>';
-                    }
-                    html += '</div>';
-                    entries.push({ type: 'sample', title: '5kg sample', bodyHtml: html, date: String(kg5.completed_at).split('T')[0] || null });
+                    html += '<table class="table table-sm table-bordered mb-2"><tbody>';
+                    html += '<tr><th class="text-nowrap bg-light" style="width:35%">Completed</th><td>' + historyFmtProductionDate(kg5.completed_at ? String(kg5.completed_at).split('T')[0] : null, nil) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Crack out — sound kernel</th><td>' + gCell(co.sound_kernel_g) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Crack out — unsound kernel</th><td>' + gCell(co.unsound_kernel_g) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Crack out — shell</th><td>' + gCell(co.shell_g) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Float test — floating</th><td>' + gCell(ft.floating_g) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Float test — sinking</th><td>' + gCell(ft.sinking_g) + '</td></tr>';
+                    html += '</tbody></table></div>';
+                    entries.push({ type: 'sample', title: '5kg sample', bodyHtml: html, date: kg5.completed_at ? String(kg5.completed_at).split('T')[0] : null });
                 }
 
                 // --- Production days ---
@@ -235,64 +494,14 @@ var _modal_batch_history = (function () {
                     return a < b ? -1 : a > b ? 1 : 0;
                 });
 
-                var nv = function (v) { var x = parseFloat(v); return isNaN(x) ? null : x; };
                 var dayNum = 0;
                 sortedDates.forEach(function (dateKey) {
-                    dayNum++;
                     var g = dayMap[dateKey];
+                    var lines = buildProductionDayTimelineLines(g);
+                    if (lines.length === 0) return;
+                    dayNum++;
                     var dateLabel = dateKey === noDateKey ? ('Day ' + dayNum) : ('Day ' + dayNum + ' &ndash; ' + formatStageDate(dateKey));
-                    var lines = [];
-
-                    g.cracking.forEach(function (c) {
-                        var crackTime = (c.timespent1 || c.totaltime || '').toString().trim();
-                        var crackQty = nv(c.totalqty);
-                        if (crackTime || crackQty != null) {
-                            lines.push('<strong>Cracking:</strong> ' + (crackTime ? crackTime : '') + (crackTime && crackQty != null ? ', ' : '') + (crackQty != null ? crackQty + ' kg' : ''));
-                        }
-                    });
-                    g.washing.forEach(function (w) {
-                        var washIn = nv(w.qty_in);
-                        var washOut = nv(w.total_qty);
-                        if (washIn != null || washOut != null) {
-                            lines.push('<strong>Washing:</strong> ' + (washIn != null ? washIn + ' kg in' : '') + (washIn != null && washOut != null ? ' &rarr; ' : '') + (washOut != null ? washOut + ' kg out' : ''));
-                        }
-                    });
-                    g.sorting.forEach(function (s) {
-                        var sortFields = [
-                            { key: 'sound_qty',     label: 'Sound' },
-                            { key: 'butter_qty',    label: 'Butter' },
-                            { key: 'butterlow_qty', label: 'Butter Low' },
-                            { key: 'oil_qty',       label: 'Oil' },
-                            { key: 'compost_qty',   label: 'Compost' }
-                        ];
-                        var sp = [];
-                        sortFields.forEach(function (f) {
-                            var v = nv(s[f.key]);
-                            if (v != null) sp.push(f.label + ' ' + v + ' kg');
-                        });
-                        if (sp.length > 0) lines.push('<strong>Sorting:</strong> ' + sp.join(', '));
-                    });
-                    g.packing.forEach(function (p) {
-                        var packSk = nv(p.sk_total_qty);
-                        var packBt = nv(p.bt_total_qty);
-                        var packTot = nv(p.totals_qty);
-                        if (packSk != null || packBt != null || packTot != null) {
-                            var pp = [];
-                            if (packSk != null) pp.push('SK ' + packSk + ' kg');
-                            if (packBt != null) pp.push('Butter ' + packBt + ' kg');
-                            if (packTot != null && packSk == null && packBt == null) pp.push(packTot + ' kg');
-                            if (packTot != null && (packSk != null || packBt != null)) pp.push('Total ' + packTot + ' kg');
-                            lines.push('<strong>Packing:</strong> ' + pp.join(', '));
-                        }
-                    });
-
-                    var html = '<div class="small">';
-                    if (lines.length > 0) {
-                        html += '<ul class="mb-0 ps-3">' + lines.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul>';
-                    } else {
-                        html += '<p class="text-muted mb-0">No data recorded.</p>';
-                    }
-                    html += '</div>';
+                    var html = buildProductionDayHistoryBody(g, nil);
                     entries.push({ type: 'production', title: dateLabel, bodyHtml: html, date: dateKey === noDateKey ? null : dateKey });
                 });
 
@@ -313,18 +522,16 @@ var _modal_batch_history = (function () {
                         var pKey = 'p_' + key;
                         return (jc[pKey] != null && jc[pKey] !== '') ? jc[pKey] : null;
                     };
-                    var fmtText = function (v) { return v != null && v !== '' ? String(v) : '—'; };
+                    var fmtText = function (v) { return historyFmt(v, nil); };
                     var fmtDate = function (v) {
-                        if (!v) return '—';
-                        var raw = String(v).split('T')[0];
-                        return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? formatStageDate(raw) : String(v);
+                        return historyFmtProductionDate(v ? String(v).split('T')[0] : null, nil);
                     };
                     var fmtMeasure = function (v, suffix) {
-                        if (v == null || v === '') return '—';
+                        if (v == null || v === '') return nil;
                         var n = parseFloat(v);
-                        if (isNaN(n)) return String(v);
+                        if (isNaN(n)) return historyEscapeHtml(String(v));
                         var text = Number.isInteger(n) ? String(n) : n.toFixed(2);
-                        return suffix ? text + ' ' + suffix : text;
+                        return historyEscapeHtml(suffix ? text + ' ' + suffix : text);
                     };
                     var parseArray = function (value) {
                         if (!value) return null;
@@ -368,6 +575,7 @@ var _modal_batch_history = (function () {
                     html += '<div class="card mb-2 border-0 bg-light"><div class="card-body py-2">';
                     html += '<div class="fw-semibold mb-1">' + fmtText(batchNumber) + '</div>';
                     html += '<div><strong>Received:</strong> ' + fmtDate(receivedDate) + ' &nbsp; <strong>Supplier:</strong> ' + fmtText(supplierDisplay) + '</div>';
+                    html += '<div class="mt-1"><strong>Production batch ID:</strong> ' + fmtText(jcVal('production_batch_id')) + '</div>';
                     html += '</div></div>';
 
                     html += '<div class="card mb-2"><div class="card-header py-1"><strong>Receiving</strong></div><div class="card-body py-2 p-0">';
@@ -392,24 +600,28 @@ var _modal_batch_history = (function () {
                     html += '</tbody></table></div></div>';
 
                     html += '<div class="card mb-2"><div class="card-header py-1"><strong>Sound kernel</strong></div><div class="card-body py-2">';
+                    html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
                     if (soundKernelStyles && soundKernelStyles.length > 0) {
-                        html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
                         soundKernelStyles.forEach(function (row) {
-                            html += '<tr><td>' + fmtText(row.style) + '</td><td>' + fmtText(row.cartons) + '</td><td>' + fmtMeasure(row.weight_kg, null) + '</td></tr>';
+                            html += '<tr><td>' + fmtText(row && row.style) + '</td><td>' + fmtText(row && row.cartons) + '</td><td>' + fmtMeasure(row && row.weight_kg, null) + '</td></tr>';
                         });
-                        html += '</tbody></table>';
+                    } else {
+                        html += '<tr><td>' + nil + '</td><td>' + nil + '</td><td>' + nil + '</td></tr>';
                     }
+                    html += '</tbody></table>';
                     html += '<div><strong>Total cartons:</strong> ' + fmtText(soundCartons) + ' &nbsp; <strong>Total kg:</strong> ' + fmtMeasure(soundKg, null) + '</div>';
                     html += '</div></div>';
 
                     html += '<div class="card mb-2"><div class="card-header py-1"><strong>Butter grade</strong></div><div class="card-body py-2">';
+                    html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
                     if (butterGradeStyles && butterGradeStyles.length > 0) {
-                        html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
                         butterGradeStyles.forEach(function (row) {
-                            html += '<tr><td>' + fmtText(row.style) + '</td><td>' + fmtText(row.cartons) + '</td><td>' + fmtMeasure(row.weight_kg, null) + '</td></tr>';
+                            html += '<tr><td>' + fmtText(row && row.style) + '</td><td>' + fmtText(row && row.cartons) + '</td><td>' + fmtMeasure(row && row.weight_kg, null) + '</td></tr>';
                         });
-                        html += '</tbody></table>';
+                    } else {
+                        html += '<tr><td>' + nil + '</td><td>' + nil + '</td><td>' + nil + '</td></tr>';
                     }
+                    html += '</tbody></table>';
                     html += '<div><strong>Total cartons:</strong> ' + fmtText(butterCartons) + ' &nbsp; <strong>Total kg:</strong> ' + fmtMeasure(butterKg, null) + '</div>';
                     html += '</div></div>';
 
@@ -435,19 +647,27 @@ var _modal_batch_history = (function () {
                 // --- QA / End sample ---
                 var qa = (detail.qa_data && Object.keys(detail.qa_data).length) ? detail.qa_data : null;
                 if (qa) {
-                    var tick = function (b) { return b ? '&#10003;' : '—'; };
-                    var fmt2 = function (v) { return v != null && v !== '' ? v : '—'; };
+                    var qaReq = function (v) {
+                        if (v === true || v === 'true' || v === 1 || v === '1') return '&#10003;';
+                        if (v === false || v === 'false' || v === 0 || v === '0') return historyEscapeHtml('No');
+                        return nil;
+                    };
+                    var fmt2 = function (v) { return historyFmt(v, nil); };
                     var html = '<div class="small">';
-                    html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Test</th><th>Required</th><th>Result</th></tr></thead><tbody>';
-                    html += '<tr><td>Moisture</td><td>'       + tick(qa.moisture_required)       + '</td><td>' + fmt2(qa.moisture_result)       + '</td></tr>';
-                    html += '<tr><td>Peroxide</td><td>'       + tick(qa.peroxide_required)       + '</td><td>' + fmt2(qa.peroxide_result)       + '</td></tr>';
-                    html += '<tr><td>FFA</td><td>'            + tick(qa.ffa_required)            + '</td><td>' + fmt2(qa.ffa_result)            + '</td></tr>';
-                    html += '<tr><td>Internal Micro</td><td>' + tick(qa.internal_micro_required) + '</td><td>' + fmt2(qa.internal_micro_result) + '</td></tr>';
-                    html += '<tr><td>External Lab</td><td>'   + tick(qa.external_lab_required)   + '</td><td>' + fmt2(qa.external_lab_result)   + '</td></tr>';
+                    html += '<table class="table table-sm table-bordered mb-2"><tbody>';
+                    html += '<tr><th class="text-nowrap bg-light" style="width:35%">Completed</th><td>' + historyFmtProductionDate(qa.completed_at ? String(qa.completed_at).split('T')[0] : null, nil) + '</td></tr>';
                     html += '</tbody></table>';
-                    if (qa.supervisor_signed_by)         html += '<p class="mb-0"><strong>Signed (Supervisor):</strong> '      + fmt2(qa.supervisor_signed_by)         + '</p>';
-                    if (qa.nut_plant_manager_signed_by)  html += '<p class="mb-0"><strong>Signed (Nut Plant Manager):</strong> ' + fmt2(qa.nut_plant_manager_signed_by) + '</p>';
-                    html += '</div>';
+                    html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Test</th><th>Required</th><th>Result</th></tr></thead><tbody>';
+                    html += '<tr><td>Moisture</td><td>' + qaReq(qa.moisture_required) + '</td><td>' + fmt2(qa.moisture_result) + '</td></tr>';
+                    html += '<tr><td>Peroxide</td><td>' + qaReq(qa.peroxide_required) + '</td><td>' + fmt2(qa.peroxide_result) + '</td></tr>';
+                    html += '<tr><td>FFA</td><td>' + qaReq(qa.ffa_required) + '</td><td>' + fmt2(qa.ffa_result) + '</td></tr>';
+                    html += '<tr><td>Internal micro</td><td>' + qaReq(qa.internal_micro_required) + '</td><td>' + fmt2(qa.internal_micro_result) + '</td></tr>';
+                    html += '<tr><td>External lab</td><td>' + qaReq(qa.external_lab_required) + '</td><td>' + fmt2(qa.external_lab_result) + '</td></tr>';
+                    html += '</tbody></table>';
+                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += '<tr><th class="text-nowrap bg-light" style="width:35%">Signed (Supervisor)</th><td>' + fmt2(qa.supervisor_signed_by) + '</td></tr>';
+                    html += '<tr><th class="text-nowrap bg-light">Signed (Nut Plant Manager)</th><td>' + fmt2(qa.nut_plant_manager_signed_by) + '</td></tr>';
+                    html += '</tbody></table></div>';
                     entries.push({ type: 'qa', title: 'End Sample (QA)', bodyHtml: html, date: qa.completed_at ? String(qa.completed_at).split('T')[0] : null });
                 }
 
