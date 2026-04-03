@@ -1699,6 +1699,35 @@ var _dataFunctions = function () {
         },
 
         /**
+         * deleteKernelBatchPermanent — hard delete kernel batch (batches + kernel row). Irreversible.
+         * Cleans silo assignment and kernel_dispatch_orders lines referencing this kernel.
+         */
+        deleteKernelBatchPermanent: async function (kernelId, token = null) {
+            let result = await this.callFunction('delete_kernel_batch_permanent', { p_kernel_id: kernelId }, token, { useCache: false });
+            if (result && result.delete_kernel_batch_permanent !== undefined) {
+                result = result.delete_kernel_batch_permanent;
+            }
+            if (result && result.data !== undefined) {
+                result = result.data;
+            }
+            if (typeof result === 'string') {
+                try {
+                    result = JSON.parse(result);
+                } catch (e) { /* keep */ }
+            }
+            if (result && typeof result === 'object') {
+                if (result.success === undefined && result.Success !== undefined) result.success = result.Success;
+                if (result.error === undefined && result.Error !== undefined) result.error = result.Error;
+            }
+            this.clearCachePattern('kernel_batch_detail_' + kernelId);
+            this.clearCachePattern('kernel_batches');
+            this.clearCachePattern('silos');
+            this.clearCachePattern('production_batches');
+            this.clearCachePattern('kernel_dispatch_orders_list');
+            return result;
+        },
+
+        /**
          * importHistoricalKernelBatch — one-off import of a historical kernel batch (e.g. from Macadamia Kernel Statistics Excel).
          * Creates batch + kernel with status 'complete' and one packing_data entry (yield by style in kg).
          * @param {object} data - { batch_number, grower_name?, supplier_id?, received_date?, production_finished_at?, wet_nis_received_kg?, sk_sp_qty, sk_0_qty, sk_1_qty, sk_1s_qty, sk_4l_qty, sk_5_qty, sk_6_qty, bt_78_qty, bt_high_qty, bt_low_qty, best_before_date?, ffa? }

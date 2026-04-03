@@ -33,6 +33,20 @@
     text-decoration: underline;
 }
 
+#bjTable td.bj-actions-col {
+    cursor: default;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+#bjTable tbody tr:hover td.bj-actions-col {
+    text-decoration: none;
+}
+
+#bjTable td.bj-actions-col .dropdown-toggle::after {
+    margin-left: 0.35em;
+}
+
 /* Status badges */
 .bj-status {
     display: inline-block;

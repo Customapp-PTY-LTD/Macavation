@@ -8,6 +8,7 @@ DECLARE
     v_fns text[] := ARRAY[
         'complete_kernel_batch',
         'deactivate_kernel_batch',
+        'delete_kernel_batch_permanent',
         'create_kernel_batch',
         'get_next_batch_number',
         'upsert_batch',

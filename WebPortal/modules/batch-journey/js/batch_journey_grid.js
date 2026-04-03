@@ -68,6 +68,15 @@ var _batchJourneyGrid = (function () {
         });
     }
 
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
     function sortBatches(batches, sortBy) {
         var sorted = batches.slice();
         switch (sortBy) {
@@ -133,7 +142,7 @@ var _batchJourneyGrid = (function () {
         var countEl = document.getElementById('bjBatchCount');
 
         if (!scope.filteredBatches.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No batches found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No batches found</td></tr>';
             countEl.textContent = '0 batches';
             return;
         }
@@ -150,7 +159,9 @@ var _batchJourneyGrid = (function () {
                 ? (_common.formatDateDDMMYYYY(b.received_date) || '-')
                 : '-';
 
-            html += '<tr class="js-bj-row" data-batch-id="' + b.id + '">'
+            var kid = escapeHtml(b.id);
+            var ddSuffix = String(b.id || '').replace(/-/g, '');
+            html += '<tr class="js-bj-row" data-batch-id="' + kid + '">'
                 + '<td>' + (b.batch_number || '-') + '</td>'
                 + '<td>' + (b.grower_name || '-') + '</td>'
                 + '<td><span class="bj-status bj-status-' + displayStatus.value + '">' + displayStatus.label + '</span></td>'
@@ -158,6 +169,12 @@ var _batchJourneyGrid = (function () {
                 + '<td class="text-end">' + formatNumber(b.wet_nis_received_kg) + '</td>'
                 + '<td class="text-end">' + (moisture != null ? formatNumber(moisture, 1) + '%' : '-') + '</td>'
                 + '<td class="text-end">' + (totalYield > 0 ? formatNumber(totalYield) : '-') + '</td>'
+                + '<td class="bj-actions-col text-end">'
+                + '<div class="dropdown">'
+                + '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="bjEdit' + ddSuffix + '" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Edit batch">Edit</button>'
+                + '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bjEdit' + ddSuffix + '">'
+                + '<li><a class="dropdown-item text-danger bj-delete-batch" href="#" data-kernel-id="' + kid + '"><i class="fas fa-trash-alt me-1"></i>Delete permanently</a></li>'
+                + '</ul></div></td>'
                 + '</tr>';
         }
         tbody.innerHTML = html;
@@ -170,13 +187,71 @@ var _batchJourneyGrid = (function () {
 
         // Row click -> batch history modal
         $(document).on('click', '#bjTableBody tr.js-bj-row', function (e) {
-            if ($(e.target).closest('button, .btn, .dropdown').length) return;
+            if ($(e.target).closest('button, .btn, .dropdown, a').length) return;
             var batchId = $(this).data('batch-id');
             if (batchId && typeof _modal_batch_history !== 'undefined' && _modal_batch_history.show) {
                 _modal_batch_history.show(batchId);
             }
         });
+
+        $(document).on('click', '#bjTableBody .dropdown-toggle', function (e) {
+            e.stopPropagation();
+        });
+
+        $(document).on('click', '#bjTableBody .bj-delete-batch', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var kernelId = $(this).data('kernel-id');
+            if (!kernelId) return;
+            var row = $(this).closest('tr.js-bj-row');
+            var label = (row.find('td').first().text() || 'This batch').trim();
+            if (typeof Swal === 'undefined') {
+                if (!window.confirm('Permanently delete batch ' + label + '? This cannot be undone.')) return;
+                scope.runPermanentDelete(kernelId, label);
+                return;
+            }
+            Swal.fire({
+                title: 'Delete batch permanently?',
+                html: '<p class="mb-0">Batch <strong>' + escapeHtml(label) + '</strong> will be removed from the database (kernel record, batch header, silo assignment, and dispatch lines for this batch). This cannot be undone.</p>',
+                icon: 'warning',
+                showCancelButton: true,
+                focusCancel: true,
+                confirmButtonText: 'Yes, delete forever',
+                confirmButtonColor: '#dc3545',
+                cancelButtonText: 'Cancel'
+            }).then(function (res) {
+                if (res && res.isConfirmed) scope.runPermanentDelete(kernelId, label);
+            });
+        });
     }
+
+    scope.runPermanentDelete = function (kernelId, label) {
+        if (typeof _dataFunctions === 'undefined' || !_dataFunctions.deleteKernelBatchPermanent) {
+            if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete is not available. Refresh the page or apply the latest database migration.', 'error');
+            else window.alert('Delete is not available.');
+            return;
+        }
+        _dataFunctions.deleteKernelBatchPermanent(kernelId).then(function (result) {
+            if (!result || result.success === false) {
+                throw new Error((result && result.error) || 'Delete failed');
+            }
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Batch deleted',
+                    text: (label || 'Batch') + ' was permanently removed.',
+                    timer: 2200,
+                    showConfirmButton: false
+                });
+            }
+            loadBatches();
+        }).catch(function (err) {
+            console.error('Batch Journey: permanent delete failed', err);
+            var msg = (err && err.message) ? err.message : 'Delete failed';
+            if (typeof Swal !== 'undefined') Swal.fire('Error', msg, 'error');
+            else window.alert(msg);
+        });
+    };
 
     function loadBatches() {
         if (typeof _dataFunctions === 'undefined') return;
@@ -190,7 +265,7 @@ var _batchJourneyGrid = (function () {
         }).catch(function (err) {
             console.error('Batch Journey: failed to load batches', err);
             document.getElementById('bjTableBody').innerHTML =
-                '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load batches</td></tr>';
+                '<tr><td colspan="8" class="text-center text-danger py-4">Failed to load batches</td></tr>';
         });
     }
 
