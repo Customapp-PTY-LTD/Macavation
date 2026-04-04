@@ -76,8 +76,10 @@ var KanbanHelper = {
      *
      * @param {string}   containerId - Same container used in render()
      * @param {Function} onDrop      - (itemId, fromColumnKey, toColumnKey) callback
+     * @param {Object}   options     - optional { shouldRevert: (itemId, fromKey, toKey) => boolean }
+     *                                 Return false to leave the card in the target column (caller must reconcile UI).
      */
-    enableDragDrop: function (containerId, onDrop) {
+    enableDragDrop: function (containerId, onDrop, options) {
         if (typeof Sortable === 'undefined') return;
 
         var container = document.getElementById(containerId);
@@ -108,9 +110,14 @@ var KanbanHelper = {
                     var fromKey = fromEl.getAttribute('data-column-key') || '';
                     var toKey = toEl.getAttribute('data-column-key') || '';
 
-                    // Always revert the DOM move — actual data update happens
-                    // when the modal saves and data reloads
-                    if (fromEl !== toEl) {
+                    var shouldRevert = true;
+                    if (options && typeof options.shouldRevert === 'function') {
+                        var sr = options.shouldRevert(itemId, fromKey, toKey);
+                        if (sr === false) shouldRevert = false;
+                    }
+
+                    // Default: revert the DOM move — data updates when a modal saves and reload runs.
+                    if (fromEl !== toEl && shouldRevert) {
                         fromEl.insertBefore(item, fromEl.children[evt.oldIndex] || null);
                     }
 

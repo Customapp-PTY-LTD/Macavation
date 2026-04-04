@@ -13,6 +13,8 @@ var _modal_kernel_job_card = (function () {
     var JOB_CARD_DATE_IDS = ['jobCardReceivedDate', 'jobCardPackingStartDate', 'jobCardPackingCompletionDate', 'jobCardBestBeforeDate'];
     var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
     var AUTO_SAVE_DELAY_MS = 900;
+    /** True while job card was opened from Kanban drag (Awaiting production → Release ready). */
+    var _dragReleaseReadySession = false;
 
     /** Module state for packing start and best-before (no DOM reads for Best Before). */
     var _jobCardPackingStartISO = null;
@@ -106,7 +108,13 @@ var _modal_kernel_job_card = (function () {
                 requestAnimationFrame(function () { requestAnimationFrame(applyBestBeforeFromStart); });
             });
 
-            $('#kernelJobCardModal').on('hidden.bs.modal', () => scope.clearJobCardForm());
+            $('#kernelJobCardModal').off('hidden.bs.modal').on('hidden.bs.modal', function () {
+                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.onKernelJobCardModalHidden) {
+                    _kernelProductionGrid.onKernelJobCardModalHidden();
+                }
+                scope.clearJobCardForm();
+                _dragReleaseReadySession = false;
+            });
             $('#kernelJobCardModal').off('hide.bs.modal').on('hide.bs.modal', function () { scope.flushAutoSave(); });
             scope.initHandlers();
         },
@@ -282,14 +290,23 @@ var _modal_kernel_job_card = (function () {
             });
         },
 
-        showJobCardModalForBatch: (batchId) => {
+        showJobCardModalForBatch: (batchId, options) => {
             const scope = _modal_kernel_job_card;
+            options = options || {};
+            _dragReleaseReadySession = !!options.dragReleaseReady;
             var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
             if (!batch) {
+                if (_dragReleaseReadySession && typeof _kernelProductionGrid !== 'undefined') {
+                    _kernelProductionGrid._jobCardDragPending = null;
+                    _kernelProductionGrid._jobCardDragApprovedSave = false;
+                    if (_kernelProductionGrid.currentView === 'kanban' && _kernelProductionGrid.renderKanban) _kernelProductionGrid.renderKanban();
+                }
+                _dragReleaseReadySession = false;
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
                 return;
             }
             scope.clearJobCardForm();
+            _dragReleaseReadySession = !!options.dragReleaseReady;
             $('#jobCardId').val('');
             $('#jobCardProductionBatchId').val(batchId);
             $('#jobCardBatchNumber').val(batch.batch_number || '');
@@ -395,10 +412,21 @@ var _modal_kernel_job_card = (function () {
                     scope.setJobCardField('jobCardSupplier', supplierIdFromBatchOrDetail);
                 }
             }).then(function () {
+                if (_dragReleaseReadySession) {
+                    $('#jobCardSkipProductionToReleaseReady').prop('checked', true);
+                }
                 var modalEl = document.getElementById('kernelJobCardModal');
                 if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
                 else $('#kernelJobCardModal').modal('show');
-            }).catch((e) => { console.error(e); });
+            }).catch(function (e) {
+                console.error(e);
+                if (_dragReleaseReadySession && typeof _kernelProductionGrid !== 'undefined') {
+                    _kernelProductionGrid._jobCardDragPending = null;
+                    _kernelProductionGrid._jobCardDragApprovedSave = false;
+                    if (_kernelProductionGrid.currentView === 'kanban' && _kernelProductionGrid.renderKanban) _kernelProductionGrid.renderKanban();
+                }
+                _dragReleaseReadySession = false;
+            });
         },
 
         clearJobCardForm: () => {
@@ -408,6 +436,7 @@ var _modal_kernel_job_card = (function () {
             var $form = $('#kernelJobCardForm');
             if ($form.length) $form[0].reset();
             $('#jobCardId').val('');
+            $('#jobCardSkipProductionToReleaseReady').prop('checked', false);
             $('#soundKernelTableBody tr:gt(0)').remove();
             $('#soundKernelTableBody tr:first input, #soundKernelTableBody tr:first select').val('');
             $('#butterGradeTableBody tr:gt(0)').remove();
@@ -527,6 +556,31 @@ var _modal_kernel_job_card = (function () {
 
         doSaveJobCard: (silent) => {
             const scope = _modal_kernel_job_card;
+            var finalize = !silent && $('#jobCardSkipProductionToReleaseReady').prop('checked');
+            if (finalize && _dragReleaseReadySession) {
+                scope.doSaveJobCardRun(silent, true);
+                return;
+            }
+            if (finalize && typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Mark release ready without production?',
+                    html: 'This saves the job card, approves it, sets production as finished, and adds a minimal QA record so the batch appears as <strong>Release ready</strong> in Kernel Production. Use only when you are not using the Production and End sample steps in this app.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Save & finalize',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: true
+                }).then(function (res) {
+                    if (!res.isConfirmed) return;
+                    scope.doSaveJobCardRun(silent, true);
+                });
+                return;
+            }
+            scope.doSaveJobCardRun(silent, false);
+        },
+
+        doSaveJobCardRun: (silent, finalizeWithoutProduction) => {
+            const scope = _modal_kernel_job_card;
             var kernelId = $('#jobCardProductionBatchId').val();
             if (!kernelId) {
                 if (!silent && typeof Swal !== 'undefined') Swal.fire('Error', 'Batch ID missing. Please reopen the job card from a batch row.', 'error');
@@ -546,13 +600,29 @@ var _modal_kernel_job_card = (function () {
             Object.keys(jobCardData).forEach(function (k) {
                 jobCardObj[k.replace(/^p_/, '')] = jobCardData[k];
             });
-            dataFunctions.upsertKernelJobCard(kernelId, jobCardObj, null, silent ? {} : { approved: true }).then(function (result) {
+            var upsertOpts = silent ? {} : { approved: true };
+            if (finalizeWithoutProduction === true) {
+                upsertOpts.finalizeWithoutProduction = true;
+            }
+            dataFunctions.upsertKernelJobCard(kernelId, jobCardObj, null, upsertOpts).then(function (result) {
                 var inner = (result && result.upsert_kernel_job_card) ? result.upsert_kernel_job_card : result;
                 if (inner && inner.success === false) throw new Error(inner.error || 'Failed to save');
+                if (!silent && _dragReleaseReadySession && typeof _kernelProductionGrid !== 'undefined') {
+                    _kernelProductionGrid._jobCardDragApprovedSave = true;
+                }
+                var serverFinalized = !!(inner && (inner.finalized_without_production === true || inner.FinalizedWithoutProduction === true));
                 if (silent) {
                     if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); setTimeout(function () { if ($status.length) $status.text(''); }, 2000); }
                 } else {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Jobcard approved', text: 'Job card saved. The jobcard button will show a tick and the batch can now be released to stock.', timer: 2000, showConfirmButton: false });
+                    var successTitle = serverFinalized ? 'Batch is release ready' : 'Jobcard approved';
+                    var successText = serverFinalized
+                        ? 'Production is marked finished and the batch appears in Release ready. You can release to stock when ready.'
+                        : 'Job card saved. The jobcard button will show a tick and the batch can now be released to stock when release criteria are met.';
+                    if (finalizeWithoutProduction && !serverFinalized && typeof Swal !== 'undefined') {
+                        successTitle = 'Job card saved';
+                        successText = 'The database may not support “skip production” yet. Apply migration 20260404150001_upsert_kernel_job_card_finalize_without_production.sql (see docs/MCP_RUN_JOB_CARD_FINALIZE_WITHOUT_PRODUCTION.md), then try again.';
+                    }
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: successTitle, text: successText, timer: 2600, showConfirmButton: false });
                     var modalEl = document.getElementById('kernelJobCardModal');
                     if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                     else $('#kernelJobCardModal').modal('hide');

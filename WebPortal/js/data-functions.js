@@ -1546,7 +1546,8 @@ var _dataFunctions = function () {
          * upsertKernelJobCard — save / replace job card JSONB.
          * Used by: modal_kernel_job_card only.
          * options.approved: set true when user clicks "Jobcard approved" (sets jobcard_approved in DB; Job Card tick and Release to stock then apply).
-         * If backend only has 2-param function (migration not run), retries without p_jobcard_approved so save still works.
+         * options.finalizeWithoutProduction: migration 20260404150001 — marks production finished, status qa, seeds minimal qa_data if empty (release-ready shortcut).
+         * If backend only has older signatures, retries without finalize then without approved.
          */
         upsertKernelJobCard: async function (kernelId, jobCardData, token = null, options = {}) {
             // Only send p_jobcard_approved when explicitly approving. Sending false would clear the flag on autosave.
@@ -1557,21 +1558,44 @@ var _dataFunctions = function () {
             if (options.approved === true) {
                 paramsWithApproved.p_jobcard_approved = true;
             }
+            if (options.finalizeWithoutProduction === true) {
+                paramsWithApproved.p_finalize_without_production = true;
+            }
+            const paramsApprovedNoFinalize = {
+                p_kernel_id: kernelId,
+                p_job_card_data: jobCardData
+            };
+            if (options.approved === true) {
+                paramsApprovedNoFinalize.p_jobcard_approved = true;
+            }
             const paramsTwoOnly = { p_kernel_id: kernelId, p_job_card_data: jobCardData };
             const clearCache = () => {
                 this.clearCachePattern('kernel_batch_detail_' + kernelId);
                 this.clearCachePattern('kernel_batches');
             };
-            try {
-                const result = await this.callFunction('upsert_kernel_job_card', paramsWithApproved, token, { useCache: false });
+            const tryCall = async (payload) => {
+                const result = await this.callFunction('upsert_kernel_job_card', payload, token, { useCache: false });
                 clearCache();
                 return result;
+            };
+            try {
+                return await tryCall(paramsWithApproved);
             } catch (e) {
                 const msg = (e && e.message) ? String(e.message) : '';
-                if ((/function.*not found|schema cache/i.test(msg) || /upsert_kernel_job_card/i.test(msg)) && options.approved === true) {
-                    const result = await this.callFunction('upsert_kernel_job_card', paramsTwoOnly, token, { useCache: false });
-                    clearCache();
-                    return result;
+                const rpcErr = /function.*not found|schema cache|could not find|unknown|argument|upsert_kernel_job_card/i.test(msg);
+                if (rpcErr && options.finalizeWithoutProduction === true) {
+                    try {
+                        return await tryCall(paramsApprovedNoFinalize);
+                    } catch (e2) {
+                        const msg2 = (e2 && e2.message) ? String(e2.message) : '';
+                        if ((/function.*not found|schema cache/i.test(msg2) || /upsert_kernel_job_card/i.test(msg2)) && options.approved === true) {
+                            return await tryCall(paramsTwoOnly);
+                        }
+                        throw e2;
+                    }
+                }
+                if (rpcErr && options.approved === true) {
+                    return await tryCall(paramsTwoOnly);
                 }
                 throw e;
             }

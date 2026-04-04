@@ -179,6 +179,10 @@ var _kernelProductionGrid = function () {
         currentView: 'kanban',
         /** When true, only show batches that are in Release ready and have an approved job card. */
         approvedJobcardsOnly: false,
+        /** Set when user drags Awaiting production → Release ready; cleared when job card modal closes. */
+        _jobCardDragPending: null,
+        /** True after successful Jobcard approved save in that drag session. */
+        _jobCardDragApprovedSave: false,
         /** When user clicks an empty silo, this is the silo number (1–12) for "Mark as full". */
         selectedEmptySiloNumber: null,
         productionCalendarMonth: null,
@@ -471,6 +475,15 @@ var _kernelProductionGrid = function () {
                 var toIdx = colOrder.indexOf(toKey);
                 if (toIdx <= fromIdx) return; // block backward moves
 
+                if (fromKey === 'awaiting_production' && toKey === 'release_ready') {
+                    scope._jobCardDragPending = { batchId: batchId };
+                    scope._jobCardDragApprovedSave = false;
+                    if (typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.showJobCardModalForBatch) {
+                        _modal_kernel_job_card.showJobCardModalForBatch(batchId, { dragReleaseReady: true });
+                    }
+                    return;
+                }
+
                 if (fromKey === 'awaiting_production' && toKey === 'in_production') {
                     if (typeof _modal_production_stages !== 'undefined' && _modal_production_stages.showProductionStagesModalForBatch) {
                         _modal_production_stages.showProductionStagesModalForBatch(batchId);
@@ -487,7 +500,23 @@ var _kernelProductionGrid = function () {
                         _modal_end_sample.show(batchId);
                     }
                 }
+            }, {
+                shouldRevert: function (itemId, fromKey, toKey) {
+                    if (fromKey === 'awaiting_production' && toKey === 'release_ready') return false;
+                    return true;
+                }
             });
+        },
+
+        /** Job card modal closed: snap kanban back if user did not complete Jobcard approved (drag-from-awaiting flow). */
+        onKernelJobCardModalHidden: () => {
+            const scope = _kernelProductionGrid;
+            if (!scope._jobCardDragPending) return;
+            if (!scope._jobCardDragApprovedSave && scope.currentView === 'kanban') {
+                scope.loadBatches(true);
+            }
+            scope._jobCardDragPending = null;
+            scope._jobCardDragApprovedSave = false;
         },
 
         filterBatches: () => {
