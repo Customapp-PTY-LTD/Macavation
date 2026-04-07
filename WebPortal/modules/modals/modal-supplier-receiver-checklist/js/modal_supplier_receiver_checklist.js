@@ -94,10 +94,9 @@ var _modal_supplier_receiver_checklist = (function () {
             var productType = ($row.find('[name="productType"]').val() || '').trim();
             var batch = ($row.find('[name="batch"]').val() || '').trim();
             var qtyRaw = ($row.find('[name="quantity"]').val() || '').trim();
-            var mfgRaw = ($row.find('[name="manufacturedDate"]').val() || '').trim();
             var bbRaw = ($row.find('[name="bestBeforeDate"]').val() || '').trim();
 
-            var hasAny = ref || productType || batch || qtyRaw || mfgRaw || bbRaw;
+            var hasAny = ref || productType || batch || qtyRaw || bbRaw;
             if (!hasAny) return;
 
             items.push({
@@ -105,7 +104,7 @@ var _modal_supplier_receiver_checklist = (function () {
                 product_type: productType || null,
                 batch_number: batch || null,
                 quantity_kg: qtyRaw ? parseFloat(qtyRaw) : null,
-                manufactured_date: mfgRaw ? (toISO(mfgRaw) || mfgRaw) : null,
+                manufactured_date: null,
                 best_before_date: bbRaw ? (toISO(bbRaw) || bbRaw) : null
             });
         });
@@ -279,7 +278,6 @@ var _modal_supplier_receiver_checklist = (function () {
                         '</select></td>' +
                         '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001" value="' + escapeHtml((editingBatch.batch_number || '').toString()) + '"></td>' +
                         '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required value="' + (editingBatch.quantity_kg != null ? escapeHtml(String(editingBatch.quantity_kg)) : '') + '"></td>' +
-                        '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy" value="' + (editingBatch.manufactured_date ? escapeHtml(fromISO(String(editingBatch.manufactured_date).split('T')[0])) : '') + '"></td>' +
                         '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="bestBeforeDate" placeholder="dd/mm/yyyy" value="' + (editingBatch.best_before_date ? escapeHtml(fromISO(String(editingBatch.best_before_date).split('T')[0])) : '') + '"></td>' +
                         '<td><button type="button" class="btn btn-sm btn-danger srcRemoveItemRow" title="Remove"><i class="fas fa-times"></i></button></td></tr>';
                     $('#srcItemsTableBody').append(row);
@@ -398,7 +396,6 @@ var _modal_supplier_receiver_checklist = (function () {
                 '</select></td>' +
                 '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001"></td>' +
                 '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required></td>' +
-                '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy"></td>' +
                 '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="bestBeforeDate" placeholder="dd/mm/yyyy"></td>' +
                 '<td><button type="button" class="btn btn-sm btn-danger srcRemoveItemRow" title="Remove"><i class="fas fa-times"></i></button></td>' +
                 '</tr>';
