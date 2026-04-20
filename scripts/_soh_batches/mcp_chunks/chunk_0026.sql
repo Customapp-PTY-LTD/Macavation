@@ -1,0 +1,90 @@
+INSERT INTO public.oil_stock_lots (
+  location_code, stock_category, status, counterparty_type, counterparty_name, counterparty_contact_id,
+  po_reference, batch_number, product_code, product_description, grade, ffa, coa_status, units, volume,
+  kilograms, delivery_date, manufacture_date, bb_date, notes, is_active, created_at, updated_at
+) VALUES (
+  '850', 'finished_good', 'on_hand', NULL, NULL, NULL,
+  'Unassigned', 'BO 26.03.42', NULL, NULL, 'Crude Cosmetic', 1.9, 'Not Sent', NULL, 1000,
+  920, NULL, NULL, NULL, 'SOH YE25 xlsx seed v1', true, now(), now()
+);
+INSERT INTO public.oil_stock_lots (
+  location_code, stock_category, status, counterparty_type, counterparty_name, counterparty_contact_id,
+  po_reference, batch_number, product_code, product_description, grade, ffa, coa_status, units, volume,
+  kilograms, delivery_date, manufacture_date, bb_date, notes, is_active, created_at, updated_at
+) VALUES (
+  '850', 'finished_good', 'on_hand', NULL, NULL, NULL,
+  'Unassigned', 'BO 26.03.43', NULL, NULL, 'Crude Cosmetic', 1.9, 'Not Sent', NULL, 1000,
+  920, NULL, NULL, NULL, 'SOH YE25 xlsx seed v1', true, now(), now()
+);
+INSERT INTO public.oil_stock_lots (
+  location_code, stock_category, status, counterparty_type, counterparty_name, counterparty_contact_id,
+  po_reference, batch_number, product_code, product_description, grade, ffa, coa_status, units, volume,
+  kilograms, delivery_date, manufacture_date, bb_date, notes, is_active, created_at, updated_at
+) VALUES (
+  '850', 'finished_good', 'on_hand', NULL, NULL, NULL,
+  'Unassigned', 'BO 26.03.44', NULL, NULL, 'Crude Cosmetic', NULL, 'Not Sent', NULL, 1000,
+  920, NULL, NULL, NULL, 'SOH YE25 xlsx seed v1', true, now(), now()
+);
+INSERT INTO public.oil_stock_lots (
+  location_code, stock_category, status, counterparty_type, counterparty_name, counterparty_contact_id,
+  po_reference, batch_number, product_code, product_description, grade, ffa, coa_status, units, volume,
+  kilograms, delivery_date, manufacture_date, bb_date, notes, is_active, created_at, updated_at
+) VALUES (
+  '850', 'finished_good', 'on_hand', NULL, NULL, NULL,
+  'Unassigned', 'BO 26.01.22', NULL, NULL, 'Crude Cosmetic', 3.2, 'Not Sent', NULL, 1000,
+  920, NULL, NULL, NULL, 'SOH YE25 xlsx seed v1', true, now(), now()
+);
+INSERT INTO public.oil_stock_lots (
+  location_code, stock_category, status, counterparty_type, counterparty_name, counterparty_contact_id,
+  po_reference, batch_number, product_code, product_description, grade, ffa, coa_status, units, volume,
+  kilograms, delivery_date, manufacture_date, bb_date, notes, is_active, created_at, updated_at
+) VALUES (
+  '850', 'finished_good', 'on_hand', NULL, NULL, NULL,
+  'Unassigned', 'BO 26.03.45', NULL, NULL, 'Crude Cosmetic', NULL, 'Not Sent', NULL, 1000,
+  920, NULL, NULL, NULL, 'SOH YE25 xlsx seed v1', true, now(), now()
+);
+INSERT INTO public.oil_stock_lots (
+  location_code, stock_category, status, counterparty_type, counterparty_name, counterparty_contact_id,
+  po_reference, batch_number, product_code, product_description, grade, ffa, coa_status, units, volume,
+  kilograms, delivery_date, manufacture_date, bb_date, notes, is_active, created_at, updated_at
+) VALUES (
+  '850', 'finished_good', 'on_hand', NULL, NULL, NULL,
+  'Unassigned', 'BO 26.03.46', NULL, NULL, 'Crude Cosmetic', NULL, 'Not Sent', NULL, 1000,
+  920, NULL, NULL, NULL, 'SOH YE25 xlsx seed v1', true, now(), now()
+);
+INSERT INTO public.oil_stock_lots (
+  location_code, stock_category, status, counterparty_type, counterparty_name, counterparty_contact_id,
+  po_reference, batch_number, product_code, product_description, grade, ffa, coa_status, units, volume,
+  kilograms, delivery_date, manufacture_date, bb_date, notes, is_active, created_at, updated_at
+) VALUES (
+  '850', 'sold', 'sold', 'customer', 'Gustav Heess', NULL,
+  '24E', 'BO 24.04.33', NULL, NULL, 'Crude Cosmetic', 0.76, 'Received', NULL, 1000,
+  920, NULL, '2024-04-29', '2026-04-29', 'SOH YE25 xlsx seed v1', true, now(), now()
+);
+INSERT INTO public.oil_stock_lots (
+  location_code, stock_category, status, counterparty_type, counterparty_name, counterparty_contact_id,
+  po_reference, batch_number, product_code, product_description, grade, ffa, coa_status, units, volume,
+  kilograms, delivery_date, manufacture_date, bb_date, notes, is_active, created_at, updated_at
+) VALUES (
+  '850', 'sold', 'sold', 'customer', 'Gustav Heess', NULL,
+  '24E', 'BO 24.05.01', NULL, NULL, 'Crude Cosmetic', 0.7, 'Received', NULL, 1000,
+  920, NULL, '2024-05-02', '2026-05-02', 'SOH YE25 xlsx seed v1', true, now(), now()
+);
+INSERT INTO public.oil_stock_lots (
+  location_code, stock_category, status, counterparty_type, counterparty_name, counterparty_contact_id,
+  po_reference, batch_number, product_code, product_description, grade, ffa, coa_status, units, volume,
+  kilograms, delivery_date, manufacture_date, bb_date, notes, is_active, created_at, updated_at
+) VALUES (
+  '850', 'sold', 'sold', 'customer', 'Gustav Heess', NULL,
+  '24E', 'BO 24.05.09', NULL, NULL, 'Crude Cosmetic', 0.8, 'Received', NULL, 1000,
+  920, NULL, '2024-05-06', '2026-05-06', 'SOH YE25 xlsx seed v1', true, now(), now()
+);
+INSERT INTO public.oil_stock_lots (
+  location_code, stock_category, status, counterparty_type, counterparty_name, counterparty_contact_id,
+  po_reference, batch_number, product_code, product_description, grade, ffa, coa_status, units, volume,
+  kilograms, delivery_date, manufacture_date, bb_date, notes, is_active, created_at, updated_at
+) VALUES (
+  '850', 'sold', 'sold', 'customer', 'Gustav Heess', NULL,
+  '24E', 'BO 24.05.11', NULL, NULL, 'Crude Cosmetic', 0.7, 'Received', NULL, 1000,
+  920, NULL, '2024-05-07', '2026-05-07', 'SOH YE25 xlsx seed v1', true, now(), now()
+);
