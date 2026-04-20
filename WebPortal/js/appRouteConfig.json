@@ -232,6 +232,15 @@
                 "css/kernel_production_grid.css"
             ]
         },
+        "kernel-production-forecast-grid": {
+            "description": "Kernel Production Forecast",
+            "path": "kernel-production",
+            "html": "html/kernel_production_forecast_grid.html",
+            "js": [
+                "js/kernel_production_forecast_grid.js"
+            ],
+            "css": []
+        },
         "kernel-job-card-modal": {
             "description": "Kernel Job Card Modal",
             "path": "modals/modal-kernel-job-card",

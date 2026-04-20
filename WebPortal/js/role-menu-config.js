@@ -24,6 +24,7 @@ var _roleMenuConfig = function () {
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
                     'document-management-grid',
@@ -39,6 +40,7 @@ var _roleMenuConfig = function () {
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
                     'document-management-grid'
@@ -52,6 +54,7 @@ var _roleMenuConfig = function () {
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
                     'document-management-grid'
@@ -62,6 +65,7 @@ var _roleMenuConfig = function () {
                 access: 'specific',
                 menus: [
                     'kernel-production-grid',
+                    'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
                     'document-management-grid'
@@ -73,6 +77,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'kernel-production-forecast-grid',
                     'kernel-dispatch-grid'
                 ]
             },
@@ -84,6 +89,7 @@ var _roleMenuConfig = function () {
                     'batch-journey',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
                     'document-management-grid'
@@ -124,6 +130,7 @@ var _roleMenuConfig = function () {
                     'dashboard',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'kernel-production-forecast-grid',
                     'oil-production-grid',
                     'supplier-intake-grid',
                     'my-day'
@@ -137,6 +144,7 @@ var _roleMenuConfig = function () {
                     'dashboard',
                     'quality-assurance-grid',
                     'stock-management-kernel',
+                    'kernel-production-forecast-grid',
                     'stock-management-oil',
                     'grower-intake-grid',
                     'my-day'
@@ -149,6 +157,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'dashboard',
                     'stock-management-kernel',
+                    'kernel-production-forecast-grid',
                     'stock-management-oil',
                     'quality-assurance-grid',
                     'my-day'
@@ -195,6 +204,7 @@ var _roleMenuConfig = function () {
                     'dashboard',
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'kernel-production-forecast-grid',
                     'quality-assurance-grid',
                     'my-day'
                 ]
@@ -206,6 +216,7 @@ var _roleMenuConfig = function () {
                 menus: [
                     'grower-intake-grid',
                     'kernel-production-grid',
+                    'kernel-production-forecast-grid',
                     'oil-production-grid',
                     'supplier-intake-grid'
                 ]
@@ -293,6 +304,13 @@ var _roleMenuConfig = function () {
                 route: 'kernel-production-grid',
                 icon: 'fas fa-cogs',
                 label: 'Kernel Production',
+                category: 'kernel',
+                parent: 'kernelCollapse'
+            },
+            'kernel-production-forecast-grid': {
+                route: 'kernel-production-forecast-grid',
+                icon: 'fas fa-clipboard-list',
+                label: 'Production Forecast',
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },

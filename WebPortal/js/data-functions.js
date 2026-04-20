@@ -1498,6 +1498,109 @@ var _dataFunctions = function () {
             return this.normalizeKernelBatchRows(rows);
         },
 
+        extractKernelProductionForecastRowsFromRaw: function (raw, depth) {
+            const d = depth == null ? 0 : depth;
+            if (d > 8 || raw == null) return [];
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === 'string') {
+                const s = raw.trim();
+                if (s === '' || s === 'null') return [];
+                try {
+                    return this.extractKernelProductionForecastRowsFromRaw(JSON.parse(s), d + 1);
+                } catch (e) {
+                    return [];
+                }
+            }
+            if (typeof raw !== 'object') return [];
+            const keys = [
+                'data', 'Data',
+                'get_kernel_production_forecasts', 'GetKernelProductionForecasts',
+                'result', 'Result',
+                'rows', 'Rows',
+                'records', 'Records',
+                'items', 'Items'
+            ];
+            for (let i = 0; i < keys.length; i++) {
+                const k = keys[i];
+                if (raw[k] == null) continue;
+                const got = this.extractKernelProductionForecastRowsFromRaw(raw[k], d + 1);
+                if (got.length > 0) return got;
+            }
+            if (raw.id != null && raw.style_code != null) return [raw];
+            return [];
+        },
+
+        normalizeKernelProductionForecastRow: function (r) {
+            if (!r || typeof r !== 'object') return r;
+            const o = Object.assign({}, r);
+            if (o.id == null && o.Id != null) o.id = o.Id;
+            if (o.customer_label == null && o.CustomerLabel != null) o.customer_label = o.CustomerLabel;
+            if (o.order_summary == null && o.OrderSummary != null) o.order_summary = o.OrderSummary;
+            if (o.style_code == null && o.StyleCode != null) o.style_code = o.StyleCode;
+            if (o.quantity_cartons == null && o.QuantityCartons != null) o.quantity_cartons = o.QuantityCartons;
+            if (o.status == null && o.Status != null) o.status = o.Status;
+            if (o.due_date == null && o.DueDate != null) o.due_date = o.DueDate;
+            if (o.notes == null && o.Notes != null) o.notes = o.Notes;
+            if (o.sort_index == null && o.SortIndex != null) o.sort_index = o.SortIndex;
+            if (o.created_at == null && o.CreatedAt != null) o.created_at = o.CreatedAt;
+            if (o.updated_at == null && o.UpdatedAt != null) o.updated_at = o.UpdatedAt;
+            if (o.quantity_cartons != null && typeof o.quantity_cartons !== 'number') {
+                const q = parseFloat(o.quantity_cartons);
+                o.quantity_cartons = isNaN(q) ? 0 : q;
+            }
+            return o;
+        },
+
+        normalizeKernelProductionForecastRows: function (rows) {
+            if (!Array.isArray(rows)) return [];
+            const scope = this;
+            return rows.map(function (row) {
+                return scope.normalizeKernelProductionForecastRow(row);
+            });
+        },
+
+        getKernelProductionForecasts: async function (token = null, forceRefresh = false) {
+            const raw = await this.callFunction('get_kernel_production_forecasts', {}, token, {
+                cacheKey: 'kernel_production_forecasts_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            return this.normalizeKernelProductionForecastRows(this.extractKernelProductionForecastRowsFromRaw(raw, 0));
+        },
+
+        parseUpsertKernelProductionForecastResult: function (raw) {
+            const rows = this.extractKernelProductionForecastRowsFromRaw(raw, 0);
+            if (rows.length > 0) return this.normalizeKernelProductionForecastRow(rows[0]);
+            if (raw && raw.data && Array.isArray(raw.data) && raw.data[0]) {
+                return this.normalizeKernelProductionForecastRow(raw.data[0]);
+            }
+            return null;
+        },
+
+        upsertKernelProductionForecast: async function (payload, token = null) {
+            payload = payload || {};
+            const params = {
+                p_id: payload.id != null && payload.id !== '' ? payload.id : null,
+                p_customer_label: payload.customer_label != null ? payload.customer_label : '',
+                p_order_summary: payload.order_summary != null ? payload.order_summary : '',
+                p_style_code: payload.style_code != null ? payload.style_code : '',
+                p_quantity_cartons: payload.quantity_cartons != null ? payload.quantity_cartons : 0,
+                p_status: payload.status != null ? payload.status : 'open',
+                p_due_date: payload.due_date != null && payload.due_date !== '' ? payload.due_date : null,
+                p_notes: payload.notes != null ? payload.notes : '',
+                p_sort_index: payload.sort_index != null ? payload.sort_index : null
+            };
+            const result = await this.callFunction('upsert_kernel_production_forecast', params, token, { useCache: false });
+            this.clearCachePattern('kernel_production_forecasts');
+            return this.parseUpsertKernelProductionForecastResult(result);
+        },
+
+        deleteKernelProductionForecast: async function (forecastId, token = null) {
+            await this.callFunction('delete_kernel_production_forecast', { p_id: forecastId }, token, { useCache: false });
+            this.clearCachePattern('kernel_production_forecasts');
+        },
+
         /**
          * getKernelBatchDetail — full kernel row for modals (stage arrays + job_card_data + qa_data).
          * Used by: all production/job-card/QA modals.

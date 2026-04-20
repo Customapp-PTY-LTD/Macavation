@@ -1,0 +1,116 @@
+<div class="module-content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="h2 mb-0">Kernel Production Forecast</h1>
+            <p class="text-muted small mb-0">Record what customers are asking for (style + cartons). Stock on hand is total released stock for that style from <strong>Stock (Kernel)</strong> (complete batches), shared across all lines.</p>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-outline-secondary me-2" id="kernelForecastRefreshBtn" title="Reload forecasts and stock">
+                <i class="fas fa-rotate me-1"></i>Refresh
+            </button>
+            <button type="button" class="btn btn-primary" id="kernelForecastAddBtn">
+                <i class="fas fa-plus me-1"></i>Add line
+            </button>
+        </div>
+    </div>
+
+    <div class="card mb-3" id="kernelForecastByStyleCard">
+        <div class="card-header">Open demand vs stock by style</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0" id="kernelForecastByStyleTable">
+                    <thead>
+                        <tr>
+                            <th>Style</th>
+                            <th class="text-end">Open forecast (ctns)</th>
+                            <th class="text-end">Stock on hand (ctns)</th>
+                            <th class="text-end">Gap (open − SOH)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kernelForecastByStyleBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Forecast lines</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm" id="kernelForecastLinesTable">
+                    <thead>
+                        <tr>
+                            <th>Customer / label</th>
+                            <th>Order summary</th>
+                            <th>Style</th>
+                            <th class="text-end">Forecast (ctns)</th>
+                            <th class="text-end">SOH this style (ctns)</th>
+                            <th>Due</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="kernelForecastLinesBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="kernelForecastEditModal" tabindex="-1" aria-labelledby="kernelForecastEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="kernelForecastEditModalLabel">Forecast line</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="kernelForecastEditId" value="">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="kernelForecastCustomer">Customer / label</label>
+                        <input type="text" class="form-control" id="kernelForecastCustomer" placeholder="e.g. Haji" maxlength="200">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="kernelForecastDue">Due date</label>
+                        <input type="date" class="form-control" id="kernelForecastDue">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="kernelForecastOrderSummary">Order summary</label>
+                        <input type="text" class="form-control" id="kernelForecastOrderSummary" placeholder="e.g. 100 cartons style 4L" maxlength="500">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="kernelForecastStyle">Style</label>
+                        <select class="form-select" id="kernelForecastStyle"></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="kernelForecastQty">Quantity (cartons)</label>
+                        <input type="number" class="form-control" id="kernelForecastQty" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="kernelForecastStatus">Status</label>
+                        <select class="form-select" id="kernelForecastStatus">
+                            <option value="open">Open</option>
+                            <option value="in_progress">In progress</option>
+                            <option value="fulfilled">Fulfilled</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="kernelForecastSort">Sort order</label>
+                        <input type="number" class="form-control" id="kernelForecastSort" step="1" placeholder="Optional">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="kernelForecastNotes">Notes</label>
+                        <textarea class="form-control" id="kernelForecastNotes" rows="2" maxlength="2000"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="kernelForecastSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>

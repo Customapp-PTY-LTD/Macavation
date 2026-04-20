@@ -420,6 +420,11 @@ var _appRouter = function () {
                         initializeKernelProductionGrid();
                     }
                 },
+                'kernel-production-forecast-grid': () => {
+                    if (typeof initializeKernelProductionForecastGrid === 'function') {
+                        initializeKernelProductionForecastGrid();
+                    }
+                },
                 'kernel-dispatch-grid': () => {
                     if (typeof _kernelDispatchGrid !== 'undefined' && _kernelDispatchGrid.init) _kernelDispatchGrid.init();
                 },
