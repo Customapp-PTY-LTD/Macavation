@@ -273,6 +273,7 @@ var _kernelProductionGrid = function () {
             });
             $(document).on('click', '.js-release-to-stock', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
                 const batchId = $(this).data('batch-id');
                 if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.releaseBatchToStock) {
                     _kernelProductionBatchActions.releaseBatchToStock(batchId);
@@ -287,13 +288,17 @@ var _kernelProductionGrid = function () {
             });
             $(document).on('click', '.js-release-to-stock-disabled', function (e) {
                 e.preventDefault();
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Release to stock',
-                        text: 'Complete Production, then complete End sample for this batch. Release to stock will become available when the batch is release-ready or completed.'
-                    });
-                }
+                e.stopPropagation();
+                if (typeof Swal === 'undefined') return;
+                var batchId = $(this).data('batch-id');
+                var batch = batchId && typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch
+                    ? _kernelProductionGrid.getBatch(batchId) : null;
+                var releaseReadyColumn = !!(batch && batch.production_finished_at && batch.has_qa);
+                var jobOk = batch && (batch.has_jobcard_approved === true || (batch.has_jobcard_approved !== false && !!batch.has_job_card));
+                var text = (releaseReadyColumn && !jobOk)
+                    ? 'This batch is release-ready, but the Job Card must be approved before you can release to stock.'
+                    : 'Complete Production, then complete End sample for this batch. Release to stock will become available when the batch is release-ready or completed.';
+                Swal.fire({ icon: 'info', title: 'Release to stock', text: text });
             });
             $(document).on('click', '.js-batch-history', function (e) {
                 e.preventDefault();
@@ -451,6 +456,16 @@ var _kernelProductionGrid = function () {
                     var displayStatus = getBatchDisplayStatus(batch);
                     var isJobCardApproved = batch.has_jobcard_approved === true || (batch.has_jobcard_approved !== false && !!batch.has_job_card);
                     var jcIcon = (displayStatus.filterValue === 'release_ready' && isJobCardApproved) ? '<i class="fas fa-check text-success me-1"></i>' : '';
+                    var isReleaseReadyState = batch.status === 'qa' || batch.status === 'complete' || (batch.production_finished_at && batch.has_qa);
+                    var canReleaseToStock = isReleaseReadyState && isJobCardApproved;
+                    var releaseToStockBtn = '';
+                    if (displayStatus.filterValue === 'release_ready') {
+                        if (canReleaseToStock) {
+                            releaseToStockBtn = '<button type="button" class="btn btn-sm btn-success js-release-to-stock" data-batch-id="' + batch.id + '" title="Release to stock"><i class="fas fa-warehouse"></i></button>';
+                        } else {
+                            releaseToStockBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-release-to-stock-disabled" data-batch-id="' + batch.id + '" title="Release to stock (requirements not met)"><i class="fas fa-warehouse"></i></button>';
+                        }
+                    }
                     return '<div class="kanban-card" data-batch-id="' + batch.id + '">' +
                         '<div class="kanban-card-title">' + KanbanHelper._esc(batch.batch_number || 'N/A') + '</div>' +
                         '<div class="kanban-card-meta">' +
@@ -464,6 +479,7 @@ var _kernelProductionGrid = function () {
                             '<button class="btn btn-sm btn-outline-secondary js-job-card-batch" data-batch-id="' + batch.id + '" title="Job Card">' + jcIcon + '<i class="fas fa-file-alt"></i></button>' +
                             '<button class="btn btn-sm btn-outline-secondary js-end-sample-batch" data-batch-id="' + batch.id + '" title="End Sample">' + qaIcon + '<i class="fas fa-flask"></i></button>' +
                             '<button class="btn btn-sm btn-outline-info js-batch-summary" data-batch-id="' + batch.id + '" title="Batch summary"><i class="fas fa-calculator"></i></button>' +
+                            releaseToStockBtn +
                         '</div></div>';
                 }
             );
