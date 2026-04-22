@@ -6,29 +6,123 @@ var _batchJourneyGrid = (function () {
         filteredBatches: []
     };
 
-    // Status order for "By Status" sort
-    var STATUS_ORDER = ['intake', 'receiving', 'production', 'qa', 'dispatch', 'complete'];
+    /**
+     * Pipeline order for "By Status" sort (earliest → latest in the journey).
+     * value strings must match getDisplayStatus().value for each row.
+     */
+    var STATUS_ORDER = [
+        'gi-receiving',
+        'gi-intake-received',
+        'gi-quality-pending',
+        'gi-quality-approved',
+        'awaiting-production',
+        'in-production',
+        'awaiting-test',
+        'release-ready',
+        'stock',
+        'complete'
+    ];
 
+    function sumRemainingKg(batch) {
+        var r = batch && batch.remaining_by_style;
+        if (!r || typeof r !== 'object') return 0;
+        var t = 0;
+        for (var k in r) {
+            if (Object.prototype.hasOwnProperty.call(r, k)) {
+                t += parseFloat(r[k]) || 0;
+            }
+        }
+        return t;
+    }
+
+    /** Same column keys as Grower Intake when status is legacy `intake`. */
+    function getGrowerIntakeColumnKey(batch) {
+        if (!batch) return 'receiving';
+        var st = (batch.status || '').toLowerCase();
+        if (['receiving', 'intake_received', 'quality_pending', 'quality_approved'].indexOf(st) >= 0) {
+            return st;
+        }
+        var checklistDone = !!batch.has_receiving_checklist;
+        var sampleDone = !!batch.has_ziplock_sample && !!batch.has_5kg_sample;
+        if (!checklistDone) return 'receiving';
+        if (!sampleDone) return 'intake_received';
+        return 'quality_approved';
+    }
+
+    function isGrowerIntakeStatus(batch) {
+        if (!batch) return false;
+        var st = (batch.status || '').toLowerCase();
+        if (st === 'intake') return true;
+        return ['receiving', 'intake_received', 'quality_pending', 'quality_approved'].indexOf(st) >= 0;
+    }
+
+    function hasProductionActivity(batch) {
+        return (parseInt(batch.production_day_count, 10) || 0) > 0 || !!batch.has_job_card;
+    }
+
+    /**
+     * Batch Journey statuses (labels + colours) aligned with Grower Intake + Kernel Production boards:
+     * Yellow — grower intake; purple — awaiting test; red — production module; blue — stock; green — no stock left.
+     */
     function getDisplayStatus(batch) {
         if (!batch || typeof batch !== 'object') {
-            return { value: 'intake', label: 'Intake' };
+            return { value: 'gi-receiving', label: 'Receiving', bucket: 'grower' };
         }
-        if (batch.status === 'complete') {
-            return { value: 'complete', label: 'Complete' };
+
+        var st = (batch.status || '').toLowerCase();
+        var remainingKg = sumRemainingKg(batch);
+
+        if (st === 'complete' || st === 'in_finished_stock') {
+            if (remainingKg <= 0.000001) {
+                return { value: 'complete', label: 'Complete', bucket: 'complete' };
+            }
+            return { value: 'stock', label: 'Stock', bucket: 'stock' };
         }
-        if (batch.status === 'dispatch' || !!batch.has_dispatch) {
-            return { value: 'dispatch', label: 'Dispatch' };
+
+        if (st === 'dispatch') {
+            if (remainingKg <= 0.000001) {
+                return { value: 'complete', label: 'Complete', bucket: 'complete' };
+            }
+            return { value: 'stock', label: 'Stock', bucket: 'stock' };
         }
-        if (!!batch.has_qa || !!batch.production_finished_at || batch.status === 'qa') {
-            return { value: 'qa', label: 'QA' };
+
+        if (isGrowerIntakeStatus(batch)) {
+            var col = getGrowerIntakeColumnKey(batch);
+            if (col === 'intake_received') {
+                return { value: 'gi-intake-received', label: 'Intake received', bucket: 'grower' };
+            }
+            if (col === 'quality_pending') {
+                return { value: 'gi-quality-pending', label: 'Quality pending', bucket: 'grower' };
+            }
+            if (col === 'quality_approved') {
+                return { value: 'gi-quality-approved', label: 'Quality approved', bucket: 'grower' };
+            }
+            return { value: 'gi-receiving', label: 'Receiving', bucket: 'grower' };
         }
-        if ((parseInt(batch.production_day_count, 10) || 0) > 0 || !!batch.has_job_card || batch.status === 'production') {
-            return { value: 'production', label: 'Production' };
+
+        var inProductionPipeline = ['production', 'qa', 'awaiting_production', 'in_production', 'awaiting_test', 'release_ready', 'pending_release'].indexOf(st) >= 0;
+        if (inProductionPipeline) {
+            if (batch.production_finished_at && !batch.has_qa) {
+                return { value: 'awaiting-test', label: 'Awaiting test', bucket: 'awaiting-test' };
+            }
+            if (batch.production_finished_at && batch.has_qa) {
+                return { value: 'release-ready', label: 'Release ready', bucket: 'production' };
+            }
+            if (hasProductionActivity(batch)) {
+                return { value: 'in-production', label: 'In production', bucket: 'production' };
+            }
+            return { value: 'awaiting-production', label: 'Awaiting production', bucket: 'production' };
         }
-        if (!!batch.has_receiving_checklist || !!batch.has_ziplock_sample || !!batch.has_5kg_sample || batch.status === 'receiving') {
-            return { value: 'receiving', label: 'Receiving' };
-        }
-        return { value: 'intake', label: 'Intake' };
+
+        return { value: 'gi-receiving', label: 'Receiving', bucket: 'grower' };
+    }
+
+    function statusFilterMatches(batch, filter) {
+        if (!filter) return true;
+        var d = getDisplayStatus(batch);
+        if (filter === 'grower-intake') return d.bucket === 'grower';
+        if (filter === 'production-module') return d.bucket === 'production' || d.bucket === 'awaiting-test';
+        return d.value === filter;
     }
 
     function getMoistureValue(batch) {
@@ -92,7 +186,11 @@ var _batchJourneyGrid = (function () {
                 break;
             case 'status':
                 sorted.sort(function (a, b) {
-                    return STATUS_ORDER.indexOf(getDisplayStatus(a).value) - STATUS_ORDER.indexOf(getDisplayStatus(b).value);
+                    function ord(x) {
+                        var i = STATUS_ORDER.indexOf(getDisplayStatus(x).value);
+                        return i >= 0 ? i : 999;
+                    }
+                    return ord(a) - ord(b);
                 });
                 break;
             case 'grower':
@@ -125,7 +223,7 @@ var _batchJourneyGrid = (function () {
         var sortBy = document.getElementById('bjSortBy').value;
 
         var filtered = scope.batches.filter(function (b) {
-            if (statusFilter && getDisplayStatus(b).value !== statusFilter) return false;
+            if (!statusFilterMatches(b, statusFilter)) return false;
             if (search) {
                 var haystack = ((b.batch_number || '') + ' ' + (b.grower_name || '')).toLowerCase();
                 if (haystack.indexOf(search) === -1) return false;

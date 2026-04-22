@@ -47,22 +47,55 @@
     margin-left: 0.35em;
 }
 
-/* Status badges */
+/* Status badges — colours match journey: grower intake (yellow), awaiting test (purple), production (red), stock (blue), complete (green) */
 .bj-status {
     display: inline-block;
     padding: 0.2em 0.6em;
     font-size: 0.75rem;
     font-weight: 600;
     border-radius: 0.25rem;
-    text-transform: capitalize;
+    text-transform: none;
 }
 
-.bj-status-intake     { background: #e8f4fd; color: #1565c0; }
-.bj-status-receiving  { background: #fff3e0; color: #e65100; }
-.bj-status-production { background: #fce4ec; color: #c62828; }
-.bj-status-qa         { background: #f3e5f5; color: #6a1b9a; }
-.bj-status-dispatch   { background: #e0f2f1; color: #00695c; }
-.bj-status-complete   { background: #e8f5e9; color: #2e7d32; }
+/* Grower intake (yellow) */
+.bj-status-gi-receiving,
+.bj-status-gi-intake-received,
+.bj-status-gi-quality-pending,
+.bj-status-gi-quality-approved {
+    background: #fff8e1;
+    color: #b8860b;
+    border: 1px solid rgba(184, 134, 11, 0.35);
+}
+
+/* Awaiting test / sample (purple) */
+.bj-status-awaiting-test {
+    background: #f3e5f5;
+    color: #6a1b9a;
+    border: 1px solid rgba(106, 27, 154, 0.25);
+}
+
+/* Production module (red) */
+.bj-status-awaiting-production,
+.bj-status-in-production,
+.bj-status-release-ready {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid rgba(198, 40, 40, 0.25);
+}
+
+/* In stock (blue) */
+.bj-status-stock {
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid rgba(21, 101, 192, 0.25);
+}
+
+/* No stock left (green) */
+.bj-status-complete {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid rgba(46, 125, 50, 0.25);
+}
 
 /* Sort/filter styling */
 #bjStatusFilter,
