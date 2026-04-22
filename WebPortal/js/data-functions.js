@@ -471,10 +471,10 @@ var _dataFunctions = function () {
             if (functionName.includes('role')) return 'roles';
             if (functionName.includes('contact')) return 'crm';
             if (functionName.includes('sample') || functionName.includes('grower')) return 'grower-intake';
+            if (functionName.includes('oil')) return 'oil-production';
             if (functionName.includes('production') || functionName.includes('batch')) return 'kernel-production';
             if (functionName.includes('quality') || functionName.includes('test')) return 'quality-assurance';
             if (functionName.includes('stock') || functionName.includes('item')) return 'stock-management';
-            if (functionName.includes('oil')) return 'oil-production';
             if (functionName.includes('sales') || functionName.includes('forecast')) return 'sales-forecasting';
             if (functionName.includes('financial') || functionName.includes('transaction')) return 'financial-management';
             if (functionName.includes('document')) return 'document-management';
@@ -1599,6 +1599,109 @@ var _dataFunctions = function () {
         deleteKernelProductionForecast: async function (forecastId, token = null) {
             await this.callFunction('delete_kernel_production_forecast', { p_id: forecastId }, token, { useCache: false });
             this.clearCachePattern('kernel_production_forecasts');
+        },
+
+        extractOilProductionForecastRowsFromRaw: function (raw, depth) {
+            const d = depth == null ? 0 : depth;
+            if (d > 8 || raw == null) return [];
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === 'string') {
+                const s = raw.trim();
+                if (s === '' || s === 'null') return [];
+                try {
+                    return this.extractOilProductionForecastRowsFromRaw(JSON.parse(s), d + 1);
+                } catch (e) {
+                    return [];
+                }
+            }
+            if (typeof raw !== 'object') return [];
+            const keys = [
+                'data', 'Data',
+                'get_oil_production_forecasts', 'GetOilProductionForecasts',
+                'result', 'Result',
+                'rows', 'Rows',
+                'records', 'Records',
+                'items', 'Items'
+            ];
+            for (let i = 0; i < keys.length; i++) {
+                const k = keys[i];
+                if (raw[k] == null) continue;
+                const got = this.extractOilProductionForecastRowsFromRaw(raw[k], d + 1);
+                if (got.length > 0) return got;
+            }
+            if (raw.id != null && raw.stream_code != null) return [raw];
+            return [];
+        },
+
+        normalizeOilProductionForecastRow: function (r) {
+            if (!r || typeof r !== 'object') return r;
+            const o = Object.assign({}, r);
+            if (o.id == null && o.Id != null) o.id = o.Id;
+            if (o.customer_label == null && o.CustomerLabel != null) o.customer_label = o.CustomerLabel;
+            if (o.order_summary == null && o.OrderSummary != null) o.order_summary = o.OrderSummary;
+            if (o.stream_code == null && o.StreamCode != null) o.stream_code = o.StreamCode;
+            if (o.quantity_kg == null && o.QuantityKg != null) o.quantity_kg = o.QuantityKg;
+            if (o.status == null && o.Status != null) o.status = o.Status;
+            if (o.due_date == null && o.DueDate != null) o.due_date = o.DueDate;
+            if (o.notes == null && o.Notes != null) o.notes = o.Notes;
+            if (o.sort_index == null && o.SortIndex != null) o.sort_index = o.SortIndex;
+            if (o.created_at == null && o.CreatedAt != null) o.created_at = o.CreatedAt;
+            if (o.updated_at == null && o.UpdatedAt != null) o.updated_at = o.UpdatedAt;
+            if (o.quantity_kg != null && typeof o.quantity_kg !== 'number') {
+                const q = parseFloat(o.quantity_kg);
+                o.quantity_kg = isNaN(q) ? 0 : q;
+            }
+            return o;
+        },
+
+        normalizeOilProductionForecastRows: function (rows) {
+            if (!Array.isArray(rows)) return [];
+            const scope = this;
+            return rows.map(function (row) {
+                return scope.normalizeOilProductionForecastRow(row);
+            });
+        },
+
+        getOilProductionForecasts: async function (token = null, forceRefresh = false) {
+            const raw = await this.callFunction('get_oil_production_forecasts', {}, token, {
+                cacheKey: 'oil_production_forecasts_list',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            return this.normalizeOilProductionForecastRows(this.extractOilProductionForecastRowsFromRaw(raw, 0));
+        },
+
+        parseUpsertOilProductionForecastResult: function (raw) {
+            const rows = this.extractOilProductionForecastRowsFromRaw(raw, 0);
+            if (rows.length > 0) return this.normalizeOilProductionForecastRow(rows[0]);
+            if (raw && raw.data && Array.isArray(raw.data) && raw.data[0]) {
+                return this.normalizeOilProductionForecastRow(raw.data[0]);
+            }
+            return null;
+        },
+
+        upsertOilProductionForecast: async function (payload, token = null) {
+            payload = payload || {};
+            const params = {
+                p_id: payload.id != null && payload.id !== '' ? payload.id : null,
+                p_customer_label: payload.customer_label != null ? payload.customer_label : '',
+                p_order_summary: payload.order_summary != null ? payload.order_summary : '',
+                p_stream_code: payload.stream_code != null ? payload.stream_code : '',
+                p_quantity_kg: payload.quantity_kg != null ? payload.quantity_kg : 0,
+                p_status: payload.status != null ? payload.status : 'open',
+                p_due_date: payload.due_date != null && payload.due_date !== '' ? payload.due_date : null,
+                p_notes: payload.notes != null ? payload.notes : '',
+                p_sort_index: payload.sort_index != null ? payload.sort_index : null
+            };
+            const result = await this.callFunction('upsert_oil_production_forecast', params, token, { useCache: false });
+            this.clearCachePattern('oil_production_forecasts');
+            return this.parseUpsertOilProductionForecastResult(result);
+        },
+
+        deleteOilProductionForecast: async function (forecastId, token = null) {
+            await this.callFunction('delete_oil_production_forecast', { p_id: forecastId }, token, { useCache: false });
+            this.clearCachePattern('oil_production_forecasts');
         },
 
         /**

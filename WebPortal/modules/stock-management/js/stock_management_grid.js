@@ -151,7 +151,7 @@ var _stockManagementGrid = function () {
             }
             Promise.all(loadPromises).then(function () {
                 // Move dispatch modals to body so they are outside container-fluid and not affected by aria-hidden
-                ['sendToDispatchModal', 'sendToDispatchOilModal'].forEach(function (id) {
+                ['sendToDispatchModal', 'sendToDispatchOilModal', 'oilBulkAddStockModal'].forEach(function (id) {
                     var el = document.getElementById(id);
                     if (el && el.parentNode && el.parentNode !== document.body) {
                         document.body.appendChild(el);
@@ -162,6 +162,7 @@ var _stockManagementGrid = function () {
                 if (typeof _modal_stock_send_to_dispatch !== 'undefined' && _modal_stock_send_to_dispatch.init) _modal_stock_send_to_dispatch.init();
                 if (typeof _modal_stock_oil_lot !== 'undefined' && _modal_stock_oil_lot.init) _modal_stock_oil_lot.init();
                 if (typeof _modal_stock_import_oil_lots !== 'undefined' && _modal_stock_import_oil_lots.init) _modal_stock_import_oil_lots.init();
+                if (typeof _modal_stock_oil_bulk_add !== 'undefined' && _modal_stock_oil_bulk_add.init) _modal_stock_oil_bulk_add.init();
                 return delay(100);
             }).then(function () {
                 var stream = document.getElementById('filterStockStream') ? document.getElementById('filterStockStream').value : 'kernel';
@@ -198,7 +199,7 @@ var _stockManagementGrid = function () {
             } else if (route === 'stock-management-oil') {
                 stream = 'oil';
                 if (titleEl) titleEl.textContent = 'Stock (Oil & Protein)';
-                if (subtitleEl) subtitleEl.textContent = 'Oil stock on top, protein powder below. Weekly in/out, send to dispatch when ready—export anytime.';
+                if (subtitleEl) subtitleEl.textContent = 'Oil stock on top, protein powder below. Use Add stock for many batches at once (like Supplier Intake adjust stock), Add lot for a single row, or import from Excel. Weekly in/out, send to dispatch when ready—export anytime.';
             }
             var streamSel = document.getElementById('filterStockStream');
             if (streamSel) {
@@ -262,6 +263,9 @@ var _stockManagementGrid = function () {
                 });
                 $('#refreshOilStockBtn').off('click').on('click', function () {
                     scope.loadOilLotsAndSummary(true);
+                });
+                $('#oilBulkAddStockBtn').off('click').on('click', function () {
+                    if (typeof _modal_stock_oil_bulk_add !== 'undefined' && _modal_stock_oil_bulk_add.show) _modal_stock_oil_bulk_add.show();
                 });
                 $('#osViewByStock, #osViewWeekly, #osViewOverview').off('click').on('click', function () {
                     var v = $(this).data('oil-view');

@@ -1,0 +1,120 @@
+<div class="module-content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="h2 mb-0">Oil &amp; Protein Production Forecast</h1>
+            <p class="text-muted small mb-0">Record what customers are asking for (stream + kg). Stock on hand is total <strong>on hand</strong> kg from <strong>Stock (Oil &amp; Protein)</strong> for that stream (food grade, cosmetic, or protein), shared across all lines.</p>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-outline-secondary me-2" id="oilForecastRefreshBtn" title="Reload forecasts and stock">
+                <i class="fas fa-rotate me-1"></i>Refresh
+            </button>
+            <button type="button" class="btn btn-primary" id="oilForecastAddBtn">
+                <i class="fas fa-plus me-1"></i>Add line
+            </button>
+        </div>
+    </div>
+
+    <div class="card mb-3" id="oilForecastByStreamCard">
+        <div class="card-header">Open demand vs stock by stream</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0" id="oilForecastByStreamTable">
+                    <thead>
+                        <tr>
+                            <th>Stream</th>
+                            <th class="text-end">Open forecast (kg)</th>
+                            <th class="text-end">Stock on hand (kg)</th>
+                            <th class="text-end">Gap (open − SOH)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="oilForecastByStreamBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Forecast lines</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm" id="oilForecastLinesTable">
+                    <thead>
+                        <tr>
+                            <th>Customer / label</th>
+                            <th>Order summary</th>
+                            <th>Stream</th>
+                            <th class="text-end">Forecast (kg)</th>
+                            <th class="text-end">SOH this stream (kg)</th>
+                            <th>Due</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="oilForecastLinesBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="oilForecastEditModal" tabindex="-1" aria-labelledby="oilForecastEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="oilForecastEditModalLabel">Forecast line</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="oilForecastEditId" value="">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="oilForecastCustomer">Customer / label</label>
+                        <input type="text" class="form-control" id="oilForecastCustomer" placeholder="e.g. Customer name" maxlength="200">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="oilForecastDue">Due date</label>
+                        <input type="date" class="form-control" id="oilForecastDue">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="oilForecastOrderSummary">Order summary</label>
+                        <input type="text" class="form-control" id="oilForecastOrderSummary" placeholder="e.g. 2000 kg food grade" maxlength="500">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="oilForecastStream">Stream</label>
+                        <select class="form-select" id="oilForecastStream">
+                            <option value="food_grade">Food grade oil</option>
+                            <option value="cosmetic">Cosmetic oil</option>
+                            <option value="protein">Protein powder</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="oilForecastQty">Quantity (kg)</label>
+                        <input type="number" class="form-control" id="oilForecastQty" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="oilForecastStatus">Status</label>
+                        <select class="form-select" id="oilForecastStatus">
+                            <option value="open">Open</option>
+                            <option value="in_progress">In progress</option>
+                            <option value="fulfilled">Fulfilled</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="oilForecastSort">Sort order</label>
+                        <input type="number" class="form-control" id="oilForecastSort" step="1" placeholder="Optional">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="oilForecastNotes">Notes</label>
+                        <textarea class="form-control" id="oilForecastNotes" rows="2" maxlength="2000"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="oilForecastSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>

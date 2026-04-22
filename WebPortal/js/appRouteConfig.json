@@ -415,6 +415,13 @@
             "js": ["js/modal_import_oil_lots.js"],
             "css": []
         },
+        "oil-bulk-add-stock-modal": {
+            "description": "Add many oil & protein stock lots (on hand)",
+            "path": "modals/modal-stock-oil-bulk-add",
+            "html": "html/modal_oil_bulk_add_stock.html",
+            "js": ["js/modal_oil_bulk_add_stock.js"],
+            "css": []
+        },
         "receiving-checklist-modal": {
             "description": "Receiving Checklist Modal",
             "path": "modals/modal-stock-receiving-checklist",
@@ -492,6 +499,15 @@
             "css": [
                 "css/oil_production_grid.css"
             ]
+        },
+        "oil-production-forecast-grid": {
+            "description": "Oil & Protein Production Forecast",
+            "path": "oil-production",
+            "html": "html/oil_production_forecast_grid.html",
+            "js": [
+                "js/oil_production_forecast_grid.js"
+            ],
+            "css": []
         },
         "oil-production-sheet-modal": {
             "description": "Oil Production Sheet modal (add/edit)",

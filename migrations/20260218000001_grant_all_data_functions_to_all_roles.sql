@@ -35,6 +35,7 @@ DECLARE
         'get_sample_submissions', 'get_quality_tests', 'get_quality_test_by_id',
         'create_quality_test_simple', 'update_quality_test_simple',
         'get_stock_items', 'get_oil_stock_lots', 'get_oil_stock_summary',
+        'get_oil_production_forecasts', 'upsert_oil_production_forecast', 'delete_oil_production_forecast',
         'create_oil_stock_lot_simple', 'update_oil_stock_lot_simple', 'deactivate_oil_stock_lot',
         'get_executive_kpis', 'get_sales_forecasts', 'get_oil_production_sheets', 'get_oil_production_weekly_summary',
         'create_kernel_job_card', 'create_kernel_production_day', 'get_kernel_production_days', 'get_kernel_production_days_list',

@@ -464,6 +464,9 @@ var _appRouter = function () {
                 'import-oil-lots-modal': () => {
                     if (typeof _modal_stock_import_oil_lots !== 'undefined' && _modal_stock_import_oil_lots.init) _modal_stock_import_oil_lots.init();
                 },
+                'oil-bulk-add-stock-modal': () => {
+                    if (typeof _modal_stock_oil_bulk_add !== 'undefined' && _modal_stock_oil_bulk_add.init) _modal_stock_oil_bulk_add.init();
+                },
                 'receiving-checklist-modal': () => {
                     if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.init) _modal_stock_receiving_checklist.init();
                 },
@@ -495,6 +498,11 @@ var _appRouter = function () {
                 'oil-production-grid': () => {
                     if (typeof initializeOilProductionGrid === 'function') {
                         initializeOilProductionGrid();
+                    }
+                },
+                'oil-production-forecast-grid': () => {
+                    if (typeof initializeOilProductionForecastGrid === 'function') {
+                        initializeOilProductionForecastGrid();
                     }
                 },
                 'oil-dispatch-grid': () => {

@@ -132,6 +132,7 @@ var _roleMenuConfig = function () {
                     'kernel-production-grid',
                     'kernel-production-forecast-grid',
                     'oil-production-grid',
+                    'oil-production-forecast-grid',
                     'supplier-intake-grid',
                     'my-day'
                 ]
@@ -146,6 +147,7 @@ var _roleMenuConfig = function () {
                     'stock-management-kernel',
                     'kernel-production-forecast-grid',
                     'stock-management-oil',
+                    'oil-production-forecast-grid',
                     'grower-intake-grid',
                     'my-day'
                 ]
@@ -159,6 +161,7 @@ var _roleMenuConfig = function () {
                     'stock-management-kernel',
                     'kernel-production-forecast-grid',
                     'stock-management-oil',
+                    'oil-production-forecast-grid',
                     'quality-assurance-grid',
                     'my-day'
                 ]
@@ -218,6 +221,7 @@ var _roleMenuConfig = function () {
                     'kernel-production-grid',
                     'kernel-production-forecast-grid',
                     'oil-production-grid',
+                    'oil-production-forecast-grid',
                     'supplier-intake-grid'
                 ]
             }
@@ -327,6 +331,13 @@ var _roleMenuConfig = function () {
                 label: 'Kernel Dispatch',
                 category: 'kernel',
                 parent: 'kernelCollapse'
+            },
+            'oil-production-forecast-grid': {
+                route: 'oil-production-forecast-grid',
+                icon: 'fas fa-clipboard-list',
+                label: 'Production Forecast',
+                category: 'oil',
+                parent: 'oilCollapse'
             },
             'supplier-intake-grid': {
                 route: 'supplier-intake-grid',

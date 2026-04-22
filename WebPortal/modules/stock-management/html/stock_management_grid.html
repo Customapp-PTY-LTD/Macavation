@@ -10,7 +10,7 @@
             </button>
             </div>
         </div>
-        <p class="text-muted mb-0 mt-2 small" id="stockManagementSubtitle">Search and filter your stock; track kernel batches by style (totals across the top, yield per style from Production Job Card), select a batch and send to dispatch; or add and import oil lots from Excel (Days Remaining from BB Date)—then export when you're ready.</p>
+        <p class="text-muted mb-0 mt-2 small" id="stockManagementSubtitle">Search and filter your stock; track kernel batches by style (totals across the top, yield per style from Production Job Card), select a batch and send to dispatch; for oil &amp; protein use <strong>Add stock</strong> for many batches at once, <strong>Add lot</strong> for one row, or import from Excel—then export when you're ready.</p>
     </div>
 
     <input type="hidden" id="filterStockStream" value="kernel">
@@ -245,6 +245,9 @@
         <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Oil &amp; protein stock</h5>
             <div class="btn-toolbar flex-wrap gap-1">
+                <button type="button" class="btn btn-primary btn-sm" id="oilBulkAddStockBtn" title="Add many on-hand lots at once (batch # and kg per row)">
+                    <i class="fas fa-layer-group me-1"></i>Add stock
+                </button>
                 <button type="button" class="btn btn-success btn-sm" id="sendToDispatchOilBtn" title="Create an Oil &amp; Protein dispatch order">
                     <i class="fas fa-truck me-1"></i>Send to Dispatch
                 </button>
@@ -254,7 +257,7 @@
                 <div class="btn-group">
                     <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">More</button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#" id="addOilLotBtn"><i class="fas fa-plus-circle me-2"></i>Add lot</a></li>
+                        <li><a class="dropdown-item" href="#" id="addOilLotBtn"><i class="fas fa-plus-circle me-2"></i>Add lot (single)</a></li>
                         <li><a class="dropdown-item" href="#" id="importOilLotsBtn"><i class="fas fa-file-excel me-2"></i>Import from Excel</a></li>
                     </ul>
                 </div>
@@ -379,6 +382,9 @@
 
 <!-- Import Oil Lots Modal (content loaded by app router) -->
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="importOilLotsModal" role="dialog" route-name="import-oil-lots-modal" tabindex="-1" aria-labelledby="importOilLotsModalLabel" aria-hidden="true"></div>
+
+<!-- Bulk add oil & protein stock (content loaded by app router) -->
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="oilBulkAddStockModal" role="dialog" route-name="oil-bulk-add-stock-modal" tabindex="-1" aria-labelledby="oilBulkAddStockModalLabel" aria-hidden="true"></div>
 
 <!-- Raw Material Issued Modal (content loaded by app router) -->
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="rawMaterialIssuedModal" role="dialog" route-name="raw-material-issued-modal" tabindex="-1" aria-labelledby="rawMaterialIssuedModalLabel" aria-hidden="true"></div>
