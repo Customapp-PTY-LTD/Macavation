@@ -3478,6 +3478,20 @@ var _dataFunctions = function () {
             return result;
         },
 
+        /** Update buyer, delivery/best-before dates, and line cartons (not allowed after dispatched). */
+        updateKernelDispatchOrder: async function (payload, token = null) {
+            const params = {
+                p_order_id: payload.order_id || null,
+                p_buyer_name: payload.buyer_name != null ? payload.buyer_name : null,
+                p_delivery_date: payload.delivery_date || null,
+                p_best_before_date: payload.best_before_date != null ? payload.best_before_date : null,
+                p_lines: Array.isArray(payload.lines) ? payload.lines : []
+            };
+            const result = await this.callFunction('update_kernel_dispatch_order', params, token, { useCache: false });
+            this.clearCachePattern('kernel_dispatch_orders_list');
+            return result;
+        },
+
         getKernelDispatchOrders: async function (token = null, forceRefresh = false) {
             const raw = await this.callFunction('get_kernel_dispatch_orders', { p_limit: 100, p_offset: 0 }, token, {
                 cacheKey: 'kernel_dispatch_orders_list',
@@ -3495,8 +3509,15 @@ var _dataFunctions = function () {
             const raw = await this.callFunction('get_kernel_dispatch_order', { p_order_id: orderId }, token, { useCache: false });
             if (raw && raw.success !== false && raw.order) {
                 const order = raw.order;
-                // lines is now a JSONB column on the order row (not a separate array)
-                return { order: order, lines: Array.isArray(order.lines) ? order.lines : [] };
+                let lines = order.lines;
+                if (typeof lines === 'string') {
+                    try {
+                        lines = JSON.parse(lines);
+                    } catch (e) {
+                        lines = [];
+                    }
+                }
+                return { order: order, lines: Array.isArray(lines) ? lines : [] };
             }
             return null;
         },

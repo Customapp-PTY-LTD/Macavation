@@ -46,6 +46,12 @@ var _kernelDispatchGrid = function () {
                         _modal_kernel_dispatch_form.show(id);
                     }
                 });
+                $(document).on('click', '.js-edit-dispatch-order', function () {
+                    var id = $(this).data('order-id');
+                    if (id && typeof _modal_kernel_dispatch_edit !== 'undefined' && _modal_kernel_dispatch_edit.show) {
+                        _modal_kernel_dispatch_edit.show(id);
+                    }
+                });
             }
             var loadPromises = [];
             $('.modal[route-name]').each(function (index, el) {
@@ -58,10 +64,12 @@ var _kernelDispatchGrid = function () {
             Promise.all(loadPromises).then(function () {
                 if (typeof _modal_kernel_dispatch !== 'undefined' && _modal_kernel_dispatch.init) _modal_kernel_dispatch.init();
                 if (typeof _modal_kernel_dispatch_form !== 'undefined' && _modal_kernel_dispatch_form.init) _modal_kernel_dispatch_form.init();
+                if (typeof _modal_kernel_dispatch_edit !== 'undefined' && _modal_kernel_dispatch_edit.init) _modal_kernel_dispatch_edit.init();
             }).catch(function (err) {
                 console.error('[Kernel Dispatch] Error loading modal:', err);
                 if (typeof _modal_kernel_dispatch !== 'undefined' && _modal_kernel_dispatch.init) _modal_kernel_dispatch.init();
                 if (typeof _modal_kernel_dispatch_form !== 'undefined' && _modal_kernel_dispatch_form.init) _modal_kernel_dispatch_form.init();
+                if (typeof _modal_kernel_dispatch_edit !== 'undefined' && _modal_kernel_dispatch_edit.init) _modal_kernel_dispatch_edit.init();
             });
             await scope.loadOrders();
         },
@@ -105,8 +113,9 @@ var _kernelDispatchGrid = function () {
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = KanbanHelper.statusBadge(o.status || 'confirmed', 'first');
                     var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order me-1" data-order-id="' + (o.id || '') + '"><i class="fas fa-box me-1"></i>View basket</button>';
+                    var editBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatch-order me-1" data-order-id="' + (o.id || '') + '">Edit</button>';
                     var dispatchBtn = '<button type="button" class="btn btn-sm btn-success js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Dispatch</button>';
-                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + dispatchBtn + '</td></tr>');
+                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="text-nowrap">' + statusBadge + ' ' + viewBtn + editBtn + dispatchBtn + '</td></tr>');
                 });
             }
 
@@ -171,6 +180,7 @@ var _kernelDispatchGrid = function () {
                 html += '<div class="kanban-card-actions">';
                 html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-box me-1"></i>View</button>';
                 if (!isDispatched) {
+                    html += '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatch-order me-1" data-order-id="' + (o.id || '') + '">Edit</button>';
                     html += '<button type="button" class="btn btn-sm btn-success js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Dispatch</button>';
                 }
                 html += '</div>';
