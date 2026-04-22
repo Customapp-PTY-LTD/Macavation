@@ -140,9 +140,8 @@
                 </div>
 
                 <div class="card mb-0">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="card-header">
                         <h6 class="mb-0">Bags (these will become batches)</h6>
-                        <button type="button" class="btn btn-sm btn-primary" id="srcAddItemRow"><i class="fas fa-plus"></i> Add bag</button>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -178,7 +177,10 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="text-muted small">All bags in this checklist are grouped under the same supplier and delivery note, but each batch can be edited individually later.</div>
+                        <div class="d-flex justify-content-end mt-2">
+                            <button type="button" class="btn btn-sm btn-primary" id="srcAddItemRow"><i class="fas fa-plus"></i> Add bag</button>
+                        </div>
+                        <div class="text-muted small mt-2">All bags in this checklist are grouped under the same supplier and delivery note, but each batch can be edited individually later.</div>
                     </div>
                 </div>
             </form>
