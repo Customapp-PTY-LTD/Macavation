@@ -22,7 +22,7 @@ DECLARE
         'get_dashboard_stats', 'get_dashboard_alerts', 'get_dashboard_kernel_stats', 'get_production_trends_daily', 'get_daily_minute_tests', 'get_recent_activity',
         'get_contacts', 'get_contact_by_id', 'create_contact_simple', 'update_contact_simple', 'deactivate_contact',
         'get_production_batches', 'create_production_batch_simple', 'update_production_batch', 'update_production_batch_actual_weight',
-        'get_supplier_intake_batches', 'create_supplier_intake_batch', 'update_supplier_intake_batch',
+        'get_supplier_intake_batches', 'create_supplier_intake_batch', 'update_supplier_intake_batch', 'deactivate_supplier_intake_oil_batch',
         -- Batches + new oil schema (migrations 20260225–20260226)
         'upsert_batch', 'upsert_oil_batch', 'get_oil_batches', 'complete_oil_batch',
         'get_shift_list', 'upsert_shift',

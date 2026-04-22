@@ -1977,8 +1977,35 @@ var _dataFunctions = function () {
             else if (raw && typeof raw === 'object' && raw[Symbol.iterator]) rows = Array.from(raw);
 
             function mapOilRowToGrid(o) {
-                var intake = (o && o.intake_data) || {};
+                var intakeRaw = o && o.intake_data;
+                var intake = {};
+                if (intakeRaw != null) {
+                    if (typeof intakeRaw === 'string') {
+                        var s = intakeRaw.trim();
+                        if (s && s !== 'null') {
+                            try {
+                                intake = JSON.parse(s);
+                            } catch (e) {
+                                intake = {};
+                            }
+                        }
+                    } else if (typeof intakeRaw === 'object') {
+                        intake = intakeRaw;
+                    }
+                }
+                if (!intake || typeof intake !== 'object') intake = {};
                 var vc = (intake.vehicle_checks && typeof intake.vehicle_checks === 'object') ? intake.vehicle_checks : {};
+                var adjFfa = intake.adjust_stock_ffa;
+                if (adjFfa != null && adjFfa !== '' && typeof adjFfa !== 'number') {
+                    var p = parseFloat(adjFfa);
+                    adjFfa = isNaN(p) ? null : p;
+                }
+                var offFfa = intake.official_ffa != null ? intake.official_ffa : (intake.ffa != null ? intake.ffa : null);
+                if (offFfa != null && offFfa !== '' && typeof offFfa !== 'number') {
+                    var po = parseFloat(offFfa);
+                    offFfa = isNaN(po) ? null : po;
+                }
+                var displayOfficialFfa = offFfa != null ? offFfa : (adjFfa != null ? adjFfa : null);
                 return {
                     id: o.id,
                     batch_number: o.batch_id,
@@ -2001,7 +2028,8 @@ var _dataFunctions = function () {
                     pallets_condition: vc.pallets_condition != null ? vc.pallets_condition : intake.pallets_condition,
                     raw_materials_condition: vc.raw_materials_condition != null ? vc.raw_materials_condition : intake.raw_materials_condition,
                     receiving_comments: intake.receiving_comments,
-                    official_ffa: intake.official_ffa != null ? intake.official_ffa : (intake.ffa != null ? intake.ffa : null),
+                    official_ffa: displayOfficialFfa,
+                    adjust_stock_ffa: adjFfa != null ? adjFfa : null,
                     supplier_intake_official_ffa_at: intake.supplier_intake_official_ffa_at || null,
                     created_by_name: o.created_by_name,
                     updated_by_name: o.updated_by_name
@@ -2173,6 +2201,17 @@ var _dataFunctions = function () {
                 },
                 delivery_group_id: data.delivery_group_id || null
             };
+            if (data.adjust_stock_ffa != null && String(data.adjust_stock_ffa).trim() !== '') {
+                var adjF = parseFloat(data.adjust_stock_ffa);
+                if (!isNaN(adjF)) intakeData.adjust_stock_ffa = adjF;
+            }
+            if (data.from_adjust_stock === true) {
+                intakeData.from_adjust_stock = true;
+                if (intakeData.adjust_stock_ffa != null && !isNaN(intakeData.adjust_stock_ffa)) {
+                    intakeData.official_ffa = intakeData.adjust_stock_ffa;
+                    intakeData.supplier_intake_official_ffa_at = new Date().toISOString();
+                }
+            }
             var payload = {
                 p_oil_id: null,
                 p_batch_id: bn,
@@ -2244,6 +2283,21 @@ var _dataFunctions = function () {
             this.clearCachePattern('supplier_intake');
             this.clearCachePattern('oil_batches');
             return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /**
+         * Remove a supplier intake batch from lists (soft: oil.is_active = false). Only awaiting_test / release_ready / legacy intake.
+         */
+        deactivateSupplierIntakeOilBatch: async function (oilId, token = null) {
+            if (!oilId) {
+                return { success: false, error: 'Batch id is required' };
+            }
+            var result = await this.callFunction('deactivate_supplier_intake_oil_batch', { p_oil_id: oilId }, token, { useCache: false });
+            this.clearCachePattern('supplier_intake');
+            this.clearCachePattern('supplier_intake_weekly_oil_rows');
+            this.clearCachePattern('oil_batches');
+            var resolved = result && (result.data !== undefined ? result.data : result);
+            return resolved;
         },
 
         // Quality Assurance Functions (cached for 1 minute)

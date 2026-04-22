@@ -5,6 +5,9 @@
             <h1 class="h2 mb-0">Supplier Intake Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
                 <a href="help/index.html#supplier-intake-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+                <button type="button" class="btn btn-outline-primary" id="supplierAdjustStockBtn" title="Add bags without the receiving checklist, or edit an existing batch">
+                    <i class="fas fa-sliders me-1"></i>Adjust stock
+                </button>
             <button type="button" class="btn btn-primary" id="supplierReceiverChecklistBtn">
                     <i class="fas fa-clipboard-check me-1"></i>Receiver checklist
                 </button>
@@ -13,18 +16,18 @@
                 </button>
             </div>
         </div>
-        <p class="text-muted mb-0 mt-2 small">Create batches via the Receiver checklist, then complete sample tests before releasing to Oil Production.</p>
+        <p class="text-muted mb-0 mt-2 small">Create batches via the Receiver checklist, or use <strong>Adjust stock</strong> for quick multi-bag entry (supplier name and batch numbers required; checklist not required). Then complete sample tests before releasing to Oil Production.</p>
     </div>
 
     <!-- Search and Filters -->
     <div class="card mb-3">
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3 col-lg-4">
                     <label for="searchSupplierIntakeInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchSupplierIntakeInput" placeholder="Search by batch #, supplier, delivery note...">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 col-lg-2">
                     <label for="filterSupplierIntakeStatus" class="form-label">Status</label>
                     <select class="form-select" id="filterSupplierIntakeStatus">
                         <option value="">All Statuses</option>
@@ -37,7 +40,7 @@
                         <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
-                <div class="col-md-3 d-flex justify-content-end align-items-end">
+                <div class="col-12 col-md-4 col-lg-4 mt-2 mt-md-0 d-flex justify-content-md-end align-items-end">
                     <div class="view-toggle">
                         <button class="view-toggle-btn active" data-view="kanban" id="siViewKanban">
                             <i class="fas fa-columns me-1"></i>Board
@@ -172,4 +175,5 @@
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="supplierOilBatchModal" role="dialog" route-name="supplier-oil-batch-modal" tabindex="-1" aria-labelledby="supplierOilBatchModalLabel" aria-hidden="true"></div>
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="receivingChecklistModal" role="dialog" route-name="receiving-checklist-modal" tabindex="-1" aria-labelledby="receivingChecklistModalLabel" aria-hidden="true"></div>
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="supplierReceiverChecklistModal" role="dialog" route-name="supplier-receiver-checklist-modal" tabindex="-1" aria-labelledby="supplierReceiverChecklistModalLabel" aria-hidden="true"></div>
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="supplierIntakeAdjustStockModal" role="dialog" route-name="supplier-intake-adjust-stock-modal" tabindex="-1" aria-labelledby="supplierIntakeAdjustStockModalLabel" aria-hidden="true"></div>
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="qualityTestModal" role="dialog" route-name="quality-test-modal" tabindex="-1" aria-labelledby="qualityTestModalLabel" aria-hidden="true"></div>

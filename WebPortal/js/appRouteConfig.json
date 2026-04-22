@@ -220,6 +220,13 @@
             "js": ["js/modal_supplier_receiver_checklist.js"],
             "css": []
         },
+        "supplier-intake-adjust-stock-modal": {
+            "description": "Supplier Intake - Adjust stock (quick bags, no checklist)",
+            "path": "modals/modal-supplier-intake-adjust-stock",
+            "html": "html/modal_supplier_intake_adjust_stock.html",
+            "js": ["js/modal_supplier_intake_adjust_stock.js"],
+            "css": []
+        },
         "kernel-production-grid": {
             "description": "Kernel Production Workflow",
             "path": "kernel-production",

@@ -470,6 +470,11 @@ var _appRouter = function () {
                 'supplier-receiver-checklist-modal': () => {
                     if (typeof _modal_supplier_receiver_checklist !== 'undefined' && _modal_supplier_receiver_checklist.init) _modal_supplier_receiver_checklist.init();
                 },
+                'supplier-intake-adjust-stock-modal': () => {
+                    if (typeof initializeSupplierIntakeAdjustStockModal === 'function') {
+                        initializeSupplierIntakeAdjustStockModal();
+                    }
+                },
                 'raw-material-issued-modal': () => {
                     if (typeof _modal_stock_raw_material_issued !== 'undefined' && _modal_stock_raw_material_issued.init) _modal_stock_raw_material_issued.init();
                 },

@@ -124,18 +124,24 @@ var _supplierIntakeGrid = function () {
                 if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.init) _modalSupplierOilBatch.init();
                 if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.init) _modal_stock_receiving_checklist.init();
                 if (typeof _modal_supplier_receiver_checklist !== 'undefined' && _modal_supplier_receiver_checklist.init) _modal_supplier_receiver_checklist.init();
+                if (typeof _modal_supplier_intake_adjust_stock !== 'undefined' && _modal_supplier_intake_adjust_stock.init) _modal_supplier_intake_adjust_stock.init();
                 if (typeof _modal_quality_test !== 'undefined' && _modal_quality_test.init) _modal_quality_test.init();
             }).catch((err) => {
                 console.error('[Supplier Intake] Error loading modals:', err);
                 if (typeof _modalSupplierOilBatch !== 'undefined' && _modalSupplierOilBatch.init) _modalSupplierOilBatch.init();
                 if (typeof _modal_stock_receiving_checklist !== 'undefined' && _modal_stock_receiving_checklist.init) _modal_stock_receiving_checklist.init();
                 if (typeof _modal_supplier_receiver_checklist !== 'undefined' && _modal_supplier_receiver_checklist.init) _modal_supplier_receiver_checklist.init();
+                if (typeof _modal_supplier_intake_adjust_stock !== 'undefined' && _modal_supplier_intake_adjust_stock.init) _modal_supplier_intake_adjust_stock.init();
                 if (typeof _modal_quality_test !== 'undefined' && _modal_quality_test.init) _modal_quality_test.init();
             });
         },
 
         bindEvents: () => {
             const scope = _supplierIntakeGrid;
+            $('#supplierAdjustStockBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.openAdjustStockChoice();
+            });
             $('#supplierReceiverChecklistBtn').off('click').on('click', function (e) {
                 e.preventDefault();
                 if (typeof _modal_supplier_receiver_checklist !== 'undefined' && _modal_supplier_receiver_checklist.show) {
@@ -213,6 +219,13 @@ var _supplierIntakeGrid = function () {
                     Swal.fire('Info', batch ? 'Edit modal not loaded. Please refresh the page.' : 'Batch not found.', 'info');
                 }
             });
+            $(document).on('click', '#supplierIntakeBatchesTableBody .js-supplier-intake-delete, #siKanbanBoard .js-supplier-intake-delete', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var batchId = $(this).data('batch-id');
+                if (!batchId) return;
+                scope.deleteSupplierIntakeBatch(String(batchId));
+            });
             $(document).on('click', '#supplierIntakeBatchesTableBody .js-supplier-intake-release-oil', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -261,6 +274,79 @@ var _supplierIntakeGrid = function () {
                 if ($menu && $menu.length) {
                     $menu.removeClass('supplier-intake-actions-menu').appendTo($dropdown);
                     $dropdown.removeData('si-menu');
+                }
+            });
+        },
+
+        openAdjustStockChoice: () => {
+            const scope = _supplierIntakeGrid;
+            if (typeof Swal === 'undefined') {
+                if (typeof _modal_supplier_intake_adjust_stock !== 'undefined' && _modal_supplier_intake_adjust_stock.show) {
+                    _modal_supplier_intake_adjust_stock.show();
+                }
+                return;
+            }
+            Swal.fire({
+                title: 'Adjust stock',
+                text: 'Are you adding new bags or editing an existing batch?',
+                input: 'radio',
+                inputOptions: {
+                    add: 'Adding — quick entry (no receiving checklist)',
+                    edit: 'Editing — open the full batch form (receiver checklist)'
+                },
+                inputValidator: function (value) {
+                    if (!value) return 'Choose adding or editing';
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Continue',
+                cancelButtonText: 'Cancel'
+            }).then(function (result) {
+                if (!result.isConfirmed) return;
+                if (result.value === 'add') {
+                    if (typeof _modal_supplier_intake_adjust_stock !== 'undefined' && _modal_supplier_intake_adjust_stock.show) {
+                        _modal_supplier_intake_adjust_stock.show();
+                    } else {
+                        Swal.fire('Error', 'Adjust stock modal not loaded. Please refresh the page.', 'error');
+                    }
+                } else {
+                    scope.openAdjustStockEditPicker();
+                }
+            });
+        },
+
+        openAdjustStockEditPicker: () => {
+            const scope = _supplierIntakeGrid;
+            var list = (scope.batches && scope.batches.length) ? scope.batches : [];
+            if (!list.length) {
+                if (typeof Swal !== 'undefined') Swal.fire('Nothing to edit', 'There are no supplier intake batches loaded yet.', 'info');
+                return;
+            }
+            var opts = {};
+            list.forEach(function (b) {
+                var id = b.id != null ? String(b.id) : '';
+                if (!id) return;
+                opts[id] = (b.batch_number || id) + ' — ' + (b.supplier_details || 'Supplier');
+            });
+            var keys = Object.keys(opts);
+            if (!keys.length) {
+                if (typeof Swal !== 'undefined') Swal.fire('Nothing to edit', 'No batches could be listed for editing.', 'info');
+                return;
+            }
+            if (typeof Swal === 'undefined') return;
+            Swal.fire({
+                title: 'Edit which batch?',
+                input: 'select',
+                inputOptions: opts,
+                showCancelButton: true,
+                confirmButtonText: 'Open',
+                cancelButtonText: 'Cancel'
+            }).then(function (r) {
+                if (!r.isConfirmed || !r.value) return;
+                var batch = list.find(function (x) { return String(x.id) === String(r.value); });
+                if (batch && typeof _modal_supplier_receiver_checklist !== 'undefined' && _modal_supplier_receiver_checklist.show) {
+                    _modal_supplier_receiver_checklist.show(batch);
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Could not open the editor for that batch.', 'error');
                 }
             });
         },
@@ -331,6 +417,7 @@ var _supplierIntakeGrid = function () {
                     ? '<button type="button" class="btn btn-sm btn-primary js-supplier-intake-release-oil" data-batch-id="' + esc(batchId) + '" title="Release to Oil Production"><i class="fas fa-arrow-right me-1"></i>Release to Oil Production</button>'
                     : '';
                 var viewBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-supplier-intake-view" data-batch-id="' + esc(batchId) + '" title="View"><i class="fas fa-eye"></i></button>';
+                var deleteBtn = '<button type="button" class="btn btn-sm btn-outline-danger js-supplier-intake-delete" data-batch-id="' + esc(batchId) + '" title="Remove from intake"><i class="fas fa-trash-alt"></i></button>';
                 var html = '<div class="kanban-card js-supplier-intake-card" data-batch-id="' + batchId + '" data-kanban-id="' + esc(batchId) + '">';
                 html += '<div class="kanban-card-title">' + esc(batchNum) + '</div>';
                 html += '<div class="kanban-card-meta">';
@@ -339,7 +426,7 @@ var _supplierIntakeGrid = function () {
                 if (dateStr !== '—') html += '<div class="kanban-card-meta-item"><i class="fas fa-calendar"></i> ' + esc(dateStr) + '</div>';
                 if (qtyStr) html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + esc(qtyStr) + '</div>';
                 html += '</div>';
-                html += '<div class="kanban-card-actions">' + sampleBtn + releaseBtn + viewBtn + '</div>';
+                html += '<div class="kanban-card-actions">' + sampleBtn + releaseBtn + viewBtn + deleteBtn + '</div>';
                 html += '</div>';
                 return html;
             });
@@ -421,9 +508,10 @@ var _supplierIntakeGrid = function () {
                     : '<span class="dropdown-item text-muted" role="button" tabindex="0">Release to Oil Production</span>';
                 const viewItem = '<a class="dropdown-item js-supplier-intake-view" href="#" data-batch-id="' + batchId + '"><i class="fas fa-eye me-2"></i>View</a>';
                 const editItem = '<a class="dropdown-item js-supplier-intake-edit" href="#" data-batch-id="' + batchId + '"><i class="fas fa-edit me-2"></i>Edit</a>';
+                const deleteItem = '<a class="dropdown-item text-danger js-supplier-intake-delete" href="#" data-batch-id="' + escapeHtml(batchId) + '"><i class="fas fa-trash-alt me-2"></i>Remove from intake</a>';
                 const actionsCell = '<div class="dropdown">' +
                     '<button class="btn btn-sm btn-outline-secondary" type="button" id="supplierIntakeActions' + escapeHtml(batchId) + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
-                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="supplierIntakeActions' + escapeHtml(batchId) + '">' + releaseItem + viewItem + editItem + '</ul></div>';
+                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="supplierIntakeActions' + escapeHtml(batchId) + '">' + releaseItem + viewItem + editItem + deleteItem + '</ul></div>';
                 var statusLabel = colKey === 'release_ready' ? 'Ready for Oil Production' : 'Awaiting tests';
                 var stagePos = colKey === 'release_ready' ? 'last' : 'first';
                 var statusBadgeHtml = (typeof KanbanHelper !== 'undefined' && KanbanHelper.statusBadge) ? KanbanHelper.statusBadge(statusLabel, stagePos) : ('<span class="badge bg-info">' + escapeHtml(statusLabel) + '</span>');
@@ -811,6 +899,52 @@ var _supplierIntakeGrid = function () {
             }
         },
 
+        deleteSupplierIntakeBatch: (batchId) => {
+            const scope = _supplierIntakeGrid;
+            if (!batchId || typeof dataFunctions === 'undefined' || !dataFunctions.deactivateSupplierIntakeOilBatch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Remove is not available. Refresh the page.', 'error');
+                return;
+            }
+            var batch = (scope.batches || []).find(function (b) {
+                return String(b.id) === String(batchId);
+            });
+            var label = (batch && batch.batch_number) ? String(batch.batch_number) : String(batchId);
+            var run = async function () {
+                try {
+                    var res = await dataFunctions.deactivateSupplierIntakeOilBatch(batchId, null);
+                    var resolved = res && (res.data !== undefined ? res.data : res);
+                    var ok = resolved && resolved.success !== false && (resolved.error == null || resolved.error === '');
+                    if (!ok) {
+                        throw new Error((resolved && (resolved.error || resolved.message)) ? (resolved.error || resolved.message) : 'Remove failed');
+                    }
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'success', title: 'Removed', text: label + ' was removed from Supplier Intake.', timer: 2200, showConfirmButton: false });
+                    }
+                    await scope.loadBatches(true);
+                } catch (err) {
+                    console.error('[Supplier Intake] delete batch', err);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Error', (err && err.message) ? err.message : 'Could not remove this batch.', 'error');
+                    }
+                }
+            };
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Remove batch?',
+                    html: '<p class="text-start small mb-0">This removes <strong>' + escapeHtml(label) + '</strong> from Supplier Intake. Batches already sent to Oil Production cannot be removed here.</p>',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Remove',
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonText: 'Cancel'
+                }).then(function (r) {
+                    if (r.isConfirmed) run();
+                });
+            } else if (window.confirm('Remove batch ' + label + ' from Supplier Intake?')) {
+                run();
+            }
+        },
+
         exportBatches: () => {
             const scope = _supplierIntakeGrid;
             const list = scope.filteredBatches.length > 0 ? scope.filteredBatches : scope.batches;
@@ -825,6 +959,7 @@ var _supplierIntakeGrid = function () {
                 { key: 'delivery_note_ref', label: 'Delivery note / PO' },
                 { key: 'supplier_details', label: 'Supplier' },
                 { key: 'quantity_kg', label: 'Quantity (kg)' },
+                { key: 'adjust_stock_ffa', label: 'Recorded FFA (adjust stock) %' },
                 { key: 'official_ffa', label: 'Official FFA (bag) %' },
                 { key: 'status', label: 'Status' }
             ];
