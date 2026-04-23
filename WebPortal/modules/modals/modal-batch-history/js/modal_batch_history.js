@@ -45,6 +45,44 @@ function mergeBatchHistoryStageObjects(entries) {
 }
 
 /**
+ * Same rules as kernel_production_grid hasMeaningfulStageData: ignore date-only rows / placeholders.
+ */
+function batchHistoryStageEntryHasMeaningful(data) {
+    if (!data || typeof data !== 'object') return false;
+    for (var key in data) {
+        if (!Object.prototype.hasOwnProperty.call(data, key) || key === 'date') continue;
+        var val = data[key];
+        if (typeof val === 'boolean') {
+            if (val) return true;
+            continue;
+        }
+        if (val == null) continue;
+        if (typeof val === 'string') {
+            if (val.trim() !== '') return true;
+            continue;
+        }
+        return true;
+    }
+    return false;
+}
+
+function batchHistoryStageArrayHasMeaningful(entries) {
+    var arr = entries || [];
+    for (var i = 0; i < arr.length; i++) {
+        if (batchHistoryStageEntryHasMeaningful(arr[i])) return true;
+    }
+    return false;
+}
+
+function batchHistoryDayGroupHasAnyMeaningfulStage(g) {
+    if (!g) return false;
+    return batchHistoryStageArrayHasMeaningful(g.cracking) ||
+        batchHistoryStageArrayHasMeaningful(g.washing) ||
+        batchHistoryStageArrayHasMeaningful(g.sorting) ||
+        batchHistoryStageArrayHasMeaningful(g.packing);
+}
+
+/**
  * Canonical production stage fields (keys match getProductionStagesSectionData / JSON saved by Production modal).
  */
 var BATCH_HISTORY_CRACKING_SCHEMA = [
@@ -192,14 +230,22 @@ function renderBatchHistoryProductionSchemaTable(schema, obj, nilStr) {
 function buildProductionDayHistoryBody(dayGroup, nilStr) {
     nilStr = nilStr == null ? BATCH_HISTORY_NIL : nilStr;
     var h = '<div class="small">';
-    h += '<h6 class="small fw-semibold mb-1">Cracking</h6>';
-    h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_CRACKING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.cracking), nilStr);
-    h += '<h6 class="small fw-semibold mb-1">Washing</h6>';
-    h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_WASHING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.washing), nilStr);
-    h += '<h6 class="small fw-semibold mb-1">Sorting</h6>';
-    h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_SORTING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.sorting), nilStr);
-    h += '<h6 class="small fw-semibold mb-1">Packing</h6>';
-    h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_PACKING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.packing), nilStr);
+    if (batchHistoryStageArrayHasMeaningful(dayGroup.cracking)) {
+        h += '<h6 class="small fw-semibold mb-1">Cracking</h6>';
+        h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_CRACKING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.cracking), nilStr);
+    }
+    if (batchHistoryStageArrayHasMeaningful(dayGroup.washing)) {
+        h += '<h6 class="small fw-semibold mb-1">Washing</h6>';
+        h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_WASHING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.washing), nilStr);
+    }
+    if (batchHistoryStageArrayHasMeaningful(dayGroup.sorting)) {
+        h += '<h6 class="small fw-semibold mb-1">Sorting</h6>';
+        h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_SORTING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.sorting), nilStr);
+    }
+    if (batchHistoryStageArrayHasMeaningful(dayGroup.packing)) {
+        h += '<h6 class="small fw-semibold mb-1">Packing</h6>';
+        h += renderBatchHistoryProductionSchemaTable(BATCH_HISTORY_PACKING_SCHEMA, mergeBatchHistoryStageObjects(dayGroup.packing), nilStr);
+    }
     h += '</div>';
     return h;
 }
@@ -266,56 +312,6 @@ function getProductionDayDateLatest(stages) {
     if (dates.length === 0) return null;
     dates.sort();
     return dates[dates.length - 1];
-}
-
-/** One calendar day's grouped cracking/washing/sorting/packing rows → display lines (HTML fragments). Empty if nothing meaningful to show. */
-function buildProductionDayTimelineLines(g) {
-    if (!g) return [];
-    var nv = function (v) { var x = parseFloat(v); return isNaN(x) ? null : x; };
-    var lines = [];
-    (g.cracking || []).forEach(function (c) {
-        var crackTime = (c.timespent1 || c.totaltime || '').toString().trim();
-        var crackQty = nv(c.totalqty);
-        if (crackTime || crackQty != null) {
-            lines.push('<strong>Cracking:</strong> ' + (crackTime ? crackTime : '') + (crackTime && crackQty != null ? ', ' : '') + (crackQty != null ? crackQty + ' kg' : ''));
-        }
-    });
-    (g.washing || []).forEach(function (w) {
-        var washIn = nv(w.qty_in);
-        var washOut = nv(w.total_qty);
-        if (washIn != null || washOut != null) {
-            lines.push('<strong>Washing:</strong> ' + (washIn != null ? washIn + ' kg in' : '') + (washIn != null && washOut != null ? ' &rarr; ' : '') + (washOut != null ? washOut + ' kg out' : ''));
-        }
-    });
-    (g.sorting || []).forEach(function (s) {
-        var sortFields = [
-            { key: 'sound_qty', label: 'Sound' },
-            { key: 'butter_qty', label: 'Butter' },
-            { key: 'butterlow_qty', label: 'Butter Low' },
-            { key: 'oil_qty', label: 'Oil' },
-            { key: 'compost_qty', label: 'Compost' }
-        ];
-        var sp = [];
-        sortFields.forEach(function (f) {
-            var v = nv(s[f.key]);
-            if (v != null) sp.push(f.label + ' ' + v + ' kg');
-        });
-        if (sp.length > 0) lines.push('<strong>Sorting:</strong> ' + sp.join(', '));
-    });
-    (g.packing || []).forEach(function (p) {
-        var packSk = nv(p.sk_total_qty);
-        var packBt = nv(p.bt_total_qty);
-        var packTot = nv(p.totals_qty);
-        if (packSk != null || packBt != null || packTot != null) {
-            var pp = [];
-            if (packSk != null) pp.push('SK ' + packSk + ' kg');
-            if (packBt != null) pp.push('Butter ' + packBt + ' kg');
-            if (packTot != null && packSk == null && packBt == null) pp.push(packTot + ' kg');
-            if (packTot != null && (packSk != null || packBt != null)) pp.push('Total ' + packTot + ' kg');
-            lines.push('<strong>Packing:</strong> ' + pp.join(', '));
-        }
-    });
-    return lines;
 }
 
 var _modal_batch_history = (function () {
@@ -497,8 +493,7 @@ var _modal_batch_history = (function () {
                 var dayNum = 0;
                 sortedDates.forEach(function (dateKey) {
                     var g = dayMap[dateKey];
-                    var lines = buildProductionDayTimelineLines(g);
-                    if (lines.length === 0) return;
+                    if (!batchHistoryDayGroupHasAnyMeaningfulStage(g)) return;
                     dayNum++;
                     var dateLabel = dateKey === noDateKey ? ('Day ' + dayNum) : ('Day ' + dayNum + ' &ndash; ' + formatStageDate(dateKey));
                     var html = buildProductionDayHistoryBody(g, nil);
