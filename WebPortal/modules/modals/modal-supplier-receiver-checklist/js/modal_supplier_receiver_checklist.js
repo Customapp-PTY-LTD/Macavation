@@ -201,33 +201,40 @@ var _modal_supplier_receiver_checklist = (function () {
         init: function () {
             if (_inited) return;
             _inited = true;
-            var addBtn = document.getElementById('srcAddItemRow');
-            if (addBtn) addBtn.addEventListener('click', function (e) { e.preventDefault(); api.addItemRow(); });
-            var saveBtn = document.getElementById('srcCreateBatchesBtn');
-            if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.createBatches(); });
-
-            var srcAddSupplierBtn = document.getElementById('srcAddSupplierBtn');
-            if (srcAddSupplierBtn) {
-                srcAddSupplierBtn.addEventListener('click', function (e) {
+            if (typeof $ !== 'undefined') {
+                $(document).off('click.srcAddItemRow', '#srcAddItemRow').on('click.srcAddItemRow', '#srcAddItemRow', function (e) {
+                    e.preventDefault();
+                    api.addItemRow();
+                });
+                $(document).off('click.srcCreateBatchesBtn', '#srcCreateBatchesBtn').on('click.srcCreateBatchesBtn', '#srcCreateBatchesBtn', function (e) {
+                    e.preventDefault();
+                    api.createBatches();
+                });
+                $(document).off('click.srcAddSupplierBtn', '#srcAddSupplierBtn').on('click.srcAddSupplierBtn', '#srcAddSupplierBtn', function (e) {
                     e.preventDefault();
                     var panel = document.getElementById('srcNewSupplierPanel');
                     if (panel && panel.style.display === 'none') showNewSupplierPanel();
                     else hideNewSupplierPanel();
                 });
-            }
-            var srcNewSupplierSave = document.getElementById('srcNewSupplierSaveBtn');
-            if (srcNewSupplierSave) srcNewSupplierSave.addEventListener('click', function (e) { e.preventDefault(); api.saveNewSupplier(); });
-            var srcNewSupplierCancel = document.getElementById('srcNewSupplierCancelBtn');
-            if (srcNewSupplierCancel) srcNewSupplierCancel.addEventListener('click', function (e) { e.preventDefault(); hideNewSupplierPanel(); });
-
-            if (typeof $ !== 'undefined') {
+                $(document).off('click.srcNewSupplierSaveBtn', '#srcNewSupplierSaveBtn').on('click.srcNewSupplierSaveBtn', '#srcNewSupplierSaveBtn', function (e) {
+                    e.preventDefault();
+                    api.saveNewSupplier();
+                });
+                $(document).off('click.srcNewSupplierCancelBtn', '#srcNewSupplierCancelBtn').on('click.srcNewSupplierCancelBtn', '#srcNewSupplierCancelBtn', function (e) {
+                    e.preventDefault();
+                    hideNewSupplierPanel();
+                });
                 $(document).off('click.srcRemoveItemRow', '.srcRemoveItemRow').on('click.srcRemoveItemRow', '.srcRemoveItemRow', function (e) {
                     e.preventDefault();
                     $(this).closest('tr').remove();
                     ensureAtLeastOneRow();
                 });
-                $('#' + CONTAINER_ID).on('shown.bs.modal', function () { initFlatpickrInModal(); });
-                $('#' + CONTAINER_ID).on('hidden.bs.modal', function () { api.clearForm(); });
+                $(document).off('shown.bs.modal.srcSupplierReceiver', '#' + CONTAINER_ID).on('shown.bs.modal.srcSupplierReceiver', '#' + CONTAINER_ID, function () {
+                    initFlatpickrInModal();
+                });
+                $(document).off('hidden.bs.modal.srcSupplierReceiver', '#' + CONTAINER_ID).on('hidden.bs.modal.srcSupplierReceiver', '#' + CONTAINER_ID, function () {
+                    api.clearForm();
+                });
             }
         },
 
