@@ -117,6 +117,69 @@ var _modal_supplier_receiver_checklist = (function () {
         return h;
     }
 
+    function escapeAttr(v) {
+        if (v == null) return '';
+        return String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function nextSequentialBatch(baseBatch, step) {
+        var raw = (baseBatch || '').trim();
+        if (!raw) return '';
+        var m = raw.match(/^(.*?)(\d+)$/);
+        if (m) {
+            var prefix = m[1];
+            var n = parseInt(m[2], 10);
+            if (!isNaN(n)) {
+                var next = String(n + step);
+                var width = m[2].length;
+                if (next.length < width) next = next.padStart(width, '0');
+                return prefix + next;
+            }
+        }
+        return raw + '.' + String(step + 1);
+    }
+
+    function readFirstRowSeed() {
+        if (typeof $ === 'undefined') return null;
+        var $row = $('#srcItemsTableBody tr:first');
+        if (!$row.length) return null;
+        return {
+            reference: ($row.find('[name="reference"]').val() || '').trim(),
+            productType: ($row.find('[name="productType"]').val() || '').trim(),
+            batch: ($row.find('[name="batch"]').val() || '').trim(),
+            quantity: ($row.find('[name="quantity"]').val() || '').trim(),
+            manufacturedDate: ($row.find('[name="manufacturedDate"]').val() || '').trim()
+        };
+    }
+
+    async function promptBagCount() {
+        if (typeof Swal !== 'undefined') {
+            var res = await Swal.fire({
+                title: 'How many bags to add?',
+                input: 'number',
+                inputLabel: 'Number of additional bag rows',
+                inputValue: 1,
+                inputAttributes: { min: 1, step: 1 },
+                showCancelButton: true,
+                confirmButtonText: 'Add bags',
+                inputValidator: function (value) {
+                    var n = parseInt(value, 10);
+                    if (isNaN(n) || n <= 0) return 'Enter a number greater than 0.';
+                    if (n > 500) return 'Please enter 500 or less.';
+                    return null;
+                }
+            });
+            if (!res.isConfirmed) return null;
+            return parseInt(res.value, 10);
+        }
+        var raw = window.prompt('How many bags do you want to add?', '1');
+        if (raw == null) return null;
+        var n = parseInt(raw, 10);
+        if (isNaN(n) || n <= 0) return null;
+        if (n > 500) n = 500;
+        return n;
+    }
+
     function readRows() {
         var items = [];
         if (typeof $ === 'undefined') return items;
@@ -237,9 +300,11 @@ var _modal_supplier_receiver_checklist = (function () {
             if (_inited) return;
             _inited = true;
             if (typeof $ !== 'undefined') {
-                $(document).off('click.srcAddItemRow', '#srcAddItemRow').on('click.srcAddItemRow', '#srcAddItemRow', function (e) {
+                $(document).off('click.srcAddItemRow', '#srcAddItemRow').on('click.srcAddItemRow', '#srcAddItemRow', async function (e) {
                     e.preventDefault();
-                    api.addItemRow();
+                    var count = await promptBagCount();
+                    if (!count) return;
+                    api.addItemRows(count);
                 });
                 $(document).off('click.srcCreateBatchesBtn', '#srcCreateBatchesBtn').on('click.srcCreateBatchesBtn', '#srcCreateBatchesBtn', function (e) {
                     e.preventDefault();
@@ -425,21 +490,17 @@ var _modal_supplier_receiver_checklist = (function () {
             }
         },
 
-        addItemRow: function () {
+        addItemRow: function (seed) {
             if (typeof $ === 'undefined') return;
+            seed = seed || {};
             var row = '<tr>' +
-                '<td><input type="text" class="form-control form-control-sm" name="reference" placeholder="Optional"></td>' +
+                '<td><input type="text" class="form-control form-control-sm" name="reference" placeholder="Optional" value="' + escapeAttr(seed.reference || '') + '"></td>' +
                 '<td><select class="form-select form-select-sm" name="productType" required>' +
-                '<option value="">Select product…</option>' +
-                '<option value="oil_kernel">Oil kernel</option>' +
-                '<option value="cracker_dust">Cracker dust</option>' +
-                '<option value="kernel_dust">Kernel dust</option>' +
-                '<option value="crush">Crush</option>' +
-                '<option value="cake">Cake</option>' +
+                optionForProductType(seed.productType || '') +
                 '</select></td>' +
-                '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001"></td>' +
-                '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required></td>' +
-                '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy" required></td>' +
+                '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001" value="' + escapeAttr(seed.batch || '') + '"></td>' +
+                '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required value="' + escapeAttr(seed.quantity || '') + '"></td>' +
+                '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy" required value="' + escapeAttr(seed.manufacturedDate || '') + '"></td>' +
                 '<td><button type="button" class="btn btn-sm btn-danger srcRemoveItemRow" title="Remove"><i class="fas fa-times"></i></button></td>' +
                 '</tr>';
             var $row = $(row);
@@ -447,6 +508,20 @@ var _modal_supplier_receiver_checklist = (function () {
             $row.find('.flatpickr-date').each(function () {
                 if (typeof flatpickr !== 'undefined' && !this._flatpickr) flatpickr(this, FLATPICKR_DDMMYYYY);
             });
+        },
+
+        addItemRows: function (count) {
+            if (typeof $ === 'undefined' || !count || count <= 0) return;
+            var seed = readFirstRowSeed() || {};
+            for (var i = 1; i <= count; i++) {
+                api.addItemRow({
+                    reference: seed.reference || '',
+                    productType: seed.productType || '',
+                    batch: nextSequentialBatch(seed.batch || '', i),
+                    quantity: seed.quantity || '',
+                    manufacturedDate: seed.manufacturedDate || ''
+                });
+            }
         },
 
         createBatches: async function () {

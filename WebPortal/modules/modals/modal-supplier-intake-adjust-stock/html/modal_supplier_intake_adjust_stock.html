@@ -5,7 +5,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            <p class="text-muted small mb-3">Creates supplier intake batches without the receiving checklist. <strong>Supplier name</strong> and each row’s <strong>batch number</strong> are required. Weight and best-before are optional. If you enter <strong>FFA (%)</strong> for a row, that batch is saved as <strong>Ready for Oil Production</strong>; if FFA is left blank, it stays in <strong>Awaiting tests</strong> until you record FFA via Sample test.</p>
+            <p class="text-muted small mb-3">Creates supplier intake batches without the receiving checklist. <strong>Supplier name</strong>, each row’s <strong>batch number</strong>, and <strong>manufactured date</strong> are required. Best-before is calculated automatically as <strong>18 months after manufactured date</strong>. If you enter <strong>FFA (%)</strong> for a row, that batch is saved as <strong>Ready for Oil Production</strong>; if FFA is left blank, it stays in <strong>Awaiting tests</strong> until you record FFA via Sample test.</p>
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
                     <label for="siaSupplierName" class="form-label">Supplier name <span class="text-danger">*</span></label>
@@ -28,7 +28,7 @@
                             <th style="min-width: 150px;">Product type</th>
                             <th style="min-width: 120px;">Weight (kg)</th>
                             <th style="min-width: 100px;">FFA (%)</th>
-                            <th style="min-width: 140px;">Best before</th>
+                            <th style="min-width: 140px;">Manufactured date <span class="text-danger">*</span></th>
                             <th style="width: 70px;">Actions</th>
                         </tr>
                     </thead>
@@ -46,7 +46,7 @@
                             </td>
                             <td><input type="number" class="form-control form-control-sm" name="siaWeight" step="0.01" min="0" placeholder="Optional"></td>
                             <td><input type="number" class="form-control form-control-sm" name="siaFfa" step="0.01" min="0" placeholder="Optional"></td>
-                            <td><input type="text" class="form-control form-control-sm flatpickr-date" name="siaBestBefore" placeholder="dd/mm/yyyy"></td>
+                            <td><input type="text" class="form-control form-control-sm flatpickr-date" name="siaManufacturedDate" placeholder="dd/mm/yyyy" required></td>
                             <td><button type="button" class="btn btn-sm btn-danger siaRemoveRow" title="Remove"><i class="fas fa-times"></i></button></td>
                         </tr>
                     </tbody>
