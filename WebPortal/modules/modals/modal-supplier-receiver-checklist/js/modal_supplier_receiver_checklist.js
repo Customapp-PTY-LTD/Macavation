@@ -30,6 +30,39 @@ var _modal_supplier_receiver_checklist = (function () {
         return parts[2] + '/' + parts[1] + '/' + parts[0];
     }
 
+    /**
+     * Shift an ISO date by months with day clamping (e.g. 31st -> last day of target month).
+     */
+    function shiftIsoDateByMonths(isoDate, monthDelta) {
+        if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(String(isoDate))) return null;
+        var parts = String(isoDate).split('-');
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10);
+        var d = parseInt(parts[2], 10);
+        if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+
+        var monthIndex = (m - 1) + monthDelta;
+        var targetYear = y + Math.floor(monthIndex / 12);
+        var targetMonth = ((monthIndex % 12) + 12) % 12;
+        var lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+        var targetDay = Math.min(d, lastDay);
+        var out = new Date(Date.UTC(targetYear, targetMonth, targetDay));
+        return out.toISOString().split('T')[0];
+    }
+
+    function calculateBestBeforeIso(manufacturedIso) {
+        return shiftIsoDateByMonths(manufacturedIso, 18);
+    }
+
+    function getEditManufacturedIso(batch) {
+        if (!batch || typeof batch !== 'object') return null;
+        var mfg = batch.manufactured_date ? String(batch.manufactured_date).split('T')[0] : null;
+        if (mfg && /^\d{4}-\d{2}-\d{2}$/.test(mfg)) return mfg;
+        var bb = batch.best_before_date ? String(batch.best_before_date).split('T')[0] : null;
+        if (bb && /^\d{4}-\d{2}-\d{2}$/.test(bb)) return shiftIsoDateByMonths(bb, -18);
+        return null;
+    }
+
     function escapeHtml(t) {
         if (t == null) return '';
         var div = document.createElement('div');
@@ -94,9 +127,11 @@ var _modal_supplier_receiver_checklist = (function () {
             var productType = ($row.find('[name="productType"]').val() || '').trim();
             var batch = ($row.find('[name="batch"]').val() || '').trim();
             var qtyRaw = ($row.find('[name="quantity"]').val() || '').trim();
-            var bbRaw = ($row.find('[name="bestBeforeDate"]').val() || '').trim();
+            var mfgRaw = ($row.find('[name="manufacturedDate"]').val() || '').trim();
+            var manufacturedIso = mfgRaw ? (toISO(mfgRaw) || mfgRaw) : null;
+            var bestBeforeIso = manufacturedIso ? calculateBestBeforeIso(manufacturedIso) : null;
 
-            var hasAny = ref || productType || batch || qtyRaw || bbRaw;
+            var hasAny = ref || productType || batch || qtyRaw || mfgRaw;
             if (!hasAny) return;
 
             items.push({
@@ -104,8 +139,8 @@ var _modal_supplier_receiver_checklist = (function () {
                 product_type: productType || null,
                 batch_number: batch || null,
                 quantity_kg: qtyRaw ? parseFloat(qtyRaw) : null,
-                manufactured_date: null,
-                best_before_date: bbRaw ? (toISO(bbRaw) || bbRaw) : null
+                manufactured_date: manufacturedIso,
+                best_before_date: bestBeforeIso
             });
         });
 
@@ -277,6 +312,7 @@ var _modal_supplier_receiver_checklist = (function () {
                 await loadSuppliers(editingBatch.supplier_id || null);
 
                 if (typeof $ !== 'undefined') {
+                    var editManufacturedIso = getEditManufacturedIso(editingBatch);
                     $('#srcItemsTableBody tr').remove();
                     var row = '<tr>' +
                         '<td><input type="text" class="form-control form-control-sm" name="reference" placeholder="Optional" value="' + escapeHtml((editingBatch.reference || '').toString()) + '"></td>' +
@@ -285,7 +321,7 @@ var _modal_supplier_receiver_checklist = (function () {
                         '</select></td>' +
                         '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001" value="' + escapeHtml((editingBatch.batch_number || '').toString()) + '"></td>' +
                         '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required value="' + (editingBatch.quantity_kg != null ? escapeHtml(String(editingBatch.quantity_kg)) : '') + '"></td>' +
-                        '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="bestBeforeDate" placeholder="dd/mm/yyyy" value="' + (editingBatch.best_before_date ? escapeHtml(fromISO(String(editingBatch.best_before_date).split('T')[0])) : '') + '"></td>' +
+                        '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy" required value="' + (editManufacturedIso ? escapeHtml(fromISO(editManufacturedIso)) : '') + '"></td>' +
                         '<td><button type="button" class="btn btn-sm btn-danger srcRemoveItemRow" title="Remove"><i class="fas fa-times"></i></button></td></tr>';
                     $('#srcItemsTableBody').append(row);
                     initFlatpickrInModal();
@@ -403,7 +439,7 @@ var _modal_supplier_receiver_checklist = (function () {
                 '</select></td>' +
                 '<td><input type="text" class="form-control form-control-sm" name="batch" required placeholder="Required — e.g. OIL-2026-03-001"></td>' +
                 '<td><input type="number" class="form-control form-control-sm" name="quantity" step="0.01" min="0.01" required></td>' +
-                '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="bestBeforeDate" placeholder="dd/mm/yyyy"></td>' +
+                '<td><input type="text" class="form-control form-control-sm flatpickr-date" name="manufacturedDate" placeholder="dd/mm/yyyy" required></td>' +
                 '<td><button type="button" class="btn btn-sm btn-danger srcRemoveItemRow" title="Remove"><i class="fas fa-times"></i></button></td>' +
                 '</tr>';
             var $row = $(row);
@@ -448,6 +484,11 @@ var _modal_supplier_receiver_checklist = (function () {
             var missingBatch = rows.find(function (r) { return !r.batch_number || !String(r.batch_number).trim(); });
             if (missingBatch) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Enter a batch number for each bag row (not auto-generated).', 'error');
+                return;
+            }
+            var missingManufactured = rows.find(function (r) { return !r.manufactured_date; });
+            if (missingManufactured) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Enter a manufactured date for each bag row. Best before is calculated automatically (+18 months).', 'error');
                 return;
             }
 
