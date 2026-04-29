@@ -287,14 +287,42 @@ var _growerIntakeGrid = function () {
 
         loadIntakeBatches: async (forceRefresh) => {
             const scope = _growerIntakeGrid;
+            const df =
+                typeof _dataFunctions !== 'undefined' && _dataFunctions && typeof _dataFunctions.getKernelBatches === 'function'
+                    ? _dataFunctions
+                    : typeof dataFunctions !== 'undefined' && dataFunctions && typeof dataFunctions.getKernelBatches === 'function'
+                      ? dataFunctions
+                      : null;
+            if (!df) {
+                console.error('[Grower Intake] dataFunctions.getKernelBatches not available');
+                scope.intakeBatches = [];
+                scope.filterIntakeBatches();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Cannot load batches',
+                        text: 'Data layer not ready. Refresh the page or sign in again.'
+                    });
+                }
+                return;
+            }
             try {
-                const all = await _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'intake,receiving', limit: 500 });
+                const all = await df.getKernelBatches(null, forceRefresh, { status: 'intake,receiving', limit: 500 });
                 scope.intakeBatches = all || [];
                 scope.filterIntakeBatches();
             } catch (e) {
                 console.error('Error loading intake batches:', e);
                 scope.intakeBatches = [];
                 scope.filterIntakeBatches();
+                var msg = (e && e.message) ? String(e.message) : 'Could not load grower intake batches.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Failed to load batches',
+                        text: msg,
+                        footer: '<span class="small text-muted">Try Refresh (Ctrl+F5). If you were signed out, sign in again.</span>'
+                    });
+                }
             }
         },
 

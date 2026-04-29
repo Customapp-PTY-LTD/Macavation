@@ -58,6 +58,11 @@
                                             <label for="tradingName" class="form-label">Trading Name</label>
                                             <input type="text" class="form-control" id="tradingName">
                                         </div>
+                                        <div class="mb-3" id="crmSupplierNumberGroup" style="display: none;">
+                                            <label for="supplierNumber" class="form-label">Supplier code (NIS #)</label>
+                                            <input type="number" class="form-control" id="supplierNumber" min="0" max="99" step="1" placeholder="e.g. 62">
+                                            <small class="form-text text-muted">Used in kernel batch numbers (Bn SS YY NN). Whole numbers 0–99.</small>
+                                        </div>
                                         <div class="mb-3">
                                             <label for="status" class="form-label required">Status</label>
                                             <select class="form-select" id="status" required>

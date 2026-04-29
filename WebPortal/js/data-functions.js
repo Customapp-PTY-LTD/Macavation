@@ -1224,12 +1224,16 @@ var _dataFunctions = function () {
         },
 
         getContactById: async function (contactId, token = null, forceRefresh = false) {
-            return await this.callFunction('get_contact_by_id', { p_id: contactId }, token, {
+            var raw = await this.callFunction('get_contact_by_id', { p_id: contactId }, token, {
                 cacheKey: `contact_${contactId}`,
                 useCache: true,
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
+            if (Array.isArray(raw) && raw.length) return raw[0];
+            if (raw && Array.isArray(raw.get_contact_by_id)) return raw.get_contact_by_id[0];
+            if (raw && Array.isArray(raw.data)) return raw.data[0];
+            return raw;
         },
 
         createContact: async function (contactData, token = null) {
@@ -1278,7 +1282,13 @@ var _dataFunctions = function () {
                 p_secondary_contact_name: contactData.secondary_contact_name || contactData.p_secondary_contact_name || null,
                 p_secondary_contact_phone: contactData.secondary_contact_phone || contactData.p_secondary_contact_phone || null,
                 p_status: contactData.status || contactData.p_status || 'active',
-                p_trading_name: contactData.trading_name || contactData.p_trading_name || null
+                p_trading_name: contactData.trading_name || contactData.p_trading_name || null,
+                p_supplier_number: (function () {
+                    var sn = contactData.supplier_number !== undefined ? contactData.supplier_number : contactData.p_supplier_number;
+                    if (sn === undefined || sn === null || sn === '') return null;
+                    var n = typeof sn === 'number' ? sn : parseInt(String(sn), 10);
+                    return isNaN(n) ? null : n;
+                })()
             };
 
             try {
@@ -1287,6 +1297,18 @@ var _dataFunctions = function () {
                 const normalizedFunctionResult = normalizeCreateContactResult(functionResult);
                 console.log('[Data Functions] createContact RPC result:', normalizedFunctionResult);
                 if (normalizedFunctionResult && normalizedFunctionResult.success !== false && normalizedFunctionResult.id) {
+                    if (params.p_supplier_number != null) {
+                        try {
+                            await this.callFunction(
+                                'update_contact_simple',
+                                { p_contact_id: normalizedFunctionResult.id, p_supplier_number: params.p_supplier_number },
+                                token,
+                                { useCache: false }
+                            );
+                        } catch (e) {
+                            console.warn('[Data Functions] createContact post-create supplier_number update skipped:', e);
+                        }
+                    }
                     this.clearCachePattern('contacts');
                     return normalizedFunctionResult;
                 }
@@ -1350,6 +1372,13 @@ var _dataFunctions = function () {
                 p_rate_cracker_dust: contactData.rate_cracker_dust !== undefined ? contactData.rate_cracker_dust : null,
                 p_rate_crush: contactData.rate_crush !== undefined ? contactData.rate_crush : null
             };
+            if (contactData.supplier_number !== undefined) {
+                var snu = contactData.supplier_number;
+                params.p_supplier_number = (snu === null || snu === '')
+                    ? null
+                    : (typeof snu === 'number' ? snu : parseInt(String(snu), 10));
+                if (isNaN(params.p_supplier_number)) params.p_supplier_number = null;
+            }
             const result = await this.callFunction('update_contact_simple', params, token, { useCache: false });
             // Invalidate contact caches
             this.clearCache(`contact_${contactId}`);
@@ -1473,10 +1502,30 @@ var _dataFunctions = function () {
             if ((raw.id != null || raw.Id != null) && (raw.batch_number != null || raw.BatchNumber != null)) {
                 return [raw];
             }
+            // Lambda / proxies sometimes nest the SETOF rows under an undocumented key — pick the first array of kernel-shaped rows
+            const rk = Object.keys(raw);
+            for (let ki = 0; ki < rk.length; ki++) {
+                const v = raw[rk[ki]];
+                if (!Array.isArray(v) || v.length === 0) continue;
+                const first = v[0];
+                if (
+                    first &&
+                    typeof first === 'object' &&
+                    (first.batch_number != null ||
+                        first.BatchNumber != null ||
+                        first.batch_id != null ||
+                        first.BatchId != null)
+                ) {
+                    return v;
+                }
+            }
             return [];
         },
 
         getKernelBatches: async function (token = null, forceRefresh = false, options = {}) {
+            if (forceRefresh) {
+                this.clearCachePattern('kernel_batches');
+            }
             const params = {
                 p_status: options.status != null ? options.status : null,
                 p_search: options.search != null ? options.search : null,

@@ -27,6 +27,7 @@ var _modal_crm_contact = (function () {
                         $('#oilProcessorRatesSection').hide();
                         $('#kernelCustomerPreferencesSection').hide();
                     }
+                    api.toggleSupplierNumberVisibility();
                 });
                 var addCommBtn = document.getElementById('crmAddCommunicationBtn');
                 if (addCommBtn) addCommBtn.addEventListener('click', function () {
@@ -62,6 +63,7 @@ var _modal_crm_contact = (function () {
                     $('#oilProcessorRatesSection').hide();
                     $('#kernelCustomerPreferencesSection').hide();
                 }
+                api.toggleSupplierNumberVisibility();
             }
             try {
                 await api.loadAccountManagers();
@@ -77,9 +79,19 @@ var _modal_crm_contact = (function () {
             if (form) form.reset();
             if (typeof $ !== 'undefined') {
                 $('#contactId').val('');
+                $('#supplierNumber').val('');
                 $('#oilProcessorRatesSection').hide();
                 $('#kernelCustomerPreferencesSection').hide();
+                $('#crmSupplierNumberGroup').hide();
             }
+        },
+
+        /** Show supplier code field for NIS / legacy supplier types (batch number SS segment). */
+        toggleSupplierNumberVisibility: function () {
+            if (typeof $ === 'undefined') return;
+            var type = ($('#contactType').val() || '').trim();
+            var show = type === 'nis_supplier' || type === 'supplier' || type === 'both';
+            $('#crmSupplierNumberGroup').toggle(show);
         },
 
         populateForm: function (contact) {
@@ -105,6 +117,8 @@ var _modal_crm_contact = (function () {
             $('#preferredStyles').val(contact.preferred_styles || '');
             $('#notes').val(contact.notes || '');
             $('#accountManagerId').val(contact.account_manager_id || '');
+            $('#supplierNumber').val(contact.supplier_number != null && contact.supplier_number !== '' ? contact.supplier_number : '');
+            api.toggleSupplierNumberVisibility();
             if (contact.contact_type === 'oil_processor') {
                 $('#oilProcessorRatesSection').show();
                 $('#rateCrudeKernel').val(contact.rate_crude_kernel || '');
@@ -217,6 +231,15 @@ var _modal_crm_contact = (function () {
                 params.rate_kernel_dust = contactData.rate_kernel_dust || null;
                 params.rate_cracker_dust = contactData.rate_cracker_dust || null;
                 params.rate_crush = contactData.rate_crush || null;
+            }
+            var ct = contactData.contact_type || '';
+            if (ct === 'nis_supplier' || ct === 'supplier' || ct === 'both') {
+                var snRaw = $('#supplierNumber').val();
+                params.supplier_number = snRaw === '' || snRaw === undefined ? null : parseInt(snRaw, 10);
+                if (params.supplier_number !== null && isNaN(params.supplier_number)) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Supplier code must be a whole number (0–99).', 'warning');
+                    return;
+                }
             }
             try {
                 var result = contactId
