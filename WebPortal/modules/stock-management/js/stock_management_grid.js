@@ -69,6 +69,15 @@ var _stockManagementGrid = function () {
         return isNaN(n) ? 0 : n;
     }
 
+    /** Normalize API date to yyyy-mm-dd for date inputs. */
+    function isoDateOnlyForInput(v) {
+        if (v == null || v === '') return '';
+        var s = String(v).trim();
+        if (s.indexOf('T') !== -1) return s.split('T')[0];
+        if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+        return s;
+    }
+
     /** Style maps from API may be plain objects or JSON strings (proxy); normalize for sums and display. */
     function kernelStyleMapFromBatch(batch, prop) {
         var v = batch && batch[prop];
@@ -93,6 +102,30 @@ var _stockManagementGrid = function () {
     }
 
     var KERNEL_STYLE_OPTIONS = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
+    /** Long hover text so users can see which style a column is without scrolling to the header. */
+    var KERNEL_STYLE_DESCRIPTION = {
+        'SP': 'Sound Kernel SP — premium SP grade',
+        '0': 'Sound kernel — style 0',
+        '1': 'Sound kernel — style 1',
+        '1S': 'Sound kernel — style 1S',
+        '4L': 'Sound kernel — style 4L',
+        '5': 'Sound kernel — style 5',
+        '6': 'Sound kernel — style 6',
+        '7/8': 'Butter — style 7/8',
+        'Butter High Oil': 'Butter High Oil grade',
+        'Butter Low Oil': 'Butter Low Oil grade'
+    };
+
+    function kernelStyleStockCellTitle(styleKey, adjustMode) {
+        var line = (KERNEL_STYLE_DESCRIPTION[styleKey] || styleKey) + '. Values are remaining cartons (or carton equivalent from kg).';
+        if (adjustMode) line += ' Click to adjust stock.';
+        return line;
+    }
+
+    function kernelStyleWeeklyCellTitle(styleKey) {
+        return (KERNEL_STYLE_DESCRIPTION[styleKey] || styleKey) + '. Values are kg for this style in this week.';
+    }
+
     /** Same nominal kg/carton as dispatch / get_kernel_batches (for carton equivalent when only kg is recorded). */
     var KERNEL_KG_PER_CARTON = 11.34;
 
@@ -332,6 +365,15 @@ var _stockManagementGrid = function () {
                 $(document).on('click', '.delete-oil-lot-btn', function () {
                     var id = $(this).data('oil-lot-id');
                     if (id) scope.deleteOilLot(id);
+                });
+                $(document).on('click', '.edit-kernel-batch-btn', function () {
+                    var id = $(this).data('kernel-id');
+                    if (id) scope.promptEditKernelBatch(id);
+                });
+                $(document).on('click', '.delete-kernel-batch-btn', function () {
+                    var id = $(this).data('kernel-id');
+                    var label = $(this).data('batch-label');
+                    if (id) scope.deleteKernelBatch(id, label);
                 });
                 $(document).on('click', '.adjust-oil-lot-btn', function () {
                     var id = $(this).data('oil-lot-id');
@@ -719,12 +761,13 @@ var _stockManagementGrid = function () {
                     var val = cells[k] != null ? cells[k] : 0;
                     totals[k] += parseNum(val);
                     var displayVal = (val !== 0 && val !== '' && val != null) ? val : '—';
+                    var stTitle = escapeHtml(kernelStyleStockCellTitle(k, scope.kernelAdjustMode)).replace(/"/g, '&quot;');
                     if (scope.kernelAdjustMode) {
-                        row += '<td class="text-end table-warning kernel-stock-adjust-cell" data-kernel-stock-adjust="1" data-kernel-id="' + escapeHtml(kernelIdFromBatch(b)) + '" data-batch-number="' + escapeHtml(batchNum) + '" data-style="' + escapeHtml(k) + '" title="Click to adjust stock">' +
+                        row += '<td class="text-end table-warning kernel-stock-adjust-cell kernel-style-col" data-kernel-stock-adjust="1" data-kernel-id="' + escapeHtml(kernelIdFromBatch(b)) + '" data-batch-number="' + escapeHtml(batchNum) + '" data-style="' + escapeHtml(k) + '" title="' + stTitle + '">' +
                             '<span class="kernel-stock-adjust-value d-block w-100 text-end">' + displayVal + '</span>' +
                             '</td>';
                     } else {
-                        row += '<td class="text-end">' + displayVal + '</td>';
+                        row += '<td class="text-end kernel-style-col" title="' + stTitle + '">' + displayVal + '</td>';
                     }
                 });
                 var ffaVal = (b.ffa != null && b.ffa !== '') ? (typeof b.ffa === 'number' ? b.ffa : parseFloat(b.ffa)) : null;
@@ -738,7 +781,14 @@ var _stockManagementGrid = function () {
                 var ffaTitle = 'Free Fatty Acids (from QA)';
                 var bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (from Job Card or packing completion + 18 months)';
                 row += '<td class="text-end" title="' + ffaTitle.replace(/"/g, '&quot;') + '">' + ffaDisplay + '</td><td class="text-end" title="' + bbTitle.replace(/"/g, '&quot;') + '">' + bbDisplay + '</td>';
-                row += '<td class="text-center"><button type="button" class="btn btn-sm btn-outline-secondary js-release-batch-to-production" data-batch-id="' + escapeHtml(kernelIdFromBatch(b)) + '" title="Send this batch back to production"><i class="fas fa-undo me-1"></i>Send back to production</button></td>';
+                var kid = kernelIdFromBatch(b);
+                row += '<td class="text-center"><div class="d-inline-flex flex-wrap gap-1 justify-content-center align-items-center">';
+                row += '<button type="button" class="btn btn-sm btn-outline-secondary js-release-batch-to-production" data-batch-id="' + escapeHtml(kid) + '" title="Send this batch back to production"><i class="fas fa-undo me-1"></i>Send back to production</button>';
+                if (kid) {
+                    row += '<button type="button" class="btn btn-sm btn-outline-primary edit-kernel-batch-btn" data-kernel-id="' + escapeHtml(kid) + '" title="Edit batch details (number, grower, dates, FFA)"><i class="fas fa-edit me-1"></i>Edit</button>';
+                    row += '<button type="button" class="btn btn-sm btn-outline-danger delete-kernel-batch-btn" data-kernel-id="' + escapeHtml(kid) + '" data-batch-label="' + escapeHtml(batchNum) + '" title="Delete batch (soft delete)"><i class="fas fa-trash me-1"></i>Delete</button>';
+                }
+                row += '</div></td>';
                 row += '</tr>';
                 body.append(row);
             });
@@ -817,7 +867,8 @@ var _stockManagementGrid = function () {
                             var val = (v.byStyleOut && v.byStyleOut[sk] != null && v.byStyleOut[sk] > 0)
                                 ? Number(v.byStyleOut[sk]).toLocaleString(undefined, { maximumFractionDigits: 2 })
                                 : '—';
-                            cells.push('<td class="text-end">' + escapeHtml(String(val)) + '</td>');
+                            var wkTitle = escapeHtml(kernelStyleWeeklyCellTitle(sk)).replace(/"/g, '&quot;');
+                            cells.push('<td class="text-end kernel-style-col" title="' + wkTitle + '">' + escapeHtml(String(val)) + '</td>');
                         });
                         var totalOut = (v.stockOut != null && !isNaN(v.stockOut)) ? Number(v.stockOut).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
                         cells.push('<td class="text-end fw-bold">' + escapeHtml(String(totalOut)) + '</td>');
@@ -860,7 +911,8 @@ var _stockManagementGrid = function () {
                         var val = (v.byStyleIn && v.byStyleIn[sk] != null && v.byStyleIn[sk] > 0)
                             ? Number(v.byStyleIn[sk]).toLocaleString(undefined, { maximumFractionDigits: 2 })
                             : '—';
-                        cells.push('<td class="text-end">' + escapeHtml(String(val)) + '</td>');
+                        var wkTitle = escapeHtml(kernelStyleWeeklyCellTitle(sk)).replace(/"/g, '&quot;');
+                        cells.push('<td class="text-end kernel-style-col" title="' + wkTitle + '">' + escapeHtml(String(val)) + '</td>');
                     });
                     var totalIn = (v.stockIn != null && !isNaN(v.stockIn)) ? Number(v.stockIn).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
                     cells.push('<td class="text-end fw-bold">' + escapeHtml(String(totalIn)) + '</td>');
@@ -886,7 +938,8 @@ var _stockManagementGrid = function () {
             var rows = styleKeys.map(function (k) {
                 var total = byStyle[k];
                 var amount = (total != null && !isNaN(total)) ? Number(total).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
-                return '<tr><td>' + escapeHtml(k) + '</td><td class="text-end">' + escapeHtml(String(amount)) + '</td></tr>';
+                var ovTitle = escapeHtml((KERNEL_STYLE_DESCRIPTION[k] || k) + '. Total remaining cartons (all batches).').replace(/"/g, '&quot;');
+                return '<tr><td class="kernel-style-col" title="' + ovTitle + '">' + escapeHtml(k) + '</td><td class="text-end">' + escapeHtml(String(amount)) + '</td></tr>';
             }).join('');
             tbody.innerHTML = rows || '<tr><td colspan="2" class="text-center text-muted py-4">No data.</td></tr>';
         },
@@ -1321,7 +1374,7 @@ var _stockManagementGrid = function () {
                     '<td>' + (l.status || '') + '</td>' +
                     '<td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-info oil-batch-ingredients-btn" data-oil-batch-number="' + escapeHtml(String(l.batch_number || '')) + '" title="Ingredients used for this batch"><i class="fas fa-carrot"></i></button> ' +
                     '<button type="button" class="btn btn-sm btn-outline-primary adjust-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Adjust stock on hand"><i class="fas fa-balance-scale"></i></button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary edit-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Edit"><i class="fas fa-edit"></i></button> <button type="button" class="btn btn-sm btn-outline-danger delete-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Remove"><i class="fas fa-trash"></i></button></td>';
+                    '<button type="button" class="btn btn-sm btn-outline-primary edit-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Edit lot details"><i class="fas fa-edit me-1"></i>Edit</button> <button type="button" class="btn btn-sm btn-outline-danger delete-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Delete batch (soft delete)"><i class="fas fa-trash me-1"></i>Delete</button></td>';
                 tbody.appendChild(tr);
             }
 
@@ -1457,16 +1510,133 @@ var _stockManagementGrid = function () {
 
         deleteOilLot: function (lotId) {
             var scope = _stockManagementGrid;
-            Swal.fire({ title: 'Remove oil lot?', text: 'This will hide the lot from the ledger (soft delete).', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, remove', cancelButtonText: 'Cancel' }).then(function (confirm) {
+            Swal.fire({ title: 'Delete oil lot?', text: 'This will hide the lot from the ledger (soft delete).', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete', cancelButtonText: 'Cancel' }).then(function (confirm) {
                 if (!confirm.isConfirmed) return;
                 dataFunctions.deactivateOilStockLot(lotId).then(function (result) {
                     if (result && result.success !== false) {
-                        Swal.fire('Removed', 'Oil lot removed', 'success');
+                        Swal.fire('Deleted', 'Oil lot removed from stock view.', 'success');
                         scope.loadOilLotsAndSummary(true);
-                    } else Swal.fire('Error', (result && (result.error || result.message)) || 'Failed to remove oil lot', 'error');
+                    } else Swal.fire('Error', (result && (result.error || result.message)) || 'Failed to delete oil lot', 'error');
                 }).catch(function (e) {
                     console.error('[Stock Management] deleteOilLot failed:', e);
-                    Swal.fire('Error', e.message || 'Failed to remove oil lot', 'error');
+                    Swal.fire('Error', e.message || 'Failed to delete oil lot', 'error');
+                });
+            });
+        },
+
+        promptEditKernelBatch: function (kernelId) {
+            var scope = _stockManagementGrid;
+            if (!kernelId || typeof Swal === 'undefined') return;
+            var b = (scope.kernelFinishedBatches || []).find(function (x) { return kernelIdFromBatch(x) === String(kernelId); });
+            if (!b) {
+                Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
+                return;
+            }
+            var bn = (b.batch_number || '').toString();
+            var gn = (b.grower_name || '').toString();
+            var rd = isoDateOnlyForInput(b.received_date);
+            var wetStr = (b.wet_nis_received_kg != null && b.wet_nis_received_kg !== '')
+                ? String(typeof b.wet_nis_received_kg === 'number' ? b.wet_nis_received_kg : parseFloat(b.wet_nis_received_kg))
+                : '';
+            if (wetStr && isNaN(parseFloat(wetStr))) wetStr = '';
+            var ffaStr = (b.ffa != null && b.ffa !== '') ? String(typeof b.ffa === 'number' ? b.ffa : parseFloat(b.ffa)) : '';
+            if (ffaStr && isNaN(parseFloat(ffaStr))) ffaStr = '';
+            var bb = isoDateOnlyForInput(b.best_before_date);
+            Swal.fire({
+                title: 'Edit batch',
+                width: 520,
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                focusConfirm: false,
+                html:
+                    '<div class="text-start">' +
+                    '<label class="form-label">Batch number <span class="text-danger">*</span></label>' +
+                    '<input id="swalKStockBn" class="form-control mb-2" value="' + escapeHtml(bn) + '" autocomplete="off">' +
+                    '<label class="form-label">Grower / supplier name</label>' +
+                    '<input id="swalKStockGrower" class="form-control mb-2" value="' + escapeHtml(gn) + '">' +
+                    '<label class="form-label">Received date</label>' +
+                    '<input id="swalKStockRd" type="date" class="form-control mb-2" value="' + escapeHtml(rd) + '">' +
+                    '<label class="form-label">Wet NIS received (kg)</label>' +
+                    '<input id="swalKStockWet" type="number" step="0.01" min="0" class="form-control mb-2" value="' + escapeHtml(wetStr) + '">' +
+                    '<label class="form-label">FFA (QA)</label>' +
+                    '<input id="swalKStockFfa" type="number" step="0.01" min="0" class="form-control mb-2" value="' + escapeHtml(ffaStr) + '" placeholder="Optional">' +
+                    '<label class="form-label">Best before date</label>' +
+                    '<input id="swalKStockBb" type="date" class="form-control" value="' + escapeHtml(bb) + '">' +
+                    '<p class="small text-muted mt-2 mb-0">Leave FFA or best before empty to leave them unchanged. Clearing Wet NIS or received date removes the stored value.</p>' +
+                    '</div>',
+                preConfirm: function () {
+                    var bnV = ((document.getElementById('swalKStockBn') || {}).value || '').trim();
+                    if (!bnV) {
+                        Swal.showValidationMessage('Batch number is required');
+                        return false;
+                    }
+                    var rdV = (document.getElementById('swalKStockRd') || {}).value || '';
+                    var wetRaw = ((document.getElementById('swalKStockWet') || {}).value || '').trim();
+                    var wet = wetRaw === '' ? null : parseFloat(wetRaw);
+                    if (wetRaw !== '' && (!isFinite(wet) || wet < 0)) {
+                        Swal.showValidationMessage('Wet NIS must be a valid non-negative number');
+                        return false;
+                    }
+                    var ffaRaw = ((document.getElementById('swalKStockFfa') || {}).value || '').trim();
+                    var ffa = ffaRaw === '' ? null : parseFloat(ffaRaw);
+                    if (ffaRaw !== '' && (!isFinite(ffa) || ffa < 0)) {
+                        Swal.showValidationMessage('FFA must be a valid non-negative number');
+                        return false;
+                    }
+                    var bbV = ((document.getElementById('swalKStockBb') || {}).value || '').trim();
+                    return {
+                        batch_number: bnV,
+                        grower_name: (document.getElementById('swalKStockGrower') || {}).value || '',
+                        received_date: rdV.trim() === '' ? null : rdV.trim(),
+                        wet_nis_received_kg: wet,
+                        ffa: ffa,
+                        best_before_date: bbV === '' ? null : bbV
+                    };
+                }
+            }).then(function (res) {
+                if (!res || !res.isConfirmed || !res.value) return;
+                var df = (typeof dataFunctions !== 'undefined' && dataFunctions) ? dataFunctions : null;
+                if (!df || !df.updateKernelStockBatchInfo) {
+                    Swal.fire('Error', 'Save is not available. Apply the latest database migration and refresh.', 'error');
+                    return;
+                }
+                df.updateKernelStockBatchInfo(kernelId, res.value).then(function (result) {
+                    if (result && result.success === false) throw new Error(result.error || 'Save failed');
+                    Swal.fire({ icon: 'success', title: 'Saved', timer: 1600, showConfirmButton: false });
+                    scope.loadKernelBatches(true);
+                }).catch(function (e) {
+                    console.error('[Stock Management] promptEditKernelBatch failed:', e);
+                    Swal.fire('Error', e.message || 'Failed to save', 'error');
+                });
+            });
+        },
+
+        deleteKernelBatch: function (kernelId, batchLabel) {
+            var scope = _stockManagementGrid;
+            if (!kernelId) return;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.deactivateKernelBatch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete is not available. Please refresh.', 'error');
+                return;
+            }
+            var label = (batchLabel && String(batchLabel).trim()) ? String(batchLabel).trim() : 'this batch';
+            Swal.fire({
+                title: 'Delete kernel batch?',
+                html: 'Remove <strong>' + escapeHtml(label) + '</strong> from stock? It will be hidden from lists (soft delete).',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete',
+                cancelButtonText: 'Cancel'
+            }).then(function (res) {
+                if (!res.isConfirmed) return;
+                dataFunctions.deactivateKernelBatch(kernelId).then(function (result) {
+                    var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
+                    if (inner && inner.success === false) throw new Error(inner.error || 'Delete failed');
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Batch deleted', text: label + ' has been removed from stock.', timer: 2000, showConfirmButton: false });
+                    scope.loadKernelBatches(true);
+                }).catch(function (e) {
+                    console.error('[Stock Management] deleteKernelBatch failed:', e);
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to delete batch', 'error');
                 });
             });
         },

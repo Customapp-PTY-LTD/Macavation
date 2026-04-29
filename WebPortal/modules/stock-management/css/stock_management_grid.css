@@ -24,6 +24,16 @@
     overflow: visible !important;
 }
 #kernelStockByStyleTable .kernel-qty-cell { overflow: visible !important; }
+/* Kernel style columns: native title tooltips name the grade; help cursor except adjust mode (pointer). */
+#kernelStockByStyleTable th.kernel-style-col,
+#kernelStockByStyleTable td.kernel-style-col,
+#ksWeeklyTable th.kernel-style-col,
+#ksWeeklyTable td.kernel-style-col {
+    cursor: help;
+}
+#kernelStockByStyleTable td[data-kernel-stock-adjust="1"].kernel-style-col {
+    cursor: pointer;
+}
 /* Adjust-stock mode: stop the browser from treating quantities as selectable text (steals clicks). */
 #kernelStockByStyleTable td[data-kernel-stock-adjust="1"],
 #kernelStockByStyleTable td[data-kernel-stock-adjust="1"] .kernel-stock-adjust-value {

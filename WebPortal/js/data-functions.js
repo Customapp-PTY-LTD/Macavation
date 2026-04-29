@@ -1918,6 +1918,54 @@ var _dataFunctions = function () {
         },
 
         /**
+         * updateKernelStockBatchInfo — edit batch number, grower, received date, wet NIS, FFA, best before (stock management).
+         * @param {string} kernelId
+         * @param {object} payload - { batch_number, grower_name, received_date, wet_nis_received_kg, ffa?, best_before_date? }
+         */
+        updateKernelStockBatchInfo: async function (kernelId, payload, token = null) {
+            const params = {
+                p_kernel_id: kernelId,
+                p_batch_number: payload && payload.batch_number != null ? String(payload.batch_number).trim() : null,
+                p_grower_name: payload && payload.grower_name != null ? payload.grower_name : null,
+                p_received_date: payload && payload.received_date ? payload.received_date : null,
+                p_wet_nis_received_kg: payload && payload.wet_nis_received_kg != null && payload.wet_nis_received_kg !== ''
+                    ? Number(payload.wet_nis_received_kg)
+                    : null,
+                p_best_before_date: payload && payload.best_before_date ? payload.best_before_date : null,
+                p_ffa: payload && payload.ffa != null && payload.ffa !== '' ? Number(payload.ffa) : null
+            };
+            let result = await this.callFunction('update_kernel_stock_batch_info', params, token, { useCache: false });
+            if (result && result.offline && result.queued) {
+                throw new Error('Cannot save while offline. Connect and try again.');
+            }
+            let r = result;
+            for (let i = 0; i < 10 && r && typeof r === 'object' && !Array.isArray(r); i++) {
+                if (r.update_kernel_stock_batch_info !== undefined) r = r.update_kernel_stock_batch_info;
+                else if (r.UpdateKernelStockBatchInfo !== undefined) r = r.UpdateKernelStockBatchInfo;
+                else if (r.data !== undefined) r = r.data;
+                else if (r.Data !== undefined) r = r.Data;
+                else if (r.result !== undefined) r = r.result;
+                else if (r.Result !== undefined) r = r.Result;
+                else if (r.body !== undefined) r = r.body;
+                else if (r.Body !== undefined) r = r.Body;
+                else break;
+            }
+            if (typeof r === 'string') {
+                try {
+                    r = JSON.parse(r);
+                } catch (e) { /* keep */ }
+            }
+            result = r;
+            if (result && typeof result === 'object') {
+                if (result.success === undefined && result.Success !== undefined) result.success = result.Success;
+                if (result.error === undefined && result.Error !== undefined) result.error = result.Error;
+            }
+            this.clearCachePattern('kernel_batch_detail_' + kernelId);
+            this.clearCachePattern('kernel_batches');
+            return result;
+        },
+
+        /**
          * deactivateKernelBatch — soft delete: set kernel.is_active = false. Batch is hidden from all lists.
          * Used by: Kernel Production and Grower Intake "Delete batch" actions.
          */
