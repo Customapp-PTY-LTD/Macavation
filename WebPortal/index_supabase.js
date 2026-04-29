@@ -1205,18 +1205,41 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
     };
   }
 
-  // RBAC Permission Check (even for exempted users)
-  const rbacResult = await checkUserPermission(user, 'function', functionName, 'EXECUTE', requestId);
-  if (!rbacResult.allowed) {
-    logger.security('RBAC permission denied for FUNCTION', {
+  // Document Management module: all authenticated users may call these RPCs (matches DB grants in
+  // migrations; avoids "operation EXECUTE is not allowed" when role_permissions rows are missing
+  // or out of sync for a role). Not the same as project documentation / get_project_documentation.
+  const documentManagementFunctions = new Set([
+    'get_documents',
+    'get_document_by_id',
+    'create_document_simple',
+    'update_document_simple',
+    'delete_document_hard',
+    'get_document_categories',
+    'create_document_category_simple',
+    'delete_document_category_simple'
+  ]);
+  const skipRbacForDocumentModule = documentManagementFunctions.has(functionName) && !user.exempted;
+
+  if (!skipRbacForDocumentModule) {
+    // RBAC Permission Check (even for exempted users)
+    const rbacResult = await checkUserPermission(user, 'function', functionName, 'EXECUTE', requestId);
+    if (!rbacResult.allowed) {
+      logger.security('RBAC permission denied for FUNCTION', {
+        requestId,
+        userId: user.sub,
+        email: user.email,
+        functionName,
+        role: rbacResult.role,
+        reason: rbacResult.message
+      });
+      return createRBACDeniedResponse(rbacResult, requestId, origin);
+    }
+  } else {
+    logger.info('Document management RPC — RBAC skipped for authenticated user', {
       requestId,
-      userId: user.sub,
-      email: user.email,
       functionName,
-      role: rbacResult.role,
-      reason: rbacResult.message
+      userId: user.sub
     });
-    return createRBACDeniedResponse(rbacResult, requestId, origin);
   }
 
   logger.info('Function proxy called', {
