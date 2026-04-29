@@ -35,7 +35,9 @@ BEGIN
         SELECT 1
         FROM public.kernel k
         JOIN public.batches b ON b.id = k.batch_id
-        WHERE b.batch_type = 'kernel'
+        WHERE k.is_active = true
+          AND b.is_active = true
+          AND b.batch_type = 'kernel'
           AND b.batch_id ~ ('^Bn [0-9]{2} ' || lpad(v_year2::text, 2, '0') || ' ' || lpad(gs.seq::text, 2, '0') || '$')
     )
     ORDER BY gs.seq

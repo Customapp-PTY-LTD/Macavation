@@ -40,7 +40,9 @@ BEGIN
 
     IF EXISTS (
         SELECT 1 FROM public.batches b
-        WHERE b.batch_id = v_new_bn AND b.id <> v_batch_uuid
+        WHERE b.batch_id = v_new_bn
+          AND b.id <> v_batch_uuid
+          AND b.is_active = true
     ) THEN
         RETURN jsonb_build_object('success', false, 'error', 'That batch number is already in use');
     END IF;
