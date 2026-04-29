@@ -3614,6 +3614,13 @@ var _dataFunctions = function () {
                         lines = [];
                     }
                 }
+                if (order.record != null && typeof order.record === 'string') {
+                    try {
+                        order.record = JSON.parse(order.record);
+                    } catch (e) {
+                        order.record = null;
+                    }
+                }
                 return { order: order, lines: Array.isArray(lines) ? lines : [] };
             }
             return null;
@@ -3689,6 +3696,13 @@ var _dataFunctions = function () {
                     try { lines = JSON.parse(lines); } catch (e) { lines = []; }
                 }
                 if (!Array.isArray(lines)) lines = [];
+                if (order.record != null && typeof order.record === 'string') {
+                    try {
+                        order.record = JSON.parse(order.record);
+                    } catch (e) {
+                        order.record = null;
+                    }
+                }
                 return { order: order, lines: lines };
             }
             return null;

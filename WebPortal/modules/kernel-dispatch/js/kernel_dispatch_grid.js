@@ -1,6 +1,6 @@
 /**
  * Kernel Dispatch - INV from KERNEL R YES → KERNEL CUSTOMERS → DEBTORS.
- * Lists dispatch orders (baskets) created from Stock (Kernel). View basket shows styles per batch.
+ * Lists dispatch orders (baskets) created from Stock (Kernel). View sheet opens the full dispatch form with lines and record.
  */
 var _kernelDispatchGrid = function () {
     'use strict';
@@ -36,8 +36,8 @@ var _kernelDispatchGrid = function () {
                 scope._handlersBound = true;
                 $(document).on('click', '.js-view-dispatch-order', function () {
                     var id = $(this).data('order-id');
-                    if (id && typeof _modal_kernel_dispatch !== 'undefined' && _modal_kernel_dispatch.showOrder) {
-                        _modal_kernel_dispatch.showOrder(id);
+                    if (id && typeof _modal_kernel_dispatch_form !== 'undefined' && _modal_kernel_dispatch_form.show) {
+                        _modal_kernel_dispatch_form.show(id);
                     }
                 });
                 $(document).on('click', '.js-dispatch-order', function () {
@@ -112,7 +112,7 @@ var _kernelDispatchGrid = function () {
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = KanbanHelper.statusBadge(o.status || 'confirmed', 'first');
-                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order me-1" data-order-id="' + (o.id || '') + '"><i class="fas fa-box me-1"></i>View basket</button>';
+                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order me-1" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
                     var editBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatch-order me-1" data-order-id="' + (o.id || '') + '">Edit</button>';
                     var dispatchBtn = '<button type="button" class="btn btn-sm btn-success js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Dispatch</button>';
                     pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="text-nowrap">' + statusBadge + ' ' + viewBtn + editBtn + dispatchBtn + '</td></tr>');
@@ -131,7 +131,7 @@ var _kernelDispatchGrid = function () {
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = KanbanHelper.statusBadge('dispatched', 'last');
-                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-box me-1"></i>View basket</button>';
+                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
                     dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + '</td></tr>');
                 });
             }
@@ -178,7 +178,7 @@ var _kernelDispatchGrid = function () {
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + totalKg + ' kg</div>';
                 html += '</div>';
                 html += '<div class="kanban-card-actions">';
-                html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-box me-1"></i>View</button>';
+                html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet"><i class="fas fa-clipboard-list me-1"></i>View</button>';
                 if (!isDispatched) {
                     html += '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatch-order me-1" data-order-id="' + (o.id || '') + '">Edit</button>';
                     html += '<button type="button" class="btn btn-sm btn-success js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Dispatch</button>';

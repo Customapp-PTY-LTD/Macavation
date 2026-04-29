@@ -1,7 +1,7 @@
 /**
  * Oil & Protein Dispatch - INV from OIL PROTEIN R YES → FEED+OIL+PROTEIN CUSTOMERS → DEBTORS.
  * Lists dispatch orders (baskets) created from Stock (Oil). View basket shows products/lines per order.
- * Mirrors Kernel Dispatch: same layout, flow, Board/Table, Kanban, View basket + Dispatch.
+ * Mirrors Kernel Dispatch: same layout, flow, Board/Table, Kanban, View sheet + Dispatch.
  */
 var _oilDispatchGrid = function () {
     'use strict';
@@ -37,8 +37,8 @@ var _oilDispatchGrid = function () {
                 scope._handlersBound = true;
                 $(document).on('click', '.js-view-oil-dispatch-order', function () {
                     var id = $(this).data('order-id');
-                    if (id && typeof _modal_oil_dispatch !== 'undefined' && _modal_oil_dispatch.showOrder) {
-                        _modal_oil_dispatch.showOrder(id);
+                    if (id && typeof _modal_oil_dispatch_form !== 'undefined' && _modal_oil_dispatch_form.show) {
+                        _modal_oil_dispatch_form.show(id);
                     }
                 });
                 $(document).on('click', '.js-dispatch-oil-order', function () {
@@ -105,7 +105,7 @@ var _oilDispatchGrid = function () {
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = typeof KanbanHelper !== 'undefined' ? KanbanHelper.statusBadge(o.status || 'confirmed', 'first') : '<span class="badge bg-secondary">' + (o.status || 'confirmed') + '</span>';
-                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order me-1" data-order-id="' + (o.id || '') + '" title="View basket"><i class="fas fa-box me-1"></i>View basket</button>';
+                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order me-1" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
                     var dispatchBtn = '<button type="button" class="btn btn-sm btn-success js-dispatch-oil-order" data-order-id="' + (o.id || '') + '" title="Complete inspection and dispatch"><i class="fas fa-truck me-1"></i>Dispatch</button>';
                     pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + dispatchBtn + '</td></tr>');
                 });
@@ -123,7 +123,7 @@ var _oilDispatchGrid = function () {
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = typeof KanbanHelper !== 'undefined' ? KanbanHelper.statusBadge('dispatched', 'last') : '<span class="badge bg-success">dispatched</span>';
-                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order" data-order-id="' + (o.id || '') + '" title="View basket"><i class="fas fa-box me-1"></i>View basket</button>';
+                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
                     dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + '</td></tr>');
                 });
             }
@@ -170,7 +170,7 @@ var _oilDispatchGrid = function () {
                 html += '<div class="kanban-card-meta-item"><i class="fas fa-weight-hanging"></i> ' + totalKg + ' kg</div>';
                 html += '</div>';
                 html += '<div class="kanban-card-actions">';
-                html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order" data-order-id="' + (o.id || '') + '" title="View basket"><i class="fas fa-box me-1"></i>View</button>';
+                html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet"><i class="fas fa-clipboard-list me-1"></i>View</button>';
                 if (!isDispatched) {
                     html += '<button type="button" class="btn btn-sm btn-success js-dispatch-oil-order" data-order-id="' + (o.id || '') + '" title="Complete inspection and dispatch"><i class="fas fa-truck me-1"></i>Dispatch</button>';
                 }

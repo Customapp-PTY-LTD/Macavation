@@ -4,27 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Macavation User Guide</title>
-  <link rel="stylesheet" href="help-return-bar.css" />
   <link rel="stylesheet" href="help-shell.css" />
 </head>
 <body>
   <div id="guide-single-bar">
     <div class="single-bar-top">
       <span class="single-title"></span>
-      <div class="single-bar-links">
-        <a href="help-index.html" class="btn-link secondary">Documentation index</a>
-        <a href="index.html?full=1" class="btn-link secondary" data-action="full-guide">Full user guide</a>
-      </div>
+      <a href="index.html?full=1" class="btn-link secondary" data-action="full-guide">Full user guide</a>
     </div>
   </div>
 
   <h1 id="guide-main-title">Macavation User Guide</h1>
-  <p id="guide-hub-strip" class="guide-hub-strip">
-    <a href="help-index.html">Documentation index</a>
-    <span class="guide-hub-sep" aria-hidden="true">·</span>
-    <a href="user-manual.html">User manual (by module)</a>
-  </p>
-  <p id="guide-intro">Use the <strong>sticky bar at the top</strong> to return to the <a href="help-index.html">documentation index</a>, open the <a href="user-manual.html">user manual</a>, or go back to the <a href="../index.html">Web Portal</a>. From the portal, <strong>Help</strong> opens this page in a <strong>new tab</strong>. This topic explains what the screen is for, how to work through it, and—where relevant—<strong>numbered steps</strong>. Open the <strong>full user guide</strong> for every section and the table of contents. For a printable module-by-module reference, use the <a href="user-manual.html">User manual (by module)</a> (each chapter has <strong>previous</strong> and <strong>next</strong> links).</p>
+  <p id="guide-intro">Use <strong>Help</strong> for this topic: what it is for, how to work through it, and—where relevant—<strong>numbered steps</strong> for that screen. Open the <strong>full user guide</strong> for every section and the table of contents.</p>
 
   <div id="guide-toc">
     <h2>Contents</h2>
@@ -140,9 +131,8 @@
       <li>Open <strong>Batch journey</strong> when you know a batch id or grower but not which module currently owns the work.</li>
       <li>Type in the search field (batch, grower, etc.); set <strong>Status</strong> and <strong>Sort</strong> (newest, by status, by grower, weight, moisture) to shorten the list.</li>
       <li>Read the <strong>Status</strong> column for Intake, Receiving, Production, QA, Dispatch, or Complete.</li>
-      <li>Click a <strong>row</strong> (outside <strong>Edit</strong>) to open batch history.</li>
-      <li>Use <strong>Edit</strong> at the end of a row for actions: <strong>Delete permanently</strong> removes that kernel batch from the database (irreversible). Prefer soft delete from Grower Intake / Kernel Production when you only need to hide a batch.</li>
-      <li>Use links from batch history or owning modules to jump into intake, production, QA, or dispatch.</li>
+      <li>Click the <strong>batch number</strong> link to open detail or the next workflow screen.</li>
+      <li>Use row actions or links from detail to jump straight into intake, production, QA, or dispatch—complete the action there, then return to Batch journey if you need another batch.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/batch-journey-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -254,7 +244,6 @@
     <ol class="guide-page-steps">
       <li>Open from CRM: <strong>Add contact</strong> or when editing an existing row.</li>
       <li>Pick or confirm the contact type tab context (NIS supplier, oil customer, etc.) so the record lands in the right list.</li>
-      <li>For <strong>NIS supplier</strong>, <strong>Supplier (Legacy)</strong>, or <strong>Both (Legacy)</strong>, set <strong>Supplier code (NIS #)</strong> (whole numbers 0–99). This code is the SS segment in suggested kernel batch numbers (Bn SS YY NN).</li>
       <li>Complete identity fields, phones, emails, and addresses as your dispatch and finance teams expect.</li>
       <li>Save; the grid refreshes and downstream modules (intake, dispatch) can pick up the contact immediately.</li>
     </ol>
@@ -511,7 +500,7 @@
     <ol class="guide-page-steps">
       <li>Open <strong>Kernel dispatch</strong>; use <strong>Board</strong> vs <strong>Table</strong> and <strong>Refresh</strong> to align with how your despatch team works.</li>
       <li>Remember the flow: inventory from finished warehouse <strong>KERNEL R YES</strong> moves to <strong>Kernel customers</strong> and debtors—baskets are built from stock sends.</li>
-      <li>In table view, open <strong>View basket</strong> to check styles and quantities before loading; use <strong>Dispatch</strong> to complete inspection and dispatch forms.</li>
+      <li>In table or board view, open <strong>View sheet</strong> to see the full dispatch form: basket lines plus vehicle checks, driver, transport, and signatures. Use <strong>Dispatch</strong> to complete and save the same form for orders not yet dispatched.</li>
       <li>Review the <strong>Baskets marked as dispatched</strong> section for completed paperwork and proof of shipment.</li>
       <li>If quantities are wrong, fix stock or the basket in <strong>Stock management</strong> rather than forcing a dispatch through.</li>
     </ol>
@@ -520,13 +509,30 @@
     </figure>
   </section>
 
+  <section id="modal-kernel-dispatch-edit" class="guide-section" data-guide-id="modal-kernel-dispatch-edit">
+    <h2>Kernel Dispatch Edit (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open this dialog from the parent screen (toolbar, card, or row action)—not from the sidebar on its own.</li>
+      <li>Read the title and any short instructions; required fields are usually marked (e.g. with <strong>*</strong>).</li>
+      <li>Fill the form using dropdowns, dates, and lookups where offered so values match what the database expects.</li>
+      <li>Click the primary <strong>Save</strong> / <strong>Submit</strong> button to apply changes, or <strong>Cancel</strong> / close (×) to discard.</li>
+      <li>If validation errors appear, fix the highlighted fields and submit again before leaving the dialog.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-kernel-dispatch-edit.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
   <section id="modal-kernel-dispatch-form" class="guide-section" data-guide-id="modal-kernel-dispatch-form">
     <h2>Kernel Dispatch Form (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open when completing inspection and dispatch paperwork for a kernel order.</li>
-      <li>Fill vehicle, seal, weight checks, and sign-offs as your logistics SOP requires.</li>
+      <li>Open from <strong>Kernel Dispatch</strong> via <strong>Dispatch</strong> or <strong>View sheet</strong>. The top section lists basket lines (batch, style, quantity).</li>
+      <li>Fill vehicle checks, driver, truck registration, transport company, delivery note, date and time, and signatures as your logistics SOP requires.</li>
+      <li>Orders already marked <strong>dispatched</strong> open read-only (saved record only—no save).</li>
       <li>Submit only after physical load matches the basket; fixes go back to stock or the basket, not forged paperwork.</li>
     </ol>
     <figure class="guide-shot">
@@ -565,6 +571,22 @@
     </figure>
   </section>
 
+  <section id="kernel-production-forecast-grid" class="guide-section" data-guide-id="kernel-production-forecast-grid">
+    <h2>Kernel Production Forecast (module)</h2>
+<p class="guide-lead">Module <strong>Kernel Production Forecast (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
+    <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open this module from the sidebar when your role includes access.</li>
+      <li>Use search, filters, and <strong>Clear</strong> (if shown) to find the rows you need.</li>
+      <li>Use toolbar buttons (add, export, refresh) for actions that create new records or refresh the whole list.</li>
+      <li>Use row actions or links inside each row to open detail, edit, or the next step in the workflow.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/kernel-production-forecast-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
   <section id="material-journey-dashboard" class="guide-section" data-guide-id="material-journey-dashboard">
     <h2>Material journey dashboard</h2>
 <p class="guide-lead">Tracks material movement and alerts for integrator-style roles. Use <strong>Refresh</strong> to reload cards.</p>
@@ -597,6 +619,22 @@
     </figure>
   </section>
 
+  <section id="modal-oil-bulk-add-stock" class="guide-section" data-guide-id="modal-oil-bulk-add-stock">
+    <h2>Oil Bulk Add Stock (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open this dialog from the parent screen (toolbar, card, or row action)—not from the sidebar on its own.</li>
+      <li>Read the title and any short instructions; required fields are usually marked (e.g. with <strong>*</strong>).</li>
+      <li>Fill the form using dropdowns, dates, and lookups where offered so values match what the database expects.</li>
+      <li>Click the primary <strong>Save</strong> / <strong>Submit</strong> button to apply changes, or <strong>Cancel</strong> / close (×) to discard.</li>
+      <li>If validation errors appear, fix the highlighted fields and submit again before leaving the dialog.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-oil-bulk-add-stock.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
   <section id="modal-oil-dispatch" class="guide-section" data-guide-id="modal-oil-dispatch">
     <h2>Oil Dispatch (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
@@ -621,6 +659,7 @@
     <ol class="guide-page-steps">
       <li>Open <strong>Oil &amp; protein dispatch</strong> from the menu (mirror of kernel dispatch for the finished oil/protein warehouse).</li>
       <li>Use the same board/table pattern and refresh habit as kernel dispatch.</li>
+      <li>Use <strong>View sheet</strong> for the full dispatch form (basket lines, vehicle checks, driver and transport details); use <strong>Dispatch</strong> to complete an order not yet shipped.</li>
       <li>Build or review baskets from released oil lots; complete inspection and dispatch forms before the truck leaves.</li>
       <li>Ensure oil lots are released and available in stock before you add them to a load.</li>
     </ol>
@@ -634,8 +673,9 @@
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open for oil/protein inspection and despatch paperwork.</li>
-      <li>Complete checks, signatures, and transport details; submit when the load is true.</li>
+      <li>Open from <strong>Oil Dispatch</strong> via <strong>Dispatch</strong> or <strong>View sheet</strong>. Basket lines appear at the top (batch, product, quantity).</li>
+      <li>Complete vehicle checks, signatures, and transport details; dispatched orders open read-only.</li>
+      <li>Submit when the load is true.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-oil-dispatch-form.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -670,6 +710,22 @@
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/oil-production-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="oil-production-forecast-grid" class="guide-section" data-guide-id="oil-production-forecast-grid">
+    <h2>Oil Production Forecast (module)</h2>
+<p class="guide-lead">Module <strong>Oil Production Forecast (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
+    <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open this module from the sidebar when your role includes access.</li>
+      <li>Use search, filters, and <strong>Clear</strong> (if shown) to find the rows you need.</li>
+      <li>Use toolbar buttons (add, export, refresh) for actions that create new records or refresh the whole list.</li>
+      <li>Use row actions or links inside each row to open detail, edit, or the next step in the workflow.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/oil-production-forecast-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
@@ -933,8 +989,8 @@
     <ol class="guide-page-steps">
       <li>Open <strong>Stock management</strong>; note whether you are on the <strong>Kernel</strong> or <strong>Oil &amp; protein</strong> stream (subtitle and filters adapt).</li>
       <li>For the main stock table: use <strong>Search</strong>, <strong>Status</strong>, <strong>Product type</strong>, and <strong>Location</strong> (warehouse section); click <strong>Clear</strong> to reset.</li>
-      <li>On <strong>Kernel batch journey</strong>: use <strong>By style</strong> / <strong>Weekly</strong> / <strong>Overview</strong>; select lines and use <strong>Send to Dispatch</strong> only when physical stock matches the system. On <strong>By style</strong>, each batch row can <strong>Edit</strong> (batch number, grower, dates, FFA, best before), <strong>Send back to production</strong>, or <strong>Delete</strong> (soft delete — hides the batch from stock lists).</li>
-      <li>For oil: add or import oil lots (e.g. from Excel) and monitor days-remaining from best-before where shown; in the oil and protein stock tables, use <strong>Edit</strong> to change a lot and <strong>Delete</strong> to soft-delete it from the ledger when allowed; use export when you need a file copy.</li>
+      <li>On <strong>Kernel batch journey</strong>: use <strong>By style</strong> / <strong>Weekly</strong> / <strong>Overview</strong>; select lines and use <strong>Send to Dispatch</strong> only when physical stock matches the system.</li>
+      <li>For oil: add or import oil lots (e.g. from Excel) and monitor days-remaining from best-before where shown; use export when you need a file copy.</li>
       <li>Use <strong>Import historical</strong> only for the controlled kernel historical load your admin approved—never as a substitute for normal intake and production postings.</li>
     </ol>
     <figure class="guide-shot">
@@ -965,12 +1021,27 @@
       <li>Open <strong>Supplier intake</strong> from the menu.</li>
       <li>Use search, status filter, and <strong>Clear</strong>; choose <strong>Board</strong>, <strong>Table</strong>, <strong>Weekly</strong>, or <strong>Overview</strong> from the view toggle.</li>
       <li>Start new oil-side deliveries with <strong>Receiver checklist</strong>; that creates the batch you will track through sample tests.</li>
-      <li><strong>Adjust stock</strong> uses the same date rule: capture <strong>manufactured date</strong> and the system auto-calculates <strong>best before</strong> as <strong>+18 months</strong>.</li>
       <li>Complete sample tests from the card/table when the UI enables them; status moves toward ready for oil production.</li>
       <li>Use <strong>Export</strong> when you need to share the current intake list outside the app.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/supplier-intake-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="modal-supplier-intake-adjust-stock" class="guide-section" data-guide-id="modal-supplier-intake-adjust-stock">
+    <h2>Supplier Intake Adjust Stock (dialog)</h2>
+<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open this dialog from the parent screen (toolbar, card, or row action)—not from the sidebar on its own.</li>
+      <li>Read the title and any short instructions; required fields are usually marked (e.g. with <strong>*</strong>).</li>
+      <li>Fill the form using dropdowns, dates, and lookups where offered so values match what the database expects.</li>
+      <li>Click the primary <strong>Save</strong> / <strong>Submit</strong> button to apply changes, or <strong>Cancel</strong> / close (×) to discard.</li>
+      <li>If validation errors appear, fix the highlighted fields and submit again before leaving the dialog.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/modal-supplier-intake-adjust-stock.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
@@ -994,9 +1065,7 @@
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from supplier intake via <strong>Receiver checklist</strong> to start a new supplier oil delivery.</li>
-      <li>Capture delivery note, supplier from CRM, quantities, product type, and <strong>manufactured date</strong> for each bag.</li>
-      <li><strong>Best before date</strong> is calculated automatically as <strong>18 months after manufactured date</strong>.</li>
-      <li><strong>Add bag</strong> asks how many rows to create, copies values from the first bag row, and auto-increments the batch number sequence for each new row.</li>
+      <li>Capture delivery note, supplier from CRM, quantities, and product type.</li>
       <li>Submit to create the batch that will appear on the board for sample testing and release to oil production.</li>
     </ol>
     <figure class="guide-shot">
@@ -1138,7 +1207,6 @@
     </figure>
   </section>
 
-  <script src="help-return-inject.js" defer></script>
   <script src="help-shell.js" defer></script>
 </body>
 </html>
