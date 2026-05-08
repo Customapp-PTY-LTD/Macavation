@@ -27,30 +27,52 @@ class AuthService {
     }
 
     /**
-     * Returns true when current user should always see oil modules.
+     * Returns normalized user identity fields for override matching.
      */
-    userHasOilModuleOverride() {
+    getNormalizedUserIdentity() {
         const user = Session.get('user') || this.userInfo || {};
         const normalized = function (value) {
             return (value || '').toString().trim().toLowerCase();
         };
-        const email = normalized(user.email);
-        const username = normalized(user.username);
-        const firstName = normalized(user.first_name);
-        const fullName = normalized(user.full_name);
-        const displayName = normalized(user.name);
+        return {
+            email: normalized(user.email || user.user_email || user.email_address),
+            username: normalized(user.username || user.user_name || user.login),
+            firstName: normalized(user.first_name),
+            lastName: normalized(user.last_name),
+            fullName: normalized(user.full_name || user.name || ((user.first_name || '') + ' ' + (user.last_name || ''))),
+            displayName: normalized(user.display_name || user.name)
+        };
+    }
 
+    /**
+     * Returns feature keys that should always be enabled for selected users.
+     */
+    getFeatureKeyOverridesForUser() {
+        const identity = this.getNormalizedUserIdentity();
         const overrideEmails = new Set([
             'peter.symons@macavation.co.za',
             'mark.payne@macavation.co.za'
         ]);
+        const overrideUsernames = new Set(['pete', 'mark', 'peter.symons', 'mark.payne']);
+        const overrideFullNames = new Set(['pete', 'mark', 'peter symons', 'mark payne']);
 
-        if (overrideEmails.has(email)) return true;
-        if (username === 'pete' || username === 'mark') return true;
-        if (firstName === 'pete' || firstName === 'mark') return true;
-        if (fullName === 'pete' || fullName === 'mark') return true;
-        if (displayName === 'pete' || displayName === 'mark') return true;
-        return false;
+        const isOverrideUser =
+            overrideEmails.has(identity.email) ||
+            overrideUsernames.has(identity.username) ||
+            overrideFullNames.has(identity.firstName) ||
+            overrideFullNames.has(identity.fullName) ||
+            overrideFullNames.has(identity.displayName);
+
+        if (!isOverrideUser) return [];
+
+        return [
+            'crm-grid',
+            'supplier-intake-grid',
+            'oil-production-grid',
+            'oil-production-forecast-grid',
+            'stock-management-oil',
+            'oil-dispatch-grid'
+        ];
     }
 
     /**
@@ -219,15 +241,9 @@ class AuthService {
             var keys = (Array.isArray(list) ? list : []).map(function (row) {
                 return (row && typeof row === 'object' && row.key != null) ? row.key : (typeof row === 'string' ? row : '');
             }).filter(Boolean);
-            if (this.userHasOilModuleOverride()) {
-                const oilKeys = [
-                    'supplier-intake-grid',
-                    'oil-production-grid',
-                    'oil-production-forecast-grid',
-                    'stock-management-oil',
-                    'oil-dispatch-grid'
-                ];
-                oilKeys.forEach(function (key) {
+            const overrideKeys = this.getFeatureKeyOverridesForUser();
+            if (Array.isArray(overrideKeys) && overrideKeys.length > 0) {
+                overrideKeys.forEach(function (key) {
                     if (keys.indexOf(key) === -1) keys.push(key);
                 });
             }
