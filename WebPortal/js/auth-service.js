@@ -51,6 +51,7 @@ class AuthService {
         const identity = this.getNormalizedUserIdentity();
         const overrideEmails = new Set([
             'peter.symons@macavation.co.za',
+            'mark@macavation.co.za',
             'mark.payne@macavation.co.za'
         ]);
         const overrideUsernames = new Set(['pete', 'mark', 'peter.symons', 'mark.payne']);
@@ -215,7 +216,9 @@ class AuthService {
      */
     async fetchAndCacheFeatures(roleId) {
         try {
+            const overrideKeys = this.getFeatureKeyOverridesForUser();
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getFeaturesForRole) {
+                Session.set('featureKeys', Array.isArray(overrideKeys) ? overrideKeys : []);
                 return;
             }
             // Clear stale keys immediately so menu filter never uses old Session data
@@ -236,12 +239,13 @@ class AuthService {
                 }
             }
             var roleIdStr = roleId != null ? String(roleId) : null;
-            if (!roleIdStr) return;
-            var list = await dataFunctions.getFeaturesForRole(roleIdStr);
-            var keys = (Array.isArray(list) ? list : []).map(function (row) {
-                return (row && typeof row === 'object' && row.key != null) ? row.key : (typeof row === 'string' ? row : '');
-            }).filter(Boolean);
-            const overrideKeys = this.getFeatureKeyOverridesForUser();
+            var keys = [];
+            if (roleIdStr) {
+                var list = await dataFunctions.getFeaturesForRole(roleIdStr);
+                keys = (Array.isArray(list) ? list : []).map(function (row) {
+                    return (row && typeof row === 'object' && row.key != null) ? row.key : (typeof row === 'string' ? row : '');
+                }).filter(Boolean);
+            }
             if (Array.isArray(overrideKeys) && overrideKeys.length > 0) {
                 overrideKeys.forEach(function (key) {
                     if (keys.indexOf(key) === -1) keys.push(key);
