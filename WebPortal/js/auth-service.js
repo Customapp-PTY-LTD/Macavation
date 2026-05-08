@@ -27,6 +27,33 @@ class AuthService {
     }
 
     /**
+     * Returns true when current user should always see oil modules.
+     */
+    userHasOilModuleOverride() {
+        const user = Session.get('user') || this.userInfo || {};
+        const normalized = function (value) {
+            return (value || '').toString().trim().toLowerCase();
+        };
+        const email = normalized(user.email);
+        const username = normalized(user.username);
+        const firstName = normalized(user.first_name);
+        const fullName = normalized(user.full_name);
+        const displayName = normalized(user.name);
+
+        const overrideEmails = new Set([
+            'peter.symons@macavation.co.za',
+            'mark.payne@macavation.co.za'
+        ]);
+
+        if (overrideEmails.has(email)) return true;
+        if (username === 'pete' || username === 'mark') return true;
+        if (firstName === 'pete' || firstName === 'mark') return true;
+        if (fullName === 'pete' || fullName === 'mark') return true;
+        if (displayName === 'pete' || displayName === 'mark') return true;
+        return false;
+    }
+
+    /**
      * Get user info from localStorage
      */
     getUserInfo() {
@@ -192,6 +219,18 @@ class AuthService {
             var keys = (Array.isArray(list) ? list : []).map(function (row) {
                 return (row && typeof row === 'object' && row.key != null) ? row.key : (typeof row === 'string' ? row : '');
             }).filter(Boolean);
+            if (this.userHasOilModuleOverride()) {
+                const oilKeys = [
+                    'supplier-intake-grid',
+                    'oil-production-grid',
+                    'oil-production-forecast-grid',
+                    'stock-management-oil',
+                    'oil-dispatch-grid'
+                ];
+                oilKeys.forEach(function (key) {
+                    if (keys.indexOf(key) === -1) keys.push(key);
+                });
+            }
             Session.set('featureKeys', keys);
             try {
                 if (typeof window.dispatchEvent === 'function') {
