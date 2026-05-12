@@ -50,6 +50,7 @@ class AuthService {
     getFeatureKeyOverridesForUser() {
         const identity = this.getNormalizedUserIdentity();
         const overrideEmails = new Set([
+            'pete@macavation.co.za',
             'peter.symons@macavation.co.za',
             'mark@macavation.co.za',
             'mark.payne@macavation.co.za'
