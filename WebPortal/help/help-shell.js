@@ -87,6 +87,12 @@
       }
     }
 
+    var fullToolbar = document.getElementById("guide-full-toolbar");
+    if (fullToolbar) {
+      if (single) fullToolbar.setAttribute("hidden", "");
+      else fullToolbar.removeAttribute("hidden");
+    }
+
     document.title = single
       ? getTitleForSection(target) + " — Macavation Help"
       : "Macavation User Guide";
@@ -118,6 +124,14 @@
     });
   }
 
+  function initDownloadPdf() {
+    document.querySelectorAll('[data-action="download-pdf"]').forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        window.print();
+      });
+    });
+  }
+
   function initBackToTop() {
     var btn = document.getElementById("back-to-top");
     if (!btn) return;
@@ -135,6 +149,7 @@
     buildToc();
     markMissingImages();
     applyLayout();
+    initDownloadPdf();
     initBackToTop();
     window.addEventListener("hashchange", applyLayout);
   }

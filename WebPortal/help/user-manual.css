@@ -79,6 +79,12 @@ body {
   background: rgba(255,255,255,0.2);
 }
 
+.manual-header button.btn-ghost {
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
 .manual-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

@@ -7,15 +7,22 @@
   <link rel="stylesheet" href="help-shell.css" />
 </head>
 <body>
+  <nav id="guide-full-toolbar" class="guide-toolbar" hidden aria-label="User guide actions">
+    <a href="help-index.html" class="btn-link secondary">Documentation index</a>
+    <button type="button" class="btn-link secondary" data-action="download-pdf" title="Opens the print dialog — choose Save as PDF or Microsoft Print to PDF">Download PDF</button>
+  </nav>
   <div id="guide-single-bar">
     <div class="single-bar-top">
       <span class="single-title"></span>
-      <a href="index.html?full=1" class="btn-link secondary" data-action="full-guide">Full user guide</a>
+      <div class="single-bar-links">
+        <a href="index.html?full=1" class="btn-link secondary" data-action="full-guide">Full user guide</a>
+        <button type="button" class="btn-link secondary" data-action="download-pdf" title="Opens the print dialog — choose Save as PDF or Microsoft Print to PDF">Download PDF</button>
+      </div>
     </div>
   </div>
 
   <h1 id="guide-main-title">Macavation User Guide</h1>
-  <p id="guide-intro">Use <strong>Help</strong> for this topic: what it is for, how to work through it, and—where relevant—<strong>numbered steps</strong> for that screen. Open the <strong>full user guide</strong> for every section and the table of contents.</p>
+  <p id="guide-intro">Use <strong>Help</strong> for this topic: what it is for, how to work through it, and—where relevant—<strong>numbered steps</strong> for that screen. Open the <strong>full user guide</strong> for every section and the table of contents. Use <strong>Download PDF</strong> (full guide or single topic) to save a copy through your browser’s print dialog — choose <em>Save as PDF</em> as the destination.</p>
 
   <div id="guide-toc">
     <h2>Contents</h2>
@@ -500,7 +507,7 @@
     <ol class="guide-page-steps">
       <li>Open <strong>Kernel dispatch</strong>; use <strong>Board</strong> vs <strong>Table</strong> and <strong>Refresh</strong> to align with how your despatch team works.</li>
       <li>Remember the flow: inventory from finished warehouse <strong>KERNEL R YES</strong> moves to <strong>Kernel customers</strong> and debtors—baskets are built from stock sends.</li>
-      <li>In table or board view, open <strong>View sheet</strong> to see the full dispatch form: basket lines plus vehicle checks, driver, transport, and signatures. Use <strong>Dispatch</strong> to complete and save the same form for orders not yet dispatched.</li>
+      <li>In table view, open <strong>View basket</strong> to check styles and quantities before loading; use <strong>Dispatch</strong> to complete inspection and dispatch forms.</li>
       <li>Review the <strong>Baskets marked as dispatched</strong> section for completed paperwork and proof of shipment.</li>
       <li>If quantities are wrong, fix stock or the basket in <strong>Stock management</strong> rather than forcing a dispatch through.</li>
     </ol>
@@ -530,9 +537,8 @@
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open from <strong>Kernel Dispatch</strong> via <strong>Dispatch</strong> or <strong>View sheet</strong>. The top section lists basket lines (batch, style, quantity).</li>
-      <li>Fill vehicle checks, driver, truck registration, transport company, delivery note, date and time, and signatures as your logistics SOP requires.</li>
-      <li>Orders already marked <strong>dispatched</strong> open read-only (saved record only—no save).</li>
+      <li>Open when completing inspection and dispatch paperwork for a kernel order.</li>
+      <li>Fill vehicle, seal, weight checks, and sign-offs as your logistics SOP requires.</li>
       <li>Submit only after physical load matches the basket; fixes go back to stock or the basket, not forged paperwork.</li>
     </ol>
     <figure class="guide-shot">
@@ -659,7 +665,6 @@
     <ol class="guide-page-steps">
       <li>Open <strong>Oil &amp; protein dispatch</strong> from the menu (mirror of kernel dispatch for the finished oil/protein warehouse).</li>
       <li>Use the same board/table pattern and refresh habit as kernel dispatch.</li>
-      <li>Use <strong>View sheet</strong> for the full dispatch form (basket lines, vehicle checks, driver and transport details); use <strong>Dispatch</strong> to complete an order not yet shipped.</li>
       <li>Build or review baskets from released oil lots; complete inspection and dispatch forms before the truck leaves.</li>
       <li>Ensure oil lots are released and available in stock before you add them to a load.</li>
     </ol>
@@ -673,9 +678,8 @@
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open from <strong>Oil Dispatch</strong> via <strong>Dispatch</strong> or <strong>View sheet</strong>. Basket lines appear at the top (batch, product, quantity).</li>
-      <li>Complete vehicle checks, signatures, and transport details; dispatched orders open read-only.</li>
-      <li>Submit when the load is true.</li>
+      <li>Open for oil/protein inspection and despatch paperwork.</li>
+      <li>Complete checks, signatures, and transport details; submit when the load is true.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-oil-dispatch-form.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />

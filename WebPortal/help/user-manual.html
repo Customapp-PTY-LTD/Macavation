@@ -17,6 +17,7 @@
       <a class="btn-ghost" href="help-index.html">Documentation index</a>
       <a class="btn-ghost" href="index.html?full=1">In-app user guide (topics and screenshots)</a>
       <a class="btn-ghost" href="../index.html">Open Web Portal</a>
+      <button type="button" class="btn-ghost" data-action="download-pdf" title="Opens the print dialog — choose Save as PDF or Microsoft Print to PDF">Download PDF</button>
     </div>
   </header>
 
@@ -554,5 +555,14 @@
 
   <script src="help-return-inject.js" defer></script>
   <script src="manual-chapter-nav.js" defer></script>
+  <script>
+    (function () {
+      document.querySelectorAll('[data-action="download-pdf"]').forEach(function (el) {
+        el.addEventListener("click", function () {
+          window.print();
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

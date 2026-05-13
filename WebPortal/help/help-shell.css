@@ -286,6 +286,31 @@ body.guide-single #guide-single-bar {
   filter: brightness(1.08);
 }
 
+#guide-full-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--ug-border);
+}
+
+#guide-full-toolbar[hidden] {
+  display: none !important;
+}
+
+body.guide-single #guide-full-toolbar {
+  display: none !important;
+}
+
+button.btn-link {
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.25;
+}
+
 .btn-link.secondary {
   background: #fff;
   color: var(--ug-brand);
@@ -393,7 +418,7 @@ body.guide-single #back-to-top { display: none !important; }
   body { max-width: none; padding: 0.5cm; font-size: 11pt; }
   .guide-section { break-inside: avoid; }
   .guide-chapter { break-before: page; }
-  #guide-single-bar, .btn-link { display: none !important; }
+  #guide-single-bar, #guide-full-toolbar, .btn-link { display: none !important; }
   .guide-shot img { max-height: 14cm; }
   .guide-flow { overflow: visible; }
   .guide-flow svg { min-width: 0; }

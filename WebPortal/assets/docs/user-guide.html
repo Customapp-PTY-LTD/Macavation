@@ -16,6 +16,7 @@
       <a href="../../help/index.html?full=1">Full user guide (topics)</a>
       <span class="doc-topbar-sep" aria-hidden="true">|</span>
       <a href="../../help/user-manual.html">User manual (by module)</a>
+      <button type="button" class="doc-pdf-btn" data-action="download-pdf" title="Opens the print dialog — choose Save as PDF or Microsoft Print to PDF">Download PDF</button>
     </nav>
 
     <header>
@@ -24,8 +25,7 @@
       <p class="doc-note">
         <strong>About this page.</strong> This guide is a single readable overview (structure similar to the
         <a href="https://dev.tracker-academy.co.za/WebPortal/assets/docs/user-guide.html" target="_blank" rel="noopener">Tracker Academy user guide</a>).
-        The live app usually requires sign-in. For screen-by-screen help with screenshots, use <a href="../../help/index.html?full=1">Full user guide</a> from the portal <strong>Help</strong> button (opens in a new tab) or the links above.
-      </p>
+        The live app usually requires sign-in. For screen-by-screen help with screenshots, use <a href="../../help/index.html?full=1">Full user guide</a> from the portal <strong>Help</strong> button (opens in a new tab) or the links above. Use <strong>Download PDF</strong> in the bar above to save this page through your browser’s print dialog (choose <em>Save as PDF</em>).</p>
     </header>
 
     <nav class="doc-toc" aria-labelledby="toc-heading">
@@ -231,5 +231,14 @@
       <a href="../../help/help-index.html">Documentation index</a>
     </footer>
   </div>
+  <script>
+    (function () {
+      document.querySelectorAll('[data-action="download-pdf"]').forEach(function (el) {
+        el.addEventListener("click", function () {
+          window.print();
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

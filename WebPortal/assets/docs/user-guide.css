@@ -49,6 +49,24 @@ body {
   font-size: 0.875rem;
 }
 
+.doc-pdf-btn {
+  margin-left: auto;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1.25;
+  color: var(--ug-doc-card);
+  background: var(--ug-doc-brand);
+  border: 1px solid var(--ug-doc-brand);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.doc-pdf-btn:hover {
+  filter: brightness(1.06);
+}
+
 .doc-topbar a {
   color: var(--ug-doc-accent);
   text-decoration: none;
@@ -206,5 +224,8 @@ h4 {
   .doc-topbar {
     position: static;
     background: none;
+  }
+  .doc-pdf-btn {
+    display: none !important;
   }
 }
