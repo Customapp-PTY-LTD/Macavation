@@ -1218,11 +1218,18 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
     'create_document_category_simple',
     'delete_document_category_simple'
   ]);
-  // Kernel dispatch: unlock dispatched basket (same RBAC sync issues as document module).
-  const kernelDispatchRbacBypassFunctions = new Set(['revert_kernel_dispatch_order']);
+  // Kernel dispatch: unlock dispatched basket — skip Lambda RBAC (matches document-module pattern).
+  // Require a real signed-in user (not anonymous mock) so exempted/unauthenticated proxy paths
+  // cannot call this RPC.
+  const skipRbacRevertKernelDispatch =
+    functionName === 'revert_kernel_dispatch_order' &&
+    user &&
+    typeof user.sub === 'string' &&
+    user.sub !== 'anonymous';
+
   const skipRbacForRelaxedRpc =
-    (documentManagementFunctions.has(functionName) || kernelDispatchRbacBypassFunctions.has(functionName)) &&
-    !user.exempted;
+    skipRbacRevertKernelDispatch ||
+    (documentManagementFunctions.has(functionName) && !user.exempted);
 
   if (!skipRbacForRelaxedRpc) {
     // RBAC Permission Check (even for exempted users)
