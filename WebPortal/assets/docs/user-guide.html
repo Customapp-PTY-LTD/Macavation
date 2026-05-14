@@ -68,8 +68,7 @@
         <li><strong>Quality</strong> — Quality Assurance tests and records.</li>
         <li><strong>Business</strong> — Sales Forecasting, Financial Management (where enabled).</li>
         <li><strong>Document Management</strong> and <strong>Palladium Integration</strong> — documents and ERP sync status.</li>
-        <li><strong>User Management</strong> — Users, Roles, Database Role Permissions, Role Features, Features.</li>
-        <li><strong>System Administration</strong> — consolidated admin views (varies by deployment).</li>
+        <li><strong>User &amp; access</strong> — people, roles, <strong>Customize</strong> (which portal modules each role sees), and <strong>Advanced</strong> (database permissions in a dialog); optional <strong>Features</strong> catalogue in the same group.</li>
         <li><strong>Test Management</strong> — test scenarios and data (non-production environments only).</li>
       </ul>
 
@@ -110,7 +109,7 @@
 
       <h3>4) Administration and integration</h3>
       <ul>
-        <li>Maintain users, roles, permissions, and feature flags in <strong>User Management</strong> (restricted roles).</li>
+        <li>Maintain users, roles, module visibility, and database permissions from <strong>User &amp; access</strong> (restricted roles); use the <strong>Features</strong> catalogue when your menu includes it.</li>
         <li>Use <strong>Palladium Integration</strong> for sync health; follow your runbook for manual sync.</li>
         <li>Use <strong>Data Import (Excel)</strong> only with approved templates; fix spreadsheets using import logs rather than repeating bad files.</li>
       </ul>
@@ -201,11 +200,11 @@
 
     <section class="doc-section" id="roles" aria-labelledby="roles-heading">
       <h2 id="roles-heading">Roles and permissions</h2>
-      <p>What you can open in the sidebar and which API operations succeed depend on <strong>roles</strong>, <strong>role permissions</strong>, and <strong>role features</strong> configured in User Management.</p>
+      <p>What you can open in the sidebar and which API operations succeed depend on <strong>roles</strong>, <strong>role permissions</strong>, and <strong>role features</strong> configured in <strong>User &amp; access</strong> (and the Features catalogue where used).</p>
       <ul>
         <li>If a <strong>menu item is missing</strong>, your role may not include that feature, or a feature flag may be off.</li>
         <li>If you see <strong>Access denied</strong> and a redirect to the dashboard, ask an administrator to review role assignment and permissions.</li>
-        <li><strong>User Management</strong> grids are usually limited to administrators or managers.</li>
+        <li><strong>User &amp; access</strong> is usually limited to administrators or managers.</li>
         <li>Avoid shared logins; use password reset or admin-assisted recovery instead of sharing credentials.</li>
       </ul>
       <a class="back-to-top" href="#top">Back to top</a>

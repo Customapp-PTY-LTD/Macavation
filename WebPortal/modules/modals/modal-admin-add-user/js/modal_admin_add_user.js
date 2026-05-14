@@ -79,7 +79,6 @@ var _modal_admin_add_user = (function () {
                     }
                     form.reset();
                     if (typeof _adminGrid !== 'undefined' && _adminGrid.loadUsers) _adminGrid.loadUsers();
-                    if (typeof _adminGrid !== 'undefined' && _adminGrid.loadSummary) _adminGrid.loadSummary();
                 } else {
                     scope.showNotification('Failed to create user', 'error');
                 }

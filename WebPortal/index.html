@@ -76,7 +76,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="#" route="users-grid">
+            <a class="navbar-brand d-flex align-items-center" href="#" route="dashboard">
                 <i class="fas fa-seedling me-2 text-primary"></i>
                 <span class="fw-bold text-dark">Macavation</span>
             </a>
@@ -329,34 +329,19 @@
                                     <i class="fas fa-sync-alt me-2"></i>Palladium Integration
                                 </a>
                             </li>
-                            <!-- User Management - Must be before System Administration -->
+                            <!-- User & access (unified admin hub) — legacy users/roles/permissions/features routes stay in appRouteConfig for bookmarks -->
                             <li class="nav-item d-none" id="userManagementMenuItem" data-parent="userManagementCollapse">
                                 <a class="nav-link" href="#" data-bs-toggle="collapse"
                                     data-bs-target="#userManagementCollapse" aria-expanded="false"
-                                    aria-controls="userManagementCollapse" title="User Management">
-                                    <i class="fas fa-users me-2"></i>User Management
+                                    aria-controls="userManagementCollapse" title="Accounts, roles, and which modules each role can open">
+                                    <i class="fas fa-user-shield me-2"></i>User &amp; access
                                     <i class="fas fa-chevron-down ms-auto"></i>
                                 </a>
                                 <div class="collapse" id="userManagementCollapse">
                                     <ul class="nav flex-column ms-3">
-                                        <li class="nav-item d-none" data-route="users-grid">
-                                            <a class="nav-link" href="#" route="users-grid" title="Users">
-                                                <i class="fas fa-user me-2"></i>Users
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="roles-grid">
-                                            <a class="nav-link" href="#" route="roles-grid" title="Roles">
-                                                <i class="fas fa-user-tag me-2"></i>Roles
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="role-permissions-grid">
-                                            <a class="nav-link" href="#" route="role-permissions-grid" title="Database Role Permissions">
-                                                <i class="fas fa-key me-2"></i>Database Role Permissions
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="role-features-grid">
-                                            <a class="nav-link" href="#" route="role-features-grid" title="Role Features">
-                                                <i class="fas fa-cog me-2"></i>Role Features
+                                        <li class="nav-item d-none" data-route="admin-grid">
+                                            <a class="nav-link" href="#" route="admin-grid" title="People, roles, portal modules, and advanced database permissions">
+                                                <i class="fas fa-user-shield me-2"></i>User &amp; access
                                             </a>
                                         </li>
                                         <li class="nav-item d-none" data-route="features-grid">
@@ -366,12 +351,6 @@
                                         </li>
                                     </ul>
                                 </div>
-                            </li>
-                            <!-- System Administration - Must be after User Management -->
-                            <li class="nav-item d-none" id="systemAdminMenuItem" data-route="admin-grid">
-                                <a class="nav-link" href="#" route="admin-grid" title="System Administration">
-                                    <i class="fas fa-cog me-2"></i>System Administration
-                                </a>
                             </li>
                             <!-- Test Scenarios Management (Super Admin Only) -->
                             <li class="nav-item d-none" id="testScenariosMenuItem" data-parent="testManagementCollapse">
@@ -426,7 +405,7 @@
                                     <h1 class="h2 mb-1 text-dark">Dashboard</h1>
                                 </div>
                                 <div class="btn-toolbar mb-2 mb-md-0">
-                                    <button class="btn btn-primary" onclick="_appRouter.routeTo('users-grid')">
+                                    <button class="btn btn-primary" onclick="_appRouter.routeTo('admin-grid')">
                                         <i class="fas fa-users me-1"></i>Manage Users
                                     </button>
                                 </div>

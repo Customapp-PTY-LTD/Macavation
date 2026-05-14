@@ -28,7 +28,6 @@ var _roleMenuConfig = function () {
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
                     'document-management-grid',
-                    'users-grid',
                     'admin-grid'
                 ]
             },
@@ -410,9 +409,10 @@ var _roleMenuConfig = function () {
             },
             'admin-grid': {
                 route: 'admin-grid',
-                icon: 'fas fa-cog',
-                label: 'System Administration',
-                category: 'main'
+                icon: 'fas fa-user-shield',
+                label: 'User & access',
+                category: 'user-management',
+                parent: 'userManagementCollapse'
             }
         },
 

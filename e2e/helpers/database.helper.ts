@@ -25,6 +25,39 @@ export function getSupabaseAdmin(): SupabaseClient {
 }
 
 /**
+ * Deletes Playwright user-crud disposable accounts (e2e.*@test.macavation.co.za).
+ * Call from test.afterAll so runs do not clutter User & access / Users grids.
+ * Requires SUPABASE_URL and SUPABASE_SERVICE_KEY; no-op if unset.
+ */
+export async function cleanupE2ePlaywrightFixtureUsers(): Promise<void> {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    return;
+  }
+  const supabase = getSupabaseAdmin();
+  const { data: rows, error } = await supabase
+    .from('users')
+    .select('id')
+    .ilike('email', 'e2e.%@test.macavation.co.za');
+
+  if (error) {
+    console.warn('[cleanupE2ePlaywrightFixtureUsers]', error.message);
+    return;
+  }
+
+  for (const row of rows || []) {
+    const { error: delErr } = await supabase.auth.admin.deleteUser(row.id);
+    if (delErr) {
+      console.warn('[cleanupE2ePlaywrightFixtureUsers] auth.admin.deleteUser', row.id, delErr.message);
+    }
+  }
+
+  const { error: pubErr } = await supabase.from('users').delete().ilike('email', 'e2e.%@test.macavation.co.za');
+  if (pubErr) {
+    console.warn('[cleanupE2ePlaywrightFixtureUsers] public.users delete', pubErr.message);
+  }
+}
+
+/**
  * Interface for test data records from database
  */
 export interface E2ETestDataRecord {

@@ -1,96 +1,54 @@
-<!-- System Administration Module -->
-<div class="module-content">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Admin</h1>
-        <div class="btn-toolbar mb-2 mb-md-0 ms-auto">
+<!-- User & access: people, roles, menu modules, and advanced DB permissions (Admin) -->
+<div class="module-content admin-access-module">
+    <div class="admin-access-header d-flex justify-content-between flex-wrap flex-md-nowrap align-items-start pt-3 pb-2 mb-3 border-bottom gap-2">
+        <div>
+            <h1 class="h2 mb-1">User &amp; access</h1>
+            <p class="text-muted small mb-0 admin-access-lead">One place for <strong>people</strong> (logins and passwords), <strong>roles</strong>, which <strong>modules</strong> each role sees in the sidebar, and optional <strong>advanced</strong> database permissions.</p>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0 ms-md-auto flex-shrink-0">
             <a href="help/index.html#admin-users-permissions" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide" data-macavation-help-tablist="#adminTab"><i class="fas fa-circle-question me-1"></i>Help</a>
-            <button type="button" class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#addRoleModal">
-                <i class="fas fa-shield-alt me-1"></i>Add Role
+            <button type="button" class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#addRoleModal" title="Create a new role (name and description)">
+                <i class="fas fa-shield-alt me-1"></i>Add role
             </button>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                <i class="fas fa-plus me-1"></i>Add User
+            <button type="button" class="btn btn-primary" id="adminBtnAddUser" title="Add a user (email, password, role)">
+                <i class="fas fa-plus me-1"></i>Add user
             </button>
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="row g-3 mb-4 admin-summary-cards">
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-users fs-1 mb-2 text-success"></i>
-                    <h6 class="mb-1">Total Users</h6>
-                    <h3 class="fw-bold mb-0" id="totalUsers">0</h3>
-                    <small class="admin-card-caption">active users</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-shield-alt fs-1 mb-2 text-primary"></i>
-                    <h6 class="mb-1">Roles</h6>
-                    <h3 class="fw-bold mb-0" id="totalRoles">0</h3>
-                    <small class="admin-card-caption">defined roles</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-key fs-1 mb-2 text-warning"></i>
-                    <h6 class="mb-1">Permissions</h6>
-                    <h3 class="fw-bold mb-0" id="totalPermissions">0</h3>
-                    <small class="admin-card-caption">system permissions</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-user-check fs-1 mb-2 text-info"></i>
-                    <h6 class="mb-1">Active Sessions</h6>
-                    <h3 class="fw-bold mb-0" id="activeSessions">0</h3>
-                    <small class="admin-card-caption">logged in users</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tabs -->
-    <ul class="nav nav-tabs mb-4" id="adminTab" role="tablist">
+    <ul class="nav nav-tabs mb-2" id="adminTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" data-help-anchor="admin-users-permissions">
-                <i class="fas fa-users me-2"></i>Users & Permissions
+            <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="true" data-help-anchor="admin-users-permissions">
+                <i class="fas fa-users me-2"></i>People
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab" data-help-anchor="admin-roles-management">
-                <i class="fas fa-shield-alt me-2"></i>Roles Management
+            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab" aria-controls="roles" aria-selected="false" data-help-anchor="admin-roles-management">
+                <i class="fas fa-shield-alt me-2"></i>Roles &amp; modules
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab" data-help-anchor="admin-system-configuration">
-                <i class="fas fa-cog me-2"></i>System Configuration
+            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab" aria-controls="system" aria-selected="false" data-help-anchor="admin-system-configuration">
+                <i class="fas fa-cog me-2"></i>System
             </button>
         </li>
     </ul>
 
-    <!-- Tab Content -->
     <div class="tab-content" id="adminTabContent">
-        <!-- Users & Permissions Tab -->
-        <div class="tab-pane fade show active" id="users" role="tabpanel">
-            <div class="row">
-                <div class="col-md-8">
+        <!-- People -->
+        <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
+            <p class="text-muted small mb-3">Create accounts, assign roles, and set or reset passwords. Changes apply on next sign-in where noted.</p>
+            <div class="row g-3">
+                <div class="col-lg-8">
                     <div class="card mb-4">
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fw-bold">System Users</h5>
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0 fw-bold">Users</h5>
                             <div class="d-flex align-items-center gap-2">
-                                <select class="form-select form-select-sm" style="width: auto;" id="userRoleFilter">
-                                    <option value="">All Roles</option>
+                                <select class="form-select form-select-sm admin-user-role-filter" id="userRoleFilter" title="Filter by role">
+                                    <option value="">All roles</option>
                                 </select>
-                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                                    <i class="fas fa-plus me-1"></i>Add User
+                                <button type="button" class="btn btn-sm btn-primary" id="adminBtnAddUserTab">
+                                    <i class="fas fa-plus me-1"></i>Add user
                                 </button>
                             </div>
                         </div>
@@ -103,7 +61,7 @@
                                             <th>Email</th>
                                             <th>Role</th>
                                             <th>Status</th>
-                                            <th>Last Login</th>
+                                            <th>Last login</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -119,89 +77,70 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card mb-3">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0 fw-bold">Role Definitions</h6>
-                        </div>
-                        <div class="card-body" id="roleDefinitionsContainer">
-                            <p class="text-muted small">Loading role definitions...</p>
-                        </div>
-                    </div>
+                <div class="col-lg-4">
                     <div class="card">
                         <div class="card-header bg-light">
-                            <h6 class="mb-0 fw-bold">User Statistics</h6>
+                            <h6 class="mb-0 fw-bold">Users by role</h6>
                         </div>
                         <div class="card-body" id="userStatisticsContainer">
-                            <p class="text-muted small">Loading statistics...</p>
+                            <p class="text-muted small">Loading…</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Roles Management Tab -->
-        <div class="tab-pane fade" id="roles" role="tabpanel">
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="card mb-4">
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fw-bold">System Roles</h5>
-                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
-                                <i class="fas fa-plus me-1"></i>Add Role
-                            </button>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0" id="adminRolesTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Role Name</th>
-                                            <th>Description</th>
-                                            <th>Users</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="rolesTableBody">
-                                        <tr>
-                                            <td colspan="5" class="text-center text-muted py-4">
-                                                <i class="fas fa-spinner fa-spin me-2"></i>Loading...
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+        <!-- Roles & modules -->
+        <div class="tab-pane fade" id="roles" role="tabpanel" aria-labelledby="roles-tab">
+            <p class="text-muted small mb-3">The list below is all roles. Use <strong>Edit role</strong> for name, description, and (when expanded) <strong>Advanced: database permissions</strong>. Use <strong>Customize</strong> to choose which <strong>modules</strong> appear in the sidebar.</p>
+            <div class="admin-role-layout">
+                <div class="card mb-4">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="mb-0 fw-bold">Roles</h5>
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal" title="Create a new role">
+                            <i class="fas fa-plus me-1"></i>Add role
+                        </button>
                     </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0 fw-bold">Permission Categories</h6>
-                        </div>
-                        <div class="card-body" id="permissionCategoriesContainer">
-                            <p class="text-muted small">Loading permission categories...</p>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="adminRolesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Role name</th>
+                                        <th>Description</th>
+                                        <th>Users</th>
+                                        <th>Status</th>
+                                        <th class="text-end" style="min-width: 14rem">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rolesTableBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">
+                                            <i class="fas fa-spinner fa-spin me-2"></i>Loading...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- System Configuration Tab -->
-        <div class="tab-pane fade" id="system" role="tabpanel">
+        <!-- System -->
+        <div class="tab-pane fade" id="system" role="tabpanel" aria-labelledby="system-tab">
+            <p class="text-muted small mb-3">Environment and integration settings will appear here when your deployment exposes them.</p>
             <div class="row">
-                <div class="col-md-12">
+                <div class="col-12">
                     <div class="card mb-4">
                         <div class="card-header bg-light">
-                            <h5 class="mb-0 fw-bold">System Settings</h5>
+                            <h5 class="mb-0 fw-bold">System settings</h5>
                         </div>
                         <div class="card-body">
                             <div class="alert alert-info mb-0">
                                 <i class="fas fa-info-circle me-2"></i>
-                                System configuration settings will be available here.
+                                System configuration options will be available here as needed.
                             </div>
-                            <p class="text-muted mt-3 mb-0">Configuration options for Macadamia Management System will be added as needed.</p>
                         </div>
                     </div>
                 </div>
@@ -210,7 +149,53 @@
     </div>
 </div>
 
-<!-- Add User Modal (content loaded by app router) -->
+<!-- Modals (outside tab panes so they stack correctly) -->
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="addUserModal" role="dialog" route-name="add-user-modal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true"></div>
-<!-- Add Role Modal (content loaded by app router) -->
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="addRoleModal" role="dialog" route-name="add-role-modal" tabindex="-1" aria-labelledby="addRoleModalLabel" aria-hidden="true"></div>
+<div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-labelledby="userModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" route-name="user-modal"></div>
+<div class="modal fade" id="roleModal" tabindex="-1" role="dialog" aria-labelledby="roleModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" route-name="role-modal"></div>
+<div class="modal fade" id="permissionModal" tabindex="-1" role="dialog" aria-labelledby="permissionModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" route-name="role-permission-modal"></div>
+
+<!-- Customize sidebar modules for a role -->
+<div class="modal fade" id="adminRoleCustomizeModal" tabindex="-1" role="dialog" aria-labelledby="adminRoleCustomizeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-0" id="adminRoleCustomizeModalLabel">Customize modules</h5>
+                    <small class="text-muted d-block" id="adminCustomizeModalSubtitle"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="p-3 border-bottom bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <p class="small text-muted mb-0">Tick which sidebar areas this role can open. Changes apply on next login for affected users.</p>
+                    <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="adminRefreshFeaturesBtn" title="Reload from server">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+                <div class="px-3 py-2 border-bottom small" id="adminFeatureSummary" style="display:none;"></div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width:60px" class="text-center">On</th>
+                                <th>Module</th>
+                                <th>Key</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminFeaturesTableBody">
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Open this dialog from a role's Customize action.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

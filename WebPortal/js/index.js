@@ -103,11 +103,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (userManagementToggle) {
                 userManagementToggle.setAttribute('aria-expanded', 'false');
             }
-            var systemAdminItem = document.getElementById('systemAdminMenuItem');
-            var userManagementItem = document.getElementById('userManagementMenuItem');
-            if (systemAdminItem && userManagementItem && userManagementItem.nextElementSibling !== systemAdminItem) {
-                systemAdminItem.insertAdjacentElement('beforebegin', userManagementItem);
-            }
         }
 
         var myDayDropdownNav = document.getElementById('myDayDropdownNav');

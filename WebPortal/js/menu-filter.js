@@ -50,10 +50,22 @@ var _menuFilter = function () {
 
             console.log('[Menu Filter] Accessible menus:', accessibleMenus.length, 'from featureKeys:', usingFeatureKeys);
 
+            // When the unified hub is enabled for this role, do not show the four legacy sidebar
+            // destinations alongside it (deep links / appRouteConfig still work).
+            var menusToShow = accessibleMenus.slice();
+            if (menusToShow.indexOf('admin-grid') !== -1) {
+                menusToShow = menusToShow.filter(function (route) {
+                    return route !== 'users-grid'
+                        && route !== 'roles-grid'
+                        && route !== 'role-permissions-grid'
+                        && route !== 'role-features-grid';
+                });
+            }
+
             // Always use featureKeys when it's an array (including empty). Never show all for admin.
             this.hideAllMenus();
             var self = this;
-            accessibleMenus.forEach(function (route) {
+            menusToShow.forEach(function (route) {
                 self.showMenu(route);
             });
             this.updateParentMenus();

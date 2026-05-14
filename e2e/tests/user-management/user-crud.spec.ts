@@ -1,5 +1,6 @@
 import { test, expect } from '../../fixtures';
 import { navigateToModule } from '../../helpers/navigation.helper';
+import { cleanupE2ePlaywrightFixtureUsers } from '../../helpers/database.helper';
 
 /**
  * User Management CRUD Tests
@@ -52,6 +53,14 @@ const TEST_USERS = {
 };
 
 test.describe('User Management - CRUD Operations @user-management @critical', () => {
+
+  test.afterAll(async () => {
+    try {
+      await cleanupE2ePlaywrightFixtureUsers();
+    } catch (e) {
+      console.warn('[user-crud] cleanupE2ePlaywrightFixtureUsers:', e);
+    }
+  });
 
   test.beforeEach(async ({ authenticatedPage }) => {
     // Navigate to Users Management module via sidebar

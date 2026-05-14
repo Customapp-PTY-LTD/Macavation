@@ -34,67 +34,18 @@
     <ol class="guide-page-steps">
       <li><strong>Kernel stream:</strong> Grower intake → Kernel production → Stock (kernel) → Kernel dispatch.</li>
       <li><strong>Oil &amp; protein stream:</strong> Supplier intake → Oil production → Stock (oil/protein) → Oil &amp; protein dispatch.</li>
-      <li><strong>Shared &amp; admin:</strong> CRM, Quality, Documents, integrations, Users, Admin, and My Day support both streams.</li>
+      <li><strong>Shared &amp; admin:</strong> CRM, Quality, Documents, integrations, <strong>User &amp; access</strong> (people, roles, modules), Features catalogue, and My Day support both streams.</li>
     </ol>
   </div>
-
-  <section id="admin-roles-management" class="guide-section" data-guide-id="admin-roles-management">
-    <h2>Admin — Roles management</h2>
-<p class="guide-lead"><strong>Roles management</strong> — define and maintain roles used for menu and permission assignment.</p>
-    <p class="guide-how">Edit roles here; deep permission matrices may live in User Management modules depending on deployment.</p>
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open <strong>Admin</strong> → <strong>Roles management</strong> tab.</li>
-      <li>Review existing roles in the grid; use search, status filter, and <strong>Clear</strong> as needed.</li>
-      <li>Click <strong>Add Role</strong> on the toolbar (or the equivalent in your build) to define a new role name and description.</li>
-      <li>After saving roles, assign <strong>Role permissions</strong> and <strong>Role features</strong> in User Management so menus match responsibility.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
-  </section>
-
-  <section id="admin-system-configuration" class="guide-section" data-guide-id="admin-system-configuration">
-    <h2>Admin — System configuration</h2>
-<p class="guide-lead"><strong>System configuration</strong> — environment and system settings (as exposed for your deployment).</p>
-    <p class="guide-how">Record values before changing system settings; some options need vendor support to roll back safely.</p>
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open <strong>Admin</strong> → <strong>System configuration</strong> tab.</li>
-      <li>Record current values (screenshot or export) before changing environment or integration settings.</li>
-      <li>Edit only fields you understand; some options may require vendor support to reverse.</li>
-      <li>Save and verify behaviour in a non-critical module before announcing the change to all users.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
-  </section>
-
-  <section id="admin-users-permissions" class="guide-section" data-guide-id="admin-users-permissions">
-    <h2>Admin — Users &amp; permissions</h2>
-<p class="guide-lead"><strong>Users &amp; permissions</strong> — system users table, role filter, and add user. Summary cards above show counts for the whole admin module.</p>
-    <p class="guide-how">Start from summary cards, then filter the users grid. Add User follows the same validation as other admin entry points.</p>
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open <strong>Admin</strong> from the menu.</li>
-      <li>Stay on the <strong>Users &amp; Permissions</strong> tab (first tab).</li>
-      <li>Read the summary cards (totals for users, roles, permissions, sessions) for a quick health check.</li>
-      <li>Use the users grid filters and search; click <strong>Add User</strong> to open the add-user dialog with the right role from the start.</li>
-      <li>Use row actions to edit or deactivate users; changes typically apply on next login.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
-  </section>
 
   <section id="modal-admin-add-role" class="guide-section" data-guide-id="modal-admin-add-role">
     <h2>Admin Add Role (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open from <strong>Admin</strong> → <strong>Add role</strong>.</li>
+      <li>Open from <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> → <strong>Add role</strong> (or equivalent).</li>
       <li>Enter a clear role name and description other admins will recognise.</li>
-      <li>Save, then open <strong>Role permissions</strong> and <strong>Role features</strong> to wire the role to real access.</li>
+      <li>Save, then use <strong>Customize</strong> on that role (and <strong>Advanced</strong> if needed) so menus and APIs match responsibility.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-admin-add-role.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -106,7 +57,7 @@
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open from <strong>Admin</strong> → <strong>Add user</strong>.</li>
+      <li>Open from <strong>User &amp; access</strong> → <strong>People</strong> → <strong>Add user</strong> (or equivalent).</li>
       <li>Enter name, email/username, and temporary password policy per your organisation.</li>
       <li>Assign the primary <strong>role</strong> before saving—this controls the menu tree on first login.</li>
       <li>Send the user your standard onboarding steps (password change, MFA if enabled).</li>
@@ -369,7 +320,7 @@
     <p class="guide-how">Treat as the catalogue of toggles—actual access still requires role assignment and menu configuration.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Features</strong> from User Management (or your menu path).</li>
+      <li>Open <strong>Features</strong> from the same sidebar group as <strong>User &amp; access</strong> when your role includes the catalogue route.</li>
       <li>Search by name, key, or description; filter by active/inactive; click <strong>Clear</strong> to reset.</li>
       <li>Use <strong>Add feature</strong> to register a new application feature key for role assignment.</li>
       <li>Use <strong>Refresh</strong> and <strong>Export</strong> when auditing which flags exist before a rollout.</li>
@@ -882,7 +833,7 @@
     <p class="guide-how">Toggle features per role for phased rollouts; document what each flag unlocks so support can answer user questions.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Role features</strong> from User Management.</li>
+      <li>Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> and use <strong>Customize</strong> on a role (same data as the legacy Role Features grid), or use the standalone route if still linked.</li>
       <li>Locate the role and feature combination; toggle flags for phased rollouts of new UI or APIs.</li>
       <li>Use export/refresh controls like other admin grids.</li>
       <li>Document what each feature flag unlocks so support can answer “why don’t I see X?”.</li>
@@ -912,7 +863,7 @@
     <p class="guide-how">Grant least privilege: add permissions incrementally and test with a non-admin login before rolling out broadly.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Role permissions</strong> from User Management.</li>
+      <li>Open <strong>Role permissions</strong> from the standalone grid if exposed, or use <strong>User &amp; access</strong> → Roles &amp; modules → row <strong>Advanced</strong>.</li>
       <li>Filter by role, object type (function/table), and operation (EXECUTE, Read, Create, Update, Delete); use <strong>Clear</strong> when needed.</li>
       <li>Click <strong>Add permission</strong> to grant a role access to a specific object—add the minimum set first.</li>
       <li>Use <strong>Refresh</strong> and <strong>Export</strong> when documenting access reviews.</li>
@@ -929,7 +880,7 @@
     <p class="guide-how">Name roles clearly for admins; after saving, assign permissions and features in their dedicated screens.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Roles</strong> from User Management.</li>
+      <li>Open <strong>Roles</strong> from <strong>User &amp; access</strong> (Roles &amp; modules tab) or use the standalone route/bookmark if your role still exposes it.</li>
       <li>Search and filter by active/inactive; click <strong>Clear</strong> to reset the grid.</li>
       <li>Click <strong>Add role</strong> for a new named role, or open a row to edit description and status.</li>
       <li>Use <strong>Refresh</strong> after others change data; <strong>Export</strong> before audits.</li>
@@ -1194,13 +1145,62 @@
     </figure>
   </section>
 
+  <section id="admin-users-permissions" class="guide-section" data-guide-id="admin-users-permissions">
+    <h2>User &amp; access — People</h2>
+<p class="guide-lead"><strong>People</strong> (User &amp; access) — accounts, role filter, and add user.</p>
+    <p class="guide-how">Filter the users grid and use <strong>Add user</strong> or <strong>Edit user</strong>; optional password on save matches the standalone Users screen.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>User &amp; access</strong> from the sidebar (under the user-access group).</li>
+      <li>Stay on the <strong>People</strong> tab.</li>
+      <li>Use the role filter or search the grid as needed.</li>
+      <li>Use <strong>Add User</strong> or row <strong>Edit user</strong> — editing supports optional password change like the standalone Users screen.</li>
+      <li>Saved changes apply on next login or when the session refreshes features.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="admin-roles-management" class="guide-section" data-guide-id="admin-roles-management">
+    <h2>User &amp; access — Roles &amp; modules</h2>
+<p class="guide-lead"><strong>Roles &amp; modules</strong> (User &amp; access) — full-width roles list; use <strong>Customize</strong> for sidebar modules and <strong>Advanced</strong> for database function permissions.</p>
+    <p class="guide-how">Each row has <strong>Edit role</strong> (name and description), <strong>Customize</strong> (module checklist in a dialog), and <strong>Advanced</strong> (database permissions in a separate dialog). Click a row (outside the buttons) to highlight it.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> tab.</li>
+      <li>Use <strong>Customize</strong> on a role to open the module checklist; toggles match the former Role Features screen and control the sidebar.</li>
+      <li>Use <strong>Edit role</strong> when you need to change the role name or description only.</li>
+      <li>Use <strong>Advanced</strong> when you need database function permissions; edit rows cautiously (least privilege).</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="admin-system-configuration" class="guide-section" data-guide-id="admin-system-configuration">
+    <h2>User &amp; access — System</h2>
+<p class="guide-lead"><strong>System</strong> (User &amp; access) — reserved for environment and configuration when your deployment exposes it.</p>
+    <p class="guide-how">Record values before changing anything that affects integrations; involve vendor support for risky reversals.</p>
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>User &amp; access</strong> → <strong>System</strong> tab.</li>
+      <li>Read any guidance shown on the tab; many builds keep this as a placeholder until environment tools ship.</li>
+      <li>Record current values before changing integration or environment fields.</li>
+      <li>Verify behaviour in a non-critical module before announcing changes broadly.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
   <section id="users-grid" class="guide-section" data-guide-id="users-grid" data-exclude-from-full-guide="1">
     <h2>Users (module)</h2>
 <p class="guide-lead">Create and maintain portal users, passwords, and assignments.</p>
     <p class="guide-how">Create users with correct roles from the start; password resets and deactivation are safer than sharing accounts. Changes apply on next login.</p>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Users</strong> from User Management.</li>
+      <li>Open the standalone <strong>Users</strong> route if your role still exposes it, or use <strong>User &amp; access</strong> → <strong>People</strong> for the same workflows in the hub.</li>
       <li>Search and filter the grid; click <strong>Add user</strong> (or equivalent) for a new login.</li>
       <li>Assign the correct <strong>role</strong> immediately; fixing role mistakes later is harder than setting them at creation.</li>
       <li>Use password reset flows instead of sharing credentials between people.</li>

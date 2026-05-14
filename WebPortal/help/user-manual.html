@@ -65,8 +65,8 @@
       </ul>
       <h2>Administration</h2>
       <ul>
-        <li><a href="#admin">System Administration</a></li>
-        <li><a href="#user-mgmt">User Management</a></li>
+        <li><a href="#admin">User &amp; access</a></li>
+        <li><a href="#user-mgmt">Standalone user routes (bookmarks)</a></li>
         <li><a href="#test-tools">Test tools (non-production)</a></li>
       </ul>
       <h2>Reference</h2>
@@ -121,8 +121,8 @@
         <p>The <strong>sidebar</strong> lists modules your role may open. Click a link to load that module in the main content area. Some modules offer <strong>Board</strong>, <strong>Table</strong>, or other view toggles; pick the view your team prefers.</p>
         <h3>Access denied</h3>
         <p>If you open a route you are not allowed to use, you may see a warning and a short redirect to the dashboard. Ask an administrator to check your role, <strong>Role features</strong>, and <strong>Role permissions</strong> if you need a module for your job.</p>
-        <h3>User Management (restricted)</h3>
-        <p>Grids such as Users, Roles, Role permissions, Role features, and Features are typically limited to administrators or managers. <strong>System Administration</strong> may combine user counts, configuration, and related tabs in one place depending on your build.</p>
+        <h3>User &amp; access (restricted)</h3>
+        <p><strong>User &amp; access</strong> (<code>admin-grid</code>) is the normal home for accounts, roles, which portal modules each role sees, and (for power users) database function permissions. A separate <strong>Features</strong> catalogue may appear in the same sidebar group when your role includes it. Legacy standalone grids (<code>users-grid</code>, <code>roles-grid</code>, and others) can remain available as routes for bookmarks even when the sidebar shows only the hub.</p>
       </article>
 
       <article id="app-shell" class="manual-chapter">
@@ -132,7 +132,7 @@
           <li><strong>Sign-in</strong> (<code>signin.html</code>) — authentication and optional client code in the URL; successful login loads <code>index.html</code>.</li>
           <li><strong>Top navbar</strong> — user menu, profile access, and <strong>Sign out</strong>.</li>
           <li><strong>My Day</strong> — compact task list in the header dropdown; <strong>View full</strong> opens route <code>my-day</code> for the complete workflow page.</li>
-          <li><strong>Sidebar</strong> — collapsible menu with grouped sections that mirror operations: Dashboard, Batch Journey, CRM, Kernel, Oil &amp; Protein, Quality, Business (Sales / Financial), Document Management, Palladium, User Management, System Administration, and (where enabled) Test Management.</li>
+          <li><strong>Sidebar</strong> — collapsible menu with grouped sections that mirror operations: Dashboard, Batch Journey, CRM, Kernel, Oil &amp; Protein, Quality, Business (Sales / Financial), Document Management, Palladium, <strong>User &amp; access</strong> (with optional Features catalogue), and (where enabled) Test Management.</li>
           <li><strong>Sidebar footer</strong> — <strong>Dark mode</strong> toggle and <strong>Collapse</strong> to widen the content area.</li>
         </ul>
         <p>The main <strong>content area</strong> loads HTML/JS per route; breadcrumbs and last page may be restored from storage after refresh.</p>
@@ -423,31 +423,31 @@
       </article>
 
       <article id="admin" class="manual-chapter">
-        <h2>System Administration</h2>
+        <h2>User &amp; access</h2>
         <span class="route-tag">admin-grid</span>
-        <p><strong>System Administration</strong> consolidates admin-facing functions in many deployments: user counts, user list, roles, and system configuration tabs. Exact tabs depend on your build.</p>
+        <p><strong>User &amp; access</strong> is the unified administration hub: <strong>People</strong> (user list and edit with optional password), <strong>Roles &amp; modules</strong> (full-width roles list; <strong>Customize</strong> opens module toggles, <strong>Advanced</strong> opens database permissions, <strong>Edit role</strong> edits name and description), and <strong>System</strong> (placeholder or environment tools depending on deployment).</p>
         <h3>Typical tasks</h3>
         <ol>
-          <li>Open <strong>System Administration</strong> from the sidebar.</li>
-          <li>Use <strong>Users and permissions</strong> for day-to-day user maintenance and Add User.</li>
-          <li>Use <strong>Roles management</strong> and related areas for role names and descriptions.</li>
-          <li>Use <strong>System configuration</strong> only with care; record values before change and involve vendor support for risky options.</li>
+          <li>Open <strong>User &amp; access</strong> from the sidebar.</li>
+          <li>On <strong>People</strong>, add or edit users; assign roles; use the same edit dialog behaviour as the standalone Users screen where applicable.</li>
+          <li>On <strong>Roles &amp; modules</strong>, use <strong>Customize</strong> to align module toggles with responsibility; use row <strong>Advanced</strong> only when adjusting database function permissions.</li>
+          <li>After permission or feature changes, test with a non-admin login; users may need to sign out and back in to refresh menu visibility.</li>
         </ol>
-        <p class="contextual-help"><a href="index.html#admin-users-permissions">Users and permissions</a> · <a href="index.html#admin-roles-management">Roles management</a> · <a href="index.html#admin-system-configuration">System configuration</a> · <a href="index.html#modal-admin-add-user">Add user</a> · <a href="index.html#modal-admin-add-role">Add role</a></p>
+        <p class="contextual-help"><a href="index.html#admin-users-permissions">People</a> · <a href="index.html#admin-roles-management">Roles &amp; modules</a> · <a href="index.html#admin-system-configuration">System</a> · <a href="index.html#modal-admin-add-user">Add user</a> · <a href="index.html#modal-admin-add-role">Add role</a></p>
       </article>
 
       <article id="user-mgmt" class="manual-chapter">
-        <h2>User Management (detailed grids)</h2>
-        <p>Some sites expose separate menu entries under User Management:</p>
+        <h2>Standalone user routes (bookmarks)</h2>
+        <p>The app still registers these routes for deep links and training materials. When your role includes the <code>admin-grid</code> feature, the sidebar normally hides duplicate entries for the four legacy keys and shows the hub instead.</p>
         <ul>
-          <li><strong>Users</strong> (<span class="route-tag" style="margin:0">users-grid</span>) — create and maintain logins; assign roles; deactivate leavers.</li>
-          <li><strong>Roles</strong> (<span class="route-tag" style="margin:0">roles-grid</span>) — named roles for menu and permission assignment.</li>
-          <li><strong>Database Role Permissions</strong> (<span class="route-tag" style="margin:0">role-permissions-grid</span>) — map roles to database objects with least privilege.</li>
-          <li><strong>Role Features</strong> (<span class="route-tag" style="margin:0">role-features-grid</span>) — toggle feature flags per role for phased rollouts.</li>
-          <li><strong>Features</strong> (<span class="route-tag" style="margin:0">features-grid</span>) — catalogue of feature keys assigned to roles.</li>
+          <li><strong>Users</strong> (<span class="route-tag" style="margin:0">users-grid</span>) — standalone user grid (same edit patterns as <strong>People</strong> in the hub when both exist).</li>
+          <li><strong>Roles</strong> (<span class="route-tag" style="margin:0">roles-grid</span>) — standalone roles grid.</li>
+          <li><strong>Database Role Permissions</strong> (<span class="route-tag" style="margin:0">role-permissions-grid</span>) — full matrix; hub embeds a filtered view under <strong>Advanced</strong>.</li>
+          <li><strong>Role Features</strong> (<span class="route-tag" style="margin:0">role-features-grid</span>) — legacy screen; hub <strong>Roles &amp; modules</strong> → <strong>Customize</strong> replaces it for daily work.</li>
+          <li><strong>Features</strong> (<span class="route-tag" style="margin:0">features-grid</span>) — catalogue of feature keys; remains a sibling item under User &amp; access when assigned.</li>
         </ul>
         <div class="callout">
-          <strong>After permission changes,</strong> test with a non-admin user. Features and permissions work together with menu visibility; fixing “cannot see menu X” often requires more than one grid.
+          <strong>After permission changes,</strong> test with a non-admin user. Features and permissions work together with menu visibility; fixing “cannot see menu X” often requires more than one control.
         </div>
         <p class="contextual-help"><a href="index.html#users-grid">Users</a> · <a href="index.html#roles-grid">Roles</a> · <a href="index.html#role-permissions-grid">Role permissions</a> · <a href="index.html#role-features-grid">Role features</a> · <a href="index.html#features-grid">Features</a></p>
       </article>
@@ -477,7 +477,7 @@
             <tbody>
               <tr><td><code>dashboard</code></td><td>Route</td><td>Dashboard</td></tr>
               <tr><td><code>my-day</code></td><td>Route</td><td>My Day - Role-Based Workflow</td></tr>
-              <tr><td><code>users-grid</code></td><td>Route</td><td>User Management</td></tr>
+              <tr><td><code>users-grid</code></td><td>Route</td><td>Users (standalone)</td></tr>
               <tr><td><code>user-modal</code></td><td>Overlay</td><td>Add/Edit User Modal</td></tr>
               <tr><td><code>roles-grid</code></td><td>Route</td><td>Role Management</td></tr>
               <tr><td><code>role-modal</code></td><td>Overlay</td><td>Add/Edit Role Modal</td></tr>
@@ -487,7 +487,7 @@
               <tr><td><code>role-feature-modal</code></td><td>Overlay</td><td>Add/Edit Role Feature Modal</td></tr>
               <tr><td><code>features-grid</code></td><td>Route</td><td>Features Management</td></tr>
               <tr><td><code>feature-modal</code></td><td>Overlay</td><td>Add/Edit Feature Modal</td></tr>
-              <tr><td><code>admin-grid</code></td><td>Route</td><td>System Administration</td></tr>
+              <tr><td><code>admin-grid</code></td><td>Route</td><td>User &amp; access</td></tr>
               <tr><td><code>add-user-modal</code></td><td>Overlay</td><td>Admin Add User Modal</td></tr>
               <tr><td><code>add-role-modal</code></td><td>Overlay</td><td>Admin Add Role Modal</td></tr>
               <tr><td><code>crm-grid</code></td><td>Route</td><td>Customer Relationship Management</td></tr>

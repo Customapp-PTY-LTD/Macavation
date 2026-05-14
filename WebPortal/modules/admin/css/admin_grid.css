@@ -2,32 +2,32 @@
  * System Administration Module Styles - Theme Integrated
  */
 
+/* User & access hub */
+.admin-access-module .admin-access-lead {
+    max-width: 42rem;
+}
+
+.admin-role-layout .border-dashed {
+    border: 2px dashed var(--phoenix-border-color, #dee2e6);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+/* Roles tab: action buttons may wrap on narrow widths */
+#adminRolesTable td.admin-role-actions {
+    text-align: right;
+    white-space: normal;
+    vertical-align: middle;
+}
+
+#adminRolesTable td.admin-role-actions .btn-sm {
+    font-size: 0.8125rem;
+}
+
 /* Page Header */
-.admin-grid h2 {
+.admin-grid h2,
+.admin-access-module h2 {
     color: var(--phoenix-text-color);
     transition: color 0.3s ease;
-}
-
-/* Summary Cards – transparent with border (top four only) */
-.admin-summary-cards .card {
-    background-color: transparent;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    border-radius: var(--phoenix-border-radius);
-    box-shadow: none;
-}
-
-.admin-summary-cards .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.admin-summary-cards .card .fs-1 {
-    font-size: 3rem !important;
-}
-
-.admin-summary-cards .admin-card-caption,
-.module-content .admin-card-caption {
-    color: #212529 !important;
 }
 
 /* Other cards in admin (tables, sidebars) keep solid background */
@@ -42,11 +42,6 @@
 .module-content .card:hover {
     transform: translateY(-2px);
     box-shadow: var(--phoenix-box-shadow-lg);
-}
-
-/* Summary cards override (transparent + border) comes first so it wins for .admin-summary-cards */
-.card .fs-1 {
-    font-size: 3rem !important;
 }
 
 /* Tabs */
@@ -136,19 +131,16 @@
     text-decoration: underline;
 }
 
-#adminUsersTable td:last-child,
-#adminRolesTable td:last-child {
+#adminUsersTable td:last-child {
     text-align: center;
     white-space: nowrap;
 }
 
-#adminUsersTable td:last-child .dropdown,
-#adminRolesTable td:last-child .dropdown {
+#adminUsersTable td:last-child .dropdown {
     display: inline-block;
 }
 
-#adminUsersTable td:last-child .dropdown .btn,
-#adminRolesTable td:last-child .dropdown .btn {
+#adminUsersTable td:last-child .dropdown .btn {
     width: 2rem;
     height: 2rem;
     min-width: 2rem;
@@ -163,21 +155,17 @@
 }
 
 #adminUsersTable td:last-child .dropdown .btn:hover,
-#adminUsersTable td:last-child .dropdown .btn.show,
-#adminRolesTable td:last-child .dropdown .btn:hover,
-#adminRolesTable td:last-child .dropdown .btn.show {
+#adminUsersTable td:last-child .dropdown .btn.show {
     background-color: var(--forest-deep, #008950);
     border-color: var(--forest-deep, #008950);
     color: #fff;
 }
 
-#adminUsersTable td:last-child .dropdown .btn i,
-#adminRolesTable td:last-child .dropdown .btn i {
+#adminUsersTable td:last-child .dropdown .btn i {
     color: inherit;
 }
 
-#adminUsersTable td:last-child .dropdown .btn::after,
-#adminRolesTable td:last-child .dropdown .btn::after {
+#adminUsersTable td:last-child .dropdown .btn::after {
     display: none;
 }
 
@@ -313,12 +301,10 @@
     color: var(--phoenix-secondary) !important;
 }
 
-/* Admin module: light grey text -> black (summary cards, tabs, Role Definitions, etc.) */
+/* Admin module: light grey text -> black (tabs, sidebars, etc.) */
 .module-content .text-muted,
 .module-content .card-body small,
 .module-content .card-body .d-flex small,
-.module-content #roleDefinitionsContainer .text-muted,
-.module-content #roleDefinitionsContainer small,
 .module-content #userStatisticsContainer .text-muted,
 .module-content #userStatisticsContainer small,
 .module-content #permissionCategoriesContainer .text-muted,
@@ -326,19 +312,11 @@
     color: #212529 !important;
 }
 
-.admin-summary-cards .card-body h6 {
-    color: #212529;
-}
-
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .nav-tabs .nav-link {
         padding: 0.5rem 1rem;
         font-size: 0.9rem;
-    }
-    
-    .card .fs-1 {
-        font-size: 2rem !important;
     }
     
     .table {

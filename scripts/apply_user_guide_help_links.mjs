@@ -282,11 +282,11 @@ const SECTION_BLURBS = {
   "role-features-grid": "Toggle feature flags per role for progressive rollout.",
   "features-grid": "Catalogue of application features for assignment to roles.",
   "admin-users-permissions":
-    "<strong>Users &amp; permissions</strong> — system users table, role filter, and add user. Summary cards above show counts for the whole admin module.",
+    "<strong>People</strong> (User &amp; access) — accounts, role filter, and add user.",
   "admin-roles-management":
-    "<strong>Roles management</strong> — define and maintain roles used for menu and permission assignment.",
+    "<strong>Roles &amp; modules</strong> (User &amp; access) — full-width roles list; use <strong>Customize</strong> for sidebar modules and <strong>Advanced</strong> for database function permissions.",
   "admin-system-configuration":
-    "<strong>System configuration</strong> — environment and system settings (as exposed for your deployment).",
+    "<strong>System</strong> (User &amp; access) — reserved for environment and configuration when your deployment exposes it.",
   "data-import-grid": "Upload Excel templates into selected tables (contacts, stock, oil sheets, etc.).",
   "test-scenarios-grid": "QA automation scenarios (test environments).",
   "test-data-sets":
@@ -357,11 +357,11 @@ const SECTION_HOW_IT_WORKS = {
   "features-grid":
     "Treat as the catalogue of toggles—actual access still requires role assignment and menu configuration.",
   "admin-users-permissions":
-    "Start from summary cards, then filter the users grid. Add User follows the same validation as other admin entry points.",
+    "Filter the users grid and use <strong>Add user</strong> or <strong>Edit user</strong>; optional password on save matches the standalone Users screen.",
   "admin-roles-management":
-    "Edit roles here; deep permission matrices may live in User Management modules depending on deployment.",
+    "Each row has <strong>Edit role</strong> (name and description), <strong>Customize</strong> (module checklist in a dialog), and <strong>Advanced</strong> (database permissions in a separate dialog). Click a row (outside the buttons) to highlight it.",
   "admin-system-configuration":
-    "Record values before changing system settings; some options need vendor support to roll back safely.",
+    "Record values before changing anything that affects integrations; involve vendor support for risky reversals.",
   "data-import-grid":
     "Download the right template, fill without altering column headers, upload, and read the import log. Fix the spreadsheet rather than re-importing the same errors.",
   "test-scenarios-grid":
@@ -540,23 +540,23 @@ const PAGE_STEPS = {
     "Edit from the grid as needed; updates feed through to kernel dispatch and CRM views that use these customers.",
   ],
   "admin-users-permissions": [
-    "Open <strong>Admin</strong> from the menu.",
-    "Stay on the <strong>Users &amp; Permissions</strong> tab (first tab).",
-    "Read the summary cards (totals for users, roles, permissions, sessions) for a quick health check.",
-    "Use the users grid filters and search; click <strong>Add User</strong> to open the add-user dialog with the right role from the start.",
-    "Use row actions to edit or deactivate users; changes typically apply on next login.",
+    "Open <strong>User &amp; access</strong> from the sidebar (under the user-access group).",
+    "Stay on the <strong>People</strong> tab.",
+    "Use the role filter or search the grid as needed.",
+    "Use <strong>Add User</strong> or row <strong>Edit user</strong> — editing supports optional password change like the standalone Users screen.",
+    "Saved changes apply on next login or when the session refreshes features.",
   ],
   "admin-roles-management": [
-    "Open <strong>Admin</strong> → <strong>Roles management</strong> tab.",
-    "Review existing roles in the grid; use search, status filter, and <strong>Clear</strong> as needed.",
-    "Click <strong>Add Role</strong> on the toolbar (or the equivalent in your build) to define a new role name and description.",
-    "After saving roles, assign <strong>Role permissions</strong> and <strong>Role features</strong> in User Management so menus match responsibility.",
+    "Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> tab.",
+    "Use <strong>Customize</strong> on a role to open the module checklist; toggles match the former Role Features screen and control the sidebar.",
+    "Use <strong>Edit role</strong> when you need to change the role name or description only.",
+    "Use <strong>Advanced</strong> when you need database function permissions; edit rows cautiously (least privilege).",
   ],
   "admin-system-configuration": [
-    "Open <strong>Admin</strong> → <strong>System configuration</strong> tab.",
-    "Record current values (screenshot or export) before changing environment or integration settings.",
-    "Edit only fields you understand; some options may require vendor support to reverse.",
-    "Save and verify behaviour in a non-critical module before announcing the change to all users.",
+    "Open <strong>User &amp; access</strong> → <strong>System</strong> tab.",
+    "Read any guidance shown on the tab; many builds keep this as a placeholder until environment tools ship.",
+    "Record current values before changing integration or environment fields.",
+    "Verify behaviour in a non-critical module before announcing changes broadly.",
   ],
   "data-import-grid": [
     "Open <strong>Data import (Excel)</strong> from the menu.",
@@ -573,7 +573,7 @@ const PAGE_STEPS = {
     "Use row actions to download, replace metadata, or remove files according to your retention rules.",
   ],
   "features-grid": [
-    "Open <strong>Features</strong> from User Management (or your menu path).",
+    "Open <strong>Features</strong> from the same sidebar group as <strong>User &amp; access</strong> when your role includes the catalogue route.",
     "Search by name, key, or description; filter by active/inactive; click <strong>Clear</strong> to reset.",
     "Use <strong>Add feature</strong> to register a new application feature key for role assignment.",
     "Use <strong>Refresh</strong> and <strong>Export</strong> when auditing which flags exist before a rollout.",
@@ -601,21 +601,21 @@ const PAGE_STEPS = {
     "Align forecast versions with production capacity meetings—do not treat this as the only source of truth if finance maintains a master file.",
   ],
   "roles-grid": [
-    "Open <strong>Roles</strong> from User Management.",
+    "Open <strong>Roles</strong> from <strong>User &amp; access</strong> (Roles &amp; modules tab) or use the standalone route/bookmark if your role still exposes it.",
     "Search and filter by active/inactive; click <strong>Clear</strong> to reset the grid.",
     "Click <strong>Add role</strong> for a new named role, or open a row to edit description and status.",
     "Use <strong>Refresh</strong> after others change data; <strong>Export</strong> before audits.",
     "Pair each role with entries in <strong>Role permissions</strong> and <strong>Role features</strong> so menus and APIs stay aligned.",
   ],
   "role-permissions-grid": [
-    "Open <strong>Role permissions</strong> from User Management.",
+    "Open <strong>Role permissions</strong> from the standalone grid if exposed, or use <strong>User &amp; access</strong> → Roles &amp; modules → row <strong>Advanced</strong>.",
     "Filter by role, object type (function/table), and operation (EXECUTE, Read, Create, Update, Delete); use <strong>Clear</strong> when needed.",
     "Click <strong>Add permission</strong> to grant a role access to a specific object—add the minimum set first.",
     "Use <strong>Refresh</strong> and <strong>Export</strong> when documenting access reviews.",
     "Test with a non-admin login after changes; verify the user can do their job but cannot see restricted modules.",
   ],
   "role-features-grid": [
-    "Open <strong>Role features</strong> from User Management.",
+    "Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> and use <strong>Customize</strong> on a role (same data as the legacy Role Features grid), or use the standalone route if still linked.",
     "Locate the role and feature combination; toggle flags for phased rollouts of new UI or APIs.",
     "Use export/refresh controls like other admin grids.",
     "Document what each feature flag unlocks so support can answer “why don’t I see X?”.",
@@ -642,7 +642,7 @@ const PAGE_STEPS = {
     "Run or trigger tests only through approved automation paths—do not run destructive scripts against shared environments without notice.",
   ],
   "users-grid": [
-    "Open <strong>Users</strong> from User Management.",
+    "Open the standalone <strong>Users</strong> route if your role still exposes it, or use <strong>User &amp; access</strong> → <strong>People</strong> for the same workflows in the hub.",
     "Search and filter the grid; click <strong>Add user</strong> (or equivalent) for a new login.",
     "Assign the correct <strong>role</strong> immediately; fixing role mistakes later is harder than setting them at creation.",
     "Use password reset flows instead of sharing credentials between people.",
@@ -655,15 +655,15 @@ const PAGE_STEPS = {
     "Save; the grid refreshes and downstream modules (intake, dispatch) can pick up the contact immediately.",
   ],
   "modal-admin-add-user": [
-    "Open from <strong>Admin</strong> → <strong>Add user</strong>.",
+    "Open from <strong>User &amp; access</strong> → <strong>People</strong> → <strong>Add user</strong> (or equivalent).",
     "Enter name, email/username, and temporary password policy per your organisation.",
     "Assign the primary <strong>role</strong> before saving—this controls the menu tree on first login.",
     "Send the user your standard onboarding steps (password change, MFA if enabled).",
   ],
   "modal-admin-add-role": [
-    "Open from <strong>Admin</strong> → <strong>Add role</strong>.",
+    "Open from <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> → <strong>Add role</strong> (or equivalent).",
     "Enter a clear role name and description other admins will recognise.",
-    "Save, then open <strong>Role permissions</strong> and <strong>Role features</strong> to wire the role to real access.",
+    "Save, then use <strong>Customize</strong> on that role (and <strong>Advanced</strong> if needed) so menus and APIs match responsibility.",
   ],
   "modal-grower-receiving-checklist": [
     "Open from a grower intake batch card or row when Stage 1 (receiving) is due.",
@@ -894,9 +894,9 @@ function collectAnchors() {
   add("crm-kernel-customers", "CRM — Kernel customers");
   add("test-data-sets", "Test data — Data sets");
   add("test-data-records", "Test data — Records");
-  add("admin-users-permissions", "Admin — Users &amp; permissions");
-  add("admin-roles-management", "Admin — Roles management");
-  add("admin-system-configuration", "Admin — System configuration");
+  add("admin-users-permissions", "User &amp; access — People");
+  add("admin-roles-management", "User &amp; access — Roles &amp; modules");
+  add("admin-system-configuration", "User &amp; access — System");
 
   add("supply-chain-flow", "Supply chain &amp; process flow");
   add("my-day", "My day (module)");
@@ -939,15 +939,22 @@ ${shotFigure(id)}
   <link rel="stylesheet" href="help-shell.css" />
 </head>
 <body>
+  <nav id="guide-full-toolbar" class="guide-toolbar" hidden aria-label="User guide actions">
+    <a href="help-index.html" class="btn-link secondary">Documentation index</a>
+    <button type="button" class="btn-link secondary" data-action="download-pdf" title="Opens the print dialog — choose Save as PDF or Microsoft Print to PDF">Download PDF</button>
+  </nav>
   <div id="guide-single-bar">
     <div class="single-bar-top">
       <span class="single-title"></span>
-      <a href="index.html?full=1" class="btn-link secondary" data-action="full-guide">Full user guide</a>
+      <div class="single-bar-links">
+        <a href="index.html?full=1" class="btn-link secondary" data-action="full-guide">Full user guide</a>
+        <button type="button" class="btn-link secondary" data-action="download-pdf" title="Opens the print dialog — choose Save as PDF or Microsoft Print to PDF">Download PDF</button>
+      </div>
     </div>
   </div>
 
   <h1 id="guide-main-title">Macavation User Guide</h1>
-  <p id="guide-intro">Use <strong>Help</strong> for this topic: what it is for, how to work through it, and—where relevant—<strong>numbered steps</strong> for that screen. Open the <strong>full user guide</strong> for every section and the table of contents.</p>
+  <p id="guide-intro">Use <strong>Help</strong> for this topic: what it is for, how to work through it, and—where relevant—<strong>numbered steps</strong> for that screen. Open the <strong>full user guide</strong> for every section and the table of contents. Use <strong>Download PDF</strong> (full guide or single topic) to save a copy through your browser’s print dialog — choose <em>Save as PDF</em> as the destination.</p>
 
   <div id="guide-toc">
     <h2>Contents</h2>
@@ -959,7 +966,7 @@ ${shotFigure(id)}
     <ol class="guide-page-steps">
       <li><strong>Kernel stream:</strong> Grower intake → Kernel production → Stock (kernel) → Kernel dispatch.</li>
       <li><strong>Oil &amp; protein stream:</strong> Supplier intake → Oil production → Stock (oil/protein) → Oil &amp; protein dispatch.</li>
-      <li><strong>Shared &amp; admin:</strong> CRM, Quality, Documents, integrations, Users, Admin, and My Day support both streams.</li>
+      <li><strong>Shared &amp; admin:</strong> CRM, Quality, Documents, integrations, <strong>User &amp; access</strong> (people, roles, modules), Features catalogue, and My Day support both streams.</li>
     </ol>
   </div>
 

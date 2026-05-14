@@ -183,6 +183,7 @@ var _modal_user = (function () {
                 if (modalEl && typeof bootstrap !== 'undefined') { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
                 else if (typeof $ !== 'undefined' && $.fn.modal) $('#userModal').modal('hide');
                 if (typeof _usersGrid !== 'undefined' && _usersGrid.loadUsers) _usersGrid.loadUsers();
+                if (typeof _adminGrid !== 'undefined' && _adminGrid.loadUsers) _adminGrid.loadUsers();
             } catch (error) {
                 console.error('Error saving user:', error);
                 api.showError('Error saving user: ' + (error.message || ''));

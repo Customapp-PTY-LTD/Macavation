@@ -46,7 +46,6 @@ var _modal_admin_add_role = (function () {
                     }
                     form.reset();
                     if (typeof _adminGrid !== 'undefined' && _adminGrid.loadRoles) _adminGrid.loadRoles();
-                    if (typeof _adminGrid !== 'undefined' && _adminGrid.loadSummary) _adminGrid.loadSummary();
                 } else {
                     scope.showNotification('Failed to create role', 'error');
                 }

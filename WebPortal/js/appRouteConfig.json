@@ -142,7 +142,7 @@
             "css": []
         },
         "admin-grid": {
-            "description": "System Administration",
+            "description": "User & access",
             "path": "admin",
             "html": "html/admin_grid.html",
             "js": [
