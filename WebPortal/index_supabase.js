@@ -1218,9 +1218,13 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
     'create_document_category_simple',
     'delete_document_category_simple'
   ]);
-  const skipRbacForDocumentModule = documentManagementFunctions.has(functionName) && !user.exempted;
+  // Kernel dispatch: unlock dispatched basket (same RBAC sync issues as document module).
+  const kernelDispatchRbacBypassFunctions = new Set(['revert_kernel_dispatch_order']);
+  const skipRbacForRelaxedRpc =
+    (documentManagementFunctions.has(functionName) || kernelDispatchRbacBypassFunctions.has(functionName)) &&
+    !user.exempted;
 
-  if (!skipRbacForDocumentModule) {
+  if (!skipRbacForRelaxedRpc) {
     // RBAC Permission Check (even for exempted users)
     const rbacResult = await checkUserPermission(user, 'function', functionName, 'EXECUTE', requestId);
     if (!rbacResult.allowed) {
@@ -1235,7 +1239,7 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
       return createRBACDeniedResponse(rbacResult, requestId, origin);
     }
   } else {
-    logger.info('Document management RPC — RBAC skipped for authenticated user', {
+    logger.info('RPC — RBAC skipped for authenticated user (relaxed module list)', {
       requestId,
       functionName,
       userId: user.sub
