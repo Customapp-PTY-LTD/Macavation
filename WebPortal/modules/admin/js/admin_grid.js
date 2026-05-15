@@ -27,48 +27,83 @@ var _adminGrid = function () {
         adminPermCurrentPage: 1,
         adminPermPerPage: 12,
         adminPermSearchTerm: '',
+        _usersLoaded: false,
+        _rolesLoaded: false,
+        _modalsLoaded: false,
+        _modalsLoading: null,
+        _initToken: 0,
+
+        waitForDataFunctionsReady: async () => {
+            if (typeof dataFunctions !== 'undefined' && typeof dataFunctions.getUsers === 'function') {
+                return;
+            }
+            if (typeof waitForDataFunctions === 'function') {
+                await waitForDataFunctions(20, 50);
+                return;
+            }
+            for (var i = 0; i < 10; i++) {
+                if (typeof dataFunctions !== 'undefined' && typeof dataFunctions.getUsers === 'function') return;
+                await delay(50);
+            }
+            throw new Error('dataFunctions is not available');
+        },
+
+        resetListState: () => {
+            const scope = _adminGrid;
+            scope._usersLoaded = false;
+            scope._rolesLoaded = false;
+            scope.data.users = [];
+            scope.data.roles = [];
+        },
 
         init: async () => {
             const scope = _adminGrid;
+            if (!document.getElementById('usersTableBody')) return;
+            var initToken = ++scope._initToken;
             try {
                 console.log('[Admin] Initializing User & access…');
+                scope.resetListState();
+                scope._modalsLoaded = false;
+                scope._modalsLoading = null;
 
-                if (typeof waitForDataFunctions === 'function') {
-                    try {
-                        await waitForDataFunctions(50, 100);
-                    } catch (error) {
-                        console.error('dataFunctions not available:', error);
-                        throw new Error('Data functions not available');
-                    }
-                } else if (typeof dataFunctions === 'undefined') {
-                    await delay(500);
-                    if (typeof dataFunctions === 'undefined') {
-                        throw new Error('dataFunctions is not available');
-                    }
-                }
+                await scope.waitForDataFunctionsReady();
 
-                document.querySelectorAll('#adminTab button[data-bs-toggle="tab"]').forEach((tab) => {
-                    tab.addEventListener('shown.bs.tab', function (event) {
-                        const targetId = event.target.getAttribute('data-bs-target');
+                var adminTab = document.getElementById('adminTab');
+                if (adminTab && !adminTab.dataset.adminTabsBound) {
+                    adminTab.dataset.adminTabsBound = '1';
+                    adminTab.addEventListener('shown.bs.tab', function (event) {
+                        var targetId = event.target.getAttribute('data-bs-target');
                         scope.handleTabSwitch(targetId);
                     });
-                });
+                }
+
+                scope.setupFormHandlersOnce();
+                scope.setupRoleDetailUiOnce();
+                scope.setupAddUserButtons();
 
                 try {
                     await scope.loadUsers();
+                    if (initToken !== scope._initToken) return;
                 } catch (error) {
                     console.error('Error loading users:', error);
                 }
-                try {
-                    await scope.loadRoles();
-                } catch (error) {
-                    console.error('Error loading roles:', error);
-                }
+                if (initToken !== scope._initToken) return;
+                scope.loadRoles().catch(function (error) {
+                    console.error('Error prefetching roles:', error);
+                });
+            } catch (error) {
+                console.error('Error initializing Admin Grid:', error);
+            }
+        },
 
-                scope.setupFormHandlers();
-                scope.setupAddUserButtons();
-                scope.setupRoleDetailUi();
-
+        ensureModalsLoaded: async () => {
+            const scope = _adminGrid;
+            if (scope._modalsLoaded) return;
+            if (scope._modalsLoading) {
+                await scope._modalsLoading;
+                return;
+            }
+            scope._modalsLoading = (async function () {
                 var loadPromises = [];
                 ['addUserModal', 'addRoleModal', 'userModal', 'roleModal', 'permissionModal'].forEach(function (modalId) {
                     var el = document.getElementById(modalId);
@@ -78,46 +113,65 @@ var _adminGrid = function () {
                         loadPromises.push(_appRouter.loadContent({ routeName: routeName, elementSelector: '#' + modalId }));
                     }
                 });
-                Promise.all(loadPromises).then(function () {
+                try {
+                    if (loadPromises.length) await Promise.all(loadPromises);
                     if (typeof _modal_admin_add_user !== 'undefined' && _modal_admin_add_user.init) _modal_admin_add_user.init();
                     if (typeof _modal_admin_add_role !== 'undefined' && _modal_admin_add_role.init) _modal_admin_add_role.init();
                     scope.wireUserModalRefresh();
-                }).catch(function (err) {
+                    scope._modalsLoaded = true;
+                } catch (err) {
                     console.error('[Admin] Error loading modals:', err);
                     if (typeof _modal_admin_add_user !== 'undefined' && _modal_admin_add_user.init) _modal_admin_add_user.init();
                     if (typeof _modal_admin_add_role !== 'undefined' && _modal_admin_add_role.init) _modal_admin_add_role.init();
                     scope.wireUserModalRefresh();
-                });
-            } catch (error) {
-                console.error('Error initializing Admin Grid:', error);
-            }
+                    scope._modalsLoaded = true;
+                } finally {
+                    scope._modalsLoading = null;
+                }
+            })();
+            await scope._modalsLoading;
         },
 
         wireUserModalRefresh: () => {
             var el = document.getElementById('userModal');
             if (!el || typeof $ === 'undefined') return;
             $(el).off('hidden.bs.modal.adminRefresh').on('hidden.bs.modal.adminRefresh', function () {
-                _adminGrid.loadUsers();
+                _adminGrid.loadUsers({ forceRefresh: true });
             });
         },
 
         setupAddUserButtons: () => {
-            function openAdd() {
-                if (typeof _modal_user !== 'undefined' && _modal_user.show) _modal_user.show(null);
+            var root = document.querySelector('.admin-access-module');
+            if (!root || root.dataset.addButtonsBound) return;
+            root.dataset.addButtonsBound = '1';
+
+            function openAdd(e) {
+                if (e) e.preventDefault();
+                _adminGrid.ensureModalsLoaded().then(function () {
+                    if (typeof _modal_user !== 'undefined' && _modal_user.show) _modal_user.show(null);
+                });
             }
-            var a = document.getElementById('adminBtnAddUser');
-            var b = document.getElementById('adminBtnAddUserTab');
-            if (a) a.addEventListener('click', function (e) { e.preventDefault(); openAdd(); });
-            if (b) b.addEventListener('click', function (e) { e.preventDefault(); openAdd(); });
+            function prefetchModals(e) {
+                if (e && e.target && e.target.closest('[data-bs-target="#addRoleModal"]')) {
+                    _adminGrid.ensureModalsLoaded();
+                }
+            }
+            root.addEventListener('click', function (e) {
+                if (e.target.closest('#adminBtnAddUser, #adminBtnAddUserTab')) openAdd(e);
+                prefetchModals(e);
+            });
         },
 
-        setupRoleDetailUi: () => {
+        setupRoleDetailUiOnce: () => {
+            if (window.__adminGridRoleUiBound) return;
+            window.__adminGridRoleUiBound = true;
             const scope = _adminGrid;
-            var rf = document.getElementById('adminRefreshFeaturesBtn');
-            if (rf) rf.addEventListener('click', function () {
-                if (scope.selectedRoleId) scope.loadAdminRoleFeatures(scope.selectedRoleId);
-            });
             document.addEventListener('click', function (e) {
+                if (e.target.closest('#adminRefreshFeaturesBtn')) {
+                    e.preventDefault();
+                    if (scope.selectedRoleId) scope.loadAdminRoleFeatures(scope.selectedRoleId);
+                    return;
+                }
                 if (e.target.closest('#adminPermSearchBtn')) {
                     e.preventDefault();
                     var inp = document.getElementById('adminPermSearch');
@@ -180,10 +234,20 @@ var _adminGrid = function () {
             const scope = _adminGrid;
             switch (targetId) {
                 case '#users':
-                    scope.loadUsers();
+                    if (scope._usersLoaded) {
+                        scope.renderUsersTable(scope.data.users);
+                        scope.updateUserStats(scope.data.users);
+                        scope.updateRoleFilter();
+                    } else {
+                        scope.loadUsers();
+                    }
                     break;
                 case '#roles':
-                    scope.loadRoles();
+                    if (scope._rolesLoaded) {
+                        scope.renderRolesTable(scope.data.roles);
+                    } else {
+                        scope.loadRoles();
+                    }
                     break;
                 case '#system':
                     break;
@@ -192,15 +256,27 @@ var _adminGrid = function () {
             }
         },
 
-        loadUsers: async () => {
+        renderUsersFromCache: () => {
             const scope = _adminGrid;
+            scope.renderUsersTable(scope.data.users);
+            scope.updateUserStats(scope.data.users);
+            scope.updateRoleFilter();
+        },
+
+        loadUsers: async (options) => {
+            const scope = _adminGrid;
+            var forceRefresh = options && options.forceRefresh === true;
+            if (!forceRefresh && scope._usersLoaded) {
+                scope.renderUsersFromCache();
+                return;
+            }
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.getUsers) {
                     console.error('dataFunctions.getUsers is not available');
                     return;
                 }
 
-                const users = await dataFunctions.getUsers();
+                const users = await dataFunctions.getUsers(null, forceRefresh);
 
                 if (!users || users.length === 0) {
                     scope.data.users = [];
@@ -220,9 +296,11 @@ var _adminGrid = function () {
                     }));
                 }
 
-                scope.renderUsersTable(scope.data.users);
-                scope.updateUserStats(scope.data.users);
-                scope.updateRoleFilter();
+                scope._usersLoaded = true;
+                scope.renderUsersFromCache();
+                if (scope._rolesLoaded) {
+                    scope.renderRolesTable(scope.data.roles);
+                }
             } catch (error) {
                 console.error('Error loading users:', error);
                 const errorMessage = error.message || error.toString() || '';
@@ -234,9 +312,8 @@ var _adminGrid = function () {
                 if (isPermissionError) {
                     scope.showNotification('You do not have permission to view users. Please contact your administrator.', 'warning');
                     scope.data.users = [];
-                    scope.renderUsersTable(scope.data.users);
-                    scope.updateUserStats(scope.data.users);
-                    scope.updateRoleFilter();
+                    scope._usersLoaded = true;
+                    scope.renderUsersFromCache();
                 } else {
                     scope.showNotification('Failed to load users. Please try again later.', 'error');
                 }
@@ -349,15 +426,20 @@ var _adminGrid = function () {
             if (currentValue) filter.value = currentValue;
         },
 
-        loadRoles: async () => {
+        loadRoles: async (options) => {
             const scope = _adminGrid;
+            var forceRefresh = options && options.forceRefresh === true;
+            if (!forceRefresh && scope._rolesLoaded) {
+                scope.renderRolesTable(scope.data.roles);
+                return;
+            }
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.getRoles) {
                     console.error('dataFunctions.getRoles is not available');
                     return;
                 }
 
-                const roles = await dataFunctions.getRoles();
+                const roles = await dataFunctions.getRoles(null, forceRefresh);
 
                 if (!roles || roles.length === 0) {
                     scope.data.roles = [];
@@ -370,6 +452,7 @@ var _adminGrid = function () {
                     }));
                 }
 
+                scope._rolesLoaded = true;
                 scope.renderRolesTable(scope.data.roles);
                 if (scope.selectedRoleId) {
                     var still = scope.data.roles.some((r) => String(r.id) === String(scope.selectedRoleId));
@@ -387,6 +470,7 @@ var _adminGrid = function () {
                 if (isPermissionError) {
                     scope.showNotification('You do not have permission to view roles. Please contact your administrator.', 'warning');
                     scope.data.roles = [];
+                    scope._rolesLoaded = true;
                     scope.renderRolesTable(scope.data.roles);
                 } else {
                     scope.showNotification('Failed to load roles. Please try again later.', 'error');
@@ -683,11 +767,12 @@ var _adminGrid = function () {
             }
         },
 
-        setupFormHandlers: () => {
+        setupFormHandlersOnce: () => {
             const scope = _adminGrid;
 
             const userRoleFilter = document.getElementById('userRoleFilter');
-            if (userRoleFilter) {
+            if (userRoleFilter && !userRoleFilter.dataset.adminFilterBound) {
+                userRoleFilter.dataset.adminFilterBound = '1';
                 userRoleFilter.addEventListener('change', function () {
                     const filterValue = this.value;
                     if (filterValue) {
@@ -699,7 +784,11 @@ var _adminGrid = function () {
                 });
             }
 
+            if (window.__adminGridClickBound) return;
+            window.__adminGridClickBound = true;
+
             document.addEventListener('click', function (e) {
+                if (!document.getElementById('adminTab')) return;
                 var editUser = e.target.closest('[data-admin-edit-user]');
                 if (editUser) {
                     e.preventDefault();
@@ -744,7 +833,7 @@ var _adminGrid = function () {
             });
         },
 
-        editUser: (userId) => {
+        editUser: async (userId) => {
             const scope = _adminGrid;
             var user = scope.data.users.find(function (u) { return String(u.id) === String(userId); });
             if (!user) {
@@ -760,6 +849,7 @@ var _adminGrid = function () {
                 role_id: user.role_id,
                 is_active: user.is_active !== false
             };
+            await scope.ensureModalsLoaded();
             if (typeof _modal_user !== 'undefined' && _modal_user.show) {
                 _modal_user.show(raw);
             } else {
@@ -767,13 +857,14 @@ var _adminGrid = function () {
             }
         },
 
-        editRole: (roleId) => {
+        editRole: async (roleId) => {
             const scope = _adminGrid;
             var role = scope.data.roles.find(function (r) { return String(r.id) === String(roleId); });
             if (!role) {
                 scope.showNotification('Role not found.', 'warning');
                 return;
             }
+            await scope.ensureModalsLoaded();
             if (typeof _modal_role !== 'undefined' && _modal_role.show) {
                 _modal_role.show(role);
             } else {
@@ -815,4 +906,19 @@ var _adminGrid = function () {
     };
 }();
 
-_adminGrid.init();
+function initializeAdminGrid() {
+    var maxWait = 3000;
+    var start = Date.now();
+    function tryInit() {
+        if (typeof dataFunctions !== 'undefined' && typeof dataFunctions.getUsers === 'function') {
+            _adminGrid.init();
+            return;
+        }
+        if (Date.now() - start < maxWait) {
+            setTimeout(tryInit, 50);
+        }
+    }
+    tryInit();
+}
+
+window.initializeAdminGrid = initializeAdminGrid;
