@@ -13,7 +13,7 @@ Whenever you **introduce, change, or remove** anything that affects **what users
 2. **Standalone overview doc** (`WebPortal/assets/docs/user-guide.html` + `user-guide.css`): public-style single-page guide (quick start, navigation, workflows, modules, roles, troubleshooting). Update it when you add or rename major sidebar areas, streams, or troubleshooting tips—keep it aligned with `user-manual.html` at a high level.
 3. **Module manual** (printable / by-module reference): `WebPortal/help/user-manual.html` and `WebPortal/help/user-manual.css` — add or revise the chapter for the affected module, and if `WebPortal/js/appRouteConfig.json` changed, update the **Appendix — Route catalogue** in `user-manual.html` to match.
 4. **Help links on screens**: run `node scripts/apply_user_guide_help_links.mjs` from the repo root after adding or renaming help anchors, so each screen keeps a `macavation-help-link` to `help/index.html#…`.
-5. **Screenshots** (when the visible UI changed): `cd e2e && npm run capture-user-guide` per project convention.
+5. **Screenshots** (when the visible UI changed): `cd "Playwright Tests" && npm run capture-user-guide` per project convention.
 
 From the Web Portal, **Help** (`macavation-help-link`) opens `help/index.html` in a **new browser tab** (not an in-app modal), with **one topic** when a hash is present plus a compact **SVG** where relevant; **Full user guide** / `?full=1` lists every section. Sticky **Documentation navigation** on help pages links back to **`help-index.html`**. The **User manual (by module)** is linked from the help intro (`user-manual.html`).
 
@@ -32,4 +32,4 @@ Add a section in `WebPortal/help/index.html` with matching `id` (and generator/s
 
 ## Do not commit
 
-- `e2e/test-results/` or any file inside it (local artifacts only).
+- `Playwright Tests/test-results/` or any file inside it (local artifacts only).

@@ -30,7 +30,10 @@
 
   <div id="guide-process">
     <h2>Supply chain at a glance</h2>
-    <p class="guide-lead">Macavation follows two product streams plus shared support. Each topic below describes a specific screen.</p>
+    <p class="guide-lead">Macavation follows two product streams plus shared support. Each topic below describes a specific screen. Click a box in the diagram to jump to that module.</p>
+    <figure class="guide-flow">
+      <object data="./assets/process-overview.svg" type="image/svg+xml" width="920" height="340" aria-label="Macavation supply-chain overview"></object>
+    </figure>
     <ol class="guide-page-steps">
       <li><strong>Kernel stream:</strong> Grower intake → Kernel production → Stock (kernel) → Kernel dispatch.</li>
       <li><strong>Oil &amp; protein stream:</strong> Supplier intake → Oil production → Stock (oil/protein) → Oil &amp; protein dispatch.</li>
@@ -41,6 +44,7 @@
   <section id="modal-admin-add-role" class="guide-section" data-guide-id="modal-admin-add-role">
     <h2>Admin Add Role (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> → <strong>Add role</strong> (or equivalent).</li>
@@ -55,6 +59,7 @@
   <section id="modal-admin-add-user" class="guide-section" data-guide-id="modal-admin-add-user">
     <h2>Admin Add User (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from <strong>User &amp; access</strong> → <strong>People</strong> → <strong>Add user</strong> (or equivalent).</li>
@@ -70,6 +75,7 @@
   <section id="modal-batch-history" class="guide-section" data-guide-id="modal-batch-history">
     <h2>Batch History (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open to read the audit-style history of status changes and user actions on a batch.</li>
@@ -84,6 +90,7 @@
     <h2>Batch Journey (module)</h2>
 <p class="guide-lead">Cross-batch search and status across intake, production, QA, and dispatch.</p>
     <p class="guide-how">Search by batch or filters, open a row’s detail, then jump to owning module for the next action. Ideal when you know the batch ID but not where it sits.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Batch journey</strong> when you know a batch id or grower but not which module currently owns the work.</li>
@@ -100,6 +107,7 @@
   <section id="modal-batch-summary" class="guide-section" data-guide-id="modal-batch-summary">
     <h2>Batch Summary (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from batch cards or journey views to see consolidated batch metadata.</li>
@@ -114,6 +122,7 @@
     <h2>CRM — Kernel customers</h2>
 <p class="guide-lead"><strong>Kernel customers</strong> — kernel-side customers. Use filters and <strong>Add Contact</strong> to keep the list current for kernel dispatch and CRM.</p>
     <p class="guide-how">Supports kernel sales and dispatch: accurate delivery contacts reduce errors on despatch documents.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>CRM</strong> — Contact Database Management from the menu.</li>
@@ -123,7 +132,7 @@
       <li>Edit from the grid as needed; updates feed through to kernel dispatch and CRM views that use these customers.</li>
     </ol>
     <figure class="guide-shot">
-      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+      <img src="./assets/screenshots/crm-kernel-customers.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
@@ -131,6 +140,9 @@
     <h2>CRM — NIS suppliers</h2>
 <p class="guide-lead"><strong>NIS suppliers</strong> — numbered grower/supplier list used with kernel intake and reporting. Import from Excel or add contacts; used across grower intake and dispatch.</p>
     <p class="guide-how">Keep the numbered list aligned with operations: import from Excel when bulk-updating, or Add Contact for one-offs. These names appear in grower intake and kernel reporting.</p>
+    <figure class="guide-flow">
+      <object data="./assets/crm-contacts-map.svg" type="image/svg+xml" width="920" height="220" aria-label="CRM contact types"></object>
+    </figure>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>CRM</strong> — Contact Database Management from the menu.</li>
@@ -140,7 +152,7 @@
       <li>Open a row to edit; saved details are used in grower intake, kernel reporting, and kernel dispatch wherever that supplier appears.</li>
     </ol>
     <figure class="guide-shot">
-      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+      <img src="./assets/screenshots/crm-nis-suppliers.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
@@ -148,6 +160,7 @@
     <h2>CRM — Oil &amp; protein customers</h2>
 <p class="guide-lead"><strong>Oil &amp; protein customers</strong> — buyers for oil/protein products. Maintain names, contacts, and status for sales and dispatch.</p>
     <p class="guide-how">Keep commercial contacts current for sales and dispatch paperwork. Status and emails should match what dispatch and account teams use offline.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>CRM</strong> — Contact Database Management from the menu.</li>
@@ -157,7 +170,7 @@
       <li>Open a row to edit; accurate names and contacts reduce errors on oil &amp; protein sales and dispatch paperwork.</li>
     </ol>
     <figure class="guide-shot">
-      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+      <img src="./assets/screenshots/crm-oil-protein-customers.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
@@ -165,6 +178,7 @@
     <h2>CRM — Oil ingredient suppliers</h2>
 <p class="guide-lead"><strong>Oil ingredient suppliers</strong> — raw material and ingredient suppliers for oil &amp; protein operations. Same tools as other CRM tabs: filters, import, add contact.</p>
     <p class="guide-how">Used for raw-material suppliers feeding oil &amp; protein. After changes, notify planners so stock and intake expectations stay aligned.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>CRM</strong> — Contact Database Management from the menu.</li>
@@ -174,7 +188,7 @@
       <li>Edit a row to update supplier data used by oil &amp; protein intake, stock, and production screens that reference these contacts.</li>
     </ol>
     <figure class="guide-shot">
-      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+      <img src="./assets/screenshots/crm-oil-ingredient-suppliers.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
@@ -182,6 +196,7 @@
     <h2>CRM — Oil processors</h2>
 <p class="guide-lead"><strong>Oil processors</strong> — organisations classified as oil processors. Filter the grid, export, and add or edit contacts for the oil stream.</p>
     <p class="guide-how">Maintain processor details for the oil stream; filters and export help audits. Edits apply wherever that contact is picked (intake, production, dispatch).</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>CRM</strong> — Contact Database Management from the menu.</li>
@@ -191,13 +206,14 @@
       <li>Open a row to edit processor details; changes apply anywhere oil processors are selected in the oil &amp; protein stream.</li>
     </ol>
     <figure class="guide-shot">
-      <img src="./assets/screenshots/crm-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+      <img src="./assets/screenshots/crm-oil-processors.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
   <section id="modal-crm-contact" class="guide-section" data-guide-id="modal-crm-contact">
     <h2>Crm Contact (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from CRM: <strong>Add contact</strong> or when editing an existing row.</li>
@@ -214,6 +230,7 @@
     <h2>Dashboard overview</h2>
 <p class="guide-lead">Default operations dashboard: kernel production stats, packing, and task lists. Use the sidebar to open other modules.</p>
     <p class="guide-how">Use cards and lists as a daily snapshot; follow links or the sidebar to open the full grids behind each metric. Refresh the page if numbers look stale.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Dashboard overview</strong> from the sidebar, or land here by default after sign-in if your site is configured that way.</li>
@@ -230,6 +247,7 @@
     <h2>Data Import (module)</h2>
 <p class="guide-lead">Upload Excel templates into selected tables (contacts, stock, oil sheets, etc.).</p>
     <p class="guide-how">Download the right template, fill without altering column headers, upload, and read the import log. Fix the spreadsheet rather than re-importing the same errors.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Data import (Excel)</strong> from the menu.</li>
@@ -247,6 +265,7 @@
     <h2>Document Management (module)</h2>
 <p class="guide-lead">Store and organise operational documents linked to the business.</p>
     <p class="guide-how">Upload with clear titles and categories; link to entities when offered so colleagues find files from batches or contacts later.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Document management</strong> from the menu.</li>
@@ -263,6 +282,7 @@
   <section id="modal-end-sample" class="guide-section" data-guide-id="modal-end-sample">
     <h2>End Sample (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from grower or QA flows when closing out a sample workflow.</li>
@@ -276,6 +296,7 @@
   <section id="modal-end-sample-view" class="guide-section" data-guide-id="modal-end-sample-view">
     <h2>End Sample View (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open for read-only review of how a sample was closed.</li>
@@ -289,6 +310,7 @@
     <h2>Executive dashboard &amp; reporting</h2>
 <p class="guide-lead">KPIs and reporting for leadership. Use <strong>Customize</strong> to choose visible widgets and <strong>Generate Report</strong> for PDF output.</p>
     <p class="guide-how">Choose widgets with Customize, export PDFs with Generate Report, and treat figures as summaries—drill into Kernel / Oil &amp; protein modules for detail.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Executive dashboard</strong> from the menu.</li>
@@ -304,6 +326,7 @@
   <section id="modal-feature" class="guide-section" data-guide-id="modal-feature">
     <h2>Feature (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from <strong>Features</strong> grid to define or edit a feature key and description.</li>
@@ -318,6 +341,7 @@
     <h2>Features (module)</h2>
 <p class="guide-lead">Catalogue of application features for assignment to roles.</p>
     <p class="guide-how">Treat as the catalogue of toggles—actual access still requires role assignment and menu configuration.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Features</strong> from the same sidebar group as <strong>User &amp; access</strong> when your role includes the catalogue route.</li>
@@ -335,6 +359,7 @@
     <h2>Financial Management (module)</h2>
 <p class="guide-lead">Financial views and calculations supporting operations (where enabled).</p>
     <p class="guide-how">Use for enabled financial snapshots; always reconcile with your authoritative ledger—this view supports operations, not statutory reporting.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Financial management</strong> when your deployment enables it.</li>
@@ -351,6 +376,7 @@
   <section id="modal-grower-create-kernel-batch" class="guide-section" data-guide-id="modal-grower-create-kernel-batch">
     <h2>Grower Create Kernel Batch (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from grower intake via <strong>Create kernel batch</strong>.</li>
@@ -366,6 +392,9 @@
     <h2>Grower Intake (module)</h2>
 <p class="guide-lead">Kernel-side intake: receiving checklists, batch testing, and creating kernel batches before production.</p>
     <p class="guide-how">Work delivery-by-delivery: complete receiving checklists, capture samples if required, then create or link kernel batches so production can start.</p>
+    <figure class="guide-flow">
+      <object data="./assets/kernel-batch-lifecycle.svg" type="image/svg+xml" width="880" height="200" aria-label="Kernel batch lifecycle"></object>
+    </figure>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Grower intake</strong> from the sidebar.</li>
@@ -382,6 +411,7 @@
   <section id="modal-grower-link-sample-to-batch" class="guide-section" data-guide-id="modal-grower-link-sample-to-batch">
     <h2>Grower Link Sample To Batch (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open when linking a lab sample result to an intake batch.</li>
@@ -396,6 +426,7 @@
   <section id="modal-grower-receiving-checklist" class="guide-section" data-guide-id="modal-grower-receiving-checklist">
     <h2>Grower Receiving Checklist (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from a grower intake batch card or row when Stage 1 (receiving) is due.</li>
@@ -411,6 +442,7 @@
   <section id="modal-import-oil-lots" class="guide-section" data-guide-id="modal-import-oil-lots">
     <h2>Import Oil Lots (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from stock when importing oil lots from Excel.</li>
@@ -425,6 +457,7 @@
   <section id="modal-job-card-view" class="guide-section" data-guide-id="modal-job-card-view">
     <h2>Job Card View (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from production or dispatch when viewing a read-only job card summary.</li>
@@ -439,6 +472,7 @@
   <section id="modal-kernel-dispatch" class="guide-section" data-guide-id="modal-kernel-dispatch">
     <h2>Kernel Dispatch (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from kernel dispatch when creating or editing a dispatch basket header (buyer, delivery date).</li>
@@ -454,12 +488,13 @@
     <h2>Kernel Dispatch (module)</h2>
 <p class="guide-lead">Kernel finished goods: board/table views, dispatch basket, and inspection forms before despatch.</p>
     <p class="guide-how">Build the dispatch basket from approved stock, complete inspections, then finalise documents. Fixes to stock usually happen in Stock Management, not here.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Kernel dispatch</strong>; use <strong>Board</strong> vs <strong>Table</strong> and <strong>Refresh</strong> to align with how your despatch team works.</li>
       <li>Remember the flow: inventory from finished warehouse <strong>KERNEL R YES</strong> moves to <strong>Kernel customers</strong> and debtors—baskets are built from stock sends.</li>
-      <li>In table view, open <strong>View basket</strong> to check styles and quantities before loading; use <strong>Dispatch</strong> to complete inspection and dispatch forms.</li>
-      <li>Review the <strong>Baskets marked as dispatched</strong> section for completed paperwork and proof of shipment.</li>
+      <li>In table view, open <strong>View sheet</strong> to check styles and quantities before loading; use <strong>Dispatch</strong> to complete inspection and dispatch forms.</li>
+      <li>Review the <strong>Baskets marked as dispatched</strong> section for completed paperwork and proof of shipment. If dispatch was recorded by mistake, use <strong>Edit</strong> on a dispatched row or card (or <strong>Edit</strong> on the read-only dispatch sheet) to unlock the basket: dispatch paperwork is cleared and it returns to ready to dispatch so you can correct and dispatch again.</li>
       <li>If quantities are wrong, fix stock or the basket in <strong>Stock management</strong> rather than forcing a dispatch through.</li>
     </ol>
     <figure class="guide-shot">
@@ -470,6 +505,7 @@
   <section id="modal-kernel-dispatch-edit" class="guide-section" data-guide-id="modal-kernel-dispatch-edit">
     <h2>Kernel Dispatch Edit (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open this dialog from the parent screen (toolbar, card, or row action)—not from the sidebar on its own.</li>
@@ -486,11 +522,13 @@
   <section id="modal-kernel-dispatch-form" class="guide-section" data-guide-id="modal-kernel-dispatch-form">
     <h2>Kernel Dispatch Form (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open when completing inspection and dispatch paperwork for a kernel order.</li>
       <li>Fill vehicle, seal, weight checks, and sign-offs as your logistics SOP requires.</li>
       <li>Submit only after physical load matches the basket; fixes go back to stock or the basket, not forged paperwork.</li>
+      <li>When the sheet is read-only after dispatch, <strong>Edit</strong> unlocks the basket (clears saved paperwork, returns to ready to dispatch)—use only when dispatch was recorded in error.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-kernel-dispatch-form.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -500,6 +538,7 @@
   <section id="modal-kernel-job-card" class="guide-section" data-guide-id="modal-kernel-job-card">
     <h2>Kernel Job Card (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from kernel production for a batch entering or progressing production.</li>
@@ -515,6 +554,9 @@
     <h2>Kernel Production (module)</h2>
 <p class="guide-lead">Production workflow: job cards, production stages, batch summaries, and QA hand-offs.</p>
     <p class="guide-how">Drive job cards through stages; use board or list views as your site prefers. QA and stock hand-offs depend on accurate stage completion.</p>
+    <figure class="guide-flow">
+      <object data="./assets/kernel-batch-lifecycle.svg" type="image/svg+xml" width="880" height="200" aria-label="Kernel batch lifecycle"></object>
+    </figure>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Kernel production</strong> from the menu.</li>
@@ -532,6 +574,7 @@
     <h2>Kernel Production Forecast (module)</h2>
 <p class="guide-lead">Module <strong>Kernel Production Forecast (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
     <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open this module from the sidebar when your role includes access.</li>
@@ -548,6 +591,7 @@
     <h2>Material journey dashboard</h2>
 <p class="guide-lead">Tracks material movement and alerts for integrator-style roles. Use <strong>Refresh</strong> to reload cards.</p>
     <p class="guide-how">Reload with Refresh, then open linked modules from each card to clear alerts or continue a batch. Suited to roles watching movement across sites or stages.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Material journey</strong> from the menu (typically used by integrator-style roles watching movement and risk).</li>
@@ -564,6 +608,7 @@
     <h2>My day (module)</h2>
 <p class="guide-lead">Role-based landing view: your assigned workflows and shortcuts. Content loads after sign-in.</p>
     <p class="guide-how">Work the list top-down: each item should route you to the right module. Completing work there updates what others see on dashboards and queues.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>My Day</strong> after sign-in (or from the sidebar) to see tasks and shortcuts assigned to your role.</li>
@@ -579,6 +624,7 @@
   <section id="modal-oil-bulk-add-stock" class="guide-section" data-guide-id="modal-oil-bulk-add-stock">
     <h2>Oil Bulk Add Stock (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open this dialog from the parent screen (toolbar, card, or row action)—not from the sidebar on its own.</li>
@@ -595,6 +641,7 @@
   <section id="modal-oil-dispatch" class="guide-section" data-guide-id="modal-oil-dispatch">
     <h2>Oil Dispatch (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from <strong>Oil dispatch</strong> when creating or editing a dispatch basket header (customer, delivery window, references).</li>
@@ -612,6 +659,7 @@
     <h2>Oil Dispatch (module)</h2>
 <p class="guide-lead">Oil &amp; protein dispatch: mirror of kernel dispatch for the finished oil/protein warehouse location.</p>
     <p class="guide-how">Same pattern as kernel dispatch for the oil/protein warehouse: basket, checks, then shipment. Ensure oil lots are released before loading.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Oil &amp; protein dispatch</strong> from the menu (mirror of kernel dispatch for the finished oil/protein warehouse).</li>
@@ -627,6 +675,7 @@
   <section id="modal-oil-dispatch-form" class="guide-section" data-guide-id="modal-oil-dispatch-form">
     <h2>Oil Dispatch Form (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open for oil/protein inspection and despatch paperwork.</li>
@@ -640,6 +689,7 @@
   <section id="modal-oil-lot" class="guide-section" data-guide-id="modal-oil-lot">
     <h2>Oil Lot (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open when creating or editing an oil lot record tied to stock.</li>
@@ -655,6 +705,9 @@
     <h2>Oil Production (module)</h2>
 <p class="guide-lead">Oil production sheets and related processing steps for the oil/protein stream.</p>
     <p class="guide-how">Record production sheets and relate them to lots or batches as the UI prompts. This closes the loop between intake stock and finished oil/protein.</p>
+    <figure class="guide-flow">
+      <object data="./assets/oil-batch-lifecycle.svg" type="image/svg+xml" width="760" height="200" aria-label="Oil and protein batch lifecycle"></object>
+    </figure>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Oil production</strong> from the menu.</li>
@@ -672,6 +725,7 @@
     <h2>Oil Production Forecast (module)</h2>
 <p class="guide-lead">Module <strong>Oil Production Forecast (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
     <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open this module from the sidebar when your role includes access.</li>
@@ -687,6 +741,7 @@
   <section id="modal-oil-production-sheet" class="guide-section" data-guide-id="modal-oil-production-sheet">
     <h2>Oil Production Sheet (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from oil production when starting or editing a production sheet.</li>
@@ -703,6 +758,7 @@
     <h2>Palladium Integration (module)</h2>
 <p class="guide-lead">ERP integration settings and sync status with Palladium.</p>
     <p class="guide-how">Check sync health and mapping; day-to-day posting still happens from operational modules according to your integration design.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Palladium ERP integration</strong> from the menu.</li>
@@ -719,6 +775,7 @@
   <section id="modal-production-stages" class="guide-section" data-guide-id="modal-production-stages">
     <h2>Production Stages (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from kernel production to advance or edit production stages for a batch.</li>
@@ -733,6 +790,7 @@
   <section id="modal-production-stages-view" class="guide-section" data-guide-id="modal-production-stages-view">
     <h2>Production Stages View (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open to review stage history and timestamps without changing current state (if configured as read-only).</li>
@@ -747,6 +805,7 @@
     <h2>Quality Assurance (module)</h2>
 <p class="guide-lead">Quality tests, thresholds, and food-safety related records.</p>
     <p class="guide-how">Log tests against the referenced batch or item; failed or out-of-spec results may block the next step depending on configuration—follow local QA rules.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Quality assurance</strong> from the menu.</li>
@@ -763,6 +822,7 @@
   <section id="modal-quality-test" class="guide-section" data-guide-id="modal-quality-test">
     <h2>Quality Test (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from QA grid when logging or editing a specific test result.</li>
@@ -777,6 +837,7 @@
   <section id="modal-raw-material-issued" class="guide-section" data-guide-id="modal-raw-material-issued">
     <h2>Raw Material Issued (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open when recording raw material issued to production from stock.</li>
@@ -790,6 +851,7 @@
   <section id="modal-receiving-checklist" class="guide-section" data-guide-id="modal-receiving-checklist">
     <h2>Receiving Checklist (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from stock or supplier flows when a receiving checklist is required for a movement.</li>
@@ -804,6 +866,7 @@
   <section id="modal-role" class="guide-section" data-guide-id="modal-role">
     <h2>Role (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from <strong>Roles</strong> grid when adding or editing a role inline.</li>
@@ -817,6 +880,7 @@
   <section id="modal-role-feature" class="guide-section" data-guide-id="modal-role-feature">
     <h2>Role Feature (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from <strong>Role features</strong> to tie a feature flag to a role.</li>
@@ -831,6 +895,7 @@
     <h2>Role features (module)</h2>
 <p class="guide-lead">Toggle feature flags per role for progressive rollout.</p>
     <p class="guide-how">Toggle features per role for phased rollouts; document what each flag unlocks so support can answer user questions.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> and use <strong>Customize</strong> on a role (same data as the legacy Role Features grid), or use the standalone route if still linked.</li>
@@ -847,6 +912,7 @@
   <section id="modal-role-permission" class="guide-section" data-guide-id="modal-role-permission">
     <h2>Role Permission (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from <strong>Role permissions</strong> when mapping a role to a database object.</li>
@@ -861,6 +927,7 @@
     <h2>Role permissions (module)</h2>
 <p class="guide-lead">Map roles to database permissions (functions, tables).</p>
     <p class="guide-how">Grant least privilege: add permissions incrementally and test with a non-admin login before rolling out broadly.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Role permissions</strong> from the standalone grid if exposed, or use <strong>User &amp; access</strong> → Roles &amp; modules → row <strong>Advanced</strong>.</li>
@@ -878,6 +945,7 @@
     <h2>Roles (module)</h2>
 <p class="guide-lead">Define named roles used for menu and permission assignment.</p>
     <p class="guide-how">Name roles clearly for admins; after saving, assign permissions and features in their dedicated screens.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Roles</strong> from <strong>User &amp; access</strong> (Roles &amp; modules tab) or use the standalone route/bookmark if your role still exposes it.</li>
@@ -895,6 +963,7 @@
     <h2>Sales Forecasting (module)</h2>
 <p class="guide-lead">Demand and forecasting inputs for planning.</p>
     <p class="guide-how">Maintain forecast versions planners compare to production capacity and stock. Coordinate with finance or supply if numbers feed external systems.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Sales forecasting</strong> from the menu.</li>
@@ -911,6 +980,7 @@
   <section id="modal-send-to-dispatch" class="guide-section" data-guide-id="modal-send-to-dispatch">
     <h2>Send To Dispatch (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from <strong>Stock management</strong> (kernel) after selecting finished kernel lines to move toward dispatch.</li>
@@ -925,6 +995,7 @@
   <section id="modal-send-to-dispatch-oil" class="guide-section" data-guide-id="modal-send-to-dispatch-oil">
     <h2>Send To Dispatch Oil (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from oil stock when sending finished oil/protein lots toward oil dispatch.</li>
@@ -940,11 +1011,12 @@
     <h2>Stock Management (module)</h2>
 <p class="guide-lead">Warehouse views for kernel and oil/protein stock; filters, export, send to dispatch, and oil lot management.</p>
     <p class="guide-how">Confirm location and product filters before transactions. Send-to-dispatch and oil-lot actions should only run when physical stock matches the system.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Stock management</strong>; note whether you are on the <strong>Kernel</strong> or <strong>Oil &amp; protein</strong> stream (subtitle and filters adapt).</li>
       <li>For the main stock table: use <strong>Search</strong>, <strong>Status</strong>, <strong>Product type</strong>, and <strong>Location</strong> (warehouse section); click <strong>Clear</strong> to reset.</li>
-      <li>On <strong>Kernel batch journey</strong>: use <strong>By style</strong> / <strong>Weekly</strong> / <strong>Overview</strong>; select lines and use <strong>Send to Dispatch</strong> only when physical stock matches the system.</li>
+      <li>On <strong>Kernel batch journey</strong>: use <strong>By style</strong> / <strong>Weekly</strong> / <strong>Overview</strong>; in <strong>Adjust Stock</strong> you can enter cartons or kg and the system calculates boxes before saving. Use <strong>Send to Dispatch</strong> only when physical stock matches the system.</li>
       <li>For oil: add or import oil lots (e.g. from Excel) and monitor days-remaining from best-before where shown; use export when you need a file copy.</li>
       <li>Use <strong>Import historical</strong> only for the controlled kernel historical load your admin approved—never as a substitute for normal intake and production postings.</li>
     </ol>
@@ -956,6 +1028,7 @@
   <section id="modal-stock-take" class="guide-section" data-guide-id="modal-stock-take">
     <h2>Stock Take (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from stock management when running a stock-take or adjustment workflow.</li>
@@ -971,6 +1044,9 @@
     <h2>Supplier Intake (module)</h2>
 <p class="guide-lead">Oil &amp; protein intake: supplier oil batches and receiver checklists tied to CRM suppliers.</p>
     <p class="guide-how">Register supplier oil batches and receiver checklists; they must tie to CRM suppliers. Downstream stock and production consume these records.</p>
+    <figure class="guide-flow">
+      <object data="./assets/oil-batch-lifecycle.svg" type="image/svg+xml" width="760" height="200" aria-label="Oil and protein batch lifecycle"></object>
+    </figure>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Supplier intake</strong> from the menu.</li>
@@ -987,6 +1063,7 @@
   <section id="modal-supplier-intake-adjust-stock" class="guide-section" data-guide-id="modal-supplier-intake-adjust-stock">
     <h2>Supplier Intake Adjust Stock (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open this dialog from the parent screen (toolbar, card, or row action)—not from the sidebar on its own.</li>
@@ -1003,6 +1080,7 @@
   <section id="modal-supplier-oil-batch" class="guide-section" data-guide-id="modal-supplier-oil-batch">
     <h2>Supplier Oil Batch (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from supplier intake row actions when editing batch header details.</li>
@@ -1017,6 +1095,7 @@
   <section id="modal-supplier-receiver-checklist" class="guide-section" data-guide-id="modal-supplier-receiver-checklist">
     <h2>Supplier Receiver Checklist (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from supplier intake via <strong>Receiver checklist</strong> to start a new supplier oil delivery.</li>
@@ -1030,17 +1109,19 @@
 
   <section id="supply-chain-flow" class="guide-section" data-guide-id="supply-chain-flow">
     <h2>Supply chain &amp; process flow</h2>
-<p class="guide-lead">Read-only process diagram and quick links into Grower Intake, Stock, and Oil Production. (Not all deployments expose this as a route.)</p>
-    <p class="guide-how">Use this page to orient new users: follow <strong>Open</strong> links into live modules. This screen does not edit operational data — use intake, production, stock, and dispatch modules for that.</p>
+<p class="guide-lead">Interactive overview of kernel and oil streams plus shared modules. Click any box in the diagram to open that help topic. Read-only — create and edit batches in the operational modules.</p>
+    <p class="guide-how">Use the diagram to orient new staff: kernel stream (left), oil stream (middle), and shared tools (bottom). Follow links into live modules for day-to-day work.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Supply chain &amp; process flow</strong> when you need the big picture (Mermaid diagram: intake → warehouse raws → production → finished → customers / debtors).</li>
-      <li>Read the document-type hints (<strong>GRV</strong>, <strong>IBT</strong>, <strong>INV</strong>) so paperwork in dispatch matches what finance expects.</li>
-      <li>Use the toolbar shortcuts to jump to <strong>Grower intake</strong>, <strong>Stock</strong>, or <strong>Oil production</strong> in one click.</li>
+      <li>Open <strong>Supply chain &amp; process flow</strong> when you need the big picture before diving into a single module.</li>
+      <li>Click a box in the diagram to jump to that module’s help topic (grower intake, kernel production, stock, dispatch, CRM, and more).</li>
+      <li>Trace the <strong>kernel stream</strong> (top row) and <strong>oil &amp; protein stream</strong> (second row) from intake through dispatch.</li>
+      <li>Use shared modules at the bottom (CRM, Quality, Documents, User &amp; access) for data that supports both streams.</li>
       <li>This page is read-only for orientation—create and edit batches only inside the operational modules.</li>
     </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/supply-chain-flow.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    <figure class="guide-flow">
+      <object data="./assets/process-overview.svg" type="image/svg+xml" width="920" height="340" aria-label="Macavation supply-chain overview"></object>
     </figure>
   </section>
 
@@ -1048,6 +1129,7 @@
     <h2>Test data — Data sets</h2>
 <p class="guide-lead"><strong>Data sets</strong> — create and manage synthetic data sets for test scenarios. Use filters, search, and export.</p>
     <p class="guide-how">Define a set per scenario or feature area, then seed records. Export sets to share fixtures across testers.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Test data management</strong> (non-production / QA environments).</li>
@@ -1065,6 +1147,7 @@
     <h2>Test data — Records</h2>
 <p class="guide-lead"><strong>Records</strong> — individual test data records within sets. Add records after selecting or creating a data set.</p>
     <p class="guide-how">Add records after choosing a parent set; bulk tools (if shown) should stay within test data only.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Test data management</strong> → <strong>Records</strong> tab.</li>
@@ -1081,6 +1164,7 @@
   <section id="modal-test-data-record" class="guide-section" data-guide-id="modal-test-data-record" data-exclude-from-full-guide="1">
     <h2>Test Data Record (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open to edit one synthetic record’s JSON/fields for a scenario.</li>
@@ -1094,6 +1178,7 @@
   <section id="modal-test-data-set" class="guide-section" data-guide-id="modal-test-data-set" data-exclude-from-full-guide="1">
     <h2>Test Data Set (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from test data to define or edit a synthetic data set name, module, and purpose.</li>
@@ -1107,6 +1192,7 @@
   <section id="modal-test-scenario" class="guide-section" data-guide-id="modal-test-scenario" data-exclude-from-full-guide="1">
     <h2>Test Scenario (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open to name and describe an automation scenario; link data sets if required.</li>
@@ -1120,6 +1206,7 @@
     <h2>Test Scenarios (module)</h2>
 <p class="guide-lead">QA automation scenarios (test environments).</p>
     <p class="guide-how">For non-production environments: scenarios wrap automated tests—keep naming consistent with CI or Playwright jobs.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Test scenarios</strong> in QA environments.</li>
@@ -1135,6 +1222,7 @@
   <section id="modal-user" class="guide-section" data-guide-id="modal-user" data-exclude-from-full-guide="1">
     <h2>User (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from <strong>Users</strong> when editing profile, role, or activation state.</li>
@@ -1149,6 +1237,9 @@
     <h2>User &amp; access — People</h2>
 <p class="guide-lead"><strong>People</strong> (User &amp; access) — accounts, role filter, and add user.</p>
     <p class="guide-how">Filter the users grid and use <strong>Add user</strong> or <strong>Edit user</strong>; optional password on save matches the standalone Users screen.</p>
+    <figure class="guide-flow">
+      <object data="./assets/user-access-flow.svg" type="image/svg+xml" width="820" height="200" aria-label="User and access setup"></object>
+    </figure>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>User &amp; access</strong> from the sidebar (under the user-access group).</li>
@@ -1166,6 +1257,7 @@
     <h2>User &amp; access — Roles &amp; modules</h2>
 <p class="guide-lead"><strong>Roles &amp; modules</strong> (User &amp; access) — full-width roles list; use <strong>Customize</strong> for sidebar modules and <strong>Advanced</strong> for database function permissions.</p>
     <p class="guide-how">Each row has <strong>Edit role</strong> (name and description), <strong>Customize</strong> (module checklist in a dialog), and <strong>Advanced</strong> (database permissions in a separate dialog). Click a row (outside the buttons) to highlight it.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> tab.</li>
@@ -1182,6 +1274,7 @@
     <h2>User &amp; access — System</h2>
 <p class="guide-lead"><strong>System</strong> (User &amp; access) — reserved for environment and configuration when your deployment exposes it.</p>
     <p class="guide-how">Record values before changing anything that affects integrations; involve vendor support for risky reversals.</p>
+
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>User &amp; access</strong> → <strong>System</strong> tab.</li>
@@ -1198,6 +1291,9 @@
     <h2>Users (module)</h2>
 <p class="guide-lead">Create and maintain portal users, passwords, and assignments.</p>
     <p class="guide-how">Create users with correct roles from the start; password resets and deactivation are safer than sharing accounts. Changes apply on next login.</p>
+    <figure class="guide-flow">
+      <object data="./assets/user-access-flow.svg" type="image/svg+xml" width="820" height="200" aria-label="User and access setup"></object>
+    </figure>
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open the standalone <strong>Users</strong> route if your role still exposes it, or use <strong>User &amp; access</strong> → <strong>People</strong> for the same workflows in the hub.</li>

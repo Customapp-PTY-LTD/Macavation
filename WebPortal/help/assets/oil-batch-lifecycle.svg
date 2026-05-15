@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200" role="img" aria-label="Oil and protein batch lifecycle">
+  <title>Oil and protein batch lifecycle</title>
+  <desc>From supplier intake through oil production, stock, and dispatch.</desc>
+  <defs>
+    <style>
+      .box { fill: #f4f7f5; stroke: #2d4a3e; stroke-width: 2; rx: 8; }
+      .step { fill: #e8f0ec; stroke: #2d4a3e; stroke-width: 1.5; rx: 6; }
+      .lbl { font-family: system-ui, Segoe UI, sans-serif; font-size: 12px; fill: #1a2e26; pointer-events: none; }
+      .hdr { font-weight: 700; font-size: 14px; }
+      .map-arrow { stroke: #4a6b5c; stroke-width: 2; fill: none; }
+      .map-hit { cursor: pointer; outline: none; }
+      .map-hit:focus-visible .step { stroke: #0d4a32; stroke-width: 3; }
+    </style>
+    <marker id="om" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#4a6b5c"/>
+    </marker>
+  </defs>
+  <rect class="box" x="8" y="8" width="744" height="184" pointer-events="none"/>
+  <text class="lbl hdr" x="24" y="36" pointer-events="none">Oil &amp; protein batch lifecycle</text>
+  <path class="map-arrow" d="M158 108 H178" marker-end="url(#om)"/>
+  <path class="map-arrow" d="M306 108 H326" marker-end="url(#om)"/>
+  <path class="map-arrow" d="M454 108 H474" marker-end="url(#om)"/>
+  <path class="map-arrow" d="M602 108 H622" marker-end="url(#om)"/>
+  <a tabindex="0" href="#supplier-intake-grid" class="map-hit">
+    <title>Supplier intake</title>
+    <rect class="step" x="24" y="86" width="130" height="44"/><text class="lbl" x="38" y="112">Supplier intake</text>
+  </a>
+  <a tabindex="0" href="#oil-production-grid" class="map-hit">
+    <title>Oil production</title>
+    <rect class="step" x="182" y="86" width="120" height="44"/><text class="lbl" x="196" y="112">Oil production</text>
+  </a>
+  <a tabindex="0" href="#quality-assurance-grid" class="map-hit">
+    <title>Quality</title>
+    <rect class="step" x="330" y="86" width="120" height="44"/><text class="lbl" x="352" y="112">Quality</text>
+  </a>
+  <a tabindex="0" href="#stock-management-grid" class="map-hit">
+    <title>Stock oil/protein</title>
+    <rect class="step" x="478" y="86" width="120" height="44"/><text class="lbl" x="488" y="112">Stock</text>
+  </a>
+  <a tabindex="0" href="#oil-dispatch-grid" class="map-hit">
+    <title>Oil dispatch</title>
+    <rect class="step" x="626" y="86" width="110" height="44"/><text class="lbl" x="632" y="112">Dispatch</text>
+  </a>
+  <text class="lbl" x="24" y="168" pointer-events="none">Receiver checklist ’ sample test ’ production sheet ’ stock lots ’ oil dispatch</text>
+</svg>

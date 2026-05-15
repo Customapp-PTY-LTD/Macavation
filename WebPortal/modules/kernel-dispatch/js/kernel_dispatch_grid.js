@@ -52,6 +52,10 @@ var _kernelDispatchGrid = function () {
                         _modal_kernel_dispatch_edit.show(id);
                     }
                 });
+                $(document).on('click', '.js-edit-dispatched-basket', function () {
+                    var id = $(this).data('order-id');
+                    scope.confirmRevertDispatchOrder(id);
+                });
             }
             var loadPromises = [];
             $('.modal[route-name]').each(function (index, el) {
@@ -88,6 +92,36 @@ var _kernelDispatchGrid = function () {
                 console.error('[Kernel Dispatch] loadOrders failed:', e);
                 scope.orders = [];
                 scope.render();
+            }
+        },
+
+        confirmRevertDispatchOrder: (orderId) => {
+            const scope = _kernelDispatchGrid;
+            if (!orderId || typeof dataFunctions === 'undefined' || !dataFunctions.revertKernelDispatchOrder) return;
+            var run = function () {
+                dataFunctions.revertKernelDispatchOrder(orderId).then(function (result) {
+                    if (result && result.success !== false) {
+                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Basket ready to edit', text: (result && result.message) ? result.message : 'Dispatch paperwork was cleared; you can edit and dispatch again.', timer: 2000, showConfirmButton: false });
+                        return scope.loadOrders(true);
+                    }
+                    throw new Error(result && result.error ? result.error : 'Revert failed');
+                }).catch(function (e) {
+                    console.error(e);
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to revert dispatch', 'error');
+                });
+            };
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Edit dispatched basket?',
+                    html: 'This moves the basket back to <strong>Ready to dispatch</strong> and clears saved dispatch paperwork so you can change lines or dispatch again. Use when dispatch was recorded in error.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, unlock for editing',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: true
+                }).then(function (res) { if (res.isConfirmed) run(); });
+            } else if (window.confirm('Unlock this basket for editing? Saved dispatch paperwork will be cleared.')) {
+                run();
             }
         },
 
@@ -132,7 +166,8 @@ var _kernelDispatchGrid = function () {
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = KanbanHelper.statusBadge('dispatched', 'last');
                     var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
-                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + '</td></tr>');
+                    var editDispatchedBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatched-basket me-1" data-order-id="' + (o.id || '') + '" title="Edit: unlock basket (clears dispatch paperwork, returns to ready to dispatch)">Edit</button>';
+                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + editDispatchedBtn + ' ' + viewBtn + '</td></tr>');
                 });
             }
         },
@@ -182,6 +217,8 @@ var _kernelDispatchGrid = function () {
                 if (!isDispatched) {
                     html += '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatch-order me-1" data-order-id="' + (o.id || '') + '">Edit</button>';
                     html += '<button type="button" class="btn btn-sm btn-success js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Dispatch</button>';
+                } else {
+                    html += '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatched-basket me-1" data-order-id="' + (o.id || '') + '" title="Edit: unlock basket (clears dispatch paperwork)">Edit</button>';
                 }
                 html += '</div>';
                 html += '</div>';

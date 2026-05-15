@@ -6,7 +6,15 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            <p class="text-muted small mb-4" id="batchHistoryBatchInfo">Batch: —</p>
+            <p class="text-muted small mb-3" id="batchHistoryBatchInfo">Batch: —</p>
+            <div class="batch-history-dispatch-panel card border mb-4" id="batchHistoryDispatchPanel" aria-labelledby="batchHistoryDispatchHeading">
+                <div class="card-header py-2 px-3">
+                    <h6 class="mb-0" id="batchHistoryDispatchHeading">Kernel dispatches (this batch)</h6>
+                </div>
+                <div class="card-body py-2 px-3 small" id="batchHistoryDispatchBody">
+                    <p class="text-muted mb-0">Loading…</p>
+                </div>
+            </div>
             <div class="batch-history-timeline">
                 <div class="batch-history-timeline__line" aria-hidden="true"></div>
                 <div class="batch-history-timeline__entries" id="batchHistoryTimelineEntries">

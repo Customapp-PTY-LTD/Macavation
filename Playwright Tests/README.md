@@ -45,6 +45,22 @@ npm run test:stock-kernel
 
 Set `BASE_URL` and `CLIENT_GUID` in `.env.e2e` (copy from `.env.e2e.example` if present). Do not commit `.env.e2e` or `test-results/`.
 
+### Help screenshots
+
+After UI changes that affect help topics:
+
+```bash
+npm run capture-user-guide
+node ../scripts/apply_user_guide_help_links.mjs
+```
+
+- **Grids only (fast):** `npm run capture-user-guide:grids-only`
+- Writes PNGs to `WebPortal/help/assets/screenshots/`
+- Routes: `helpers/user-guide-screenshot-routes.ts`
+- Per-topic capture (CRM tabs, modals): `helpers/user-guide-capture-actions.ts`
+
+Requires `.env.e2e` with `BASE_URL`, `CLIENT_GUID`, and Super Admin credentials (see `.env.e2e.example`). SVG diagrams live in `docs/user-guide/assets/` and are copied to `WebPortal/help/assets/` when you run the generator script.
+
 ### Role-based tests (RBAC, login redirects, kernel role ops)
 
 **→ Full guide:** [README-ROLE-CREDENTIALS.md](./README-ROLE-CREDENTIALS.md)
@@ -58,4 +74,4 @@ Set per-role **email + password** env vars for real users, or those tests are **
 | QA Supervisor | `QA_SUPERVISOR_EMAIL`, `QA_SUPERVISOR_PASSWORD` |
 | Sales Executive | `SALES_EXECUTIVE_EMAIL`, `SALES_EXECUTIVE_PASSWORD` |
 | Office Administrator | `OFFICE_ADMINISTRATOR_EMAIL`, `OFFICE_ADMINISTRATOR_PASSWORD` |
-| Oil Plant Manager | `OIL_PLANT_MANAGER_PASSWORD` (email defaults in fixture) |
+| Oil Plant Manager | `OIL_PLANT_MANAGER_EMAIL`, `OIL_PLANT_MANAGER_PASSWORD` |

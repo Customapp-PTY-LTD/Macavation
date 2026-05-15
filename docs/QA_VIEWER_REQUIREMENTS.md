@@ -566,7 +566,7 @@ TC-{MODULE}-{NUMBER}: {Description}
 
 1. Navigate to e2e directory:
    ```bash
-   cd e2e
+   cd "Playwright Tests"
    ```
 
 2. Install dependencies:

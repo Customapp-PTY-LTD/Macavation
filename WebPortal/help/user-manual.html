@@ -148,14 +148,21 @@
           <li><strong>Stock</strong> reflects warehouse location, status, and quantities available for dispatch.</li>
           <li><strong>Dispatch</strong> builds baskets, runs inspection paperwork, and completes shipment.</li>
         </ol>
-        <p>For a visual overview, open <a href="assets/process-overview.svg" target="_blank" rel="noopener">process overview (SVG)</a> or the contextual <a href="index.html#supply-chain-flow">Supply chain and process flow</a> topic in the in-app guide.</p>
+        <p>Workflow diagrams (clickable in the in-app guide where embedded):</p>
+        <ul>
+          <li><a href="index.html#supply-chain-flow">Supply chain &amp; process flow</a> — <a href="assets/process-overview.svg" target="_blank" rel="noopener">process overview (SVG)</a></li>
+          <li><a href="assets/kernel-batch-lifecycle.svg" target="_blank" rel="noopener">Kernel batch lifecycle</a></li>
+          <li><a href="assets/oil-batch-lifecycle.svg" target="_blank" rel="noopener">Oil &amp; protein batch lifecycle</a></li>
+          <li><a href="assets/crm-contacts-map.svg" target="_blank" rel="noopener">CRM contact types</a></li>
+          <li><a href="assets/user-access-flow.svg" target="_blank" rel="noopener">User &amp; access setup</a></li>
+        </ul>
       </article>
 
       <article id="supply-chain-module" class="manual-chapter">
-        <h2>Supply chain diagram page (source module)</h2>
-        <p>The repository includes a <strong>Supply chain &amp; process flow</strong> UI under <code>modules/supply-chain-flow/</code> (Mermaid diagram and shortcuts into Grower Intake, Stock, and Oil Production). The in-app user guide already documents that screen under <a href="index.html#supply-chain-flow">Supply chain and process flow</a>.</p>
+        <h2>Supply chain diagram (help topic)</h2>
+        <p>The in-app guide topic <a href="index.html#supply-chain-flow">Supply chain &amp; process flow</a> embeds the interactive <strong>process overview</strong> SVG with links into each module’s help section.</p>
         <div class="callout">
-          <strong>Deployment note.</strong> That page is <strong>not</strong> listed in <code>appRouteConfig.json</code> in the current tree, so it may not appear in the sidebar until a route is registered for it. If your environment does not show it, use the SVG overview and the operational modules linked from this manual instead.
+          <strong>Deployment note.</strong> A separate <code>supply-chain-flow</code> app module may exist in the repository but is not always registered in <code>appRouteConfig.json</code>. The help topic and SVG diagrams work without that sidebar route.
         </div>
       </article>
 
@@ -196,7 +203,7 @@
         <ol>
           <li>Search by batch, grower, or other supported fields.</li>
           <li>Filter and sort (for example by status or date) to shorten the list.</li>
-          <li>Click a row to open batch history; use <strong>Edit</strong> → <strong>Delete permanently</strong> only when the batch must be erased from the database (this cannot be undone).</li>
+          <li>Click a row to open batch history. The dialog shows <strong>Kernel dispatches (this batch)</strong> at the top (buyer, dates, status, and per-style cartons and kg from dispatch orders). Use <strong>Edit</strong> → <strong>Delete permanently</strong> only when the batch must be erased from the database (this cannot be undone).</li>
         </ol>
         <p class="contextual-help"><a href="index.html#batch-journey-grid">Batch Journey topic</a></p>
       </article>
@@ -267,7 +274,7 @@
           <li>Open <strong>Stock (Kernel)</strong> from the sidebar.</li>
           <li>Filter by status, product type, and location; confirm the on-screen list matches the physical warehouse.</li>
           <li>Use <strong>Send to Dispatch</strong> when moving selected lines toward a kernel dispatch basket (quantities must match reality).</li>
-          <li>On <strong>Kernel stock by style</strong>, use <strong>Edit</strong> to update batch details (number, grower, received date, wet NIS, FFA, best before) when your role allows. Use <strong>Delete</strong> to remove a batch from stock view (soft delete), or <strong>Send back to production</strong> when the batch should return to the production flow instead.</li>
+          <li>On <strong>Kernel stock by style</strong>, use <strong>Edit</strong> to update batch details (number, grower, received date, wet NIS, FFA, best before) when your role allows. In <strong>Adjust Stock</strong>, you can capture cartons or kg and the system calculates boxes before saving. Use <strong>Delete</strong> to remove a batch from stock view (soft delete), or <strong>Send back to production</strong> when the batch should return to the production flow instead.</li>
           <li>Use stock take, receiving checklist, or raw material issued dialogs when your process requires adjustments or issues to production.</li>
         </ol>
         <div class="callout">
@@ -284,7 +291,7 @@
           <li>Open <strong>Kernel Dispatch</strong>; use Board or Table as preferred.</li>
           <li>Review open baskets; open <strong>View sheet</strong> to see basket lines together with the full inspection and dispatch form (driver, vehicle checks, transport, signatures).</li>
           <li>Complete <strong>Dispatch</strong> and the same form for orders not yet dispatched.</li>
-          <li>Dispatched orders open the form read-only so you can review what was recorded.</li>
+          <li>Dispatched orders open the form read-only so you can review what was recorded. Use <strong>Edit</strong> on the sheet or on a dispatched grid row only when dispatch was recorded by mistake; saved paperwork is cleared and the basket returns to ready to dispatch so you can change lines or dispatch again.</li>
           <li>Review dispatched baskets for completed paperwork.</li>
         </ol>
         <p>If quantities are wrong, correct stock or the basket in <strong>Stock Management</strong> rather than dispatching incorrect loads.</p>

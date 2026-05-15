@@ -2,7 +2,7 @@
 
 ## Status: In Progress
 
-This document summarizes the module creation based on the specifications in the `markdown files` folder.
+This document summarizes the module creation based on the specifications in `docs/markdown-archive/`.
 
 ## Completed Modules
 
@@ -74,7 +74,7 @@ The following modules have routes configured but need HTML/JS/CSS files:
 
 ## Module Specifications Reference
 
-All module specifications are in `markdown files/`:
+All module specifications are in `docs/markdown-archive/`:
 - `01_Authentication_Module.md` - Already implemented (users/roles modules)
 - `02_CRM_Module.md` - ✅ Implemented
 - `03_Grower_Intake_Module.md` - ⚠️ Partially implemented

@@ -42,7 +42,7 @@ This document describes **all columns** in the `public.oil` table on the Macavat
 
 ## JSONB columns
 
-All four are nullable. Structures are defined in **`markdown files/jsonb-oil-structure-guide.md`**. Summary:
+All four are nullable. Structures are defined in **`docs/markdown-archive/jsonb-oil-structure-guide.md`**. Summary:
 
 | Column | What it accepts / What goes there |
 |--------|-----------------------------------|
@@ -71,4 +71,4 @@ All four are nullable. Structures are defined in **`markdown files/jsonb-oil-str
 - **Audit:** `created_by`, `created_at`, `updated_by`, `updated_at`.
 - **Optional:** `silos` (integer array) for silo assignment when sent to production.
 
-For full JSONB field-level definitions, see **`markdown files/jsonb-oil-structure-guide.md`**.
+For full JSONB field-level definitions, see **`docs/markdown-archive/jsonb-oil-structure-guide.md`**.

@@ -227,30 +227,25 @@ test.describe('User Management - CRUD Operations @user-management @critical', ()
 
   test('TC-UM-008: Search Users', async ({ authenticatedPage }) => {
     /**
-     * Test user search functionality
+     * Test user search functionality (filters on input; no separate search button)
      */
     const searchInput = authenticatedPage.locator('#searchInput');
+    await expect(searchInput).toBeVisible({ timeout: 10000 });
     await searchInput.fill('e2e');
-    await authenticatedPage.click('#searchBtn');
+    await authenticatedPage.waitForTimeout(500);
     
-    await authenticatedPage.waitForTimeout(1000);
-    
-    // Verify search was performed
     const searchValue = await searchInput.inputValue();
     expect(searchValue).toBe('e2e');
+    await expect(authenticatedPage.locator('#usersTable')).toBeVisible();
   });
 
   test('TC-UM-009: Filter Users by Role', async ({ authenticatedPage }) => {
     /**
-     * Test role filter functionality
+     * Test role filter functionality (filters are always visible on Users grid)
      */
-    // Expand filters
-    const filterToggle = authenticatedPage.locator('[data-bs-target="#filtersCollapse"]');
-    await filterToggle.click();
-    await authenticatedPage.waitForSelector('#filtersCollapse.show', { state: 'visible' });
-    
-    // Select a role filter
     const roleFilter = authenticatedPage.locator('#filterRole');
+    await expect(roleFilter).toBeVisible({ timeout: 10000 });
+    await roleFilter.locator('option').nth(1).waitFor({ state: 'attached', timeout: 20000 });
     const options = await roleFilter.locator('option').allTextContents();
     expect(options.length).toBeGreaterThan(1);
   });

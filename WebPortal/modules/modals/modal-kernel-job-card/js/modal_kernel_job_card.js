@@ -1,7 +1,7 @@
 /**
  * Modal: Kernel Job Card – form, sound kernel/butter grade rows, calculations, save.
  * Packing: Start Date = first production packing date. Best Before Date = Start Date + 18 months (always; never use stored value).
- * Date inputs follow markdown files/INSTRUCTIONS-DATE-FLATPICKR.md:
+ * Date inputs follow docs/markdown-archive/INSTRUCTIONS-DATE-FLATPICKR.md:
  * - HTML: type="text", class="flatpickr-date", data-input, placeholder dd/mm/yyyy (§3).
  * - Config: dateFormat 'd/m/Y', allowInput: false, disableMobile: true (§6).
  * - Init on modal shown (§5.3). Display: dd/mm/yyyy; API: yyyy-mm-dd (§8).

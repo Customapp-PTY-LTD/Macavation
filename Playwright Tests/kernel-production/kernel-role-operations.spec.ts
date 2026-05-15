@@ -106,7 +106,7 @@ test.describe('Kernel role operations - Sales Executive @kernel @rbac', () => {
 
 test.describe('Kernel role operations - Oil Plant Manager @kernel @rbac', () => {
   test('Oil Plant Manager: access all Kernel modules, no Access Denied', async ({ testData, loginAsOilPlantManager }) => {
-    test.skip(!testData.users.oilPlantManager?.password, 'Oil Plant Manager password not set');
+    test.skip(!testData.users.oilPlantManager?.email || !testData.users.oilPlantManager?.password, 'Set OIL_PLANT_MANAGER_EMAIL and OIL_PLANT_MANAGER_PASSWORD');
     const page = await loginAsOilPlantManager();
     await page.waitForLoadState('networkidle');
     for (const mod of KERNEL_MODULES) {

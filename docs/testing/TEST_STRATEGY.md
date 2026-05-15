@@ -1327,7 +1327,7 @@ APP_VERSION=1.0.0
 
 2. Run tests - results are stored automatically:
 ```bash
-cd e2e
+cd "Playwright Tests"
 npm test
 ```
 
@@ -1749,7 +1749,7 @@ e2e/
 
 2. Install dependencies:
 ```bash
-cd e2e
+cd "Playwright Tests"
 npm init -y
 npm install -D @playwright/test @supabase/supabase-js dotenv
 npx playwright install

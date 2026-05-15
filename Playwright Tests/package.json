@@ -25,11 +25,14 @@
     "test:stock": "playwright test stock-management/",
     "test:finance": "playwright test financial-management/",
     "test:dashboard": "playwright test dashboard/",
+    "capture-user-guide": "playwright test user-guide/capture-module-screenshots.spec.ts",
+    "capture-user-guide:grids-only": "playwright test user-guide/capture-module-screenshots.spec.ts -g \"capture grid\"",
     "test:critical": "playwright test --grep @critical",
     "test:smoke": "playwright test --grep @smoke",
     "test:rbac": "playwright test --grep @rbac",
     "test:edge": "playwright test --grep @edge-case",
-    "test:security": "playwright test --grep @security"
+    "test:security": "playwright test --grep @security",
+    "cleanup:e2e": "node scripts/cleanup-e2e-test-data.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

@@ -32,6 +32,7 @@ DECLARE
         'get_kernel_batches', 'get_kernel_batch_detail', 'delete_kernel_batch_permanent',
         'upsert_kernel_production', 'upsert_kernel_job_card', 'upsert_kernel_qa',
         'get_next_batch_number', 'create_kernel_batch', 'complete_kernel_batch', 'get_kernel_production_history',
+        'revert_kernel_dispatch_order',
         'get_sample_submissions', 'get_quality_tests', 'get_quality_test_by_id',
         'create_quality_test_simple', 'update_quality_test_simple',
         'get_stock_items', 'get_oil_stock_lots', 'get_oil_stock_summary',

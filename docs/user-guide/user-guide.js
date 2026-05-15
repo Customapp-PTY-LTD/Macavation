@@ -92,7 +92,7 @@
         var cap = fig.querySelector("figcaption");
         if (cap)
           cap.textContent =
-            "Screenshot not found. Generate with: cd e2e && npx playwright test tests/user-guide/capture-module-screenshots.spec.ts (requires .env.e2e and BASE_URL).";
+            "Screenshot not found. Generate with: cd \"Playwright Tests\" && npm run capture-user-guide (requires .env.e2e and BASE_URL).";
       }
       function ok(fig) {
         if (!fig) return;

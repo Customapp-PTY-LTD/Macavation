@@ -74,6 +74,10 @@ var _modal_kernel_dispatch_form = (function () {
                 e.preventDefault();
                 scope.submit();
             });
+            $('#kernelDispatchFormEditDispatchedBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.revertToAwaitingDispatch();
+            });
         },
 
         show: (orderId) => {
@@ -201,6 +205,7 @@ var _modal_kernel_dispatch_form = (function () {
                 });
             }
             $('#kernelDispatchFormSubmitBtn').toggleClass('d-none', !!ro);
+            $('#kernelDispatchFormEditDispatchedBtn').toggleClass('d-none', !ro);
             var cancel = document.getElementById('kernelDispatchFormCancelBtn');
             if (cancel) cancel.textContent = ro ? 'Close' : 'Cancel';
             var title = document.getElementById('kernelDispatchFormModalLabel');
@@ -316,6 +321,53 @@ var _modal_kernel_dispatch_form = (function () {
                 console.error(e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save dispatch record', 'error');
             });
+        },
+
+        revertToAwaitingDispatch: () => {
+            const scope = _modal_kernel_dispatch_form;
+            if (!readOnlyMode) return;
+            var orderId = $('#kernelDispatchFormOrderId').val();
+            if (!orderId) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Order not found', 'error');
+                return;
+            }
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.revertKernelDispatchOrder) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Revert is not available', 'error');
+                return;
+            }
+            var runRevert = function () {
+                dataFunctions.revertKernelDispatchOrder(orderId).then(function (result) {
+                    if (result && result.success !== false) {
+                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Basket unlocked for editing', text: (result && result.message) ? result.message : '', timer: 2200, showConfirmButton: false });
+                        return dataFunctions.getKernelDispatchOrder(orderId);
+                    }
+                    throw new Error(result && result.error ? result.error : 'Revert failed');
+                }).then(function (data) {
+                    readOnlyMode = false;
+                    var lines = data && Array.isArray(data.lines) ? data.lines : [];
+                    var order = data && data.order ? data.order : null;
+                    scope.renderBasketLines(lines, order);
+                    scope.applyDispatchRecord({}, order || {});
+                    scope.setFormReadOnly(false);
+                    if (typeof _kernelDispatchGrid !== 'undefined' && _kernelDispatchGrid.loadOrders) _kernelDispatchGrid.loadOrders(true);
+                }).catch(function (e) {
+                    console.error(e);
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to revert dispatch', 'error');
+                });
+            };
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Edit dispatched basket?',
+                    html: 'This unlocks the basket for editing: it moves back to <strong>Ready to dispatch</strong> and clears saved inspection and dispatch paperwork. Use when dispatch was recorded in error.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, unlock for editing',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: true
+                }).then(function (res) { if (res.isConfirmed) runRevert(); });
+            } else if (window.confirm('Unlock this basket for editing? Saved dispatch paperwork will be cleared.')) {
+                runRevert();
+            }
         }
     };
 }());

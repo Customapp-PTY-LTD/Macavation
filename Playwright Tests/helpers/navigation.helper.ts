@@ -25,7 +25,14 @@ const NAVIGATION_MAP: Record<string, { collapseId?: string; linkSelector: string
   'quality-assurance-grid': { collapseId: 'qualityCollapse', linkSelector: 'a[route="quality-assurance-grid"]' },
   'stock-management-grid': { collapseId: 'qualityCollapse', linkSelector: 'a[route="stock-management-grid"]' },
   'stock-management-kernel': { collapseId: 'qualityCollapse', linkSelector: 'a[route="stock-management-kernel"]' },
+  'stock-management-oil': { collapseId: 'qualityCollapse', linkSelector: 'a[route="stock-management-oil"]' },
   'kernel-dispatch-grid': { collapseId: 'qualityCollapse', linkSelector: 'a[route="kernel-dispatch-grid"]' },
+  'oil-dispatch-grid': { collapseId: 'qualityCollapse', linkSelector: 'a[route="oil-dispatch-grid"]' },
+  'supplier-intake-grid': { collapseId: 'productionCollapse', linkSelector: 'a[route="supplier-intake-grid"]' },
+  'batch-journey': { collapseId: 'productionCollapse', linkSelector: 'a[route="batch-journey"]' },
+  'features-grid': { collapseId: 'userManagementCollapse', linkSelector: 'a[route="features-grid"]' },
+  'test-data-grid': { collapseId: 'userManagementCollapse', linkSelector: 'a[route="test-data-grid"]' },
+  'test-scenarios-grid': { collapseId: 'userManagementCollapse', linkSelector: 'a[route="test-scenarios-grid"]' },
   
   // Business
   'sales-forecasting-grid': { collapseId: 'businessCollapse', linkSelector: 'a[route="sales-forecasting-grid"]' },

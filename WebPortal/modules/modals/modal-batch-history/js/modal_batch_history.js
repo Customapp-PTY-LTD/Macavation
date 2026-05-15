@@ -314,6 +314,99 @@ function getProductionDayDateLatest(stages) {
     return dates[dates.length - 1];
 }
 
+var BATCH_HISTORY_KG_PER_CARTON = 11.34;
+
+/** Parse dispatch_orders from get_kernel_production_history (jsonb array or proxy-wrapped). */
+function parseDispatchOrdersFromDetail(detail) {
+    if (!detail || typeof detail !== 'object') return [];
+    var raw = detail.dispatch_orders != null ? detail.dispatch_orders : detail.DispatchOrders;
+    if (raw == null) return [];
+    if (typeof raw === 'string') {
+        try {
+            raw = JSON.parse(raw);
+        } catch (e) {
+            return [];
+        }
+    }
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') {
+        if (Array.isArray(raw.dispatch_orders)) return raw.dispatch_orders;
+        if (Array.isArray(raw.DispatchOrders)) return raw.DispatchOrders;
+    }
+    return [];
+}
+
+function batchHistoryDispatchLineKg(line) {
+    if (!line || typeof line !== 'object') return null;
+    var ct = line.cartons != null ? line.cartons : line.Cartons;
+    var nct = ct != null && ct !== '' ? parseFloat(ct) : NaN;
+    if (!isNaN(nct) && nct >= 0) return Math.round(nct * BATCH_HISTORY_KG_PER_CARTON * 100) / 100;
+    var q = line.quantity_kg != null ? line.quantity_kg : line.QuantityKg;
+    var nq = q != null && q !== '' ? parseFloat(q) : NaN;
+    return !isNaN(nq) ? Math.round(nq * 100) / 100 : null;
+}
+
+function batchHistoryDispatchLineCartons(line) {
+    if (!line || typeof line !== 'object') return null;
+    var ct = line.cartons != null ? line.cartons : line.Cartons;
+    if (ct == null || ct === '') return null;
+    var n = parseFloat(ct);
+    return isNaN(n) ? null : n;
+}
+
+function buildBatchHistoryDispatchPanelHtml(detail) {
+    var orders = parseDispatchOrdersFromDetail(detail);
+    if (!orders.length) {
+        return '<p class="text-muted mb-0">No kernel dispatch orders include this batch on a line yet (cartons or kg).</p>';
+    }
+    var nil = BATCH_HISTORY_NIL;
+    var fmtDate = function (v) {
+        return historyFmtProductionDate(v ? String(v).split('T')[0] : null, nil);
+    };
+    var h = '';
+    orders.forEach(function (ord, idx) {
+        if (!ord || typeof ord !== 'object') return;
+        var oid = ord.id != null ? ord.id : ord.Id;
+        var buyer = ord.buyer_name != null ? ord.buyer_name : (ord.BuyerName != null ? ord.BuyerName : '');
+        var status = ord.status != null ? ord.status : (ord.Status != null ? ord.Status : '');
+        var lines = ord.lines != null ? ord.lines : ord.Lines;
+        if (typeof lines === 'string') {
+            try {
+                lines = JSON.parse(lines);
+            } catch (e) {
+                lines = [];
+            }
+        }
+        if (!Array.isArray(lines)) lines = [];
+        if (idx > 0) h += '<div class="batch-history-dispatch-order"></div>';
+        h += '<div class="batch-history-dispatch-order">';
+        h += '<div class="d-flex flex-wrap align-items-center gap-2 mb-2">';
+        h += '<span class="fw-semibold">' + historyEscapeHtml(buyer || 'Buyer not set') + '</span>';
+        if (status) h += '<span class="badge bg-secondary text-uppercase">' + historyEscapeHtml(String(status)) + '</span>';
+        if (oid) h += '<span class="text-muted font-monospace small">Order ' + historyEscapeHtml(String(oid).substring(0, 8)) + '…</span>';
+        h += '</div>';
+        h += '<p class="text-muted mb-2 mb-md-1 small">Delivery ' + fmtDate(ord.delivery_date || ord.DeliveryDate) +
+            ' · Best before ' + fmtDate(ord.best_before_date || ord.BestBeforeDate) +
+            ' · Dispatched ' + (ord.dispatched_at || ord.DispatchedAt ? historyEscapeHtml(String(ord.dispatched_at || ord.DispatchedAt).replace('T', ' ').substring(0, 16)) : nil) +
+            '</p>';
+        h += '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Style</th><th class="text-end">Cartons</th><th class="text-end">Weight (kg)</th></tr></thead><tbody>';
+        if (lines.length === 0) {
+            h += '<tr><td colspan="3">' + nil + '</td></tr>';
+        } else {
+            lines.forEach(function (ln) {
+                var style = (ln && (ln.style != null ? ln.style : ln.Style)) || nil;
+                var ct = batchHistoryDispatchLineCartons(ln);
+                var kg = batchHistoryDispatchLineKg(ln);
+                var ctDisp = ct != null ? historyEscapeHtml(String(ct)) : nil;
+                var kgDisp = kg != null ? historyEscapeHtml(String(kg)) : nil;
+                h += '<tr><td>' + historyFmt(style, nil) + '</td><td class="text-end">' + ctDisp + '</td><td class="text-end">' + kgDisp + '</td></tr>';
+            });
+        }
+        h += '</tbody></table></div></div>';
+    });
+    return h;
+}
+
 var _modal_batch_history = (function () {
     'use strict';
     function statusToTitleCase(str) {
@@ -367,21 +460,26 @@ var _modal_batch_history = (function () {
             }
             $('#batchHistoryBatchInfo').text(getBatchInfoText(batch));
             var $container = $('#batchHistoryTimelineEntries');
+            var $dispatchBody = $('#batchHistoryDispatchBody');
             $container.html('<p class="text-muted mb-0">Loading…</p>');
+            if ($dispatchBody.length) $dispatchBody.html('<p class="text-muted mb-0">Loading…</p>');
             var modalEl = document.getElementById('batchHistoryModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#batchHistoryModal').modal('show');
 
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelProductionHistory) {
                 $container.html('<p class="text-danger mb-0">Cannot load batch history.</p>');
+                if ($dispatchBody.length) $dispatchBody.html('<p class="text-danger mb-0">Cannot load dispatch data.</p>');
                 return;
             }
 
-            dataFunctions.getKernelProductionHistory(batchId).then(function (detail) {
+            dataFunctions.getKernelProductionHistory(batchId, null, true).then(function (detail) {
                 if (!detail) {
                     $container.html('<p class="text-muted mb-0">Batch detail not found.</p>');
+                    if ($dispatchBody.length) $dispatchBody.html('<p class="text-muted mb-0">No batch detail.</p>');
                     return;
                 }
+                if ($dispatchBody.length) $dispatchBody.html(buildBatchHistoryDispatchPanelHtml(detail));
                 var displayBatch = detail || batch || {};
                 $('#batchHistoryBatchInfo').text(getBatchInfoText(displayBatch));
 
@@ -690,6 +788,9 @@ var _modal_batch_history = (function () {
                 $container.html(html);
             }).catch(function () {
                 $container.html('<p class="text-danger mb-0">Could not load timeline.</p>');
+                if ($('#batchHistoryDispatchBody').length) {
+                    $('#batchHistoryDispatchBody').html('<p class="text-danger mb-0">Could not load dispatch data.</p>');
+                }
             });
         }
     };

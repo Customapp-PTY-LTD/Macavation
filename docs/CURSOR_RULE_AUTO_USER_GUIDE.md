@@ -2,6 +2,19 @@
 
 A lightweight pattern that makes Cursor AI automatically keep your user-facing documentation in sync with your codebase — on every commit, across any project.
 
+## Macavation (this repo)
+
+| Purpose | Path |
+|--------|------|
+| In-app help topics (Help button, hash links) | `WebPortal/help/index.html` |
+| Module manual + route appendix | `WebPortal/help/user-manual.html` |
+| Standalone overview (PDF-style) | `WebPortal/assets/docs/user-guide.html` |
+| Help links on screens | `node scripts/apply_user_guide_help_links.mjs` |
+| Screenshot-backed TOC (optional legacy) | `docs/user-guide.html` |
+| Regenerate help PNGs | `cd "Playwright Tests" && npm run capture-user-guide` → `WebPortal/help/assets/screenshots/` |
+
+Authoritative Cursor rules: `.cursor/rules/user-guide-update.mdc` and `user-guide-on-webportal-changes.mdc`.
+
 ---
 
 ## The Problem It Solves
@@ -51,7 +64,7 @@ alwaysApply: true
 
 # User Guide Update Reminder
 
-When creating a Git commit that introduces or changes a user-facing feature, **always update `docs/user-guide.html`** before committing.
+When creating a Git commit that introduces or changes a user-facing feature, **always update the Macavation help surfaces** (`WebPortal/help/index.html`, and related manual/overview docs as needed) before committing.
 
 Use the following checklist to add the new section:
 
@@ -64,14 +77,14 @@ Diagrams:             [flow diagram / screenshot callout / none]
 Help button location: [file path, e.g. modules/dashboard/html/dashboard.html]
 \```
 
-Add a corresponding section in `docs/user-guide.html` with an `id` matching the anchor ID so the in-app help button can link directly to it.
+Add a corresponding section in `WebPortal/help/index.html` with an `id` matching the anchor ID so the in-app help button can link directly to it (`help/index.html#anchor-id`).
 ```
 
 > **Note:** Remove the backslashes before the triple backticks — they are only there to prevent rendering issues in this guide.
 
 ### Step 3 — Create your user guide file
 
-If you don't already have one, create `docs/user-guide.html`. A minimal starting structure:
+If you don't already have one, add a section to `WebPortal/help/index.html`. A minimal HTML pattern:
 
 ```html
 <!DOCTYPE html>
@@ -100,7 +113,7 @@ If you don't already have one, create `docs/user-guide.html`. A minimal starting
 In any module HTML file, add a help button that deep-links to the relevant section:
 
 ```html
-<a href="/docs/user-guide.html#dashboard-widgets" target="_blank" class="btn btn-sm btn-outline-secondary">
+<a href="help/index.html#dashboard-widgets" target="_blank" class="btn btn-sm btn-outline-secondary macavation-help-link">
   <i data-feather="help-circle"></i> Help
 </a>
 ```
@@ -113,8 +126,9 @@ The anchor `#dashboard-widgets` matches the `id` on the section in the guide —
 
 The rule file above uses an HTML user guide, but you can point it at any format:
 
-| Format | Change `docs/user-guide.html` to... |
+| Format | Change the guide path to... |
 |--------|--------------------------------------|
+| Macavation in-app help | `WebPortal/help/index.html` |
 | Markdown wiki | `docs/USER_GUIDE.md` |
 | Notion / Confluence | The URL of the page (AI will remind you to update it manually) |
 | Storybook | `docs/stories/` directory |
@@ -211,6 +225,6 @@ Yes — the `.cursor/` directory lives inside the repo and is committed to versi
 |------|-------|
 | Rule file | `.cursor/rules/user-guide-update.mdc` |
 | Trigger | Every Cursor conversation in the project |
-| User guide | `docs/user-guide.html` (or any path you configure) |
-| Deep-link pattern | `<section id="anchor-id">` + `href="/docs/user-guide.html#anchor-id"` |
+| User guide (Macavation) | `WebPortal/help/index.html` (+ `user-manual.html`, `assets/docs/user-guide.html` as needed) |
+| Deep-link pattern | `<section id="anchor-id">` + `help/index.html#anchor-id` on Help links |
 | Team sharing | Commit `.cursor/rules/` to the repo — all teammates inherit it |

@@ -150,6 +150,24 @@ var _stockManagementGrid = function () {
         return out;
     }
 
+    /**
+     * Kernel by-style grid: normally list only batches that still show remaining on hand.
+     * In adjust-stock mode also list batches that have production yield but zero remaining — otherwise
+     * the grid looked empty / non-editable after full dispatch when users still need to correct stock.
+     */
+    function kernelBatchVisibleInByStyleGrid(batch, adjustMode) {
+        var cells = getKernelStyleCellsForDisplay(batch);
+        var hasRemaining = KERNEL_STYLE_OPTIONS.some(function (k) {
+            return parseNum(cells[k]) > 0;
+        });
+        if (hasRemaining) return true;
+        if (!adjustMode || !batch) return false;
+        var yieldObj = kernelStyleMapFromBatch(batch, 'yield_by_style');
+        return KERNEL_STYLE_OPTIONS.some(function (k) {
+            return parseNum(yieldObj[k]) > 0;
+        });
+    }
+
     return {
         stockItems: [],
         filteredStockItems: [],
@@ -397,23 +415,21 @@ var _stockManagementGrid = function () {
             scope.ensureKernelStockByStyleAdjustListeners();
         },
 
-        /** Native listeners on tbody: works without relying on jQuery delegation; mousedown prevents text-selection stealing the click. */
+        /**
+         * Delegated handlers on document so clicks work after every re-render (tbody rows are replaced;
+         * a listener bound only once on tbody was fragile). Namespaced handlers are refreshed from setupEventListeners.
+         */
         ensureKernelStockByStyleAdjustListeners: function () {
             var scope = _stockManagementGrid;
-            var tbody = document.getElementById('kernelStockByStyleBody');
-            if (!tbody || tbody.getAttribute('data-adjust-listeners') === '1') return;
-            tbody.setAttribute('data-adjust-listeners', '1');
-            tbody.addEventListener('mousedown', function (e) {
+            if (typeof $ === 'undefined') return;
+            $(document).off('mousedown.kernelAdjStock').on('mousedown.kernelAdjStock', '#kernelStockByStyleBody td[data-kernel-stock-adjust="1"]', function (e) {
                 if (!scope.kernelAdjustMode) return;
-                var td = e.target.closest && e.target.closest('td[data-kernel-stock-adjust="1"]');
-                if (!td) return;
                 e.preventDefault();
-            }, true);
-            tbody.addEventListener('click', function (e) {
-                var td = e.target.closest && e.target.closest('td[data-kernel-stock-adjust="1"]');
-                if (!td) return;
+            });
+            $(document).off('click.kernelAdjStock').on('click.kernelAdjStock', '#kernelStockByStyleBody td[data-kernel-stock-adjust="1"]', function (e) {
                 e.preventDefault();
-                scope.handleKernelStockAdjustTd(td);
+                e.stopPropagation();
+                scope.handleKernelStockAdjustTd(this);
             });
         },
 
@@ -746,10 +762,7 @@ var _stockManagementGrid = function () {
             if (!body.length || !totalsRow.length) return;
             body.empty();
             var batches = (scope.kernelFinishedBatches || []).filter(function (b) {
-                var cells = getKernelStyleCellsForDisplay(b);
-                return KERNEL_STYLE_OPTIONS.some(function (k) {
-                    return parseNum(cells[k]) > 0;
-                });
+                return kernelBatchVisibleInByStyleGrid(b, scope.kernelAdjustMode);
             });
             var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
             var styleKeys = KERNEL_STYLE_OPTIONS.slice();
@@ -983,30 +996,75 @@ var _stockManagementGrid = function () {
                     '<div class="small text-muted mb-2">Style: <strong>' + escapeHtml(style) + '</strong></div>' +
                     '<label class="form-label">Type <code>+</code> or <code>-</code></label>' +
                     '<input id="swalAdjustKernelSign" type="text" class="form-control mb-2" maxlength="1" placeholder="+ or -">' +
-                    '<label class="form-label">Cartons</label>' +
-                    '<input id="swalAdjustKernelCartons" type="number" class="form-control mb-2" step="1" min="0" value="0">' +
+                    '<label class="form-label">Value captured</label>' +
+                    '<input id="swalAdjustKernelValue" type="number" class="form-control mb-2" step="0.01" min="0" value="0">' +
+                    '<label class="form-label">Unit</label>' +
+                    '<select id="swalAdjustKernelUnit" class="form-select mb-2">' +
+                    '<option value="cartons">Boxes (cartons)</option>' +
+                    '<option value="kg">Kg</option>' +
+                    '</select>' +
+                    '<div id="swalAdjustKernelCalc" class="small text-muted mb-2">Calculated boxes: 0.00 ct (kg: 0.00)</div>' +
                     '<label class="form-label">Reason</label>' +
                     '<input id="swalAdjustKernelReason" type="text" class="form-control" maxlength="250" placeholder="Optional note">' +
                     '</div>',
                 focusConfirm: false,
                 showCancelButton: true,
                 confirmButtonText: 'Save adjustment',
+                didOpen: function () {
+                    var signEl = document.getElementById('swalAdjustKernelSign');
+                    var valueEl = document.getElementById('swalAdjustKernelValue');
+                    var unitEl = document.getElementById('swalAdjustKernelUnit');
+                    var calcEl = document.getElementById('swalAdjustKernelCalc');
+                    var refreshCalc = function () {
+                        if (!calcEl || !valueEl || !unitEl) return;
+                        var v = parseNum(valueEl.value);
+                        var unit = unitEl.value || 'cartons';
+                        var sign = (signEl && signEl.value === '-') ? -1 : 1;
+                        var cartons = unit === 'kg'
+                            ? (v / KERNEL_KG_PER_CARTON)
+                            : v;
+                        var kg = unit === 'kg'
+                            ? v
+                            : (v * KERNEL_KG_PER_CARTON);
+                        cartons = Math.round(cartons * 100) / 100;
+                        kg = Math.round(kg * 100) / 100;
+                        var prefix = sign < 0 ? '-' : '+';
+                        calcEl.textContent = 'Calculated boxes: ' + prefix + cartons.toFixed(2) + ' ct (kg: ' + prefix + kg.toFixed(2) + ')';
+                    };
+                    if (signEl) signEl.addEventListener('input', refreshCalc);
+                    if (valueEl) valueEl.addEventListener('input', refreshCalc);
+                    if (unitEl) unitEl.addEventListener('change', refreshCalc);
+                    refreshCalc();
+                },
                 preConfirm: function () {
                     var signInput = (document.getElementById('swalAdjustKernelSign').value || '').trim();
-                    var cartonsAbs = parseNum(document.getElementById('swalAdjustKernelCartons').value);
+                    var valueAbs = parseNum(document.getElementById('swalAdjustKernelValue').value);
+                    var unit = (document.getElementById('swalAdjustKernelUnit').value || 'cartons').trim().toLowerCase();
                     var reason = document.getElementById('swalAdjustKernelReason').value || null;
                     if (signInput !== '+' && signInput !== '-') {
                         Swal.showValidationMessage('Type + or - to show whether stock must increase or decrease.');
                         return false;
                     }
-                    if (cartonsAbs === 0) {
-                        Swal.showValidationMessage('Enter a non-zero cartons adjustment.');
+                    if (unit !== 'cartons' && unit !== 'kg') {
+                        Swal.showValidationMessage('Choose a valid unit.');
+                        return false;
+                    }
+                    if (valueAbs === 0) {
+                        Swal.showValidationMessage('Enter a non-zero adjustment value.');
                         return false;
                     }
                     var sign = signInput === '-' ? -1 : 1;
+                    var cartonsAbs = unit === 'kg'
+                        ? (valueAbs / KERNEL_KG_PER_CARTON)
+                        : valueAbs;
+                    var qtyAbs = unit === 'kg'
+                        ? valueAbs
+                        : (valueAbs * KERNEL_KG_PER_CARTON);
+                    cartonsAbs = Math.round(cartonsAbs * 100) / 100;
+                    qtyAbs = Math.round(qtyAbs * 100) / 100;
                     return {
                         style: style,
-                        qtyDelta: 0,
+                        qtyDelta: sign * qtyAbs,
                         cartonsDelta: sign * cartonsAbs,
                         reason: reason
                     };
@@ -1022,21 +1080,27 @@ var _stockManagementGrid = function () {
             var bn = batch.batch_number || 'batch';
             var sign = (window.prompt('Batch ' + bn + ', style ' + style + ' — type + or -', '+') || '').trim();
             if (sign !== '+' && sign !== '-') return;
-            var cartStr = window.prompt('Cartons to change (number only)', '0');
-            var cartAbs = cartStr === '' || cartStr == null ? 0 : parseFloat(cartStr);
-            if (isNaN(cartAbs) || cartAbs < 0) {
-                window.alert('Invalid cartons amount');
+            var unit = (window.prompt('Unit? Type cartons or kg', 'cartons') || 'cartons').trim().toLowerCase();
+            if (unit !== 'cartons' && unit !== 'kg') return;
+            var valueStr = window.prompt('Value to change (number only)', '0');
+            var valueAbs = valueStr === '' || valueStr == null ? 0 : parseFloat(valueStr);
+            if (isNaN(valueAbs) || valueAbs < 0) {
+                window.alert('Invalid adjustment value');
                 return;
             }
-            if (cartAbs === 0) {
-                window.alert('Enter a non-zero cartons adjustment');
+            if (valueAbs === 0) {
+                window.alert('Enter a non-zero adjustment value');
                 return;
             }
             var mult = sign === '-' ? -1 : 1;
+            var cartonsAbs = unit === 'kg' ? (valueAbs / KERNEL_KG_PER_CARTON) : valueAbs;
+            var qtyAbs = unit === 'kg' ? valueAbs : (valueAbs * KERNEL_KG_PER_CARTON);
+            cartonsAbs = Math.round(cartonsAbs * 100) / 100;
+            qtyAbs = Math.round(qtyAbs * 100) / 100;
             scope.saveKernelStockAdjustment(batch, {
                 style: style,
-                qtyDelta: 0,
-                cartonsDelta: mult * cartAbs,
+                qtyDelta: mult * qtyAbs,
+                cartonsDelta: mult * cartonsAbs,
                 reason: null
             });
         },

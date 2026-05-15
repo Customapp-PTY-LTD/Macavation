@@ -1,3 +1,9 @@
+# Macavation — Supabase proxy (Lambda) reference
+
+> **Context:** The Macavation Web Portal (`WebPortal/`) calls Supabase through an AWS Lambda proxy (not direct browser access to the service role). This document is **reference material** for that proxy pattern. Day-to-day app setup: migrations in `migrations/`, portal config under `WebPortal/js/`. The generic “clone and npm install” steps below describe a standalone Lambda package, not this monorepo root.
+
+---
+
 # Supabase Proxy Lambda
 
 A robust, production-ready Node.js Lambda function that serves as a secure proxy for Supabase, providing enterprise-grade authentication, rate limiting, and security features for JavaScript browser-based frontends.

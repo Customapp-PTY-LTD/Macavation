@@ -105,7 +105,7 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
     /**
      * Oil Plant Manager has role_features including oil-production-grid; should see module content, not Access Denied.
      */
-    test.skip(!testData.users.oilPlantManager?.password, 'Oil Plant Manager credentials not configured');
+    test.skip(!testData.users.oilPlantManager?.email || !testData.users.oilPlantManager?.password, 'Set OIL_PLANT_MANAGER_EMAIL and OIL_PLANT_MANAGER_PASSWORD');
     
     const page = await loginAsOilPlantManager();
     await page.waitForLoadState('networkidle');
@@ -188,6 +188,8 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
     /**
      * Verify Super Admin has access to all core modules by navigating via sidebar (loadContent)
      */
+    test.setTimeout(120000);
+
     const coreModules = [
       { route: 'crm-grid', name: 'CRM' },
       { route: 'grower-intake-grid', name: 'Grower Intake' },
@@ -198,10 +200,9 @@ test.describe('RBAC - Role-Based Access Control @rbac @critical', () => {
     ];
     for (const module of coreModules) {
       await navigateToModule(authenticatedPage, module.route);
-      await authenticatedPage.waitForTimeout(1500);
-      const accessDenied = await authenticatedPage.locator('.access-denied, .unauthorized').isVisible().catch(() => false);
-      expect(accessDenied).toBeFalsy();
-      await expect(authenticatedPage.locator('#content-area')).toBeVisible({ timeout: 8000 });
+      const accessDenied = authenticatedPage.locator('#content-area:has-text("Access Denied"), .access-denied, .unauthorized');
+      await expect(accessDenied).not.toBeVisible({ timeout: 10000 });
+      await expect(authenticatedPage.locator('#content-area')).toBeVisible({ timeout: 15000 });
     }
   });
 

@@ -118,7 +118,7 @@ test.describe('Authentication - Login @critical', () => {
     /**
      * Test Oil Plant Manager login and redirect
      */
-    test.skip(!testData.users.oilPlantManager.password, 'Oil Plant Manager password not configured');
+    test.skip(!testData.users.oilPlantManager.email || !testData.users.oilPlantManager.password, 'Set OIL_PLANT_MANAGER_EMAIL and OIL_PLANT_MANAGER_PASSWORD');
     
     const page = await loginAsOilPlantManager();
     await page.waitForLoadState('networkidle');

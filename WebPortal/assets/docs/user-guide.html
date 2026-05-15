@@ -150,7 +150,7 @@
       <h3>Stock (Kernel) and Kernel Dispatch</h3>
       <ul>
         <li><strong>Purpose:</strong> Warehouse truth for kernel lines; building and shipping customer baskets.</li>
-        <li><strong>Typical flow:</strong> Filter by location/status → align counts with the floor → <strong>Send to Dispatch</strong> → complete dispatch forms only when the physical load matches the basket.</li>
+        <li><strong>Typical flow:</strong> Filter by location/status → align counts with the floor → use <strong>Adjust Stock</strong> for corrections (capture cartons or kg; boxes are calculated before save) → <strong>Send to Dispatch</strong> → complete dispatch forms only when the physical load matches the basket. If dispatch was recorded in error, Kernel Dispatch lets you <strong>Edit</strong> a dispatched basket to unlock it (clears paperwork) so you can dispatch again.</li>
       </ul>
 
       <h3>Supplier Intake and Oil Production</h3>
@@ -181,7 +181,7 @@
       <ul>
         <li><strong>In progress:</strong> Checklists incomplete, tests pending, or production stages not finished — editing is usually allowed where the UI enables it.</li>
         <li><strong>Released / dispatched:</strong> Treat data as committed for operations; corrections follow your SOP (often stock or admin).</li>
-        <li><strong>Read-only views:</strong> Job card view, production stages view, batch history — for verification, not editing.</li>
+        <li><strong>Read-only views:</strong> Job card view, production stages view, batch history (including kernel dispatch lines with cartons and kg for that batch) — for verification, not editing.</li>
       </ul>
       <a class="back-to-top" href="#top">Back to top</a>
     </section>
@@ -193,7 +193,7 @@
         <li><strong>Material Journey / Executive</strong> — integrator or leadership views; use in-page refresh where provided.</li>
         <li><strong>Batch Journey</strong> — cross-module batch search; follow links into the owning module to complete work.</li>
         <li><strong>Exports</strong> — many grids offer <strong>Export</strong> for spreadsheets; Data Import runs the opposite direction with strict templates.</li>
-        <li><strong>Process diagram</strong> — see <a href="../../help/assets/process-overview.svg" target="_blank" rel="noopener">process overview (SVG)</a> in the help folder.</li>
+        <li><strong>Process diagrams</strong> — <a href="../../help/index.html#supply-chain-flow">supply chain flow</a> (embedded in the in-app guide) and standalone SVGs: <a href="../../help/assets/process-overview.svg" target="_blank" rel="noopener">process overview</a>, <a href="../../help/assets/kernel-batch-lifecycle.svg" target="_blank" rel="noopener">kernel lifecycle</a>, <a href="../../help/assets/oil-batch-lifecycle.svg" target="_blank" rel="noopener">oil lifecycle</a>, <a href="../../help/assets/crm-contacts-map.svg" target="_blank" rel="noopener">CRM map</a>, <a href="../../help/assets/user-access-flow.svg" target="_blank" rel="noopener">user &amp; access</a>.</li>
       </ul>
       <a class="back-to-top" href="#top">Back to top</a>
     </section>

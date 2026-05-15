@@ -21,7 +21,7 @@ export default defineConfig({
   workers: 1,
 
   reporter: [
-    ['html', { open: 'always' }],
+    ['html', { open: process.env.CI ? 'never' : 'on-failure' }],
     ['list'],
     ['./reporters/supabase.reporter.ts'],
   ],

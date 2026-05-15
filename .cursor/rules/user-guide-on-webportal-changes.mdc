@@ -11,7 +11,7 @@ Files under this glob are **user-facing application code** (modules, modals, rou
 1. Update **`WebPortal/help/index.html`** (contextual topic: summary, steps, screenshot path if needed).
 2. Update **`WebPortal/help/user-manual.html`** for the relevant module chapter (and the route appendix if **`appRouteConfig.json`** changed).
 3. Run **`node scripts/apply_user_guide_help_links.mjs`** when help anchors or modal titles change.
-4. Regenerate user-guide screenshots if the screen layout changed: **`cd e2e && npm run capture-user-guide`**.
+4. Regenerate user-guide screenshots if the screen layout changed: **`cd "Playwright Tests" && npm run capture-user-guide`**.
 
 Treat documentation updates as **part of the same commit** as the feature fix or feature work, not a follow-up unless explicitly out of scope.
 

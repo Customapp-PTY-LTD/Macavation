@@ -1,5 +1,6 @@
 ﻿import { test, expect } from '../fixtures';
 import { Page } from '@playwright/test';
+import { navigateToModule } from '../helpers/navigation.helper';
 
 /**
  * Role-Based Screen Access Tests
@@ -217,12 +218,12 @@ test.describe('Role-Based Screen Access - Direct URL Access Prevention @rbac @se
     /**
      * Even if user navigates directly to URL, permissions should be enforced
      */
-    // First verify we can access an allowed module
-    await authenticatedPage.goto('/#dashboard');
+    await authenticatedPage.goto('/index.html#dashboard');
     await authenticatedPage.waitForLoadState('networkidle');
     
-    const dashboardAccessible = await authenticatedPage.locator('.module-content, #content-area').isVisible();
-    expect(dashboardAccessible).toBeTruthy();
+    await expect(authenticatedPage.locator('#content-area')).toBeVisible({ timeout: 15000 });
+    const accessDenied = authenticatedPage.locator('#content-area:has-text("Access Denied")');
+    await expect(accessDenied).not.toBeVisible({ timeout: 5000 });
   });
 
   test('TC-RSA-006: Unauthenticated user redirected to login', async ({ page }) => {
@@ -255,11 +256,15 @@ test.describe('Role-Based Screen Access - Edge Cases @rbac @edge-case', () => {
      * When session expires, user should be redirected to login
      */
     // Navigate to a protected page first
-    await authenticatedPage.goto('/#dashboard');
+    await authenticatedPage.goto('/index.html#dashboard');
     await authenticatedPage.waitForLoadState('networkidle');
     
-    // Simulate session expiry by clearing storage
+    // Simulate session expiry (Session API + legacy keys)
     await authenticatedPage.evaluate(() => {
+      if (typeof Session !== 'undefined' && Session.clear) {
+        Session.clear();
+      }
+      localStorage.removeItem('_Session');
       localStorage.removeItem('lambda_token');
       localStorage.removeItem('user_info');
     });
@@ -346,16 +351,12 @@ test.describe('Role-Based Screen Access - Edge Cases @rbac @edge-case', () => {
     const routes = ['dashboard', 'crm-grid', 'dashboard', 'kernel-production-grid', 'dashboard'];
     
     for (const route of routes) {
-      await authenticatedPage.goto(`/#${route}`);
-      // Don't wait for full load, rapid navigation
+      await navigateToModule(authenticatedPage, route);
     }
     
-    // Wait for final load
-    await authenticatedPage.waitForLoadState('networkidle');
-    
-    // Page should be stable
-    const hasContent = await authenticatedPage.locator('.module-content, #content-area').isVisible().catch(() => false);
-    expect(hasContent).toBeTruthy();
+    await expect(authenticatedPage.locator('#content-area')).toBeVisible({ timeout: 15000 });
+    const accessDenied = authenticatedPage.locator('#content-area:has-text("Access Denied")');
+    await expect(accessDenied).not.toBeVisible({ timeout: 5000 });
   });
 
   test('TC-RSA-EC-008: Browser back/forward navigation', async ({ authenticatedPage }) => {

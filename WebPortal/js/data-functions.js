@@ -2105,7 +2105,19 @@ var _dataFunctions = function () {
         },
 
         /**
-         * getKernelProductionHistory — history-specific read: intake, stage arrays, job card, QA.
+         * Normalize get_kernel_production_history row (lambda / .NET proxies may use PascalCase).
+         */
+        normalizeKernelProductionHistoryDetail: function (d) {
+            if (!d || typeof d !== 'object') return d;
+            const o = Object.assign({}, d);
+            if (o.dispatch_orders == null && o.DispatchOrders != null) {
+                o.dispatch_orders = o.DispatchOrders;
+            }
+            return o;
+        },
+
+        /**
+         * getKernelProductionHistory — history-specific read: intake, stage arrays, job card, QA, dispatch_orders.
          * Used by: modal_batch_history only.
          */
         getKernelProductionHistory: async function (kernelId, token = null, forceRefresh = false) {
@@ -2115,11 +2127,21 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
-            if (raw && raw.id) return raw;
-            if (raw && Array.isArray(raw.data) && raw.data[0]) return raw.data[0];
-            if (Array.isArray(raw) && raw[0]) return raw[0];
-            if (raw && raw.get_kernel_production_history) { const d = raw.get_kernel_production_history; return Array.isArray(d) ? d[0] : d; }
-            return null;
+            let detail = null;
+            if (raw && typeof raw === 'object') {
+                if (raw.id != null || raw.Id != null) detail = raw;
+                else if (Array.isArray(raw.data) && raw.data[0]) detail = raw.data[0];
+                else if (Array.isArray(raw) && raw[0]) detail = raw[0];
+                else if (raw.get_kernel_production_history != null) {
+                    const d = raw.get_kernel_production_history;
+                    detail = Array.isArray(d) ? d[0] : d;
+                } else if (raw.GetKernelProductionHistory != null) {
+                    const d2 = raw.GetKernelProductionHistory;
+                    detail = Array.isArray(d2) ? d2[0] : d2;
+                }
+            }
+            if (!detail) return null;
+            return this.normalizeKernelProductionHistoryDetail(detail);
         },
 
         /**
@@ -3646,6 +3668,14 @@ var _dataFunctions = function () {
                 p_dispatch_signature: payload.dispatch_signature || null
             };
             const result = await this.callFunction('save_kernel_dispatch_record', params, token, { useCache: false });
+            this.clearCachePattern('kernel_dispatch_orders_list');
+            return result;
+        },
+
+        /** Move a dispatched basket back to awaiting dispatch; clears saved dispatch paperwork. */
+        revertKernelDispatchOrder: async function (orderId, token = null) {
+            const params = { p_order_id: orderId || null };
+            const result = await this.callFunction('revert_kernel_dispatch_order', params, token, { useCache: false });
             this.clearCachePattern('kernel_dispatch_orders_list');
             return result;
         },

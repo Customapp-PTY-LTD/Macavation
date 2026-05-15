@@ -11,7 +11,8 @@ const REPO = path.resolve(__dirname, "..");
 const PORTAL_HELP = path.join(REPO, "WebPortal", "help", "index.html");
 const WEBPORTAL_HELP_DIR = path.join(REPO, "WebPortal", "help");
 const WEBPORTAL_MODULES = path.join(REPO, "WebPortal", "modules");
-const PROCESS_SVG_SRC = path.join(REPO, "docs", "user-guide", "assets", "process-overview.svg");
+const DOCS_USER_GUIDE_ASSETS = path.join(REPO, "docs", "user-guide", "assets");
+const PROCESS_SVG_SRC = path.join(DOCS_USER_GUIDE_ASSETS, "process-overview.svg");
 
 function readUtf8(file) {
   return fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n");
@@ -294,7 +295,7 @@ const SECTION_BLURBS = {
   "test-data-records":
     "<strong>Records</strong> — individual test data records within sets. Add records after selecting or creating a data set.",
   "supply-chain-flow":
-    "Read-only process diagram and quick links into Grower Intake, Stock, and Oil Production. (Not all deployments expose this as a route.)",
+    "Interactive overview of kernel and oil streams plus shared modules. Click any box in the diagram to open that help topic. Read-only — create and edit batches in the operational modules.",
 };
 
 /** Practical “how to work here” (plain text). Modals omit this (lead already covers behaviour). */
@@ -371,7 +372,7 @@ const SECTION_HOW_IT_WORKS = {
   "test-data-records":
     "Add records after choosing a parent set; bulk tools (if shown) should stay within test data only.",
   "supply-chain-flow":
-    "Use this page to orient new users: follow <strong>Open</strong> links into live modules. This screen does not edit operational data — use intake, production, stock, and dispatch modules for that.",
+    "Use the diagram to orient new staff: kernel stream (left), oil stream (middle), and shared tools (bottom). Follow links into live modules for day-to-day work.",
 };
 
 function blurbFor(id, title) {
@@ -391,11 +392,6 @@ function blurbFor(id, title) {
 
 /** Tab-specific help topics may reuse the parent module screenshot file. */
 const HELP_SCREENSHOT_ALIAS = {
-  "crm-nis-suppliers": "crm-grid",
-  "crm-oil-processors": "crm-grid",
-  "crm-oil-ingredient-suppliers": "crm-grid",
-  "crm-oil-protein-customers": "crm-grid",
-  "crm-kernel-customers": "crm-grid",
   "test-data-sets": "test-data-grid",
   "test-data-records": "test-data-grid",
   "admin-users-permissions": "admin-grid",
@@ -403,7 +399,31 @@ const HELP_SCREENSHOT_ALIAS = {
   "admin-system-configuration": "admin-grid",
 };
 
+/** Inline SVG diagrams (filename under help/assets/). */
+const DIAGRAM_BY_SECTION = {
+  "grower-intake-grid": { file: "kernel-batch-lifecycle.svg", w: 880, h: 200, label: "Kernel batch lifecycle" },
+  "kernel-production-grid": { file: "kernel-batch-lifecycle.svg", w: 880, h: 200, label: "Kernel batch lifecycle" },
+  "supplier-intake-grid": { file: "oil-batch-lifecycle.svg", w: 760, h: 200, label: "Oil and protein batch lifecycle" },
+  "oil-production-grid": { file: "oil-batch-lifecycle.svg", w: 760, h: 200, label: "Oil and protein batch lifecycle" },
+  "crm-nis-suppliers": { file: "crm-contacts-map.svg", w: 920, h: 220, label: "CRM contact types" },
+  "admin-users-permissions": { file: "user-access-flow.svg", w: 820, h: 200, label: "User and access setup" },
+  "users-grid": { file: "user-access-flow.svg", w: 820, h: 200, label: "User and access setup" },
+};
+
+function diagramFigure(id) {
+  const d = DIAGRAM_BY_SECTION[id];
+  if (!d) return "";
+  return `    <figure class="guide-flow">
+      <object data="./assets/${d.file}" type="image/svg+xml" width="${d.w}" height="${d.h}" aria-label="${d.label}"></object>
+    </figure>`;
+}
+
 function shotFigure(id) {
+  if (id === "supply-chain-flow") {
+    return `    <figure class="guide-flow">
+      <object data="./assets/process-overview.svg" type="image/svg+xml" width="920" height="340" aria-label="Macavation supply-chain overview"></object>
+    </figure>`;
+  }
   const shotId = HELP_SCREENSHOT_ALIAS[id] || id;
   return `    <figure class="guide-shot">
       <img src="./assets/screenshots/${shotId}.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -467,15 +487,15 @@ const PAGE_STEPS = {
   "stock-management-grid": [
     "Open <strong>Stock management</strong>; note whether you are on the <strong>Kernel</strong> or <strong>Oil &amp; protein</strong> stream (subtitle and filters adapt).",
     "For the main stock table: use <strong>Search</strong>, <strong>Status</strong>, <strong>Product type</strong>, and <strong>Location</strong> (warehouse section); click <strong>Clear</strong> to reset.",
-    "On <strong>Kernel batch journey</strong>: use <strong>By style</strong> / <strong>Weekly</strong> / <strong>Overview</strong>; select lines and use <strong>Send to Dispatch</strong> only when physical stock matches the system.",
+    "On <strong>Kernel batch journey</strong>: use <strong>By style</strong> / <strong>Weekly</strong> / <strong>Overview</strong>; in <strong>Adjust Stock</strong> you can enter cartons or kg and the system calculates boxes before saving. Use <strong>Send to Dispatch</strong> only when physical stock matches the system.",
     "For oil: add or import oil lots (e.g. from Excel) and monitor days-remaining from best-before where shown; use export when you need a file copy.",
     "Use <strong>Import historical</strong> only for the controlled kernel historical load your admin approved—never as a substitute for normal intake and production postings.",
   ],
   "kernel-dispatch-grid": [
     "Open <strong>Kernel dispatch</strong>; use <strong>Board</strong> vs <strong>Table</strong> and <strong>Refresh</strong> to align with how your despatch team works.",
     "Remember the flow: inventory from finished warehouse <strong>KERNEL R YES</strong> moves to <strong>Kernel customers</strong> and debtors—baskets are built from stock sends.",
-    "In table view, open <strong>View basket</strong> to check styles and quantities before loading; use <strong>Dispatch</strong> to complete inspection and dispatch forms.",
-    "Review the <strong>Baskets marked as dispatched</strong> section for completed paperwork and proof of shipment.",
+    "In table view, open <strong>View sheet</strong> to check styles and quantities before loading; use <strong>Dispatch</strong> to complete inspection and dispatch forms.",
+    "Review the <strong>Baskets marked as dispatched</strong> section for completed paperwork and proof of shipment. If dispatch was recorded by mistake, use <strong>Edit</strong> on a dispatched row or card (or <strong>Edit</strong> on the read-only dispatch sheet) to unlock the basket: dispatch paperwork is cleared and it returns to ready to dispatch so you can correct and dispatch again.",
     "If quantities are wrong, fix stock or the basket in <strong>Stock management</strong> rather than forcing a dispatch through.",
   ],
   "oil-dispatch-grid": [
@@ -499,9 +519,10 @@ const PAGE_STEPS = {
     "Use <strong>Export</strong> when auditors or customers need evidence outside the app.",
   ],
   "supply-chain-flow": [
-    "Open <strong>Supply chain &amp; process flow</strong> when you need the big picture (Mermaid diagram: intake → warehouse raws → production → finished → customers / debtors).",
-    "Read the document-type hints (<strong>GRV</strong>, <strong>IBT</strong>, <strong>INV</strong>) so paperwork in dispatch matches what finance expects.",
-    "Use the toolbar shortcuts to jump to <strong>Grower intake</strong>, <strong>Stock</strong>, or <strong>Oil production</strong> in one click.",
+    "Open <strong>Supply chain &amp; process flow</strong> when you need the big picture before diving into a single module.",
+    "Click a box in the diagram to jump to that module’s help topic (grower intake, kernel production, stock, dispatch, CRM, and more).",
+    "Trace the <strong>kernel stream</strong> (top row) and <strong>oil &amp; protein stream</strong> (second row) from intake through dispatch.",
+    "Use shared modules at the bottom (CRM, Quality, Documents, User &amp; access) for data that supports both streams.",
     "This page is read-only for orientation—create and edit batches only inside the operational modules.",
   ],
   "crm-nis-suppliers": [
@@ -724,6 +745,7 @@ const PAGE_STEPS = {
     "Open when completing inspection and dispatch paperwork for a kernel order.",
     "Fill vehicle, seal, weight checks, and sign-offs as your logistics SOP requires.",
     "Submit only after physical load matches the basket; fixes go back to stock or the basket, not forged paperwork.",
+    "When the sheet is read-only after dispatch, <strong>Edit</strong> unlocks the basket (clears saved paperwork, returns to ready to dispatch)—use only when dispatch was recorded in error.",
   ],
   "modal-send-to-dispatch": [
     "Open from <strong>Stock management</strong> (kernel) after selecting finished kernel lines to move toward dispatch.",
@@ -924,6 +946,7 @@ function buildUserGuide(anchors) {
       return `  <section id="${id}" class="guide-section" data-guide-id="${id}"${fullGuideAttr(id)}>
     <h2>${title}</h2>
 ${blurbFor(id, title)}
+${diagramFigure(id)}
 ${pageStepsHtml(id)}
 ${shotFigure(id)}
   </section>`;
@@ -962,7 +985,10 @@ ${shotFigure(id)}
 
   <div id="guide-process">
     <h2>Supply chain at a glance</h2>
-    <p class="guide-lead">Macavation follows two product streams plus shared support. Each topic below describes a specific screen.</p>
+    <p class="guide-lead">Macavation follows two product streams plus shared support. Each topic below describes a specific screen. Click a box in the diagram to jump to that module.</p>
+    <figure class="guide-flow">
+      <object data="./assets/process-overview.svg" type="image/svg+xml" width="920" height="340" aria-label="Macavation supply-chain overview"></object>
+    </figure>
     <ol class="guide-page-steps">
       <li><strong>Kernel stream:</strong> Grower intake → Kernel production → Stock (kernel) → Kernel dispatch.</li>
       <li><strong>Oil &amp; protein stream:</strong> Supplier intake → Oil production → Stock (oil/protein) → Oil &amp; protein dispatch.</li>
@@ -980,9 +1006,13 @@ ${sections}
 
 function syncHelpAssets() {
   fs.mkdirSync(path.join(WEBPORTAL_HELP_DIR, "assets", "screenshots"), { recursive: true });
-  const destSvg = path.join(WEBPORTAL_HELP_DIR, "assets", "process-overview.svg");
-  if (fs.existsSync(PROCESS_SVG_SRC)) {
-    fs.copyFileSync(PROCESS_SVG_SRC, destSvg);
+  const helpAssets = path.join(WEBPORTAL_HELP_DIR, "assets");
+  if (fs.existsSync(DOCS_USER_GUIDE_ASSETS)) {
+    for (const name of fs.readdirSync(DOCS_USER_GUIDE_ASSETS)) {
+      if (name.endsWith(".svg")) {
+        fs.copyFileSync(path.join(DOCS_USER_GUIDE_ASSETS, name), path.join(helpAssets, name));
+      }
+    }
   }
   const docsShots = path.join(REPO, "docs", "user-guide", "assets", "screenshots");
   const outShots = path.join(WEBPORTAL_HELP_DIR, "assets", "screenshots");

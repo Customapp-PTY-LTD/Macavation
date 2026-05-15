@@ -12,7 +12,7 @@ test.describe('Kernel Dispatch @kernel-dispatch', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await navigateToModule(authenticatedPage, 'kernel-dispatch-grid');
     await authenticatedPage.waitForLoadState('networkidle');
-    await authenticatedPage.waitForTimeout(1000);
+    await expect(authenticatedPage.locator('#kdViewTable, #kdViewKanban').first()).toBeVisible({ timeout: 20000 });
   });
 
   test('TC-KD-001: View Kernel Dispatch module', async ({ authenticatedPage }) => {
@@ -65,10 +65,11 @@ test.describe('Kernel Dispatch @kernel-dispatch', () => {
   });
 
   test('TC-KD-007: Dispatched table section present in Table view', async ({ authenticatedPage }) => {
+    await expect(authenticatedPage.locator('#kdViewTable')).toBeVisible({ timeout: 15000 });
     await authenticatedPage.locator('#kdViewTable').click();
-    await authenticatedPage.waitForTimeout(500);
-    const dispatchedSection = authenticatedPage.locator('h5:has-text("Baskets marked as dispatched")');
-    await expect(dispatchedSection).toBeVisible({ timeout: 5000 });
+    await expect(authenticatedPage.locator('#kdTableCards')).toBeVisible({ timeout: 10000 });
+    const dispatchedSection = authenticatedPage.locator('#kdTableCards h5:has-text("Baskets marked as dispatched")');
+    await expect(dispatchedSection).toBeVisible({ timeout: 10000 });
     await expect(authenticatedPage.locator('#kernelDispatchedTable')).toBeVisible();
   });
 

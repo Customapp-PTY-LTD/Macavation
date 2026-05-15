@@ -248,6 +248,10 @@ function uniqueCode(prefix: string): string {
  * Load test data from the database e2e_test_data_records table
  */
 async function loadTestDataFromDatabase(): Promise<TestDataSet> {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    return getDefaultTestData();
+  }
+
   const supabase = getSupabaseAdmin();
   
   // Load all test data records
@@ -381,8 +385,8 @@ function getDefaultTestData(): TestDataSet {
         expected_dashboard: '/sales-forecasting',
       },
       oilPlantManager: {
-        email: 'brandon.morrison@macavation.co.za',
-        password: process.env.OIL_PLANT_MANAGER_PASSWORD || 'password1',
+        email: process.env.OIL_PLANT_MANAGER_EMAIL || '',
+        password: process.env.OIL_PLANT_MANAGER_PASSWORD || '',
         role: 'Oil Plant Manager',
         expected_dashboard: '/oil-production',
       },

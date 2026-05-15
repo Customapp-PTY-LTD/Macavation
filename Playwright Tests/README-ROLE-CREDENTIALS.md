@@ -12,7 +12,7 @@ Seed test accounts were removed from the Macavation database. **Role-based tests
 | **`kernel-production/kernel-roles.spec.ts`** | Same for kernel module access by role. |
 | **`kernel-production/kernel-role-operations.spec.ts`** | Same for GM / PM / QA / Sales / Office Admin kernel flows. |
 
-**Oil Plant Manager** still defaults to a fixed email in the fixture; set `OIL_PLANT_MANAGER_PASSWORD` (and optionally email if you add support later).
+**Oil Plant Manager** uses **env-only** email + password (`OIL_PLANT_MANAGER_EMAIL` / `OIL_PLANT_MANAGER_PASSWORD`), like the other operational roles.
 
 ## Required environment variables (CI / local)
 
@@ -25,7 +25,7 @@ For **real users** in each role, set **both** email and password. If either is m
 | QA Supervisor | `QA_SUPERVISOR_EMAIL` | `QA_SUPERVISOR_PASSWORD` |
 | Sales Executive | `SALES_EXECUTIVE_EMAIL` | `SALES_EXECUTIVE_PASSWORD` |
 | Office Administrator | `OFFICE_ADMINISTRATOR_EMAIL` | `OFFICE_ADMINISTRATOR_PASSWORD` |
-| Oil Plant Manager | *(default in fixture)* | `OIL_PLANT_MANAGER_PASSWORD` |
+| Oil Plant Manager | `OIL_PLANT_MANAGER_EMAIL` | `OIL_PLANT_MANAGER_PASSWORD` |
 
 ### Example (`.env.e2e` or CI secrets)
 
@@ -45,6 +45,7 @@ SALES_EXECUTIVE_PASSWORD=your-secret
 OFFICE_ADMINISTRATOR_EMAIL=office.user@example.com
 OFFICE_ADMINISTRATOR_PASSWORD=your-secret
 
+OIL_PLANT_MANAGER_EMAIL=oil.user@example.com
 OIL_PLANT_MANAGER_PASSWORD=your-secret
 ```
 

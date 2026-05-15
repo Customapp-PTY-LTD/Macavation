@@ -14,3 +14,24 @@
     background-color: var(--phoenix-info, #0dcaf0);
     color: #fff;
 }
+
+/* Kernel dispatch summary (cartons / kg per order) */
+.batch-history-dispatch-panel .card-header {
+    background-color: rgba(44, 85, 48, 0.08);
+    border-bottom: 1px solid rgba(44, 85, 48, 0.2);
+}
+
+.batch-history-dispatch-panel .card-header h6 {
+    color: var(--forest-deep, #2c5530);
+    font-size: 0.95rem;
+}
+
+.batch-history-dispatch-order + .batch-history-dispatch-order {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.batch-history-dispatch-panel .table {
+    margin-bottom: 0;
+}

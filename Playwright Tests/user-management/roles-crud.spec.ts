@@ -20,11 +20,12 @@ test.describe('Roles Management - CRUD Operations @roles-management', () => {
     /**
      * Verify roles list is displayed correctly
      */
-    await expect(authenticatedPage.locator('#rolesTable')).toBeVisible();
+    await expect(authenticatedPage.locator('#rolesTable')).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage.locator('#rolesTableBody:has-text("Loading roles")')).not.toBeVisible({ timeout: 20000 });
     
     // Verify table headers
-    await expect(authenticatedPage.locator('th:has-text("Role Name")')).toBeVisible();
-    await expect(authenticatedPage.locator('th:has-text("Description")')).toBeVisible();
+    await expect(authenticatedPage.locator('#rolesTable th:has-text("Role Name")')).toBeVisible();
+    await expect(authenticatedPage.locator('#rolesTable th:has-text("Description")')).toBeVisible();
   });
 
   test('TC-RM-002: Open Add Role Modal', async ({ authenticatedPage }) => {
