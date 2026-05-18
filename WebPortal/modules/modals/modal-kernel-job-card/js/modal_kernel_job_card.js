@@ -616,8 +616,8 @@ var _modal_kernel_job_card = (function () {
                 } else {
                     var successTitle = serverFinalized ? 'Batch is release ready' : 'Jobcard approved';
                     var successText = serverFinalized
-                        ? 'Production is marked finished and the batch appears in Release ready. You can release to stock when ready.'
-                        : 'Job card saved. The jobcard button will show a tick and the batch can now be released to stock when release criteria are met.';
+                        ? 'Production is marked finished and the batch appears in Release ready. Kernel stock will use these job card style quantities when you release.'
+                        : 'Job card saved; kernel stock on hand updates to match style quantities here. The jobcard button will show a tick and you can release to stock when ready.';
                     if (finalizeWithoutProduction && !serverFinalized && typeof Swal !== 'undefined') {
                         successTitle = 'Job card saved';
                         successText = 'The database may not support “skip production” yet. Apply migration 20260404150001_upsert_kernel_job_card_finalize_without_production.sql (see docs/MCP_RUN_JOB_CARD_FINALIZE_WITHOUT_PRODUCTION.md), then try again.';

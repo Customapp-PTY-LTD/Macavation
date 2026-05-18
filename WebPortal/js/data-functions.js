@@ -1798,7 +1798,7 @@ var _dataFunctions = function () {
         },
 
         /**
-         * upsertKernelJobCard — save / replace job card JSONB.
+         * upsertKernelJobCard — save / replace job card JSONB; server syncs style quantities to packing for kernel stock on hand.
          * Used by: modal_kernel_job_card only.
          * options.approved: set true when user clicks "Jobcard approved" (sets jobcard_approved in DB; Job Card tick and Release to stock then apply).
          * options.finalizeWithoutProduction: migration 20260404150001 — marks production finished, status qa, seeds minimal qa_data if empty (release-ready shortcut).

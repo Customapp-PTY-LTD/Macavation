@@ -13,6 +13,28 @@ var _kernelProductionBatchActions = function () {
             });
         },
 
+        jobCardHasStockQuantities: (jobCardData) => {
+            if (!jobCardData || typeof jobCardData !== 'object') return false;
+            function parseStyles(val) {
+                if (!val) return [];
+                if (Array.isArray(val)) return val;
+                if (typeof val === 'string') {
+                    try { return JSON.parse(val); } catch (e) { return []; }
+                }
+                return [];
+            }
+            function hasQty(rows) {
+                return rows.some(function (row) {
+                    if (!row) return false;
+                    var c = parseInt(row.cartons, 10) || 0;
+                    var kg = parseFloat(row.weight_kg) || 0;
+                    return c > 0 || kg > 0;
+                });
+            }
+            return hasQty(parseStyles(jobCardData.sound_kernel_styles)) ||
+                hasQty(parseStyles(jobCardData.butter_grade_styles));
+        },
+
         releaseBatchToStock: (batchId) => {
             if (!batchId) return;
             if (typeof dataFunctions === 'undefined' || !dataFunctions.completeKernelBatch) {
@@ -21,25 +43,47 @@ var _kernelProductionBatchActions = function () {
             }
             var batch = (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch) ? _kernelProductionGrid.getBatch(batchId) : null;
             var batchLabel = batch ? (batch.batch_number || 'this batch') : 'this batch';
-            Swal.fire({
-                title: 'Release to stock?',
-                html: 'Release <strong>' + batchLabel + '</strong> to kernel stock?<br><small class="text-muted">This will mark the batch as complete.</small>',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Release to stock',
-                cancelButtonText: 'Cancel',
-                confirmButtonColor: '#198754'
-            }).then((res) => {
-                if (!res.isConfirmed) return;
-                dataFunctions.completeKernelBatch(batchId).then((result) => {
-                    var inner = (result && result.complete_kernel_batch) ? result.complete_kernel_batch : result;
-                    if (inner && inner.success === false) throw new Error(inner.error || 'Update failed');
-                    Swal.fire({ icon: 'success', title: 'Released to stock', text: batchLabel + ' is now in kernel stock.', timer: 2000, showConfirmButton: false });
-                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
-                }).catch((e) => {
-                    console.error(e);
-                    Swal.fire('Error', e.message || 'Failed to release to stock', 'error');
+            var scope = _kernelProductionBatchActions;
+
+            function confirmAndRelease() {
+                Swal.fire({
+                    title: 'Release to stock?',
+                    html: 'Release <strong>' + batchLabel + '</strong> to kernel stock?<br><small class="text-muted">Stock on hand will match the saved job card style quantities.</small>',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Release to stock',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#198754'
+                }).then((res) => {
+                    if (!res.isConfirmed) return;
+                    dataFunctions.completeKernelBatch(batchId).then((result) => {
+                        var inner = (result && result.complete_kernel_batch) ? result.complete_kernel_batch : result;
+                        if (inner && inner.success === false) throw new Error(inner.error || 'Update failed');
+                        Swal.fire({ icon: 'success', title: 'Released to stock', text: batchLabel + ' is now in kernel stock.', timer: 2000, showConfirmButton: false });
+                        if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                    }).catch((e) => {
+                        console.error(e);
+                        Swal.fire('Error', e.message || 'Failed to release to stock', 'error');
+                    });
                 });
+            }
+
+            var detailPromise = (dataFunctions.getKernelBatchDetail && batchId)
+                ? dataFunctions.getKernelBatchDetail(batchId)
+                : Promise.resolve(null);
+            detailPromise.then(function (detail) {
+                var jc = detail && detail.job_card_data ? detail.job_card_data : null;
+                if (!scope.jobCardHasStockQuantities(jc)) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Job card quantities required',
+                        text: 'Enter at least one style line (cartons or kg) on the job card and save before releasing to stock. Production can prefill the job card; correct any wrong values there—stock follows the saved job card.'
+                    });
+                    return;
+                }
+                confirmAndRelease();
+            }).catch(function () {
+                confirmAndRelease();
             });
         },
 

@@ -246,7 +246,7 @@ var _stockManagementGrid = function () {
             if (route === 'stock-management-kernel') {
                 stream = 'kernel';
                 if (titleEl) titleEl.textContent = 'Stock (Kernel)';
-                if (subtitleEl) subtitleEl.textContent = 'Track kernel batches by style (totals across the top, yield per style from Production Job Card). Select a batch and send to dispatch—or export when you\'re ready.';
+                if (subtitleEl) subtitleEl.textContent = 'Track kernel batches by style (totals across the top, on hand from the saved job card). Production prefills the job card; correct style lines there if needed, then save—stock updates to match. Select a batch and send to dispatch—or export when you\'re ready.';
             } else if (route === 'stock-management-oil') {
                 stream = 'oil';
                 if (titleEl) titleEl.textContent = 'Stock (Oil & Protein)';
