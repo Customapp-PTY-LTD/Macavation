@@ -14,6 +14,9 @@ var _kernelProductionBatchActions = function () {
         },
 
         jobCardHasStockQuantities: (jobCardData) => {
+            if (typeof _kernelJobCardStock !== 'undefined' && _kernelJobCardStock.hasStockQuantities) {
+                return _kernelJobCardStock.hasStockQuantities(jobCardData);
+            }
             if (!jobCardData || typeof jobCardData !== 'object') return false;
             function parseStyles(val) {
                 if (!val) return [];
@@ -57,10 +60,18 @@ var _kernelProductionBatchActions = function () {
                 }).then((res) => {
                     if (!res.isConfirmed) return;
                     dataFunctions.completeKernelBatch(batchId).then((result) => {
-                        var inner = (result && result.complete_kernel_batch) ? result.complete_kernel_batch : result;
-                        if (inner && inner.success === false) throw new Error(inner.error || 'Update failed');
+                        var inner = result;
+                        if (typeof dataFunctions.unwrapKernelRpcJson === 'function') {
+                            inner = dataFunctions.unwrapKernelRpcJson(result, 'complete_kernel_batch') || result;
+                        } else if (result && result.complete_kernel_batch) {
+                            inner = result.complete_kernel_batch;
+                        }
+                        if (inner && inner.success === false) throw new Error(inner.error || inner.Error || 'Update failed');
                         Swal.fire({ icon: 'success', title: 'Released to stock', text: batchLabel + ' is now in kernel stock.', timer: 2000, showConfirmButton: false });
-                        if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                    if (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.loadKernelBatches) {
+                        _stockManagementGrid.loadKernelBatches(true);
+                    }
                     }).catch((e) => {
                         console.error(e);
                         Swal.fire('Error', e.message || 'Failed to release to stock', 'error');
@@ -72,18 +83,34 @@ var _kernelProductionBatchActions = function () {
                 ? dataFunctions.getKernelBatchDetail(batchId)
                 : Promise.resolve(null);
             detailPromise.then(function (detail) {
+                var approved = (typeof _dataFunctions !== 'undefined' && _dataFunctions.isKernelJobcardApproved)
+                    ? (_dataFunctions.isKernelJobcardApproved(detail) || _dataFunctions.isKernelJobcardApproved(batch))
+                    : ((detail && detail.jobcard_approved === true) ||
+                        (batch && batch.has_jobcard_approved === true));
+                if (!approved) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Job card not approved',
+                        text: 'Open the job card, review style quantities, and press Jobcard approved before releasing to stock.'
+                    });
+                    return;
+                }
                 var jc = detail && detail.job_card_data ? detail.job_card_data : null;
                 if (!scope.jobCardHasStockQuantities(jc)) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Job card quantities required',
-                        text: 'Enter at least one style line (cartons or kg) on the job card and save before releasing to stock. Production can prefill the job card; correct any wrong values there—stock follows the saved job card.'
+                        text: 'Enter at least one style line (cartons or kg) on the job card and press Jobcard approved before releasing to stock.'
                     });
                     return;
                 }
                 confirmAndRelease();
             }).catch(function () {
-                confirmAndRelease();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Could not verify job card',
+                    text: 'Reload the batch and ensure the job card is approved before releasing to stock.'
+                });
             });
         },
 

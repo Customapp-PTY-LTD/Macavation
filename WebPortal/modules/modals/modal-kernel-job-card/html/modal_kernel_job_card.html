@@ -19,7 +19,7 @@
 
 
             <div class="alert alert-info small mb-3" role="status">
-                <strong>Stock on hand</strong> uses the style quantities on this job card after you save. Production stages can prefill these lines; change any wrong cartons or kg here, then save (or approve) so kernel stock matches.
+                <strong>Stock on hand</strong> is driven by this job card <strong>after you press Jobcard approved</strong>. Production can prefill style lines; autosave keeps a draft only. Correct cartons or kg here, then approve when ready.
             </div>
             <form id="kernelJobCardForm">
                 <input type="hidden" id="jobCardId">
@@ -217,6 +217,30 @@
                     </div>
                 </div>
                 
+                <!-- Stock on hand preview (matches saved job card → kernel stock) -->
+                <div class="card mb-3 border-primary-subtle" id="jobCardStockPreviewCard">
+                    <div class="card-header py-2">
+                        <h6 class="mb-0">Stock on hand (from this job card)</h6>
+                    </div>
+                    <div class="card-body py-2">
+                        <p class="text-muted small mb-2">Preview of stock quantities after <strong>Jobcard approved</strong>. Until then, autosave does not change kernel stock on hand.</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-0" id="jobCardStockPreviewTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Style</th>
+                                        <th class="text-end">Cartons</th>
+                                        <th class="text-end">Kg</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="jobCardStockPreviewBody">
+                                    <tr><td colspan="3" class="text-muted small">Enter style lines above to preview stock.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Waste Tracking -->
                 <div class="card mb-3">
                     <div class="card-header">
@@ -271,12 +295,6 @@
             </form>
         </div>
         <div class="modal-footer flex-column align-items-stretch gap-2">
-            <div class="form-check px-1 mb-0">
-                <input class="form-check-input" type="checkbox" id="jobCardSkipProductionToReleaseReady" autocomplete="off">
-                <label class="form-check-label small" for="jobCardSkipProductionToReleaseReady">
-                    Skip production &amp; end sample — after save, mark batch <strong>release ready</strong> (production finished + job card as source of truth). Only if cracking/packing were not recorded in the app.
-                </label>
-            </div>
             <div class="d-flex align-items-center w-100 flex-wrap gap-2">
                 <span id="jobCardAutoSaveStatus" class="text-muted small me-auto"></span>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

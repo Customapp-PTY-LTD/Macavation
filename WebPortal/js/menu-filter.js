@@ -5,6 +5,9 @@
 
 var _menuFilter = function () {
     return {
+        _lastKeysSignature: null,
+        _refreshTimer: null,
+
         /**
          * Initialize menu filtering
          */
@@ -15,12 +18,12 @@ var _menuFilter = function () {
             // Re-filter when Session changes (other tab)
             window.addEventListener('storage', function (e) {
                 if (e.key === '_Session') {
-                    self.filterMenus();
+                    self.refresh();
                 }
             });
             // Re-filter when feature keys are set in this tab (e.g. after fetchAndCacheFeatures)
             window.addEventListener('featureKeysUpdated', function () {
-                self.filterMenus();
+                self.refresh();
             });
         },
 
@@ -47,6 +50,17 @@ var _menuFilter = function () {
             var keys = Session.get('featureKeys');
             var accessibleMenus = Array.isArray(keys) ? keys : [];
             var usingFeatureKeys = Array.isArray(keys);
+
+            // During feature refresh, keep showing the last menu set instead of blanking the sidebar.
+            if (usingFeatureKeys && accessibleMenus.length === 0 && this._lastKeysSignature) {
+                return;
+            }
+
+            var signature = usingFeatureKeys ? accessibleMenus.slice().sort().join('|') : '__role_config__';
+            if (signature === this._lastKeysSignature) {
+                return;
+            }
+            this._lastKeysSignature = signature;
 
             console.log('[Menu Filter] Accessible menus:', accessibleMenus.length, 'from featureKeys:', usingFeatureKeys);
 
@@ -168,10 +182,17 @@ var _menuFilter = function () {
         },
 
         /**
-         * Refresh menu filter (call after role change)
+         * Refresh menu filter (call after role change). Debounced to avoid sidebar flicker.
          */
         refresh: function () {
-            this.filterMenus();
+            var self = this;
+            if (self._refreshTimer) {
+                clearTimeout(self._refreshTimer);
+            }
+            self._refreshTimer = setTimeout(function () {
+                self._refreshTimer = null;
+                self.filterMenus();
+            }, 150);
         }
     };
 }();

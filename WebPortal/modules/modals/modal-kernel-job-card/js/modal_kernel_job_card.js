@@ -13,13 +13,26 @@ var _modal_kernel_job_card = (function () {
     var JOB_CARD_DATE_IDS = ['jobCardReceivedDate', 'jobCardPackingStartDate', 'jobCardPackingCompletionDate', 'jobCardBestBeforeDate'];
     var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
     var AUTO_SAVE_DELAY_MS = 900;
-    /** True while job card was opened from Kanban drag (Awaiting production → Release ready). */
-    var _dragReleaseReadySession = false;
+    var KERNEL_KG_PER_CARTON = 11.34;
+    var PACKING_ROW_KG_TO_JOB_CARD_STYLE = [
+        { key: 'sk_sp_qty', style: 'SP', group: 'sound' },
+        { key: 'sk_0_qty', style: '0', group: 'sound' },
+        { key: 'sk_1_qty', style: '1', group: 'sound' },
+        { key: 'sk_1s_qty', style: '1S', group: 'sound' },
+        { key: 'sk_4l_qty', style: '4L', group: 'sound' },
+        { key: 'sk_5_qty', style: '5', group: 'sound' },
+        { key: 'sk_6_qty', style: '6', group: 'sound' },
+        { key: 'bt_78_qty', style: '7/8', group: 'butter' },
+        { key: 'bt_high_qty', style: 'Butter High Oil (Floaters)', group: 'butter' },
+        { key: 'bt_low_qty', style: 'Butter Low Oil (Sinkers)', group: 'butter' }
+    ];
 
     /** Module state for packing start and best-before (no DOM reads for Best Before). */
     var _jobCardPackingStartISO = null;
     var _jobCardBestBeforeISO = null;
     var _autoSaveTimer = null;
+    /** Skip draft flush when closing after Jobcard approved (avoids racing draft save on hide). */
+    var _skipFlushOnHide = false;
 
     /** §7.1 Convert dd/mm/yyyy → yyyy-mm-dd for API. Pass-through if already ISO. */
     function jobCardToISO(dateStr) {
@@ -109,13 +122,12 @@ var _modal_kernel_job_card = (function () {
             });
 
             $('#kernelJobCardModal').off('hidden.bs.modal').on('hidden.bs.modal', function () {
-                if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.onKernelJobCardModalHidden) {
-                    _kernelProductionGrid.onKernelJobCardModalHidden();
-                }
+                _skipFlushOnHide = false;
                 scope.clearJobCardForm();
-                _dragReleaseReadySession = false;
             });
-            $('#kernelJobCardModal').off('hide.bs.modal').on('hide.bs.modal', function () { scope.flushAutoSave(); });
+            $('#kernelJobCardModal').off('hide.bs.modal').on('hide.bs.modal', function () {
+                if (!_skipFlushOnHide) scope.flushAutoSave();
+            });
             scope.initHandlers();
         },
 
@@ -130,14 +142,19 @@ var _modal_kernel_job_card = (function () {
             $(document).on('click', '.removeSoundKernelRow', function () {
                 $(this).closest('tr').remove();
                 scope.calculateJobCardTotals();
+                scope.refreshStockPreview();
             });
             $(document).on('click', '.removeButterGradeRow', function () {
                 $(this).closest('tr').remove();
                 scope.calculateJobCardTotals();
+                scope.refreshStockPreview();
             });
             $('#jobCardTotalWeight, #jobCardRemovedPreSizer').on('input', function () { scope.calculateBalance(); });
             $('#jobCardReceivingMoisture, #jobCardPackingMoisture').on('input', function () { scope.calculateRemovedMoisture(); });
-            $(document).on('input', '#soundKernelTableBody input, #butterGradeTableBody input', function () { scope.calculateJobCardTotals(); });
+            $(document).on('input', '#soundKernelTableBody input, #butterGradeTableBody input, #soundKernelTableBody select, #butterGradeTableBody select', function () {
+                scope.calculateJobCardTotals();
+                scope.refreshStockPreview();
+            });
             $(document).on('input', '#jobCardWasteOilKernel, #jobCardWasteShellFines, #jobCardWasteCompost, #jobCardWasteShell', function () { scope.calculateMassBalance(); });
             $(document).on('change', '#jobCardPackingStartDate', function () { scope.syncBestBeforeFromStartDate(); });
             $(document).on('input change', '#kernelJobCardModal :input, #kernelJobCardModal select', function () {
@@ -244,6 +261,48 @@ var _modal_kernel_job_card = (function () {
                 });
             }
             scope.calculateJobCardTotals();
+            scope.refreshStockPreview();
+        },
+
+        refreshStockPreview: () => {
+            if (typeof _kernelJobCardStock === 'undefined' || !_kernelJobCardStock.renderPreviewTable) return;
+            _kernelJobCardStock.renderPreviewTable($('#jobCardStockPreviewBody'));
+        },
+
+        /** Prefill job card style rows from stock import / historical packing_data (kg per style). */
+        buildJobCardDataFromPackingData: (packingData) => {
+            var rows = packingData;
+            if (typeof rows === 'string') {
+                try { rows = JSON.parse(rows); } catch (e) { rows = null; }
+            }
+            if (!Array.isArray(rows) || !rows.length) return null;
+            var kgByStyle = {};
+            rows.forEach(function (row) {
+                if (!row || typeof row !== 'object') return;
+                PACKING_ROW_KG_TO_JOB_CARD_STYLE.forEach(function (def) {
+                    var kg = parseFloat(row[def.key]);
+                    if (isNaN(kg) || kg <= 0) return;
+                    kgByStyle[def.style] = (kgByStyle[def.style] || 0) + kg;
+                });
+            });
+            var sound = [];
+            var butter = [];
+            Object.keys(kgByStyle).forEach(function (style) {
+                var kg = Math.round(kgByStyle[style] * 100) / 100;
+                var cartons = Math.round((kg / KERNEL_KG_PER_CARTON) * 100) / 100;
+                var entry = { style: style, cartons: cartons, weight_kg: kg };
+                var group = 'sound';
+                PACKING_ROW_KG_TO_JOB_CARD_STYLE.forEach(function (d) {
+                    if (d.style === style) group = d.group;
+                });
+                if (group === 'butter') butter.push(entry);
+                else sound.push(entry);
+            });
+            if (!sound.length && !butter.length) return null;
+            return {
+                sound_kernel_styles: sound.length ? sound : null,
+                butter_grade_styles: butter.length ? butter : null
+            };
         },
 
         jobCardDataFromPayload: (payload) => {
@@ -290,23 +349,18 @@ var _modal_kernel_job_card = (function () {
             });
         },
 
-        showJobCardModalForBatch: (batchId, options) => {
+        showJobCardModalForBatch: (batchId) => {
             const scope = _modal_kernel_job_card;
-            options = options || {};
-            _dragReleaseReadySession = !!options.dragReleaseReady;
             var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
-            if (!batch) {
-                if (_dragReleaseReadySession && typeof _kernelProductionGrid !== 'undefined') {
-                    _kernelProductionGrid._jobCardDragPending = null;
-                    _kernelProductionGrid._jobCardDragApprovedSave = false;
-                    if (_kernelProductionGrid.currentView === 'kanban' && _kernelProductionGrid.renderKanban) _kernelProductionGrid.renderKanban();
+            var openForBatch = function (b) {
+            if (!b || !b.id) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Batch not found. On Stock (Kernel), use Send back to production, then refresh Kernel Production.', 'error');
                 }
-                _dragReleaseReadySession = false;
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found', 'error');
                 return;
             }
+            var batch = b;
             scope.clearJobCardForm();
-            _dragReleaseReadySession = !!options.dragReleaseReady;
             $('#jobCardId').val('');
             $('#jobCardProductionBatchId').val(batchId);
             $('#jobCardBatchNumber').val(batch.batch_number || '');
@@ -357,8 +411,16 @@ var _modal_kernel_job_card = (function () {
                     scope.calculateRemovedMoisture();
                 }
 
-                var jc = (detail && detail.job_card_data && Object.keys(detail.job_card_data).length) ? detail.job_card_data : null;
-                if (jc && (jc.batch_number || jc.packing_start_date)) {
+                var jc = detail && detail.job_card_data ? detail.job_card_data : null;
+                if (typeof jc === 'string') {
+                    try { jc = JSON.parse(jc); } catch (e) { jc = null; }
+                }
+                var hasSavedJobCard = jc && typeof jc === 'object' && (
+                    jc.batch_number || jc.packing_start_date || jc.packing_completion_date ||
+                    (Array.isArray(jc.sound_kernel_styles) && jc.sound_kernel_styles.length > 0) ||
+                    (Array.isArray(jc.butter_grade_styles) && jc.butter_grade_styles.length > 0)
+                );
+                if (hasSavedJobCard) {
                     // Populate from saved job_card_data (source of truth)
                     scope.populateJobCardFormFromData(jc);
                 } else if (detail && typeof _modal_production_stages !== 'undefined' && _modal_production_stages.buildJobCardPayloadFromBatchAndStages) {
@@ -379,6 +441,10 @@ var _modal_kernel_job_card = (function () {
                             if (jcFromPayload) scope.populateJobCardFormFromData(jcFromPayload);
                         }
                     }
+                } else {
+                    var packingRows = detail && (detail.packing_data != null ? detail.packing_data : detail.PackingData);
+                    var fromPacking = scope.buildJobCardDataFromPackingData(packingRows);
+                    if (fromPacking) scope.populateJobCardFormFromData(fromPacking);
                 }
 
                 // Receiving: Total Weight = Actual from grower intake; Removed Pre-Sizer from checklist or derived; Balance = Total − Removed
@@ -412,21 +478,30 @@ var _modal_kernel_job_card = (function () {
                     scope.setJobCardField('jobCardSupplier', supplierIdFromBatchOrDetail);
                 }
             }).then(function () {
-                if (_dragReleaseReadySession) {
-                    $('#jobCardSkipProductionToReleaseReady').prop('checked', true);
-                }
                 var modalEl = document.getElementById('kernelJobCardModal');
                 if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
                 else $('#kernelJobCardModal').modal('show');
             }).catch(function (e) {
                 console.error(e);
-                if (_dragReleaseReadySession && typeof _kernelProductionGrid !== 'undefined') {
-                    _kernelProductionGrid._jobCardDragPending = null;
-                    _kernelProductionGrid._jobCardDragApprovedSave = false;
-                    if (_kernelProductionGrid.currentView === 'kanban' && _kernelProductionGrid.renderKanban) _kernelProductionGrid.renderKanban();
-                }
-                _dragReleaseReadySession = false;
             });
+            };
+            if (batch) {
+                openForBatch(batch);
+                return;
+            }
+            if (typeof dataFunctions !== 'undefined' && dataFunctions.getKernelBatchDetail) {
+                dataFunctions.getKernelBatchDetail(batchId, null, true).then(function (detail) {
+                    var row = detail;
+                    if (row && typeof dataFunctions.normalizeKernelBatchDetailRow === 'function') {
+                        row = dataFunctions.normalizeKernelBatchDetailRow(detail);
+                    }
+                    openForBatch(Object.assign({ id: batchId }, row || {}));
+                }).catch(function () {
+                    openForBatch(null);
+                });
+                return;
+            }
+            openForBatch(null);
         },
 
         clearJobCardForm: () => {
@@ -436,7 +511,6 @@ var _modal_kernel_job_card = (function () {
             var $form = $('#kernelJobCardForm');
             if ($form.length) $form[0].reset();
             $('#jobCardId').val('');
-            $('#jobCardSkipProductionToReleaseReady').prop('checked', false);
             $('#soundKernelTableBody tr:gt(0)').remove();
             $('#soundKernelTableBody tr:first input, #soundKernelTableBody tr:first select').val('');
             $('#butterGradeTableBody tr:gt(0)').remove();
@@ -502,23 +576,41 @@ var _modal_kernel_job_card = (function () {
         },
 
         _buildJobCardPayload: () => {
-            var soundKernelStyles = [];
-            $('#soundKernelTableBody tr').each(function () {
-                var style = $(this).find('select[name="style"]').val();
-                var cartons = parseInt($(this).find('input[name="cartons"]').val(), 10) || 0;
-                var weight = parseFloat($(this).find('input[name="weight_kg"]').val()) || 0;
-                if (style && (cartons > 0 || weight > 0)) soundKernelStyles.push({ style: style, cartons: cartons, weight_kg: weight });
-            });
-            var butterGradeStyles = [];
-            $('#butterGradeTableBody tr').each(function () {
-                var style = $(this).find('select[name="style"]').val();
-                var cartons = parseInt($(this).find('input[name="cartons"]').val(), 10) || 0;
-                var weight = parseFloat($(this).find('input[name="weight_kg"]').val()) || 0;
-                if (style && (cartons > 0 || weight > 0)) butterGradeStyles.push({ style: style, cartons: cartons, weight_kg: weight });
-            });
+            var parseNum = function (val) {
+                if (typeof _kernelJobCardStock !== 'undefined' && _kernelJobCardStock.parseLocaleNumber) {
+                    return _kernelJobCardStock.parseLocaleNumber(val);
+                }
+                var s = String(val == null ? '' : val).trim().replace(/\s/g, '').replace(',', '.');
+                var n = parseFloat(s);
+                return isNaN(n) ? 0 : n;
+            };
+            var styleRows = (typeof _kernelJobCardStock !== 'undefined' && _kernelJobCardStock.collectStyleRowsFromDom)
+                ? _kernelJobCardStock.collectStyleRowsFromDom()
+                : null;
+            var soundKernelStyles = styleRows ? (styleRows.sound_kernel_styles || []) : [];
+            var butterGradeStyles = styleRows ? (styleRows.butter_grade_styles || []) : [];
+            if (!styleRows) {
+                $('#soundKernelTableBody tr').each(function () {
+                    var style = $(this).find('select[name="style"]').val();
+                    var cartons = parseInt($(this).find('input[name="cartons"]').val(), 10) || 0;
+                    var weight = parseNum($(this).find('input[name="weight_kg"]').val());
+                    if (style && (cartons > 0 || weight > 0)) soundKernelStyles.push({ style: style, cartons: cartons, weight_kg: weight });
+                });
+                $('#butterGradeTableBody tr').each(function () {
+                    var style = $(this).find('select[name="style"]').val();
+                    var cartons = parseInt($(this).find('input[name="cartons"]').val(), 10) || 0;
+                    var weight = parseNum($(this).find('input[name="weight_kg"]').val());
+                    if (style && (cartons > 0 || weight > 0)) butterGradeStyles.push({ style: style, cartons: cartons, weight_kg: weight });
+                });
+            }
             var getVal = function (id) { return $('#' + id).val() || null; };
             var getDateVal = function (id) { var v = getVal(id); return (v && JOB_CARD_DATE_IDS.indexOf(id) >= 0) ? jobCardToISO(v) : v; };
-            var getFloat = function (id) { var v = $('#' + id).val(); return v ? parseFloat(v) : null; };
+            var getFloat = function (id) {
+                var v = $('#' + id).val();
+                if (!v) return null;
+                var n = parseNum(v);
+                return n || null;
+            };
             var getIntText = function (id) { var v = $('#' + id).text(); return v ? parseInt(v, 10) : null; };
             var getFloatText = function (id) { var v = $('#' + id).text(); return v ? parseFloat(v) : null; };
             var data = {
@@ -536,10 +628,10 @@ var _modal_kernel_job_card = (function () {
                 p_packing_start_date: getDateVal('jobCardPackingStartDate') || null,
                 p_packing_completion_date: getDateVal('jobCardPackingCompletionDate') || null,
                 p_best_before_date: getDateVal('jobCardBestBeforeDate') || null,
-                p_sound_kernel_styles: soundKernelStyles.length ? JSON.stringify(soundKernelStyles) : null,
+                p_sound_kernel_styles: soundKernelStyles.length ? soundKernelStyles : null,
                 p_sound_kernel_total_cartons: getIntText('soundKernelTotalCartons'),
                 p_sound_kernel_total_kg: getFloatText('soundKernelTotalKg'),
-                p_butter_grade_styles: butterGradeStyles.length ? JSON.stringify(butterGradeStyles) : null,
+                p_butter_grade_styles: butterGradeStyles.length ? butterGradeStyles : null,
                 p_butter_grade_total_cartons: getIntText('butterGradeTotalCartons'),
                 p_butter_grade_total_kg: getFloatText('butterGradeTotalKg'),
                 p_waste_oil_kernel_kg: getFloat('jobCardWasteOilKernel'),
@@ -554,33 +646,114 @@ var _modal_kernel_job_card = (function () {
             return data;
         },
 
-        doSaveJobCard: (silent) => {
+        _finishJobCardApprovedUi: (kernelId, inner, stockSynced, hasStyleLines, approvalSucceeded) => {
             const scope = _modal_kernel_job_card;
-            var finalize = !silent && $('#jobCardSkipProductionToReleaseReady').prop('checked');
-            if (finalize && _dragReleaseReadySession) {
-                scope.doSaveJobCardRun(silent, true);
+            var df = (typeof _dataFunctions !== 'undefined' && _dataFunctions) ? _dataFunctions : (typeof dataFunctions !== 'undefined' ? dataFunctions : null);
+            if (approvalSucceeded === true) {
+                inner = Object.assign({}, inner || {}, { jobcard_approved: true, has_jobcard_approved: true, success: true });
+            }
+            var isApproved = function (row) {
+                return df && df.isKernelJobcardApproved
+                    ? df.isKernelJobcardApproved(row)
+                    : !!(row && (row.jobcard_approved === true || row.has_jobcard_approved === true));
+            };
+            var finishApproved = function (row) {
+            if (!isApproved(row) && approvalSucceeded !== true) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Approval not saved',
+                        text: 'The server did not record job card approval. Add at least one style line with cartons or kg, then press Jobcard approved again. If this batch came from Stock, use Send back to production first.'
+                    });
+                }
                 return;
             }
-            if (finalize && typeof Swal !== 'undefined') {
+            if (hasStyleLines && !stockSynced && typeof Swal !== 'undefined') {
                 Swal.fire({
-                    icon: 'warning',
-                    title: 'Mark release ready without production?',
-                    html: 'This saves the job card, approves it, sets production as finished, and adds a minimal QA record so the batch appears as <strong>Release ready</strong> in Kernel Production. Use only when you are not using the Production and End sample steps in this app.',
-                    showCancelButton: true,
-                    confirmButtonText: 'Save & finalize',
-                    cancelButtonText: 'Cancel',
-                    focusCancel: true
-                }).then(function (res) {
-                    if (!res.isConfirmed) return;
-                    scope.doSaveJobCardRun(silent, true);
+                    icon: 'info',
+                    title: 'Approved (stock sync pending)',
+                    text: 'Job card is approved. Style stock will update when quantities are recognised by the server.',
+                    timer: 3500,
+                    showConfirmButton: true
+                });
+            } else if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Jobcard approved',
+                    text: 'The job card button shows a tick. Use Release to stock when the batch is release ready.',
+                    timer: 2600,
+                    showConfirmButton: false
+                });
+            }
+            if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.patchBatchJobcardApproved) {
+                _kernelProductionGrid.patchBatchJobcardApproved(kernelId, true);
+            }
+            _skipFlushOnHide = true;
+            var modalEl = document.getElementById('kernelJobCardModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+            } else {
+                $('#kernelJobCardModal').modal('hide');
+            }
+            if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) {
+                var reload = _kernelProductionGrid.loadBatches(true);
+                if (reload && typeof reload.then === 'function') {
+                    reload.then(function () {
+                        if (_kernelProductionGrid.patchBatchJobcardApproved) {
+                            _kernelProductionGrid.patchBatchJobcardApproved(kernelId, true);
+                        }
+                    }).catch(function () {});
+                }
+            }
+            };
+            if (approvalSucceeded === true || isApproved(inner)) {
+                finishApproved(inner);
+                return;
+            }
+            var verifyApproval = function (row, thenFinish) {
+                if (isApproved(row)) {
+                    thenFinish(row);
+                    return;
+                }
+                if (df && df.getKernelJobcardApprovalMap) {
+                    df.getKernelJobcardApprovalMap([kernelId], null).then(function (map) {
+                        var key = String(kernelId);
+                        if (df.coerceKernelBool(map && map[key])) {
+                            thenFinish(Object.assign({}, row || {}, {
+                                jobcard_approved: true,
+                                has_jobcard_approved: true
+                            }));
+                        } else {
+                            thenFinish(row);
+                        }
+                    }).catch(function () {
+                        thenFinish(row);
+                    });
+                    return;
+                }
+                thenFinish(row);
+            };
+            if (df && df.getKernelBatchDetail) {
+                df.getKernelBatchDetail(kernelId, null, true).then(function (detail) {
+                    verifyApproval(detail || inner, finishApproved);
+                }).catch(function () {
+                    verifyApproval(inner, finishApproved);
                 });
                 return;
             }
-            scope.doSaveJobCardRun(silent, false);
+            verifyApproval(inner, finishApproved);
         },
 
-        doSaveJobCardRun: (silent, finalizeWithoutProduction) => {
+        doSaveJobCard: (silent) => {
+            _modal_kernel_job_card.doSaveJobCardRun(!!silent, false);
+        },
+
+        doSaveJobCardRun: (silent, approve) => {
             const scope = _modal_kernel_job_card;
+            if (approve && _autoSaveTimer) {
+                clearTimeout(_autoSaveTimer);
+                _autoSaveTimer = null;
+            }
             var kernelId = $('#jobCardProductionBatchId').val();
             if (!kernelId) {
                 if (!silent && typeof Swal !== 'undefined') Swal.fire('Error', 'Batch ID missing. Please reopen the job card from a batch row.', 'error');
@@ -600,33 +773,23 @@ var _modal_kernel_job_card = (function () {
             Object.keys(jobCardData).forEach(function (k) {
                 jobCardObj[k.replace(/^p_/, '')] = jobCardData[k];
             });
-            var upsertOpts = silent ? {} : { approved: true };
-            if (finalizeWithoutProduction === true) {
-                upsertOpts.finalizeWithoutProduction = true;
-            }
+            var upsertOpts = approve ? { approved: true } : { draft: true };
             dataFunctions.upsertKernelJobCard(kernelId, jobCardObj, null, upsertOpts).then(function (result) {
-                var inner = (result && result.upsert_kernel_job_card) ? result.upsert_kernel_job_card : result;
-                if (inner && inner.success === false) throw new Error(inner.error || 'Failed to save');
-                if (!silent && _dragReleaseReadySession && typeof _kernelProductionGrid !== 'undefined') {
-                    _kernelProductionGrid._jobCardDragApprovedSave = true;
+                var inner = result;
+                if (typeof dataFunctions.unwrapKernelRpcJson === 'function') {
+                    inner = dataFunctions.unwrapKernelRpcJson(result, 'upsert_kernel_job_card') || result;
+                } else if (result && result.upsert_kernel_job_card) {
+                    inner = result.upsert_kernel_job_card;
                 }
-                var serverFinalized = !!(inner && (inner.finalized_without_production === true || inner.FinalizedWithoutProduction === true));
+                if (inner && inner.success === false) throw new Error(inner.error || inner.Error || 'Failed to save');
+                var stockSynced = !!(inner && (inner.stock_synced === true || inner.StockSynced === true));
+                var hasStyleLines = typeof _kernelJobCardStock !== 'undefined'
+                    ? _kernelJobCardStock.hasStockQuantities(jobCardObj)
+                    : !!(jobCardObj.sound_kernel_styles || jobCardObj.butter_grade_styles);
                 if (silent) {
                     if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); setTimeout(function () { if ($status.length) $status.text(''); }, 2000); }
-                } else {
-                    var successTitle = serverFinalized ? 'Batch is release ready' : 'Jobcard approved';
-                    var successText = serverFinalized
-                        ? 'Production is marked finished and the batch appears in Release ready. Kernel stock will use these job card style quantities when you release.'
-                        : 'Job card saved; kernel stock on hand updates to match style quantities here. The jobcard button will show a tick and you can release to stock when ready.';
-                    if (finalizeWithoutProduction && !serverFinalized && typeof Swal !== 'undefined') {
-                        successTitle = 'Job card saved';
-                        successText = 'The database may not support “skip production” yet. Apply migration 20260404150001_upsert_kernel_job_card_finalize_without_production.sql (see docs/MCP_RUN_JOB_CARD_FINALIZE_WITHOUT_PRODUCTION.md), then try again.';
-                    }
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: successTitle, text: successText, timer: 2600, showConfirmButton: false });
-                    var modalEl = document.getElementById('kernelJobCardModal');
-                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                    else $('#kernelJobCardModal').modal('hide');
-                    if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
+                } else if (approve) {
+                    scope._finishJobCardApprovedUi(kernelId, inner, stockSynced, hasStyleLines, true);
                 }
             }).catch(function (e) {
                 console.error('[Kernel Job Card] save failed:', e);
@@ -636,7 +799,7 @@ var _modal_kernel_job_card = (function () {
         },
 
         saveJobCard: () => {
-            _modal_kernel_job_card.doSaveJobCard(false);
+            _modal_kernel_job_card.doSaveJobCardRun(false, true);
         },
 
         scheduleAutoSave: () => {

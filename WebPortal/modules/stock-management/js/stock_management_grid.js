@@ -94,11 +94,20 @@ var _stockManagementGrid = function () {
         return {};
     }
 
-    /** Kernel row id for RPCs (proxy may use Id / KernelId). */
+    /** Kernel row id for RPCs (proxy may send batches.id as Id — server resolves either). */
     function kernelIdFromBatch(b) {
         if (!b) return '';
-        var id = b.id != null ? b.id : b.Id != null ? b.Id : b.kernel_id != null ? b.kernel_id : b.KernelId;
-        return id != null ? String(id) : '';
+        if (b.kernel_id != null && b.kernel_id !== '') return String(b.kernel_id);
+        if (b.KernelId != null && b.KernelId !== '') return String(b.KernelId);
+        if (b.id != null && b.id !== '') return String(b.id);
+        if (b.Id != null && b.Id !== '') return String(b.Id);
+        return '';
+    }
+
+    function batchNumberFromBatch(b) {
+        if (!b) return '';
+        var n = b.batch_number != null ? b.batch_number : (b.BatchNumber != null ? b.BatchNumber : '');
+        return n != null ? String(n).trim() : '';
     }
 
     var KERNEL_STYLE_OPTIONS = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
@@ -349,8 +358,12 @@ var _stockManagementGrid = function () {
                     scope.renderKernelWeekly();
                 });
                 $(document).on('click', '.js-release-batch-to-production', function () {
-                    var id = $(this).data('batch-id');
-                    if (id) scope.confirmAndReleaseBatchToProduction(id);
+                    var $btn = $(this);
+                    var kernelId = $btn.attr('data-kernel-id') || $btn.attr('data-batch-id') || '';
+                    var batchNumber = $btn.attr('data-batch-number') || '';
+                    if (kernelId || batchNumber) {
+                        scope.confirmAndReleaseBatchToProduction(kernelId, batchNumber);
+                    }
                 });
                 $(document).on('click', '[data-view-item]', function () {
                     var id = $(this).attr('data-view-item');
@@ -744,9 +757,16 @@ var _stockManagementGrid = function () {
                 }
                 if (inner && inner.create_kernel_batch) inner = inner.create_kernel_batch;
                 var ok = inner && (inner.success === true || inner.Success === true);
-                var kid = inner && (inner.id != null ? inner.id : inner.Id);
+                var kid = inner && (
+                    inner.kernel_id != null ? inner.kernel_id :
+                        (inner.KernelId != null ? inner.KernelId :
+                            (inner.id != null ? inner.id : inner.Id))
+                );
                 if (!ok) throw new Error((inner && (inner.error || inner.Error)) || 'Failed to create batch');
                 if (kid == null) throw new Error('Server did not return a kernel id — batch may not be linked. Check proxy logs.');
+                if (inner.batch_id != null && String(kid) === String(inner.batch_id) && inner.kernel_id == null) {
+                    console.warn('[Stock Management] Create batch returned batches.id as id; send-back will resolve by batch_number.');
+                }
                 await Swal.fire({ icon: 'success', title: 'Batch created', text: 'New kernel batch added to the database.', timer: 2000, showConfirmButton: false });
                 scope.loadKernelBatches(true);
             } catch (e) {
@@ -796,7 +816,7 @@ var _stockManagementGrid = function () {
                 row += '<td class="text-end" title="' + ffaTitle.replace(/"/g, '&quot;') + '">' + ffaDisplay + '</td><td class="text-end" title="' + bbTitle.replace(/"/g, '&quot;') + '">' + bbDisplay + '</td>';
                 var kid = kernelIdFromBatch(b);
                 row += '<td class="text-center"><div class="d-inline-flex flex-wrap gap-1 justify-content-center align-items-center">';
-                row += '<button type="button" class="btn btn-sm btn-outline-secondary js-release-batch-to-production" data-batch-id="' + escapeHtml(kid) + '" title="Send this batch back to production"><i class="fas fa-undo me-1"></i>Send back to production</button>';
+                row += '<button type="button" class="btn btn-sm btn-outline-secondary js-release-batch-to-production" data-kernel-id="' + escapeHtml(kid) + '" data-batch-number="' + escapeHtml(batchNum) + '" title="Send this batch back to production"><i class="fas fa-undo me-1"></i>Send back to production</button>';
                 if (kid) {
                     row += '<button type="button" class="btn btn-sm btn-outline-primary edit-kernel-batch-btn" data-kernel-id="' + escapeHtml(kid) + '" title="Edit batch details (number, grower, dates, FFA)"><i class="fas fa-edit me-1"></i>Edit</button>';
                     row += '<button type="button" class="btn btn-sm btn-outline-danger delete-kernel-batch-btn" data-kernel-id="' + escapeHtml(kid) + '" data-batch-label="' + escapeHtml(batchNum) + '" title="Delete batch (soft delete)"><i class="fas fa-trash me-1"></i>Delete</button>';
@@ -957,11 +977,13 @@ var _stockManagementGrid = function () {
             tbody.innerHTML = rows || '<tr><td colspan="2" class="text-center text-muted py-4">No data.</td></tr>';
         },
 
-        confirmAndReleaseBatchToProduction: function (batchId) {
+        confirmAndReleaseBatchToProduction: function (kernelId, batchNumber) {
             var scope = _stockManagementGrid;
-            if (!batchId) return;
+            kernelId = kernelId != null ? String(kernelId).trim() : '';
+            batchNumber = batchNumber != null ? String(batchNumber).trim() : '';
+            if (!kernelId && !batchNumber) return;
             if (typeof Swal === 'undefined') {
-                scope.releaseBatchToProduction(batchId);
+                scope.releaseBatchToProduction(kernelId, batchNumber);
                 return;
             }
             Swal.fire({
@@ -972,7 +994,7 @@ var _stockManagementGrid = function () {
                 confirmButtonText: 'Yes, send back',
                 cancelButtonText: 'Cancel'
             }).then(function (result) {
-                if (result && result.isConfirmed) scope.releaseBatchToProduction(batchId);
+                if (result && result.isConfirmed) scope.releaseBatchToProduction(kernelId, batchNumber);
             });
         },
 
@@ -1149,17 +1171,55 @@ var _stockManagementGrid = function () {
             });
         },
 
-        releaseBatchToProduction: function (batchId) {
+        releaseBatchToProduction: function (kernelId, batchNumber) {
             var scope = _stockManagementGrid;
-            if (!batchId) return;
-            dataFunctions.updateProductionBatch(batchId, { status: 'production', current_step: 1, stage: 'production' }).then(function (result) {
+            kernelId = kernelId != null ? String(kernelId).trim() : '';
+            batchNumber = batchNumber != null ? String(batchNumber).trim() : '';
+            if (!kernelId && !batchNumber) return;
+            var row = null;
+            if (kernelId || batchNumber) {
+                row = (scope.kernelFinishedBatches || []).find(function (b) {
+                    return (kernelId && kernelIdFromBatch(b) === kernelId) ||
+                        (batchNumber && batchNumberFromBatch(b) === batchNumber);
+                }) || null;
+            }
+            if (row) {
+                if (!kernelId) kernelId = kernelIdFromBatch(row);
+                if (!batchNumber) batchNumber = batchNumberFromBatch(row);
+            }
+            var df = (typeof _dataFunctions !== 'undefined' && _dataFunctions) ? _dataFunctions : dataFunctions;
+            var call = df && df.returnKernelFromStockToProduction
+                ? df.returnKernelFromStockToProduction(kernelId || null, null, {
+                    batchNumber: batchNumber || null,
+                    gridRow: row || null
+                })
+                : Promise.reject(new Error('returnKernelFromStockToProduction is not available — apply migration return_kernel_from_stock_to_production.'));
+            call.then(function (result) {
                 if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in production. Use Kernel Production to advance steps.', timer: 2000, showConfirmButton: false });
+                    var already = result.already_in_production === true;
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: already ? 'Already on production board' : 'Sent back to production',
+                            text: already
+                                ? 'This batch is already in the Kernel Production queue. Open the job card there and press Jobcard approved when ready.'
+                                : 'Batch is on Kernel Production (QA). Open the job card, confirm style quantities, then press Jobcard approved.',
+                            timer: 3200,
+                            showConfirmButton: false
+                        });
+                    }
                     scope.loadKernelBatches(true);
-                } else throw new Error(result && result.error ? result.error : 'Update failed');
+                } else {
+                    throw new Error((result && result.error) ? result.error : 'Update failed');
+                }
             }).catch(function (e) {
-                console.error(e);
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release batch', 'error');
+                console.error('[Stock Management] releaseBatchToProduction failed:', e);
+                var msg = (e && e.message) ? String(e.message) : 'Failed to send batch back to production';
+                if (msg.indexOf('not found or inactive') >= 0) {
+                    msg = 'This batch could not be found in kernel stock (it may be inactive or removed). Press Ctrl+F5 to refresh, then try again. Batch: '
+                        + (batchNumber || kernelId || '?');
+                }
+                if (typeof Swal !== 'undefined') Swal.fire('Error', msg, 'error');
             });
         },
 

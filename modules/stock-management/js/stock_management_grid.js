@@ -307,14 +307,31 @@ var _stockManagementGrid = function () {
         releaseBatchToProduction: function (batchId) {
             var scope = _stockManagementGrid;
             if (!batchId) return;
-            dataFunctions.updateProductionBatch(batchId, { status: 'production', current_step: 1, stage: 'production' }).then(function (result) {
+            var df = (typeof _dataFunctions !== 'undefined' && _dataFunctions) ? _dataFunctions : dataFunctions;
+            var call = df && df.returnKernelFromStockToProduction
+                ? df.returnKernelFromStockToProduction(batchId)
+                : Promise.reject(new Error('returnKernelFromStockToProduction is not available — apply migration return_kernel_from_stock_to_production.'));
+            call.then(function (result) {
                 if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released', text: 'Batch is now in production. Use Kernel Production to advance steps.', timer: 2000, showConfirmButton: false });
+                    var already = result.already_in_production === true;
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: already ? 'Already on production board' : 'Sent back to production',
+                            text: already
+                                ? 'This batch is already in the Kernel Production queue. Open the job card there and press Jobcard approved when ready.'
+                                : 'Batch is on Kernel Production (QA). Open the job card, confirm style quantities, then press Jobcard approved.',
+                            timer: 3200,
+                            showConfirmButton: false
+                        });
+                    }
                     scope.loadKernelBatches(true);
-                } else throw new Error(result && result.error ? result.error : 'Update failed');
+                } else {
+                    throw new Error((result && result.error) ? result.error : 'Update failed');
+                }
             }).catch(function (e) {
-                console.error(e);
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release batch', 'error');
+                console.error('[Stock Management] releaseBatchToProduction failed:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to send batch back to production', 'error');
             });
         },
 

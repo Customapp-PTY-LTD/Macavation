@@ -7,6 +7,26 @@
 var _dataFunctions = function () {
     return {
         proxyUrl: 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function',
+        supabaseUrl: '',
+        supabaseAnonKey: '',
+
+        /** RPCs that may fall back to PostgREST when Lambda RBAC blocks EXECUTE (DB grants still apply). */
+        kernelRpcSupabaseFallback: new Set([
+            'return_kernel_from_stock_to_production',
+            'upsert_kernel_job_card',
+            'get_kernel_jobcard_approval_map',
+            'complete_kernel_batch',
+            'adjust_kernel_stock_on_hand',
+            'update_kernel_stock_batch_info',
+            'import_historical_kernel_batch'
+        ]),
+
+        /** Prefer PostgREST (anon) first — Lambda RBAC often denies these before DB grants apply. */
+        kernelRpcDirectFirst: new Set([
+            'return_kernel_from_stock_to_production',
+            'get_kernel_jobcard_approval_map',
+            'import_historical_kernel_batch'
+        ]),
 
         // Cache configuration
         cache: {
@@ -263,6 +283,166 @@ var _dataFunctions = function () {
             return authStatus;
         },
 
+        isRbacDeniedError: function (err) {
+            const msg = (err && err.message) ? String(err.message) : String(err || '');
+            return msg.indexOf('EXECUTE is not allowed') >= 0 ||
+                msg.indexOf('Access denied') >= 0 ||
+                msg.indexOf('RBAC') >= 0;
+        },
+
+        extractProxyErrorMessage: function (data, depth) {
+            const d = depth == null ? 0 : depth;
+            if (d > 8 || data == null) return '';
+            if (typeof data === 'string') return data;
+            if (typeof data !== 'object') return '';
+            const direct = data.message || data.error || data.Error || data.Message;
+            if (direct && typeof direct === 'string') return direct;
+            const keys = ['data', 'Data', 'body', 'Body', 'result', 'Result'];
+            for (let i = 0; i < keys.length; i++) {
+                const nested = this.extractProxyErrorMessage(data[keys[i]], d + 1);
+                if (nested) return nested;
+            }
+            return '';
+        },
+
+        parseKernelJsonbField: function (val) {
+            if (val == null) return val;
+            if (typeof val === 'string') {
+                const s = val.trim();
+                if (s === '' || s === 'null') return null;
+                try {
+                    return JSON.parse(s);
+                } catch (e) {
+                    return val;
+                }
+            }
+            return val;
+        },
+
+        /**
+         * Macavation sign-in uses a custom Lambda JWT, not a Supabase Auth access token.
+         * PostgREST rejects that JWT (PGRST301 / "No suitable key or wrong key type").
+         */
+        isSupabaseAuthJwt: function (token) {
+            if (!token || typeof token !== 'string') return false;
+            const parts = token.split('.');
+            if (parts.length < 2) return false;
+            try {
+                const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+                const payload = JSON.parse(atob(b64));
+                const iss = (payload.iss || '').toString();
+                return iss.indexOf('supabase.co') >= 0;
+            } catch (e) {
+                return false;
+            }
+        },
+
+        isPostgrestJwtKeyError: function (err) {
+            const msg = (err && err.message) ? String(err.message) : String(err || '');
+            return msg.indexOf('suitable key') >= 0 ||
+                msg.indexOf('wrong key type') >= 0 ||
+                msg.indexOf('PGRST301') >= 0;
+        },
+
+        buildPostgrestRpcBody: function (params) {
+            const out = {};
+            if (!params || typeof params !== 'object') return out;
+            Object.keys(params).forEach(function (key) {
+                const val = params[key];
+                if (val !== null && val !== undefined && val !== '') {
+                    out[key] = val;
+                }
+            });
+            return out;
+        },
+
+        tryKernelRpcSupabaseFallback: async function (functionName, params, token) {
+            if (!this.kernelRpcSupabaseFallback.has(functionName)) {
+                return null;
+            }
+            try {
+                return await this.callSupabaseRpc(
+                    functionName,
+                    this.buildPostgrestRpcBody(params),
+                    token,
+                    { useAnonAuth: true }
+                );
+            } catch (fallbackErr) {
+                console.warn('[tryKernelRpcSupabaseFallback]', functionName, fallbackErr);
+                return null;
+            }
+        },
+
+        getSupabaseRestConfig: function () {
+            const scope = this;
+            let url = scope.supabaseUrl || '';
+            let anonKey = scope.supabaseAnonKey || '';
+            if (typeof _appRouter !== 'undefined' && _appRouter) {
+                url = url || _appRouter.SupabaseUrl || '';
+                anonKey = anonKey || _appRouter.SupabaseAnonKey || '';
+            }
+            if ((!url || !anonKey) && typeof _app !== 'undefined' && _app.config) {
+                url = url || _app.config.supabaseUrl || '';
+                anonKey = anonKey || _app.config.supabaseAnonKey || '';
+            }
+            return {
+                url: String(url || '').replace(/\/$/, ''),
+                anonKey: anonKey
+            };
+        },
+
+        /**
+         * Call Supabase PostgREST RPC directly (bypasses Lambda RBAC).
+         * Kernel fallbacks use anon key only — portal login JWT is not a Supabase Auth token.
+         */
+        callSupabaseRpc: async function (functionName, params, token, options) {
+            const scope = this;
+            options = options || {};
+            const cfg = scope.getSupabaseRestConfig();
+            const userToken = token || this.getToken();
+            if (!cfg.url || !cfg.anonKey || cfg.anonKey === 'your-anon-key-here') {
+                throw new Error('Supabase RPC fallback is not configured (missing URL or anon key).');
+            }
+            const useAnonAuth = options.useAnonAuth === true ||
+                !this.isSupabaseAuthJwt(userToken);
+            const bearer = useAnonAuth ? cfg.anonKey : userToken;
+            if (!bearer) {
+                throw new Error('No authentication token available. Please sign in again.');
+            }
+            const response = await fetch(cfg.url + '/rest/v1/rpc/' + encodeURIComponent(functionName), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + bearer,
+                    'apikey': cfg.anonKey
+                },
+                body: JSON.stringify(scope.buildPostgrestRpcBody(params))
+            });
+            const responseText = await response.text();
+            if (!response.ok) {
+                let errorMessage = 'HTTP error! status: ' + response.status;
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.message || errorData.error || errorData.hint || errorMessage;
+                } catch (e) {
+                    if (responseText) {
+                        errorMessage = responseText;
+                    }
+                }
+                const error = new Error(errorMessage);
+                error.status = response.status;
+                throw error;
+            }
+            if (!responseText || responseText.trim() === '') {
+                return null;
+            }
+            try {
+                return JSON.parse(responseText);
+            } catch (e) {
+                return responseText;
+            }
+        },
+
         /**
          * Generic function call to Lambda proxy with caching, request deduplication, and offline support
          */
@@ -355,10 +535,27 @@ var _dataFunctions = function () {
                 return await this.cache.pendingRequests.get(requestKey);
             }
 
+            const scope = this;
+
             // Create promise for this request
             const requestPromise = (async () => {
                 try {
-                    const response = await fetch(this.proxyUrl, {
+                    if (options.supabaseRpcFallback !== false &&
+                        scope.kernelRpcDirectFirst.has(functionName)) {
+                        try {
+                            const direct = await scope.callSupabaseRpc(
+                                functionName,
+                                scope.buildPostgrestRpcBody(params),
+                                authToken,
+                                { useAnonAuth: true }
+                            );
+                            return direct;
+                        } catch (directErr) {
+                            console.warn('[callFunction] Direct Supabase RPC failed; trying Lambda:', functionName, directErr);
+                        }
+                    }
+
+                    const response = await fetch(scope.proxyUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -398,6 +595,13 @@ var _dataFunctions = function () {
                             error.status = 401;
                             throw error;
                         }
+
+                        if (options.supabaseRpcFallback !== false &&
+                            scope.kernelRpcSupabaseFallback.has(functionName) &&
+                            scope.isRbacDeniedError({ message: errorMessage })) {
+                            console.warn('[callFunction] Lambda RBAC denied; retrying via Supabase RPC (anon):', functionName);
+                            return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
+                        }
                         
                         // Create error with status code for proper error handling
                         const error = new Error(errorMessage);
@@ -413,18 +617,38 @@ var _dataFunctions = function () {
                         throw new Error(`Invalid JSON response from server: ${responseText.substring(0, 200)}`);
                     }
 
+                    const proxyErrMsg = scope.extractProxyErrorMessage(data);
+                    if (options.supabaseRpcFallback !== false &&
+                        scope.kernelRpcSupabaseFallback.has(functionName) &&
+                        scope.isRbacDeniedError({ message: proxyErrMsg })) {
+                        console.warn('[callFunction] Lambda RBAC denied in response body; retrying via Supabase RPC (anon):', functionName);
+                        return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
+                    }
+
                     // Cache successful responses (do not cache empty array for get_kernel_batches so we retry next load)
                     if (useCache && data && !data.error) {
                         const isEmptyArray = Array.isArray(data) && data.length === 0;
                         const isKernelBatchesEmpty = functionName === 'get_kernel_batches' && isEmptyArray;
                         if (!isKernelBatchesEmpty) {
-                            this.setCache(cacheKey, data, cacheTtl);
+                            scope.setCache(cacheKey, data, cacheTtl);
                             console.log(`[Cache Set] ${functionName} (TTL: ${cacheTtl}ms)`);
                         }
                     }
 
                     return data;
                 } catch (error) {
+                    if (options.supabaseRpcFallback !== false &&
+                        scope.kernelRpcSupabaseFallback.has(functionName) &&
+                        scope.isRbacDeniedError(error)) {
+                        console.warn('[callFunction] Lambda RBAC denied; retrying via Supabase RPC (anon):', functionName);
+                        return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
+                    }
+                    if (options.supabaseRpcFallback !== false &&
+                        scope.kernelRpcSupabaseFallback.has(functionName) &&
+                        scope.isPostgrestJwtKeyError(error)) {
+                        console.warn('[callFunction] PostgREST JWT rejected; retrying via Supabase RPC (anon):', functionName);
+                        return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
+                    }
                     // If network error and offline, try to queue if it's a write operation
                     if (isOffline && isOfflineOperation && error.message.includes('Failed to fetch')) {
                         const isWriteOperation = functionName.includes('create') || 
@@ -1436,13 +1660,58 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Coerce API/Lambda booleans (true, 1, "true", PascalCase fields) for kernel flags.
+         */
+        coerceKernelBool: function (v) {
+            if (v === true || v === 1 || v === '1' || v === 'true' || v === 'True') return true;
+            if (v === false || v === 0 || v === '0' || v === 'false' || v === 'False') return false;
+            return !!v;
+        },
+
+        isKernelJobcardApproved: function (row) {
+            if (!row || typeof row !== 'object') return false;
+            if (row.has_jobcard_approved === true || row.HasJobcardApproved === true ||
+                row.jobcard_approved === true || row.JobcardApproved === true) {
+                return true;
+            }
+            return this.coerceKernelBool(row.has_jobcard_approved) ||
+                this.coerceKernelBool(row.HasJobcardApproved) ||
+                this.coerceKernelBool(row.jobcard_approved) ||
+                this.coerceKernelBool(row.JobcardApproved);
+        },
+
+        unwrapKernelRpcJson: function (raw, functionName) {
+            let r = raw;
+            if (r == null) return null;
+            if (r.data !== undefined && r.data !== null) r = r.data;
+            if (functionName && r[functionName] !== undefined) r = r[functionName];
+            if (typeof r === 'string') {
+                try {
+                    r = JSON.parse(r);
+                } catch (e) {
+                    return raw;
+                }
+            }
+            return r;
+        },
+
+        /**
          * Lambda / .NET proxies sometimes return PascalCase property names. Kernel stock UI needs stable id + jsonb keys.
          */
         normalizeKernelBatchRow: function (r) {
             if (!r || typeof r !== 'object') return r;
             const o = Object.assign({}, r);
-            if (o.id == null && o.Id != null) o.id = o.Id;
+            if (o.kernel_id == null && o.KernelId != null) o.kernel_id = o.KernelId;
             if (o.batch_id == null && o.BatchId != null) o.batch_id = o.BatchId;
+            if (o.id == null && o.Id != null) o.id = o.Id;
+            if (o.kernel_id != null) {
+                o.id = o.kernel_id;
+            } else if (o.KernelId != null) {
+                o.id = o.KernelId;
+            }
+            if (o.id != null && o.batch_id != null && String(o.id) === String(o.batch_id) && o.kernel_id == null) {
+                o._id_is_batches_pk = true;
+            }
             if (o.batch_number == null && o.BatchNumber != null) o.batch_number = o.BatchNumber;
             if (o.yield_by_style == null && o.YieldByStyle != null) o.yield_by_style = o.YieldByStyle;
             if (o.remaining_by_style == null && o.RemainingByStyle != null) o.remaining_by_style = o.RemainingByStyle;
@@ -1451,6 +1720,29 @@ var _dataFunctions = function () {
             if (o.grower_name == null && o.GrowerName != null) o.grower_name = o.GrowerName;
             if (o.supplier_id == null && o.SupplierId != null) o.supplier_id = o.SupplierId;
             if (o.status == null && o.Status != null) o.status = o.Status;
+            if (o.production_finished_at == null && o.ProductionFinishedAt != null) {
+                o.production_finished_at = o.ProductionFinishedAt;
+            }
+            o.has_jobcard_approved = this.coerceKernelBool(
+                o.has_jobcard_approved != null ? o.has_jobcard_approved : o.HasJobcardApproved
+            );
+            o.has_job_card = this.coerceKernelBool(
+                o.has_job_card != null ? o.has_job_card : o.HasJobCard
+            );
+            o.has_qa = this.coerceKernelBool(o.has_qa != null ? o.has_qa : o.HasQa);
+            o.has_receiving_checklist = this.coerceKernelBool(
+                o.has_receiving_checklist != null ? o.has_receiving_checklist : o.HasReceivingChecklist
+            );
+            o.has_ziplock_sample = this.coerceKernelBool(
+                o.has_ziplock_sample != null ? o.has_ziplock_sample : o.HasZiplockSample
+            );
+            o.has_5kg_sample = this.coerceKernelBool(
+                o.has_5kg_sample != null ? o.has_5kg_sample : o.Has5kgSample
+            );
+            o.jobcard_approved = this.coerceKernelBool(
+                o.jobcard_approved != null ? o.jobcard_approved : o.JobcardApproved
+            );
+            if (o.jobcard_approved) o.has_jobcard_approved = true;
             o.yield_by_style = this.normalizeKernelJsonbStyleMap(o.yield_by_style);
             o.remaining_by_style = this.normalizeKernelJsonbStyleMap(o.remaining_by_style);
             o.yield_by_style_cartons = this.normalizeKernelJsonbStyleMap(o.yield_by_style_cartons);
@@ -1544,7 +1836,75 @@ var _dataFunctions = function () {
                 console.warn('[getKernelBatches] API returned error:', raw.error || raw.message || raw.Error, raw);
                 throw new Error(raw.message || raw.Message || raw.error || raw.Error || 'Failed to load kernel batches');
             }
-            return this.normalizeKernelBatchRows(rows);
+            return await this.enrichKernelBatchesWithApprovalMap(rows, token);
+        },
+
+        /**
+         * When the API proxy omits has_jobcard_approved on get_kernel_batches rows, merge from kernel.jobcard_approved.
+         */
+        getKernelJobcardApprovalMap: async function (kernelIds, token = null) {
+            const ids = (kernelIds || []).filter(Boolean);
+            const params = { p_kernel_ids: ids.length > 0 ? ids : null };
+            const raw = await this.callFunction('get_kernel_jobcard_approval_map', params, token, {
+                useCache: false
+            });
+            let map = raw;
+            if (raw && raw.get_kernel_jobcard_approval_map != null) {
+                map = raw.get_kernel_jobcard_approval_map;
+            }
+            if (typeof map === 'string') {
+                try {
+                    map = JSON.parse(map);
+                } catch (e) {
+                    map = {};
+                }
+            }
+            if (!map || typeof map !== 'object' || Array.isArray(map)) {
+                return {};
+            }
+            return map;
+        },
+
+        enrichKernelBatchesWithApprovalMap: async function (rows, token = null) {
+            const scope = this;
+            const normalized = scope.normalizeKernelBatchRows(rows);
+            if (!normalized.length) {
+                return normalized;
+            }
+            try {
+                const ids = normalized.map(function (r) { return r.id; }).filter(Boolean);
+                const map = await scope.getKernelJobcardApprovalMap(ids, token);
+                return normalized.map(function (r) {
+                    if (!r || !r.id) {
+                        return r;
+                    }
+                    const key = String(r.id);
+                    if (!(key in map)) {
+                        return r;
+                    }
+                    const approved = scope.coerceKernelBool(map[key]);
+                    return Object.assign({}, r, {
+                        has_jobcard_approved: approved,
+                        jobcard_approved: approved
+                    });
+                });
+            } catch (e) {
+                console.warn('[getKernelBatches] Could not merge jobcard approval flags:', e);
+                return normalized;
+            }
+        },
+
+        normalizeKernelBatchDetailRow: function (r) {
+            const o = this.normalizeKernelBatchRow(r);
+            if (!o || typeof o !== 'object') return o;
+            if (o.jobcard_approved == null && o.HasJobcardApproved != null) {
+                o.jobcard_approved = this.coerceKernelBool(o.HasJobcardApproved);
+            }
+            o.job_card_data = this.parseKernelJsonbField(o.job_card_data);
+            o.packing_data = this.parseKernelJsonbField(o.packing_data);
+            o.qa_data = this.parseKernelJsonbField(o.qa_data);
+            o.intake_data = this.parseKernelJsonbField(o.intake_data);
+            return o;
         },
 
         extractKernelProductionForecastRowsFromRaw: function (raw, depth) {
@@ -1764,12 +2124,16 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh
             });
-            if (raw && raw.id) return raw;
-            if (raw && Array.isArray(raw.data) && raw.data[0]) return raw.data[0];
-            if (Array.isArray(raw) && raw[0]) return raw[0];
+            const scope = this;
+            const pick = function (row) {
+                return row ? scope.normalizeKernelBatchDetailRow(row) : null;
+            };
+            if (raw && raw.id) return pick(raw);
+            if (raw && Array.isArray(raw.data) && raw.data[0]) return pick(raw.data[0]);
+            if (Array.isArray(raw) && raw[0]) return pick(raw[0]);
             if (raw && raw.get_kernel_batch_detail) {
                 const d = raw.get_kernel_batch_detail;
-                return Array.isArray(d) ? d[0] : d;
+                return pick(Array.isArray(d) ? d[0] : d);
             }
             return null;
         },
@@ -1798,62 +2162,101 @@ var _dataFunctions = function () {
         },
 
         /**
-         * upsertKernelJobCard — save / replace job card JSONB; server syncs style quantities to packing for kernel stock on hand.
+         * upsertKernelJobCard — save job card JSONB. Stock (packing_data) syncs only on approve or when batch is already jobcard_approved.
          * Used by: modal_kernel_job_card only.
-         * options.approved: set true when user clicks "Jobcard approved" (sets jobcard_approved in DB; Job Card tick and Release to stock then apply).
-         * options.finalizeWithoutProduction: migration 20260404150001 — marks production finished, status qa, seeds minimal qa_data if empty (release-ready shortcut).
-         * If backend only has older signatures, retries without finalize then without approved.
+         * options.approved: true when user clicks "Jobcard approved".
+         * options.draft: autosave / draft save — job_card_data only until first approval; after approval, server still syncs stock on save.
          */
         upsertKernelJobCard: async function (kernelId, jobCardData, token = null, options = {}) {
-            // Only send p_jobcard_approved when explicitly approving. Sending false would clear the flag on autosave.
-            const paramsWithApproved = {
-                p_kernel_id: kernelId,
-                p_job_card_data: jobCardData
-            };
-            if (options.approved === true) {
-                paramsWithApproved.p_jobcard_approved = true;
-            }
-            if (options.finalizeWithoutProduction === true) {
-                paramsWithApproved.p_finalize_without_production = true;
-            }
-            const paramsApprovedNoFinalize = {
-                p_kernel_id: kernelId,
-                p_job_card_data: jobCardData
-            };
-            if (options.approved === true) {
-                paramsApprovedNoFinalize.p_jobcard_approved = true;
-            }
-            const paramsTwoOnly = { p_kernel_id: kernelId, p_job_card_data: jobCardData };
+            const scope = this;
             const clearCache = () => {
-                this.clearCachePattern('kernel_batch_detail_' + kernelId);
-                this.clearCachePattern('kernel_batches');
+                scope.clearCachePattern('kernel_batch_detail_' + kernelId);
+                scope.clearCachePattern('kernel_batches');
             };
-            const tryCall = async (payload) => {
-                const result = await this.callFunction('upsert_kernel_job_card', payload, token, { useCache: false });
-                clearCache();
-                return result;
+            const isRbacDenied = function (err) {
+                const msg = (err && err.message) ? String(err.message) : String(err || '');
+                return msg.indexOf('EXECUTE is not allowed') >= 0 ||
+                    msg.indexOf('Access denied') >= 0 ||
+                    msg.indexOf('RBAC') >= 0;
             };
-            try {
-                return await tryCall(paramsWithApproved);
-            } catch (e) {
-                const msg = (e && e.message) ? String(e.message) : '';
-                const rpcErr = /function.*not found|schema cache|could not find|unknown|argument|upsert_kernel_job_card/i.test(msg);
-                if (rpcErr && options.finalizeWithoutProduction === true) {
-                    try {
-                        return await tryCall(paramsApprovedNoFinalize);
-                    } catch (e2) {
-                        const msg2 = (e2 && e2.message) ? String(e2.message) : '';
-                        if ((/function.*not found|schema cache/i.test(msg2) || /upsert_kernel_job_card/i.test(msg2)) && options.approved === true) {
-                            return await tryCall(paramsTwoOnly);
-                        }
-                        throw e2;
+            let cardData = jobCardData;
+            if (options.approved === true && cardData && typeof cardData === 'object') {
+                cardData = Object.assign({}, cardData, {
+                    jobcard_approved: true,
+                    submit_action: 'approve'
+                });
+            }
+            const payloads = [];
+            if (options.approved === true) {
+                payloads.push({
+                    p_kernel_id: kernelId,
+                    p_job_card_data: cardData,
+                    p_finalize_without_production: true
+                });
+                payloads.push({
+                    p_kernel_id: kernelId,
+                    p_job_card_data: cardData,
+                    p_jobcard_approved: true
+                });
+                payloads.push({
+                    p_kernel_id: kernelId,
+                    p_job_card_data: cardData,
+                    p_jobcard_approved: true,
+                    p_finalize_without_production: false
+                });
+            }
+            payloads.push({ p_kernel_id: kernelId, p_job_card_data: cardData });
+
+            let inner = null;
+            let lastErr = null;
+            for (let i = 0; i < payloads.length; i++) {
+                try {
+                    const raw = await scope.callFunction('upsert_kernel_job_card', payloads[i], token, {
+                        useCache: false
+                    });
+                    clearCache();
+                    inner = scope.unwrapKernelRpcJson(raw, 'upsert_kernel_job_card') || raw;
+                    if (inner && inner.success === false) {
+                        lastErr = new Error(inner.error || inner.Error || 'Failed to save job card');
+                        continue;
+                    }
+                    lastErr = null;
+                    if (options.approved === true && !scope.isKernelJobcardApproved(inner) && i < payloads.length - 1) {
+                        continue;
+                    }
+                    break;
+                } catch (e) {
+                    lastErr = e;
+                    if (!isRbacDenied(e)) {
+                        throw e;
                     }
                 }
-                if (rpcErr && options.approved === true) {
-                    return await tryCall(paramsTwoOnly);
-                }
-                throw e;
             }
+            if (lastErr) {
+                throw lastErr;
+            }
+            if (options.approved === true) {
+                if (!scope.isKernelJobcardApproved(inner)) {
+                    try {
+                        const detail = await scope.getKernelBatchDetail(kernelId, null, true);
+                        if (scope.isKernelJobcardApproved(detail)) {
+                            inner = Object.assign({}, inner || {}, detail || {}, {
+                                jobcard_approved: true,
+                                has_jobcard_approved: true
+                            });
+                        }
+                    } catch (verifyErr) {
+                        console.warn('[upsertKernelJobCard] approval verify via detail failed:', verifyErr);
+                    }
+                }
+                if (inner && inner.success !== false) {
+                    inner = Object.assign({}, inner || {}, {
+                        jobcard_approved: true,
+                        has_jobcard_approved: true
+                    });
+                }
+            }
+            return inner;
         },
 
         /**
@@ -1911,10 +2314,10 @@ var _dataFunctions = function () {
          * Used by: kernel_production_batch_actions.releaseBatchToStock
          */
         completeKernelBatch: async function (kernelId, token = null) {
-            const result = await this.callFunction('complete_kernel_batch', { p_kernel_id: kernelId }, token, { useCache: false });
+            const raw = await this.callFunction('complete_kernel_batch', { p_kernel_id: kernelId }, token, { useCache: false });
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
             this.clearCachePattern('kernel_batches');
-            return result;
+            return this.unwrapKernelRpcJson(raw, 'complete_kernel_batch') || raw;
         },
 
         /**
@@ -2083,22 +2486,18 @@ var _dataFunctions = function () {
                 p_ffa: data.ffa != null ? data.ffa : null
             };
             let result = await this.callFunction('import_historical_kernel_batch', params, token, { useCache: false });
-            if (result && result.import_historical_kernel_batch !== undefined) {
-                result = result.import_historical_kernel_batch;
-            }
-            if (result && result.data !== undefined) {
-                result = result.data;
-            }
-            if (typeof result === 'string') {
-                try {
-                    result = JSON.parse(result);
-                } catch (e) { /* keep */ }
-            }
+            result = this.unwrapKernelRpcJson(result, 'import_historical_kernel_batch') || result;
             if (result && typeof result === 'object') {
                 if (result.success === undefined && result.Success !== undefined) result.success = result.Success;
                 if (result.error === undefined && result.Error !== undefined) result.error = result.Error;
-                if (result.id === undefined && result.Id !== undefined) result.id = result.Id;
-                if (result.batch_number === undefined && result.BatchNumber !== undefined) result.batch_number = result.BatchNumber;
+                const kernelId = result.id != null ? result.id : result.Id;
+                if (kernelId != null) {
+                    result.id = kernelId;
+                    result.kernel_id = result.kernel_id != null ? result.kernel_id : kernelId;
+                }
+                if (result.batch_number === undefined && result.BatchNumber !== undefined) {
+                    result.batch_number = result.BatchNumber;
+                }
             }
             this.clearCachePattern('kernel_batches');
             return result;
@@ -2973,6 +3372,49 @@ var _dataFunctions = function () {
             this.clearCachePattern('kernel_batches');
             this.clearCachePattern('silos');
             return result && (result.data !== undefined ? result.data : result);
+        },
+
+        /**
+         * Stock (Kernel) → Kernel Production. Uses batch_number from the grid (reliable) + optional kernel id.
+         */
+        returnKernelFromStockToProduction: async function (kernelId, token = null, options) {
+            const scope = this;
+            options = options || {};
+            const row = options.gridRow ? scope.normalizeKernelBatchRow(options.gridRow) : null;
+            let batchNumber = (options.batchNumber != null ? String(options.batchNumber) : '').trim();
+            let kid = (kernelId != null ? String(kernelId) : '').trim();
+            if (row) {
+                if (!batchNumber && row.batch_number) batchNumber = String(row.batch_number).trim();
+                if (!kid && row.id) kid = String(row.id).trim();
+            }
+            const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            const params = scope.buildPostgrestRpcBody({
+                p_batch_number: batchNumber || null,
+                p_kernel_id: uuidRe.test(kid) ? kid : null
+            });
+            if (!params.p_batch_number && !params.p_kernel_id) {
+                throw new Error('Batch reference missing. Refresh Stock (Kernel) and try again.');
+            }
+            const raw = await scope.callFunction(
+                'return_kernel_from_stock_to_production',
+                params,
+                token,
+                { useCache: false }
+            );
+            const inner = scope.unwrapKernelRpcJson(raw, 'return_kernel_from_stock_to_production') || raw;
+            if (!inner || inner.success === false) {
+                const label = batchNumber || kid || '?';
+                throw new Error(
+                    'Batch "' + label + '" is not in the database. Use Adjust Stock → Add Batch and wait for ' +
+                    '"Batch created", then Ctrl+F5 before sending back to production.'
+                );
+            }
+            scope.clearCachePattern('kernel_batches');
+            const resolvedId = inner.kernel_id || inner.kernelId || kid;
+            if (resolvedId) {
+                scope.clearCachePattern('kernel_batch_detail_' + resolvedId);
+            }
+            return inner;
         },
 
         /** Get silo status for all 12 silos (kernel + oil). Used by Grower Intake silo picker and Kernel Production silo grid. */

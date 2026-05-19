@@ -1015,10 +1015,10 @@ var _modal_production_stages = (function () {
                 p_packing_start_date: packingStart,
                 p_packing_completion_date: packingCompletion,
                 p_best_before_date: bestBeforeDate,
-                p_sound_kernel_styles: soundKernelStyles.length ? JSON.stringify(soundKernelStyles) : null,
+                p_sound_kernel_styles: soundKernelStyles.length ? soundKernelStyles : null,
                 p_sound_kernel_total_cartons: skTotalCartons ? Math.round(skTotalCartons) : null,
                 p_sound_kernel_total_kg: skTotalKg || null,
-                p_butter_grade_styles: butterGradeStyles.length ? JSON.stringify(butterGradeStyles) : null,
+                p_butter_grade_styles: butterGradeStyles.length ? butterGradeStyles : null,
                 p_butter_grade_total_cartons: btTotalCartons ? Math.round(btTotalCartons) : null,
                 p_butter_grade_total_kg: btTotalKg || null,
                 p_waste_shell_kg: (c.shell_total != null && c.shell_total !== '') ? num(c.shell_total) : null,
@@ -1461,7 +1461,13 @@ var _modal_production_stages = (function () {
             }).then(function (result) {
                 var inner = (result && result.upsert_kernel_production) ? result.upsert_kernel_production : result;
                 if (inner && inner.success === false) throw new Error(inner.error || 'Failed to finish');
-                if (typeof Swal !== 'undefined') Swal.fire('Saved', 'Batch production marked as finished.', 'success');
+                if (typeof Swal !== 'undefined') Swal.fire({
+                    icon: 'success',
+                    title: 'Production finished',
+                    text: 'Job card lines were prefilled when empty. Open the job card, review quantities, and press Jobcard approved before releasing to stock.',
+                    timer: 4000,
+                    showConfirmButton: true
+                });
                 scope._loadedKernelDetail = null;
                 var modalEl = document.getElementById('productionStagesModal');
                 if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).hide();

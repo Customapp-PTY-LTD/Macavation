@@ -5,6 +5,7 @@ var _appRouter = function () {
         baseScripts: ['js/data-functions.js'],
         //--Set in the appRouteConfig.json
         SupabaseUrl: "",
+        SupabaseAnonKey: "",
         LambdaProxyUrl: "",
         //-----------------------
 
@@ -115,7 +116,19 @@ var _appRouter = function () {
                         _appRouter.env = environmentSetting;
 
                         _appRouter.SupabaseUrl = environmentSetting.SupabaseUrl;
+                        _appRouter.SupabaseAnonKey = environmentSetting.SupabaseAnonKey || '';
                         _appRouter.LambdaProxyUrl = environmentSetting.LambdaProxyUrl;
+                        if (typeof dataFunctions !== 'undefined' && dataFunctions) {
+                            if (environmentSetting.LambdaProxyUrl) {
+                                dataFunctions.proxyUrl = environmentSetting.LambdaProxyUrl;
+                            }
+                            if (environmentSetting.SupabaseUrl) {
+                                dataFunctions.supabaseUrl = environmentSetting.SupabaseUrl;
+                            }
+                            if (environmentSetting.SupabaseAnonKey) {
+                                dataFunctions.supabaseAnonKey = environmentSetting.SupabaseAnonKey;
+                            }
+                        }
                         // _appRouter.routeConfig = _appRouter.loadRoleConfig(data.appRoutes);
 
                     }
@@ -965,7 +978,19 @@ var _appRouter = function () {
                         }
                         _appRouter.env = environmentSetting;
                         _appRouter.SupabaseUrl = environmentSetting.SupabaseUrl;
+                        _appRouter.SupabaseAnonKey = environmentSetting.SupabaseAnonKey || '';
                         _appRouter.LambdaProxyUrl = environmentSetting.LambdaProxyUrl;
+                        if (typeof dataFunctions !== 'undefined' && dataFunctions) {
+                            if (environmentSetting.LambdaProxyUrl) {
+                                dataFunctions.proxyUrl = environmentSetting.LambdaProxyUrl;
+                            }
+                            if (environmentSetting.SupabaseUrl) {
+                                dataFunctions.supabaseUrl = environmentSetting.SupabaseUrl;
+                            }
+                            if (environmentSetting.SupabaseAnonKey) {
+                                dataFunctions.supabaseAnonKey = environmentSetting.SupabaseAnonKey;
+                            }
+                        }
                     }
                 })
                 .catch(error => {

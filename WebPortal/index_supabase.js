@@ -1218,6 +1218,16 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
     'create_document_category_simple',
     'delete_document_category_simple'
   ]);
+  // Kernel job card / stock return: skip Lambda RBAC when role_permissions rows are missing (matches document module).
+  const kernelJobCardFunctions = new Set([
+    'approve_kernel_job_card',
+    'upsert_kernel_job_card',
+    'return_kernel_from_stock_to_production',
+    'get_kernel_jobcard_approval_map',
+    'complete_kernel_batch',
+    'adjust_kernel_stock_on_hand',
+    'update_kernel_stock_batch_info'
+  ]);
   // Kernel dispatch: unlock dispatched basket — skip Lambda RBAC (matches document-module pattern).
   // Require a real signed-in user (not anonymous mock) so exempted/unauthenticated proxy paths
   // cannot call this RPC.
@@ -1229,7 +1239,8 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
 
   const skipRbacForRelaxedRpc =
     skipRbacRevertKernelDispatch ||
-    (documentManagementFunctions.has(functionName) && !user.exempted);
+    (documentManagementFunctions.has(functionName) && !user.exempted) ||
+    (kernelJobCardFunctions.has(functionName) && !user.exempted);
 
   if (!skipRbacForRelaxedRpc) {
     // RBAC Permission Check (even for exempted users)

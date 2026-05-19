@@ -5,22 +5,27 @@
     "environmentSettings": {
         "default": {
             "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3eG11ZW1yZm9wYWp3dnFkaWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2OTk5MDAsImV4cCI6MjA4MTI3NTkwMH0.A8chSZLdqD7Zsum_TIiipCkqrkI-2MW9gOr7GTy7Mfc",
             "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "dev": {
             "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3eG11ZW1yZm9wYWp3dnFkaWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2OTk5MDAsImV4cCI6MjA4MTI3NTkwMH0.A8chSZLdqD7Zsum_TIiipCkqrkI-2MW9gOr7GTy7Mfc",
             "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "uat": {
             "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3eG11ZW1yZm9wYWp3dnFkaWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2OTk5MDAsImV4cCI6MjA4MTI3NTkwMH0.A8chSZLdqD7Zsum_TIiipCkqrkI-2MW9gOr7GTy7Mfc",
             "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "demo": {
             "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3eG11ZW1yZm9wYWp3dnFkaWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2OTk5MDAsImV4cCI6MjA4MTI3NTkwMH0.A8chSZLdqD7Zsum_TIiipCkqrkI-2MW9gOr7GTy7Mfc",
             "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "prod": {
             "SupabaseUrl": "https://iwxmuemrfopajwvqdiae.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3eG11ZW1yZm9wYWp3dnFkaWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2OTk5MDAsImV4cCI6MjA4MTI3NTkwMH0.A8chSZLdqD7Zsum_TIiipCkqrkI-2MW9gOr7GTy7Mfc",
             "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
         }
     },
@@ -252,7 +257,7 @@
             "description": "Kernel Job Card Modal",
             "path": "modals/modal-kernel-job-card",
             "html": "html/modal_kernel_job_card.html",
-            "js": ["js/modal_kernel_job_card.js"],
+            "js": ["js/kernel_job_card_stock.js", "js/modal_kernel_job_card.js"],
             "css": ["css/modal_kernel_job_card.css"]
         },
         "production-stages-modal": {

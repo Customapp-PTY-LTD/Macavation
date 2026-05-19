@@ -49,6 +49,13 @@ var _kernelProductionGrid = function () {
         return div.innerHTML;
     };
 
+    const isJobcardApproved = (batch) => {
+        if (typeof _dataFunctions !== 'undefined' && _dataFunctions.isKernelJobcardApproved) {
+            return _dataFunctions.isKernelJobcardApproved(batch);
+        }
+        return !!(batch && (batch.has_jobcard_approved === true || batch.jobcard_approved === true));
+    };
+
     const hasMeaningfulStageData = (data) => {
         if (!data || typeof data !== 'object') return false;
         for (const key in data) {
@@ -179,10 +186,6 @@ var _kernelProductionGrid = function () {
         currentView: 'kanban',
         /** When true, only show batches that are in Release ready and have an approved job card. */
         approvedJobcardsOnly: false,
-        /** Set when user drags Awaiting production → Release ready; cleared when job card modal closes. */
-        _jobCardDragPending: null,
-        /** True after successful Jobcard approved save in that drag session. */
-        _jobCardDragApprovedSave: false,
         /** When user clicks an empty silo, this is the silo number (1–12) for "Mark as full". */
         selectedEmptySiloNumber: null,
         productionCalendarMonth: null,
@@ -294,7 +297,7 @@ var _kernelProductionGrid = function () {
                 var batch = batchId && typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch
                     ? _kernelProductionGrid.getBatch(batchId) : null;
                 var releaseReadyColumn = !!(batch && batch.production_finished_at && batch.has_qa);
-                var jobOk = batch && (batch.has_jobcard_approved === true || (batch.has_jobcard_approved !== false && !!batch.has_job_card));
+                var jobOk = isJobcardApproved(batch);
                 var text = (releaseReadyColumn && !jobOk)
                     ? 'This batch is release-ready, but the Job Card must be approved before you can release to stock.'
                     : 'Complete Production, then complete End sample for this batch. Release to stock will become available when the batch is release-ready or completed.';
@@ -454,8 +457,8 @@ var _kernelProductionGrid = function () {
                     var productionIcon = batch.production_finished_at ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     var qaIcon = batch.has_qa ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     var displayStatus = getBatchDisplayStatus(batch);
-                    var isJobCardApproved = batch.has_jobcard_approved === true || (batch.has_jobcard_approved !== false && !!batch.has_job_card);
-                    var jcIcon = (displayStatus.filterValue === 'release_ready' && isJobCardApproved) ? '<i class="fas fa-check text-success me-1"></i>' : '';
+                    var isJobCardApproved = isJobcardApproved(batch);
+                    var jcIcon = isJobCardApproved ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     var isReleaseReadyState = batch.status === 'qa' || batch.status === 'complete' || (batch.production_finished_at && batch.has_qa);
                     var canReleaseToStock = isReleaseReadyState && isJobCardApproved;
                     var releaseToStockBtn = '';
@@ -492,11 +495,14 @@ var _kernelProductionGrid = function () {
                 if (toIdx <= fromIdx) return; // block backward moves
 
                 if (fromKey === 'awaiting_production' && toKey === 'release_ready') {
-                    scope._jobCardDragPending = { batchId: batchId };
-                    scope._jobCardDragApprovedSave = false;
-                    if (typeof _modal_kernel_job_card !== 'undefined' && _modal_kernel_job_card.showJobCardModalForBatch) {
-                        _modal_kernel_job_card.showJobCardModalForBatch(batchId, { dragReleaseReady: true });
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Complete production first',
+                            text: 'Move the batch through Production and End sample to reach Release ready, then approve the job card and release to stock.'
+                        });
                     }
+                    scope.loadBatches(true);
                     return;
                 }
 
@@ -516,23 +522,7 @@ var _kernelProductionGrid = function () {
                         _modal_end_sample.show(batchId);
                     }
                 }
-            }, {
-                shouldRevert: function (itemId, fromKey, toKey) {
-                    if (fromKey === 'awaiting_production' && toKey === 'release_ready') return false;
-                    return true;
-                }
             });
-        },
-
-        /** Job card modal closed: snap kanban back if user did not complete Jobcard approved (drag-from-awaiting flow). */
-        onKernelJobCardModalHidden: () => {
-            const scope = _kernelProductionGrid;
-            if (!scope._jobCardDragPending) return;
-            if (!scope._jobCardDragApprovedSave && scope.currentView === 'kanban') {
-                scope.loadBatches(true);
-            }
-            scope._jobCardDragPending = null;
-            scope._jobCardDragApprovedSave = false;
         },
 
         filterBatches: () => {
@@ -548,7 +538,7 @@ var _kernelProductionGrid = function () {
                     (displayStatus.label && displayStatus.label.toLowerCase().indexOf(searchTerm) >= 0);
                 const matchesStatus = !statusFilter || displayStatus.filterValue === statusFilter;
                 const matchesApprovedJobcards = !scope.approvedJobcardsOnly ||
-                    (displayStatus.filterValue === 'release_ready' && batch.has_jobcard_approved === true);
+                    (displayStatus.filterValue === 'release_ready' && isJobcardApproved(batch));
                 return matchesSearch && matchesStatus && matchesApprovedJobcards;
             });
             if (scope.currentView === 'kanban') {
@@ -564,12 +554,12 @@ var _kernelProductionGrid = function () {
             forceRefresh = !!forceRefresh;
             if (typeof _dataFunctions === 'undefined' || !_dataFunctions || typeof _dataFunctions.getKernelBatches !== 'function') {
                 console.warn('[Kernel Production] _dataFunctions not available');
-                return;
+                return Promise.resolve();
             }
             const startTime = performance.now();
             // Only batches released from Grower Intake (status production/qa). Intake/receiving stay on Grower Intake only.
             // Stock (Kernel) uses status 'complete'; we exclude that so the board stays empty when all are in stock.
-            _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'production,qa' }).then(async (batches) => {
+            return _dataFunctions.getKernelBatches(null, forceRefresh, { status: 'production,qa' }).then(async (batches) => {
                 scope.batches = (batches || []).map(function (b) {
                     var displayKg = (b.actual_wet_nis_kg != null && b.actual_wet_nis_kg !== '') ? b.actual_wet_nis_kg : b.wet_nis_received_kg;
                     return Object.assign({}, b, { display_wet_nis_kg: displayKg, _hasMeaningfulProductionData: null, _productionCalendarEntries: [] });
@@ -829,7 +819,7 @@ var _kernelProductionGrid = function () {
             scope.filteredBatches.forEach((batch) => {
                 const displayStatus = getBatchDisplayStatus(batch);
                 const isReleaseReady = batch.status === 'qa' || batch.status === 'complete' || (batch.production_finished_at && batch.has_qa);
-                const isJobCardApproved = batch.has_jobcard_approved === true || (batch.has_jobcard_approved !== false && !!batch.has_job_card);
+                const isJobCardApproved = isJobcardApproved(batch);
                 const canReleaseToStock = isReleaseReady && isJobCardApproved;
                 const receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
                     ? (_common.formatDateDDMMYYYY(batch.received_date) || 'N/A')
@@ -837,7 +827,7 @@ var _kernelProductionGrid = function () {
                 const bbDisplay = (batch.best_before_date && (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(batch.best_before_date) : batch.best_before_date)) || '—';
                 const productionLabel = batch.production_finished_at ? '&#10003; Production' : 'Production';
                 const endSampleLabel = batch.has_qa ? '&#10003; End sample' : 'End sample';
-                const jobCardLabel = (displayStatus.filterValue === 'release_ready' && isJobCardApproved) ? '&#10003; Job Card' : 'Job Card';
+                const jobCardLabel = isJobCardApproved ? '&#10003; Job Card' : 'Job Card';
                 const jobCardItem = '<a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '">' + jobCardLabel + '</a>';
                 const summaryItem = '<a class="dropdown-item js-batch-summary" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-calculator me-1"></i>Batch summary</a>';
                 let menuItems = [
@@ -903,6 +893,29 @@ var _kernelProductionGrid = function () {
                 console.error('[Kernel Production] advanceBatchStep failed:', e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to advance step', 'error');
             });
+        },
+
+        patchBatchJobcardApproved: (kernelId, approved) => {
+            const scope = _kernelProductionGrid;
+            const id = String(kernelId);
+            const flag = approved === true;
+            const patchRow = function (b) {
+                if (!b || String(b.id) !== id) return b;
+                const next = Object.assign({}, b, { has_jobcard_approved: flag, jobcard_approved: flag });
+                if (flag) {
+                    if (!next.production_finished_at) {
+                        next.production_finished_at = new Date().toISOString();
+                    }
+                    if (!next.has_qa) {
+                        next.has_qa = true;
+                    }
+                }
+                return next;
+            };
+            scope.batches = (scope.batches || []).map(patchRow);
+            scope.filteredBatches = (scope.filteredBatches || scope.batches).map(patchRow);
+            if (scope.currentView === 'kanban') scope.renderKanban();
+            else scope.renderBatches();
         },
 
         getBatch: (batchId) => {

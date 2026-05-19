@@ -208,7 +208,7 @@
             "description": "Kernel Job Card Modal",
             "path": "modal-kernel-job-card",
             "html": "html/modal_kernel_job_card.html",
-            "js": ["js/modal_kernel_job_card.js"],
+            "js": ["js/kernel_job_card_stock.js", "js/modal_kernel_job_card.js"],
             "css": ["css/modal_kernel_job_card.css"]
         },
         "production-stages-modal": {

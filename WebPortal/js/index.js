@@ -90,10 +90,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (typeof menuFilter !== 'undefined') {
             setTimeout(function () {
                 menuFilter.init();
-                // Delayed refresh passes so sidebar updates after async feature fetch completes
-                setTimeout(function () { if (menuFilter.refresh) menuFilter.refresh(); }, 1200);
-                setTimeout(function () { if (menuFilter.refresh) menuFilter.refresh(); }, 2500);
-            }, 500);
+            }, 100);
         }
 
         const userManagementCollapse = document.getElementById('userManagementCollapse');
@@ -204,9 +201,8 @@ function updateUserDisplay() {
                                 Session.set('user', user);
                                 updateRoleDisplay(userData.role_name);
                                 if (user.role_id && typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
-                                    authService.fetchAndCacheFeatures(user.role_id);
+                                    await authService.fetchAndCacheFeatures(user.role_id);
                                 }
-                                if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
                                 return;
                             }
                             if (user.role_id) {
@@ -218,9 +214,8 @@ function updateUserDisplay() {
                                         Session.set('user', user);
                                         updateRoleDisplay(userRole.role_name);
                                         if (user.role_id && typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
-                                            authService.fetchAndCacheFeatures(user.role_id);
+                                            await authService.fetchAndCacheFeatures(user.role_id);
                                         }
-                                        if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
                                         return;
                                     }
                                 }
@@ -235,9 +230,8 @@ function updateUserDisplay() {
                                     Session.set('user', user);
                                     updateRoleDisplay(foundRole);
                                     if (user.role_id && typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
-                                        authService.fetchAndCacheFeatures(user.role_id);
+                                        await authService.fetchAndCacheFeatures(user.role_id);
                                     }
-                                    if (typeof menuFilter !== 'undefined' && menuFilter.refresh) menuFilter.refresh();
                                     return;
                                 }
                             }

@@ -1,275 +1,15 @@
--- Job card is the published source for kernel stock on hand.
--- Production prefills job_card_data; saving the job card syncs packing_data for get_kernel_batches / dispatch.
--- When job_card has style quantities, get_kernel_batches prefers job card over summing legacy packing rows.
+-- Stock on hand: sync packing_data from job card only after jobcard_approved (or on post-approval saves).
+-- Production prefills job_card_data only when empty; never syncs packing for stock from production RPC.
 
--- Parse sound_kernel_styles / butter_grade_styles whether stored as jsonb array or JSON string.
-CREATE OR REPLACE FUNCTION public.kernel_job_card_styles_array(p_val jsonb)
-RETURNS jsonb
-LANGUAGE plpgsql
-IMMUTABLE
-AS $$
-DECLARE
-    v_text text;
-BEGIN
-    IF p_val IS NULL OR p_val = 'null'::jsonb THEN
-        RETURN '[]'::jsonb;
-    END IF;
-    IF jsonb_typeof(p_val) = 'array' THEN
-        RETURN p_val;
-    END IF;
-    IF jsonb_typeof(p_val) = 'string' THEN
-        v_text := p_val #>> '{}';
-        IF v_text IS NULL OR btrim(v_text) = '' THEN
-            RETURN '[]'::jsonb;
-        END IF;
-        BEGIN
-            RETURN v_text::jsonb;
-        EXCEPTION
-            WHEN OTHERS THEN
-                RETURN '[]'::jsonb;
-        END;
-    END IF;
-    RETURN '[]'::jsonb;
-END;
-$$;
-
--- True when job card has at least one style line with cartons or kg.
-CREATE OR REPLACE FUNCTION public.kernel_job_card_has_stock_quantities(p_job_card_data jsonb)
+CREATE OR REPLACE FUNCTION public.kernel_job_card_data_is_empty(p_job_card_data jsonb)
 RETURNS boolean
-LANGUAGE plpgsql
+LANGUAGE sql
 IMMUTABLE
 AS $$
-DECLARE
-    v_row jsonb;
-    v_cartons numeric;
-    v_kg numeric;
-BEGIN
-    IF p_job_card_data IS NULL OR p_job_card_data = '{}'::jsonb OR p_job_card_data = 'null'::jsonb THEN
-        RETURN false;
-    END IF;
-
-    FOR v_row IN
-        SELECT value
-        FROM jsonb_array_elements(public.kernel_job_card_styles_array(p_job_card_data -> 'sound_kernel_styles'))
-    LOOP
-        v_cartons := COALESCE(NULLIF(v_row ->> 'cartons', '')::numeric, 0);
-        v_kg := COALESCE(NULLIF(v_row ->> 'weight_kg', '')::numeric, 0);
-        IF v_cartons > 0 OR v_kg > 0 THEN
-            RETURN true;
-        END IF;
-    END LOOP;
-
-    FOR v_row IN
-        SELECT value
-        FROM jsonb_array_elements(public.kernel_job_card_styles_array(p_job_card_data -> 'butter_grade_styles'))
-    LOOP
-        v_cartons := COALESCE(NULLIF(v_row ->> 'cartons', '')::numeric, 0);
-        v_kg := COALESCE(NULLIF(v_row ->> 'weight_kg', '')::numeric, 0);
-        IF v_cartons > 0 OR v_kg > 0 THEN
-            RETURN true;
-        END IF;
-    END LOOP;
-
-    RETURN false;
-END;
+    SELECT p_job_card_data IS NULL
+        OR p_job_card_data = '{}'::jsonb
+        OR p_job_card_data = 'null'::jsonb;
 $$;
-
--- Build one packing_data row from job card (replaces packing_data array on sync).
-CREATE OR REPLACE FUNCTION public.sync_kernel_job_card_to_packing_data(p_job_card_data jsonb)
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-AS $$
-DECLARE
-    v_kg_per_carton constant numeric := 11.34;
-    v_row jsonb;
-    v_style text;
-    v_cartons numeric;
-    v_kg numeric;
-    v_pack jsonb;
-    v_date text;
-    v_sk_cartons numeric := 0;
-    v_sk_kg numeric := 0;
-    v_bt_cartons numeric := 0;
-    v_bt_kg numeric := 0;
-BEGIN
-    v_date := NULLIF(btrim(p_job_card_data ->> 'packing_completion_date'), '');
-    IF v_date IS NULL THEN
-        v_date := NULLIF(btrim(p_job_card_data ->> 'packing_start_date'), '');
-    END IF;
-    IF v_date IS NULL OR length(v_date) < 10 THEN
-        v_date := current_date::text;
-    ELSE
-        v_date := left(v_date, 10);
-    END IF;
-
-    v_pack := jsonb_build_object(
-        'date', v_date,
-        'job_card_authoritative', true,
-        'synced_from_job_card_at', to_jsonb(NOW()::text),
-        'sk_sp_qty', 0, 'sk_sp_cartons', 0,
-        'sk_0_qty', 0, 'sk_0_cartons', 0,
-        'sk_1_qty', 0, 'sk_1_cartons', 0,
-        'sk_1s_qty', 0, 'sk_1s_cartons', 0,
-        'sk_4l_qty', 0, 'sk_4l_cartons', 0,
-        'sk_5_qty', 0, 'sk_5_cartons', 0,
-        'sk_6_qty', 0, 'sk_6_cartons', 0,
-        'bt_78_qty', 0, 'bt_78_cartons', 0,
-        'bt_high_qty', 0, 'bt_high_cartons', 0,
-        'bt_low_qty', 0, 'bt_low_cartons', 0,
-        'sk_total_cartons', 0, 'sk_total_qty', 0,
-        'bt_total_cartons', 0, 'bt_total_qty', 0,
-        'totals_cartons', 0, 'totals_qty', 0
-    );
-
-    FOR v_row IN
-        SELECT value
-        FROM jsonb_array_elements(public.kernel_job_card_styles_array(p_job_card_data -> 'sound_kernel_styles'))
-    LOOP
-        v_style := upper(btrim(COALESCE(v_row ->> 'style', '')));
-        v_cartons := COALESCE(NULLIF(v_row ->> 'cartons', '')::numeric, 0);
-        v_kg := COALESCE(NULLIF(v_row ->> 'weight_kg', '')::numeric, 0);
-        IF v_kg <= 0 AND v_cartons > 0 THEN
-            v_kg := round((v_cartons * v_kg_per_carton)::numeric, 2);
-        END IF;
-        IF v_cartons <= 0 AND v_kg > 0 THEN
-            v_cartons := round((v_kg / v_kg_per_carton)::numeric, 2);
-        END IF;
-        IF v_cartons <= 0 AND v_kg <= 0 THEN
-            CONTINUE;
-        END IF;
-
-        CASE v_style
-            WHEN 'SP' THEN
-                v_pack := jsonb_set(v_pack, '{sk_sp_cartons}', to_jsonb(v_cartons));
-                v_pack := jsonb_set(v_pack, '{sk_sp_qty}', to_jsonb(v_kg));
-            WHEN '0' THEN
-                v_pack := jsonb_set(v_pack, '{sk_0_cartons}', to_jsonb(v_cartons));
-                v_pack := jsonb_set(v_pack, '{sk_0_qty}', to_jsonb(v_kg));
-            WHEN '1' THEN
-                v_pack := jsonb_set(v_pack, '{sk_1_cartons}', to_jsonb(v_cartons));
-                v_pack := jsonb_set(v_pack, '{sk_1_qty}', to_jsonb(v_kg));
-            WHEN '1S' THEN
-                v_pack := jsonb_set(v_pack, '{sk_1s_cartons}', to_jsonb(v_cartons));
-                v_pack := jsonb_set(v_pack, '{sk_1s_qty}', to_jsonb(v_kg));
-            WHEN '4L' THEN
-                v_pack := jsonb_set(v_pack, '{sk_4l_cartons}', to_jsonb(v_cartons));
-                v_pack := jsonb_set(v_pack, '{sk_4l_qty}', to_jsonb(v_kg));
-            WHEN '5' THEN
-                v_pack := jsonb_set(v_pack, '{sk_5_cartons}', to_jsonb(v_cartons));
-                v_pack := jsonb_set(v_pack, '{sk_5_qty}', to_jsonb(v_kg));
-            WHEN '6' THEN
-                v_pack := jsonb_set(v_pack, '{sk_6_cartons}', to_jsonb(v_cartons));
-                v_pack := jsonb_set(v_pack, '{sk_6_qty}', to_jsonb(v_kg));
-            ELSE
-                CONTINUE;
-        END CASE;
-
-        v_sk_cartons := v_sk_cartons + v_cartons;
-        v_sk_kg := v_sk_kg + v_kg;
-    END LOOP;
-
-    FOR v_row IN
-        SELECT value
-        FROM jsonb_array_elements(public.kernel_job_card_styles_array(p_job_card_data -> 'butter_grade_styles'))
-    LOOP
-        v_style := upper(btrim(COALESCE(v_row ->> 'style', '')));
-        v_cartons := COALESCE(NULLIF(v_row ->> 'cartons', '')::numeric, 0);
-        v_kg := COALESCE(NULLIF(v_row ->> 'weight_kg', '')::numeric, 0);
-        IF v_kg <= 0 AND v_cartons > 0 THEN
-            v_kg := round((v_cartons * v_kg_per_carton)::numeric, 2);
-        END IF;
-        IF v_cartons <= 0 AND v_kg > 0 THEN
-            v_cartons := round((v_kg / v_kg_per_carton)::numeric, 2);
-        END IF;
-        IF v_cartons <= 0 AND v_kg <= 0 THEN
-            CONTINUE;
-        END IF;
-
-        IF v_style IN ('7/8', '78') THEN
-            v_pack := jsonb_set(v_pack, '{bt_78_cartons}', to_jsonb(v_cartons));
-            v_pack := jsonb_set(v_pack, '{bt_78_qty}', to_jsonb(v_kg));
-        ELSIF v_style LIKE '%HIGH%' OR v_style LIKE '%FLOAT%' THEN
-            v_pack := jsonb_set(v_pack, '{bt_high_cartons}', to_jsonb(v_cartons));
-            v_pack := jsonb_set(v_pack, '{bt_high_qty}', to_jsonb(v_kg));
-        ELSIF v_style LIKE '%LOW%' OR v_style LIKE '%SINK%' THEN
-            v_pack := jsonb_set(v_pack, '{bt_low_cartons}', to_jsonb(v_cartons));
-            v_pack := jsonb_set(v_pack, '{bt_low_qty}', to_jsonb(v_kg));
-        ELSE
-            CONTINUE;
-        END IF;
-
-        v_bt_cartons := v_bt_cartons + v_cartons;
-        v_bt_kg := v_bt_kg + v_kg;
-    END LOOP;
-
-    v_pack := jsonb_set(v_pack, '{sk_total_cartons}', to_jsonb(v_sk_cartons));
-    v_pack := jsonb_set(v_pack, '{sk_total_qty}', to_jsonb(round(v_sk_kg::numeric, 2)));
-    v_pack := jsonb_set(v_pack, '{bt_total_cartons}', to_jsonb(v_bt_cartons));
-    v_pack := jsonb_set(v_pack, '{bt_total_qty}', to_jsonb(round(v_bt_kg::numeric, 2)));
-    v_pack := jsonb_set(v_pack, '{totals_cartons}', to_jsonb(v_sk_cartons + v_bt_cartons));
-    v_pack := jsonb_set(v_pack, '{totals_qty}', to_jsonb(round((v_sk_kg + v_bt_kg)::numeric, 2)));
-
-    RETURN jsonb_build_array(v_pack);
-END;
-$$;
-
--- Yield kg jsonb from job card (same keys as get_kernel_batches).
-CREATE OR REPLACE FUNCTION public.kernel_yield_kg_from_job_card(p_job_card_data jsonb)
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-AS $$
-DECLARE
-    v_elem jsonb;
-BEGIN
-    v_elem := public.sync_kernel_job_card_to_packing_data(p_job_card_data) -> 0;
-    RETURN jsonb_build_object(
-        'SP',              COALESCE(NULLIF(v_elem ->> 'sk_sp_qty', '')::numeric, 0),
-        '0',               COALESCE(NULLIF(v_elem ->> 'sk_0_qty', '')::numeric, 0),
-        '1',               COALESCE(NULLIF(v_elem ->> 'sk_1_qty', '')::numeric, 0),
-        '1S',              COALESCE(NULLIF(v_elem ->> 'sk_1s_qty', '')::numeric, 0),
-        '4L',              COALESCE(NULLIF(v_elem ->> 'sk_4l_qty', '')::numeric, 0),
-        '5',               COALESCE(NULLIF(v_elem ->> 'sk_5_qty', '')::numeric, 0),
-        '6',               COALESCE(NULLIF(v_elem ->> 'sk_6_qty', '')::numeric, 0),
-        '7/8',             COALESCE(NULLIF(v_elem ->> 'bt_78_qty', '')::numeric, 0),
-        'Butter High Oil', COALESCE(NULLIF(v_elem ->> 'bt_high_qty', '')::numeric, 0),
-        'Butter Low Oil',  COALESCE(NULLIF(v_elem ->> 'bt_low_qty', '')::numeric, 0)
-    );
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.kernel_yield_cartons_from_job_card(p_job_card_data jsonb)
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-AS $$
-DECLARE
-    v_elem jsonb;
-BEGIN
-    v_elem := public.sync_kernel_job_card_to_packing_data(p_job_card_data) -> 0;
-    RETURN jsonb_build_object(
-        'SP',              COALESCE(NULLIF(v_elem ->> 'sk_sp_cartons', '')::numeric, 0),
-        '0',               COALESCE(NULLIF(v_elem ->> 'sk_0_cartons', '')::numeric, 0),
-        '1',               COALESCE(NULLIF(v_elem ->> 'sk_1_cartons', '')::numeric, 0),
-        '1S',              COALESCE(NULLIF(v_elem ->> 'sk_1s_cartons', '')::numeric, 0),
-        '4L',              COALESCE(NULLIF(v_elem ->> 'sk_4l_cartons', '')::numeric, 0),
-        '5',               COALESCE(NULLIF(v_elem ->> 'sk_5_cartons', '')::numeric, 0),
-        '6',               COALESCE(NULLIF(v_elem ->> 'sk_6_cartons', '')::numeric, 0),
-        '7/8',             COALESCE(NULLIF(v_elem ->> 'bt_78_cartons', '')::numeric, 0),
-        'Butter High Oil', COALESCE(NULLIF(v_elem ->> 'bt_high_cartons', '')::numeric, 0),
-        'Butter Low Oil',  COALESCE(NULLIF(v_elem ->> 'bt_low_cartons', '')::numeric, 0)
-    );
-END;
-$$;
-
-COMMENT ON FUNCTION public.sync_kernel_job_card_to_packing_data(jsonb) IS
-    'Builds a single packing_data row from job_card sound/butter style lines for stock on hand.';
-
--- upsert_kernel_job_card: persist job card and sync packing for stock.
-DROP FUNCTION IF EXISTS public.upsert_kernel_job_card(uuid, jsonb, boolean, boolean);
-DROP FUNCTION IF EXISTS public.upsert_kernel_job_card(uuid, jsonb, boolean);
-DROP FUNCTION IF EXISTS public.upsert_kernel_job_card(uuid, jsonb);
 
 CREATE OR REPLACE FUNCTION public.upsert_kernel_job_card(
     p_kernel_id                     uuid,
@@ -282,13 +22,27 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+    v_was_approved boolean;
+    v_sync_stock   boolean;
 BEGIN
+    SELECT COALESCE(jobcard_approved, false)
+    INTO v_was_approved
+    FROM public.kernel
+    WHERE id = p_kernel_id AND is_active = true;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Kernel batch not found or inactive');
+    END IF;
+
+    v_sync_stock := public.kernel_job_card_has_stock_quantities(p_job_card_data)
+        AND (p_jobcard_approved IS TRUE OR v_was_approved);
+
     UPDATE public.kernel
     SET
         job_card_data = p_job_card_data,
         packing_data = CASE
-            WHEN public.kernel_job_card_has_stock_quantities(p_job_card_data)
-                THEN public.sync_kernel_job_card_to_packing_data(p_job_card_data)
+            WHEN v_sync_stock THEN public.sync_kernel_job_card_to_packing_data(p_job_card_data)
             ELSE packing_data
         END,
         jobcard_approved = CASE
@@ -318,19 +72,17 @@ BEGIN
         updated_at = NOW()
     WHERE id = p_kernel_id AND is_active = true;
 
-    IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Kernel batch not found or inactive');
-    END IF;
-
     RETURN jsonb_build_object(
         'success', true,
         'finalized_without_production', COALESCE(p_finalize_without_production, false),
-        'stock_synced', public.kernel_job_card_has_stock_quantities(p_job_card_data)
+        'stock_synced', v_sync_stock
     );
 END;
 $$;
 
--- upsert_kernel_production: when job card payload included, sync packing from job card.
+COMMENT ON FUNCTION public.upsert_kernel_job_card(uuid, jsonb, boolean, boolean) IS
+    'Saves job_card_data. packing_data (stock SOH) syncs only when approving or when batch is already jobcard_approved.';
+
 CREATE OR REPLACE FUNCTION public.upsert_kernel_production(
     p_kernel_id         uuid,
     p_day_index         integer  DEFAULT NULL,
@@ -352,20 +104,23 @@ DECLARE
     v_sorting  jsonb;
     v_packing  jsonb;
     v_status   varchar;
+    v_jc       jsonb;
+    v_jc_approved boolean;
     v_date     text;
     v_found    boolean;
     v_i        integer;
     v_has_production_data boolean := false;
     v_keep_entry boolean;
-    v_sync_packing jsonb;
 BEGIN
     SELECT
         COALESCE(NULLIF(cracking_data, 'null'::jsonb), '[]'::jsonb),
         COALESCE(NULLIF(washing_data,  'null'::jsonb), '[]'::jsonb),
         COALESCE(NULLIF(sorting_data,  'null'::jsonb), '[]'::jsonb),
         COALESCE(NULLIF(packing_data,  'null'::jsonb), '[]'::jsonb),
-        status
-    INTO v_cracking, v_washing, v_sorting, v_packing, v_status
+        status,
+        job_card_data,
+        COALESCE(jobcard_approved, false)
+    INTO v_cracking, v_washing, v_sorting, v_packing, v_status, v_jc, v_jc_approved
     FROM public.kernel
     WHERE id = p_kernel_id AND is_active = true;
 
@@ -443,7 +198,7 @@ BEGIN
         END IF;
     END IF;
 
-    IF p_packing_data IS NOT NULL THEN
+    IF p_packing_data IS NOT NULL AND NOT v_jc_approved THEN
         v_date := p_packing_data ->> 'date';
         IF v_date IS NOT NULL AND v_date <> '' THEN
             v_keep_entry := (p_packing_data - 'date') <> '{}'::jsonb;
@@ -466,11 +221,6 @@ BEGIN
         END IF;
     END IF;
 
-    v_sync_packing := NULL;
-    IF p_job_card_data IS NOT NULL AND public.kernel_job_card_has_stock_quantities(p_job_card_data) THEN
-        v_sync_packing := public.sync_kernel_job_card_to_packing_data(p_job_card_data);
-    END IF;
-
     UPDATE public.kernel
     SET
         cracking_data = CASE WHEN p_cracking_data IS NOT NULL THEN v_cracking ELSE cracking_data END,
@@ -483,7 +233,7 @@ BEGIN
                                  AND (p_sorting_data ->> 'date') <> ''
                             THEN v_sorting ELSE sorting_data END,
         packing_data = CASE
-            WHEN v_sync_packing IS NOT NULL THEN v_sync_packing
+            WHEN v_jc_approved THEN packing_data
             WHEN p_packing_data IS NOT NULL
                  AND (p_packing_data ->> 'date') IS NOT NULL
                  AND (p_packing_data ->> 'date') <> ''
@@ -498,21 +248,20 @@ BEGIN
                          THEN 'qa'::varchar
                      ELSE status
                  END,
-        job_card_data = CASE WHEN p_job_card_data IS NOT NULL THEN p_job_card_data ELSE job_card_data END,
+        job_card_data = CASE
+            WHEN p_job_card_data IS NOT NULL
+                 AND public.kernel_job_card_data_is_empty(job_card_data)
+                THEN p_job_card_data
+            ELSE job_card_data
+        END,
         updated_at = NOW()
     WHERE id = p_kernel_id AND is_active = true;
 
-    RETURN jsonb_build_object(
-        'success', true,
-        'stock_synced', v_sync_packing IS NOT NULL
-    );
+    RETURN jsonb_build_object('success', true, 'stock_synced', false);
 END;
 $$;
 
--- Release to stock: require job card quantities and re-sync packing from stored job card.
-CREATE OR REPLACE FUNCTION public.complete_kernel_batch(
-    p_kernel_id uuid
-)
+CREATE OR REPLACE FUNCTION public.complete_kernel_batch(p_kernel_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -521,9 +270,10 @@ AS $$
 DECLARE
     v_status varchar;
     v_jc jsonb;
+    v_approved boolean;
 BEGIN
-    SELECT status, job_card_data
-    INTO v_status, v_jc
+    SELECT status, job_card_data, COALESCE(jobcard_approved, false)
+    INTO v_status, v_jc, v_approved
     FROM public.kernel
     WHERE id = p_kernel_id AND is_active = true;
 
@@ -542,10 +292,17 @@ BEGIN
         );
     END IF;
 
+    IF NOT v_approved THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Job card must be approved before releasing to stock. Open the job card and press Jobcard approved.'
+        );
+    END IF;
+
     IF NOT public.kernel_job_card_has_stock_quantities(v_jc) THEN
         RETURN jsonb_build_object(
             'success', false,
-            'error', 'Job card must include style quantities (cartons or kg) before releasing to stock. Save the job card after entering or correcting style lines.'
+            'error', 'Job card must include style quantities (cartons or kg) before releasing to stock.'
         );
     END IF;
 
@@ -559,7 +316,7 @@ BEGIN
 END;
 $$;
 
--- get_kernel_batches: prefer job card yield when job card has style quantities.
+-- Patch get_kernel_batches: job-card yield only when jobcard_approved.
 DROP FUNCTION IF EXISTS public.get_kernel_batches(varchar, varchar, integer, integer);
 
 CREATE OR REPLACE FUNCTION public.get_kernel_batches(
@@ -618,7 +375,7 @@ BEGIN
         EXISTS (SELECT 1 FROM kernel_dispatch_orders o CROSS JOIN LATERAL jsonb_array_elements(COALESCE(o.lines, '[]'::jsonb)) le WHERE NULLIF(le ->> 'kernel_id', '')::uuid = k.id) AS has_dispatch,
         GREATEST(jsonb_array_length(COALESCE(NULLIF(k.cracking_data, 'null'::jsonb), '[]'::jsonb)), jsonb_array_length(COALESCE(NULLIF(k.washing_data, 'null'::jsonb), '[]'::jsonb)), jsonb_array_length(COALESCE(NULLIF(k.sorting_data, 'null'::jsonb), '[]'::jsonb)), jsonb_array_length(COALESCE(NULLIF(k.packing_data, 'null'::jsonb), '[]'::jsonb)))::integer AS production_day_count,
 
-        CASE WHEN public.kernel_job_card_has_stock_quantities(k.job_card_data)
+        CASE WHEN COALESCE(k.jobcard_approved, false) AND public.kernel_job_card_has_stock_quantities(k.job_card_data)
             THEN public.kernel_yield_kg_from_job_card(k.job_card_data)
             ELSE (
                 SELECT jsonb_build_object('SP', COALESCE(SUM(NULLIF(e ->> 'sk_sp_qty', '')::numeric), 0), '0', COALESCE(SUM(NULLIF(e ->> 'sk_0_qty', '')::numeric), 0), '1', COALESCE(SUM(NULLIF(e ->> 'sk_1_qty', '')::numeric), 0), '1S', COALESCE(SUM(NULLIF(e ->> 'sk_1s_qty', '')::numeric), 0), '4L', COALESCE(SUM(NULLIF(e ->> 'sk_4l_qty', '')::numeric), 0), '5', COALESCE(SUM(NULLIF(e ->> 'sk_5_qty', '')::numeric), 0), '6', COALESCE(SUM(NULLIF(e ->> 'sk_6_qty', '')::numeric), 0), '7/8', COALESCE(SUM(NULLIF(e ->> 'bt_78_qty', '')::numeric), 0), 'Butter High Oil', COALESCE(SUM(NULLIF(e ->> 'bt_high_qty','')::numeric), 0), 'Butter Low Oil', COALESCE(SUM(NULLIF(e ->> 'bt_low_qty', '')::numeric), 0))
@@ -626,7 +383,7 @@ BEGIN
             )
         END AS yield_by_style,
 
-        CASE WHEN public.kernel_job_card_has_stock_quantities(k.job_card_data)
+        CASE WHEN COALESCE(k.jobcard_approved, false) AND public.kernel_job_card_has_stock_quantities(k.job_card_data)
             THEN (
                 SELECT jsonb_build_object(
                     'SP', GREATEST(0, COALESCE((public.kernel_yield_kg_from_job_card(k.job_card_data) ->> 'SP')::numeric, 0) - COALESCE(d.sp, 0)),
@@ -664,7 +421,7 @@ BEGIN
             )
         END AS remaining_by_style,
 
-        CASE WHEN public.kernel_job_card_has_stock_quantities(k.job_card_data)
+        CASE WHEN COALESCE(k.jobcard_approved, false) AND public.kernel_job_card_has_stock_quantities(k.job_card_data)
             THEN public.kernel_yield_cartons_from_job_card(k.job_card_data)
             ELSE (
                 SELECT jsonb_build_object('SP', COALESCE(SUM(NULLIF(e ->> 'sk_sp_cartons', '')::numeric), 0), '0', COALESCE(SUM(NULLIF(e ->> 'sk_0_cartons', '')::numeric), 0), '1', COALESCE(SUM(NULLIF(e ->> 'sk_1_cartons', '')::numeric), 0), '1S', COALESCE(SUM(NULLIF(e ->> 'sk_1s_cartons', '')::numeric), 0), '4L', COALESCE(SUM(NULLIF(e ->> 'sk_4l_cartons', '')::numeric), 0), '5', COALESCE(SUM(NULLIF(e ->> 'sk_5_cartons', '')::numeric), 0), '6', COALESCE(SUM(NULLIF(e ->> 'sk_6_cartons', '')::numeric), 0), '7/8', COALESCE(SUM(NULLIF(e ->> 'bt_78_cartons', '')::numeric), 0), 'Butter High Oil', COALESCE(SUM(NULLIF(e ->> 'bt_high_cartons','')::numeric), 0), 'Butter Low Oil', COALESCE(SUM(NULLIF(e ->> 'bt_low_cartons', '')::numeric), 0))
@@ -672,7 +429,7 @@ BEGIN
             )
         END AS yield_by_style_cartons,
 
-        CASE WHEN public.kernel_job_card_has_stock_quantities(k.job_card_data)
+        CASE WHEN COALESCE(k.jobcard_approved, false) AND public.kernel_job_card_has_stock_quantities(k.job_card_data)
             THEN (
                 SELECT jsonb_build_object(
                     'SP', GREATEST(0, COALESCE((public.kernel_yield_cartons_from_job_card(k.job_card_data) ->> 'SP')::numeric, 0) - COALESCE(dc.sp, 0)),
@@ -718,28 +475,6 @@ BEGIN
       AND (p_search IS NULL OR b.batch_id ILIKE '%' || p_search || '%' OR k.grower_name ILIKE '%' || p_search || '%')
     ORDER BY k.received_date DESC NULLS LAST, b.batch_id DESC
     LIMIT p_limit OFFSET p_offset;
-END;
-$$;
-
-DO $$
-DECLARE
-    r record;
-    v_fn text;
-    v_fns text[] := ARRAY[
-        'kernel_job_card_styles_array',
-        'kernel_job_card_has_stock_quantities',
-        'sync_kernel_job_card_to_packing_data',
-        'kernel_yield_kg_from_job_card',
-        'kernel_yield_cartons_from_job_card'
-    ];
-BEGIN
-    FOREACH v_fn IN ARRAY v_fns LOOP
-        FOR r IN SELECT id AS role_id FROM public.roles LOOP
-            INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
-            VALUES (r.role_id, 'function', v_fn, 'EXECUTE', true)
-            ON CONFLICT DO NOTHING;
-        END LOOP;
-    END LOOP;
 END;
 $$;
 

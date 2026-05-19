@@ -31,10 +31,7 @@ var _offlineDetector = function () {
                 this.showOfflineIndicator();
             }
 
-            // Periodic connectivity check (every 10 seconds)
-            setInterval(() => {
-                this.checkConnectivity();
-            }, 10000);
+            // Periodic connectivity check (disabled — HEAD fetch to index.html caused false offline/online flips and UI churn)
         },
 
         /**

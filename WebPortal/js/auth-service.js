@@ -8,11 +8,7 @@ class AuthService {
         this.proxyUrl = 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws';
         this.token = Session.get('token');
         this.userInfo = this.getUserInfo();
-
-        // Clear stale role-feature keys so sidebar never uses old Session data (Role Features is source of truth)
-        if (this.token && this.userInfo) {
-            Session.set('featureKeys', []);
-        }
+        this._featuresFetchPromise = null;
 
         // If we have user info but no role_name, fetch complete info
         if (this.userInfo && !this.userInfo.role_name && this.userInfo.role_id) {
@@ -216,14 +212,23 @@ class AuthService {
      * Called after login and when role_id is confirmed.
      */
     async fetchAndCacheFeatures(roleId) {
+        if (this._featuresFetchPromise) {
+            return this._featuresFetchPromise;
+        }
+        this._featuresFetchPromise = this._fetchAndCacheFeaturesImpl(roleId)
+            .finally(() => {
+                this._featuresFetchPromise = null;
+            });
+        return this._featuresFetchPromise;
+    }
+
+    async _fetchAndCacheFeaturesImpl(roleId) {
         try {
             const overrideKeys = this.getFeatureKeyOverridesForUser();
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getFeaturesForRole) {
                 Session.set('featureKeys', Array.isArray(overrideKeys) ? overrideKeys : []);
                 return;
             }
-            // Clear stale keys immediately so menu filter never uses old Session data
-            Session.set('featureKeys', []);
             // If role_id is missing, look it up from role_name via cached roles list
             if (!roleId) {
                 var currentUser = Session.get('user') || this.userInfo;
@@ -260,7 +265,6 @@ class AuthService {
             } catch (e) {}
             if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
                 menuFilter.refresh();
-                setTimeout(function () { if (menuFilter.refresh) menuFilter.refresh(); }, 600);
             }
         } catch (error) {
             console.warn('[AuthService] Could not load role features:', error.message);
