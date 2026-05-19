@@ -1,26 +1,18 @@
 <!-- Stock Management Grid Module - Kernel and Oil & Protein are separate (per supply chain flow). -->
 <div class="module-content">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2" id="stockManagementTitle">Stock Management</h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-primary" id="addStockBtn">
-                <i class="fas fa-plus me-1"></i>New Stock Item
-            </button>
-            <button type="button" class="btn btn-outline-primary d-none" id="addOilLotBtn" data-oil-only="true">
-                <i class="fas fa-plus-circle me-1"></i>Add Oil Lot
-            </button>
-            <button type="button" class="btn btn-outline-success d-none" id="importOilLotsBtn" data-oil-only="true">
-                <i class="fas fa-file-excel me-1"></i>Import Oil Stock (Excel)
-            </button>
-            <button type="button" class="btn btn-secondary" id="stockTakeBtn">
-                <i class="fas fa-clipboard-check me-1"></i>Stock Take
-            </button>
+    <div class="pt-3 pb-2 mb-3 border-bottom">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
+            <h1 class="h2 mb-0" id="stockManagementTitle">Stock Management</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="help/index.html#stock-management-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn btn-outline-secondary" id="exportStockBtn">
                 <i class="fas fa-download me-1"></i>Export
             </button>
+            </div>
         </div>
+        <p class="text-muted mb-0 mt-2 small" id="stockManagementSubtitle">Search and filter your stock; track kernel batches by style (totals across the top, on hand from the <strong>saved job card</strong> after production prefill—edit the job card if quantities are wrong), select a batch and send to dispatch; for oil &amp; protein use <strong>Add stock</strong> for many batches at once, <strong>Add lot</strong> for one row, or import from Excel—then export when you're ready.</p>
     </div>
-    
+
     <input type="hidden" id="filterStockStream" value="kernel">
     <!-- Search and Filters (hidden when Kernel Stock - only batch journey / by-style table shown) -->
     <div class="card mb-3" id="mainStockFiltersCard">
@@ -72,7 +64,7 @@
         </div>
     </div>
 
-    <div class="card mb-4" id="mainStockTableCard">
+    <div class="card mb-4 stock-management-table-card" id="mainStockTableCard">
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover" id="stockTable">
@@ -96,47 +88,145 @@
 
     <!-- Kernel batch journey (visible when stream = Kernel) -->
     <div class="card mb-4 border-primary" id="kernelBatchJourneyCard" style="display: none;">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0"><i class="fas fa-seedling me-2"></i>Kernel batch journey</h5>
             <div class="btn-toolbar">
-                <button type="button" class="btn btn-success me-1" id="sendToDispatchBtn">
-                    <i class="fas fa-truck me-1"></i>Send to Dispatch
+                <button type="button" class="btn btn-outline-primary btn-sm" id="importHistoricalKernelBtn" title="Load historical batches from Macadamia Kernel Statistics Excel">
+                    <i class="fas fa-file-import me-1"></i>Import historical
                 </button>
-                <button type="button" class="btn btn-outline-primary" id="selectBoxesBtn">
-                    <i class="fas fa-check-square me-1"></i>Select boxes
+                <button type="button" class="btn btn-success" id="sendToDispatchBtn">
+                    <i class="fas fa-truck me-1"></i>Send to Dispatch
                 </button>
             </div>
         </div>
         <div class="card-body">
+            <div class="d-flex justify-content-end mb-3">
+                <div class="view-toggle">
+                    <button type="button" class="view-toggle-btn active" data-view="bystyle" id="ksViewByStyle" title="By style">
+                        <i class="fas fa-layer-group me-1"></i>By style
+                    </button>
+                    <button type="button" class="view-toggle-btn" data-view="weekly" id="ksViewWeekly" title="Weekly stock in / out">
+                        <i class="fas fa-calendar-week me-1"></i>Weekly
+                    </button>
+                    <button type="button" class="view-toggle-btn" data-view="overview" id="ksViewOverview" title="Overview by style">
+                        <i class="fas fa-chart-pie me-1"></i>Overview
+                    </button>
+                </div>
+            </div>
+            <!-- By style view (default) -->
+            <div id="ksByStylePanel">
             <p class="text-muted small mb-3">Batches released from Grower Intake go to Kernel Production; release to stock from there. Raw (NIS = R NIL) is legacy; finished (KERNEL R YES) are ready for dispatch.</p>
             <hr class="my-3">
-            <h6 class="text-secondary">Kernel Stock by style</h6>
-            <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with yield quantity per style (from Production Job Card). Click cells to select boxes when in selection mode.</p>
-            <div class="table-responsive">
+            <h6 class="text-secondary d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span>Kernel Stock by style</span>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="toggleKernelAdjustModeBtn" title="Turn stock adjustment mode on or off">
+                        <i class="fas fa-balance-scale me-1"></i>Adjust Stock
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshKernelStockBtn" title="Reload kernel stock data">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+            </h6>
+            <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with <strong>remaining cartons</strong> per style (from packing data). If a row only has kg recorded, the grid shows a carton equivalent at 11.34&nbsp;kg per carton. Click Send to Dispatch to choose a buyer, select items from the shopping cart, and submit a dispatch order.</p>
+            <div class="alert alert-info py-2 px-3 small mb-2" id="kernelAdjustModeHint" style="display: none;">
+                Adjustment mode is on. Click the batch/style cell you want to change, then enter <code>+</code> or <code>-</code> and the number of cartons.
+            </div>
+            <div class="table-responsive kernel-stock-table-wrapper">
                 <table class="table table-sm table-bordered" id="kernelStockByStyleTable">
                     <thead>
                         <tr>
                             <th>Batch</th>
-                            <th class="text-center">SP</th><th class="text-center">0</th><th class="text-center">1</th><th class="text-center">1S</th><th class="text-center">4L</th><th class="text-center">5</th><th class="text-center">6</th>
-                            <th class="text-center">7/8</th><th class="text-center">Butter High Oil</th><th class="text-center">Butter Low Oil</th>
+                            <th class="text-center kernel-style-col" title="Sound Kernel SP — premium SP grade. Remaining cartons (or carton equivalent from kg).">SP</th>
+                            <th class="text-center kernel-style-col" title="Sound kernel — style 0. Remaining cartons (or carton equivalent from kg).">0</th>
+                            <th class="text-center kernel-style-col" title="Sound kernel — style 1. Remaining cartons (or carton equivalent from kg).">1</th>
+                            <th class="text-center kernel-style-col" title="Sound kernel — style 1S. Remaining cartons (or carton equivalent from kg).">1S</th>
+                            <th class="text-center kernel-style-col" title="Sound kernel — style 4L. Remaining cartons (or carton equivalent from kg).">4L</th>
+                            <th class="text-center kernel-style-col" title="Sound kernel — style 5. Remaining cartons (or carton equivalent from kg).">5</th>
+                            <th class="text-center kernel-style-col" title="Sound kernel — style 6. Remaining cartons (or carton equivalent from kg).">6</th>
+                            <th class="text-center kernel-style-col" title="Butter — style 7/8. Remaining cartons (or carton equivalent from kg).">7/8</th>
+                            <th class="text-center kernel-style-col" title="Butter High Oil grade. Remaining cartons (or carton equivalent from kg).">Butter High Oil</th>
+                            <th class="text-center kernel-style-col" title="Butter Low Oil grade. Remaining cartons (or carton equivalent from kg).">Butter Low Oil</th>
+                            <th class="text-center" title="Free Fatty Acids (from QA)">FFA</th><th class="text-center" title="Best Before Date (from Job Card or packing completion + 18 months)">Best Before Date</th>
+                            <th class="text-center">Batch action</th>
                         </tr>
                         <tr id="kernelStockByStyleTotalsRow" class="table-light fw-bold">
                             <td>Totals</td>
-                            <td class="text-end" data-style="SP">0</td><td class="text-end" data-style="0">0</td><td class="text-end" data-style="1">0</td><td class="text-end" data-style="1S">0</td><td class="text-end" data-style="4L">0</td><td class="text-end" data-style="5">0</td><td class="text-end" data-style="6">0</td>
-                            <td class="text-end" data-style="7/8">0</td><td class="text-end" data-style="Butter High Oil">0</td><td class="text-end" data-style="Butter Low Oil">0</td>
+                            <td class="text-end kernel-style-col" data-style="SP" title="Sound Kernel SP — premium SP grade. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-end kernel-style-col" data-style="0" title="Sound kernel — style 0. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-end kernel-style-col" data-style="1" title="Sound kernel — style 1. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-end kernel-style-col" data-style="1S" title="Sound kernel — style 1S. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-end kernel-style-col" data-style="4L" title="Sound kernel — style 4L. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-end kernel-style-col" data-style="5" title="Sound kernel — style 5. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-end kernel-style-col" data-style="6" title="Sound kernel — style 6. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-end kernel-style-col" data-style="7/8" title="Butter — style 7/8. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-end kernel-style-col" data-style="Butter High Oil" title="Butter High Oil grade. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-end kernel-style-col" data-style="Butter Low Oil" title="Butter Low Oil grade. Remaining cartons (or carton equivalent from kg).">0</td>
+                            <td class="text-end" title="Totals not applicable">—</td><td class="text-end" title="Totals not applicable">—</td>
+                            <td></td>
                         </tr>
                     </thead>
                     <tbody id="kernelStockByStyleBody"></tbody>
                 </table>
             </div>
-            <!-- Selected boxes summary (visible when selection mode and items selected) -->
-            <div id="dispatchSelectedSummary" class="mt-3" style="display: none;">
-                <hr>
-                <h6 class="text-secondary">Selected for dispatch</h6>
-                <div id="dispatchSelectedList" class="small mb-2"></div>
-                <button type="button" class="btn btn-success" id="sendDispatchBtn">
-                    <i class="fas fa-paper-plane me-1"></i>Send
+            <div class="d-flex justify-content-end mt-3" id="kernelAdjustModeAddBatchRow" style="display: none;">
+                <button type="button" class="btn btn-success" id="kernelAdjustModeAddBatchBtn">
+                    <i class="fas fa-plus me-1"></i>Add Batch
                 </button>
+            </div>
+            </div>
+            <!-- Weekly view: stock in by style or stock out by style (dropdown) -->
+            <div class="card mb-0 border-0" id="ksWeeklyPanel" style="display: none;">
+                <h6 class="text-secondary"><i class="fas fa-calendar-week me-2"></i>Weekly stock (kg)</h6>
+                <p class="text-muted small mb-3">View weekly stock in or weekly stock out by style. Use the dropdown to switch.</p>
+                <div class="mb-3">
+                    <label for="ksWeeklyViewMode" class="form-label small text-muted">View</label>
+                    <select id="ksWeeklyViewMode" class="form-select form-select-sm" style="max-width: 16rem;">
+                        <option value="in">Weekly in (by style)</option>
+                        <option value="out">Weekly out (by style)</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm" id="ksWeeklyTable">
+                        <thead>
+                            <tr id="ksWeeklyTableHead">
+                                <th>Week</th>
+                                <th class="text-end kernel-style-col" title="Sound Kernel SP — premium SP grade. Kg for this style in this week.">SP</th>
+                                <th class="text-end kernel-style-col" title="Sound kernel — style 0. Kg for this style in this week.">0</th>
+                                <th class="text-end kernel-style-col" title="Sound kernel — style 1. Kg for this style in this week.">1</th>
+                                <th class="text-end kernel-style-col" title="Sound kernel — style 1S. Kg for this style in this week.">1S</th>
+                                <th class="text-end kernel-style-col" title="Sound kernel — style 4L. Kg for this style in this week.">4L</th>
+                                <th class="text-end kernel-style-col" title="Sound kernel — style 5. Kg for this style in this week.">5</th>
+                                <th class="text-end kernel-style-col" title="Sound kernel — style 6. Kg for this style in this week.">6</th>
+                                <th class="text-end kernel-style-col" title="Butter — style 7/8. Kg for this style in this week.">7/8</th>
+                                <th class="text-end kernel-style-col" title="Butter High Oil grade. Kg for this style in this week.">B.High</th>
+                                <th class="text-end kernel-style-col" title="Butter Low Oil grade. Kg for this style in this week.">B.Low</th>
+                                <th class="text-end fw-bold" id="ksWeeklyTotalHeader">Total in (kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ksWeeklyTableBody">
+                            <tr><td colspan="12" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Overview view: total cartons by style -->
+            <div class="card mb-0 border-0" id="ksOverviewPanel" style="display: none;">
+                <h6 class="text-secondary"><i class="fas fa-chart-pie me-2"></i>Overview by style</h6>
+                <p class="text-muted small mb-3">Total remaining <strong>cartons</strong> (or carton equivalent from kg) by style across all batches in kernel stock.</p>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Style</th>
+                                <th class="text-end">Total (cartons)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ksOverviewTableBody">
+                            <tr><td colspan="2" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -144,93 +234,166 @@
     <!-- Send to Dispatch Modal (content loaded by app router) -->
     <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="sendToDispatchModal" role="dialog" route-name="send-to-dispatch-modal" tabindex="-1" aria-labelledby="sendToDispatchModalLabel" aria-hidden="true"></div>
 
-    <!-- Oil Stock Ledger (hidden when stream = Kernel) -->
-    <div class="card mb-3" id="oilStockLedgerCard">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Oil Stock Ledger (801 / 850 / Sold)</h5>
-            <small class="text-muted">801 = OIL KERNEL R YES (raw); 850 = OIL PROTEIN R YES (finished). Supplier/Customer, PO Ref, Batch, Product/Grade, FFA, Units, Kg, Mfg/BB</small>
+    <!-- Send to Dispatch (Oil) Modal (content loaded by app router) -->
+    <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="sendToDispatchOilModal" role="dialog" route-name="send-to-dispatch-oil-modal" tabindex="-1" aria-labelledby="sendToDispatchOilModalLabel" aria-hidden="true"></div>
+
+    <!-- Import historical kernel data modal -->
+    <div class="modal fade" id="importHistoricalKernelModal" tabindex="-1" aria-labelledby="importHistoricalKernelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importHistoricalKernelModalLabel"><i class="fas fa-file-import me-2"></i>Import historical kernel data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">Load kernel batches from <strong>Macadamia Kernel Statistics</strong> Excel (e.g. for go-live).</p>
+                    <ol class="small mb-3">
+                        <li>Export the kernel batch sheet from Excel to <strong>CSV</strong> (one row per batch; columns: Batch, Grower, Received Date, Finished Date, SP, 0, 1, 1S, 4L, 5, 6, 7/8, B.High, B.Low).</li>
+                        <li>Run <code>node scripts/import-historical-kernel-from-csv.js your-file.csv</code> to generate SQL.</li>
+                        <li>Run the generated SQL in <strong>Supabase MCP</strong> (<code>execute_sql</code>) or the Supabase SQL Editor.</li>
+                    </ol>
+                    <p class="small text-muted mb-0">Export Excel to CSV, run the repo script to generate SQL, then run the SQL in Supabase (MCP or SQL Editor).</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="importHistoricalKernelRefreshBtn"><i class="fas fa-sync-alt me-1"></i>Refresh kernel data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Oil & protein stock (hidden when stream = Kernel) — layout aligned with Kernel Stock -->
+    <div class="card mb-4 border-primary" id="oilStockLedgerCard" style="display: none;">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Oil &amp; protein stock</h5>
+            <div class="btn-toolbar flex-wrap gap-1">
+                <button type="button" class="btn btn-primary btn-sm" id="oilBulkAddStockBtn" title="Add many on-hand lots at once (batch # and kg per row)">
+                    <i class="fas fa-layer-group me-1"></i>Add stock
+                </button>
+                <button type="button" class="btn btn-success btn-sm" id="sendToDispatchOilBtn" title="Create an Oil &amp; Protein dispatch order">
+                    <i class="fas fa-truck me-1"></i>Send to Dispatch
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshOilStockBtn" title="Reload stock">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">More</button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" id="addOilLotBtn"><i class="fas fa-plus-circle me-2"></i>Add lot (single)</a></li>
+                        <li><a class="dropdown-item" href="#" id="importOilLotsBtn"><i class="fas fa-file-excel me-2"></i>Import from Excel</a></li>
+                    </ul>
+                </div>
+            </div>
         </div>
         <div class="card-body">
-            <div class="row g-3 mb-3">
-                <div class="col-md-3">
-                    <label for="oilLocationFilter" class="form-label">Location</label>
-                    <select id="oilLocationFilter" class="form-select">
-                        <option value="">All</option>
-                        <option value="801">801 (Raw Materials)</option>
-                        <option value="850">850 (Finished Goods)</option>
-                    </select>
+            <p class="text-muted small mb-3">Oil finished goods and raw materials on top; protein powder stock below. Weekly views use stock ledger dates and dispatched oil orders.</p>
+            <div class="d-flex justify-content-end mb-3 flex-wrap gap-2 align-items-center">
+                <div class="flex-grow-1" style="min-width: 12rem; max-width: 24rem;">
+                    <label for="oilSearchInput" class="form-label small text-muted mb-0">Search</label>
+                    <input type="text" class="form-control form-control-sm" id="oilSearchInput" placeholder="Batch, grade, supplier…">
                 </div>
-                <div class="col-md-3">
-                    <label for="oilCategoryFilter" class="form-label">Category</label>
-                    <select id="oilCategoryFilter" class="form-select">
-                        <option value="">All</option>
-                        <option value="raw_material">Raw Material</option>
-                        <option value="finished_good">Finished Good</option>
-                        <option value="sold">Sold</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="oilStatusFilter" class="form-label">Status</label>
-                    <select id="oilStatusFilter" class="form-select">
-                        <option value="">All</option>
-                        <option value="on_hand">On Hand</option>
-                        <option value="hold">Hold</option>
-                        <option value="dispatched">Dispatched</option>
-                        <option value="sold">Sold</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="oilSearchInput" class="form-label">Search</label>
-                    <input type="text" class="form-control" id="oilSearchInput" placeholder="Search supplier/customer, PO, batch, product, grade...">
+                <div class="view-toggle">
+                    <button type="button" class="view-toggle-btn active" data-oil-view="bystock" id="osViewByStock" title="Stock tables">
+                        <i class="fas fa-table me-1"></i>Stock
+                    </button>
+                    <button type="button" class="view-toggle-btn" data-oil-view="weekly" id="osViewWeekly" title="Weekly in / out">
+                        <i class="fas fa-calendar-week me-1"></i>Weekly
+                    </button>
+                    <button type="button" class="view-toggle-btn" data-oil-view="overview" id="osViewOverview" title="Totals">
+                        <i class="fas fa-chart-pie me-1"></i>Overview
+                    </button>
                 </div>
             </div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
-                        <table class="table table-sm table-bordered mb-0" id="oilSummaryTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Row Label</th>
-                                    <th class="text-end">Avg FFA</th>
-                                    <th class="text-end">Sum of Kilograms</th>
-                                </tr>
-                            </thead>
-                            <tbody id="oilSummaryTableBody"></tbody>
-                        </table>
-                    </div>
+            <!-- Stock view: oil table first, then protein -->
+            <div id="osByStockPanel">
+                <h6 class="text-secondary"><i class="fas fa-oil-can me-2"></i>Oil</h6>
+                <p class="text-muted small mb-2">Crude / EV / cosmetic and other non–protein-powder lines (location 801 / 850).</p>
+                <div class="table-responsive oil-stock-table-wrapper mb-4">
+                    <table class="table table-sm table-bordered table-hover" id="oilStockOilTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Location</th>
+                                <th>Category</th>
+                                <th>Batch #</th>
+                                <th>Grade</th>
+                                <th class="text-end">FFA</th>
+                                <th class="text-end">Kg</th>
+                                <th>BB Date</th>
+                                <th class="text-end">Days left</th>
+                                <th>Status</th>
+                                <th class="text-nowrap">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="oilStockOilTableBody"></tbody>
+                    </table>
                 </div>
-                <div class="col-md-6">
-                    <div class="alert alert-info mb-0">
-                        <div><strong>Tip:</strong> Use <strong>Import Oil Stock (Excel)</strong> to bring your spreadsheet rows in, then manage/adjust lots here.</div>
-                        <div class="small text-muted">Days Remaining is calculated from BB Date.</div>
-                    </div>
+                <h6 class="text-secondary"><i class="fas fa-flask me-2"></i>Protein powder</h6>
+                <p class="text-muted small mb-2">Finished protein powder lots (e.g. grade &quot;Protein powder&quot;).</p>
+                <div class="table-responsive oil-stock-table-wrapper">
+                    <table class="table table-sm table-bordered table-hover" id="oilStockProteinTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Location</th>
+                                <th>Category</th>
+                                <th>Batch #</th>
+                                <th>Grade</th>
+                                <th class="text-end">FFA</th>
+                                <th class="text-end">Kg</th>
+                                <th>BB Date</th>
+                                <th class="text-end">Days left</th>
+                                <th>Status</th>
+                                <th class="text-nowrap">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="oilStockProteinTableBody"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover table-sm" id="oilLotsTable">
-                    <thead>
-                        <tr>
-                            <th>Location</th>
-                            <th>Category</th>
-                            <th>Supplier/Customer</th>
-                            <th>PO Ref</th>
-                            <th>Batch #</th>
-                            <th>Product</th>
-                            <th>Grade</th>
-                            <th class="text-end">FFA</th>
-                            <th class="text-end">Units</th>
-                            <th class="text-end">Kg</th>
-                            <th>Mfg Date</th>
-                            <th>BB Date</th>
-                            <th class="text-end">Days Remaining</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="oilLotsTableBody"></tbody>
-                </table>
+            <div id="osWeeklyPanel" style="display: none;">
+                <h6 class="text-secondary"><i class="fas fa-calendar-week me-2"></i>Weekly stock (kg)</h6>
+                <p class="text-muted small mb-3">Stock <strong>in</strong> from ledger <code>created_at</code>; stock <strong>out</strong> from oil dispatch orders with a dispatch date. Split into oil vs protein powder.</p>
+                <div class="mb-3">
+                    <label for="osWeeklyViewMode" class="form-label small text-muted">View</label>
+                    <select id="osWeeklyViewMode" class="form-select form-select-sm" style="max-width: 16rem;">
+                        <option value="in">Weekly in</option>
+                        <option value="out">Weekly out</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm" id="osWeeklyTable">
+                        <thead>
+                            <tr>
+                                <th>Week</th>
+                                <th class="text-end">Oil (kg)</th>
+                                <th class="text-end">Protein (kg)</th>
+                                <th class="text-end fw-bold" id="osWeeklyTotalHeader">Total (kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="osWeeklyTableBody">
+                            <tr><td colspan="4" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="osOverviewPanel" style="display: none;">
+                <h6 class="text-secondary"><i class="fas fa-chart-pie me-2"></i>Overview (on-hand kg)</h6>
+                <p class="text-muted small mb-3">Totals for lots with status <strong>on hand</strong> only.</p>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Stream</th>
+                                <th class="text-end">Total (kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="osOverviewTableBody">
+                            <tr><td colspan="2" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -241,6 +404,9 @@
 
 <!-- Import Oil Lots Modal (content loaded by app router) -->
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="importOilLotsModal" role="dialog" route-name="import-oil-lots-modal" tabindex="-1" aria-labelledby="importOilLotsModalLabel" aria-hidden="true"></div>
+
+<!-- Bulk add oil & protein stock (content loaded by app router) -->
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="oilBulkAddStockModal" role="dialog" route-name="oil-bulk-add-stock-modal" tabindex="-1" aria-labelledby="oilBulkAddStockModalLabel" aria-hidden="true"></div>
 
 <!-- Raw Material Issued Modal (content loaded by app router) -->
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="rawMaterialIssuedModal" role="dialog" route-name="raw-material-issued-modal" tabindex="-1" aria-labelledby="rawMaterialIssuedModalLabel" aria-hidden="true"></div>

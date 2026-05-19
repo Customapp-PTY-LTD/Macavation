@@ -12,6 +12,7 @@ var _dataFunctions = function () {
 
         /** RPCs that may fall back to PostgREST when Lambda RBAC blocks EXECUTE (DB grants still apply). */
         kernelRpcSupabaseFallback: new Set([
+            'get_kernel_batches',
             'return_kernel_from_stock_to_production',
             'upsert_kernel_job_card',
             'get_kernel_jobcard_approval_map',
@@ -23,6 +24,7 @@ var _dataFunctions = function () {
 
         /** Prefer PostgREST (anon) first — Lambda RBAC often denies these before DB grants apply. */
         kernelRpcDirectFirst: new Set([
+            'get_kernel_batches',
             'return_kernel_from_stock_to_production',
             'get_kernel_jobcard_approval_map',
             'import_historical_kernel_batch'
@@ -1692,6 +1694,9 @@ var _dataFunctions = function () {
                     return raw;
                 }
             }
+            if (Array.isArray(r) && r.length === 1 && r[0] && typeof r[0] === 'object') {
+                r = r[0];
+            }
             return r;
         },
 
@@ -1814,6 +1819,26 @@ var _dataFunctions = function () {
             return [];
         },
 
+        /** When the API proxy ignores p_status, still honour the status filter the UI requested. */
+        filterKernelBatchesByStatus: function (rows, pStatus) {
+            if (!pStatus || !rows || !rows.length) {
+                return rows || [];
+            }
+            const allowed = String(pStatus).split(',').map(function (s) {
+                return s.trim();
+            }).filter(Boolean);
+            if (!allowed.length) {
+                return rows;
+            }
+            return rows.filter(function (r) {
+                if (!r) {
+                    return false;
+                }
+                const st = r.status != null ? String(r.status).trim() : '';
+                return allowed.indexOf(st) >= 0;
+            });
+        },
+
         getKernelBatches: async function (token = null, forceRefresh = false, options = {}) {
             if (forceRefresh) {
                 this.clearCachePattern('kernel_batches');
@@ -1836,7 +1861,8 @@ var _dataFunctions = function () {
                 console.warn('[getKernelBatches] API returned error:', raw.error || raw.message || raw.Error, raw);
                 throw new Error(raw.message || raw.Message || raw.error || raw.Error || 'Failed to load kernel batches');
             }
-            return await this.enrichKernelBatchesWithApprovalMap(rows, token);
+            const enriched = await this.enrichKernelBatchesWithApprovalMap(rows, token);
+            return this.filterKernelBatchesByStatus(enriched, params.p_status);
         },
 
         /**
@@ -3401,13 +3427,20 @@ var _dataFunctions = function () {
                 token,
                 { useCache: false }
             );
-            const inner = scope.unwrapKernelRpcJson(raw, 'return_kernel_from_stock_to_production') || raw;
+            let inner = scope.unwrapKernelRpcJson(raw, 'return_kernel_from_stock_to_production') || raw;
+            if (Array.isArray(inner) && inner.length) {
+                inner = inner[0];
+            }
             if (!inner || inner.success === false) {
                 const label = batchNumber || kid || '?';
                 throw new Error(
-                    'Batch "' + label + '" is not in the database. Use Adjust Stock → Add Batch and wait for ' +
-                    '"Batch created", then Ctrl+F5 before sending back to production.'
+                    (inner && inner.error) ? String(inner.error) :
+                        'Batch "' + label + '" is not in the database. Use Adjust Stock → Add Batch and wait for ' +
+                        '"Batch created", then Ctrl+F5 before sending back to production.'
                 );
+            }
+            if (inner.Success !== undefined && inner.success === undefined) {
+                inner.success = inner.Success;
             }
             scope.clearCachePattern('kernel_batches');
             const resolvedId = inner.kernel_id || inner.kernelId || kid;

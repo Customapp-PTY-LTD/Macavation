@@ -534,7 +534,10 @@ var _stockManagementGrid = function () {
                 return;
             }
             df.getKernelBatches(null, forceRefresh, { status: 'complete' }).then(function (all) {
-                all = all || [];
+                all = (all || []).filter(function (b) {
+                    var st = b && b.status != null ? String(b.status).trim() : '';
+                    return st === 'complete' || st === 'in_finished_stock';
+                });
                 scope.kernelRawBatches = [];
                 scope.kernelFinishedBatches = all;
                 scope.renderKernelBatches();
@@ -1197,6 +1200,12 @@ var _stockManagementGrid = function () {
             call.then(function (result) {
                 if (result && result.success !== false) {
                     var already = result.already_in_production === true;
+                    scope.kernelFinishedBatches = (scope.kernelFinishedBatches || []).filter(function (b) {
+                        if (kernelId && kernelIdFromBatch(b) === kernelId) return false;
+                        if (batchNumber && batchNumberFromBatch(b) === batchNumber) return false;
+                        return true;
+                    });
+                    scope.renderKernelBatches();
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
                             icon: 'success',

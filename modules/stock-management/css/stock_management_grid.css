@@ -1,0 +1,120 @@
+/* Stock Management Grid Module Styles */
+.module-content { min-height: 400px; }
+#stockTable th { border-top: none; font-weight: 600; }
+
+/* Oil & protein stock tables */
+#oilStockOilTable th,
+#oilStockProteinTable th { white-space: nowrap; }
+#oilStockOilTable td,
+#oilStockProteinTable td { vertical-align: middle; }
+
+/* Kernel Stock by style: quantity cell dropdown - show upfront, not clipped by grid */
+#kernelBatchJourneyCard .card-body {
+    overflow: visible !important;
+}
+.kernel-stock-table-wrapper {
+    overflow: visible !important;
+}
+#kernelStockByStyleTable {
+    overflow: visible !important;
+}
+#kernelStockByStyleTable tbody,
+#kernelStockByStyleTable tr,
+#kernelStockByStyleTable td {
+    overflow: visible !important;
+}
+#kernelStockByStyleTable .kernel-qty-cell { overflow: visible !important; }
+/* Kernel style columns: native title tooltips name the grade; help cursor except adjust mode (pointer). */
+#kernelStockByStyleTable th.kernel-style-col,
+#kernelStockByStyleTable td.kernel-style-col,
+#ksWeeklyTable th.kernel-style-col,
+#ksWeeklyTable td.kernel-style-col {
+    cursor: help;
+}
+#kernelStockByStyleTable td[data-kernel-stock-adjust="1"].kernel-style-col {
+    cursor: pointer;
+}
+/* Adjust-stock mode: stop the browser from treating quantities as selectable text (steals clicks). */
+#kernelStockByStyleTable td[data-kernel-stock-adjust="1"],
+#kernelStockByStyleTable td[data-kernel-stock-adjust="1"] .kernel-stock-adjust-value {
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+}
+#kernelStockByStyleTable .kernel-qty-cell .dropdown-menu {
+    z-index: 1080;
+    max-height: 280px;
+    overflow-y: auto;
+    position: absolute;
+}
+
+/* Oil Stock card: mirror Kernel card layout (border-primary, same structure) */
+#oilStockLedgerCard .card-body {
+    overflow: visible !important;
+}
+.oil-stock-table-wrapper {
+    overflow: visible !important;
+}
+#oilStockLedgerCard #oilStockOilTable,
+#oilStockLedgerCard #oilStockProteinTable,
+#oilStockLedgerCard #osWeeklyTable {
+    overflow: visible !important;
+}
+#oilStockLedgerCard #oilStockOilTable tbody tr td,
+#oilStockLedgerCard #oilStockProteinTable tbody tr td {
+    overflow: visible;
+}
+
+/* Prevent actions dropdown from being clipped (main grid cards – UI_DESIGN_INSTRUCTIONS pattern) */
+.stock-management-table-card .table-responsive {
+    overflow: visible;
+}
+.stock-management-table-card .card-body {
+    overflow: visible;
+}
+.stock-management-table-card #stockTable,
+.stock-management-table-card #oilStockOilTable,
+.stock-management-table-card #oilStockProteinTable {
+    overflow: visible !important;
+}
+.stock-management-table-card #stockTable tbody tr td,
+.stock-management-table-card #oilStockOilTable tbody tr td,
+.stock-management-table-card #oilStockProteinTable tbody tr td {
+    overflow: visible;
+}
+
+/* Stock management modals: allow dropdowns to show (no clip by modal border-radius) */
+#sendToDispatchModal .modal-content,
+#rawMaterialIssuedModal .modal-content,
+#stockTakeModal .modal-content {
+    overflow: visible;
+}
+#sendToDispatchModal .modal-body,
+#rawMaterialIssuedModal .modal-body,
+#stockTakeModal .modal-body {
+    overflow: visible !important;
+}
+#sendToDispatchModal .table-responsive,
+#rawMaterialIssuedModal .table-responsive,
+#stockTakeModal .table-responsive {
+    overflow: visible;
+}
+#sendToDispatchModal .card-body .table-responsive,
+#rawMaterialIssuedModal .card-body .table-responsive,
+#stockTakeModal .card-body .table-responsive {
+    overflow: visible;
+}
+#sendToDispatchModal #dispatchShoppingTable,
+#sendToDispatchModal #dispatchShoppingTable tbody tr td,
+#rawMaterialIssuedModal #issuedItemsTable,
+#rawMaterialIssuedModal #issuedItemsTable tbody tr td,
+#stockTakeModal #stockTakeTable,
+#stockTakeModal #stockTakeTable tbody tr td {
+    overflow: visible !important;
+}
+
+/* Selected for dispatch summary (Kernel) */
+.dispatch-selected-summary .card { border-width: 1px; }
+.dispatch-selected-summary .card-header { font-weight: 600; }
+.dispatch-selected-summary #dispatchSelectedList .table th { white-space: nowrap; }
+.dispatch-selected-summary #dispatchSelectedList .table td { vertical-align: middle; }
