@@ -110,6 +110,20 @@ var _stockManagementGrid = function () {
         return n != null ? String(n).trim() : '';
     }
 
+    function kernelBatchStatusIsFinishedStock(b) {
+        if (!b) return false;
+        var st = b.status != null ? String(b.status).trim() : '';
+        return st === 'complete' || st === 'in_finished_stock';
+    }
+
+    /** True when any kernel dispatch order line references this kernel id (from get_kernel_batches). */
+    function kernelBatchHasDispatch(b) {
+        if (!b) return false;
+        if (b.has_dispatch === true || b.HasDispatch === true) return true;
+        if (b.has_dispatch === false || b.HasDispatch === false) return false;
+        return false;
+    }
+
     var KERNEL_STYLE_OPTIONS = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
     /** Long hover text so users can see which style a column is without scrolling to the header. */
     var KERNEL_STYLE_DESCRIPTION = {
@@ -170,6 +184,10 @@ var _stockManagementGrid = function () {
             return parseNum(cells[k]) > 0;
         });
         if (hasRemaining) return true;
+        // Finished batches with no dispatch lines still belong in stock on hand until first dispatch.
+        if (batch && kernelBatchStatusIsFinishedStock(batch) && !kernelBatchHasDispatch(batch)) {
+            return true;
+        }
         if (!adjustMode || !batch) return false;
         var yieldObj = kernelStyleMapFromBatch(batch, 'yield_by_style');
         return KERNEL_STYLE_OPTIONS.some(function (k) {
@@ -531,9 +549,9 @@ var _stockManagementGrid = function () {
                 scope.kernelFinishedBatches = [];
                 scope.kernelDispatchOrders = [];
                 scope.renderKernelBatches();
-                return;
+                return Promise.resolve();
             }
-            df.getKernelBatches(null, forceRefresh, { status: 'complete' }).then(function (all) {
+            return df.getKernelBatches(null, forceRefresh, { status: 'complete' }).then(function (all) {
                 all = (all || []).filter(function (b) {
                     var st = b && b.status != null ? String(b.status).trim() : '';
                     return st === 'complete' || st === 'in_finished_stock';
@@ -602,6 +620,15 @@ var _stockManagementGrid = function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Create batch is not available right now.', 'error');
                 return;
             }
+            if (!dataFunctions.getKernelBatches) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Kernel batch list is not available.', 'error');
+                return;
+            }
+            try {
+                await scope.loadKernelBatches(true);
+            } catch (e1) {
+                console.warn('[Stock Management] loadKernelBatches before Add Batch:', e1);
+            }
             var contacts = [];
             try {
                 contacts = await ((dataFunctions.getContacts && dataFunctions.getContacts()) || Promise.resolve([]));
@@ -626,6 +653,60 @@ var _stockManagementGrid = function () {
                 { key: 'bt_high_qty', label: 'Butter High Oil' },
                 { key: 'bt_low_qty', label: 'Butter Low Oil' }
             ];
+            var restorePickKernelId = null;
+            var addBatchMatchDebounce = null;
+            function renderAddBatchCompletedMatches() {
+                var listEl = document.getElementById('swalStockBatchMatchList');
+                var batchNumberEl = document.getElementById('swalStockBatchNumber');
+                if (!listEl || !batchNumberEl) return;
+                var q = (batchNumberEl.value || '').trim().toLowerCase();
+                if (!q) {
+                    listEl.innerHTML = '';
+                    listEl.style.display = 'none';
+                    return;
+                }
+                var matches = (scope.kernelFinishedBatches || []).filter(function (b) {
+                    if (!kernelBatchStatusIsFinishedStock(b)) return false;
+                    var bn = batchNumberFromBatch(b).toLowerCase();
+                    return bn && bn.indexOf(q) !== -1;
+                });
+                matches.sort(function (a, b) {
+                    var an = batchNumberFromBatch(a);
+                    var bn = batchNumberFromBatch(b);
+                    var ae = an.toLowerCase() === q ? 0 : 1;
+                    var be = bn.toLowerCase() === q ? 0 : 1;
+                    if (ae !== be) return ae - be;
+                    return String(an).localeCompare(String(bn), undefined, { numeric: true, sensitivity: 'base' });
+                });
+                if (matches.length === 0) {
+                    listEl.innerHTML = '<div class="stock-addbatch-match-empty p-2 small text-muted">No completed batches match. Continue below to create a new historical batch with this number.</div>';
+                    listEl.style.display = '';
+                    return;
+                }
+                var maxRows = 40;
+                var slice = matches.slice(0, maxRows);
+                var more = matches.length > maxRows ? '<div class="p-2 small text-muted border-top">Showing first ' + maxRows + ' of ' + matches.length + ' matches — type more characters to narrow.</div>' : '';
+                listEl.innerHTML = slice.map(function (b) {
+                    var id = kernelIdFromBatch(b);
+                    var bn = batchNumberFromBatch(b);
+                    var g = ((b.grower_name != null ? b.grower_name : b.GrowerName) || '').toString().trim();
+                    var disp = kernelBatchHasDispatch(b);
+                    var badge = disp
+                        ? '<span class="badge bg-secondary ms-1">Dispatch</span>'
+                        : '<span class="badge bg-success ms-1">No dispatch</span>';
+                    var vis = kernelBatchVisibleInByStyleGrid(b, false)
+                        ? '<span class="text-muted small ms-1">On By style</span>'
+                        : '<span class="text-muted small ms-1">Use Adjust Stock</span>';
+                    return '<button type="button" class="stock-addbatch-match-row js-stock-addbatch-pick list-group-item list-group-item-action py-2 px-3 text-start w-100 border-0 border-bottom"' +
+                        ' data-kernel-id="' + escapeHtml(id) + '"' +
+                        (id ? '' : ' disabled') + '>' +
+                        '<span class="fw-semibold">' + escapeHtml(bn || '—') + '</span>' +
+                        (g ? '<span class="text-muted"> · ' + escapeHtml(g) + '</span>' : '') +
+                        badge + vis +
+                        '</button>';
+                }).join('') + more;
+                listEl.style.display = '';
+            }
             var refreshSuggestedBatchNumber = async function () {
                 var supplierEl = document.getElementById('swalStockBatchSupplier');
                 var dateEl = document.getElementById('swalStockBatchReceivedDate');
@@ -634,15 +715,17 @@ var _stockManagementGrid = function () {
                 var supplierId = supplierEl.value || null;
                 var year = dateEl.value && dateEl.value.length >= 4 ? parseInt(dateEl.value.slice(0, 4), 10) : new Date().getFullYear();
                 if (!supplierId) {
-                    batchNumberEl.value = '';
-                    batchNumberEl.placeholder = 'Select supplier to see suggestion';
+                    batchNumberEl.placeholder = 'Type to search completed batches, or select supplier for a suggested new number';
+                    return;
+                }
+                if ((batchNumberEl.value || '').trim() !== '') {
                     return;
                 }
                 try {
                     var nextId = await ((dataFunctions.getNextBatchNumber && dataFunctions.getNextBatchNumber(supplierId, year)) || Promise.resolve(null));
                     batchNumberEl.value = nextId || '';
                     batchNumberEl.placeholder = nextId ? '' : 'Will assign on save';
-                } catch (e) {
+                } catch (e2) {
                     batchNumberEl.value = '';
                     batchNumberEl.placeholder = 'Will assign on save';
                 }
@@ -651,13 +734,17 @@ var _stockManagementGrid = function () {
                 title: 'Add Batch',
                 width: 760,
                 showCancelButton: true,
-                confirmButtonText: 'Create batch',
+                confirmButtonText: 'Continue',
                 html:
                     '<div class="text-start">' +
-                    '<label class="form-label">Supplier <span class="text-danger">*</span></label>' +
-                    '<select id="swalStockBatchSupplier" class="form-select mb-3" required>' + supplierOptions.join('') + '</select>' +
                     '<label class="form-label">Batch number</label>' +
-                    '<input id="swalStockBatchNumber" class="form-control mb-3" placeholder="Select supplier to see suggestion" autocomplete="off">' +
+                    '<input id="swalStockBatchNumber" class="form-control mb-1" placeholder="Type to search completed batches, or enter a new number" autocomplete="off">' +
+                    '<p class="small text-muted mb-2">Matching <strong>completed</strong> batches appear below. Click one to bring it back into the By style stock view (turns on Adjust Stock and refreshes). Otherwise fill in supplier and styles and press Continue to create a <strong>new</strong> historical batch.</p>' +
+                    '<div id="swalStockBatchMatchList" class="stock-addbatch-match-list list-group mb-3" style="display:none;"></div>' +
+                    '<hr class="my-3">' +
+                    '<p class="small fw-semibold mb-2">Create a new batch (historical)</p>' +
+                    '<label class="form-label">Supplier <span class="text-danger">*</span> <span class="text-muted fw-normal">(new batch only)</span></label>' +
+                    '<select id="swalStockBatchSupplier" class="form-select mb-3" required>' + supplierOptions.join('') + '</select>' +
                     '<label class="form-label">Received date <span class="text-danger">*</span></label>' +
                     '<input id="swalStockBatchReceivedDate" type="date" class="form-control mb-3" value="' + escapeHtml(today) + '">' +
                     '<label class="form-label">Wet NIS received (kg)</label>' +
@@ -679,10 +766,35 @@ var _stockManagementGrid = function () {
                 didOpen: function () {
                     var supplierEl = document.getElementById('swalStockBatchSupplier');
                     var dateEl = document.getElementById('swalStockBatchReceivedDate');
+                    var batchNumberEl = document.getElementById('swalStockBatchNumber');
+                    var matchList = document.getElementById('swalStockBatchMatchList');
                     if (supplierEl) supplierEl.addEventListener('change', refreshSuggestedBatchNumber);
                     if (dateEl) dateEl.addEventListener('change', refreshSuggestedBatchNumber);
+                    if (batchNumberEl) {
+                        batchNumberEl.addEventListener('input', function () {
+                            if (addBatchMatchDebounce) clearTimeout(addBatchMatchDebounce);
+                            addBatchMatchDebounce = setTimeout(function () {
+                                renderAddBatchCompletedMatches();
+                            }, 200);
+                        });
+                    }
+                    if (matchList) {
+                        matchList.addEventListener('click', function (ev) {
+                            var btn = ev.target && ev.target.closest ? ev.target.closest('.js-stock-addbatch-pick') : null;
+                            if (!btn || btn.disabled) return;
+                            ev.preventDefault();
+                            var kid = btn.getAttribute('data-kernel-id');
+                            if (!kid) return;
+                            restorePickKernelId = String(kid).trim();
+                            if (typeof Swal !== 'undefined' && Swal.clickConfirm) Swal.clickConfirm();
+                        });
+                    }
                 },
                 preConfirm: function () {
+                    var rid = restorePickKernelId ? String(restorePickKernelId).trim() : '';
+                    if (rid) {
+                        return { mode: 'restore', kernel_id: rid };
+                    }
                     var supplierId = (document.getElementById('swalStockBatchSupplier') || {}).value || '';
                     var batchNumber = ((document.getElementById('swalStockBatchNumber') || {}).value || '').trim();
                     var receivedDate = (document.getElementById('swalStockBatchReceivedDate') || {}).value || '';
@@ -692,7 +804,7 @@ var _stockManagementGrid = function () {
                     var styleValues = {};
                     var totalStyles = 0;
                     if (!supplierId) {
-                        Swal.showValidationMessage('Select a supplier');
+                        Swal.showValidationMessage('Select a supplier for a new batch, or click a completed batch in the list above');
                         return false;
                     }
                     if (!receivedDate) {
@@ -707,10 +819,11 @@ var _stockManagementGrid = function () {
                         totalStyles += num;
                     });
                     if (totalStyles <= 0) {
-                        Swal.showValidationMessage('Enter at least one style quantity');
+                        Swal.showValidationMessage('Enter at least one style quantity for a new batch, or click a completed batch in the list above');
                         return false;
                     }
                     return {
+                        mode: 'create',
                         supplier_id: supplierId,
                         batch_number: batchNumber || null,
                         received_date: receivedDate,
@@ -724,12 +837,34 @@ var _stockManagementGrid = function () {
             });
             if (!result || !result.isConfirmed || !result.value) return;
             try {
+                if (result.value.mode === 'restore') {
+                    scope.setKernelAdjustMode(true);
+                    await scope.loadKernelBatches(true);
+                    var pickedBn = '';
+                    try {
+                        var pid = String(result.value.kernel_id || '');
+                        var pb = (scope.kernelFinishedBatches || []).find(function (x) { return kernelIdFromBatch(x) === pid; });
+                        pickedBn = pb ? batchNumberFromBatch(pb) : '';
+                    } catch (ePick) { /* ignore */ }
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Batch linked to stock',
+                        text: pickedBn
+                            ? ('Batch ' + pickedBn + ' is available in By style with Adjust Stock on. Edit quantities or send to dispatch as needed.')
+                            : ('Adjust Stock is on and the batch list was refreshed. Edit quantities or send to dispatch as needed.'),
+                        timer: 5200,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
                 styleFieldDefs.forEach(function (field) {
                     result.value[field.key] = result.value.style_values && result.value.style_values[field.key] != null
                         ? result.value.style_values[field.key]
                         : 0;
                 });
                 delete result.value.style_values;
+                delete result.value.mode;
                 var payload = result.value;
                 var df = (typeof _dataFunctions !== 'undefined' && _dataFunctions && _dataFunctions.importHistoricalKernelBatch)
                     ? _dataFunctions

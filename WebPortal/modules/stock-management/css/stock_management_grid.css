@@ -1,4 +1,23 @@
 /* Stock Management Grid Module Styles */
+/* Add Batch (Adjust Stock): completed-batch search list inside SweetAlert */
+.stock-addbatch-match-list {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.375rem;
+    background: var(--bs-body-bg, #fff);
+}
+.stock-addbatch-match-row {
+    cursor: pointer;
+}
+.stock-addbatch-match-row:hover:not(:disabled) {
+    background-color: var(--bs-light, #f8f9fa);
+}
+.stock-addbatch-match-empty {
+    border: 1px dashed var(--bs-border-color, #dee2e6);
+    border-radius: 0.375rem;
+}
+
 .module-content { min-height: 400px; }
 #stockTable th { border-top: none; font-weight: 600; }
 

@@ -1744,6 +1744,9 @@ var _dataFunctions = function () {
             o.has_5kg_sample = this.coerceKernelBool(
                 o.has_5kg_sample != null ? o.has_5kg_sample : o.Has5kgSample
             );
+            o.has_dispatch = this.coerceKernelBool(
+                o.has_dispatch != null ? o.has_dispatch : o.HasDispatch
+            );
             o.jobcard_approved = this.coerceKernelBool(
                 o.jobcard_approved != null ? o.jobcard_approved : o.JobcardApproved
             );
