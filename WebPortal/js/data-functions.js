@@ -383,12 +383,16 @@ var _dataFunctions = function () {
                 url = url || _appRouter.SupabaseUrl || '';
                 anonKey = anonKey || _appRouter.SupabaseAnonKey || '';
             }
-            if ((!url || !anonKey) && typeof _app !== 'undefined' && _app.config) {
-                url = url || _app.config.supabaseUrl || '';
-                anonKey = anonKey || _app.config.supabaseAnonKey || '';
+            if ((!url || !anonKey) && typeof window !== 'undefined' && window.MACAVATION_SUPABASE) {
+                url = url || window.MACAVATION_SUPABASE.url || '';
+                anonKey = anonKey || window.MACAVATION_SUPABASE.anonKey || '';
+            }
+            url = String(url || '').replace(/\/$/, '');
+            if (url && typeof window !== 'undefined' && window.MACAVATION_SUPABASE) {
+                window.MACAVATION_SUPABASE.assertMacavationSupabaseUrl(url);
             }
             return {
-                url: String(url || '').replace(/\/$/, ''),
+                url: url,
                 anonKey: anonKey
             };
         },

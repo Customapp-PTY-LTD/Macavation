@@ -1,46 +1,53 @@
-// FruitLive Admin Portal - Main Application
+// Macavation Admin Portal - Main Application
 // Updated to work with new router system
 
 // Global application object
 var _app = {
-    // Application configuration
+    // Application configuration (Macavation only — see macavation-supabase.js)
     config: {
-        supabaseUrl: 'https://ekgjuvnrzyacoltcypio.supabase.co',
-        supabaseAnonKey: 'your-anon-key-here', // Replace with actual key
+        supabaseUrl: (typeof window !== 'undefined' && window.MACAVATION_SUPABASE)
+            ? window.MACAVATION_SUPABASE.url
+            : 'https://sofanhfpxifgdtooefzq.supabase.co',
+        supabaseAnonKey: (typeof window !== 'undefined' && window.MACAVATION_SUPABASE)
+            ? window.MACAVATION_SUPABASE.anonKey
+            : '',
         apiBaseUrl: '/api',
         version: '1.0.0'
     },
 
     // Initialize application
-    init: function () {
-        console.log('Initializing FruitLive Admin Portal...');
-
-        // Initialize Supabase client
-        this.initSupabase();
-
-        // Initialize router
-        this.initRouter();
+    init: async function () {
+        console.log('Initializing Macavation Admin Portal...');
 
         // Initialize common utilities
         this.initCommon();
 
-        // Initialize the new router system
-        this.initializeAppRouter();
+        // Initialize the new router system (loads Macavation Supabase settings)
+        await this.initializeAppRouter();
+
+        // Supabase client after router config is available
+        this.initSupabase();
 
         console.log('Application initialized successfully');
     },
 
     // Initialize Supabase client
     initSupabase: function () {
-        if (typeof window.supabase !== 'undefined') {
-            window._supabase = window.supabase.createClient(
-                this.config.supabaseUrl,
-                this.config.supabaseAnonKey
-            );
-            console.log('Supabase client initialized');
-        } else {
+        if (typeof window.supabase === 'undefined') {
             console.warn('Supabase library not loaded');
+            return;
         }
+        var url = (typeof _appRouter !== 'undefined' && _appRouter.SupabaseUrl)
+            ? _appRouter.SupabaseUrl
+            : this.config.supabaseUrl;
+        var anonKey = (typeof _appRouter !== 'undefined' && _appRouter.SupabaseAnonKey)
+            ? _appRouter.SupabaseAnonKey
+            : this.config.supabaseAnonKey;
+        if (typeof window.MACAVATION_SUPABASE !== 'undefined') {
+            window.MACAVATION_SUPABASE.assertMacavationSupabaseUrl(url);
+        }
+        window._supabase = window.supabase.createClient(url, anonKey);
+        console.log('Supabase client initialized for Macavation');
     },
 
     // Initialize router
@@ -52,11 +59,10 @@ var _app = {
     // Initialize new app router system
     initializeAppRouter: function () {
         if (typeof _appRouter !== 'undefined') {
-            _appRouter.init();
-            console.log('New app router initialized');
-        } else {
-            console.warn('App router not available');
+            return _appRouter.init();
         }
+        console.warn('App router not available');
+        return Promise.resolve();
     },
 
     // Initialize common utilities
@@ -148,7 +154,9 @@ var _app = {
 
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function () {
-    _app.init();
+    _app.init().catch(function (err) {
+        console.error('Application initialization failed:', err);
+    });
 });
 
 // Make app globally available

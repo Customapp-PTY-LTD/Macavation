@@ -123,6 +123,9 @@ var _appRouter = function () {
                                 dataFunctions.proxyUrl = environmentSetting.LambdaProxyUrl;
                             }
                             if (environmentSetting.SupabaseUrl) {
+                                if (typeof window.MACAVATION_SUPABASE !== 'undefined') {
+                                    window.MACAVATION_SUPABASE.assertMacavationSupabaseUrl(environmentSetting.SupabaseUrl);
+                                }
                                 dataFunctions.supabaseUrl = environmentSetting.SupabaseUrl;
                             }
                             if (environmentSetting.SupabaseAnonKey) {
@@ -985,6 +988,9 @@ var _appRouter = function () {
                                 dataFunctions.proxyUrl = environmentSetting.LambdaProxyUrl;
                             }
                             if (environmentSetting.SupabaseUrl) {
+                                if (typeof window.MACAVATION_SUPABASE !== 'undefined') {
+                                    window.MACAVATION_SUPABASE.assertMacavationSupabaseUrl(environmentSetting.SupabaseUrl);
+                                }
                                 dataFunctions.supabaseUrl = environmentSetting.SupabaseUrl;
                             }
                             if (environmentSetting.SupabaseAnonKey) {

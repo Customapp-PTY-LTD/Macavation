@@ -1,4 +1,4 @@
-// FruitLive Admin Portal - Common Utilities
+// Macavation Admin Portal - Common Utilities
 // Following WebPortals module pattern
 
 var _common = {

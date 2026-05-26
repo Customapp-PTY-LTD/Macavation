@@ -154,6 +154,13 @@ var _kernelDispatchGrid = function () {
                 scope.render();
             } catch (e) {
                 console.error('[Kernel Dispatch] loadOrders failed:', e);
+                var errMsg = (e && e.message) ? String(e.message) : '';
+                if (errMsg.indexOf('schema cache') >= 0 || errMsg.indexOf('Could not find the function') >= 0) {
+                    console.warn(
+                        '[Kernel Dispatch] PostgREST has no RPC matching this call (often: DB still on the old 2-arg get_kernel_dispatch_orders, or schema cache stale). ' +
+                        'Apply migrations from 20260526120000_get_kernel_dispatch_orders_batch_supplier_date.sql onward on this environment, then run in SQL: NOTIFY pgrst, \'reload schema\';'
+                    );
+                }
                 scope.orders = [];
                 scope.render();
             }

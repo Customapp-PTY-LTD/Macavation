@@ -1,5 +1,5 @@
 /**
- * Authentication Service for FruitLive
+ * Authentication Service for Macavation
  * Integrates with Lambda Proxy for Google OAuth and RBAC
  */
 

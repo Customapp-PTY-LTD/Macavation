@@ -86,7 +86,7 @@ var _appRouter = {
         }
 
         // Update page title
-        document.title = route.title + ' - FruitLive';
+        document.title = route.title + ' - Macavation';
 
         // Load module
         if (typeof _app !== 'undefined') {

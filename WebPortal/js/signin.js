@@ -6,9 +6,13 @@
 var _signin = function () {
     'use strict';
 
-    const LAMBDA_PROXY_URL = 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws';
-    const SUPABASE_URL = 'https://sofanhfpxifgdtooefzq.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZmFuaGZweGlmZ2R0b29lZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDM2MDgsImV4cCI6MjA4MTg3OTYwOH0.oFOqODGzzrk5dqUBHDVrPS9VBDzR4xThfwlC33Qri3U';
+    const cfg = (typeof window !== 'undefined' && window.MACAVATION_SUPABASE) ? window.MACAVATION_SUPABASE : null;
+    const SUPABASE_URL = cfg ? cfg.url : 'https://sofanhfpxifgdtooefzq.supabase.co';
+    const SUPABASE_ANON_KEY = cfg ? cfg.anonKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZmFuaGZweGlmZ2R0b29lZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDM2MDgsImV4cCI6MjA4MTg3OTYwOH0.oFOqODGzzrk5dqUBHDVrPS9VBDzR4xThfwlC33Qri3U';
+    const LAMBDA_PROXY_URL = cfg ? cfg.lambdaProxyUrl.replace(/\/proxy\/function$/, '') : 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws';
+    if (cfg) {
+        cfg.assertMacavationSupabaseUrl(SUPABASE_URL);
+    }
     const DEFAULT_CLIENT_GUID = '9e1d961a-bfc2-469d-8526-8af75f536656';
 
     let sbClient = null;

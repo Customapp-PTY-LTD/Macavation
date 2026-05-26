@@ -1,19 +1,23 @@
-// FruitLive Admin Portal - Main Application
+// Macavation Admin Portal - Main Application
 // Updated to work with new router system
 
 // Global application object
 var _app = {
     // Application configuration
     config: {
-        supabaseUrl: 'https://ekgjuvnrzyacoltcypio.supabase.co',
-        supabaseAnonKey: 'your-anon-key-here', // Replace with actual key
+        supabaseUrl: (typeof window !== 'undefined' && window.MACAVATION_SUPABASE)
+            ? window.MACAVATION_SUPABASE.url
+            : 'https://sofanhfpxifgdtooefzq.supabase.co',
+        supabaseAnonKey: (typeof window !== 'undefined' && window.MACAVATION_SUPABASE)
+            ? window.MACAVATION_SUPABASE.anonKey
+            : '',
         apiBaseUrl: '/api',
         version: '1.0.0'
     },
 
     // Initialize application
     init: function () {
-        console.log('Initializing FruitLive Admin Portal...');
+        console.log('Initializing Macavation Admin Portal...');
 
         // Initialize Supabase client
         this.initSupabase();
