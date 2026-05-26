@@ -6,6 +6,14 @@ var _executiveDashboard = function () {
     'use strict';
 
     var DASHBOARD_VISIBILITY_KEY = 'executive_dashboard_visible_widgets';
+    var PRODUCTION_TRENDS_HIDE_WEEKENDS_KEY = 'production_trends_hide_weekends';
+
+    function isWeekendIsoDate(iso) {
+        var parts = String(iso).split('T')[0].split('-');
+        if (parts.length !== 3) return false;
+        var dow = new Date(+parts[0], +parts[1] - 1, +parts[2]).getDay();
+        return dow === 0 || dow === 6;
+    }
     var DASHBOARD_WIDGET_LABELS = {
         totalProduction: 'Total Production (kg)',
         execStatBatchesInProduction: 'Kernel batches in production',
@@ -31,6 +39,7 @@ var _executiveDashboard = function () {
         productionTrendsChart: null,
         productionTrendsPageOffset: 0,
         productionTrendsRangeKey: '1Y',
+        productionTrendsHideWeekends: true,
 
 
         init: async () => {
@@ -191,6 +200,16 @@ var _executiveDashboard = function () {
 
         initHandlers: () => {
             const scope = _executiveDashboard;
+            try {
+                var storedHideWeekends = localStorage.getItem(PRODUCTION_TRENDS_HIDE_WEEKENDS_KEY);
+                if (storedHideWeekends !== null) {
+                    scope.productionTrendsHideWeekends = storedHideWeekends === 'true';
+                }
+            } catch (e) {
+                scope.productionTrendsHideWeekends = true;
+            }
+            var hideWeekendsEl = document.getElementById('productionTrendsHideWeekends');
+            if (hideWeekendsEl) hideWeekendsEl.checked = scope.productionTrendsHideWeekends !== false;
             $('#generateReportBtn').off('click').on('click', () => {
                 Swal.fire('Info', 'Report generation coming soon', 'info');
             });
@@ -232,6 +251,15 @@ var _executiveDashboard = function () {
             });
             $('#productionTrendsNext').off('click').on('click', function () {
                 scope.productionTrendsPageOffset = Math.max(0, (scope.productionTrendsPageOffset || 0) - 1);
+                scope.updateProductionTrendsChart();
+            });
+            $('#productionTrendsHideWeekends').off('change').on('change', function () {
+                scope.productionTrendsHideWeekends = !!(this && this.checked);
+                try {
+                    localStorage.setItem(PRODUCTION_TRENDS_HIDE_WEEKENDS_KEY, scope.productionTrendsHideWeekends ? 'true' : 'false');
+                } catch (e) {
+                    console.warn('[Executive Dashboard] Could not save hide-weekends preference', e);
+                }
                 scope.updateProductionTrendsChart();
             });
         },
@@ -335,6 +363,12 @@ var _executiveDashboard = function () {
                     var startD = Math.max(0, endD - dayWindow);
                     dailySlice = daily.slice(startD, endD);
                 }
+                if (scope.productionTrendsHideWeekends) {
+                    dailySlice = dailySlice.filter(function (r) {
+                        var d = r && r.trend_date ? String(r.trend_date).split('T')[0] : '';
+                        return d && !isWeekendIsoDate(d);
+                    });
+                }
                 dailySlice.forEach(function (r) {
                     var d = r && r.trend_date ? String(r.trend_date).split('T')[0] : '';
                     if (!d) return;
@@ -356,6 +390,13 @@ var _executiveDashboard = function () {
             if (prevBtn) prevBtn.disabled = (scope.productionTrendsPageOffset >= totalWindows - 1);
             if (nextBtn) nextBtn.disabled = (scope.productionTrendsPageOffset <= 0);
             var currentView = viewMode;
+            var hideWeekendsToggle = document.getElementById('productionTrendsHideWeekends');
+            if (hideWeekendsToggle) {
+                hideWeekendsToggle.disabled = currentView === 'yearly';
+                if (hideWeekendsToggle.parentElement) {
+                    hideWeekendsToggle.parentElement.classList.toggle('opacity-50', currentView === 'yearly');
+                }
+            }
             document.querySelectorAll('.production-trends-range-btn').forEach(function (btn) {
                 var key = (btn.getAttribute('data-range') || '').toUpperCase();
                 var unsupportedInYearly = currentView === 'yearly' && (key === '1M' || key === '3M' || key === '6M');

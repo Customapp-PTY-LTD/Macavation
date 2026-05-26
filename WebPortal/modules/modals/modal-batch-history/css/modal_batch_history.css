@@ -1,5 +1,28 @@
 /* Modal: Batch History (logic in modal_batch_history.js) */
 
+.batch-history-modal__tabs {
+    margin-bottom: 0;
+    flex-wrap: wrap;
+}
+
+.batch-history-modal__tab-content {
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-top: 0;
+    border-radius: 0 0 var(--bs-border-radius, 0.375rem) var(--bs-border-radius, 0.375rem);
+    padding: 0.75rem 0.75rem 0.5rem;
+    max-height: min(60vh, 28rem);
+    overflow: hidden;
+}
+
+.batch-history-modal__tab-content > .tab-pane {
+    max-height: calc(min(60vh, 28rem) - 0.5rem);
+    overflow-y: auto;
+}
+
+.batch-history-timeline--in-tab {
+    margin-bottom: 0;
+}
+
 .batch-history-timeline__block-title {
     display: flex;
     align-items: center;

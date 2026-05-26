@@ -9,6 +9,23 @@ var _modal_stock_send_to_dispatch = (function () {
     var STYLE_KEYS = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'];
     var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
     var KG_PER_CARTON = 11.34;
+    /** Prefer kernel.id for dispatch line JSON (must match get_kernel_production_history / p_kernel_id). */
+    function kernelRpcIdFromBatch(b) {
+        if (!b) return '';
+        if (b.kernel_id != null && b.kernel_id !== '') return String(b.kernel_id);
+        if (b.KernelId != null && b.KernelId !== '') return String(b.KernelId);
+        if (b.id != null && b.id !== '') return String(b.id);
+        if (b.Id != null && b.Id !== '') return String(b.Id);
+        return '';
+    }
+    function findKernelBatchByRpcId(batches, rpcId) {
+        var id = String(rpcId || '');
+        if (!id || !batches || !batches.length) return null;
+        for (var i = 0; i < batches.length; i++) {
+            if (kernelRpcIdFromBatch(batches[i]) === id) return batches[i];
+        }
+        return null;
+    }
     var _dispatchLines = [];
     var _pendingDetails = null;
     var MAX_DROPDOWN_OPTIONS = 51;
@@ -80,7 +97,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 var cartons = parseInt($(this).data('quantity'), 10);
                 if (!batchId || style === '' || isNaN(cartons)) return;
                 var batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
-                var batch = batches.find(function (b) { return b.id === batchId; });
+                var batch = findKernelBatchByRpcId(batches, batchId);
                 var batchNum = batch ? (batch.batch_number || batchId) : batchId;
                 var idx = _dispatchLines.findIndex(function (l) { return l.kernel_id === batchId && String(l.style) === style; });
                 if (cartons <= 0) {
@@ -103,7 +120,7 @@ var _modal_stock_send_to_dispatch = (function () {
                 var maxCartons = parseInt($(this).data('max-qty'), 10) || 0;
                 if (!batchId || style === '' || maxCartons <= 0) return;
                 var batches = (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.kernelFinishedBatches) ? _stockManagementGrid.kernelFinishedBatches : [];
-                var batch = batches.find(function (b) { return b.id === batchId; });
+                var batch = findKernelBatchByRpcId(batches, batchId);
                 var batchNum = batch ? (batch.batch_number || batchId) : batchId;
                 Swal.fire({
                     title: 'Enter cartons',
@@ -203,7 +220,7 @@ var _modal_stock_send_to_dispatch = (function () {
             batches.forEach(function (b) {
                 var cells = (b.remaining_by_style_cartons && typeof b.remaining_by_style_cartons === 'object') ? b.remaining_by_style_cartons : null;
                 if (cells == null) cells = (b.yield_by_style_cartons && typeof b.yield_by_style_cartons === 'object') ? b.yield_by_style_cartons : {};
-                var batchId = b.id || '';
+                var batchId = kernelRpcIdFromBatch(b);
                 var batchNum = (b.batch_number || '').toString().replace(/"/g, '&quot;');
                 var tr = document.createElement('tr');
                 var html = '<td><span class="badge bg-secondary">' + batchNum + '</span></td>';

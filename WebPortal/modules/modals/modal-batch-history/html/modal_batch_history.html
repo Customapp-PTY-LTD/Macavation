@@ -1,4 +1,4 @@
-<div class="modal-dialog modal-lg">
+<div class="modal-dialog modal-xl">
     <div class="modal-content">
         <div class="modal-header">
             <h5 class="modal-title" id="batchHistoryModalLabel">Batch history</h5>
@@ -6,19 +6,58 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            <p class="text-muted small mb-3" id="batchHistoryBatchInfo">Batch: —</p>
-            <div class="batch-history-dispatch-panel card border mb-4" id="batchHistoryDispatchPanel" aria-labelledby="batchHistoryDispatchHeading">
-                <div class="card-header py-2 px-3">
-                    <h6 class="mb-0" id="batchHistoryDispatchHeading">Kernel dispatches (this batch)</h6>
-                </div>
-                <div class="card-body py-2 px-3 small" id="batchHistoryDispatchBody">
-                    <p class="text-muted mb-0">Loading…</p>
-                </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small" id="batchHistorySummaryRow">
+                <span class="text-muted" id="batchHistoryBatchInfo">Batch: —</span>
+                <span class="badge rounded-pill batch-history-timeline__status-badge d-none" id="batchHistoryStatusBadge" aria-live="polite"></span>
             </div>
-            <div class="batch-history-timeline">
-                <div class="batch-history-timeline__line" aria-hidden="true"></div>
-                <div class="batch-history-timeline__entries" id="batchHistoryTimelineEntries">
-                    <p class="text-muted mb-0">Loading…</p>
+            <ul class="nav nav-tabs batch-history-modal__tabs" id="batchHistoryTabNav" role="tablist">
+                <li class="nav-item" role="presentation" id="batchHistoryTabLiDispatch">
+                    <button class="nav-link active" id="bh-tab-dispatch-trigger" data-bs-toggle="tab" data-bs-target="#bh-tab-dispatch-pane" type="button" role="tab" aria-controls="bh-tab-dispatch-pane" aria-selected="true">Dispatch</button>
+                </li>
+                <li class="nav-item" role="presentation" id="batchHistoryTabLiIntake">
+                    <button class="nav-link" id="bh-tab-intake-trigger" data-bs-toggle="tab" data-bs-target="#bh-tab-intake-pane" type="button" role="tab" aria-controls="bh-tab-intake-pane" aria-selected="false">Intake</button>
+                </li>
+                <li class="nav-item" role="presentation" id="batchHistoryTabLiProduction">
+                    <button class="nav-link" id="bh-tab-production-trigger" data-bs-toggle="tab" data-bs-target="#bh-tab-production-pane" type="button" role="tab" aria-controls="bh-tab-production-pane" aria-selected="false">Production</button>
+                </li>
+                <li class="nav-item" role="presentation" id="batchHistoryTabLiQa">
+                    <button class="nav-link" id="bh-tab-qa-trigger" data-bs-toggle="tab" data-bs-target="#bh-tab-qa-pane" type="button" role="tab" aria-controls="bh-tab-qa-pane" aria-selected="false">End sample (QA)</button>
+                </li>
+            </ul>
+            <div class="tab-content batch-history-modal__tab-content" id="batchHistoryTabContent">
+                <div class="tab-pane fade show active" id="bh-tab-dispatch-pane" role="tabpanel" aria-labelledby="bh-tab-dispatch-trigger">
+                    <div class="batch-history-dispatch-panel card border mb-0" id="batchHistoryDispatchPanel" aria-labelledby="batchHistoryDispatchHeading">
+                        <div class="card-header py-2 px-3">
+                            <h6 class="mb-0" id="batchHistoryDispatchHeading">Kernel dispatches (this batch)</h6>
+                        </div>
+                        <div class="card-body py-2 px-3 small" id="batchHistoryDispatchBody">
+                            <p class="text-muted mb-0">Loading…</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="bh-tab-intake-pane" role="tabpanel" aria-labelledby="bh-tab-intake-trigger">
+                    <div class="batch-history-timeline batch-history-timeline--in-tab">
+                        <div class="batch-history-timeline__line" aria-hidden="true"></div>
+                        <div class="batch-history-timeline__entries" id="batchHistoryTimelineIntake">
+                            <p class="text-muted mb-0">Loading…</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="bh-tab-production-pane" role="tabpanel" aria-labelledby="bh-tab-production-trigger">
+                    <div class="batch-history-timeline batch-history-timeline--in-tab">
+                        <div class="batch-history-timeline__line" aria-hidden="true"></div>
+                        <div class="batch-history-timeline__entries" id="batchHistoryTimelineProduction">
+                            <p class="text-muted mb-0">Loading…</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="bh-tab-qa-pane" role="tabpanel" aria-labelledby="bh-tab-qa-trigger">
+                    <div class="batch-history-timeline batch-history-timeline--in-tab">
+                        <div class="batch-history-timeline__line" aria-hidden="true"></div>
+                        <div class="batch-history-timeline__entries" id="batchHistoryTimelineQa">
+                            <p class="text-muted mb-0">Loading…</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

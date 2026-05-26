@@ -1,8 +1,9 @@
-# Modal: Batch History (Grower Intake)
+# Modal: Batch History
 
-Vertical timeline for grower intake history (batch test/sample, receiving checklist).
+Read-only batch audit: kernel dispatches, grower intake (checklist + samples), production days + job card, and end sample (QA). Opened from **Batch Journey** (row click) or **Kernel Production** (batch history control).
 
 ## Instructions / Source
 
-- **Behaviour**: `modules/kernel-production/js/kernel_production_batch_actions.js` (`showBatchHistory()`).
+- **Behaviour**: `js/modal_batch_history.js` (`_modal_batch_history.show`).
+- **UI**: `html/modal_batch_history.html` — tabs **Dispatch**, **Intake**, **Production**, **End sample (QA)**; timeline panes per tab; status badge in the summary row.
 - Container ID: `#batchHistoryModal`. Route name: `batch-history-modal`.

@@ -25,10 +25,60 @@ var _kernelDispatchGrid = function () {
         orders: [],
         _handlersBound: false,
         currentView: 'kanban',
+        /** Active list filters (applied on server via get_kernel_dispatch_orders). */
+        dispatchListFilters: { batch: '', supplierDate: '' },
+
+        listFiltersActive: function () {
+            var f = this.dispatchListFilters || {};
+            return !!(String(f.batch || '').trim() || String(f.supplierDate || '').trim());
+        },
+
+        updateFilterEmptyBanner: function () {
+            var el = document.getElementById('kdFilterEmptyBanner');
+            if (!el) return;
+            if (!this.orders.length && this.listFiltersActive()) {
+                el.classList.remove('d-none');
+                el.innerHTML = 'No baskets match your search. Try another buyer name, batch number, or supplier received date, or <a href="#" class="js-kd-clear-filters">clear search</a>.';
+            } else {
+                el.classList.add('d-none');
+                el.innerHTML = '';
+            }
+        },
+
+        /** Debounced reload from filter inputs (live search). */
+        _kdFilterDebounce: null,
+        scheduleDispatchFilterReload: function () {
+            var scope = this;
+            if (scope._kdFilterDebounce) clearTimeout(scope._kdFilterDebounce);
+            scope._kdFilterDebounce = setTimeout(function () {
+                scope._kdFilterDebounce = null;
+                scope.dispatchListFilters.batch = ($('#kdFilterBatch').val() || '').trim();
+                scope.dispatchListFilters.supplierDate = ($('#kdFilterSupplierDate').val() || '').trim();
+                scope.loadOrders(true);
+            }, 300);
+        },
 
         init: async () => {
             const scope = _kernelDispatchGrid;
             $('#kernelDispatchRefreshBtn').off('click').on('click', function () { scope.loadOrders(true); });
+
+            $('#kdFilterBatch').off('input.kdFilter').on('input.kdFilter', function () {
+                scope.scheduleDispatchFilterReload();
+            });
+            $('#kdFilterSupplierDate').off('change.kdFilter input.kdFilter').on('change.kdFilter input.kdFilter', function () {
+                scope.scheduleDispatchFilterReload();
+            });
+
+            $('#kdFilterClear').off('click').on('click', function () {
+                if (scope._kdFilterDebounce) clearTimeout(scope._kdFilterDebounce);
+                scope._kdFilterDebounce = null;
+                scope.dispatchListFilters.batch = '';
+                scope.dispatchListFilters.supplierDate = '';
+                $('#kdFilterBatch').val('');
+                $('#kdFilterSupplierDate').val('');
+                scope.loadOrders(true);
+            });
+
             $('#kdViewKanban, #kdViewTable').off('click').on('click', function () {
                 scope.toggleView($(this).data('view'));
             });
@@ -55,6 +105,16 @@ var _kernelDispatchGrid = function () {
                 $(document).on('click', '.js-edit-dispatched-basket', function () {
                     var id = $(this).data('order-id');
                     scope.confirmRevertDispatchOrder(id);
+                });
+                $(document).on('click', '.js-kd-clear-filters', function (e) {
+                    e.preventDefault();
+                    if (scope._kdFilterDebounce) clearTimeout(scope._kdFilterDebounce);
+                    scope._kdFilterDebounce = null;
+                    scope.dispatchListFilters.batch = '';
+                    scope.dispatchListFilters.supplierDate = '';
+                    $('#kdFilterBatch').val('');
+                    $('#kdFilterSupplierDate').val('');
+                    scope.loadOrders(true);
                 });
             }
             var loadPromises = [];
@@ -86,7 +146,11 @@ var _kernelDispatchGrid = function () {
                     scope.render();
                     return;
                 }
-                scope.orders = await dataFunctions.getKernelDispatchOrders(null, forceRefresh) || [];
+                var f = scope.dispatchListFilters || { batch: '', supplierDate: '' };
+                var filters = scope.listFiltersActive()
+                    ? { batchSearch: f.batch, supplierReceivedDate: f.supplierDate }
+                    : null;
+                scope.orders = await dataFunctions.getKernelDispatchOrders(null, forceRefresh, filters) || [];
                 scope.render();
             } catch (e) {
                 console.error('[Kernel Dispatch] loadOrders failed:', e);
@@ -127,6 +191,7 @@ var _kernelDispatchGrid = function () {
 
         render: () => {
             const scope = _kernelDispatchGrid;
+            scope.updateFilterEmptyBanner();
             if (scope.currentView === 'kanban') {
                 scope.renderKanban();
                 return;
@@ -137,7 +202,10 @@ var _kernelDispatchGrid = function () {
             var pendingTbody = $('#kernelDispatchTableBody');
             pendingTbody.empty();
             if (!pending.length) {
-                pendingTbody.html('<tr><td colspan="6" class="text-center text-muted py-4">No orders ready to dispatch. Go to Stock (Kernel), select styles for batches, then Send to Dispatch to create an order.</td></tr>');
+                var pendingMsg = scope.listFiltersActive()
+                    ? 'No baskets match your search in <strong>Ready to dispatch</strong>. Try buyer name, batch #, or supplier received date, or clear search.'
+                    : 'No orders ready to dispatch. Go to Stock (Kernel), select styles for batches, then Send to Dispatch to create an order.';
+                pendingTbody.html('<tr><td colspan="6" class="text-center text-muted py-4">' + pendingMsg + '</td></tr>');
             } else {
                 pending.forEach(function (o) {
                     var buyer = (o.buyer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '—';
@@ -156,7 +224,10 @@ var _kernelDispatchGrid = function () {
             var dispatchedTbody = $('#kernelDispatchedTableBody');
             dispatchedTbody.empty();
             if (!dispatched.length) {
-                dispatchedTbody.html('<tr><td colspan="6" class="text-center text-muted py-4">No baskets marked as dispatched yet. Use the Dispatch button above to complete an order.</td></tr>');
+                var dispMsg = scope.listFiltersActive()
+                    ? 'No baskets match your search in <strong>Dispatched</strong>. Adjust search or clear it.'
+                    : 'No baskets marked as dispatched yet. Use the Dispatch button above to complete an order.';
+                dispatchedTbody.html('<tr><td colspan="6" class="text-center text-muted py-4">' + dispMsg + '</td></tr>');
             } else {
                 dispatched.forEach(function (o) {
                     var buyer = (o.buyer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '—';
@@ -193,6 +264,7 @@ var _kernelDispatchGrid = function () {
         renderKanban: () => {
             const scope = _kernelDispatchGrid;
             if (typeof KanbanHelper === 'undefined') return;
+            scope.updateFilterEmptyBanner();
 
             KanbanHelper.render('kdKanbanBoard', DISPATCH_KANBAN_COLUMNS, scope.orders, function (o) {
                 return o.status === 'dispatched' ? 'dispatched' : 'confirmed';

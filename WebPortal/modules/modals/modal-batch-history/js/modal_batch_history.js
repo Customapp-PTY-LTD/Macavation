@@ -444,6 +444,110 @@ var _modal_batch_history = (function () {
         return 'Batch: ' + batchNumber + (batch.grower_name ? ' — ' + batch.grower_name : '');
     }
 
+    function renderBatchHistoryTimelineEntriesHtml(entryList) {
+        if (!entryList || !entryList.length) {
+            return '';
+        }
+        var html = '';
+        entryList.forEach(function (entry) {
+            var bodyHtml = entry.bodyHtml || '';
+            var titleHtml = entry.title || '';
+            html += '<div class="batch-history-timeline__entry">';
+            html += '<div class="batch-history-timeline__node"></div>';
+            html += '<div class="batch-history-timeline__block">';
+            html += '<h6 class="batch-history-timeline__block-title">' + titleHtml + '</h6>';
+            html += '<div class="batch-history-timeline__block-body">' + bodyHtml + '</div>';
+            html += '</div></div>';
+        });
+        return html;
+    }
+
+    function partitionBatchHistoryTimelineEntries(entries) {
+        var intake = [];
+        var production = [];
+        var qa = [];
+        (entries || []).forEach(function (e) {
+            if (!e) return;
+            if (e.type === 'checklist' || e.type === 'sample') intake.push(e);
+            else if (e.type === 'production' || e.type === 'job_card') production.push(e);
+            else if (e.type === 'qa') qa.push(e);
+        });
+        intake.reverse();
+        production.reverse();
+        qa.reverse();
+        return { intake: intake, production: production, qa: qa };
+    }
+
+    function resetBatchHistoryModalTabsBeforeLoad() {
+        $('#batchHistoryTabLiIntake, #batchHistoryTabLiProduction, #batchHistoryTabLiQa').removeClass('d-none');
+        $('#bh-tab-dispatch-trigger, #bh-tab-intake-trigger, #bh-tab-production-trigger, #bh-tab-qa-trigger')
+            .removeClass('active').attr('aria-selected', 'false');
+        $('#bh-tab-dispatch-pane, #bh-tab-intake-pane, #bh-tab-production-pane, #bh-tab-qa-pane')
+            .removeClass('active show');
+        $('#bh-tab-dispatch-trigger').addClass('active').attr('aria-selected', 'true');
+        $('#bh-tab-dispatch-pane').addClass('active show');
+    }
+
+    function activateBatchHistoryModalTab(triggerId) {
+        var el = document.getElementById(triggerId);
+        if (!el) return;
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            try {
+                bootstrap.Tab.getOrCreateInstance(el).show();
+                return;
+            } catch (e) { /* fall through */ }
+        }
+        var $t = $(el);
+        var target = $t.attr('data-bs-target');
+        if (!target) return;
+        $('#batchHistoryTabNav .nav-link').removeClass('active').attr('aria-selected', 'false');
+        $('#batchHistoryTabContent .tab-pane').removeClass('active show');
+        $t.addClass('active').attr('aria-selected', 'true');
+        $(target).addClass('active show');
+    }
+
+    function applyBatchHistoryTabVisibilityAndDefault(detail, parts) {
+        var dispatchHasOrders = parseDispatchOrdersFromDetail(detail).length > 0;
+        var intakeLen = (parts.intake || []).length;
+        var prodLen = (parts.production || []).length;
+        var qaLen = (parts.qa || []).length;
+
+        if (!intakeLen) $('#batchHistoryTabLiIntake').addClass('d-none');
+        if (!prodLen) $('#batchHistoryTabLiProduction').addClass('d-none');
+        if (!qaLen) $('#batchHistoryTabLiQa').addClass('d-none');
+
+        var defaultTrigger = 'bh-tab-dispatch-trigger';
+        if (dispatchHasOrders) {
+            defaultTrigger = 'bh-tab-dispatch-trigger';
+        } else if (intakeLen) {
+            defaultTrigger = 'bh-tab-intake-trigger';
+        } else if (prodLen) {
+            defaultTrigger = 'bh-tab-production-trigger';
+        } else if (qaLen) {
+            defaultTrigger = 'bh-tab-qa-trigger';
+        }
+
+        var $defBtn = $('#' + defaultTrigger);
+        if (!$defBtn.length || $defBtn.closest('li').hasClass('d-none')) {
+            if (intakeLen && !$('#batchHistoryTabLiIntake').hasClass('d-none')) defaultTrigger = 'bh-tab-intake-trigger';
+            else if (prodLen && !$('#batchHistoryTabLiProduction').hasClass('d-none')) defaultTrigger = 'bh-tab-production-trigger';
+            else if (qaLen && !$('#batchHistoryTabLiQa').hasClass('d-none')) defaultTrigger = 'bh-tab-qa-trigger';
+            else defaultTrigger = 'bh-tab-dispatch-trigger';
+        }
+
+        activateBatchHistoryModalTab(defaultTrigger);
+    }
+
+    function setBatchHistoryStatusBadge(statusLabel) {
+        var $b = $('#batchHistoryStatusBadge');
+        if (!$b.length) return;
+        if (statusLabel) {
+            $b.text(statusLabel).removeClass('d-none');
+        } else {
+            $b.text('').addClass('d-none');
+        }
+    }
+
     return {
         init: () => {},
 
@@ -459,23 +563,38 @@ var _modal_batch_history = (function () {
                 batch = _kernelProductionGrid.getBatch(batchId);
             }
             $('#batchHistoryBatchInfo').text(getBatchInfoText(batch));
-            var $container = $('#batchHistoryTimelineEntries');
+            setBatchHistoryStatusBadge('');
+            var $intake = $('#batchHistoryTimelineIntake');
+            var $prod = $('#batchHistoryTimelineProduction');
+            var $qa = $('#batchHistoryTimelineQa');
             var $dispatchBody = $('#batchHistoryDispatchBody');
-            $container.html('<p class="text-muted mb-0">Loading…</p>');
-            if ($dispatchBody.length) $dispatchBody.html('<p class="text-muted mb-0">Loading…</p>');
+            var loadingHtml = '<p class="text-muted mb-0">Loading…</p>';
+            $intake.html(loadingHtml);
+            $prod.html(loadingHtml);
+            $qa.html(loadingHtml);
+            if ($dispatchBody.length) $dispatchBody.html(loadingHtml);
+            resetBatchHistoryModalTabsBeforeLoad();
             var modalEl = document.getElementById('batchHistoryModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else $('#batchHistoryModal').modal('show');
 
+            var errHtml = '<p class="text-danger mb-0">Cannot load batch history.</p>';
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getKernelProductionHistory) {
-                $container.html('<p class="text-danger mb-0">Cannot load batch history.</p>');
+                $intake.html(errHtml);
+                $prod.html(errHtml);
+                $qa.html(errHtml);
                 if ($dispatchBody.length) $dispatchBody.html('<p class="text-danger mb-0">Cannot load dispatch data.</p>');
                 return;
             }
 
             dataFunctions.getKernelProductionHistory(batchId, null, true).then(function (detail) {
                 if (!detail) {
-                    $container.html('<p class="text-muted mb-0">Batch detail not found.</p>');
+                    setBatchHistoryStatusBadge('');
+                    resetBatchHistoryModalTabsBeforeLoad();
+                    applyBatchHistoryTabVisibilityAndDefault({}, { intake: [], production: [], qa: [] });
+                    $intake.html('<p class="text-muted mb-0">Batch detail not found.</p>');
+                    $prod.html('<p class="text-muted mb-0">Batch detail not found.</p>');
+                    $qa.html('<p class="text-muted mb-0">Batch detail not found.</p>');
                     if ($dispatchBody.length) $dispatchBody.html('<p class="text-muted mb-0">No batch detail.</p>');
                     return;
                 }
@@ -764,30 +883,28 @@ var _modal_batch_history = (function () {
                     entries.push({ type: 'qa', title: 'End Sample (QA)', bodyHtml: html, date: qa.completed_at ? String(qa.completed_at).split('T')[0] : null });
                 }
 
-                entries.reverse();
-
                 var statusLabel = getBatchDisplayStatus(displayBatch);
+                setBatchHistoryStatusBadge(statusLabel);
 
-                var html = '';
-                entries.forEach(function (entry, idx) {
-                    var bodyHtml = entry.bodyHtml || '';
-                    var titleHtml = entry.title || '';
-                    if (idx === 0 && statusLabel) {
-                        titleHtml = '<span class="batch-history-timeline__title-text">' + titleHtml + '</span> <span class="badge rounded-pill batch-history-timeline__status-badge">' + statusLabel + '</span>';
-                    }
-                    html += '<div class="batch-history-timeline__entry">';
-                    html += '<div class="batch-history-timeline__node"></div>';
-                    html += '<div class="batch-history-timeline__block">';
-                    html += '<h6 class="batch-history-timeline__block-title">' + titleHtml + '</h6>';
-                    html += '<div class="batch-history-timeline__block-body">' + bodyHtml + '</div>';
-                    html += '</div></div>';
-                });
-                if (entries.length === 0) {
-                    html = '<p class="text-muted mb-0">No timeline data for this batch.</p>';
-                }
-                $container.html(html);
+                var parts = partitionBatchHistoryTimelineEntries(entries);
+
+                var intakeHtml = renderBatchHistoryTimelineEntriesHtml(parts.intake);
+                $intake.html(intakeHtml || '<p class="text-muted mb-0">No intake data for this batch.</p>');
+
+                var prodHtml = renderBatchHistoryTimelineEntriesHtml(parts.production);
+                $prod.html(prodHtml || '<p class="text-muted mb-0">No production or job card data for this batch.</p>');
+
+                var qaHtml = renderBatchHistoryTimelineEntriesHtml(parts.qa);
+                $qa.html(qaHtml || '<p class="text-muted mb-0">No end sample (QA) data for this batch.</p>');
+
+                applyBatchHistoryTabVisibilityAndDefault(detail, parts);
             }).catch(function () {
-                $container.html('<p class="text-danger mb-0">Could not load timeline.</p>');
+                setBatchHistoryStatusBadge('');
+                resetBatchHistoryModalTabsBeforeLoad();
+                applyBatchHistoryTabVisibilityAndDefault({}, { intake: [], production: [], qa: [] });
+                $intake.html('<p class="text-danger mb-0">Could not load timeline.</p>');
+                $prod.html('<p class="text-danger mb-0">Could not load timeline.</p>');
+                $qa.html('<p class="text-danger mb-0">Could not load timeline.</p>');
                 if ($('#batchHistoryDispatchBody').length) {
                     $('#batchHistoryDispatchBody').html('<p class="text-danger mb-0">Could not load dispatch data.</p>');
                 }

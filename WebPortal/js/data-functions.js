@@ -2541,6 +2541,22 @@ var _dataFunctions = function () {
             if (o.dispatch_orders == null && o.DispatchOrders != null) {
                 o.dispatch_orders = o.DispatchOrders;
             }
+            // Some proxies return jsonb as a JSON string (or double-encoded); modal expects an array/object.
+            if (typeof o.dispatch_orders === 'string') {
+                try {
+                    let parsed = JSON.parse(o.dispatch_orders);
+                    if (typeof parsed === 'string') {
+                        try {
+                            parsed = JSON.parse(parsed);
+                        } catch (e2) {
+                            /* keep inner string */
+                        }
+                    }
+                    o.dispatch_orders = parsed;
+                } catch (e) {
+                    /* leave string; parseDispatchOrdersFromDetail may still parse */
+                }
+            }
             return o;
         },
 
@@ -4089,9 +4105,27 @@ var _dataFunctions = function () {
             return result;
         },
 
-        getKernelDispatchOrders: async function (token = null, forceRefresh = false) {
-            const raw = await this.callFunction('get_kernel_dispatch_orders', { p_limit: 100, p_offset: 0 }, token, {
-                cacheKey: 'kernel_dispatch_orders_list',
+        /**
+         * @param {string|null} token
+         * @param {boolean} forceRefresh
+         * @param {{ batchSearch?: string, supplierReceivedDate?: string }|null} filters Optional: batchSearch matches buyer name or any line batch (substring + separator-insensitive on server); supplierReceivedDate is YYYY-MM-DD (kernel.received_date).
+         */
+        getKernelDispatchOrders: async function (token = null, forceRefresh = false, filters = null) {
+            const f = filters && typeof filters === 'object' ? filters : null;
+            const batchPart = f && f.batchSearch != null ? String(f.batchSearch).trim() : '';
+            const datePart = f && f.supplierReceivedDate != null ? String(f.supplierReceivedDate).trim() : '';
+            const hasFilter = !!(batchPart || datePart);
+            // Only pass search args when filtering. DBs that still have the 2-arg RPC fail if extra keys are sent.
+            const params = { p_limit: 100, p_offset: 0 };
+            if (hasFilter) {
+                params.p_batch_search = batchPart || null;
+                params.p_supplier_received_date = datePart || null;
+            }
+            const cacheKey = hasFilter
+                ? 'kernel_dispatch_orders_list|b=' + encodeURIComponent(batchPart) + '|d=' + encodeURIComponent(datePart)
+                : 'kernel_dispatch_orders_list';
+            const raw = await this.callFunction('get_kernel_dispatch_orders', params, token, {
+                cacheKey: cacheKey,
                 useCache: true,
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: forceRefresh

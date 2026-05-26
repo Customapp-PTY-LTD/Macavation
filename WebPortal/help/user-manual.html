@@ -173,7 +173,7 @@
         <ul>
           <li><strong>Dashboard overview</strong> — operational snapshot: production, packing, tasks, and links into deeper grids.</li>
           <li><strong>Material journey</strong> — integrator-style view of movement and alerts; use Refresh before acting on cards.</li>
-          <li><strong>Executive dashboard</strong> — KPI-style widgets and reporting; use Customize and export options where available.</li>
+          <li><strong>Executive dashboard</strong> — KPI-style widgets and reporting; use Customize and export options where available. On <strong>Production Trends</strong>, the <strong>Hide weekends</strong> switch (on by default in daily/Monthly view) removes Saturday and Sunday from the chart so weekday production connects without closure gaps; it is disabled in Yearly view.</li>
         </ul>
         <h3>Typical tasks</h3>
         <ol>
@@ -203,7 +203,7 @@
         <ol>
           <li>Search by batch, grower, or other supported fields.</li>
           <li>Filter and sort (for example by status or date) to shorten the list.</li>
-          <li>Click a row to open batch history. The dialog shows <strong>Kernel dispatches (this batch)</strong> at the top (buyer, dates, status, and per-style cartons and kg from dispatch orders). Use <strong>Edit</strong> → <strong>Delete permanently</strong> only when the batch must be erased from the database (this cannot be undone).</li>
+          <li>Click a row to open batch history. Use the <strong>Dispatch</strong>, <strong>Intake</strong>, <strong>Production</strong>, and <strong>End sample (QA)</strong> tabs to read kernel dispatches, grower intake, production days and job card, and QA in separate panes (empty tabs are hidden). Use <strong>Edit</strong> → <strong>Delete permanently</strong> only when the batch must be erased from the database (this cannot be undone).</li>
         </ol>
         <p class="contextual-help"><a href="index.html#batch-journey-grid">Batch Journey topic</a></p>
       </article>
@@ -290,6 +290,7 @@
         <p><strong>Kernel Dispatch</strong> manages despatch baskets for kernel customers: inspection, dispatch paperwork, and basket lines. Baskets are built from stock movements and CRM kernel customers.</p>
         <ol>
           <li>Open <strong>Kernel Dispatch</strong>; use Board or Table as preferred.</li>
+          <li>Find a basket by typing in <strong>Search</strong> (buyer, linked CRM contact, grower on any line, or batch; a single letter uses starts-with on batches and start-of-word on names). Optionally set <strong>Supplier received</strong>. With both set, only baskets matching both are listed. Use <strong>Clear</strong> to show all baskets again.</li>
           <li>Review open baskets; open <strong>View sheet</strong> to see basket lines together with the full inspection and dispatch form (driver, vehicle checks, transport, signatures).</li>
           <li>Complete <strong>Dispatch</strong> and the same form for orders not yet dispatched.</li>
           <li>Dispatched orders open the form read-only so you can review what was recorded. Use <strong>Edit</strong> on the sheet or on a dispatched grid row only when dispatch was recorded by mistake; saved paperwork is cleared and the basket returns to ready to dispatch so you can change lines or dispatch again.</li>
