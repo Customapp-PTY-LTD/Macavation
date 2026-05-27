@@ -13,6 +13,7 @@ var _dataFunctions = function () {
         /** RPCs that may fall back to PostgREST when Lambda RBAC blocks EXECUTE (DB grants still apply). */
         kernelRpcSupabaseFallback: new Set([
             'get_kernel_batches',
+            'get_kernel_production_history',
             'return_kernel_from_stock_to_production',
             'upsert_kernel_job_card',
             'get_kernel_jobcard_approval_map',
@@ -25,6 +26,7 @@ var _dataFunctions = function () {
         /** Prefer PostgREST (anon) first — Lambda RBAC often denies these before DB grants apply. */
         kernelRpcDirectFirst: new Set([
             'get_kernel_batches',
+            'get_kernel_production_history',
             'return_kernel_from_stock_to_production',
             'get_kernel_jobcard_approval_map',
             'import_historical_kernel_batch'

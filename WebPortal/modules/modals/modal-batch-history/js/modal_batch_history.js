@@ -1,6 +1,6 @@
 /**
- * Modal: Batch History – Grower Intake + Kernel Production timeline.
- * Data source: getKernelProductionHistory (1 call) → intake_data, stage arrays, job_card_data, qa_data.
+ * Modal: Batch History – Grower Intake + Kernel Production timeline + Dispatch.
+ * Data source: getKernelProductionHistory (1 call) → intake_data, stage arrays, job_card_data, qa_data, dispatch_orders.
  */
 function formatStageDate(isoStr) {
     if (!isoStr || typeof isoStr !== 'string') return '';
@@ -316,6 +316,74 @@ function getProductionDayDateLatest(stages) {
 
 var BATCH_HISTORY_KG_PER_CARTON = 11.34;
 
+function normalizeBatchNumberForMatch(s) {
+    if (s == null || s === '') return '';
+    return String(s).toLowerCase().replace(/[.\s\-_/]+/g, '');
+}
+
+function dispatchLineMatchesBatch(line, kernelId, batchNumber, batchesPk) {
+    if (!line || typeof line !== 'object') return false;
+    var kid = line.kernel_id != null ? line.kernel_id : line.KernelId;
+    if (kid != null && kid !== '') {
+        var kidStr = String(kid);
+        if (kernelId != null && kidStr === String(kernelId)) return true;
+        if (batchesPk != null && kidStr === String(batchesPk)) return true;
+    }
+    var bn = line.batch_number != null ? line.batch_number
+        : (line.BatchNumber != null ? line.BatchNumber
+            : (line.batch_id != null ? line.batch_id : line.BatchId));
+    if (batchNumber != null && bn != null && bn !== '') {
+        return normalizeBatchNumberForMatch(bn) === normalizeBatchNumberForMatch(batchNumber);
+    }
+    return false;
+}
+
+/** When RPC dispatch_orders is empty, load matching orders via Kernel Dispatch list + order detail. */
+function loadDispatchOrdersFallback(detail) {
+    if (!detail || typeof detail !== 'object') return Promise.resolve(detail);
+    if (parseDispatchOrdersFromDetail(detail).length > 0) return Promise.resolve(detail);
+    var batchNumber = detail.batch_number || detail.BatchNumber;
+    if (!batchNumber || typeof dataFunctions === 'undefined' ||
+        !dataFunctions.getKernelDispatchOrders || !dataFunctions.getKernelDispatchOrder) {
+        return Promise.resolve(detail);
+    }
+    var kernelId = detail.id != null ? detail.id : detail.Id;
+    var batchesPk = detail.batch_id != null ? detail.batch_id : detail.BatchId;
+    return dataFunctions.getKernelDispatchOrders(null, true, { batchSearch: String(batchNumber) }).then(function (orders) {
+        if (!orders || !orders.length) return detail;
+        var fetches = orders.map(function (ord) {
+            var oid = ord && (ord.id != null ? ord.id : ord.Id);
+            if (!oid) return Promise.resolve(null);
+            return dataFunctions.getKernelDispatchOrder(oid).then(function (full) {
+                if (!full || !full.order) return null;
+                var lines = Array.isArray(full.lines) ? full.lines : [];
+                var matched = lines.filter(function (ln) {
+                    return dispatchLineMatchesBatch(ln, kernelId, batchNumber, batchesPk);
+                });
+                if (!matched.length) return null;
+                var o = full.order;
+                return {
+                    id: o.id != null ? o.id : o.Id,
+                    buyer_name: o.buyer_name != null ? o.buyer_name : (o.BuyerName != null ? o.BuyerName : ''),
+                    delivery_date: o.delivery_date != null ? o.delivery_date : o.DeliveryDate,
+                    best_before_date: o.best_before_date != null ? o.best_before_date : o.BestBeforeDate,
+                    status: o.status != null ? o.status : (o.Status != null ? o.Status : ''),
+                    dispatched_at: o.dispatched_at != null ? o.dispatched_at : o.DispatchedAt,
+                    created_at: o.created_at != null ? o.created_at : o.CreatedAt,
+                    lines: matched
+                };
+            });
+        });
+        return Promise.all(fetches).then(function (results) {
+            var dispatchOrders = (results || []).filter(Boolean);
+            if (!dispatchOrders.length) return detail;
+            return Object.assign({}, detail, { dispatch_orders: dispatchOrders });
+        });
+    }).catch(function () {
+        return detail;
+    });
+}
+
 /** Parse dispatch_orders from get_kernel_production_history (jsonb array or proxy-wrapped). */
 function parseDispatchOrdersFromDetail(detail) {
     if (!detail || typeof detail !== 'object') return [];
@@ -549,7 +617,17 @@ var _modal_batch_history = (function () {
     }
 
     return {
-        init: () => {},
+        init: () => {
+            var modalEl = document.getElementById('batchHistoryModal');
+            if (modalEl) {
+                modalEl.addEventListener('hide.bs.modal', function () {
+                    var active = document.activeElement;
+                    if (active && modalEl.contains(active) && typeof active.blur === 'function') {
+                        active.blur();
+                    }
+                });
+            }
+        },
 
         show: (batchOrId) => {
             var batch = (batchOrId && typeof batchOrId === 'object') ? batchOrId : null;
@@ -598,6 +676,9 @@ var _modal_batch_history = (function () {
                     if ($dispatchBody.length) $dispatchBody.html('<p class="text-muted mb-0">No batch detail.</p>');
                     return;
                 }
+                return loadDispatchOrdersFallback(detail);
+            }).then(function (detail) {
+                if (!detail) return;
                 if ($dispatchBody.length) $dispatchBody.html(buildBatchHistoryDispatchPanelHtml(detail));
                 var displayBatch = detail || batch || {};
                 $('#batchHistoryBatchInfo').text(getBatchInfoText(displayBatch));
