@@ -1,0 +1,17 @@
+name: Supabase project guard
+
+on:
+  push:
+    branches: [main, master, prod]
+  pull_request:
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Verify Macavation Supabase targeting
+        run: node scripts/check-supabase-project.mjs

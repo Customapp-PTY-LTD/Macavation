@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kernel Production Calendar — reference (static demo)</title>
+  <!--
+    Portable look-and-feel reference for the Macavation Kernel Production calendar.
+    Open this file directly in a browser (no WebPortal). See ../kernel-production-calendar-styling.md.
+  -->
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 1.5rem;
+      background: #e9ecef;
+    }
+    .ref-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      border: 1px solid #dee2e6;
+      border-radius: 0.375rem;
+      background: #fff;
+      overflow: hidden;
+    }
+    .ref-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .ref-title {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .ref-body {
+      padding: 1rem;
+    }
+    .ref-hint {
+      color: #6c757d;
+      font-size: 0.875rem;
+      margin: 0 0 1rem;
+    }
+    .ref-btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+      border: 1px solid #6c757d;
+      border-radius: 0.25rem;
+      background: #fff;
+      cursor: pointer;
+    }
+    .ref-btn:hover {
+      background: #f8f9fa;
+    }
+
+    /* --- Copied from WebPortal/modules/kernel-production/css/kernel_production_grid.css (kp-production-calendar) --- */
+    .kp-production-calendar-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .kp-production-calendar-month {
+      min-width: 140px;
+      text-align: center;
+      font-weight: 600;
+    }
+    .kp-production-calendar-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+    .kp-production-calendar-weekdays,
+    .kp-production-calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+    .kp-production-calendar-weekdays {
+      margin-bottom: 0.5rem;
+    }
+    .kp-production-calendar-weekdays div {
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #6c757d;
+    }
+    .kp-production-calendar-day {
+      min-height: 84px;
+      border: 1px solid #dee2e6;
+      border-radius: 0.5rem;
+      background: #fff;
+      padding: 0.5rem;
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+    .kp-production-calendar-day:hover {
+      border-color: #9ec5fe;
+    }
+    .kp-production-calendar-day.is-outside-month {
+      opacity: 0.45;
+    }
+    .kp-production-calendar-day.is-active {
+      border-color: #0d6efd;
+      box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+    }
+    .kp-production-calendar-day.has-production {
+      background: #e7f1ff;
+      border-color: #9ec5fe;
+    }
+    .kp-production-calendar-daynum {
+      font-weight: 600;
+      color: #212529;
+    }
+    .kp-production-calendar-count {
+      display: inline-block;
+      margin-top: 0.4rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      background: #0d6efd;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .kp-production-calendar-detail {
+      min-height: 300px;
+      border: 1px solid #dee2e6;
+      border-radius: 0.75rem;
+      background: #fafbfc;
+      padding: 1rem;
+    }
+    .kp-production-calendar-detail-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    .kp-production-calendar-detail-empty {
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+    .kp-production-calendar-entry {
+      border: 1px solid #dee2e6;
+      border-radius: 0.6rem;
+      background: #fff;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .kp-production-calendar-entry:last-child {
+      margin-bottom: 0;
+    }
+    .kp-production-calendar-entry-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: start;
+      margin-bottom: 0.5rem;
+    }
+    .kp-production-calendar-entry-batch {
+      font-weight: 700;
+      color: #212529;
+    }
+    .kp-production-calendar-entry-grower {
+      color: #6c757d;
+      font-size: 0.85rem;
+    }
+    .kp-production-calendar-stage-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .kp-production-calendar-stage {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #0b5ed7;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    @media (max-width: 991.98px) {
+      .kp-production-calendar-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ref-shell">
+    <div class="ref-header">
+      <h1 class="ref-title">Production Calendar (reference)</h1>
+      <div class="kp-production-calendar-toolbar">
+        <button type="button" class="ref-btn" id="demoPrev" aria-label="Previous month">‹</button>
+        <div class="kp-production-calendar-month" id="demoMonthLabel">—</div>
+        <button type="button" class="ref-btn" id="demoNext" aria-label="Next month">›</button>
+      </div>
+    </div>
+    <div class="ref-body">
+      <p class="ref-hint">Static mock data only. Days highlighted in blue have “production”; click a day for the detail panel (mirrors Macavation classes).</p>
+      <div class="kp-production-calendar-layout">
+        <div>
+          <div class="kp-production-calendar-weekdays">
+            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+          </div>
+          <div class="kp-production-calendar-grid" id="demoGrid"></div>
+        </div>
+        <div class="kp-production-calendar-detail" id="demoDetail"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+(function () {
+  'use strict';
+
+  function isoFromDate(date) {
+    if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+  }
+
+  function formatMonthYear(date) {
+    if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+    return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  }
+
+  function formatDisplayDate(iso) {
+    var parts = String(iso).split('-');
+    if (parts.length !== 3) return iso;
+    var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function escapeHtml(text) {
+    if (text == null) return '';
+    var div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+  }
+
+  /** Same shape as buildProductionCalendarIndex output: iso -> array of entries */
+  var MOCK_INDEX = {
+    '2026-05-12': [
+      { batchNumber: 'Bn01012601', growerName: 'Demo Grower A', stages: ['Cracking', 'Washing'] },
+      { batchNumber: 'Bn01012602', growerName: 'Demo Grower B', stages: ['Packing'] }
+    ],
+    '2026-05-15': [
+      { batchNumber: 'Bn01012601', growerName: 'Demo Grower A', stages: ['Sorting'] }
+    ]
+  };
+
+  var monthDate = new Date(2026, 4, 1);
+  var selectedIso = '2026-05-12';
+
+  function defaultSelectionForMonth() {
+    var prefix = monthDate.getFullYear() + '-' + String(monthDate.getMonth() + 1).padStart(2, '0');
+    var first = Object.keys(MOCK_INDEX).sort().filter(function (k) { return k.indexOf(prefix + '-') === 0; })[0];
+    return first || null;
+  }
+
+  function renderGrid() {
+    var grid = document.getElementById('demoGrid');
+    var label = document.getElementById('demoMonthLabel');
+    if (!grid || !label) return;
+
+    monthDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    label.textContent = formatMonthYear(monthDate);
+
+    var firstCellDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1 - monthDate.getDay());
+    var html = '';
+    for (var i = 0; i < 42; i++) {
+      var cellDate = new Date(firstCellDate.getFullYear(), firstCellDate.getMonth(), firstCellDate.getDate() + i);
+      var iso = isoFromDate(cellDate);
+      var entries = MOCK_INDEX[iso] || [];
+      var isCurrentMonth = cellDate.getMonth() === monthDate.getMonth();
+      var classes = ['kp-production-calendar-day'];
+      if (!isCurrentMonth) classes.push('is-outside-month');
+      if (entries.length > 0) classes.push('has-production');
+      if (selectedIso === iso) classes.push('is-active');
+      html += '<button type="button" class="' + classes.join(' ') + '" data-iso="' + escapeHtml(iso) + '">';
+      html += '<div class="kp-production-calendar-daynum">' + cellDate.getDate() + '</div>';
+      if (entries.length > 0) {
+        html += '<div class="kp-production-calendar-count">' + entries.length + ' batch' + (entries.length === 1 ? '' : 'es') + '</div>';
+      }
+      html += '</button>';
+    }
+    grid.innerHTML = html;
+  }
+
+  function renderDetail() {
+    var detail = document.getElementById('demoDetail');
+    if (!detail) return;
+    if (!selectedIso) {
+      detail.innerHTML = '<div class="kp-production-calendar-detail-title">No day selected</div><div class="kp-production-calendar-detail-empty">Select a blue day to view production activity.</div>';
+      return;
+    }
+    var entries = MOCK_INDEX[selectedIso] || [];
+    if (!entries.length) {
+      detail.innerHTML = '<div class="kp-production-calendar-detail-title">' + escapeHtml(formatDisplayDate(selectedIso)) + '</div><div class="kp-production-calendar-detail-empty">No saved production activity for this day.</div>';
+      return;
+    }
+    var html = '<div class="kp-production-calendar-detail-title">' + escapeHtml(formatDisplayDate(selectedIso)) + '</div>';
+    entries.forEach(function (entry) {
+      html += '<div class="kp-production-calendar-entry">';
+      html += '<div class="kp-production-calendar-entry-head">';
+      html += '<div><div class="kp-production-calendar-entry-batch">' + escapeHtml(entry.batchNumber) + '</div>';
+      html += '<div class="kp-production-calendar-entry-grower">' + escapeHtml(entry.growerName) + '</div></div></div>';
+      html += '<div class="kp-production-calendar-stage-badges">';
+      (entry.stages || []).forEach(function (stage) {
+        html += '<span class="kp-production-calendar-stage">' + escapeHtml(stage) + '</span>';
+      });
+      html += '</div></div>';
+    });
+    detail.innerHTML = html;
+  }
+
+  function renderAll() {
+    renderGrid();
+    renderDetail();
+  }
+
+  document.getElementById('demoGrid').addEventListener('click', function (e) {
+    var btn = e.target.closest('.kp-production-calendar-day');
+    if (!btn) return;
+    selectedIso = btn.getAttribute('data-iso') || null;
+    renderAll();
+  });
+
+  document.getElementById('demoPrev').addEventListener('click', function () {
+    monthDate = new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1);
+    selectedIso = defaultSelectionForMonth();
+    renderAll();
+  });
+  document.getElementById('demoNext').addEventListener('click', function () {
+    monthDate = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1);
+    selectedIso = defaultSelectionForMonth();
+    renderAll();
+  });
+
+  renderAll();
+})();
+  </script>
+</body>
+</html>

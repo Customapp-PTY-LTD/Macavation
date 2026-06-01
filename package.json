@@ -1,0 +1,9 @@
+{
+  "name": "macavation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:apply": "node scripts/apply-migration.mjs",
+    "db:check-project": "node scripts/check-supabase-project.mjs"
+  }
+}

@@ -11,11 +11,24 @@ var _modal_grower_create_kernel_batch = (function () {
     var SUPPLIER_TYPES = ['nis_supplier', 'supplier', 'both'];
     /** True after user edits batch number; date-only changes won't overwrite until grower changes or Refresh. */
     var _batchNumberUserCustom = false;
+    /** Set when modal is opened from the procurement calendar; cleared on close or save. */
+    var _pendingProcurementId = null;
+    var _pendingGrowerNameOverride = null;
 
     var api = {
         init: function () {
             var saveBtn = document.getElementById('saveCreateKernelBatchBtn');
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
+            // Clear pending procurement on cancel / close
+            var modalEl = document.getElementById(CONTAINER_ID);
+            if (modalEl) {
+                modalEl.addEventListener('hidden.bs.modal', function () {
+                    _pendingProcurementId = null;
+                    _pendingGrowerNameOverride = null;
+                    var banner = document.getElementById('intakeProcurementBanner');
+                    if (banner) banner.style.display = 'none';
+                });
+            }
             var addSupplierBtn = document.getElementById('intakeAddSupplierBtn');
             if (addSupplierBtn) addSupplierBtn.addEventListener('click', function (e) { e.preventDefault(); api.showAddSupplierForm(); });
             var newSupplierSubmit = document.getElementById('intakeNewSupplierSubmitBtn');
@@ -35,7 +48,7 @@ var _modal_grower_create_kernel_batch = (function () {
             }
         },
 
-        populateSupplierDropdown: function () {
+        populateSupplierDropdown: function (preselectSupplierId) {
             var sel = document.getElementById('intakeBatchGrower');
             if (!sel) return;
             sel.innerHTML = '<option value="">Select (optional)</option>';
@@ -54,8 +67,16 @@ var _modal_grower_create_kernel_batch = (function () {
                     opts += '<option value="' + c.id + '">' + name + code + '</option>';
                 });
                 sel.innerHTML = opts;
+                // Pre-select supplier if provided (e.g. from procurement calendar)
+                if (preselectSupplierId) {
+                    sel.value = preselectSupplierId;
+                }
                 sel.removeEventListener('change', api._onGrowerChange);
                 sel.addEventListener('change', api._onGrowerChange);
+                // Trigger batch number suggestion if we pre-selected a supplier
+                if (preselectSupplierId && sel.value === preselectSupplierId) {
+                    api._onGrowerChange();
+                }
             }).catch(function (e) { console.error('Error loading suppliers:', e); });
         },
 
@@ -139,11 +160,15 @@ var _modal_grower_create_kernel_batch = (function () {
             });
         },
 
-        show: async function () {
+        show: async function (options) {
+            var opts = options || {};
             var today = new Date().toISOString().split('T')[0];
+
+            // Use prefilled received date if provided, else today
+            var receivedDate = (opts.receivedDate && String(opts.receivedDate).split('T')[0]) || today;
             var dateEl = document.getElementById('intakeBatchReceivedDate');
             if (dateEl) {
-                dateEl.value = today;
+                dateEl.value = receivedDate;
                 dateEl.removeEventListener('change', api._onReceivedDateChange);
                 dateEl.addEventListener('change', api._onReceivedDateChange);
             }
@@ -154,13 +179,32 @@ var _modal_grower_create_kernel_batch = (function () {
             numberEl && numberEl.setAttribute('placeholder', 'Bn suggestion or any batch number you need');
 
             var wetEl = document.getElementById('intakeBatchWetNis');
-            if (wetEl) wetEl.value = '';
+            if (wetEl) wetEl.value = opts.wetNisKg != null ? opts.wetNisKg : '';
 
-            api.populateSupplierDropdown();
+            _pendingGrowerNameOverride = opts.growerNameOverride || null;
+
+            api.populateSupplierDropdown(opts.supplierId);
+
+            // Show procurement banner if opened from calendar
+            var banner = document.getElementById('intakeProcurementBanner');
+            if (banner) banner.style.display = opts.fromProcurement ? '' : 'none';
 
             var modalEl = document.getElementById(CONTAINER_ID);
             if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
             else if (typeof $ !== 'undefined' && $.fn.modal) $('#' + CONTAINER_ID).modal('show');
+        },
+
+        /** Open from the procurement calendar with pre-filled data. */
+        showFromProcurement: function (procurement) {
+            if (!procurement) return;
+            _pendingProcurementId = procurement.id || null;
+            api.show({
+                supplierId:        procurement.supplier_id || null,
+                growerNameOverride: procurement.grower_name || null,
+                receivedDate:      procurement.scheduled_date || null,
+                wetNisKg:          procurement.predicted_weight_kg || null,
+                fromProcurement:   true
+            });
         },
 
         _onGrowerChange: function () {
@@ -224,6 +268,8 @@ var _modal_grower_create_kernel_batch = (function () {
                 if (opt && opt.text) growerName = opt.text.trim();
             }
             if (growerName === '' || growerName === 'Select (optional)') growerName = null;
+            // Fall back to procurement grower name override when no supplier selected
+            if (!growerName && _pendingGrowerNameOverride) growerName = _pendingGrowerNameOverride;
 
             if (!batchNumber || !receivedDate || !wetNis || wetNis <= 0) {
                 if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch number, received date and wet NIS (kg) are required.', 'error');
@@ -279,6 +325,22 @@ var _modal_grower_create_kernel_batch = (function () {
                     $('#' + CONTAINER_ID).modal('hide');
                 }
 
+                // If opened from procurement calendar, mark the procurement as converted
+                if (_pendingProcurementId) {
+                    var pendingId = _pendingProcurementId;
+                    _pendingProcurementId = null;
+                    _pendingGrowerNameOverride = null;
+                    var banner = document.getElementById('intakeProcurementBanner');
+                    if (banner) banner.style.display = 'none';
+                    var dfConvert = (typeof _dataFunctions !== 'undefined' && _dataFunctions) ? _dataFunctions
+                        : (typeof dataFunctions !== 'undefined' ? dataFunctions : null);
+                    if (dfConvert && typeof dfConvert.convertKernelIntakeProcurement === 'function') {
+                        dfConvert.convertKernelIntakeProcurement(pendingId, batchUuid).catch(function (err) {
+                            console.warn('[Create kernel batch] Failed to convert procurement:', err);
+                        });
+                    }
+                }
+
                 if (typeof Swal !== 'undefined') Swal.fire({
                     icon: 'success',
                     title: 'Batch created',
@@ -294,6 +356,8 @@ var _modal_grower_create_kernel_batch = (function () {
                     : (typeof window.growerIntakeGrid !== 'undefined' && window.growerIntakeGrid.loadIntakeBatches ? window.growerIntakeGrid : null);
                 if (grid) {
                     await grid.loadIntakeBatches(true);
+                    // Refresh procurement calendar to remove converted entry
+                    if (typeof grid.loadProcurements === 'function') grid.loadProcurements(true);
                 } else {
                     console.warn('[Create kernel batch] Grower Intake grid not found; refresh the page to see the new batch.');
                 }

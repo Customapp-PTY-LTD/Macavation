@@ -1228,6 +1228,13 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
     'adjust_kernel_stock_on_hand',
     'update_kernel_stock_batch_info'
   ]);
+  // Grower Intake procurement calendar — skip Lambda RBAC when role_permissions rows are missing.
+  const growerIntakeProcurementFunctions = new Set([
+    'get_kernel_intake_procurements',
+    'upsert_kernel_intake_procurement',
+    'convert_kernel_intake_procurement',
+    'delete_kernel_intake_procurement'
+  ]);
   // Kernel dispatch: unlock dispatched basket — skip Lambda RBAC (matches document-module pattern).
   // Require a real signed-in user (not anonymous mock) so exempted/unauthenticated proxy paths
   // cannot call this RPC.
@@ -1240,7 +1247,8 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
   const skipRbacForRelaxedRpc =
     skipRbacRevertKernelDispatch ||
     (documentManagementFunctions.has(functionName) && !user.exempted) ||
-    (kernelJobCardFunctions.has(functionName) && !user.exempted);
+    (kernelJobCardFunctions.has(functionName) && !user.exempted) ||
+    (growerIntakeProcurementFunctions.has(functionName) && !user.exempted);
 
   if (!skipRbacForRelaxedRpc) {
     // RBAC Permission Check (even for exempted users)

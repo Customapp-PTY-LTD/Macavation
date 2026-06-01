@@ -1937,4 +1937,4 @@ ORDER BY
 *Last Updated: January 2026*
 *Total Scenarios: 167*
 *Modules Covered: 14*
-*Supabase Project: iwxmuemrfopajwvqdiae*
+*Supabase Project: sofanhfpxifgdtooefzq (Macavation)*

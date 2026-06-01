@@ -1,7 +1,17 @@
 # Macavation — Cursor rules
 
-Project-specific AI rules live in **`.cursor/rules/`** (for example `user-guide-update.mdc`, `user-guide-on-webportal-changes.mdc`, `no-e2e-test-results-in-git.mdc`).
+Project-specific AI rules live in **`.cursor/rules/`** (for example `user-guide-update.mdc`, `user-guide-on-webportal-changes.mdc`, `no-e2e-test-results-in-git.mdc`, **`supabase-macavation-only.mdc`**).
 
 The Web Portal app is under **`WebPortal/`**. Database changes belong in **`migrations/`**. E2E tests and help screenshot capture: **`Playwright Tests/`** (see `Playwright Tests/README.md`).
 
 Legacy notes and one-off guides: **`docs/markdown-archive/`**.
+
+## Supabase — Macavation only (never FruitLive)
+
+**Always** use the **Macavation** Supabase project (`sofanhfpxifgdtooefzq`). **Never** run migrations, SQL, seeds, or MCP database work against **FruitLive** (`iwxmuemrfopajwvqdiae`) or any other project unless the user explicitly requests a different target.
+
+- **Apply migrations:** `npm run db:apply -- migrations/….sql` (Supabase CLI linked to `sofanhfpxifgdtooefzq`)
+- **Before MCP DB tools:** call `get_project_url` — must be `https://sofanhfpxifgdtooefzq.supabase.co`; if not, stop and use CLI
+- **Guardrail:** `npm run db:check-project`
+
+Full workflow: [`.cursor/rules/supabase-macavation-only.mdc`](.cursor/rules/supabase-macavation-only.mdc)

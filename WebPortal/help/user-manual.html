@@ -231,20 +231,30 @@
       <article id="grower-intake" class="manual-chapter">
         <h2>Grower Intake</h2>
         <span class="route-tag">grower-intake-grid</span>
-        <p><strong>Grower Intake</strong> is the kernel-side receiving process: deliveries from growers, receiving checklists, batch testing and samples, and creation of kernel batches before production.</p>
-        <h3>Concepts</h3>
+        <p><strong>Grower Intake</strong> is the kernel-side receiving process: it includes a <strong>Procurement Calendar</strong> for planning expected deliveries, as well as receiving checklists, batch testing and samples, and creation of kernel batches before production.</p>
+        <h3>Procurement Calendar</h3>
+        <p>The collapsible <strong>Procurement Calendar</strong> sits above the search bar. It lets the team schedule expected grower deliveries before they arrive, so purchasing intentions are visible to everyone in the portal.</p>
         <ul>
-          <li><strong>Receiving checklist</strong> (stage 1) usually must be completed before batch test and sample actions unlock.</li>
-          <li><strong>Create kernel batch</strong> registers a new intake record tied to CRM growers where pickers exist.</li>
+          <li>Click any calendar day to select it. The right panel shows existing procurement entries for that day and an <strong>Add procurement</strong> form.</li>
+          <li>Fill in the optional grower/supplier dropdown, an optional free-text grower name override, and the <strong>predicted weight in kg</strong>, then click <strong>Add procurement</strong>. The delivery appears as a pill on the day.</li>
+          <li>Drag a pill to a different day to reschedule it. The date is updated immediately.</li>
+          <li>When the delivery physically arrives, drag the pill from the calendar into the <strong>Receiving</strong> column of the Kanban board below. The <strong>Create kernel batch</strong> dialog opens pre-filled with the grower, scheduled date, and predicted weight. Adjust if needed and save — the batch is created in Receiving and the procurement entry is marked as converted and removed from the calendar.</li>
+          <li>Click the <strong>×</strong> button next to any entry in the day panel to delete a scheduled delivery.</li>
+          <li>Navigate between months using the <strong>&lt;</strong> / <strong>&gt;</strong> arrows in the calendar header. The calendar collapses with the chevron button.</li>
+        </ul>
+        <h3>Batch intake workflow</h3>
+        <ul>
+          <li><strong>Receiving checklist</strong> (stage 1) must be completed before batch test and sample actions unlock.</li>
+          <li><strong>Create kernel batch</strong> registers a new intake record tied to a CRM grower/supplier.</li>
           <li><strong>Release to production</strong> hands the batch to Kernel Production when quality and checklist rules are satisfied (silo selection may apply).</li>
         </ul>
         <h3>Typical tasks</h3>
         <ol>
           <li>Open <strong>Grower Intake</strong>; use Board or Table view as preferred.</li>
-          <li>Find the delivery with search and status filters.</li>
-          <li>Complete the receiving checklist from the batch card or row actions.</li>
-          <li>Run batch test and sample steps when the UI enables them; link samples to batches when required.</li>
-          <li>Release to production when allowed.</li>
+          <li>Add expected deliveries on the Procurement Calendar so the team knows what is coming and when.</li>
+          <li>When a delivery arrives, drag its calendar pill into the Receiving lane (or use <strong>Create kernel batch</strong> manually).</li>
+          <li>Complete the receiving checklist, then batch test and sample steps.</li>
+          <li>Release to production when all quality steps are satisfied.</li>
         </ol>
         <p class="contextual-help"><a href="index.html#grower-intake-grid">Grower Intake</a> · <a href="index.html#modal-grower-receiving-checklist">Receiving checklist</a> · <a href="index.html#modal-grower-create-kernel-batch">Create kernel batch</a> · <a href="index.html#modal-grower-link-sample-to-batch">Link sample to batch</a></p>
       </article>

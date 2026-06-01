@@ -36,10 +36,20 @@ var _growerIntakeGrid = function () {
         releaseBatchIdForSilos: null,
         siloList: [],
 
+        // Procurement calendar state
+        procurementCalendarMonth: null,
+        selectedProcurementCalendarDate: null,
+        procurementByDate: {},
+        procurementItems: [],
+        _procurementSortableInstances: [],
+        _procurementReceivingSortable: null,
+        _procurementSupplierCache: null,
+
         init: () => {
             const scope = _growerIntakeGrid;
             scope.bindEvents();
             scope.loadIntakeBatches(true);
+            scope.loadProcurements(true);
             const loadPromises = [];
             $('.modal[route-name]').each((index, el) => {
                 const routeName = $(el).attr('route-name');
@@ -62,6 +72,40 @@ var _growerIntakeGrid = function () {
 
         bindEvents: () => {
             const scope = _growerIntakeGrid;
+
+            // Procurement calendar navigation
+            $(document).on('click', '#giProcurementCalendarPrevBtn', () => scope.shiftProcurementCalendarMonth(-1));
+            $(document).on('click', '#giProcurementCalendarNextBtn', () => scope.shiftProcurementCalendarMonth(1));
+
+            // Day click (delegated; pills inside also bubble up, so check target is the day or its daynum)
+            $(document).on('click', '#giProcurementCalendarGrid .gi-procurement-calendar-day', function (e) {
+                if ($(e.target).closest('.gi-procurement-pill').length) return; // let pill handle
+                var iso = $(this).data('iso');
+                if (iso) {
+                    scope.selectedProcurementCalendarDate = iso;
+                    var cellMonth = new Date(iso + 'T12:00:00');
+                    var calMonth = scope.procurementCalendarMonth instanceof Date ? scope.procurementCalendarMonth : new Date();
+                    if (cellMonth.getFullYear() !== calMonth.getFullYear() || cellMonth.getMonth() !== calMonth.getMonth()) {
+                        scope.procurementCalendarMonth = new Date(cellMonth.getFullYear(), cellMonth.getMonth(), 1);
+                    }
+                    scope.renderProcurementCalendar();
+                }
+            });
+
+            // Save procurement from detail panel form
+            $(document).on('click', '#giProcurementSaveBtn', function (e) {
+                e.preventDefault();
+                scope.saveProcurementFromForm();
+            });
+
+            // Delete procurement pill
+            $(document).on('click', '.gi-procurement-delete-btn', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var id = $(this).data('procurement-id');
+                if (id) scope.deleteProcurement(id);
+            });
+
             $('#addSampleBtn').off('click').on('click', () => scope.showAddSampleModal());
             $('#createKernelBatchBtn').off('click').on('click', () => {
                 if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.show) {
@@ -483,6 +527,10 @@ var _growerIntakeGrid = function () {
 
             // Drag-and-drop: forward transitions only
             var colOrder = ['receiving', 'intake_received', 'quality_pending', 'quality_approved'];
+            // Re-bind procurement drop zone after every Kanban render (DOM is replaced by KanbanHelper)
+            if (typeof _growerIntakeGrid._bindProcurementReceivingDrop === 'function') {
+                _growerIntakeGrid._bindProcurementReceivingDrop();
+            }
             KanbanHelper.enableDragDrop('giKanbanBoard', function (batchId, fromKey, toKey) {
                 var fromIdx = colOrder.indexOf(fromKey);
                 var toIdx = colOrder.indexOf(toKey);
@@ -720,7 +768,445 @@ var _growerIntakeGrid = function () {
             } else if (typeof Swal !== 'undefined') {
                 Swal.fire('Error', 'Export utility not available', 'error');
             }
+        },
+
+        // ================================================================
+        // Procurement Calendar methods
+        // ================================================================
+
+        _procIsoFromDate: (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'),
+
+        _procParseIso: (iso) => {
+            if (!iso) return null;
+            var p = String(iso).split('-');
+            return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        },
+
+        _procFormatMonthYear: (d) => d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
+
+        _procFormatDisplayDate: (iso) => {
+            var d = _growerIntakeGrid._procParseIso(iso);
+            if (!d) return iso || '';
+            return d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+        },
+
+        _procEsc: (str) => {
+            if (!str) return '';
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
+        },
+
+        _procBuildIndex: (items) => {
+            var idx = {};
+            (items || []).forEach(function (p) {
+                var iso = p.scheduled_date ? String(p.scheduled_date).split('T')[0] : null;
+                if (!iso) return;
+                if (!idx[iso]) idx[iso] = [];
+                idx[iso].push(p);
+            });
+            Object.keys(idx).forEach(function (iso) {
+                idx[iso].sort(function (a, b) {
+                    var si = (a.sort_index != null ? a.sort_index : 9999) - (b.sort_index != null ? b.sort_index : 9999);
+                    if (si !== 0) return si;
+                    return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+                });
+            });
+            return idx;
+        },
+
+        _procDisplayName: (p) => {
+            if (p.grower_name && p.grower_name.trim()) return p.grower_name.trim();
+            if (p._supplierName) return p._supplierName;
+            return 'Grower';
+        },
+
+        loadProcurements: async (forceRefresh) => {
+            const scope = _growerIntakeGrid;
+            var df = typeof _dataFunctions !== 'undefined' && _dataFunctions ? _dataFunctions
+                   : typeof dataFunctions !== 'undefined' ? dataFunctions : null;
+            if (!df || typeof df.getKernelIntakeProcurements !== 'function') {
+                scope.procurementItems = [];
+                scope.procurementByDate = {};
+                scope.renderProcurementCalendar();
+                return;
+            }
+            // Fetch a generous window: 3 months either side of current calendar month
+            var base = scope.procurementCalendarMonth instanceof Date ? scope.procurementCalendarMonth : new Date();
+            var from = new Date(base.getFullYear(), base.getMonth() - 1, 1);
+            var to   = new Date(base.getFullYear(), base.getMonth() + 3, 0);
+            var fromIso = scope._procIsoFromDate(from);
+            var toIso   = scope._procIsoFromDate(to);
+            try {
+                var items = await df.getKernelIntakeProcurements(fromIso, toIso, !!forceRefresh);
+                scope.procurementItems = items || [];
+                // Attach supplier display names if we have contacts cached
+                if (scope._procurementSupplierCache) {
+                    scope._attachProcurementSupplierNames(scope._procurementSupplierCache);
+                } else {
+                    // Try to pre-load supplier list for display names
+                    if (typeof df.getContacts === 'function') {
+                        df.getContacts(null, false).then(function (contacts) {
+                            if (Array.isArray(contacts)) {
+                                scope._procurementSupplierCache = contacts;
+                                scope._attachProcurementSupplierNames(contacts);
+                                scope.procurementByDate = scope._procBuildIndex(scope.procurementItems);
+                                scope.renderProcurementCalendar();
+                            }
+                        }).catch(function () {});
+                    }
+                }
+            } catch (e) {
+                console.error('[Procurement Calendar] Failed to load:', e);
+                scope.procurementItems = [];
+            }
+            scope.procurementByDate = scope._procBuildIndex(scope.procurementItems);
+            scope.renderProcurementCalendar();
+        },
+
+        _attachProcurementSupplierNames: (contacts) => {
+            const scope = _growerIntakeGrid;
+            var map = {};
+            (contacts || []).forEach(function (c) {
+                map[c.id] = c.company_name || c.trading_name || c.primary_contact_name || '';
+            });
+            (scope.procurementItems || []).forEach(function (p) {
+                if (p.supplier_id && map[p.supplier_id]) p._supplierName = map[p.supplier_id];
+            });
+        },
+
+        shiftProcurementCalendarMonth: (delta) => {
+            const scope = _growerIntakeGrid;
+            var base = scope.procurementCalendarMonth instanceof Date ? scope.procurementCalendarMonth : new Date();
+            scope.procurementCalendarMonth = new Date(base.getFullYear(), base.getMonth() + delta, 1);
+            scope.selectedProcurementCalendarDate = null;
+            scope.loadProcurements(true);
+        },
+
+        renderProcurementCalendar: () => {
+            const scope = _growerIntakeGrid;
+            var gridEl = document.getElementById('giProcurementCalendarGrid');
+            var labelEl = document.getElementById('giProcurementCalendarMonthLabel');
+            if (!gridEl || !labelEl) return;
+
+            var monthDate = scope.procurementCalendarMonth instanceof Date
+                ? scope.procurementCalendarMonth : new Date();
+            monthDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+            scope.procurementCalendarMonth = monthDate;
+            labelEl.textContent = scope._procFormatMonthYear(monthDate);
+
+            var index = scope._procBuildIndex(scope.procurementItems);
+            scope.procurementByDate = index;
+
+            // Auto-select today if nothing selected
+            if (!scope.selectedProcurementCalendarDate) {
+                scope.selectedProcurementCalendarDate = scope._procIsoFromDate(new Date());
+            }
+
+            var firstCell = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1 - monthDate.getDay());
+            var esc = scope._procEsc;
+            var html = '';
+            for (var i = 0; i < 42; i++) {
+                var cellDate = new Date(firstCell.getFullYear(), firstCell.getMonth(), firstCell.getDate() + i);
+                var iso = scope._procIsoFromDate(cellDate);
+                var entries = index[iso] || [];
+                var isCurrentMonth = cellDate.getMonth() === monthDate.getMonth();
+                var classes = ['gi-procurement-calendar-day'];
+                if (!isCurrentMonth) classes.push('is-outside-month');
+                if (entries.length > 0) classes.push('has-procurement');
+                if (scope.selectedProcurementCalendarDate === iso) classes.push('is-active');
+
+                html += '<div class="' + classes.join(' ') + '" data-iso="' + esc(iso) + '">';
+                html += '<div class="gi-procurement-calendar-daynum">' + cellDate.getDate() + '</div>';
+                html += '<div class="gi-procurement-calendar-day-pills" data-iso="' + esc(iso) + '">';
+                entries.forEach(function (p) {
+                    var name = scope._procDisplayName(p);
+                    var wt = p.predicted_weight_kg != null ? (p.predicted_weight_kg >= 1000
+                        ? (p.predicted_weight_kg / 1000).toFixed(1) + 't'
+                        : p.predicted_weight_kg + 'kg') : '';
+                    html += '<div class="gi-procurement-pill" data-procurement-id="' + esc(p.id) + '" draggable="false">' +
+                        '<span class="gi-procurement-pill-name" title="' + esc(name) + '">' + esc(name.length > 12 ? name.substring(0, 11) + '…' : name) + '</span>' +
+                        (wt ? '<span class="gi-procurement-pill-weight">' + esc(wt) + '</span>' : '') +
+                        '</div>';
+                });
+                html += '</div>';
+                html += '</div>';
+            }
+            gridEl.innerHTML = html;
+
+            scope.renderProcurementCalendarDetail(scope.selectedProcurementCalendarDate);
+            scope._bindProcurementDragDrop();
+        },
+
+        renderProcurementCalendarDetail: (iso) => {
+            const scope = _growerIntakeGrid;
+            var detailEl = document.getElementById('giProcurementCalendarDetail');
+            if (!detailEl) return;
+            var esc = scope._procEsc;
+
+            var entries = iso ? (scope.procurementByDate[iso] || []) : [];
+            var dateTitle = iso ? '<div class="gi-procurement-calendar-detail-title">' + esc(scope._procFormatDisplayDate(iso)) + '</div>' : '';
+
+            // Build add-procurement form (always shown for selected day)
+            var formHtml = '';
+            if (iso) {
+                formHtml = '<div class="gi-procurement-add-form mb-3">' +
+                    '<div class="mb-2">' +
+                    '<label class="form-label">Grower / supplier</label>' +
+                    '<select class="form-select form-select-sm" id="giProcurementSupplierSel"><option value="">Select (optional)</option></select>' +
+                    '</div>' +
+                    '<div class="mb-2">' +
+                    '<label class="form-label">Grower name override <span class="text-muted fw-normal small">(optional)</span></label>' +
+                    '<input type="text" class="form-control form-control-sm" id="giProcurementGrowerName" placeholder="Free-text name if not in supplier list">' +
+                    '</div>' +
+                    '<div class="mb-2">' +
+                    '<label class="form-label">Predicted weight (kg) <span class="text-danger">*</span></label>' +
+                    '<input type="number" class="form-control form-control-sm" id="giProcurementWeightKg" min="0.1" step="0.1" placeholder="e.g. 5000">' +
+                    '</div>' +
+                    '<button type="button" class="btn btn-primary btn-sm w-100" id="giProcurementSaveBtn"><i class="fas fa-plus me-1"></i>Add procurement</button>' +
+                    '</div>';
+            }
+
+            // Build existing entries list
+            var entriesHtml = '';
+            if (entries.length > 0) {
+                entriesHtml = '<div class="mb-1 small text-muted fw-semibold">Scheduled deliveries</div>';
+                entries.forEach(function (p) {
+                    var name = scope._procDisplayName(p);
+                    var wt = p.predicted_weight_kg != null ? p.predicted_weight_kg + ' kg' : '';
+                    entriesHtml += '<div class="gi-procurement-detail-entry" data-procurement-id="' + esc(p.id) + '">' +
+                        '<div>' +
+                        '<div class="gi-procurement-entry-grower">' + esc(name) + '</div>' +
+                        (wt ? '<div class="gi-procurement-entry-weight"><i class="fas fa-weight-hanging me-1"></i>' + esc(wt) + '</div>' : '') +
+                        '</div>' +
+                        '<div class="gi-procurement-entry-actions">' +
+                        '<button type="button" class="btn btn-sm btn-outline-danger gi-procurement-delete-btn" data-procurement-id="' + esc(p.id) + '" title="Delete"><i class="fas fa-times"></i></button>' +
+                        '</div>' +
+                        '</div>';
+                });
+            } else if (iso) {
+                entriesHtml = '<div class="gi-procurement-calendar-detail-empty">No scheduled deliveries for this day.</div>';
+            }
+
+            if (!iso) {
+                detailEl.innerHTML = '<div class="gi-procurement-calendar-detail-empty">Select a day to view or add procurement.</div>';
+            } else {
+                detailEl.innerHTML = dateTitle + formHtml + entriesHtml;
+                scope._populateProcurementSupplierDropdown();
+            }
+        },
+
+        _populateProcurementSupplierDropdown: () => {
+            const scope = _growerIntakeGrid;
+            var sel = document.getElementById('giProcurementSupplierSel');
+            if (!sel) return;
+            var TYPES = ['nis_supplier', 'supplier', 'both'];
+            var df = typeof _dataFunctions !== 'undefined' && _dataFunctions ? _dataFunctions
+                   : typeof dataFunctions !== 'undefined' ? dataFunctions : null;
+            if (!df || typeof df.getContacts !== 'function') return;
+            df.getContacts(null, false).then(function (raw) {
+                var contacts = Array.isArray(raw) ? raw : (raw && raw.get_contacts ? raw.get_contacts : (raw && raw.data ? raw.data : []));
+                if (!Array.isArray(contacts)) return;
+                scope._procurementSupplierCache = contacts;
+                scope._attachProcurementSupplierNames(contacts);
+                var suppliers = contacts.filter(function (c) { return TYPES.indexOf((c.contact_type || '').trim()) >= 0; });
+                var opts = '<option value="">Select (optional)</option>';
+                suppliers.forEach(function (c) {
+                    var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
+                    var code = c.supplier_number != null ? ' (' + c.supplier_number + ')' : '';
+                    opts += '<option value="' + c.id + '">' + name + code + '</option>';
+                });
+                sel.innerHTML = opts;
+            }).catch(function (e) { console.error('[Procurement] Suppliers load error:', e); });
+        },
+
+        saveProcurementFromForm: async () => {
+            const scope = _growerIntakeGrid;
+            var iso = scope.selectedProcurementCalendarDate;
+            if (!iso) return;
+            var selEl = document.getElementById('giProcurementSupplierSel');
+            var nameEl = document.getElementById('giProcurementGrowerName');
+            var wtEl   = document.getElementById('giProcurementWeightKg');
+            var supplierId = selEl && selEl.value ? selEl.value : null;
+            var growerName = nameEl && nameEl.value ? nameEl.value.trim() : null;
+            var weightKg = wtEl ? parseFloat(wtEl.value) : NaN;
+
+            if (!weightKg || weightKg <= 0) {
+                if (typeof Swal !== 'undefined') Swal.fire('Validation', 'Predicted weight (kg) is required and must be greater than zero.', 'warning');
+                if (wtEl) wtEl.focus();
+                return;
+            }
+
+            var df = typeof _dataFunctions !== 'undefined' && _dataFunctions ? _dataFunctions
+                   : typeof dataFunctions !== 'undefined' ? dataFunctions : null;
+            if (!df || typeof df.upsertKernelIntakeProcurement !== 'function') {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Data layer not ready.', 'error');
+                return;
+            }
+
+            var btn = document.getElementById('giProcurementSaveBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+            try {
+                var existing = scope.procurementByDate[iso] || [];
+                await df.upsertKernelIntakeProcurement({
+                    scheduled_date:      iso,
+                    supplier_id:         supplierId,
+                    grower_name:         growerName,
+                    predicted_weight_kg: weightKg,
+                    sort_index:          existing.length
+                });
+                await scope.loadProcurements(true);
+            } catch (e) {
+                console.error('[Procurement] Save error:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save procurement.', 'error');
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus me-1"></i>Add procurement'; }
+            }
+        },
+
+        deleteProcurement: async (procurementId) => {
+            const scope = _growerIntakeGrid;
+            if (!procurementId) return;
+            var confirmed = typeof Swal !== 'undefined'
+                ? (await Swal.fire({ title: 'Delete procurement?', text: 'This scheduled delivery will be removed from the calendar.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#dc3545' })).isConfirmed
+                : window.confirm('Delete this procurement entry?');
+            if (!confirmed) return;
+            var df = typeof _dataFunctions !== 'undefined' && _dataFunctions ? _dataFunctions
+                   : typeof dataFunctions !== 'undefined' ? dataFunctions : null;
+            if (!df || typeof df.deleteKernelIntakeProcurement !== 'function') return;
+            try {
+                await df.deleteKernelIntakeProcurement(procurementId);
+                await scope.loadProcurements(true);
+            } catch (e) {
+                console.error('[Procurement] Delete error:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to delete procurement.', 'error');
+            }
+        },
+
+        rescheduleProcurement: async (procurementId, newIso) => {
+            const scope = _growerIntakeGrid;
+            if (!procurementId || !newIso) return;
+            var df = typeof _dataFunctions !== 'undefined' && _dataFunctions ? _dataFunctions
+                   : typeof dataFunctions !== 'undefined' ? dataFunctions : null;
+            if (!df || typeof df.upsertKernelIntakeProcurement !== 'function') return;
+            // Find existing procurement data
+            var existing = null;
+            (scope.procurementItems || []).forEach(function (p) { if (p.id === procurementId) existing = p; });
+            if (!existing) return;
+            var targetEntries = scope.procurementByDate[newIso] || [];
+            try {
+                await df.upsertKernelIntakeProcurement({
+                    id:                  procurementId,
+                    scheduled_date:      newIso,
+                    supplier_id:         existing.supplier_id || null,
+                    grower_name:         existing.grower_name || null,
+                    predicted_weight_kg: existing.predicted_weight_kg,
+                    sort_index:          targetEntries.length
+                });
+                await scope.loadProcurements(true);
+            } catch (e) {
+                console.error('[Procurement] Reschedule error:', e);
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to reschedule procurement.', 'error');
+                await scope.loadProcurements(true);
+            }
+        },
+
+        _bindProcurementDragDrop: () => {
+            const scope = _growerIntakeGrid;
+            if (typeof Sortable === 'undefined') return;
+
+            // Destroy existing pill sortable instances
+            (scope._procurementSortableInstances || []).forEach(function (s) { if (s && s.destroy) s.destroy(); });
+            scope._procurementSortableInstances = [];
+
+            // Each day's pills container is a sortable group
+            var pillContainers = document.querySelectorAll('#giProcurementCalendarGrid .gi-procurement-calendar-day-pills');
+            pillContainers.forEach(function (el) {
+                var instance = Sortable.create(el, {
+                    group: { name: 'gi-procurement-pills', pull: true, put: true },
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    filter: '.gi-procurement-delete-btn',
+                    onEnd: function (evt) {
+                        var pill = evt.item;
+                        var procurementId = pill.getAttribute('data-procurement-id');
+                        var toContainer = evt.to;
+                        var fromContainer = evt.from;
+                        if (!procurementId || !toContainer) return;
+
+                        var toIso = toContainer.getAttribute('data-iso');
+                        var fromIso = fromContainer ? fromContainer.getAttribute('data-iso') : null;
+
+                        if (toIso && toIso !== fromIso) {
+                            // Revert DOM immediately; state will be refreshed by loadProcurements
+                            if (fromContainer && evt.oldIndex != null) {
+                                fromContainer.insertBefore(pill, fromContainer.children[evt.oldIndex] || null);
+                            }
+                            scope.rescheduleProcurement(procurementId, toIso);
+                        }
+                    }
+                });
+                scope._procurementSortableInstances.push(instance);
+            });
+
+            // Bind drop-to-Receiving on the kanban board Receiving column body
+            scope._bindProcurementReceivingDrop();
+        },
+
+        _bindProcurementReceivingDrop: () => {
+            const scope = _growerIntakeGrid;
+            if (typeof Sortable === 'undefined') return;
+
+            // Destroy previous receiving sortable
+            if (scope._procurementReceivingSortable && scope._procurementReceivingSortable.destroy) {
+                scope._procurementReceivingSortable.destroy();
+                scope._procurementReceivingSortable = null;
+            }
+
+            var boardEl = document.getElementById('giKanbanBoard');
+            if (!boardEl) return;
+            var receivingBody = boardEl.querySelector('.kanban-column-body[data-column-key="receiving"]');
+            if (!receivingBody) return;
+
+            scope._procurementReceivingSortable = Sortable.create(receivingBody, {
+                group: { name: 'gi-procurement-pills', put: true, pull: false },
+                animation: 150,
+                onAdd: function (evt) {
+                    var pill = evt.item;
+                    var procurementId = pill.getAttribute('data-procurement-id');
+                    // Always revert — procurement pills should never live in the Kanban
+                    receivingBody.removeChild(pill);
+                    if (!procurementId) return;
+
+                    // Find the procurement data
+                    var procurement = null;
+                    (scope.procurementItems || []).forEach(function (p) { if (p.id === procurementId) procurement = p; });
+                    if (!procurement) return;
+
+                    // Open create-batch modal pre-filled
+                    if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.showFromProcurement) {
+                        _modal_grower_create_kernel_batch.showFromProcurement(procurement);
+                    } else {
+                        console.warn('[Procurement] showFromProcurement not available on create-batch modal');
+                    }
+                }
+            });
+
+            // Add visual drop-target hint while dragging
+            receivingBody.addEventListener('dragenter', function () {
+                receivingBody.classList.add('gi-receiving-drop-target');
+            });
+            receivingBody.addEventListener('dragleave', function (e) {
+                if (!receivingBody.contains(e.relatedTarget)) {
+                    receivingBody.classList.remove('gi-receiving-drop-target');
+                }
+            });
+            receivingBody.addEventListener('drop', function () {
+                receivingBody.classList.remove('gi-receiving-drop-target');
+            });
         }
+
     };
 }();
 if (typeof window !== 'undefined') {

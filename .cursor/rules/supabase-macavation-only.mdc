@@ -1,0 +1,81 @@
+---
+description: Macavation Supabase only — never FruitLive; CLI-first migrations; MCP pre-flight
+alwaysApply: true
+---
+
+# Supabase — Macavation only
+
+In this repo, **always** target the **Macavation** Supabase project. **Never** run migrations, SQL, seeds, or MCP database work against **FruitLive** or other org projects unless the user **explicitly** asks for a different project.
+
+## Canonical Macavation identifiers
+
+| Item | Value |
+|------|--------|
+| Project name | Macavation |
+| Project ref | `sofanhfpxifgdtooefzq` |
+| API URL | `https://sofanhfpxifgdtooefzq.supabase.co` |
+| Postgres host | `db.sofanhfpxifgdtooefzq.supabase.co` |
+| Committed remote pin | `supabase/remote.toml` |
+| Workspace MCP pin | `.cursor/mcp.json` → `project_ref=sofanhfpxifgdtooefzq` |
+
+Web Portal: `WebPortal/js/appRouteConfig.json`, `WebPortal/js/macavation-supabase.js`.  
+Node scripts: `scripts/lib/macavation-supabase.mjs`.
+
+## Blocked — never use by default
+
+- `iwxmuemrfopajwvqdiae` (**FruitLive**)
+- `https://iwxmuemrfopajwvqdiae.supabase.co`
+- Any Supabase project ref / URL that is not `sofanhfpxifgdtooefzq`
+
+## Mandatory pre-flight (agents and humans)
+
+Before **any** Supabase MCP call (`apply_migration`, `execute_sql`, `list_tables`, etc.):
+
+1. Call **`get_project_url`** (Supabase MCP).
+2. **Required result:** `https://sofanhfpxifgdtooefzq.supabase.co`
+3. If the URL is **anything else** (especially FruitLive): **STOP**. Do not run SQL or migrations via MCP.
+4. Apply schema changes with **CLI instead:**
+   ```bash
+   npm run db:apply -- migrations/YYYYMMDDHHMMSS_name.sql
+   ```
+
+If Cursor’s **user-level** Supabase MCP server points at the wrong project, use **Settings → MCP** and set the URL to:
+
+`https://mcp.supabase.com/mcp?project_ref=sofanhfpxifgdtooefzq`
+
+(or rely on this repo’s `.cursor/mcp.json` and disable conflicting user MCP entries).
+
+## Migrations — Supabase CLI first (preferred)
+
+1. **Author** SQL in `migrations/` (e.g. `YYYYMMDDHHMMSS_descriptive_name.sql`).
+2. **Apply** on Macavation only:
+   ```bash
+   npm run db:apply -- migrations/YYYYMMDDHHMMSS_name.sql
+   ```
+3. **First time on a machine:**
+   ```bash
+   supabase login
+   supabase link --project-ref sofanhfpxifgdtooefzq
+   ```
+4. **Verify** after apply:
+   ```bash
+   supabase db query --linked "SELECT version, name FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 5;"
+   ```
+5. **Guardrail before commit:** `npm run db:check-project`
+
+## MCP vs CLI
+
+| Action | Use |
+|--------|-----|
+| DDL / migrations | **CLI** `npm run db:apply` |
+| Read-only checks after CLI apply | MCP `execute_sql` **only if** `get_project_url` is Macavation |
+| MCP `apply_migration` | Avoid; use CLI. If MCP is the only option, **must** pass pre-flight first |
+
+## Scripts
+
+- Import `scripts/lib/macavation-supabase.mjs`; never hardcode FruitLive refs.
+- `PROJECT_REF` env override must still be `sofanhfpxifgdtooefzq` (asserted in library).
+
+## Why this matters
+
+The live Web Portal and Lambda proxy use **`sofanhfpxifgdtooefzq`**. Migrations applied to FruitLive (`iwxmuemrfopajwvqdiae`) do **not** affect production and cause **403 RBAC** / missing-function errors in the app.

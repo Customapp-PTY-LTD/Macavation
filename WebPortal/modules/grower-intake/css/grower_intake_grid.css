@@ -271,3 +271,244 @@
     background-color: #cfe2ff !important;
     color: #084298;
 }
+
+/* ================================================================
+   Procurement Calendar
+   Mirrors .kp-production-calendar-* from kernel_production_grid.css
+   ================================================================ */
+
+.gi-procurement-calendar-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.gi-procurement-calendar-toggle {
+    color: inherit;
+}
+
+.gi-procurement-calendar-toggle:hover {
+    color: inherit;
+}
+
+.gi-procurement-calendar-toggle-icon {
+    font-size: 0.85rem;
+    transition: transform 0.15s ease;
+}
+
+.gi-procurement-calendar-toggle[aria-expanded="false"] .gi-procurement-calendar-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.gi-procurement-calendar-month {
+    min-width: 140px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.gi-procurement-calendar-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.gi-procurement-calendar-weekdays,
+.gi-procurement-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.gi-procurement-calendar-weekdays {
+    margin-bottom: 0.5rem;
+}
+
+.gi-procurement-calendar-weekdays div {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.gi-procurement-calendar-day {
+    min-height: 84px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    background: #fff;
+    padding: 0.5rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.gi-procurement-calendar-day:hover {
+    border-color: #9ec5fe;
+}
+
+.gi-procurement-calendar-day.is-outside-month {
+    opacity: 0.45;
+}
+
+.gi-procurement-calendar-day.is-active {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+}
+
+.gi-procurement-calendar-day.has-procurement {
+    background: #e7f1ff;
+    border-color: #9ec5fe;
+}
+
+.gi-procurement-calendar-day.drag-over {
+    border-color: #0d6efd;
+    background: #dbeafe;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
+.gi-procurement-calendar-daynum {
+    font-weight: 600;
+    color: #212529;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Pills container inside each day cell */
+.gi-procurement-calendar-day-pills {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 4px;
+}
+
+/* Individual procurement pill */
+.gi-procurement-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.45rem;
+    border-radius: 999px;
+    background: #0d6efd;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: grab;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    user-select: none;
+    transition: opacity 0.1s ease;
+}
+
+.gi-procurement-pill:active {
+    cursor: grabbing;
+}
+
+.gi-procurement-pill.sortable-ghost {
+    opacity: 0.35;
+}
+
+.gi-procurement-pill.sortable-chosen {
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.45);
+}
+
+.gi-procurement-pill-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90px;
+}
+
+.gi-procurement-pill-weight {
+    opacity: 0.85;
+    flex-shrink: 0;
+}
+
+/* Detail panel (right side) */
+.gi-procurement-calendar-detail {
+    min-height: 300px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.75rem;
+    background: #fafbfc;
+    padding: 1rem;
+}
+
+.gi-procurement-calendar-detail-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.gi-procurement-calendar-detail-empty {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* Add procurement form inside detail panel */
+.gi-procurement-add-form {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.6rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.gi-procurement-add-form .form-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+/* Entry cards in detail panel */
+.gi-procurement-detail-entry {
+    border: 1px solid #dee2e6;
+    border-radius: 0.6rem;
+    background: #fff;
+    padding: 0.65rem 0.75rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 0.5rem;
+    cursor: grab;
+}
+
+.gi-procurement-detail-entry:last-child {
+    margin-bottom: 0;
+}
+
+.gi-procurement-detail-entry:active {
+    cursor: grabbing;
+}
+
+.gi-procurement-entry-grower {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #212529;
+}
+
+.gi-procurement-entry-weight {
+    color: #6c757d;
+    font-size: 0.82rem;
+    margin-top: 0.1rem;
+}
+
+.gi-procurement-entry-actions {
+    display: flex;
+    gap: 0.3rem;
+    flex-shrink: 0;
+}
+
+/* Receiving drop-zone highlight (applied by JS to the Receiving kanban column) */
+.gi-receiving-drop-target {
+    outline: 2px dashed #0d6efd;
+    outline-offset: 3px;
+    background: rgba(13, 110, 253, 0.05) !important;
+    transition: background 0.15s ease;
+}
+
+@media (max-width: 991.98px) {
+    .gi-procurement-calendar-layout {
+        grid-template-columns: 1fr;
+    }
+}

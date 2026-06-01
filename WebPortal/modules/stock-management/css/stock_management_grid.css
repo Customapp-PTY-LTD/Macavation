@@ -32,10 +32,28 @@
     overflow: visible !important;
 }
 .kernel-stock-table-wrapper {
-    overflow: visible !important;
+    max-height: calc(100vh - 17rem);
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
 }
 #kernelStockByStyleTable {
+    border-collapse: separate;
+    border-spacing: 0;
     overflow: visible !important;
+}
+#kernelStockByStyleTable thead tr:first-child th {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    background-color: var(--mac-bg-secondary, var(--bs-body-bg, #fff));
+    box-shadow: 0 1px 0 var(--bs-border-color, #dee2e6);
+}
+#kernelStockByStyleTable thead #kernelStockByStyleTotalsRow td {
+    position: sticky;
+    top: 2.125rem;
+    z-index: 11;
+    background-color: var(--mac-bg-tertiary, var(--bs-light, #f8f9fa));
+    box-shadow: 0 1px 0 var(--bs-border-color, #dee2e6);
 }
 #kernelStockByStyleTable tbody,
 #kernelStockByStyleTable tr,

@@ -6,6 +6,11 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
+            <!-- Shown when modal is opened from the procurement calendar -->
+            <div id="intakeProcurementBanner" class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3" style="display:none!important">
+                <i class="fas fa-calendar-check"></i>
+                <span>Converting scheduled delivery from the procurement calendar. Confirm or adjust details before saving.</span>
+            </div>
             <form id="createKernelBatchForm">
                 <div class="mb-3">
                     <label for="intakeBatchGrower" class="form-label">Grower / supplier</label>

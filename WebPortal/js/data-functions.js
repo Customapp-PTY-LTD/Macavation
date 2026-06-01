@@ -2045,6 +2045,117 @@ var _dataFunctions = function () {
             this.clearCachePattern('kernel_production_forecasts');
         },
 
+        // -----------------------------------------------------------------
+        // Kernel Intake Procurement calendar
+        // -----------------------------------------------------------------
+
+        extractKernelIntakeProcurementRowsFromRaw: function (raw, depth) {
+            const d = depth == null ? 0 : depth;
+            if (d > 8 || raw == null) return [];
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === 'string') {
+                const s = raw.trim();
+                if (s === '' || s === 'null') return [];
+                try {
+                    return this.extractKernelIntakeProcurementRowsFromRaw(JSON.parse(s), d + 1);
+                } catch (e) {
+                    return [];
+                }
+            }
+            if (typeof raw !== 'object') return [];
+            const keys = [
+                'data', 'Data',
+                'get_kernel_intake_procurements', 'GetKernelIntakeProcurements',
+                'result', 'Result',
+                'rows', 'Rows',
+                'records', 'Records',
+                'items', 'Items'
+            ];
+            for (let i = 0; i < keys.length; i++) {
+                const k = keys[i];
+                if (raw[k] == null) continue;
+                const got = this.extractKernelIntakeProcurementRowsFromRaw(raw[k], d + 1);
+                if (got.length > 0) return got;
+            }
+            if (raw.id != null && raw.scheduled_date != null) return [raw];
+            return [];
+        },
+
+        normalizeKernelIntakeProcurementRow: function (r) {
+            if (!r || typeof r !== 'object') return r;
+            const o = Object.assign({}, r);
+            if (o.id == null && o.Id != null) o.id = o.Id;
+            if (o.scheduled_date == null && o.ScheduledDate != null) o.scheduled_date = o.ScheduledDate;
+            if (o.supplier_id == null && o.SupplierId != null) o.supplier_id = o.SupplierId;
+            if (o.grower_name == null && o.GrowerName != null) o.grower_name = o.GrowerName;
+            if (o.predicted_weight_kg == null && o.PredictedWeightKg != null) o.predicted_weight_kg = o.PredictedWeightKg;
+            if (o.status == null && o.Status != null) o.status = o.Status;
+            if (o.batch_id == null && o.BatchId != null) o.batch_id = o.BatchId;
+            if (o.sort_index == null && o.SortIndex != null) o.sort_index = o.SortIndex;
+            if (o.predicted_weight_kg != null && typeof o.predicted_weight_kg !== 'number') {
+                const w = parseFloat(o.predicted_weight_kg);
+                o.predicted_weight_kg = isNaN(w) ? null : w;
+            }
+            return o;
+        },
+
+        normalizeKernelIntakeProcurementRows: function (rows) {
+            if (!Array.isArray(rows)) return [];
+            const scope = this;
+            return rows.map(function (row) { return scope.normalizeKernelIntakeProcurementRow(row); });
+        },
+
+        getKernelIntakeProcurements: async function (fromDate, toDate, forceRefresh, token = null) {
+            const cacheKey = 'kernel_intake_procurements_' + (fromDate || '') + '_' + (toDate || '');
+            const raw = await this.callFunction(
+                'get_kernel_intake_procurements',
+                { p_from: fromDate || null, p_to: toDate || null },
+                token,
+                { cacheKey, useCache: true, cacheTtl: this.cache.ttl.dynamic, forceRefresh: !!forceRefresh }
+            );
+            return this.normalizeKernelIntakeProcurementRows(
+                this.extractKernelIntakeProcurementRowsFromRaw(raw, 0)
+            );
+        },
+
+        upsertKernelIntakeProcurement: async function (payload, token = null) {
+            payload = payload || {};
+            const params = {
+                p_id:                  payload.id != null && payload.id !== '' ? payload.id : null,
+                p_scheduled_date:      payload.scheduled_date || null,
+                p_supplier_id:         payload.supplier_id != null && payload.supplier_id !== '' ? payload.supplier_id : null,
+                p_grower_name:         payload.grower_name != null ? payload.grower_name : '',
+                p_predicted_weight_kg: payload.predicted_weight_kg != null ? payload.predicted_weight_kg : null,
+                p_sort_index:          payload.sort_index != null ? payload.sort_index : null
+            };
+            const result = await this.callFunction('upsert_kernel_intake_procurement', params, token, { useCache: false });
+            this.clearCachePattern('kernel_intake_procurements');
+            const rows = this.extractKernelIntakeProcurementRowsFromRaw(result, 0);
+            return rows.length > 0 ? this.normalizeKernelIntakeProcurementRow(rows[0]) : null;
+        },
+
+        convertKernelIntakeProcurement: async function (procurementId, batchId, token = null) {
+            const result = await this.callFunction(
+                'convert_kernel_intake_procurement',
+                { p_id: procurementId, p_batch_id: batchId },
+                token,
+                { useCache: false }
+            );
+            this.clearCachePattern('kernel_intake_procurements');
+            return result;
+        },
+
+        deleteKernelIntakeProcurement: async function (procurementId, token = null) {
+            const result = await this.callFunction(
+                'delete_kernel_intake_procurement',
+                { p_id: procurementId },
+                token,
+                { useCache: false }
+            );
+            this.clearCachePattern('kernel_intake_procurements');
+            return result;
+        },
+
         extractOilProductionForecastRowsFromRaw: function (raw, depth) {
             const d = depth == null ? 0 : depth;
             if (d > 8 || raw == null) return [];
