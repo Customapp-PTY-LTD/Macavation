@@ -1528,6 +1528,12 @@ var _modal_production_stages = (function () {
          */
         doSaveProductionStages: (silent) => {
             const scope = _modal_production_stages;
+            if (typeof hasAction === 'function' && !hasAction('kernel.production_stages.edit')) {
+                if (!silent && typeof Swal !== 'undefined') {
+                    Swal.fire('Not permitted', 'You do not have permission to edit production stages.', 'warning');
+                }
+                return;
+            }
             var batchId = $('#productionStagesBatchId').val();
             var dayId = $('#productionStagesDayId').val();
             if (!batchId) {

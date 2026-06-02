@@ -114,7 +114,6 @@ var _modal_role_permission = (function () {
                 if (modalEl && typeof bootstrap !== 'undefined') { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
                 else if (typeof $ !== 'undefined' && $.fn.modal) $('#permissionModal').modal('hide');
                 if (typeof _rolePermissionsGrid !== 'undefined' && _rolePermissionsGrid.loadPermissions) _rolePermissionsGrid.loadPermissions();
-                if (typeof _adminGrid !== 'undefined' && _adminGrid.reloadEmbeddedPermissionsIfActive) _adminGrid.reloadEmbeddedPermissionsIfActive();
             } catch (error) {
                 console.error('Error saving permission:', error);
                 api.showError('Error saving permission: ' + (error.message || ''));

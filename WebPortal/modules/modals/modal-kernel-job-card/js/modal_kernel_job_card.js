@@ -133,8 +133,17 @@ var _modal_kernel_job_card = (function () {
 
         initHandlers: () => {
             const scope = _modal_kernel_job_card;
+            if (typeof actionAccess !== 'undefined' && actionAccess.apply) {
+                actionAccess.apply(document.getElementById('saveJobCardBtn') ? document.getElementById('saveJobCardBtn').closest('.modal') || document : document);
+            }
             $('#saveJobCardBtn').off('click').on('click', function (e) {
                 e.preventDefault();
+                if (typeof hasAction === 'function' && !hasAction('kernel.job_card.approve')) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Not permitted', 'You do not have permission to approve job cards.', 'warning');
+                    }
+                    return;
+                }
                 scope.saveJobCard();
             });
             $('#addSoundKernelRow').off('click').on('click', function () { scope.addSoundKernelRow(); });

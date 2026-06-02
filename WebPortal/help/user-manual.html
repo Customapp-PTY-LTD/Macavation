@@ -444,12 +444,12 @@
       <article id="admin" class="manual-chapter">
         <h2>User &amp; access</h2>
         <span class="route-tag">admin-grid</span>
-        <p><strong>User &amp; access</strong> is the unified administration hub: <strong>People</strong> (user list and edit with optional password), <strong>Roles &amp; modules</strong> (full-width roles list; <strong>Customize</strong> opens module toggles, <strong>Advanced</strong> opens database permissions, <strong>Edit role</strong> edits name and description), and <strong>System</strong> (placeholder or environment tools depending on deployment).</p>
+        <p><strong>User &amp; access</strong> is the unified administration hub: <strong>People</strong> (user list and edit with optional password), <strong>Roles &amp; modules</strong> (full-width roles list; <strong>Customize</strong> opens module toggles and the per-module database permissions, <strong>Edit role</strong> edits name and description), and <strong>System</strong> (placeholder or environment tools depending on deployment).</p>
         <h3>Typical tasks</h3>
         <ol>
           <li>Open <strong>User &amp; access</strong> from the sidebar.</li>
           <li>On <strong>People</strong>, add or edit users; assign roles; use the same edit dialog behaviour as the standalone Users screen where applicable.</li>
-          <li>On <strong>Roles &amp; modules</strong>, use <strong>Customize</strong> to align module toggles with responsibility; use row <strong>Advanced</strong> only when adjusting database function permissions.</li>
+          <li>On <strong>Roles &amp; modules</strong>, use <strong>Customize</strong> to align module toggles with responsibility, and expand a module there to adjust its database function permissions.</li>
           <li>After permission or feature changes, test with a non-admin login; users may need to sign out and back in to refresh menu visibility.</li>
         </ol>
         <p class="contextual-help"><a href="index.html#admin-users-permissions">People</a> · <a href="index.html#admin-roles-management">Roles &amp; modules</a> · <a href="index.html#admin-system-configuration">System</a> · <a href="index.html#modal-admin-add-user">Add user</a> · <a href="index.html#modal-admin-add-role">Add role</a></p>
@@ -461,7 +461,7 @@
         <ul>
           <li><strong>Users</strong> (<span class="route-tag" style="margin:0">users-grid</span>) — standalone user grid (same edit patterns as <strong>People</strong> in the hub when both exist).</li>
           <li><strong>Roles</strong> (<span class="route-tag" style="margin:0">roles-grid</span>) — standalone roles grid.</li>
-          <li><strong>Database Role Permissions</strong> (<span class="route-tag" style="margin:0">role-permissions-grid</span>) — full matrix; hub embeds a filtered view under <strong>Advanced</strong>.</li>
+          <li><strong>Database Role Permissions</strong> (<span class="route-tag" style="margin:0">role-permissions-grid</span>) — full matrix; the hub now manages the same permissions per module under <strong>Roles &amp; modules</strong> → <strong>Customize</strong>.</li>
           <li><strong>Role Features</strong> (<span class="route-tag" style="margin:0">role-features-grid</span>) — legacy screen; hub <strong>Roles &amp; modules</strong> → <strong>Customize</strong> replaces it for daily work.</li>
           <li><strong>Features</strong> (<span class="route-tag" style="margin:0">features-grid</span>) — catalogue of feature keys; remains a sibling item under User &amp; access when assigned.</li>
         </ul>

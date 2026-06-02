@@ -30,7 +30,8 @@ var _executiveDashboard = function () {
         execStatDispatchWeek: 'Dispatch this week',
         execStatDispatchPending: 'Dispatch pending',
         execDailyMinuteTests: 'Daily minute tests',
-        execProductionTrends: 'Production Trends'
+        execProductionTrends: 'Production Trends',
+        execProcurementForecast: 'Procurement & forecast'
     };
 
     return {
@@ -59,6 +60,7 @@ var _executiveDashboard = function () {
             await scope.loadProductionStats();
             await scope.loadDailyMinuteTests();
             await scope.loadProductionTrendsChart();
+            await scope.loadProcurementForecastChart();
         },
 
         getDashboardVisibility: function () {
@@ -84,9 +86,42 @@ var _executiveDashboard = function () {
             }
         },
 
+        // Role-specific default widget sets. Used only when the user has not saved
+        // a custom selection. null/missing role falls back to all widgets.
+        getDefaultWidgetsForRole: function () {
+            var role = '';
+            try {
+                if (typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getUserRole) {
+                    role = String(roleMenuConfig.getUserRole() || '').toLowerCase();
+                }
+                if (!role) {
+                    var user = (typeof Session !== 'undefined' && Session.get) ? Session.get('user') : null;
+                    role = String((user && (user.role_name || user.role)) || '').toLowerCase();
+                }
+            } catch (e) { role = ''; }
+
+            var production = ['totalProduction', 'execStatBatchesInProduction', 'execStatKgCrackedToday', 'execStatKgCrackedWeek',
+                'execStatKgPackedToday', 'execStatKgPackedWeek', 'execStatBatchesAwaitingTest', 'execStatBatchesReleaseReady',
+                'execStatBatchesCompletedWeek', 'execStatBatchesInIntake', 'execDailyMinuteTests', 'execProductionTrends'];
+            var oil = ['execStatOilLitresToday', 'execStatOilLitresWeek', 'execProductionTrends', 'totalProduction'];
+            var qa = ['execStatBatchesAwaitingTest', 'execStatBatchesReleaseReady', 'execDailyMinuteTests', 'totalProduction'];
+            var forecastSales = ['execProcurementForecast', 'totalProduction', 'execStatBatchesCompletedWeek', 'execProductionTrends'];
+
+            var map = {
+                'production manager': production,
+                'qa supervisor': qa,
+                'oil plant manager': oil,
+                'pwa sales': forecastSales
+            };
+            return map[role] || null;
+        },
+
         applyDashboardVisibility: function () {
             var visible = _executiveDashboard.getDashboardVisibility();
-            var allIds = Object.keys(DASHBOARD_WIDGET_LABELS);
+            if (visible === null) {
+                // No saved custom selection: apply role default if one exists.
+                visible = _executiveDashboard.getDefaultWidgetsForRole();
+            }
             document.querySelectorAll('[data-dashboard-widget]').forEach(function (el) {
                 var id = el.getAttribute('data-dashboard-widget');
                 if (!id) return;
@@ -462,6 +497,90 @@ var _executiveDashboard = function () {
 
         updateProductionTrendsChart: () => {
             _executiveDashboard.renderProductionTrendsChart();
+        },
+
+        procurementForecastChart: null,
+
+        loadProcurementForecastChart: async () => {
+            const scope = _executiveDashboard;
+            var canvas = document.getElementById('procurementForecastChart');
+            if (!canvas || typeof Chart === 'undefined') return;
+            if (!dataFunctions.getProcurementForecastByWeek) return;
+            try {
+                var results = await Promise.all([
+                    dataFunctions.getProcurementForecastByWeek(12).catch(() => []),
+                    dataFunctions.getKernelForecastByWeek(12).catch(() => [])
+                ]);
+                var procurement = results[0] || [];
+                var forecastRows = results[1] || [];
+
+                // Build a union of week labels.
+                var procByWeek = {};
+                procurement.forEach(function (r) { procByWeek[String(r.week_start)] = Number(r.predicted_weight_kg) || 0; });
+                var demandByWeek = {};
+                forecastRows.forEach(function (r) {
+                    var k = String(r.week_start);
+                    demandByWeek[k] = (demandByWeek[k] || 0) + (Number(r.quantity_cartons) || 0);
+                });
+                var weeks = Object.keys(procByWeek).concat(Object.keys(demandByWeek))
+                    .filter(function (v, i, a) { return a.indexOf(v) === i; })
+                    .sort();
+
+                var emptyEl = document.getElementById('procurementForecastEmpty');
+                if (weeks.length === 0) {
+                    if (emptyEl) emptyEl.classList.remove('d-none');
+                    return;
+                }
+                if (emptyEl) emptyEl.classList.add('d-none');
+
+                var labels = weeks.map(function (w) { return String(w).slice(0, 10); });
+                var procData = weeks.map(function (w) { return procByWeek[w] || 0; });
+                var demandData = weeks.map(function (w) { return demandByWeek[w] || 0; });
+
+                if (scope.procurementForecastChart) {
+                    scope.procurementForecastChart.destroy();
+                    scope.procurementForecastChart = null;
+                }
+                var ctx = canvas.getContext('2d');
+                scope.procurementForecastChart = new Chart(ctx, {
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Scheduled intake (kg)',
+                                data: procData,
+                                backgroundColor: 'rgba(25, 135, 84, 0.6)',
+                                borderColor: 'rgba(25, 135, 84, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'yKg'
+                            },
+                            {
+                                type: 'line',
+                                label: 'Open demand (cartons)',
+                                data: demandData,
+                                borderColor: 'rgba(13, 110, 253, 1)',
+                                backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                                tension: 0.35,
+                                pointRadius: 3,
+                                yAxisID: 'yCartons'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: {
+                            x: { ticks: { maxRotation: 45, minRotation: 0 } },
+                            yKg: { type: 'linear', position: 'left', beginAtZero: true, title: { display: true, text: 'kg' } },
+                            yCartons: { type: 'linear', position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'cartons' } }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.warn('[Executive Dashboard] Procurement/forecast chart failed.', e.message);
+            }
         },
 
         loadKPIs: async (forceRefresh = false) => {

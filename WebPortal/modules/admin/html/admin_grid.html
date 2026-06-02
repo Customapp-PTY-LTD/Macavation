@@ -92,7 +92,7 @@
 
         <!-- Roles & modules -->
         <div class="tab-pane fade" id="roles" role="tabpanel" aria-labelledby="roles-tab">
-            <p class="text-muted small mb-3">The list below is all roles. Use <strong>Edit role</strong> for name, description, and (when expanded) <strong>Advanced: database permissions</strong>. Use <strong>Customize</strong> to choose which <strong>modules</strong> appear in the sidebar.</p>
+            <p class="text-muted small mb-3">The list below is all roles. Use <strong>Edit role</strong> for the role name and description. Use <strong>Customize</strong> to choose which <strong>modules</strong> appear in the sidebar and to grant the <strong>database permissions</strong> inside each module.</p>
             <div class="admin-role-layout">
                 <div class="card mb-4">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -158,7 +158,7 @@
 
 <!-- Customize sidebar modules for a role -->
 <div class="modal fade" id="adminRoleCustomizeModal" tabindex="-1" role="dialog" aria-labelledby="adminRoleCustomizeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
@@ -169,25 +169,29 @@
             </div>
             <div class="modal-body p-0">
                 <div class="p-3 border-bottom bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <p class="small text-muted mb-0">Tick which sidebar areas this role can open. Changes apply on next login for affected users.</p>
-                    <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="adminRefreshFeaturesBtn" title="Reload from server">
-                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                    </button>
+                    <p class="small text-muted mb-0 flex-grow-1" style="min-width:14rem;">The <strong>On</strong> tick shows the module in the sidebar. Expand a module to grant or revoke the individual <strong>database permissions</strong> (Supabase functions) the role may run inside it. Changes apply on next login for affected users.</p>
+                    <div class="input-group input-group-sm flex-shrink-0" style="width:auto;">
+                        <input type="text" class="form-control" id="adminCustomizePermSearch" placeholder="Filter permissions…" autocomplete="off" style="max-width:12rem;">
+                        <button type="button" class="btn btn-outline-secondary" id="adminRefreshFeaturesBtn" title="Reload from server">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                    </div>
                 </div>
                 <div class="px-3 py-2 border-bottom small" id="adminFeatureSummary" style="display:none;"></div>
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-hover mb-0" id="adminFeaturesTable">
                         <thead>
                             <tr>
                                 <th style="width:60px" class="text-center">On</th>
                                 <th>Module</th>
                                 <th>Key</th>
                                 <th>Description</th>
+                                <th style="width:14rem" class="text-end">Database permissions</th>
                             </tr>
                         </thead>
                         <tbody id="adminFeaturesTableBody">
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-4">Open this dialog from a role's Customize action.</td>
+                                <td colspan="5" class="text-center text-muted py-4">Open this dialog from a role's Customize action.</td>
                             </tr>
                         </tbody>
                     </table>

@@ -128,6 +128,24 @@
             "js": ["js/modal_role_feature.js"],
             "css": []
         },
+        "role-actions-grid": {
+            "description": "Role Actions Management",
+            "path": "role-actions",
+            "html": "html/role-actions_grid.html",
+            "js": [
+                "js/role-actions_grid.js"
+            ],
+            "css": []
+        },
+        "dashboard-targets-grid": {
+            "description": "Dashboard Targets Management",
+            "path": "dashboard-targets",
+            "html": "html/dashboard-targets_grid.html",
+            "js": [
+                "js/dashboard-targets_grid.js"
+            ],
+            "css": []
+        },
         "features-grid": {
             "description": "Features Management",
             "path": "features",
@@ -151,6 +169,7 @@
             "path": "admin",
             "html": "html/admin_grid.html",
             "js": [
+                "js/permission-module-map.js",
                 "js/admin_grid.js"
             ],
             "css": [

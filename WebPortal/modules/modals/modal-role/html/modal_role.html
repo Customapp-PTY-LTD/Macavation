@@ -63,48 +63,7 @@
                 </div>
             </form>
 
-            <div id="roleModalAdvancedAccordionWrap" class="d-none mt-3">
-                <div class="accordion" id="roleModalAdvancedAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="roleModalAdvancedHeading">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#roleModalAdvancedPermsCollapse" aria-expanded="false" aria-controls="roleModalAdvancedPermsCollapse">
-                                Advanced: database permissions
-                            </button>
-                        </h2>
-                        <div id="roleModalAdvancedPermsCollapse" class="accordion-collapse collapse" aria-labelledby="roleModalAdvancedHeading" data-bs-parent="#roleModalAdvancedAccordion">
-                            <div class="accordion-body p-0">
-                                <div class="p-3 border-bottom bg-light" id="roleModalAdvancedPermToolbar">
-                                    <label for="adminPermSearch" class="form-label small mb-1">Search</label>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control" id="adminPermSearch" placeholder="Filter by object name…" autocomplete="off">
-                                        <button type="button" class="btn btn-outline-secondary" id="adminPermSearchBtn" title="Apply search">Apply</button>
-                                        <button type="button" class="btn btn-outline-secondary" id="adminPermRefreshBtn" title="Reload">Refresh</button>
-                                    </div>
-                                    <p class="small text-muted mb-0 mt-2">These rows control which Supabase functions this role may execute. Most day-to-day access is controlled from <strong>Customize</strong> (sidebar modules) on the Roles list.</p>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover mb-0">
-                                        <thead>
-                                            <tr>
-                                                <th>Object</th>
-                                                <th>Type</th>
-                                                <th>Operation</th>
-                                                <th style="width:90px">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="adminPermissionsTableBody">
-                                            <tr><td colspan="4" class="text-center text-muted py-3">Expand this section to load permissions.</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <nav class="py-2 px-3 border-top" aria-label="Admin permissions pagination">
-                                    <ul class="pagination pagination-sm justify-content-center mb-0 flex-wrap" id="adminPermPagination"></ul>
-                                </nav>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <p class="small text-muted mb-0 mt-3">Database permissions (which Supabase functions this role may run) are now managed per module under <strong>Customize</strong> on the Roles &amp; modules list.</p>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

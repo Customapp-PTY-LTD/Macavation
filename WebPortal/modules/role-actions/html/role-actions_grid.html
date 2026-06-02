@@ -1,0 +1,59 @@
+<!-- Role Actions Grid Module: per-role button/action permissions -->
+<div class="module-content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Role Actions</h1>
+        <div class="btn-toolbar mb-2 mb-md-0 ms-auto">
+            <a href="help/index.html#role-actions-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <button type="button" class="btn btn-outline-secondary" id="refreshActionsBtn">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="alert alert-info py-2 px-3 small mb-3">
+        <i class="fas fa-circle-info me-1"></i>
+        Actions control individual buttons inside modules (approve, release, adjust, etc.).
+        Module visibility is set separately in <strong>Role Features</strong>. Both must be granted.
+    </div>
+
+    <!-- Role selector -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label for="actionRoleSelect" class="form-label fw-semibold">Select Role</label>
+                    <select class="form-select" id="actionRoleSelect">
+                        <option value="">-- Select a role --</option>
+                    </select>
+                </div>
+                <div class="col-md-8 d-flex align-items-center" id="actionSummary" style="display:none!important">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions checklist (grouped by module) -->
+    <div class="card mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="actionsTable">
+                    <thead>
+                        <tr>
+                            <th style="width:60px" class="text-center">Allow</th>
+                            <th>Action</th>
+                            <th>Key</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody id="actionsTableBody">
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-5">
+                                <i class="fas fa-hand-pointer me-2"></i>Select a role above to manage its action permissions
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

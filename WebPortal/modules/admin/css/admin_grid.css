@@ -353,6 +353,44 @@
     text-align: center;
 }
 
+/* Customize modules dialog: per-module database permission groups */
+#adminFeaturesTable .js-admin-feature-expand {
+    min-width: 5.5rem;
+    white-space: nowrap;
+}
+
+#adminFeaturesTable .js-admin-feature-expand i {
+    transition: transform 0.2s ease;
+}
+
+#adminFeaturesTable .admin-other-row td:first-child {
+    color: var(--phoenix-secondary);
+}
+
+#adminFeaturesTable .admin-perm-group > td {
+    background: rgba(var(--phoenix-primary-rgb), 0.03);
+    border-top: 0;
+}
+
+#adminFeaturesTable .admin-perm-table {
+    background: transparent;
+}
+
+#adminFeaturesTable .admin-perm-table tbody td {
+    border-color: var(--phoenix-border-color);
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+}
+
+/* Indent the nested permission name under its module */
+#adminFeaturesTable .admin-perm-table .admin-perm-name {
+    padding-left: 2.5rem;
+}
+
+#adminFeaturesTable .admin-perm-table .admin-perm-name code {
+    font-size: 0.8rem;
+}
+
 /* Transfer Table Status */
 .table tbody td code {
     background-color: var(--phoenix-light);

@@ -277,6 +277,12 @@ var _kernelProductionGrid = function () {
             $(document).on('click', '.js-release-to-stock', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
+                if (typeof hasAction === 'function' && !hasAction('kernel.release_to_stock')) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Not permitted', 'You do not have permission to release batches to stock.', 'warning');
+                    }
+                    return;
+                }
                 const batchId = $(this).data('batch-id');
                 if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.releaseBatchToStock) {
                     _kernelProductionBatchActions.releaseBatchToStock(batchId);

@@ -272,6 +272,12 @@ var _dashboard = function () {
                 const kpis = await dataFunctions.getExecutiveKPIs().catch(() => ({}));
                 const batches = await dataFunctions.getProductionBatches().catch(() => []);
                 const stockItems = await dataFunctions.getStockItems().catch(() => []);
+                const targets = (dataFunctions.getDashboardTargets
+                    ? await dataFunctions.getDashboardTargets().catch(() => ({ map: {} }))
+                    : { map: {} });
+                const targetMap = (targets && targets.map) || {};
+                const qualityTarget = targetMap.quality_pass_rate ? targetMap.quality_pass_rate.value : 95;
+                const productionTarget = targetMap.total_production_kg ? targetMap.total_production_kg.value : 50000;
                 const qualityRate = kpis.quality_pass_rate != null ? Number(kpis.quality_pass_rate) : 0;
                 const totalKg = kpis.total_production_kg != null ? Number(kpis.total_production_kg) : 0;
                 // No fake trend when data is zero; pass trend: null so "vs. last month" is not shown
@@ -280,19 +286,19 @@ var _dashboard = function () {
                         title: 'Quality Pass Rate',
                         value: qualityRate,
                         unit: '%',
-                        target: 95,
+                        target: qualityTarget,
                         current: qualityRate,
                         trend: null,
                         trendPeriod: 'vs. last month',
                         icon: 'bi-check-circle',
-                        color: qualityRate >= 95 ? 'success' : qualityRate >= 80 ? 'warning' : 'danger',
+                        color: qualityRate >= qualityTarget ? 'success' : qualityRate >= (qualityTarget * 0.84) ? 'warning' : 'danger',
                         actionUrl: 'quality-assurance-grid'
                     },
                     {
                         title: 'Total Production',
                         value: totalKg,
                         unit: 'kg',
-                        target: 50000,
+                        target: productionTarget,
                         current: totalKg,
                         trend: null,
                         trendPeriod: 'vs. last month',

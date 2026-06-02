@@ -240,27 +240,18 @@ var _dataFunctions = function () {
             const user = Session.get('user');
             if (!user) return false;
 
-            const roleName = user.role_name || user.role || '';
+            const roleName = (user.role_name || user.role || '').toLowerCase();
 
-            // If we have a role_id but no role_name, we might need to fetch complete user info
-            if (user.role_id && !roleName) {
-                return true;
+            // Granular gate: the admin.users.manage action grants access. Admin/
+            // super_user roles always pass via hasAction's role fallback.
+            if (typeof window.hasAction === 'function') {
+                return window.hasAction('admin.users.manage');
             }
 
-            // Temporary: Allow all authenticated users for testing
-            // TODO: Restrict this once roles are properly configured
-            if (user) {
-                return true;
-            }
-
-            // Allow access for admin roles, manager roles, and users (more permissive)
-            return roleName.toLowerCase().includes('admin') ||
-                roleName.toLowerCase().includes('manager') ||
-                roleName.toLowerCase().includes('super admin') ||
-                roleName.toLowerCase().includes('user') ||
-                roleName.toLowerCase().includes('transport') ||
-                roleName.toLowerCase().includes('fleet') ||
-                roleName.toLowerCase().includes('customer service');
+            // Fallback when action-access is unavailable: admin/manager roles only.
+            return roleName.includes('admin') ||
+                roleName.includes('super admin') ||
+                roleName.includes('manager');
         },
 
         /**
@@ -1259,6 +1250,61 @@ var _dataFunctions = function () {
             });
         },
 
+        // ===== ACTION PERMISSIONS (buttons/actions inside modules) =====
+
+        /** List all active actions (for the Role Actions admin grid). */
+        getActions: async function (token = null) {
+            var raw = await this.callFunction('get_actions', {}, token, { useCache: false });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.get_actions)) return raw.get_actions;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+
+        /** List all role/action assignments (joined) for the admin grid. */
+        getRoleActions: async function (token = null) {
+            var raw = await this.callFunction('get_role_actions', {}, token, { useCache: false });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.get_role_actions)) return raw.get_role_actions;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+
+        /**
+         * Enabled action keys for a role. Cached at login alongside featureKeys.
+         * No cache so admin changes reflect after refresh.
+         */
+        getActionsForRole: async function (roleId, token = null) {
+            var raw = await this.callFunction('get_actions_for_role', { p_role_id: roleId }, token, { useCache: false });
+            var list = null;
+            if (Array.isArray(raw)) list = raw;
+            else if (raw && Array.isArray(raw.get_actions_for_role)) list = raw.get_actions_for_role;
+            else if (raw && Array.isArray(raw.data)) list = raw.data;
+            else if (raw && Array.isArray(raw.result)) list = raw.result;
+            if (!Array.isArray(list)) return [];
+            return list.map(function (row) {
+                if (row && typeof row === 'object') {
+                    var k = row.key != null ? row.key : row.Key;
+                    return typeof k === 'string' ? { key: k } : { key: '' };
+                }
+                return { key: typeof row === 'string' ? row : '' };
+            });
+        },
+
+        /** Grant a role/action (ON CONFLICT updates value). */
+        createRoleAction: async function (data, token = null) {
+            return await this.callFunction('create_role_action_simple', {
+                role_id: data.role_id,
+                action_id: data.action_id,
+                value: data.value != null ? data.value : 'true'
+            }, token);
+        },
+
+        /** Revoke a role/action assignment by its id. */
+        deleteRoleAction: async function (roleActionId, token = null) {
+            return await this.callFunction('delete_role_action_simple', { role_action_id: roleActionId }, token);
+        },
+
         // ===== COMPANY MANAGEMENT FUNCTIONS =====
 
         /**
@@ -1348,6 +1394,354 @@ var _dataFunctions = function () {
                 console.warn('[Dashboard] get_dashboard_kernel_stats failed. Apply migration 20260306000001_create_get_dashboard_kernel_stats.sql if needed.', e.message);
                 return defaults;
             }
+        },
+
+        /**
+         * Sprint 0A live data audit: raw source counts behind dashboard stats.
+         * Returns rows of { metric, source, value, detail } for cross-checking against grids.
+         */
+        getDashboardDataAudit: async function (token = null) {
+            try {
+                var raw = await this.callFunction('get_dashboard_data_audit', {}, token, { useCache: false });
+                var list = [];
+                if (Array.isArray(raw)) list = raw;
+                else if (raw && Array.isArray(raw.get_dashboard_data_audit)) list = raw.get_dashboard_data_audit;
+                else if (raw && Array.isArray(raw.data)) list = raw.data;
+                return list.map(function (r) {
+                    return {
+                        metric: r.metric,
+                        source: r.source,
+                        value: Number(r.value) || 0,
+                        detail: r.detail || null
+                    };
+                });
+            } catch (e) {
+                console.warn('[Dashboard] get_dashboard_data_audit failed. Apply migration 20260602090000_dashboard_data_audit.sql if needed.', e.message);
+                return [];
+            }
+        },
+
+        /**
+         * Sprint 1C: configurable dashboard targets.
+         * Returns a map { metric_key: { value, period_type, division, ... } } plus the raw rows.
+         */
+        getDashboardTargets: async function (token = null) {
+            try {
+                var raw = await this.callFunction('get_dashboard_targets', {}, token, {
+                    cacheKey: 'dashboard_targets_list',
+                    useCache: true,
+                    cacheTtl: this.cache.ttl.static
+                });
+                var list = [];
+                if (Array.isArray(raw)) list = raw;
+                else if (raw && Array.isArray(raw.get_dashboard_targets)) list = raw.get_dashboard_targets;
+                else if (raw && Array.isArray(raw.data)) list = raw.data;
+                var map = {};
+                list.forEach(function (t) {
+                    map[t.metric_key] = {
+                        id: t.id,
+                        value: Number(t.target_value) || 0,
+                        period_type: t.period_type,
+                        division: t.division,
+                        effective_from: t.effective_from,
+                        notes: t.notes
+                    };
+                });
+                return { rows: list, map: map };
+            } catch (e) {
+                console.warn('[Dashboard] get_dashboard_targets failed. Apply migration 20260602110000_dashboard_targets.sql if needed.', e.message);
+                return { rows: [], map: {} };
+            }
+        },
+
+        /** Create/update a dashboard target. */
+        upsertDashboardTarget: async function (target, token = null) {
+            var result = await this.callFunction('upsert_dashboard_target', {
+                p_id: target.id != null ? target.id : null,
+                p_metric_key: target.metric_key,
+                p_target_value: target.target_value,
+                p_period_type: target.period_type || 'monthly',
+                p_division: target.division || 'all',
+                p_effective_from: target.effective_from || null,
+                p_notes: target.notes || null
+            }, token);
+            this.clearCachePattern('dashboard_targets');
+            return result;
+        },
+
+        /** Delete a dashboard target by id. */
+        deleteDashboardTarget: async function (targetId, token = null) {
+            var result = await this.callFunction('delete_dashboard_target', { p_id: targetId }, token);
+            this.clearCachePattern('dashboard_targets');
+            return result;
+        },
+
+        // ===== SPRINT 2: DASHBOARD FORECAST CHARTS =====
+
+        /** Open kernel FG demand (cartons) grouped by week. */
+        getKernelForecastByWeek: async function (weeks, token = null) {
+            try {
+                var raw = await this.callFunction('get_kernel_production_forecast_by_week', { p_weeks: parseInt(weeks, 10) || 12 }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_kernel_production_forecast_by_week)) return raw.get_kernel_production_forecast_by_week;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_kernel_production_forecast_by_week failed. Apply migration 20260602120000_dashboard_forecast_aggregates.sql.', e.message);
+                return [];
+            }
+        },
+
+        /** Scheduled grower intake (kg) grouped by week. */
+        getProcurementForecastByWeek: async function (weeks, token = null) {
+            try {
+                var raw = await this.callFunction('get_procurement_forecast_by_week', { p_weeks: parseInt(weeks, 10) || 12 }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_procurement_forecast_by_week)) return raw.get_procurement_forecast_by_week;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_procurement_forecast_by_week failed. Apply migration 20260602120000_dashboard_forecast_aggregates.sql.', e.message);
+                return [];
+            }
+        },
+
+        // ===== SPRINT 2: STOCK ALERT RULES + ACCURACY =====
+
+        /** List configurable stock red-flag rules. */
+        getStockAlertRules: async function (token = null) {
+            var raw = await this.callFunction('get_stock_alert_rules', {}, token, { useCache: false });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.get_stock_alert_rules)) return raw.get_stock_alert_rules;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+
+        /** Create/update a stock alert rule. */
+        upsertStockAlertRule: async function (rule, token = null) {
+            return await this.callFunction('upsert_stock_alert_rule', {
+                p_id: rule.id != null ? rule.id : null,
+                p_product_type: rule.product_type,
+                p_style: rule.style || '*',
+                p_min_qty: rule.min_qty,
+                p_unit: rule.unit || 'kg',
+                p_alert_type: rule.alert_type || 'stock_low',
+                p_severity: rule.severity || 'warning',
+                p_is_active: rule.is_active !== false
+            }, token);
+        },
+
+        /** Delete a stock alert rule by id. */
+        deleteStockAlertRule: async function (ruleId, token = null) {
+            return await this.callFunction('delete_stock_alert_rule', { p_id: ruleId }, token);
+        },
+
+        /**
+         * Evaluate observed SOH against rules, raising dashboard alerts on breaches.
+         * @param {Array<{product_type:string,style:string,qty:number}>} observations
+         */
+        evaluateStockAlerts: async function (observations, token = null) {
+            return await this.callFunction('evaluate_stock_alerts', { p_observations: observations || [] }, token);
+        },
+
+        /** Capture a monthly stock accuracy snapshot. */
+        captureStockAccuracySnapshot: async function (snap, token = null) {
+            return await this.callFunction('capture_stock_accuracy_snapshot', {
+                p_month: snap.month || null,
+                p_product_type: snap.product_type || 'all',
+                p_total_soh: snap.total_soh || 0,
+                p_adjusted_qty: snap.adjusted_qty || 0,
+                p_adjustment_events: snap.adjustment_events || 0
+            }, token);
+        },
+
+        /** Get recent stock accuracy snapshots. */
+        getStockAccuracy: async function (months, token = null) {
+            try {
+                var raw = await this.callFunction('get_stock_accuracy', { p_months: parseInt(months, 10) || 6 }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_stock_accuracy)) return raw.get_stock_accuracy;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_stock_accuracy failed. Apply migration 20260602130000_stock_alerts_and_accuracy.sql.', e.message);
+                return [];
+            }
+        },
+
+        // ===== SPRINT 3: OIL CONSOLIDATED BATCHES + SEARCH =====
+
+        /** Search/filter oil production sheets. */
+        searchOilBatches: async function (filters, token = null) {
+            filters = filters || {};
+            var raw = await this.callFunction('search_oil_batches', {
+                p_search: filters.search || null,
+                p_from: filters.from || null,
+                p_to: filters.to || null,
+                p_status: filters.status || null
+            }, token, { useCache: false });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.search_oil_batches)) return raw.search_oil_batches;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+
+        /** List oil consolidated batches with member counts. */
+        getOilConsolidatedBatches: async function (token = null) {
+            var raw = await this.callFunction('get_oil_consolidated_batches', {}, token, { useCache: false });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.get_oil_consolidated_batches)) return raw.get_oil_consolidated_batches;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+
+        /** Create/update a consolidated oil batch (lab ref/notes, status). */
+        upsertOilConsolidatedBatch: async function (batch, token = null) {
+            return await this.callFunction('upsert_oil_consolidated_batch', {
+                p_id: batch.id || null,
+                p_consolidated_number: batch.consolidated_number,
+                p_grade: batch.grade || null,
+                p_lab_test_doc_ref: batch.lab_test_doc_ref || null,
+                p_lab_test_notes: batch.lab_test_notes || null,
+                p_status: batch.status || 'open'
+            }, token);
+        },
+
+        /** Add an oil sheet to a consolidated batch. */
+        addOilConsolidatedMember: async function (consolidatedId, oilId, token = null) {
+            return await this.callFunction('add_oil_consolidated_member', { p_consolidated_id: consolidatedId, p_oil_id: oilId }, token);
+        },
+
+        /** Remove an oil sheet from a consolidated batch. */
+        removeOilConsolidatedMember: async function (consolidatedId, oilId, token = null) {
+            return await this.callFunction('remove_oil_consolidated_member', { p_consolidated_id: consolidatedId, p_oil_id: oilId }, token);
+        },
+
+        /** Delete a consolidated oil batch. */
+        deleteOilConsolidatedBatch: async function (id, token = null) {
+            return await this.callFunction('delete_oil_consolidated_batch', { p_id: id }, token);
+        },
+
+        // ===== SPRINT 3: SHELL WASTE STOCK + MASS BALANCE =====
+
+        /** List shell waste stock lots. */
+        getShellStockLots: async function (token = null) {
+            var raw = await this.callFunction('get_shell_stock_lots', {}, token, { useCache: false });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.get_shell_stock_lots)) return raw.get_shell_stock_lots;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+
+        /** Create/update a shell stock lot. */
+        upsertShellStockLot: async function (lot, token = null) {
+            return await this.callFunction('upsert_shell_stock_lot', {
+                p_id: lot.id || null,
+                p_lot_number: lot.lot_number || '',
+                p_source_batch_number: lot.source_batch_number || null,
+                p_quantity_kg: lot.quantity_kg || 0,
+                p_status: lot.status || 'in_stock',
+                p_notes: lot.notes || null
+            }, token);
+        },
+
+        /** Delete a shell stock lot. */
+        deleteShellStockLot: async function (id, token = null) {
+            return await this.callFunction('delete_shell_stock_lot', { p_id: id }, token);
+        },
+
+        /** Kernel mass-balance report (cracked vs packed, balance %). */
+        getKernelMassBalance: async function (from, to, token = null) {
+            try {
+                var raw = await this.callFunction('get_kernel_mass_balance', { p_from: from || null, p_to: to || null }, token, { useCache: false });
+                var row = Array.isArray(raw) ? raw[0] : (raw && raw.get_kernel_mass_balance ? raw.get_kernel_mass_balance[0] : raw);
+                if (!row) return { cracked_kg: 0, packed_kg: 0, balance_kg: 0, balance_pct: 0 };
+                return {
+                    cracked_kg: Number(row.cracked_kg) || 0,
+                    packed_kg: Number(row.packed_kg) || 0,
+                    balance_kg: Number(row.balance_kg) || 0,
+                    balance_pct: Number(row.balance_pct) || 0
+                };
+            } catch (e) {
+                console.warn('[Mass balance] get_kernel_mass_balance failed. Apply migration 20260602140000_oil_consolidated_shell_massbalance.sql.', e.message);
+                return { cracked_kg: 0, packed_kg: 0, balance_kg: 0, balance_pct: 0 };
+            }
+        },
+
+        // ===== SPRINT 4: NOTIFICATIONS INBOX =====
+
+        /** Notifications for the current user (direct + role-targeted + broadcast). */
+        getMyNotifications: async function (userId, roleId, limit, token = null) {
+            try {
+                var raw = await this.callFunction('get_my_notifications', {
+                    p_user_id: userId, p_role_id: roleId || null, p_limit: parseInt(limit, 10) || 50
+                }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_my_notifications)) return raw.get_my_notifications;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Notifications] get_my_notifications failed. Apply migration 20260602150000_notifications.sql.', e.message);
+                return [];
+            }
+        },
+
+        /** Unread notification count for the badge. */
+        getUnreadNotificationCount: async function (userId, roleId, token = null) {
+            try {
+                var raw = await this.callFunction('get_unread_notification_count', { p_user_id: userId, p_role_id: roleId || null }, token, { useCache: false });
+                if (typeof raw === 'number') return raw;
+                if (Array.isArray(raw) && raw[0] != null) return Number(raw[0].get_unread_notification_count != null ? raw[0].get_unread_notification_count : raw[0]) || 0;
+                if (raw && raw.get_unread_notification_count != null) return Number(raw.get_unread_notification_count) || 0;
+                return 0;
+            } catch (e) {
+                return 0;
+            }
+        },
+
+        /** Mark one notification read. */
+        markNotificationRead: async function (notificationId, userId, token = null) {
+            return await this.callFunction('mark_notification_read', { p_notification_id: notificationId, p_user_id: userId }, token);
+        },
+
+        /** Mark all notifications read for the user. */
+        markAllNotificationsRead: async function (userId, roleId, token = null) {
+            return await this.callFunction('mark_all_notifications_read', { p_user_id: userId, p_role_id: roleId || null }, token);
+        },
+
+        /** Create a notification (targeted to a user/role or broadcast). Requires messaging.broadcast for broadcasts. */
+        createNotification: async function (n, token = null) {
+            return await this.callFunction('create_notification', {
+                p_title: n.title,
+                p_body: n.body || null,
+                p_type: n.type || 'info',
+                p_severity: n.severity || 'info',
+                p_link_route: n.link_route || null,
+                p_target_user_id: n.target_user_id || null,
+                p_target_role_id: n.target_role_id || null,
+                p_created_by: n.created_by || null
+            }, token);
+        },
+
+        // ===== SPRINT 4: SCHEDULED REPORTS =====
+
+        getScheduledReports: async function (token = null) {
+            var raw = await this.callFunction('get_scheduled_reports', {}, token, { useCache: false });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.get_scheduled_reports)) return raw.get_scheduled_reports;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+
+        upsertScheduledReport: async function (report, token = null) {
+            return await this.callFunction('upsert_scheduled_report', {
+                p_id: report.id || null,
+                p_user_id: report.user_id || null,
+                p_email: report.email || null,
+                p_report_type: report.report_type || 'daily_digest',
+                p_channel: report.channel || 'email',
+                p_is_active: report.is_active !== false
+            }, token);
         },
 
         /**

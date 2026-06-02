@@ -425,6 +425,12 @@ var _stockManagementGrid = function () {
                     if (id) scope.deleteKernelBatch(id, label);
                 });
                 $(document).on('click', '.adjust-oil-lot-btn', function () {
+                    if (typeof hasAction === 'function' && !hasAction('stock.adjust_soh')) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Not permitted', 'You do not have permission to adjust stock on hand.', 'warning');
+                        }
+                        return;
+                    }
                     var id = $(this).data('oil-lot-id');
                     var lot = (scope.oilLots || []).find(function (x) { return String(x.id) === String(id); });
                     if (lot) scope.promptAdjustOilLot(lot);
@@ -598,6 +604,12 @@ var _stockManagementGrid = function () {
 
         setKernelAdjustMode: function (enabled) {
             var scope = _stockManagementGrid;
+            if (enabled === true && typeof hasAction === 'function' && !hasAction('stock.adjust_soh')) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Not permitted', 'You do not have permission to adjust stock on hand.', 'warning');
+                }
+                return;
+            }
             scope.kernelAdjustMode = enabled === true;
             var btn = document.getElementById('toggleKernelAdjustModeBtn');
             var hint = document.getElementById('kernelAdjustModeHint');

@@ -266,6 +266,23 @@ class AuthService {
             if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
                 menuFilter.refresh();
             }
+            // Cache action keys (button/action-level permissions) alongside features.
+            if (roleIdStr && typeof dataFunctions.getActionsForRole === 'function') {
+                try {
+                    var actionList = await dataFunctions.getActionsForRole(roleIdStr);
+                    var actionKeys = (Array.isArray(actionList) ? actionList : []).map(function (row) {
+                        return (row && typeof row === 'object' && row.key != null) ? row.key : (typeof row === 'string' ? row : '');
+                    }).filter(Boolean);
+                    Session.set('actionKeys', actionKeys);
+                    try {
+                        if (typeof window.dispatchEvent === 'function') {
+                            window.dispatchEvent(new CustomEvent('actionKeysUpdated', { detail: { keys: actionKeys } }));
+                        }
+                    } catch (e2) {}
+                } catch (actionErr) {
+                    console.warn('[AuthService] Could not load role actions:', actionErr.message);
+                }
+            }
         } catch (error) {
             console.warn('[AuthService] Could not load role features:', error.message);
         }

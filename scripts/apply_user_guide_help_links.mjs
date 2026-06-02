@@ -285,7 +285,7 @@ const SECTION_BLURBS = {
   "admin-users-permissions":
     "<strong>People</strong> (User &amp; access) — accounts, role filter, and add user.",
   "admin-roles-management":
-    "<strong>Roles &amp; modules</strong> (User &amp; access) — full-width roles list; use <strong>Customize</strong> for sidebar modules and <strong>Advanced</strong> for database function permissions.",
+    "<strong>Roles &amp; modules</strong> (User &amp; access) — full-width roles list; use <strong>Customize</strong> for both the sidebar modules and the database function permissions inside each module.",
   "admin-system-configuration":
     "<strong>System</strong> (User &amp; access) — reserved for environment and configuration when your deployment exposes it.",
   "data-import-grid": "Upload Excel templates into selected tables (contacts, stock, oil sheets, etc.).",
@@ -360,7 +360,7 @@ const SECTION_HOW_IT_WORKS = {
   "admin-users-permissions":
     "Filter the users grid and use <strong>Add user</strong> or <strong>Edit user</strong>; optional password on save matches the standalone Users screen.",
   "admin-roles-management":
-    "Each row has <strong>Edit role</strong> (name and description), <strong>Customize</strong> (module checklist in a dialog), and <strong>Advanced</strong> (database permissions in a separate dialog). Click a row (outside the buttons) to highlight it.",
+    "Each row has <strong>Edit role</strong> (name and description only) and <strong>Customize</strong>. In Customize, the <strong>On</strong> tick shows the module in the sidebar, and expanding a module reveals its database permissions (Supabase functions) with their own tick boxes. Click a row (outside the buttons) to highlight it.",
   "admin-system-configuration":
     "Record values before changing anything that affects integrations; involve vendor support for risky reversals.",
   "data-import-grid":
@@ -570,9 +570,10 @@ const PAGE_STEPS = {
   ],
   "admin-roles-management": [
     "Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> tab.",
-    "Use <strong>Customize</strong> on a role to open the module checklist; toggles match the former Role Features screen and control the sidebar.",
-    "Use <strong>Edit role</strong> when you need to change the role name or description only.",
-    "Use <strong>Advanced</strong> when you need database function permissions; edit rows cautiously (least privilege).",
+    "Use <strong>Customize</strong> on a role to open the dialog; the <strong>On</strong> tick controls sidebar visibility (this matches the former Role Features screen).",
+    "Expand a module (the database permissions button on its row) to grant or revoke the individual Supabase functions the role may run; toggle cautiously and follow least privilege.",
+    "Permissions that are not tied to a single module appear under <strong>Other / shared</strong> at the bottom of the list.",
+    "Use <strong>Edit role</strong> when you only need to change the role name or description.",
   ],
   "admin-system-configuration": [
     "Open <strong>User &amp; access</strong> → <strong>System</strong> tab.",
@@ -630,14 +631,14 @@ const PAGE_STEPS = {
     "Pair each role with entries in <strong>Role permissions</strong> and <strong>Role features</strong> so menus and APIs stay aligned.",
   ],
   "role-permissions-grid": [
-    "Open <strong>Role permissions</strong> from the standalone grid if exposed, or use <strong>User &amp; access</strong> → Roles &amp; modules → row <strong>Advanced</strong>.",
+    "Open <strong>Role permissions</strong> from the standalone grid if exposed, or use <strong>User &amp; access</strong> → Roles &amp; modules → <strong>Customize</strong> on a role and expand a module.",
     "Filter by role, object type (function/table), and operation (EXECUTE, Read, Create, Update, Delete); use <strong>Clear</strong> when needed.",
     "Click <strong>Add permission</strong> to grant a role access to a specific object—add the minimum set first.",
     "Use <strong>Refresh</strong> and <strong>Export</strong> when documenting access reviews.",
     "Test with a non-admin login after changes; verify the user can do their job but cannot see restricted modules.",
   ],
   "role-features-grid": [
-    "Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> and use <strong>Customize</strong> on a role (same data as the legacy Role Features grid), or use the standalone route if still linked.",
+    "Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> and use <strong>Customize</strong> on a role (same data as the legacy Role Features grid, now alongside the per-module database permissions), or use the standalone route if still linked.",
     "Locate the role and feature combination; toggle flags for phased rollouts of new UI or APIs.",
     "Use export/refresh controls like other admin grids.",
     "Document what each feature flag unlocks so support can answer “why don’t I see X?”.",
@@ -685,7 +686,7 @@ const PAGE_STEPS = {
   "modal-admin-add-role": [
     "Open from <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> → <strong>Add role</strong> (or equivalent).",
     "Enter a clear role name and description other admins will recognise.",
-    "Save, then use <strong>Customize</strong> on that role (and <strong>Advanced</strong> if needed) so menus and APIs match responsibility.",
+    "Save, then use <strong>Customize</strong> on that role to set sidebar modules and their database permissions so menus and APIs match responsibility.",
   ],
   "modal-grower-receiving-checklist": [
     "Open from a grower intake batch card or row when Stage 1 (receiving) is due.",
