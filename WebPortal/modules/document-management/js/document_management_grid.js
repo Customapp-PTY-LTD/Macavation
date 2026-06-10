@@ -33,6 +33,19 @@ var _documentManagementGrid = (function () {
         return (bytes / 1048576).toFixed(1) + ' MB';
     }
 
+    /**
+     * Unwrap a Supabase RPC result that may be either:
+     *   - Lambda proxy path: the raw jsonb object { success, id, … }
+     *   - PostgREST fallback: [{ "<fnName>": { success, id, … } }]
+     * Returns the inner object in both cases.
+     */
+    function unwrapRpcResult(raw, fnName) {
+        if (Array.isArray(raw) && raw.length > 0) {
+            return (fnName && raw[0][fnName] !== undefined) ? raw[0][fnName] : raw[0];
+        }
+        return raw;
+    }
+
     /** Return a FontAwesome class appropriate for a filename extension. */
     function fileIconClass(filename) {
         var ext = (filename || '').split('.').pop().toLowerCase();
@@ -53,9 +66,12 @@ var _documentManagementGrid = (function () {
         // All categories (flat list from DB) — used to build folder hierarchy
         allCategories: [],
         // Explorer navigation state
-        currentFolderId: null,   // null = Home (root)
-        folderPath: [],          // [{ id, name }, …]
+        currentFolderId: null,       // null = Home (root)
+        folderPath: [],              // [{ id, name }, …]
         docSearchQuery: '',
+        // Context menu / upload targeting
+        contextMenuFolderId: undefined,  // folder targeted by right-click
+        uploadTargetFolderId: undefined, // folder to use for upload (undefined → use currentFolderId)
 
         init: function () {
             var scope = _documentManagementGrid;
@@ -68,20 +84,13 @@ var _documentManagementGrid = (function () {
         initHandlers: function () {
             var scope = _documentManagementGrid;
 
-            $('#uploadDocBtn').on('click', function () { scope.openUploadModal(); });
+            $('#uploadDocBtn').on('click', function () { scope.openUploadModal(undefined, false); });
 
             $('#docUploadFile').on('change', function () { scope.onFilesSelected(this.files); });
             $('#docUploadFolderBtn').on('click', function () { scope.openFolderPicker(); });
             $('#docUploadFolder').on('change', function () { scope.onFilesSelected(this.files); });
             $('#docUploadSubmitBtn').on('click', function () { scope.submitUpload(); });
 
-            $('#uploadDocumentModal').on('show.bs.modal', function () {
-                // Show current location
-                var label = scope.folderPath.length
-                    ? scope.folderPath.map(function (f) { return f.name; }).join(' / ')
-                    : 'Home';
-                $('#docUploadLocationLabel').text(label);
-            });
             $('#uploadDocumentModal').on('hidden.bs.modal', function () {
                 $('#docUploadName').val('');
                 $('#docUploadFile').val('');
@@ -90,6 +99,7 @@ var _documentManagementGrid = (function () {
                 $('#docUploadFileList').empty();
                 $('#docUploadNameWrap').show();
                 $('#docUploadSubmitBtn').text('Upload');
+                scope.uploadTargetFolderId = undefined;
             });
 
             $('#docBackBtn').on('click', function () { scope.navigateUp(); });
@@ -129,6 +139,43 @@ var _documentManagementGrid = (function () {
                 var id = $(this).data('folder-delete');
                 if (id) scope.deleteFolder(id);
             });
+
+            // ── Context menu ──────────────────────────────────────────────────
+
+            // Right-click on clickable breadcrumb links (ancestors)
+            $(document).on('contextmenu', '#docExplorerBreadcrumb a[data-breadcrumb-index]', function (e) {
+                e.preventDefault();
+                var idx = parseInt($(this).data('breadcrumb-index'), 10);
+                var fid = idx < 0 ? null : scope.folderPath[idx].id;
+                scope.showContextMenu(e.clientX, e.clientY, fid);
+            });
+            // Right-click on the active (current) breadcrumb item
+            $(document).on('contextmenu', '#docExplorerBreadcrumb .breadcrumb-item.active', function (e) {
+                e.preventDefault();
+                scope.showContextMenu(e.clientX, e.clientY, scope.currentFolderId);
+            });
+            // Right-click anywhere on the explorer table (folder row or background)
+            $(document).on('contextmenu', '#documentsTable', function (e) {
+                e.preventDefault();
+                var folderLink = $(e.target).closest('[data-folder-navigate]');
+                var fid = folderLink.length
+                    ? folderLink.data('folder-navigate')
+                    : scope.currentFolderId;
+                scope.showContextMenu(e.clientX, e.clientY, fid);
+            });
+
+            // Context menu item clicks
+            $(document).on('click', '#docContextMenu [data-ctx-action]', function (e) {
+                e.stopPropagation();
+                var action = $(this).data('ctx-action');
+                var targetId = scope.contextMenuFolderId;
+                scope.hideContextMenu();
+                scope.openUploadModal(targetId, action === 'upload-folder');
+            });
+
+            // Dismiss context menu on any outside click or scroll
+            $(document).on('click.docCtxMenu', function () { scope.hideContextMenu(); });
+            $(document).on('scroll.docCtxMenu', function () { scope.hideContextMenu(); });
         },
 
         // ── Data loading ──────────────────────────────────────────────────────
@@ -345,18 +392,88 @@ var _documentManagementGrid = (function () {
 
         // ── Upload modal helpers ──────────────────────────────────────────────
 
-        openUploadModal: function () {
+        /**
+         * Open the upload modal.
+         * @param {string|null} [targetFolderId] – Override the upload destination.
+         *        undefined = use currentFolderId (normal toolbar button).
+         *        null      = upload to Home (root).
+         *        string    = upload to that specific folder id.
+         * @param {boolean} [autoOpenFolder] – Immediately open the folder picker after the modal appears.
+         */
+        openUploadModal: function (targetFolderId, autoOpenFolder) {
+            var scope = _documentManagementGrid;
+            // Store the upload target (may differ from where we're currently browsing)
+            scope.uploadTargetFolderId = (targetFolderId !== undefined) ? targetFolderId : scope.currentFolderId;
+            var locationLabel = scope.folderIdToLabel(scope.uploadTargetFolderId);
+            $('#docUploadLocationLabel').text(locationLabel);
+
             var modal = document.getElementById('uploadDocumentModal');
             if (typeof bootstrap !== 'undefined' && bootstrap.Modal && modal) {
-                new bootstrap.Modal(modal).show();
+                var bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+                if (autoOpenFolder) {
+                    modal.addEventListener('shown.bs.modal', function handler() {
+                        modal.removeEventListener('shown.bs.modal', handler);
+                        scope.openFolderPicker();
+                    });
+                }
             } else if (typeof $ !== 'undefined' && $.fn.modal) {
                 $('#uploadDocumentModal').modal('show');
+                if (autoOpenFolder) {
+                    $('#uploadDocumentModal').one('shown.bs.modal', function () {
+                        scope.openFolderPicker();
+                    });
+                }
             }
         },
 
         openFolderPicker: function () {
             var el = document.getElementById('docUploadFolder');
             if (el) el.click();
+        },
+
+        // ── Context menu ──────────────────────────────────────────────────────
+
+        showContextMenu: function (x, y, folderId) {
+            var scope = _documentManagementGrid;
+            scope.contextMenuFolderId = folderId;
+            var menu = document.getElementById('docContextMenu');
+            var label = document.getElementById('docContextMenuLabel');
+            if (!menu) return;
+            var locationName = scope.folderIdToLabel(folderId);
+            if (label) label.textContent = locationName;
+            // Position menu, keeping it within viewport
+            menu.style.display = 'block';
+            var menuW = menu.offsetWidth || 210;
+            var menuH = menu.offsetHeight || 100;
+            var left = Math.min(x, window.innerWidth - menuW - 8);
+            var top = Math.min(y, window.innerHeight - menuH - 8);
+            menu.style.left = left + 'px';
+            menu.style.top = top + 'px';
+        },
+
+        hideContextMenu: function () {
+            var menu = document.getElementById('docContextMenu');
+            if (menu) menu.style.display = 'none';
+        },
+
+        /**
+         * Build a display path string for a folder id, e.g. "Safety Docs / 2025".
+         * Returns "Home" for null/undefined.
+         */
+        folderIdToLabel: function (folderId) {
+            var scope = _documentManagementGrid;
+            if (folderId == null) return 'Home';
+            var segments = [];
+            var current = folderId;
+            var safety = 0;
+            while (current && safety++ < 20) {
+                var cat = scope.allCategories.find(function (c) { return c.id === current; });
+                if (!cat) break;
+                segments.unshift(cat.name);
+                current = cat.parent_id || null;
+            }
+            return segments.length ? segments.join(' / ') : 'Home';
         },
 
         onFilesSelected: function (fileList) {
@@ -451,6 +568,11 @@ var _documentManagementGrid = (function () {
             var statusEl = document.getElementById('docUploadStatus');
             var btn = document.getElementById('docUploadSubmitBtn');
 
+            // Use the target set by openUploadModal (may differ from currentFolderId via right-click)
+            var effectiveFolderId = scope.uploadTargetFolderId !== undefined
+                ? scope.uploadTargetFolderId
+                : scope.currentFolderId;
+
             var fileInput = document.getElementById('docUploadFile');
             var folderInput = document.getElementById('docUploadFolder');
             var fileFiles = fileInput && fileInput.files ? Array.from(fileInput.files) : [];
@@ -489,7 +611,7 @@ var _documentManagementGrid = (function () {
                     if (statusEl) statusEl.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + ' \u2014 ' + file.name;
 
                     try {
-                        var leafFolderId = await scope.ensureFolderChain(folderSegments, scope.currentFolderId, folderIdCache);
+                        var leafFolderId = await scope.ensureFolderChain(folderSegments, effectiveFolderId, folderIdCache);
                         var result = await scope.uploadOneFile(file, leafFolderId, null, resourceFolder, userId);
                         if (result.ok) succeeded++;
                         else failed.push({ name: file.name, error: result.error });
@@ -498,13 +620,13 @@ var _documentManagementGrid = (function () {
                     }
                 }
             } else {
-                // Regular file/multi-file upload into current folder
+                // Regular file/multi-file upload into effective folder
                 for (var j = 0; j < files.length; j++) {
                     var f = files[j];
                     var docName = files.length === 1 ? singleName : filenameWithoutExtension(f.name);
                     if (statusEl) statusEl.textContent = 'Uploading ' + (j + 1) + ' of ' + files.length + ' \u2014 ' + f.name;
                     try {
-                        var res = await scope.uploadOneFile(f, scope.currentFolderId, docName, resourceFolder, userId);
+                        var res = await scope.uploadOneFile(f, effectiveFolderId, docName, resourceFolder, userId);
                         if (res.ok) succeeded++;
                         else failed.push({ name: f.name, error: res.error });
                     } catch (e) {
@@ -555,16 +677,17 @@ var _documentManagementGrid = (function () {
          */
         ensureFolderChain: async function (segments, rootParentId, folderIdCache) {
             var parentId = rootParentId || null;
-            var cacheKey = JSON.stringify(rootParentId) + '::';
             for (var i = 0; i < segments.length; i++) {
-                cacheKey += segments[i] + '/';
+                // Cache key encodes full path from root so same-named folders at different levels are distinct
+                var cacheKey = JSON.stringify(parentId) + '::' + segments[i];
                 if (folderIdCache[cacheKey] !== undefined) {
                     parentId = folderIdCache[cacheKey];
                     continue;
                 }
-                var result = (typeof dataFunctions !== 'undefined' && dataFunctions.getOrCreateDocumentCategory)
+                var rawResult = (typeof dataFunctions !== 'undefined' && dataFunctions.getOrCreateDocumentCategory)
                     ? await dataFunctions.getOrCreateDocumentCategory(segments[i], parentId)
-                    : { success: false, error: 'dataFunctions not available' };
+                    : null;
+                var result = unwrapRpcResult(rawResult, 'get_or_create_document_category');
                 if (!result || !result.success) {
                     throw new Error('Could not create folder "' + segments[i] + '": ' + (result && result.error || 'unknown'));
                 }
@@ -577,7 +700,9 @@ var _documentManagementGrid = (function () {
         /** Upload a single file to S3 and save a document record. */
         uploadOneFile: async function (file, categoryId, documentName, resourceFolder, userId) {
             var docName = documentName || filenameWithoutExtension(file.name);
-            var fileId = 'doc_' + Date.now() + '_' + (file.name || 'file').replace(/\s/g, '_');
+            // Include random suffix so rapid sequential uploads never share the same S3 key
+            var safeName = (file.name || 'file').replace(/[^\w.-]/g, '_');
+            var fileId = 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + '_' + safeName;
 
             var uploadResult = (typeof _common !== 'undefined' && _common.uploadFile)
                 ? await _common.uploadFile({ file: file, resourceFolder: resourceFolder, fileId: fileId })
@@ -595,7 +720,7 @@ var _documentManagementGrid = (function () {
                 return { ok: false, error: 'Save document not available' };
             }
 
-            var createResult = await dataFunctions.createDocument({
+            var rawCreate = await dataFunctions.createDocument({
                 document_name: docName,
                 category_id: categoryId,
                 file_name: file.name,
@@ -603,6 +728,7 @@ var _documentManagementGrid = (function () {
                 file_link: fileLink,
                 uploaded_by: userId
             });
+            var createResult = unwrapRpcResult(rawCreate, 'create_document_simple');
 
             if (createResult && (createResult.success === true || createResult.id)) {
                 return { ok: true };

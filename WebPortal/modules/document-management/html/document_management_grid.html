@@ -50,6 +50,15 @@
     </div>
 </div>
 
+<!-- Right-click context menu (position: fixed, shown via JS) -->
+<div id="docContextMenu" class="doc-context-menu" style="display:none;" role="menu" aria-label="Folder actions">
+    <div class="doc-context-menu-header small text-muted px-3 pt-2 pb-1" id="docContextMenuLabel">Upload here</div>
+    <ul>
+        <li data-ctx-action="upload-files"><i class="fas fa-file me-2"></i>Upload file(s) here</li>
+        <li data-ctx-action="upload-folder"><i class="fas fa-folder-open me-2"></i>Upload folder here</li>
+    </ul>
+</div>
+
 <!-- Upload Document Modal -->
 <div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
