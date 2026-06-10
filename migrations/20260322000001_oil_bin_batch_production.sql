@@ -128,6 +128,20 @@ END;
 $$;
 
 -- 4. get_oil_bin_batches — list oil bin batches for the production UI
+DO $$
+DECLARE
+    fn record;
+BEGIN
+    FOR fn IN
+        SELECT p.oid::regprocedure AS sig
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'get_oil_bin_batches'
+    LOOP
+        EXECUTE format('DROP FUNCTION IF EXISTS %s CASCADE', fn.sig);
+    END LOOP;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.get_oil_bin_batches(
     p_status varchar DEFAULT NULL,
     p_limit integer DEFAULT 100,

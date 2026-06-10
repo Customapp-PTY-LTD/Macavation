@@ -1,0 +1,67 @@
+---
+description: Dev branch uses Macavation UAT Supabase (not production, never FruitLive)
+alwaysApply: true
+---
+
+# Supabase — dev branch → UAT
+
+On the **`dev`** git branch, development targets the **Macavation UAT** project unless the user explicitly asks for production.
+
+## Canonical UAT identifiers (dev branch)
+
+| Item | Value |
+|------|--------|
+| Project ref | `nmdmddugxclpqrwylyfa` |
+| API URL | `https://nmdmddugxclpqrwylyfa.supabase.co` |
+| Committed remote pin | `supabase/remote.toml` |
+| Project registry | `supabase/projects.json` |
+| Workspace MCP pin | `.cursor/mcp.json` → `project_ref=nmdmddugxclpqrwylyfa` |
+
+Production (`sofanhfpxifgdtooefzq`) remains in `supabase/projects.json` for **prod** / **demo** portal environments only.
+
+## Blocked — never use by default
+
+- `iwxmuemrfopajwvqdiae` (**FruitLive**)
+- `https://iwxmuemrfopajwvqdiae.supabase.co`
+
+## Mandatory pre-flight (agents and humans)
+
+Before **any** Supabase MCP call:
+
+1. Call **`get_project_url`**.
+2. **Required on dev branch:** `https://nmdmddugxclpqrwylyfa.supabase.co`
+3. If the URL is FruitLive or production while working on dev: **STOP** and fix MCP / CLI link.
+4. Apply schema changes with **CLI:**
+   ```bash
+   npm run db:apply -- migrations/YYYYMMDDHHMMSS_name.sql
+   ```
+
+If Cursor’s **user-level** Supabase MCP overrides this repo’s `.cursor/mcp.json`, set it to:
+
+`https://mcp.supabase.com/mcp?project_ref=nmdmddugxclpqrwylyfa`
+
+## First-time UAT anon key
+
+1. Supabase Dashboard → **Macavation UAT** → Settings → API → copy **anon** (or publishable) key.
+2. Paste into `supabase/projects.json` → `uat.anonKey`.
+3. Run:
+   ```bash
+   npm run supabase:sync-portal
+   npm run db:check-project
+   ```
+
+## CLI link (once per machine)
+
+```bash
+supabase login
+supabase link --project-ref nmdmddugxclpqrwylyfa
+```
+
+## Portal environments
+
+| Environment key | Database |
+|-----------------|----------|
+| `default`, `dev`, `uat` | UAT |
+| `prod`, `demo` | Production |
+
+Localhost and `127.0.0.1` resolve to **`dev`** (UAT).

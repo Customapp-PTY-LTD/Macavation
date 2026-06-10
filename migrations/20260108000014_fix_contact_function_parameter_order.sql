@@ -1,7 +1,19 @@
 -- Fix create_contact_simple function parameter order to match Lambda proxy expectations
 -- Lambda proxy alphabetizes parameters, so we need to match that order
 
-DROP FUNCTION IF EXISTS public.create_contact_simple CASCADE;
+DO $$
+DECLARE
+    fn record;
+BEGIN
+    FOR fn IN
+        SELECT p.oid::regprocedure AS sig
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'create_contact_simple'
+    LOOP
+        EXECUTE format('DROP FUNCTION IF EXISTS %s CASCADE', fn.sig);
+    END LOOP;
+END $$;
 
 CREATE OR REPLACE FUNCTION create_contact_simple(
     p_account_manager_id uuid DEFAULT NULL,

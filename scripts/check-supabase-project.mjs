@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Guardrail: fail if active repo files target FruitLive or another non-Macavation Supabase project.
+ * Guardrail: fail if repo files target FruitLive or an unknown Supabase project.
+ * On the dev branch, linked/portal dev environments must use UAT (nmdmddugxclpqrwylyfa).
  *
  * Usage:
  *   node scripts/check-supabase-project.mjs
@@ -10,10 +11,12 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import {
-  REQUIRED_PROJECT_REF,
-  assertMacavationSupabaseUrl,
-  readExpectedRemoteRef,
-} from './lib/macavation-supabase.mjs';
+  UAT,
+  PRODUCTION,
+  assertAllowedSupabaseUrl,
+  anonKeyMatchesProject,
+} from './lib/supabase-projects.mjs';
+import { readExpectedRemoteRef } from './lib/macavation-supabase.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
@@ -55,13 +58,16 @@ const REQUIRED_FILES = [
   'js/appRouteConfig.json',
   '.cursor/mcp.json',
   'supabase/remote.toml',
+  'supabase/projects.json',
 ];
 
 const GUARD_FILES = new Set([
   'scripts/lib/macavation-supabase.mjs',
+  'scripts/lib/supabase-projects.mjs',
   'scripts/check-supabase-project.mjs',
   'WebPortal/js/macavation-supabase.js',
   '.cursor/rules/supabase-macavation-only.mdc',
+  '.cursor/rules/supabase-dev-uat.mdc',
 ]);
 
 let errors = [];
@@ -116,32 +122,36 @@ function walkDir(absDir) {
   }
 }
 
-function verifyRequiredFilesContainMacavation() {
-  for (const rel of REQUIRED_FILES) {
-    const abs = path.join(root, rel);
-    if (!fs.existsSync(abs)) {
-      errors.push(`Missing required file: ${rel}`);
-      continue;
-    }
-    const content = fs.readFileSync(abs, 'utf8');
-    if (!content.includes(REQUIRED_PROJECT_REF)) {
-      errors.push(`${rel}: must contain Macavation project ref ${REQUIRED_PROJECT_REF}`);
-    }
-  }
-}
-
 function verifyRemoteToml() {
   try {
     const ref = readExpectedRemoteRef(root);
-    if (ref !== REQUIRED_PROJECT_REF) {
-      errors.push(`supabase/remote.toml: expected ${REQUIRED_PROJECT_REF}, got ${ref}`);
+    if (ref !== UAT.ref) {
+      errors.push(`supabase/remote.toml: on dev branch expected UAT ref ${UAT.ref}, got ${ref}`);
     }
   } catch (err) {
     errors.push(String(err.message || err));
   }
 }
 
+function verifyMcpPin() {
+  const mcpPath = path.join(root, '.cursor', 'mcp.json');
+  if (!fs.existsSync(mcpPath)) return;
+  const content = fs.readFileSync(mcpPath, 'utf8');
+  if (!content.includes(UAT.ref)) {
+    errors.push(`.cursor/mcp.json: must pin MCP to UAT project_ref=${UAT.ref}`);
+  }
+}
+
+function verifyUatAnonKeyConfigured() {
+  if (!UAT.anonKey || !anonKeyMatchesProject(UAT.anonKey, UAT.ref)) {
+    errors.push(
+      'supabase/projects.json: set uat.anonKey from Dashboard → Macavation UAT → Settings → API, then run npm run supabase:sync-portal'
+    );
+  }
+}
+
 function verifyAppRouteConfigUrls() {
+  const devEnvs = new Set(['default', 'dev', 'uat']);
   for (const rel of ['WebPortal/js/appRouteConfig.json', 'js/appRouteConfig.json']) {
     const abs = path.join(root, rel);
     if (!fs.existsSync(abs)) continue;
@@ -149,9 +159,20 @@ function verifyAppRouteConfigUrls() {
     const settings = json.environmentSettings || {};
     for (const [env, cfg] of Object.entries(settings)) {
       try {
-        assertMacavationSupabaseUrl(cfg.SupabaseUrl);
+        assertAllowedSupabaseUrl(cfg.SupabaseUrl);
       } catch (err) {
         errors.push(`${rel} (${env}): ${err.message}`);
+      }
+      if (devEnvs.has(env)) {
+        if (!cfg.SupabaseUrl || !cfg.SupabaseUrl.includes(UAT.ref)) {
+          errors.push(`${rel} (${env}): must use UAT URL ${UAT.apiUrl}`);
+        }
+        if (!cfg.SupabaseAnonKey || !anonKeyMatchesProject(cfg.SupabaseAnonKey, UAT.ref)) {
+          errors.push(`${rel} (${env}): missing or invalid UAT anon key (run npm run supabase:sync-portal)`);
+        }
+      }
+      if (env === 'prod' && cfg.SupabaseUrl && !cfg.SupabaseUrl.includes(PRODUCTION.ref)) {
+        errors.push(`${rel} (prod): must keep production URL ${PRODUCTION.apiUrl}`);
       }
     }
   }
@@ -165,8 +186,9 @@ for (const rel of SCAN_FILES) {
   if (fs.existsSync(abs)) scanFile(abs);
 }
 
-verifyRequiredFilesContainMacavation();
 verifyRemoteToml();
+verifyMcpPin();
+verifyUatAnonKeyConfigured();
 verifyAppRouteConfigUrls();
 
 if (errors.length) {
@@ -177,4 +199,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`Supabase project guard OK (Macavation / ${REQUIRED_PROJECT_REF}).`);
+console.log(`Supabase project guard OK (dev → UAT / ${UAT.ref}).`);

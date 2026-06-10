@@ -7,7 +7,7 @@ var _app = {
     config: {
         supabaseUrl: (typeof window !== 'undefined' && window.MACAVATION_SUPABASE)
             ? window.MACAVATION_SUPABASE.url
-            : 'https://sofanhfpxifgdtooefzq.supabase.co',
+            : 'https://nmdmddugxclpqrwylyfa.supabase.co',
         supabaseAnonKey: (typeof window !== 'undefined' && window.MACAVATION_SUPABASE)
             ? window.MACAVATION_SUPABASE.anonKey
             : '',

@@ -89,19 +89,15 @@ BEGIN
 
     FOR v_pb IN
         SELECT
-            id,
-            batch_number,
-            production_date,
-            shift,
-            product_name,
-            status,
-            is_active,
-            created_at,
-            updated_at,
+            pb.id,
+            pb.batch_number,
+            pb.status,
+            pb.created_at,
+            pb.updated_at,
             to_jsonb(pb.*) AS all_data
         FROM public.production_batches pb
         WHERE pb.batch_type = 'oil'
-          AND pb.is_active  = true
+          AND COALESCE((to_jsonb(pb.*)->>'is_active')::boolean, true)
         ORDER BY pb.created_at
     LOOP
         v_data := v_pb.all_data;
@@ -158,9 +154,9 @@ BEGIN
         )
         VALUES (
             v_batch_id,
-            v_pb.production_date::date,
-            v_pb.shift,
-            v_pb.product_name,
+            (v_data->>'production_date')::date,
+            v_data->>'shift',
+            v_data->>'product_name',
             v_oil_status,
             v_total_litre,
             jsonb_build_object(

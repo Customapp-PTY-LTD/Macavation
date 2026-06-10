@@ -1,6 +1,6 @@
 ---
-description: Macavation Supabase only — never FruitLive; CLI-first migrations; MCP pre-flight
-alwaysApply: true
+description: Production Supabase (main branch) — superseded on dev by supabase-dev-uat.mdc
+alwaysApply: false
 ---
 
 # Supabase — Macavation only

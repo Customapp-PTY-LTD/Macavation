@@ -4,9 +4,15 @@
  * Following WebPortals module pattern
  */
 
+function resolveDefaultProxyUrl() {
+    const cfg = (typeof window !== 'undefined' && window.MACAVATION_SUPABASE) ? window.MACAVATION_SUPABASE : null;
+    if (cfg && cfg.lambdaProxyUrl) return cfg.lambdaProxyUrl;
+    return 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function';
+}
+
 var _dataFunctions = function () {
     return {
-        proxyUrl: 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function',
+        proxyUrl: resolveDefaultProxyUrl(),
         supabaseUrl: '',
         supabaseAnonKey: '',
 
@@ -4854,7 +4860,16 @@ var _dataFunctions = function () {
         createDocumentCategory: async function (data, token = null) {
             const result = await this.callFunction('create_document_category_simple', {
                 p_name: data.name,
-                p_description: data.description || null
+                p_description: data.description || null,
+                p_parent_id: data.parent_id || null
+            }, token, { useCache: false });
+            this.clearCachePattern('document_categories');
+            return result;
+        },
+        getOrCreateDocumentCategory: async function (name, parentId, token = null) {
+            const result = await this.callFunction('get_or_create_document_category', {
+                p_name: name,
+                p_parent_id: parentId || null
             }, token, { useCache: false });
             this.clearCachePattern('document_categories');
             return result;
@@ -4862,6 +4877,12 @@ var _dataFunctions = function () {
         deleteDocumentCategory: async function (categoryId, token = null) {
             const result = await this.callFunction('delete_document_category_simple', { p_id: categoryId }, token, { useCache: false });
             this.clearCachePattern('document_categories');
+            return result;
+        },
+        deleteDocumentFolderRecursive: async function (folderId, token = null) {
+            const result = await this.callFunction('delete_document_folder_recursive', { p_id: folderId }, token, { useCache: false });
+            this.clearCachePattern('document_categories');
+            this.clearCachePattern('documents');
             return result;
         },
         getDocuments: async function (token = null, forceRefresh = false) {

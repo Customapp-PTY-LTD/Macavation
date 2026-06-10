@@ -1216,7 +1216,9 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
     'delete_document_hard',
     'get_document_categories',
     'create_document_category_simple',
-    'delete_document_category_simple'
+    'delete_document_category_simple',
+    'get_or_create_document_category',
+    'delete_document_folder_recursive'
   ]);
   // Kernel job card / stock return: skip Lambda RBAC when role_permissions rows are missing (matches document module).
   const kernelJobCardFunctions = new Set([

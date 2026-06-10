@@ -1,3 +1,5 @@
+DROP FUNCTION IF EXISTS public.get_role_features();
+
 -- Fix get_role_features: add feature_id to the return set.
 -- Also fixes delete_role_feature_simple: was RETURNS VOID (Lambda can't parse empty body)
 -- and had unquoted json_build_object key causing hard errors.

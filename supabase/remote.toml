@@ -1,5 +1,5 @@
-# Canonical remote Supabase project for the Macavation repo.
-# Link CLI once per machine: supabase link --project-ref sofanhfpxifgdtooefzq
-project_ref = "sofanhfpxifgdtooefzq"
-name = "Macavation"
-api_url = "https://sofanhfpxifgdtooefzq.supabase.co"
+# Linked Supabase project for the dev branch (UAT).
+# Link CLI once per machine: supabase link --project-ref nmdmddugxclpqrwylyfa
+project_ref = "nmdmddugxclpqrwylyfa"
+name = "Macavation UAT"
+api_url = "https://nmdmddugxclpqrwylyfa.supabase.co"

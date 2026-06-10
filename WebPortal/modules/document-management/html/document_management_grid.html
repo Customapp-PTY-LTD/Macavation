@@ -5,42 +5,42 @@
         <div class="btn-toolbar mb-2 mb-md-0">
             <a href="help/index.html#document-management-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn btn-primary" id="uploadDocBtn">
-                <i class="fas fa-upload me-1"></i>Upload Document
+                <i class="fas fa-upload me-1"></i>Upload
             </button>
         </div>
     </div>
-    <div class="card mb-3">
-        <div class="card-header bg-light">
-            <h6 class="mb-0">Categories</h6>
-        </div>
-        <div class="card-body py-2">
-            <p class="text-muted small mb-2">Manage categories used when uploading documents. Deleting a category hides it from the list; documents in that category keep their link but the category name will no longer show.</p>
-            <ul class="list-group list-group-flush" id="documentCategoriesList">
-                <li class="list-group-item text-muted small">Loading…</li>
-            </ul>
-        </div>
-    </div>
+
     <div class="card mb-4">
-        <div class="card-body">
-            <div class="row g-2 mb-3">
-                <div class="col-md-6">
-                    <label for="docSearchInput" class="form-label visually-hidden">Search</label>
-                    <div class="input-group">
+        <div class="card-body p-0">
+            <!-- Explorer toolbar: back button + breadcrumb + search -->
+            <div class="doc-explorer-toolbar d-flex align-items-center gap-2 px-3 py-2 border-bottom">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="docBackBtn" disabled title="Back">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <nav aria-label="Folder location" class="flex-grow-1 min-w-0">
+                    <ol class="breadcrumb mb-0 small" id="docExplorerBreadcrumb">
+                        <li class="breadcrumb-item active">Home</li>
+                    </ol>
+                </nav>
+                <div class="d-flex gap-2 ms-auto">
+                    <div class="input-group input-group-sm" style="width:240px;">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" id="docSearchInput" placeholder="Search by document name or category...">
-                        <button type="button" class="btn btn-outline-secondary" id="docSearchClear" title="Clear search" style="display: none;"><i class="fas fa-times"></i></button>
+                        <input type="text" class="form-control" id="docSearchInput" placeholder="Search all documents and folders…">
+                        <button type="button" class="btn btn-outline-secondary" id="docSearchClear" title="Clear search" style="display:none;"><i class="fas fa-times"></i></button>
                     </div>
                 </div>
             </div>
+
+            <!-- Explorer table -->
             <div class="table-responsive">
-                <table class="table table-hover" id="documentsTable">
+                <table class="table table-hover doc-explorer-table mb-0" id="documentsTable">
                     <thead>
                         <tr>
-                            <th>Document Name</th>
-                            <th>Category</th>
-                            <th>Uploaded By</th>
-                            <th>Upload Date</th>
-                            <th>Actions</th>
+                            <th style="width:42%">Name</th>
+                            <th style="width:12%">Type</th>
+                            <th style="width:18%">Uploaded By</th>
+                            <th style="width:18%">Date</th>
+                            <th style="width:10%">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="documentsTableBody"></tbody>
@@ -52,37 +52,38 @@
 
 <!-- Upload Document Modal -->
 <div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="uploadDocumentModalLabel">Upload Document</h5>
+                <h5 class="modal-title" id="uploadDocumentModalLabel">Upload</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
+                <!-- Save location (current folder) -->
+                <div class="alert alert-secondary py-2 mb-3 small" id="docUploadLocationBadge">
+                    <i class="fas fa-folder-open me-2"></i>Uploading to: <strong id="docUploadLocationLabel">Home</strong>
+                </div>
+
+                <div id="docUploadNameWrap" class="mb-3">
                     <label for="docUploadName" class="form-label">Document name <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="docUploadName" placeholder="e.g. Safety Policy 2025" maxlength="500">
+                    <div class="form-text">Used as the document title. Auto-filled from filename when you pick a file.</div>
                 </div>
+
                 <div class="mb-3">
-                    <label for="docUploadCategory" class="form-label">Category</label>
-                    <div class="d-flex gap-2">
-                        <select class="form-select flex-grow-1" id="docUploadCategory">
-                            <option value="">— No category —</option>
-                        </select>
-                        <button type="button" class="btn btn-outline-secondary" id="docAddCategoryBtn" title="Add new category"><i class="fas fa-plus"></i></button>
+                    <label class="form-label">File(s) <span class="text-danger">*</span></label>
+                    <div class="d-flex gap-2 mb-2">
+                        <label class="btn btn-outline-primary mb-0" for="docUploadFile" style="cursor:pointer;">
+                            <i class="fas fa-file me-1"></i>Select files
+                        </label>
+                        <button type="button" class="btn btn-outline-secondary" id="docUploadFolderBtn" title="Upload all files from a folder">
+                            <i class="fas fa-folder-open me-1"></i>Upload folder
+                        </button>
                     </div>
-                    <div id="docNewCategoryWrap" class="mt-2 d-none">
-                        <div class="input-group input-group-sm">
-                            <input type="text" class="form-control" id="docNewCategoryName" placeholder="New category name">
-                            <button type="button" class="btn btn-outline-primary" id="docNewCategorySave">Add</button>
-                            <button type="button" class="btn btn-outline-secondary" id="docNewCategoryCancel">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label for="docUploadFile" class="form-label">File <span class="text-danger">*</span></label>
-                    <input type="file" class="form-control" id="docUploadFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg">
-                    <div class="form-text">PDF, Word, Excel, text, images. Max size depends on server.</div>
+                    <input type="file" class="d-none" id="docUploadFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg" multiple>
+                    <input type="file" class="d-none" id="docUploadFolder" webkitdirectory>
+                    <div class="form-text mb-2">PDF, Word, Excel, text, or images. For multiple files the filename becomes the document title automatically.</div>
+                    <div id="docUploadFileList" class="doc-upload-preview small" style="max-height:220px;overflow-y:auto;"></div>
                 </div>
                 <p id="docUploadStatus" class="text-muted small mb-0"></p>
             </div>
@@ -93,4 +94,3 @@
         </div>
     </div>
 </div>
-

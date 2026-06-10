@@ -4,19 +4,19 @@
     "contentContainer": "#content-area",
     "environmentSettings": {
         "default": {
-            "SupabaseUrl": "https://sofanhfpxifgdtooefzq.supabase.co",
-            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZmFuaGZweGlmZ2R0b29lZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDM2MDgsImV4cCI6MjA4MTg3OTYwOH0.oFOqODGzzrk5dqUBHDVrPS9VBDzR4xThfwlC33Qri3U",
-            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+            "SupabaseUrl": "https://nmdmddugxclpqrwylyfa.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZG1kZHVneGNscHFyd3lseWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODQyNTcsImV4cCI6MjA5NjA2MDI1N30.uMdbzl4ZzsQFuAD9FDrx29DkqaR1iCG-wxMFM5QBrmc",
+            "LambdaProxyUrl": "https://liztgjlkisjorpow3zgjowcvcu0iwnvc.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "dev": {
-            "SupabaseUrl": "https://sofanhfpxifgdtooefzq.supabase.co",
-            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZmFuaGZweGlmZ2R0b29lZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDM2MDgsImV4cCI6MjA4MTg3OTYwOH0.oFOqODGzzrk5dqUBHDVrPS9VBDzR4xThfwlC33Qri3U",
-            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+            "SupabaseUrl": "https://nmdmddugxclpqrwylyfa.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZG1kZHVneGNscHFyd3lseWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODQyNTcsImV4cCI6MjA5NjA2MDI1N30.uMdbzl4ZzsQFuAD9FDrx29DkqaR1iCG-wxMFM5QBrmc",
+            "LambdaProxyUrl": "https://liztgjlkisjorpow3zgjowcvcu0iwnvc.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "uat": {
-            "SupabaseUrl": "https://sofanhfpxifgdtooefzq.supabase.co",
-            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZmFuaGZweGlmZ2R0b29lZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDM2MDgsImV4cCI6MjA4MTg3OTYwOH0.oFOqODGzzrk5dqUBHDVrPS9VBDzR4xThfwlC33Qri3U",
-            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+            "SupabaseUrl": "https://nmdmddugxclpqrwylyfa.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZG1kZHVneGNscHFyd3lseWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODQyNTcsImV4cCI6MjA5NjA2MDI1N30.uMdbzl4ZzsQFuAD9FDrx29DkqaR1iCG-wxMFM5QBrmc",
+            "LambdaProxyUrl": "https://liztgjlkisjorpow3zgjowcvcu0iwnvc.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "demo": {
             "SupabaseUrl": "https://sofanhfpxifgdtooefzq.supabase.co",
@@ -71,7 +71,9 @@
             "description": "Add/Edit User Modal",
             "path": "modals/modal-user",
             "html": "html/modal_user.html",
-            "js": ["js/modal_user.js"],
+            "js": [
+                "js/modal_user.js"
+            ],
             "css": []
         },
         "roles-grid": {
@@ -89,7 +91,9 @@
             "description": "Add/Edit Role Modal",
             "path": "modals/modal-role",
             "html": "html/modal_role.html",
-            "js": ["js/modal_role.js"],
+            "js": [
+                "js/modal_role.js"
+            ],
             "css": []
         },
         "role-permissions-grid": {
@@ -107,7 +111,9 @@
             "description": "Add/Edit Role Permission Modal",
             "path": "modals/modal-role-permission",
             "html": "html/modal_role_permission.html",
-            "js": ["js/modal_role_permission.js"],
+            "js": [
+                "js/modal_role_permission.js"
+            ],
             "css": []
         },
         "role-features-grid": {
@@ -125,7 +131,9 @@
             "description": "Add/Edit Role Feature Modal",
             "path": "modals/modal-role-feature",
             "html": "html/modal_role_feature.html",
-            "js": ["js/modal_role_feature.js"],
+            "js": [
+                "js/modal_role_feature.js"
+            ],
             "css": []
         },
         "role-actions-grid": {
@@ -161,7 +169,9 @@
             "description": "Add/Edit Feature Modal",
             "path": "modals/modal-feature",
             "html": "html/modal_feature.html",
-            "js": ["js/modal_feature.js"],
+            "js": [
+                "js/modal_feature.js"
+            ],
             "css": []
         },
         "admin-grid": {
@@ -180,14 +190,18 @@
             "description": "Admin Add User Modal",
             "path": "modals/modal-admin-add-user",
             "html": "html/modal_admin_add_user.html",
-            "js": ["js/modal_admin_add_user.js"],
+            "js": [
+                "js/modal_admin_add_user.js"
+            ],
             "css": []
         },
         "add-role-modal": {
             "description": "Admin Add Role Modal",
             "path": "modals/modal-admin-add-role",
             "html": "html/modal_admin_add_role.html",
-            "js": ["js/modal_admin_add_role.js"],
+            "js": [
+                "js/modal_admin_add_role.js"
+            ],
             "css": []
         },
         "crm-grid": {
@@ -205,7 +219,9 @@
             "description": "CRM Add/Edit Contact Modal",
             "path": "modals/modal-crm-contact",
             "html": "html/modal_crm_contact.html",
-            "js": ["js/modal_crm_contact.js"],
+            "js": [
+                "js/modal_crm_contact.js"
+            ],
             "css": []
         },
         "grower-intake-grid": {
@@ -234,21 +250,27 @@
             "description": "Supplier Intake - New oil batch (batches + oil table)",
             "path": "modals/modal-supplier-oil-batch",
             "html": "html/modal_supplier_oil_batch.html",
-            "js": ["js/modal_supplier_oil_batch.js"],
+            "js": [
+                "js/modal_supplier_oil_batch.js"
+            ],
             "css": []
         },
         "supplier-receiver-checklist-modal": {
             "description": "Supplier Intake - Receiver checklist (create batches)",
             "path": "modals/modal-supplier-receiver-checklist",
             "html": "html/modal_supplier_receiver_checklist.html",
-            "js": ["js/modal_supplier_receiver_checklist.js"],
+            "js": [
+                "js/modal_supplier_receiver_checklist.js"
+            ],
             "css": []
         },
         "supplier-intake-adjust-stock-modal": {
             "description": "Supplier Intake - Adjust stock (quick bags, no checklist)",
             "path": "modals/modal-supplier-intake-adjust-stock",
             "html": "html/modal_supplier_intake_adjust_stock.html",
-            "js": ["js/modal_supplier_intake_adjust_stock.js"],
+            "js": [
+                "js/modal_supplier_intake_adjust_stock.js"
+            ],
             "css": []
         },
         "kernel-production-grid": {
@@ -276,57 +298,90 @@
             "description": "Kernel Job Card Modal",
             "path": "modals/modal-kernel-job-card",
             "html": "html/modal_kernel_job_card.html",
-            "js": ["js/kernel_job_card_stock.js", "js/modal_kernel_job_card.js"],
-            "css": ["css/modal_kernel_job_card.css"]
+            "js": [
+                "js/kernel_job_card_stock.js",
+                "js/modal_kernel_job_card.js"
+            ],
+            "css": [
+                "css/modal_kernel_job_card.css"
+            ]
         },
         "production-stages-modal": {
             "description": "Production Stages Modal",
             "path": "modals/modal-production-stages",
             "html": "html/modal_production_stages.html",
-            "js": ["js/modal_production_stages.js"],
-            "css": ["css/modal_production_stages.css"]
+            "js": [
+                "js/modal_production_stages.js"
+            ],
+            "css": [
+                "css/modal_production_stages.css"
+            ]
         },
         "batch-summary-modal": {
             "description": "Batch Summary Modal",
             "path": "modals/modal-batch-summary",
             "html": "html/modal_batch_summary.html",
-            "js": ["js/modal_batch_summary.js"],
-            "css": ["css/modal_batch_summary.css"]
+            "js": [
+                "js/modal_batch_summary.js"
+            ],
+            "css": [
+                "css/modal_batch_summary.css"
+            ]
         },
         "production-stages-view-modal": {
             "description": "Production Stages View Modal",
             "path": "modals/modal-production-stages-view",
             "html": "html/modal_production_stages_view.html",
-            "js": ["js/modal_production_stages_view.js"],
-            "css": ["css/modal_production_stages_view.css"]
+            "js": [
+                "js/modal_production_stages_view.js"
+            ],
+            "css": [
+                "css/modal_production_stages_view.css"
+            ]
         },
         "job-card-view-modal": {
             "description": "Job Card View Modal",
             "path": "modals/modal-job-card-view",
             "html": "html/modal_job_card_view.html",
-            "js": ["js/modal_job_card_view.js"],
-            "css": ["css/modal_job_card_view.css"]
+            "js": [
+                "js/modal_job_card_view.js"
+            ],
+            "css": [
+                "css/modal_job_card_view.css"
+            ]
         },
         "end-sample-modal": {
             "description": "End Sample Modal",
             "path": "modals/modal-end-sample",
             "html": "html/modal_end_sample.html",
-            "js": ["js/modal_end_sample.js"],
-            "css": ["css/modal_end_sample.css"]
+            "js": [
+                "js/modal_end_sample.js"
+            ],
+            "css": [
+                "css/modal_end_sample.css"
+            ]
         },
         "end-sample-view-modal": {
             "description": "End Sample View Modal",
             "path": "modals/modal-end-sample-view",
             "html": "html/modal_end_sample_view.html",
-            "js": ["js/modal_end_sample_view.js"],
-            "css": ["css/modal_end_sample_view.css"]
+            "js": [
+                "js/modal_end_sample_view.js"
+            ],
+            "css": [
+                "css/modal_end_sample_view.css"
+            ]
         },
         "batch-history-modal": {
             "description": "Batch History Modal",
             "path": "modals/modal-batch-history",
             "html": "html/modal_batch_history.html",
-            "js": ["js/modal_batch_history.js"],
-            "css": ["css/modal_batch_history.css"]
+            "js": [
+                "js/modal_batch_history.js"
+            ],
+            "css": [
+                "css/modal_batch_history.css"
+            ]
         },
         "kernel-dispatch-grid": {
             "description": "Kernel Dispatch",
@@ -343,42 +398,56 @@
             "description": "Kernel Dispatch batch modal",
             "path": "modals/modal-kernel-dispatch",
             "html": "html/modal_kernel_dispatch.html",
-            "js": ["js/modal_kernel_dispatch.js"],
+            "js": [
+                "js/modal_kernel_dispatch.js"
+            ],
             "css": []
         },
         "kernel-dispatch-form-modal": {
             "description": "Kernel Dispatch inspection and dispatch form",
             "path": "modals/modal-kernel-dispatch-form",
             "html": "html/modal_kernel_dispatch_form.html",
-            "js": ["js/modal_kernel_dispatch_form.js"],
+            "js": [
+                "js/modal_kernel_dispatch_form.js"
+            ],
             "css": []
         },
         "kernel-dispatch-edit-modal": {
             "description": "Kernel Dispatch edit order (buyer, dates, lines)",
             "path": "modals/modal-kernel-dispatch-edit",
             "html": "html/modal_kernel_dispatch_edit.html",
-            "js": ["js/modal_kernel_dispatch_edit.js"],
+            "js": [
+                "js/modal_kernel_dispatch_edit.js"
+            ],
             "css": []
         },
         "oil-dispatch-grid": {
             "description": "Oil & Protein Dispatch",
             "path": "oil-dispatch",
             "html": "html/oil_dispatch_grid.html",
-            "js": ["js/oil_dispatch_grid.js"],
-            "css": ["css/oil_dispatch_grid.css"]
+            "js": [
+                "js/oil_dispatch_grid.js"
+            ],
+            "css": [
+                "css/oil_dispatch_grid.css"
+            ]
         },
         "oil-dispatch-modal": {
             "description": "Oil Dispatch view basket modal",
             "path": "modals/modal-oil-dispatch",
             "html": "html/modal_oil_dispatch.html",
-            "js": ["js/modal_oil_dispatch.js"],
+            "js": [
+                "js/modal_oil_dispatch.js"
+            ],
             "css": []
         },
         "oil-dispatch-form-modal": {
             "description": "Oil Dispatch inspection and dispatch form",
             "path": "modals/modal-oil-dispatch-form",
             "html": "html/modal_oil_dispatch_form.html",
-            "js": ["js/modal_oil_dispatch_form.js"],
+            "js": [
+                "js/modal_oil_dispatch_form.js"
+            ],
             "css": []
         },
         "quality-assurance-grid": {
@@ -396,7 +465,9 @@
             "description": "Quality Test Modal (New/Edit)",
             "path": "modals/modal-quality-test",
             "html": "html/modal_quality_test.html",
-            "js": ["js/modal_quality_test.js"],
+            "js": [
+                "js/modal_quality_test.js"
+            ],
             "css": []
         },
         "stock-management-grid": {
@@ -436,77 +507,99 @@
             "description": "Oil Stock Lot Modal",
             "path": "modals/modal-stock-oil-lot",
             "html": "html/modal_oil_lot.html",
-            "js": ["js/modal_oil_lot.js"],
+            "js": [
+                "js/modal_oil_lot.js"
+            ],
             "css": []
         },
         "import-oil-lots-modal": {
             "description": "Import Oil Lots Modal",
             "path": "modals/modal-stock-import-oil-lots",
             "html": "html/modal_import_oil_lots.html",
-            "js": ["js/modal_import_oil_lots.js"],
+            "js": [
+                "js/modal_import_oil_lots.js"
+            ],
             "css": []
         },
         "oil-bulk-add-stock-modal": {
             "description": "Add many oil & protein stock lots (on hand)",
             "path": "modals/modal-stock-oil-bulk-add",
             "html": "html/modal_oil_bulk_add_stock.html",
-            "js": ["js/modal_oil_bulk_add_stock.js"],
+            "js": [
+                "js/modal_oil_bulk_add_stock.js"
+            ],
             "css": []
         },
         "receiving-checklist-modal": {
             "description": "Receiving Checklist Modal",
             "path": "modals/modal-stock-receiving-checklist",
             "html": "html/modal_receiving_checklist.html",
-            "js": ["js/modal_receiving_checklist.js"],
+            "js": [
+                "js/modal_receiving_checklist.js"
+            ],
             "css": []
         },
         "grower-receiving-checklist-modal": {
             "description": "Grower Intake Receiving Checklist Modal",
             "path": "modals/modal-grower-receiving-checklist",
             "html": "html/modal_grower_receiving_checklist.html",
-            "js": ["js/modal_grower_receiving_checklist.js"],
+            "js": [
+                "js/modal_grower_receiving_checklist.js"
+            ],
             "css": []
         },
         "grower-create-kernel-batch-modal": {
             "description": "Grower Intake Create Kernel Batch Modal",
             "path": "modals/modal-grower-create-kernel-batch",
             "html": "html/modal_grower_create_kernel_batch.html",
-            "js": ["js/modal_grower_create_kernel_batch.js"],
+            "js": [
+                "js/modal_grower_create_kernel_batch.js"
+            ],
             "css": []
         },
         "grower-link-sample-to-batch-modal": {
             "description": "Grower Intake Link Sample to Batch Modal",
             "path": "modals/modal-grower-link-sample-to-batch",
             "html": "html/modal_grower_link_sample_to_batch.html",
-            "js": ["js/modal_grower_link_sample_to_batch.js"],
+            "js": [
+                "js/modal_grower_link_sample_to_batch.js"
+            ],
             "css": []
         },
         "raw-material-issued-modal": {
             "description": "Raw Material Issued Modal",
             "path": "modals/modal-stock-raw-material-issued",
             "html": "html/modal_raw_material_issued.html",
-            "js": ["js/modal_raw_material_issued.js"],
+            "js": [
+                "js/modal_raw_material_issued.js"
+            ],
             "css": []
         },
         "stock-take-modal": {
             "description": "Stock Take Modal",
             "path": "modals/modal-stock-stock-take",
             "html": "html/modal_stock_take.html",
-            "js": ["js/modal_stock_take.js"],
+            "js": [
+                "js/modal_stock_take.js"
+            ],
             "css": []
         },
         "send-to-dispatch-modal": {
             "description": "Send to Dispatch Modal",
             "path": "modals/modal-stock-send-to-dispatch",
             "html": "html/modal_send_to_dispatch.html",
-            "js": ["js/modal_send_to_dispatch.js"],
+            "js": [
+                "js/modal_send_to_dispatch.js"
+            ],
             "css": []
         },
         "send-to-dispatch-oil-modal": {
             "description": "Send to Dispatch (Oil & Protein) Modal",
             "path": "modals/modal-stock-send-to-dispatch-oil",
             "html": "html/modal_send_to_dispatch_oil.html",
-            "js": ["js/modal_send_to_dispatch_oil.js"],
+            "js": [
+                "js/modal_send_to_dispatch_oil.js"
+            ],
             "css": []
         },
         "sales-forecasting-grid": {
@@ -544,7 +637,9 @@
             "description": "Oil Production Sheet modal (add/edit)",
             "path": "modals/modal-oil-production",
             "html": "html/modal_oil_production_sheet.html",
-            "js": ["js/modal_oil_production_sheet.js"],
+            "js": [
+                "js/modal_oil_production_sheet.js"
+            ],
             "css": []
         },
         "financial-management-grid": {
@@ -628,7 +723,9 @@
             "description": "Add/Edit Test Scenario Modal",
             "path": "modals/modal-test-scenario",
             "html": "html/modal_test_scenario.html",
-            "js": ["js/modal_test_scenario.js"],
+            "js": [
+                "js/modal_test_scenario.js"
+            ],
             "css": []
         },
         "test-data-grid": {
@@ -646,22 +743,30 @@
             "description": "Add/Edit Test Data Set Modal",
             "path": "modals/modal-test-data-set",
             "html": "html/modal_test_data_set.html",
-            "js": ["js/modal_test_data_set.js"],
+            "js": [
+                "js/modal_test_data_set.js"
+            ],
             "css": []
         },
         "test-data-record-modal": {
             "description": "Add/Edit Test Data Record Modal",
             "path": "modals/modal-test-data-record",
             "html": "html/modal_test_data_record.html",
-            "js": ["js/modal_test_data_record.js"],
+            "js": [
+                "js/modal_test_data_record.js"
+            ],
             "css": []
         },
         "batch-journey": {
             "description": "Batch Journey - All Batches Overview",
             "path": "batch-journey",
             "html": "html/batch_journey_grid.html",
-            "js": ["js/batch_journey_grid.js"],
-            "css": ["css/batch_journey_grid.css"]
+            "js": [
+                "js/batch_journey_grid.js"
+            ],
+            "css": [
+                "css/batch_journey_grid.css"
+            ]
         }
     }
 }

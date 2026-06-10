@@ -9,7 +9,7 @@ ON CONFLICT (key) DO NOTHING;
 -- 2. Assign to ALL roles (every role that has at least one feature gets batch-journey)
 DO $$
 DECLARE
-    v_role_id integer;
+    v_role_id uuid;
     v_feature_id bigint;
 BEGIN
     SELECT id INTO v_feature_id FROM public.features WHERE key = 'batch-journey';

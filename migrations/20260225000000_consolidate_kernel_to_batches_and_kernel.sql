@@ -132,7 +132,7 @@ SELECT
     pb.id,
     pb.batch_number,
     COALESCE(pb.batch_type, 'kernel'),
-    COALESCE(pb.is_active, true),
+    true,
     COALESCE(pb.created_at, now()),
     COALESCE(pb.updated_at, now())
 FROM public.production_batches pb
@@ -566,7 +566,7 @@ BEGIN
             v_qa_data,
             v_dispatch_data,
             v_batch.production_finished_at,
-            COALESCE(v_batch.is_active, true),
+            true,
             COALESCE(v_batch.created_at, now()),
             COALESCE(v_batch.updated_at, now())
         );

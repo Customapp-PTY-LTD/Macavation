@@ -1,9 +1,11 @@
 /**
- * Document Management Grid Module
- * Upload documents with name and category; add categories on the fly. Pattern: IIFE, single global _documentManagementGrid.
+ * Document Management Grid Module — Explorer-style folder browser.
+ * Pattern: IIFE, single global _documentManagementGrid.
  */
 var _documentManagementGrid = (function () {
     'use strict';
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
 
     function escapeHtml(str) {
         if (str == null || typeof str !== 'string') return '';
@@ -19,47 +21,99 @@ var _documentManagementGrid = (function () {
         } catch (e) { return null; }
     }
 
+    function filenameWithoutExtension(filename) {
+        var parts = (filename || '').split('.');
+        if (parts.length > 1) parts.pop();
+        return parts.join('.').replace(/_/g, ' ').trim() || filename;
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    /** Return a FontAwesome class appropriate for a filename extension. */
+    function fileIconClass(filename) {
+        var ext = (filename || '').split('.').pop().toLowerCase();
+        var map = {
+            pdf: 'fa-file-pdf', doc: 'fa-file-word', docx: 'fa-file-word',
+            xls: 'fa-file-excel', xlsx: 'fa-file-excel',
+            csv: 'fa-file-csv', txt: 'fa-file-alt',
+            png: 'fa-file-image', jpg: 'fa-file-image', jpeg: 'fa-file-image'
+        };
+        return 'fas ' + (map[ext] || 'fa-file');
+    }
+
+    // ── Module ─────────────────────────────────────────────────────────────────
+
     return {
-        documents: [],
-        categories: [],
+        // All documents fetched from the server
+        allDocuments: [],
+        // All categories (flat list from DB) — used to build folder hierarchy
+        allCategories: [],
+        // Explorer navigation state
+        currentFolderId: null,   // null = Home (root)
+        folderPath: [],          // [{ id, name }, …]
         docSearchQuery: '',
 
         init: function () {
             var scope = _documentManagementGrid;
             scope.initHandlers();
-            scope.loadDocuments();
-            scope.loadCategoriesList();
+            scope.loadAll();
         },
+
+        // ── Handlers ──────────────────────────────────────────────────────────
 
         initHandlers: function () {
             var scope = _documentManagementGrid;
-            $('#uploadDocBtn').on('click', function () {
-                scope.openUploadModal();
-            });
-            $('#docAddCategoryBtn').on('click', function () {
-                $('#docNewCategoryWrap').removeClass('d-none');
-                $('#docNewCategoryName').val('').focus();
-            });
-            $('#docNewCategoryCancel').on('click', function () {
-                $('#docNewCategoryWrap').addClass('d-none');
-                $('#docNewCategoryName').val('');
-            });
-            $('#docNewCategorySave').on('click', function () {
-                scope.saveNewCategory();
-            });
-            $('#docUploadSubmitBtn').on('click', function () {
-                scope.submitUpload();
-            });
+
+            $('#uploadDocBtn').on('click', function () { scope.openUploadModal(); });
+
+            $('#docUploadFile').on('change', function () { scope.onFilesSelected(this.files); });
+            $('#docUploadFolderBtn').on('click', function () { scope.openFolderPicker(); });
+            $('#docUploadFolder').on('change', function () { scope.onFilesSelected(this.files); });
+            $('#docUploadSubmitBtn').on('click', function () { scope.submitUpload(); });
+
             $('#uploadDocumentModal').on('show.bs.modal', function () {
-                scope.loadCategoriesForUpload();
+                // Show current location
+                var label = scope.folderPath.length
+                    ? scope.folderPath.map(function (f) { return f.name; }).join(' / ')
+                    : 'Home';
+                $('#docUploadLocationLabel').text(label);
             });
             $('#uploadDocumentModal').on('hidden.bs.modal', function () {
                 $('#docUploadName').val('');
-                $('#docUploadCategory').val('');
                 $('#docUploadFile').val('');
+                $('#docUploadFolder').val('');
                 $('#docUploadStatus').text('');
-                $('#docNewCategoryWrap').addClass('d-none');
+                $('#docUploadFileList').empty();
+                $('#docUploadNameWrap').show();
+                $('#docUploadSubmitBtn').text('Upload');
             });
+
+            $('#docBackBtn').on('click', function () { scope.navigateUp(); });
+
+            $('#docSearchInput').on('input', function () {
+                scope.docSearchQuery = ($(this).val() || '').trim().toLowerCase();
+                $('#docSearchClear').toggle(scope.docSearchQuery.length > 0);
+                scope.renderExplorer();
+            });
+            $('#docSearchClear').on('click', function () {
+                $('#docSearchInput').val('');
+                scope.docSearchQuery = '';
+                $(this).hide();
+                scope.renderExplorer();
+            });
+
+            // Folder row click (delegated)
+            $(document).on('click', '[data-folder-navigate]', function (e) {
+                e.preventDefault();
+                var id = $(this).data('folder-navigate');
+                scope.navigateToFolder(id);
+            });
+
+            // Document action buttons (delegated)
             $(document).on('click', '[data-document-action][data-document-id]', function (e) {
                 e.preventDefault();
                 var action = $(this).data('document-action');
@@ -68,143 +122,228 @@ var _documentManagementGrid = (function () {
                 else if (action === 'download') scope.downloadDocument(docId);
                 else if (action === 'delete') scope.deleteDocument(docId);
             });
-            $(document).on('click', '[data-category-delete]', function (e) {
+
+            // Folder delete button (delegated)
+            $(document).on('click', '[data-folder-delete]', function (e) {
                 e.preventDefault();
-                var id = $(this).data('category-delete');
-                if (id) scope.deleteCategory(id);
-            });
-            $('#docSearchInput').on('input', function () {
-                scope.docSearchQuery = ($(this).val() || '').trim().toLowerCase();
-                $('#docSearchClear').toggle(scope.docSearchQuery.length > 0);
-                scope.renderDocuments();
-            });
-            $('#docSearchClear').on('click', function () {
-                $('#docSearchInput').val('');
-                scope.docSearchQuery = '';
-                $(this).hide();
-                scope.renderDocuments();
+                var id = $(this).data('folder-delete');
+                if (id) scope.deleteFolder(id);
             });
         },
 
-        loadCategoriesList: function () {
+        // ── Data loading ──────────────────────────────────────────────────────
+
+        loadAll: function () {
             var scope = _documentManagementGrid;
-            var listEl = document.getElementById('documentCategoriesList');
-            if (!listEl) return;
-            if (typeof dataFunctions === 'undefined' || !dataFunctions.getDocumentCategories) {
-                listEl.innerHTML = '<li class="list-group-item text-muted small">Categories not available.</li>';
-                return;
-            }
-            dataFunctions.getDocumentCategories().then(function (list) {
-                scope.categories = Array.isArray(list) ? list : [];
-                if (scope.categories.length === 0) {
-                    listEl.innerHTML = '<li class="list-group-item text-muted small">No categories yet. Add one when uploading a document.</li>';
-                    return;
-                }
-                listEl.innerHTML = scope.categories.map(function (c) {
-                    return '<li class="list-group-item d-flex justify-content-between align-items-center">' +
-                        '<span>' + escapeHtml(c.name || '') + '</span>' +
-                        '<button type="button" class="btn btn-sm btn-outline-danger" data-category-delete="' + escapeHtml(c.id) + '" title="Delete category"><i class="fas fa-trash-alt"></i></button>' +
-                        '</li>';
-                }).join('');
+            var catPromise = (typeof dataFunctions !== 'undefined' && dataFunctions.getDocumentCategories)
+                ? dataFunctions.getDocumentCategories()
+                : Promise.resolve([]);
+            var docPromise = (typeof dataFunctions !== 'undefined' && dataFunctions.getDocuments)
+                ? dataFunctions.getDocuments(null, true)
+                : Promise.resolve([]);
+            Promise.all([catPromise, docPromise]).then(function (results) {
+                scope.allCategories = Array.isArray(results[0]) ? results[0] : [];
+                scope.allDocuments = Array.isArray(results[1]) ? results[1] : [];
+                scope.renderExplorer();
             }).catch(function () {
-                listEl.innerHTML = '<li class="list-group-item text-muted small">Failed to load categories.</li>';
+                scope.allCategories = [];
+                scope.allDocuments = [];
+                scope.renderExplorer();
             });
         },
 
-        deleteCategory: function (categoryId) {
+        // ── Navigation ────────────────────────────────────────────────────────
+
+        navigateToFolder: function (folderId) {
             var scope = _documentManagementGrid;
-            var confirmMsg = 'Remove this category? Documents in this category will keep their link but the category name will no longer show.';
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Delete category?',
-                    text: confirmMsg,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Delete',
-                    confirmButtonColor: '#dc3545'
-                }).then(function (result) {
-                    if (result && result.isConfirmed) scope.doDeleteCategory(categoryId);
-                });
-            } else if (window.confirm(confirmMsg)) {
-                scope.doDeleteCategory(categoryId);
-            }
+            var cat = scope.allCategories.find(function (c) { return c.id === folderId; });
+            if (!cat) return;
+            scope.folderPath.push({ id: folderId, name: cat.name });
+            scope.currentFolderId = folderId;
+            scope.renderBreadcrumb();
+            scope.renderExplorer();
         },
 
-        doDeleteCategory: function (categoryId) {
+        navigateUp: function () {
             var scope = _documentManagementGrid;
-            if (typeof dataFunctions === 'undefined' || !dataFunctions.deleteDocumentCategory) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete category not available', 'error');
-                return;
+            if (scope.folderPath.length === 0) return;
+            scope.folderPath.pop();
+            scope.currentFolderId = scope.folderPath.length
+                ? scope.folderPath[scope.folderPath.length - 1].id
+                : null;
+            scope.renderBreadcrumb();
+            scope.renderExplorer();
+        },
+
+        navigateToBreadcrumb: function (index) {
+            var scope = _documentManagementGrid;
+            if (index < 0) {
+                scope.folderPath = [];
+                scope.currentFolderId = null;
+            } else {
+                scope.folderPath = scope.folderPath.slice(0, index + 1);
+                scope.currentFolderId = scope.folderPath[scope.folderPath.length - 1].id;
             }
-            dataFunctions.deleteDocumentCategory(categoryId).then(function (result) {
-                var ok = result && (result.success === true || result.message);
-                if (ok) {
-                    scope.loadCategoriesList();
-                    scope.loadCategoriesForUpload();
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Category deleted', timer: 1500, showConfirmButton: false });
+            scope.renderBreadcrumb();
+            scope.renderExplorer();
+        },
+
+        renderBreadcrumb: function () {
+            var scope = _documentManagementGrid;
+            var crumb = document.getElementById('docExplorerBreadcrumb');
+            var backBtn = document.getElementById('docBackBtn');
+            if (!crumb) return;
+            var items = '<li class="breadcrumb-item"><a href="#" data-breadcrumb-index="-1">Home</a></li>';
+            scope.folderPath.forEach(function (f, i) {
+                var isLast = i === scope.folderPath.length - 1;
+                if (isLast) {
+                    items += '<li class="breadcrumb-item active">' + escapeHtml(f.name) + '</li>';
                 } else {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Failed to delete category', 'error');
+                    items += '<li class="breadcrumb-item"><a href="#" data-breadcrumb-index="' + i + '">' + escapeHtml(f.name) + '</a></li>';
                 }
-            }).catch(function (e) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to delete category', 'error');
+            });
+            if (scope.folderPath.length === 0) {
+                items = '<li class="breadcrumb-item active">Home</li>';
+            }
+            crumb.innerHTML = items;
+            $(crumb).find('[data-breadcrumb-index]').on('click', function (e) {
+                e.preventDefault();
+                scope.navigateToBreadcrumb(parseInt($(this).data('breadcrumb-index'), 10));
+            });
+            if (backBtn) backBtn.disabled = scope.folderPath.length === 0;
+        },
+
+        // ── Rendering ────────────────────────────────────────────────────────
+
+        renderExplorer: function () {
+            var scope = _documentManagementGrid;
+            var tbody = $('#documentsTableBody');
+            tbody.empty();
+
+            var q = scope.docSearchQuery;
+            if (q) {
+                scope.renderSearchResults(q);
+                return;
+            }
+
+            // Folders whose parent matches currentFolderId
+            var childFolders = scope.allCategories.filter(function (c) {
+                return scope.currentFolderId === null
+                    ? (c.parent_id == null)
+                    : (c.parent_id === scope.currentFolderId);
+            });
+
+            // Documents in this folder
+            var childDocs = scope.allDocuments.filter(function (d) {
+                return scope.currentFolderId === null
+                    ? (d.category_id == null)
+                    : (d.category_id === scope.currentFolderId);
+            });
+
+            if (childFolders.length === 0 && childDocs.length === 0) {
+                var emptyMsg = scope.currentFolderId
+                    ? 'This folder is empty. Upload files to add documents here.'
+                    : 'No documents yet. Click \u201cUpload\u201d to add files or folders.';
+                tbody.html('<tr><td colspan="5" class="text-center text-muted py-5">' +
+                    '<i class="fas fa-folder-open me-2"></i>' + escapeHtml(emptyMsg) + '</td></tr>');
+                return;
+            }
+
+            // Render folders first
+            childFolders.forEach(function (cat) {
+                var folderCount = scope.allCategories.filter(function (c) { return c.parent_id === cat.id; }).length;
+                var fileCount = scope.allDocuments.filter(function (d) { return d.category_id === cat.id; }).length;
+                var hint = [];
+                if (folderCount) hint.push(folderCount + ' folder' + (folderCount !== 1 ? 's' : ''));
+                if (fileCount) hint.push(fileCount + ' file' + (fileCount !== 1 ? 's' : ''));
+                var hintStr = hint.length ? ' <span class="text-muted fw-normal small">(' + escapeHtml(hint.join(', ')) + ')</span>' : '';
+                var dateStr = cat.created_at ? cat.created_at.slice(0, 10) : '—';
+                var row = '<tr class="doc-folder-row">' +
+                    '<td><a class="doc-folder-name" href="#" data-folder-navigate="' + escapeHtml(cat.id) + '">' +
+                        '<i class="fas fa-folder doc-folder-icon"></i>' + escapeHtml(cat.name) + '</a>' + hintStr + '</td>' +
+                    '<td><span class="badge bg-warning text-dark">Folder</span></td>' +
+                    '<td>—</td>' +
+                    '<td>' + escapeHtml(dateStr) + '</td>' +
+                    '<td><button type="button" class="btn btn-sm btn-outline-danger" data-folder-delete="' + escapeHtml(cat.id) + '" title="Delete folder"><i class="fas fa-trash"></i></button></td>' +
+                    '</tr>';
+                tbody.append(row);
+            });
+
+            // Render files
+            childDocs.forEach(function (doc) {
+                var dateStr = doc.created_at ? (doc.created_at.slice(0, 10) + ' ' + (doc.created_at.slice(11, 16) || '')).trim() : 'N/A';
+                var row = '<tr>' +
+                    '<td><span class="d-inline-flex align-items-center gap-2">' +
+                        '<i class="' + escapeHtml(fileIconClass(doc.file_name)) + ' doc-file-icon"></i>' +
+                        escapeHtml(doc.document_name || doc.file_name || 'N/A') +
+                    '</span></td>' +
+                    '<td><span class="badge bg-secondary">File</span></td>' +
+                    '<td>' + escapeHtml(doc.uploaded_by_name || 'N/A') + '</td>' +
+                    '<td>' + escapeHtml(dateStr) + '</td>' +
+                    '<td>' +
+                        '<button type="button" class="btn btn-sm btn-outline-primary me-1" data-document-action="view" data-document-id="' + escapeHtml(doc.id) + '" title="View"><i class="fas fa-eye"></i></button>' +
+                        '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-document-action="download" data-document-id="' + escapeHtml(doc.id) + '" title="Download"><i class="fas fa-download"></i></button>' +
+                        '<button type="button" class="btn btn-sm btn-outline-danger" data-document-action="delete" data-document-id="' + escapeHtml(doc.id) + '" title="Delete"><i class="fas fa-trash"></i></button>' +
+                    '</td></tr>';
+                tbody.append(row);
             });
         },
 
-        loadCategoriesForUpload: function () {
+        renderSearchResults: function (q) {
             var scope = _documentManagementGrid;
-            var sel = document.getElementById('docUploadCategory');
-            if (!sel) return;
-            var firstOpt = sel.options[0];
-            sel.innerHTML = firstOpt ? firstOpt.outerHTML : '<option value="">— No category —</option>';
-            if (typeof dataFunctions === 'undefined' || !dataFunctions.getDocumentCategories) return;
-            dataFunctions.getDocumentCategories().then(function (list) {
-                scope.categories = Array.isArray(list) ? list : [];
-                scope.categories.forEach(function (c) {
-                    var opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.name || '';
-                    sel.appendChild(opt);
-                });
-            }).catch(function () { scope.categories = []; });
-        },
+            var tbody = $('#documentsTableBody');
+            tbody.empty();
 
-        saveNewCategory: function () {
-            var scope = _documentManagementGrid;
-            var name = ($('#docNewCategoryName').val() || '').trim();
-            if (!name) {
-                if (typeof Swal !== 'undefined') Swal.fire('Warning', 'Enter a category name', 'warning');
-                else alert('Enter a category name');
+            var lq = q.toLowerCase();
+            var matchDocs = scope.allDocuments.filter(function (d) {
+                return (d.document_name || '').toLowerCase().indexOf(lq) !== -1 ||
+                       (d.file_name || '').toLowerCase().indexOf(lq) !== -1 ||
+                       (d.folder_path || '').toLowerCase().indexOf(lq) !== -1;
+            });
+            var matchFolders = scope.allCategories.filter(function (c) {
+                return (c.name || '').toLowerCase().indexOf(lq) !== -1;
+            });
+
+            if (matchFolders.length === 0 && matchDocs.length === 0) {
+                tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-search me-2"></i>No results for &ldquo;' + escapeHtml(q) + '&rdquo;</td></tr>');
                 return;
             }
-            if (typeof dataFunctions === 'undefined' || !dataFunctions.createDocumentCategory) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Create category not available', 'error');
-                return;
-            }
-            dataFunctions.createDocumentCategory({ name: name }).then(function (result) {
-                var ok = result && (result.success === true || result.id);
-                var id = result && (result.id || (result.data && result.data.id));
-                if (ok && id) {
-                    var sel = document.getElementById('docUploadCategory');
-                    if (sel) {
-                        var opt = document.createElement('option');
-                        opt.value = id;
-                        opt.textContent = name;
-                        opt.selected = true;
-                        sel.appendChild(opt);
-                    }
-                    scope.categories.push({ id: id, name: name });
-                    $('#docNewCategoryWrap').addClass('d-none');
-                    $('#docNewCategoryName').val('');
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Category added', timer: 1500, showConfirmButton: false });
-                } else {
-                    var err = (result && result.error) || 'Failed to add category';
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', err, 'error');
-                    else alert(err);
-                }
-            }).catch(function (e) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to add category', 'error');
+
+            matchFolders.forEach(function (cat) {
+                var row = '<tr class="doc-folder-row">' +
+                    '<td><a class="doc-folder-name" href="#" data-folder-navigate="' + escapeHtml(cat.id) + '">' +
+                        '<i class="fas fa-folder doc-folder-icon"></i>' + escapeHtml(cat.name) + '</a></td>' +
+                    '<td><span class="badge bg-warning text-dark">Folder</span></td>' +
+                    '<td>—</td>' +
+                    '<td>' + escapeHtml(cat.created_at ? cat.created_at.slice(0, 10) : '—') + '</td>' +
+                    '<td><button type="button" class="btn btn-sm btn-outline-danger" data-folder-delete="' + escapeHtml(cat.id) + '" title="Delete folder"><i class="fas fa-trash"></i></button></td>' +
+                    '</tr>';
+                tbody.append(row);
+            });
+
+            matchDocs.forEach(function (doc) {
+                var dateStr = doc.created_at ? doc.created_at.slice(0, 10) : 'N/A';
+                var pathHtml = doc.folder_path
+                    ? '<div class="doc-folder-path"><i class="fas fa-folder me-1"></i>' + escapeHtml(doc.folder_path) + '</div>'
+                    : '';
+                var row = '<tr>' +
+                    '<td><span class="d-inline-flex align-items-start gap-2">' +
+                        '<i class="' + escapeHtml(fileIconClass(doc.file_name)) + ' doc-file-icon mt-1"></i>' +
+                        '<span>' + escapeHtml(doc.document_name || doc.file_name || 'N/A') + pathHtml + '</span>' +
+                    '</span></td>' +
+                    '<td><span class="badge bg-secondary">File</span></td>' +
+                    '<td>' + escapeHtml(doc.uploaded_by_name || 'N/A') + '</td>' +
+                    '<td>' + escapeHtml(dateStr) + '</td>' +
+                    '<td>' +
+                        '<button type="button" class="btn btn-sm btn-outline-primary me-1" data-document-action="view" data-document-id="' + escapeHtml(doc.id) + '" title="View"><i class="fas fa-eye"></i></button>' +
+                        '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-document-action="download" data-document-id="' + escapeHtml(doc.id) + '" title="Download"><i class="fas fa-download"></i></button>' +
+                        '<button type="button" class="btn btn-sm btn-outline-danger" data-document-action="delete" data-document-id="' + escapeHtml(doc.id) + '" title="Delete"><i class="fas fa-trash"></i></button>' +
+                    '</td></tr>';
+                tbody.append(row);
             });
         },
+
+        // ── Upload modal helpers ──────────────────────────────────────────────
 
         openUploadModal: function () {
             var modal = document.getElementById('uploadDocumentModal');
@@ -215,130 +354,267 @@ var _documentManagementGrid = (function () {
             }
         },
 
-        submitUpload: function () {
+        openFolderPicker: function () {
+            var el = document.getElementById('docUploadFolder');
+            if (el) el.click();
+        },
+
+        onFilesSelected: function (fileList) {
+            var files = fileList ? Array.from(fileList) : [];
+            var submitBtn = document.getElementById('docUploadSubmitBtn');
+            var nameWrap = document.getElementById('docUploadNameWrap');
+            var nameInput = document.getElementById('docUploadName');
+            var listEl = document.getElementById('docUploadFileList');
+
+            var hasPaths = files.length > 0 && files[0].webkitRelativePath;
+
+            if (hasPaths) {
+                // Folder upload — render mini tree preview
+                var tree = _documentManagementGrid.buildFolderTreeFromPaths(files);
+                if (listEl) listEl.innerHTML = _documentManagementGrid.renderTreePreview(tree);
+                if (nameWrap) nameWrap.style.display = 'none';
+                if (submitBtn) submitBtn.textContent = 'Upload folder (' + files.length + ' file' + (files.length !== 1 ? 's' : '') + ')';
+            } else if (files.length === 1) {
+                if (listEl) listEl.innerHTML =
+                    '<div class="d-flex justify-content-between px-1 py-1">' +
+                    '<span><i class="' + fileIconClass(files[0].name) + ' me-2"></i>' + escapeHtml(files[0].name) + '</span>' +
+                    '<span class="text-muted">' + escapeHtml(formatFileSize(files[0].size)) + '</span></div>';
+                if (nameWrap) nameWrap.style.display = '';
+                if (nameInput && !nameInput.value.trim()) {
+                    nameInput.value = filenameWithoutExtension(files[0].name);
+                }
+                if (submitBtn) submitBtn.textContent = 'Upload';
+            } else if (files.length > 1) {
+                if (listEl) listEl.innerHTML = files.map(function (f) {
+                    return '<div class="d-flex justify-content-between px-1 py-1 border-bottom">' +
+                        '<span class="text-truncate me-2" title="' + escapeHtml(f.name) + '"><i class="' + fileIconClass(f.name) + ' me-2"></i>' + escapeHtml(f.name) + '</span>' +
+                        '<span class="text-muted text-nowrap">' + escapeHtml(formatFileSize(f.size)) + '</span></div>';
+                }).join('');
+                if (nameWrap) nameWrap.style.display = 'none';
+                if (submitBtn) submitBtn.textContent = 'Upload ' + files.length + ' files';
+            } else {
+                if (listEl) listEl.innerHTML = '';
+                if (nameWrap) nameWrap.style.display = '';
+                if (submitBtn) submitBtn.textContent = 'Upload';
+            }
+        },
+
+        /**
+         * Parse FileList with webkitRelativePath into a nested tree structure.
+         * Returns { name, children: {}, files: [] } for each folder node.
+         */
+        buildFolderTreeFromPaths: function (files) {
+            var root = { name: '', children: {}, files: [] };
+            files.forEach(function (file) {
+                var parts = file.webkitRelativePath.split('/');
+                var node = root;
+                // All but last segment are folder names
+                for (var i = 0; i < parts.length - 1; i++) {
+                    var seg = parts[i];
+                    if (!node.children[seg]) {
+                        node.children[seg] = { name: seg, children: {}, files: [] };
+                    }
+                    node = node.children[seg];
+                }
+                node.files.push(file);
+            });
+            return root;
+        },
+
+        /** Render the folder tree as an HTML string for the upload preview. */
+        renderTreePreview: function (node, depth) {
+            depth = depth || 0;
+            var html = '';
+            var childKeys = Object.keys(node.children);
+            childKeys.forEach(function (key) {
+                var child = node.children[key];
+                var indent = 'padding-left:' + (depth * 16 + 8) + 'px';
+                var subCount = child.files.length + Object.keys(child.children).length;
+                html += '<div class="py-1 border-bottom" style="' + indent + '">' +
+                    '<span class="tree-folder"><i class="fas fa-folder doc-folder-icon me-1"></i>' +
+                    escapeHtml(child.name) + ' <span class="text-muted fw-normal small">(' + subCount + ')</span></span></div>';
+                html += _documentManagementGrid.renderTreePreview(child, depth + 1);
+            });
+            node.files.forEach(function (f) {
+                var indent = 'padding-left:' + (depth * 16 + 8) + 'px';
+                html += '<div class="d-flex justify-content-between py-1 border-bottom" style="' + indent + '">' +
+                    '<span class="text-truncate me-2"><i class="' + fileIconClass(f.name) + ' me-1 doc-file-icon"></i>' + escapeHtml(f.name) + '</span>' +
+                    '<span class="text-muted text-nowrap file-size">' + escapeHtml(formatFileSize(f.size)) + '</span></div>';
+            });
+            return html;
+        },
+
+        // ── Upload logic ──────────────────────────────────────────────────────
+
+        submitUpload: async function () {
             var scope = _documentManagementGrid;
-            var name = ($('#docUploadName').val() || '').trim();
-            var categoryId = ($('#docUploadCategory').val() || '').trim() || null;
-            var fileInput = document.getElementById('docUploadFile');
-            var file = fileInput && fileInput.files && fileInput.files[0];
-
-            if (!name) {
-                if (typeof Swal !== 'undefined') Swal.fire('Warning', 'Please enter a document name.', 'warning');
-                return;
-            }
-            if (!file) {
-                if (typeof Swal !== 'undefined') Swal.fire('Warning', 'Please select a file to upload.', 'warning');
-                return;
-            }
-
             var statusEl = document.getElementById('docUploadStatus');
             var btn = document.getElementById('docUploadSubmitBtn');
-            if (statusEl) statusEl.textContent = 'Uploading file…';
+
+            var fileInput = document.getElementById('docUploadFile');
+            var folderInput = document.getElementById('docUploadFolder');
+            var fileFiles = fileInput && fileInput.files ? Array.from(fileInput.files) : [];
+            var folderFiles = folderInput && folderInput.files ? Array.from(folderInput.files) : [];
+            var files = fileFiles.length ? fileFiles : folderFiles;
+            var isFolderUpload = folderFiles.length > 0 && folderFiles[0].webkitRelativePath;
+
+            if (files.length === 0) {
+                if (typeof Swal !== 'undefined') Swal.fire('Warning', 'Please select at least one file to upload.', 'warning');
+                return;
+            }
+
+            var singleName = '';
+            if (!isFolderUpload && files.length === 1) {
+                singleName = ($('#docUploadName').val() || '').trim();
+                if (!singleName) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Warning', 'Please enter a document name.', 'warning');
+                    return;
+                }
+            }
+
             if (btn) btn.disabled = true;
-
             var resourceFolder = 'Macavation/Documents';
-            var fileId = 'doc_' + Date.now() + '_' + (file.name || 'file').replace(/\s/g, '_');
-            var uploadPromise = (typeof _common !== 'undefined' && _common.uploadFile)
-                ? _common.uploadFile({ file: file, resourceFolder: resourceFolder, fileId: fileId })
-                : Promise.resolve({ Success: false, LastErrorDescription: 'Upload not available' });
+            var userId = getCurrentUserId();
+            var succeeded = 0;
+            var failed = [];
 
-            uploadPromise.then(function (uploadResult) {
-                if (statusEl) statusEl.textContent = '';
-                if (btn) btn.disabled = false;
-                if (!uploadResult || !uploadResult.Success) {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', (uploadResult && uploadResult.LastErrorDescription) || 'Upload failed', 'error');
-                    return;
-                }
-                var data = uploadResult.Data;
-                var fileIdStored = (data && data[0] && (data[0].fileId || data[0].key)) || (data && data.fileId) || fileId;
-                var fileLink = (data && data[0] && data[0].fileLink) || (data && data.fileLink) || null;
+            if (isFolderUpload) {
+                // Folder upload: resolve folder chain for each file, save to leaf folder
+                var folderIdCache = {};
+                for (var i = 0; i < files.length; i++) {
+                    var file = files[i];
+                    var parts = file.webkitRelativePath.split('/');
+                    var folderSegments = parts.slice(0, -1);
 
-                if (typeof dataFunctions === 'undefined' || !dataFunctions.createDocument) {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Save document not available', 'error');
-                    return;
-                }
-                return dataFunctions.createDocument({
-                    document_name: name,
-                    category_id: categoryId,
-                    file_name: file.name,
-                    file_id: fileIdStored,
-                    file_link: fileLink,
-                    uploaded_by: getCurrentUserId()
-                }).then(function (createResult) {
-                    var ok = createResult && (createResult.success === true || createResult.id);
-                    if (ok) {
-                        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                            var modal = document.getElementById('uploadDocumentModal');
-                            if (modal) bootstrap.Modal.getInstance(modal).hide();
-                        } else if (typeof $ !== 'undefined') $('#uploadDocumentModal').modal('hide');
-                        scope.loadDocuments();
-                        if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Document uploaded', timer: 2000, showConfirmButton: false });
-                    } else {
-                        if (typeof Swal !== 'undefined') Swal.fire('Error', (createResult && createResult.error) || 'Failed to save document', 'error');
+                    if (statusEl) statusEl.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + ' \u2014 ' + file.name;
+
+                    try {
+                        var leafFolderId = await scope.ensureFolderChain(folderSegments, scope.currentFolderId, folderIdCache);
+                        var result = await scope.uploadOneFile(file, leafFolderId, null, resourceFolder, userId);
+                        if (result.ok) succeeded++;
+                        else failed.push({ name: file.name, error: result.error });
+                    } catch (e) {
+                        failed.push({ name: file.name, error: e && e.message ? e.message : 'Unknown error' });
                     }
-                });
-            }).catch(function (e) {
-                if (statusEl) statusEl.textContent = '';
-                if (btn) btn.disabled = false;
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Upload failed', 'error');
-            });
+                }
+            } else {
+                // Regular file/multi-file upload into current folder
+                for (var j = 0; j < files.length; j++) {
+                    var f = files[j];
+                    var docName = files.length === 1 ? singleName : filenameWithoutExtension(f.name);
+                    if (statusEl) statusEl.textContent = 'Uploading ' + (j + 1) + ' of ' + files.length + ' \u2014 ' + f.name;
+                    try {
+                        var res = await scope.uploadOneFile(f, scope.currentFolderId, docName, resourceFolder, userId);
+                        if (res.ok) succeeded++;
+                        else failed.push({ name: f.name, error: res.error });
+                    } catch (e) {
+                        failed.push({ name: f.name, error: e && e.message ? e.message : 'Unknown error' });
+                    }
+                }
+            }
+
+            if (statusEl) statusEl.textContent = '';
+            if (btn) btn.disabled = false;
+
+            // Reload both categories and documents so new folders appear
+            var catList = (typeof dataFunctions !== 'undefined' && dataFunctions.getDocumentCategories)
+                ? await dataFunctions.getDocumentCategories().catch(function () { return []; })
+                : [];
+            var docList = (typeof dataFunctions !== 'undefined' && dataFunctions.getDocuments)
+                ? await dataFunctions.getDocuments(null, true).catch(function () { return []; })
+                : [];
+            scope.allCategories = Array.isArray(catList) ? catList : [];
+            scope.allDocuments = Array.isArray(docList) ? docList : [];
+            scope.renderExplorer();
+
+            if (failed.length === 0) {
+                var title = succeeded === 1 ? 'Document uploaded' : succeeded + ' documents uploaded';
+                var modal = document.getElementById('uploadDocumentModal');
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal && modal) {
+                    var inst = bootstrap.Modal.getInstance(modal);
+                    if (inst) inst.hide();
+                } else if (typeof $ !== 'undefined') {
+                    $('#uploadDocumentModal').modal('hide');
+                }
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: title, timer: 2000, showConfirmButton: false });
+            } else {
+                var failList = failed.map(function (x) { return '\u2022 ' + x.name + ': ' + x.error; }).join('\n');
+                var summaryTitle = succeeded > 0
+                    ? succeeded + ' uploaded, ' + failed.length + ' failed'
+                    : failed.length + ' file(s) failed to upload';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'warning', title: summaryTitle, text: failList, confirmButtonText: 'OK' });
+                }
+            }
         },
 
-        loadDocuments: function () {
-            var scope = _documentManagementGrid;
-            if (typeof dataFunctions === 'undefined' || !dataFunctions.getDocuments) {
-                scope.documents = [];
-                scope.renderDocuments();
-                return;
+        /**
+         * Ensure every folder in segments[] exists (creating if needed) and
+         * return the leaf folder's id. Uses folderIdCache to avoid duplicate calls
+         * within the same upload batch.
+         */
+        ensureFolderChain: async function (segments, rootParentId, folderIdCache) {
+            var parentId = rootParentId || null;
+            var cacheKey = JSON.stringify(rootParentId) + '::';
+            for (var i = 0; i < segments.length; i++) {
+                cacheKey += segments[i] + '/';
+                if (folderIdCache[cacheKey] !== undefined) {
+                    parentId = folderIdCache[cacheKey];
+                    continue;
+                }
+                var result = (typeof dataFunctions !== 'undefined' && dataFunctions.getOrCreateDocumentCategory)
+                    ? await dataFunctions.getOrCreateDocumentCategory(segments[i], parentId)
+                    : { success: false, error: 'dataFunctions not available' };
+                if (!result || !result.success) {
+                    throw new Error('Could not create folder "' + segments[i] + '": ' + (result && result.error || 'unknown'));
+                }
+                parentId = result.id;
+                folderIdCache[cacheKey] = parentId;
             }
-            dataFunctions.getDocuments(null, true).then(function (list) {
-                scope.documents = Array.isArray(list) ? list : [];
-                scope.renderDocuments();
-            }).catch(function () {
-                scope.documents = [];
-                scope.renderDocuments();
-            });
+            return parentId;
         },
 
-        renderDocuments: function () {
-            var scope = _documentManagementGrid;
-            var tbody = $('#documentsTableBody');
-            tbody.empty();
-            var q = scope.docSearchQuery || '';
-            var list = scope.documents;
-            if (q) {
-                list = scope.documents.filter(function (doc) {
-                    var name = (doc.document_name || '').toLowerCase();
-                    var cat = (doc.category_name || '').toLowerCase();
-                    return name.indexOf(q) !== -1 || cat.indexOf(q) !== -1;
-                });
+        /** Upload a single file to S3 and save a document record. */
+        uploadOneFile: async function (file, categoryId, documentName, resourceFolder, userId) {
+            var docName = documentName || filenameWithoutExtension(file.name);
+            var fileId = 'doc_' + Date.now() + '_' + (file.name || 'file').replace(/\s/g, '_');
+
+            var uploadResult = (typeof _common !== 'undefined' && _common.uploadFile)
+                ? await _common.uploadFile({ file: file, resourceFolder: resourceFolder, fileId: fileId })
+                : { Success: false, LastErrorDescription: 'Upload not available' };
+
+            if (!uploadResult || !uploadResult.Success) {
+                return { ok: false, error: (uploadResult && uploadResult.LastErrorDescription) || 'Upload failed' };
             }
-            if (list.length === 0) {
-                var msg = q
-                    ? 'No documents match your search. Try a different term or clear the search.'
-                    : 'No documents found. Click "Upload Document" to add one.';
-                tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>' + escapeHtml(msg) + '</td></tr>');
-                return;
+
+            var data = uploadResult.Data;
+            var fileIdStored = (data && data[0] && (data[0].fileId || data[0].key)) || (data && data.fileId) || fileId;
+            var fileLink = (data && data[0] && data[0].fileLink) || (data && data.fileLink) || null;
+
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.createDocument) {
+                return { ok: false, error: 'Save document not available' };
             }
-            list.forEach(function (doc) {
-                var dateStr = doc.created_at ? (doc.created_at.slice(0, 10) + ' ' + (doc.created_at.slice(11, 16) || '')).trim() : 'N/A';
-                var row = '<tr>' +
-                    '<td>' + escapeHtml(doc.document_name || 'N/A') + '</td>' +
-                    '<td>' + escapeHtml(doc.category_name || '—') + '</td>' +
-                    '<td>' + escapeHtml(doc.uploaded_by_name || 'N/A') + '</td>' +
-                    '<td>' + escapeHtml(dateStr) + '</td>' +
-                    '<td>' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary me-1" data-document-action="view" data-document-id="' + escapeHtml(doc.id) + '" title="View"><i class="fas fa-eye"></i></button>' +
-                    '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-document-action="download" data-document-id="' + escapeHtml(doc.id) + '" title="Download"><i class="fas fa-download"></i></button>' +
-                    '<button type="button" class="btn btn-sm btn-outline-danger" data-document-action="delete" data-document-id="' + escapeHtml(doc.id) + '" title="Delete"><i class="fas fa-trash"></i></button>' +
-                    '</td></tr>';
-                tbody.append(row);
+
+            var createResult = await dataFunctions.createDocument({
+                document_name: docName,
+                category_id: categoryId,
+                file_name: file.name,
+                file_id: fileIdStored,
+                file_link: fileLink,
+                uploaded_by: userId
             });
+
+            if (createResult && (createResult.success === true || createResult.id)) {
+                return { ok: true };
+            }
+            return { ok: false, error: (createResult && createResult.error) || 'Failed to save record' };
         },
+
+        // ── Document actions ──────────────────────────────────────────────────
 
         viewDocument: function (docId) {
             var scope = _documentManagementGrid;
-            var doc = scope.documents.find(function (d) { return d.id === docId; });
+            var doc = scope.allDocuments.find(function (d) { return d.id === docId; });
             if (doc && doc.file_link) {
                 window.open(doc.file_link, '_blank');
             } else {
@@ -348,7 +624,7 @@ var _documentManagementGrid = (function () {
 
         downloadDocument: function (docId) {
             var scope = _documentManagementGrid;
-            var doc = scope.documents.find(function (d) { return d.id === docId; });
+            var doc = scope.allDocuments.find(function (d) { return d.id === docId; });
             if (doc && doc.file_link) {
                 window.open(doc.file_link, '_blank');
             } else {
@@ -368,7 +644,6 @@ var _documentManagementGrid = (function () {
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Yes, delete'
             }).then(function (res) {
                 if (res.isConfirmed) scope.doDeleteDocument(docId);
@@ -383,7 +658,8 @@ var _documentManagementGrid = (function () {
             }
             dataFunctions.deleteDocument(docId).then(function (result) {
                 if (result && result.success !== false) {
-                    scope.loadDocuments();
+                    scope.allDocuments = scope.allDocuments.filter(function (d) { return d.id !== docId; });
+                    scope.renderExplorer();
                     if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Document deleted', timer: 1500, showConfirmButton: false });
                 } else {
                     if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Delete failed', 'error');
@@ -393,9 +669,73 @@ var _documentManagementGrid = (function () {
             });
         },
 
-        showError: function (message) {
-            if (typeof Swal !== 'undefined') Swal.fire({ icon: 'error', title: 'Error', text: message });
-            else alert('Error: ' + message);
+        // ── Folder actions ────────────────────────────────────────────────────
+
+        deleteFolder: function (folderId) {
+            var scope = _documentManagementGrid;
+            var cat = scope.allCategories.find(function (c) { return c.id === folderId; });
+            var name = cat ? cat.name : 'this folder';
+            var hasChildren = scope.allCategories.some(function (c) { return c.parent_id === folderId; }) ||
+                              scope.allDocuments.some(function (d) { return d.category_id === folderId; });
+            var msg = hasChildren
+                ? 'Delete "' + name + '" and everything inside it? This cannot be undone.'
+                : 'Delete folder "' + name + '"? This cannot be undone.';
+            if (typeof Swal === 'undefined') {
+                if (confirm(msg)) scope.doDeleteFolder(folderId);
+                return;
+            }
+            Swal.fire({
+                title: 'Delete folder?',
+                text: msg,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Yes, delete'
+            }).then(function (res) {
+                if (res.isConfirmed) scope.doDeleteFolder(folderId);
+            });
+        },
+
+        doDeleteFolder: function (folderId) {
+            var scope = _documentManagementGrid;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.deleteDocumentFolderRecursive) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete folder not available', 'error');
+                return;
+            }
+            dataFunctions.deleteDocumentFolderRecursive(folderId).then(function (result) {
+                if (result && result.success !== false) {
+                    // Remove deleted folder and all its descendants from local state
+                    var removedIds = scope.collectDescendantIds(folderId);
+                    removedIds.push(folderId);
+                    scope.allCategories = scope.allCategories.filter(function (c) { return removedIds.indexOf(c.id) === -1; });
+                    scope.allDocuments = scope.allDocuments.filter(function (d) { return removedIds.indexOf(d.category_id) === -1; });
+                    var msg = (result.documents_deleted || 0) > 0
+                        ? 'Folder deleted (' + result.documents_deleted + ' document' + (result.documents_deleted !== 1 ? 's' : '') + ' removed)'
+                        : 'Folder deleted';
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: msg, timer: 2000, showConfirmButton: false });
+                    scope.renderExplorer();
+                } else {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Delete folder failed', 'error');
+                }
+            }).catch(function (e) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Delete folder failed', 'error');
+            });
+        },
+
+        /** Return all descendant category ids for a given root folder id. */
+        collectDescendantIds: function (folderId) {
+            var scope = _documentManagementGrid;
+            var result = [];
+            var queue = [folderId];
+            while (queue.length) {
+                var current = queue.shift();
+                var children = scope.allCategories.filter(function (c) { return c.parent_id === current; });
+                children.forEach(function (c) {
+                    result.push(c.id);
+                    queue.push(c.id);
+                });
+            }
+            return result;
         }
     };
 })();

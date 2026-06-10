@@ -1,6 +1,9 @@
 -- RPC stored procedures for features and role_features CRUD.
 -- Matches the existing data-functions.js API layer.
 
+DROP FUNCTION IF EXISTS public.get_features();
+DROP FUNCTION IF EXISTS public.get_role_features();
+
 -- ============================================================
 -- 1. get_features() — list all active features (for dropdowns)
 -- ============================================================

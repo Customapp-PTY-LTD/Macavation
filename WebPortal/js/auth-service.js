@@ -3,9 +3,21 @@
  * Integrates with Lambda Proxy for Google OAuth and RBAC
  */
 
+function resolveLambdaBaseUrl() {
+    const cfg = (typeof window !== 'undefined' && window.MACAVATION_SUPABASE) ? window.MACAVATION_SUPABASE : null;
+    if (cfg && typeof cfg.getLambdaBaseUrl === 'function') {
+        return cfg.getLambdaBaseUrl();
+    }
+    const fromCfg = cfg && cfg.lambdaProxyUrl
+        ? String(cfg.lambdaProxyUrl).replace(/\/proxy\/function$/, '')
+        : '';
+    if (fromCfg) return fromCfg;
+    return 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws';
+}
+
 class AuthService {
     constructor() {
-        this.proxyUrl = 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws';
+        this.proxyUrl = resolveLambdaBaseUrl();
         this.token = Session.get('token');
         this.userInfo = this.getUserInfo();
         this._featuresFetchPromise = null;

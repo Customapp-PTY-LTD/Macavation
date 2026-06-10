@@ -1,4 +1,18 @@
 -- Migration: SPs for the new oil/shift/product/oil_bin schema
+
+DO $$
+DECLARE
+    fn record;
+BEGIN
+    FOR fn IN
+        SELECT p.oid::regprocedure AS sig
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'get_oil_batches'
+    LOOP
+        EXECUTE format('DROP FUNCTION IF EXISTS %s CASCADE', fn.sig);
+    END LOOP;
+END $$;
 -- get_oil_batches       — grid list + modal detail (flat production_data fields)
 -- upsert_oil_batch      — create / update an oil record
 -- get_shift_list        — list shifts for grid

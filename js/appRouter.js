@@ -619,7 +619,10 @@ var _appRouter = function () {
 
             let environment = "prod";
 
-            if (location.href.indexOf('/_static/') > -1 || location.href.indexOf('://dev') > -1) {
+            if (location.href.indexOf('/_static/') > -1
+                || location.href.indexOf('://dev') > -1
+                || location.href.indexOf('localhost') > -1
+                || location.href.indexOf('127.0.0.1') > -1) {
                 environment = 'dev';
             }
             else if (location.href.indexOf('://demo') > -1) {

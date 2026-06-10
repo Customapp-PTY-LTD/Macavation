@@ -69,7 +69,7 @@ $$;
 -- ── RBAC ──────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
-    v_role_id integer;
+    v_role_id uuid;
 BEGIN
     FOR v_role_id IN SELECT id FROM public.roles LOOP
         INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
