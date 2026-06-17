@@ -50,8 +50,17 @@
     </div>
 </div>
 
+<!-- Right-click context menu (position: fixed, shown via JS) -->
+<div id="docContextMenu" class="doc-context-menu" style="display:none;" role="menu" aria-label="Folder actions">
+    <div class="doc-context-menu-header small text-muted px-3 pt-2 pb-1" id="docContextMenuLabel">Upload here</div>
+    <ul>
+        <li data-ctx-action="upload-files"><i class="fas fa-file me-2"></i>Upload file(s) here</li>
+        <li data-ctx-action="upload-folder"><i class="fas fa-folder-open me-2"></i>Upload folder here</li>
+    </ul>
+</div>
+
 <!-- Upload Document Modal -->
-<div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
+<div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -82,7 +91,7 @@
                     </div>
                     <input type="file" class="d-none" id="docUploadFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg" multiple>
                     <input type="file" class="d-none" id="docUploadFolder" webkitdirectory>
-                    <div class="form-text mb-2">PDF, Word, Excel, text, or images. For multiple files the filename becomes the document title automatically.</div>
+                    <div class="form-text mb-2">PDF, Word, Excel, text, or images. <strong>Max 6 MB per file.</strong> For multiple files the filename becomes the document title automatically.</div>
                     <div id="docUploadFileList" class="doc-upload-preview small" style="max-height:220px;overflow-y:auto;"></div>
                 </div>
                 <p id="docUploadStatus" class="text-muted small mb-0"></p>

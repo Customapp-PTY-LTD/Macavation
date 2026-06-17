@@ -350,9 +350,19 @@ var _common = {
         const resourceFolder = (params && params.resourceFolder) || 'Macavation';
         const fileId = (params && params.fileId) || (file && file.name) || 'upload';
         const FILE_UPLOAD_URL = 'https://yzz5sh6s74.execute-api.af-south-1.amazonaws.com/v1/fileupload';
+        const MAX_FILE_BYTES = 6 * 1024 * 1024; // 6 MB — API Gateway REST payload limit
+        const MAX_FILE_MB = 6;
+
+        function sizeErrorMessage(bytes) {
+            return 'File too large (' + (bytes / (1024 * 1024)).toFixed(1) + ' MB). Maximum upload size is ' + MAX_FILE_MB + ' MB.';
+        }
 
         if (!file || !(file instanceof File)) {
             return { Success: false, LastErrorDescription: 'No file provided', Data: [] };
+        }
+
+        if (file.size > MAX_FILE_BYTES) {
+            return { Success: false, LastErrorDescription: sizeErrorMessage(file.size), Data: [] };
         }
 
         const formdata = new FormData();
@@ -369,6 +379,12 @@ var _common = {
                 body: formdata,
                 redirect: 'follow'
             });
+            if (response.status === 413) {
+                return { Success: false, LastErrorDescription: sizeErrorMessage(file.size), Data: [] };
+            }
+            if (!response.ok) {
+                return { Success: false, LastErrorDescription: 'Upload server returned error ' + response.status + '.', Data: [] };
+            }
             const text = await response.text();
             const result = JSON.parse(text);
             if (result.error) {
@@ -376,7 +392,13 @@ var _common = {
             }
             return { Success: true, LastErrorDescription: '', Data: result };
         } catch (err) {
-            return { Success: false, LastErrorDescription: err && err.message ? err.message : 'Upload failed', Data: [] };
+            const msg = err && err.message ? err.message : '';
+            // "Failed to fetch" in a CORS context usually means the server rejected (e.g. 413) but
+            // the browser could not read the error response due to missing CORS headers.
+            if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('networkerror')) {
+                return { Success: false, LastErrorDescription: sizeErrorMessage(file.size), Data: [] };
+            }
+            return { Success: false, LastErrorDescription: msg || 'Upload failed', Data: [] };
         }
     },
 

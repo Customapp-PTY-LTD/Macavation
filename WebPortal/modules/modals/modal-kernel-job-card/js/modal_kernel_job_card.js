@@ -33,6 +33,25 @@ var _modal_kernel_job_card = (function () {
     var _autoSaveTimer = null;
     /** Skip draft flush when closing after Jobcard approved (avoids racing draft save on hide). */
     var _skipFlushOnHide = false;
+    /** Suppress autosave while the modal is loading batch/detail into the form. */
+    var _suppressAutoSave = false;
+    /** Set when opening a batch whose job card is already approved (re-save edits without closing). */
+    var _jobCardIsApproved = false;
+
+    function jobCardDataHasContent(jc) {
+        if (!jc || typeof jc !== 'object') return false;
+        var keys = Object.keys(jc).filter(function (k) {
+            return k !== 'production_batch_id' && k !== 'id' && k.indexOf('_') !== 0;
+        });
+        if (!keys.length) return false;
+        return keys.some(function (k) {
+            var v = jc[k];
+            if (v == null || v === '') return false;
+            if (Array.isArray(v)) return v.length > 0;
+            if (typeof v === 'object') return Object.keys(v).length > 0;
+            return true;
+        });
+    }
 
     /** §7.1 Convert dd/mm/yyyy → yyyy-mm-dd for API. Pass-through if already ISO. */
     function jobCardToISO(dateStr) {
@@ -145,6 +164,10 @@ var _modal_kernel_job_card = (function () {
                     return;
                 }
                 scope.saveJobCard();
+            });
+            $('#draftSaveJobCardBtn').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.doSaveJobCard(false);
             });
             $('#addSoundKernelRow').off('click').on('click', function () { scope.addSoundKernelRow(); });
             $('#addButterGradeRow').off('click').on('click', function () { scope.addButterGradeRow(); });
@@ -382,8 +405,9 @@ var _modal_kernel_job_card = (function () {
 
             // Load contacts + full kernel detail (job_card_data + stage arrays) in parallel
             var getContacts = dataFunctions.getContacts && dataFunctions.getContacts();
-            var getDetail = dataFunctions.getKernelBatchDetail(batchId);
+            var getDetail = dataFunctions.getKernelBatchDetail(batchId, null, true);
 
+            _suppressAutoSave = true;
             (getContacts || Promise.resolve([])).then(function (contacts) {
                 var html = '<option value="">Select Supplier</option>';
                 if (contacts && Array.isArray(contacts)) {
@@ -398,6 +422,11 @@ var _modal_kernel_job_card = (function () {
                 $('#jobCardSupplier').html(html);
                 return getDetail;
             }).then(function (detail) {
+                var df = (typeof dataFunctions !== 'undefined' && dataFunctions) ? dataFunctions : null;
+                _jobCardIsApproved = df && df.isKernelJobcardApproved
+                    ? df.isKernelJobcardApproved(detail)
+                    : !!(detail && (detail.jobcard_approved === true || detail.has_jobcard_approved === true));
+
                 var intake = (detail && (detail.intake_data || detail.intakeData)) ? (detail.intake_data || detail.intakeData) : {};
                 var moistureResult = null;
                 if (intake.moisture && intake.moisture.result != null) moistureResult = intake.moisture.result;
@@ -406,29 +435,17 @@ var _modal_kernel_job_card = (function () {
                     if (zl.moisture && zl.moisture.result != null) moistureResult = zl.moisture.result;
                     else if (zl.moisture_result != null) moistureResult = zl.moisture_result;
                 }
-                if (moistureResult != null) {
-                    scope.setJobCardField('jobCardReceivingMoisture', moistureResult);
-                    scope.calculateRemovedMoisture();
-                }
 
                 var qa = (detail && (detail.qa_data || detail.qaData)) ? (detail.qa_data || detail.qaData) : {};
                 var packingMoistureResult = null;
                 if (qa.moisture_result != null) packingMoistureResult = qa.moisture_result;
                 else if (qa.moisture && qa.moisture.result != null) packingMoistureResult = qa.moisture.result;
-                if (packingMoistureResult != null) {
-                    scope.setJobCardField('jobCardPackingMoisture', packingMoistureResult);
-                    scope.calculateRemovedMoisture();
-                }
 
                 var jc = detail && detail.job_card_data ? detail.job_card_data : null;
                 if (typeof jc === 'string') {
                     try { jc = JSON.parse(jc); } catch (e) { jc = null; }
                 }
-                var hasSavedJobCard = jc && typeof jc === 'object' && (
-                    jc.batch_number || jc.packing_start_date || jc.packing_completion_date ||
-                    (Array.isArray(jc.sound_kernel_styles) && jc.sound_kernel_styles.length > 0) ||
-                    (Array.isArray(jc.butter_grade_styles) && jc.butter_grade_styles.length > 0)
-                );
+                var hasSavedJobCard = jobCardDataHasContent(jc);
                 if (hasSavedJobCard) {
                     // Populate from saved job_card_data (source of truth)
                     scope.populateJobCardFormFromData(jc);
@@ -456,41 +473,43 @@ var _modal_kernel_job_card = (function () {
                     if (fromPacking) scope.populateJobCardFormFromData(fromPacking);
                 }
 
-                // Receiving: Total Weight = Actual from grower intake; Removed Pre-Sizer from checklist or derived; Balance = Total − Removed
-                var actualKg = (detail && (detail.actual_wet_nis_kg != null && detail.actual_wet_nis_kg !== '')) ? detail.actual_wet_nis_kg : (batch.actual_wet_nis_kg != null && batch.actual_wet_nis_kg !== '' ? batch.actual_wet_nis_kg : null);
-                var suppliedKg = (detail && (detail.wet_nis_received_kg != null && detail.wet_nis_received_kg !== '')) ? detail.wet_nis_received_kg : (batch.wet_nis_received_kg != null && batch.wet_nis_received_kg !== '' ? batch.wet_nis_received_kg : null);
-                var rc = (intake && intake.receiving_checklist) ? intake.receiving_checklist : {};
-                var removedPreSizerKg = (rc.removed_pre_sizer_kg != null && rc.removed_pre_sizer_kg !== '') ? rc.removed_pre_sizer_kg : (rc.removedPreSizerKg != null && rc.removedPreSizerKg !== '' ? rc.removedPreSizerKg : null);
-                if (actualKg != null) scope.setJobCardField('jobCardTotalWeight', actualKg);
-                if (removedPreSizerKg != null) {
-                    scope.setJobCardField('jobCardRemovedPreSizer', removedPreSizerKg);
-                } else if (suppliedKg != null && actualKg != null) {
-                    var supplied = parseFloat(suppliedKg);
-                    var actual = parseFloat(actualKg);
-                    if (!isNaN(supplied) && !isNaN(actual)) scope.setJobCardField('jobCardRemovedPreSizer', (supplied - actual).toFixed(2));
-                }
-                scope.calculateBalance();
+                if (!hasSavedJobCard) {
+                    if (moistureResult != null) {
+                        scope.setJobCardField('jobCardReceivingMoisture', moistureResult);
+                        scope.calculateRemovedMoisture();
+                    }
+                    if (packingMoistureResult != null) {
+                        scope.setJobCardField('jobCardPackingMoisture', packingMoistureResult);
+                        scope.calculateRemovedMoisture();
+                    }
+                    // Receiving: Total Weight = Actual from grower intake; Removed Pre-Sizer from checklist or derived; Balance = Total − Removed
+                    var actualKg = (detail && (detail.actual_wet_nis_kg != null && detail.actual_wet_nis_kg !== '')) ? detail.actual_wet_nis_kg : (batch.actual_wet_nis_kg != null && batch.actual_wet_nis_kg !== '' ? batch.actual_wet_nis_kg : null);
+                    var suppliedKg = (detail && (detail.wet_nis_received_kg != null && detail.wet_nis_received_kg !== '')) ? detail.wet_nis_received_kg : (batch.wet_nis_received_kg != null && batch.wet_nis_received_kg !== '' ? batch.wet_nis_received_kg : null);
+                    var rc = (intake && intake.receiving_checklist) ? intake.receiving_checklist : {};
+                    var removedPreSizerKg = (rc.removed_pre_sizer_kg != null && rc.removed_pre_sizer_kg !== '') ? rc.removed_pre_sizer_kg : (rc.removedPreSizerKg != null && rc.removedPreSizerKg !== '' ? rc.removedPreSizerKg : null);
+                    if (actualKg != null) scope.setJobCardField('jobCardTotalWeight', actualKg);
+                    if (removedPreSizerKg != null) {
+                        scope.setJobCardField('jobCardRemovedPreSizer', removedPreSizerKg);
+                    } else if (suppliedKg != null && actualKg != null) {
+                        var supplied = parseFloat(suppliedKg);
+                        var actual = parseFloat(actualKg);
+                        if (!isNaN(supplied) && !isNaN(actual)) scope.setJobCardField('jobCardRemovedPreSizer', (supplied - actual).toFixed(2));
+                    }
+                    scope.calculateBalance();
 
-                var receivingMoistureVal = $('#jobCardReceivingMoisture').val();
-                if (moistureResult != null && (!receivingMoistureVal || String(receivingMoistureVal).trim() === '')) {
-                    scope.setJobCardField('jobCardReceivingMoisture', moistureResult);
-                    scope.calculateRemovedMoisture();
-                }
-                var packingMoistureVal = $('#jobCardPackingMoisture').val();
-                if (packingMoistureResult != null && (!packingMoistureVal || String(packingMoistureVal).trim() === '')) {
-                    scope.setJobCardField('jobCardPackingMoisture', packingMoistureResult);
-                    scope.calculateRemovedMoisture();
-                }
-                var supplierVal = $('#jobCardSupplier').val();
-                var supplierIdFromBatchOrDetail = (detail && (detail.supplier_id != null && detail.supplier_id !== '')) ? detail.supplier_id : (batch.supplier_id != null && batch.supplier_id !== '' ? batch.supplier_id : null);
-                if (supplierIdFromBatchOrDetail != null && (!supplierVal || String(supplierVal).trim() === '')) {
-                    scope.setJobCardField('jobCardSupplier', supplierIdFromBatchOrDetail);
+                    var supplierVal = $('#jobCardSupplier').val();
+                    var supplierIdFromBatchOrDetail = (detail && (detail.supplier_id != null && detail.supplier_id !== '')) ? detail.supplier_id : (batch.supplier_id != null && batch.supplier_id !== '' ? batch.supplier_id : null);
+                    if (supplierIdFromBatchOrDetail != null && (!supplierVal || String(supplierVal).trim() === '')) {
+                        scope.setJobCardField('jobCardSupplier', supplierIdFromBatchOrDetail);
+                    }
                 }
             }).then(function () {
+                _suppressAutoSave = false;
                 var modalEl = document.getElementById('kernelJobCardModal');
                 if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
                 else $('#kernelJobCardModal').modal('show');
             }).catch(function (e) {
+                _suppressAutoSave = false;
                 console.error(e);
             });
             };
@@ -517,6 +536,7 @@ var _modal_kernel_job_card = (function () {
             const scope = _modal_kernel_job_card;
             _jobCardPackingStartISO = null;
             _jobCardBestBeforeISO = null;
+            _jobCardIsApproved = false;
             var $form = $('#kernelJobCardForm');
             if ($form.length) $form[0].reset();
             $('#jobCardId').val('');
@@ -759,7 +779,7 @@ var _modal_kernel_job_card = (function () {
 
         doSaveJobCardRun: (silent, approve) => {
             const scope = _modal_kernel_job_card;
-            if (approve && _autoSaveTimer) {
+            if ((approve || !silent) && _autoSaveTimer) {
                 clearTimeout(_autoSaveTimer);
                 _autoSaveTimer = null;
             }
@@ -799,6 +819,20 @@ var _modal_kernel_job_card = (function () {
                     if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); setTimeout(function () { if ($status.length) $status.text(''); }, 2000); }
                 } else if (approve) {
                     scope._finishJobCardApprovedUi(kernelId, inner, stockSynced, hasStyleLines, true);
+                } else if ($status.length) {
+                    $status.removeClass('text-danger').addClass('text-success').text('Saved');
+                    setTimeout(function () { if ($status.length) $status.text(''); }, 2500);
+                }
+                if (!silent && typeof Swal !== 'undefined' && !approve) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Job card saved',
+                        text: _jobCardIsApproved
+                            ? 'Your changes were saved and stock quantities were updated.'
+                            : 'Your changes were saved. Press Jobcard approved when you are ready to commit stock.',
+                        timer: 2200,
+                        showConfirmButton: false
+                    });
                 }
             }).catch(function (e) {
                 console.error('[Kernel Job Card] save failed:', e);
@@ -808,10 +842,15 @@ var _modal_kernel_job_card = (function () {
         },
 
         saveJobCard: () => {
+            if (_jobCardIsApproved) {
+                _modal_kernel_job_card.doSaveJobCardRun(false, false);
+                return;
+            }
             _modal_kernel_job_card.doSaveJobCardRun(false, true);
         },
 
         scheduleAutoSave: () => {
+            if (_suppressAutoSave) return;
             var kernelId = $('#jobCardProductionBatchId').val();
             if (!kernelId) return;
             if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
