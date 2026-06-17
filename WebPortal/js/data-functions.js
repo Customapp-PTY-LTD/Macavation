@@ -26,7 +26,23 @@ var _dataFunctions = function () {
             'complete_kernel_batch',
             'adjust_kernel_stock_on_hand',
             'update_kernel_stock_batch_info',
-            'import_historical_kernel_batch'
+            'import_historical_kernel_batch',
+            // Document Management — DB grants apply; Lambda RBAC may deny with 403
+            'get_documents',
+            'get_document_by_id',
+            'create_document_simple',
+            'update_document_simple',
+            'delete_document_hard',
+            'get_document_categories',
+            'create_document_category_simple',
+            'delete_document_category_simple',
+            'get_or_create_document_category',
+            'delete_document_folder_recursive',
+            // Notifications inbox — DB grants apply; Lambda RBAC may deny with 403
+            'get_unread_notification_count',
+            'get_my_notifications',
+            'mark_notification_read',
+            'mark_all_notifications_read'
         ]),
 
         /** Prefer PostgREST (anon) first — Lambda RBAC often denies these before DB grants apply. */
@@ -35,7 +51,14 @@ var _dataFunctions = function () {
             'get_kernel_production_history',
             'return_kernel_from_stock_to_production',
             'get_kernel_jobcard_approval_map',
-            'import_historical_kernel_batch'
+            'import_historical_kernel_batch',
+            // Document Management reads
+            'get_documents',
+            'get_document_categories',
+            'get_document_by_id',
+            // Notifications reads
+            'get_unread_notification_count',
+            'get_my_notifications'
         ]),
 
         // Cache configuration
@@ -286,9 +309,16 @@ var _dataFunctions = function () {
 
         isRbacDeniedError: function (err) {
             const msg = (err && err.message) ? String(err.message) : String(err || '');
-            return msg.indexOf('EXECUTE is not allowed') >= 0 ||
+            return (err && err.status === 403) ||
+                msg.indexOf('EXECUTE is not allowed') >= 0 ||
                 msg.indexOf('Access denied') >= 0 ||
-                msg.indexOf('RBAC') >= 0;
+                msg.indexOf('RBAC') >= 0 ||
+                msg.indexOf('status: 403') >= 0;
+        },
+
+        shouldUseSupabaseRpcFallback: function (functionName, responseStatus, errorMessage) {
+            if (!this.kernelRpcSupabaseFallback.has(functionName)) return false;
+            return responseStatus === 403 || this.isRbacDeniedError({ message: errorMessage, status: responseStatus });
         },
 
         extractProxyErrorMessage: function (data, depth) {
@@ -602,8 +632,7 @@ var _dataFunctions = function () {
                         }
 
                         if (options.supabaseRpcFallback !== false &&
-                            scope.kernelRpcSupabaseFallback.has(functionName) &&
-                            scope.isRbacDeniedError({ message: errorMessage })) {
+                            scope.shouldUseSupabaseRpcFallback(functionName, response.status, errorMessage)) {
                             console.warn('[callFunction] Lambda RBAC denied; retrying via Supabase RPC (anon):', functionName);
                             return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
                         }
@@ -624,8 +653,7 @@ var _dataFunctions = function () {
 
                     const proxyErrMsg = scope.extractProxyErrorMessage(data);
                     if (options.supabaseRpcFallback !== false &&
-                        scope.kernelRpcSupabaseFallback.has(functionName) &&
-                        scope.isRbacDeniedError({ message: proxyErrMsg })) {
+                        scope.shouldUseSupabaseRpcFallback(functionName, response.status, proxyErrMsg)) {
                         console.warn('[callFunction] Lambda RBAC denied in response body; retrying via Supabase RPC (anon):', functionName);
                         return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
                     }
@@ -643,8 +671,7 @@ var _dataFunctions = function () {
                     return data;
                 } catch (error) {
                     if (options.supabaseRpcFallback !== false &&
-                        scope.kernelRpcSupabaseFallback.has(functionName) &&
-                        scope.isRbacDeniedError(error)) {
+                        scope.shouldUseSupabaseRpcFallback(functionName, error.status, error.message)) {
                         console.warn('[callFunction] Lambda RBAC denied; retrying via Supabase RPC (anon):', functionName);
                         return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
                     }
@@ -2732,26 +2759,22 @@ var _dataFunctions = function () {
                     submit_action: 'approve'
                 });
             }
+            // Always pass all four RPC params so PostgREST picks the 4-arg overload unambiguously.
+            const buildPayload = function (jobcardApproved, finalizeWithoutProduction) {
+                return {
+                    p_kernel_id: kernelId,
+                    p_job_card_data: cardData,
+                    p_jobcard_approved: jobcardApproved === true ? true : null,
+                    p_finalize_without_production: finalizeWithoutProduction === true
+                };
+            };
             const payloads = [];
             if (options.approved === true) {
-                payloads.push({
-                    p_kernel_id: kernelId,
-                    p_job_card_data: cardData,
-                    p_finalize_without_production: true
-                });
-                payloads.push({
-                    p_kernel_id: kernelId,
-                    p_job_card_data: cardData,
-                    p_jobcard_approved: true
-                });
-                payloads.push({
-                    p_kernel_id: kernelId,
-                    p_job_card_data: cardData,
-                    p_jobcard_approved: true,
-                    p_finalize_without_production: false
-                });
+                payloads.push(buildPayload(false, true));
+                payloads.push(buildPayload(true, false));
+            } else {
+                payloads.push(buildPayload(false, false));
             }
-            payloads.push({ p_kernel_id: kernelId, p_job_card_data: cardData });
 
             let inner = null;
             let lastErr = null;

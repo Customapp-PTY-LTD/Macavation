@@ -1220,6 +1220,14 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
     'get_or_create_document_category',
     'delete_document_folder_recursive'
   ]);
+  // Notifications inbox: skip Lambda RBAC when role_permissions rows are missing (matches document module).
+  const notificationFunctions = new Set([
+    'get_unread_notification_count',
+    'get_my_notifications',
+    'mark_notification_read',
+    'mark_all_notifications_read',
+    'create_notification'
+  ]);
   // Kernel job card / stock return: skip Lambda RBAC when role_permissions rows are missing (matches document module).
   const kernelJobCardFunctions = new Set([
     'approve_kernel_job_card',
@@ -1249,6 +1257,7 @@ async function handleFunctionProxy(requestData, user, requestId, origin, event) 
   const skipRbacForRelaxedRpc =
     skipRbacRevertKernelDispatch ||
     (documentManagementFunctions.has(functionName) && !user.exempted) ||
+    (notificationFunctions.has(functionName) && !user.exempted) ||
     (kernelJobCardFunctions.has(functionName) && !user.exempted) ||
     (growerIntakeProcurementFunctions.has(functionName) && !user.exempted);
 

@@ -46,6 +46,14 @@ var _documentManagementGrid = (function () {
         return raw;
     }
 
+    /** Maximum upload size — matches API Gateway REST payload limit in common.js */
+    var MAX_UPLOAD_BYTES = 6 * 1024 * 1024;
+    var MAX_UPLOAD_MB = 6;
+
+    function uploadSizeErrorMessage(bytes) {
+        return 'File too large (' + (bytes / (1024 * 1024)).toFixed(1) + ' MB). Maximum upload size is ' + MAX_UPLOAD_MB + ' MB.';
+    }
+
     /** Return a FontAwesome class appropriate for a filename extension. */
     function fileIconClass(filename) {
         var ext = (filename || '').split('.').pop().toLowerCase();
@@ -75,8 +83,19 @@ var _documentManagementGrid = (function () {
 
         init: function () {
             var scope = _documentManagementGrid;
+            scope.ensureModalsInBody();
             scope.initHandlers();
             scope.loadAll();
+        },
+
+        /** Move modals to document.body so Bootstrap aria-hidden does not hide focused modal controls. */
+        ensureModalsInBody: function () {
+            ['uploadDocumentModal'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el && el.parentNode && el.parentNode !== document.body) {
+                    document.body.appendChild(el);
+                }
+            });
         },
 
         // ── Handlers ──────────────────────────────────────────────────────────
@@ -409,7 +428,7 @@ var _documentManagementGrid = (function () {
 
             var modal = document.getElementById('uploadDocumentModal');
             if (typeof bootstrap !== 'undefined' && bootstrap.Modal && modal) {
-                var bsModal = new bootstrap.Modal(modal);
+                var bsModal = bootstrap.Modal.getOrCreateInstance(modal);
                 bsModal.show();
                 if (autoOpenFolder) {
                     modal.addEventListener('shown.bs.modal', function handler() {
@@ -425,6 +444,31 @@ var _documentManagementGrid = (function () {
                     });
                 }
             }
+        },
+
+        /** Close the upload modal (if open), then run a callback — avoids aria-hidden vs SweetAlert focus conflict. */
+        afterUploadModalClosed: function (callback) {
+            var modal = document.getElementById('uploadDocumentModal');
+            if (!modal || typeof callback !== 'function') {
+                if (typeof callback === 'function') callback();
+                return;
+            }
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal && modal.classList.contains('show')) {
+                var inst = bootstrap.Modal.getInstance(modal);
+                if (inst) {
+                    modal.addEventListener('hidden.bs.modal', function handler() {
+                        modal.removeEventListener('hidden.bs.modal', handler);
+                        callback();
+                    });
+                    inst.hide();
+                    return;
+                }
+            }
+            if (typeof $ !== 'undefined' && $(modal).hasClass('show')) {
+                $(modal).one('hidden.bs.modal', callback).modal('hide');
+                return;
+            }
+            callback();
         },
 
         openFolderPicker: function () {
@@ -484,17 +528,27 @@ var _documentManagementGrid = (function () {
             var listEl = document.getElementById('docUploadFileList');
 
             var hasPaths = files.length > 0 && files[0].webkitRelativePath;
+            var oversized = files.filter(function (f) { return f.size > MAX_UPLOAD_BYTES; });
+
+            function fileSizeWarning(f) {
+                return f.size > MAX_UPLOAD_BYTES
+                    ? ' <span class="badge bg-danger ms-1" title="Exceeds 6 MB limit">Too large</span>'
+                    : '';
+            }
 
             if (hasPaths) {
                 // Folder upload — render mini tree preview
                 var tree = _documentManagementGrid.buildFolderTreeFromPaths(files);
                 if (listEl) listEl.innerHTML = _documentManagementGrid.renderTreePreview(tree);
                 if (nameWrap) nameWrap.style.display = 'none';
-                if (submitBtn) submitBtn.textContent = 'Upload folder (' + files.length + ' file' + (files.length !== 1 ? 's' : '') + ')';
+                var label = 'Upload folder (' + files.length + ' file' + (files.length !== 1 ? 's' : '') + ')';
+                if (oversized.length) label += ' \u2014 ' + oversized.length + ' too large';
+                if (submitBtn) submitBtn.textContent = label;
             } else if (files.length === 1) {
                 if (listEl) listEl.innerHTML =
                     '<div class="d-flex justify-content-between px-1 py-1">' +
-                    '<span><i class="' + fileIconClass(files[0].name) + ' me-2"></i>' + escapeHtml(files[0].name) + '</span>' +
+                    '<span><i class="' + fileIconClass(files[0].name) + ' me-2"></i>' + escapeHtml(files[0].name) +
+                    fileSizeWarning(files[0]) + '</span>' +
                     '<span class="text-muted">' + escapeHtml(formatFileSize(files[0].size)) + '</span></div>';
                 if (nameWrap) nameWrap.style.display = '';
                 if (nameInput && !nameInput.value.trim()) {
@@ -504,11 +558,14 @@ var _documentManagementGrid = (function () {
             } else if (files.length > 1) {
                 if (listEl) listEl.innerHTML = files.map(function (f) {
                     return '<div class="d-flex justify-content-between px-1 py-1 border-bottom">' +
-                        '<span class="text-truncate me-2" title="' + escapeHtml(f.name) + '"><i class="' + fileIconClass(f.name) + ' me-2"></i>' + escapeHtml(f.name) + '</span>' +
+                        '<span class="text-truncate me-2" title="' + escapeHtml(f.name) + '"><i class="' +
+                        fileIconClass(f.name) + ' me-2"></i>' + escapeHtml(f.name) + fileSizeWarning(f) + '</span>' +
                         '<span class="text-muted text-nowrap">' + escapeHtml(formatFileSize(f.size)) + '</span></div>';
                 }).join('');
                 if (nameWrap) nameWrap.style.display = 'none';
-                if (submitBtn) submitBtn.textContent = 'Upload ' + files.length + ' files';
+                var multiLabel = 'Upload ' + files.length + ' files';
+                if (oversized.length) multiLabel += ' \u2014 ' + oversized.length + ' too large';
+                if (submitBtn) submitBtn.textContent = multiLabel;
             } else {
                 if (listEl) listEl.innerHTML = '';
                 if (nameWrap) nameWrap.style.display = '';
@@ -651,22 +708,21 @@ var _documentManagementGrid = (function () {
 
             if (failed.length === 0) {
                 var title = succeeded === 1 ? 'Document uploaded' : succeeded + ' documents uploaded';
-                var modal = document.getElementById('uploadDocumentModal');
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal && modal) {
-                    var inst = bootstrap.Modal.getInstance(modal);
-                    if (inst) inst.hide();
-                } else if (typeof $ !== 'undefined') {
-                    $('#uploadDocumentModal').modal('hide');
-                }
-                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: title, timer: 2000, showConfirmButton: false });
+                scope.afterUploadModalClosed(function () {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'success', title: title, timer: 2000, showConfirmButton: false });
+                    }
+                });
             } else {
                 var failList = failed.map(function (x) { return '\u2022 ' + x.name + ': ' + x.error; }).join('\n');
                 var summaryTitle = succeeded > 0
                     ? succeeded + ' uploaded, ' + failed.length + ' failed'
                     : failed.length + ' file(s) failed to upload';
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'warning', title: summaryTitle, text: failList, confirmButtonText: 'OK' });
-                }
+                scope.afterUploadModalClosed(function () {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'warning', title: summaryTitle, text: failList, confirmButtonText: 'OK' });
+                    }
+                });
             }
         },
 
@@ -699,6 +755,10 @@ var _documentManagementGrid = (function () {
 
         /** Upload a single file to S3 and save a document record. */
         uploadOneFile: async function (file, categoryId, documentName, resourceFolder, userId) {
+            if (file.size > MAX_UPLOAD_BYTES) {
+                return { ok: false, error: uploadSizeErrorMessage(file.size) };
+            }
+
             var docName = documentName || filenameWithoutExtension(file.name);
             // Include random suffix so rapid sequential uploads never share the same S3 key
             var safeName = (file.name || 'file').replace(/[^\w.-]/g, '_');
