@@ -79,6 +79,20 @@ var _modal_kernel_job_card = (function () {
         return jobCardFromISO(isoStr);
     }
 
+    var JOB_CARD_REQUIRED_FIELD_LABELS = {
+        jobCardBatchNumber: 'Batch Number',
+        jobCardSupplier: 'Supplier',
+        jobCardReceivedDate: 'Received Date',
+        jobCardTotalWeight: 'Total Weight (kg)'
+    };
+
+    function jobCardInvalidFieldLabel(input) {
+        if (!input) return 'required fields';
+        if (JOB_CARD_REQUIRED_FIELD_LABELS[input.id]) return JOB_CARD_REQUIRED_FIELD_LABELS[input.id];
+        var $label = input.id ? $('label[for="' + input.id + '"]') : $();
+        return $label.length ? String($label.text()).replace(/\s*\*$/, '').trim() : 'A required field';
+    }
+
     /** Best Before = 18 MONTHS (not 18 days) after the given ISO date. Returns YYYY-MM-DD or null. */
     function add18MonthsToISO(isoStr) {
         if (!isoStr) return null;
@@ -155,7 +169,8 @@ var _modal_kernel_job_card = (function () {
             if (typeof actionAccess !== 'undefined' && actionAccess.apply) {
                 actionAccess.apply(document.getElementById('saveJobCardBtn') ? document.getElementById('saveJobCardBtn').closest('.modal') || document : document);
             }
-            $('#saveJobCardBtn').off('click').on('click', function (e) {
+            // Delegated handlers survive modal HTML re-inject when loadJSCode skips already-loaded scripts.
+            $(document).off('click.jobCardSave', '#saveJobCardBtn').on('click.jobCardSave', '#saveJobCardBtn', function (e) {
                 e.preventDefault();
                 if (typeof hasAction === 'function' && !hasAction('kernel.job_card.approve')) {
                     if (typeof Swal !== 'undefined') {
@@ -165,7 +180,7 @@ var _modal_kernel_job_card = (function () {
                 }
                 scope.saveJobCard();
             });
-            $('#draftSaveJobCardBtn').off('click').on('click', function (e) {
+            $(document).off('click.jobCardSave', '#draftSaveJobCardBtn').on('click.jobCardSave', '#draftSaveJobCardBtn', function (e) {
                 e.preventDefault();
                 scope.doSaveJobCard(false);
             });
@@ -191,6 +206,9 @@ var _modal_kernel_job_card = (function () {
             $(document).on('change', '#jobCardPackingStartDate', function () { scope.syncBestBeforeFromStartDate(); });
             $(document).on('input change', '#kernelJobCardModal :input, #kernelJobCardModal select', function () {
                 scope.scheduleAutoSave();
+            });
+            $(document).on('change', '#jobCardSupplier', function () {
+                if ($(this).val()) $('#jobCardSupplierMismatchAlert').addClass('d-none');
             });
         },
 
@@ -503,6 +521,7 @@ var _modal_kernel_job_card = (function () {
                         scope.setJobCardField('jobCardSupplier', supplierIdFromBatchOrDetail);
                     }
                 }
+                scope._checkSupplierPrefillWarning(batch, detail, jc);
             }).then(function () {
                 _suppressAutoSave = false;
                 var modalEl = document.getElementById('kernelJobCardModal');
@@ -532,11 +551,65 @@ var _modal_kernel_job_card = (function () {
             openForBatch(null);
         },
 
+        _reportJobCardFormValidation: (form) => {
+            if (!form) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Job card form is not loaded yet. Close and reopen the job card.', 'error');
+                }
+                return false;
+            }
+            if (form.checkValidity()) return true;
+            form.reportValidity();
+            var invalid = form.querySelector(':invalid');
+            var fieldName = jobCardInvalidFieldLabel(invalid);
+            var message = 'Please complete ' + fieldName + ' before saving.';
+            if (invalid && invalid.id === 'jobCardSupplier') {
+                message = 'Select a supplier before saving. If the batch supplier is not in the list, choose another contact or add the supplier in Contacts.';
+            }
+            var $status = $('#jobCardAutoSaveStatus');
+            if ($status.length) {
+                $status.removeClass('text-success').addClass('text-danger').text(message);
+            }
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'warning', title: 'Cannot save yet', text: message });
+            }
+            if (invalid && typeof invalid.scrollIntoView === 'function') {
+                invalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (typeof invalid.focus === 'function') invalid.focus();
+            }
+            return false;
+        },
+
+        _checkSupplierPrefillWarning: (batch, detail, jc) => {
+            var supplierId = null;
+            if (jc && jc.supplier_id != null && jc.supplier_id !== '') supplierId = String(jc.supplier_id);
+            else if (detail && detail.supplier_id != null && detail.supplier_id !== '') supplierId = String(detail.supplier_id);
+            else if (batch && batch.supplier_id != null && batch.supplier_id !== '') supplierId = String(batch.supplier_id);
+            var $alert = $('#jobCardSupplierMismatchAlert');
+            if (!$alert.length) return;
+            if (!supplierId) {
+                $alert.addClass('d-none');
+                return;
+            }
+            var currentVal = $('#jobCardSupplier').val();
+            if (currentVal && String(currentVal) === supplierId) {
+                $alert.addClass('d-none');
+                return;
+            }
+            if ($('#jobCardSupplier option').filter(function () { return String($(this).val()) === supplierId; }).length) {
+                _modal_kernel_job_card.setJobCardField('jobCardSupplier', supplierId);
+                $alert.addClass('d-none');
+                return;
+            }
+            $alert.removeClass('d-none');
+        },
+
         clearJobCardForm: () => {
             const scope = _modal_kernel_job_card;
             _jobCardPackingStartISO = null;
             _jobCardBestBeforeISO = null;
             _jobCardIsApproved = false;
+            $('#jobCardSupplierMismatchAlert').addClass('d-none');
             var $form = $('#kernelJobCardForm');
             if ($form.length) $form[0].reset();
             $('#jobCardId').val('');
@@ -790,10 +863,7 @@ var _modal_kernel_job_card = (function () {
             }
             if (!silent) {
                 var form = $('#kernelJobCardForm')[0];
-                if (!form || !form.checkValidity()) {
-                    if (form) form.reportValidity();
-                    return;
-                }
+                if (!scope._reportJobCardFormValidation(form)) return;
             }
             var $status = $('#jobCardAutoSaveStatus');
             if (silent && $status.length) $status.removeClass('text-success text-danger').text('Saving…');
@@ -803,42 +873,56 @@ var _modal_kernel_job_card = (function () {
                 jobCardObj[k.replace(/^p_/, '')] = jobCardData[k];
             });
             var upsertOpts = approve ? { approved: true } : { draft: true };
-            dataFunctions.upsertKernelJobCard(kernelId, jobCardObj, null, upsertOpts).then(function (result) {
-                var inner = result;
-                if (typeof dataFunctions.unwrapKernelRpcJson === 'function') {
-                    inner = dataFunctions.unwrapKernelRpcJson(result, 'upsert_kernel_job_card') || result;
-                } else if (result && result.upsert_kernel_job_card) {
-                    inner = result.upsert_kernel_job_card;
-                }
-                if (inner && inner.success === false) throw new Error(inner.error || inner.Error || 'Failed to save');
-                var stockSynced = !!(inner && (inner.stock_synced === true || inner.StockSynced === true));
-                var hasStyleLines = typeof _kernelJobCardStock !== 'undefined'
-                    ? _kernelJobCardStock.hasStockQuantities(jobCardObj)
-                    : !!(jobCardObj.sound_kernel_styles || jobCardObj.butter_grade_styles);
-                if (silent) {
-                    if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); setTimeout(function () { if ($status.length) $status.text(''); }, 2000); }
-                } else if (approve) {
-                    scope._finishJobCardApprovedUi(kernelId, inner, stockSynced, hasStyleLines, true);
-                } else if ($status.length) {
-                    $status.removeClass('text-danger').addClass('text-success').text('Saved');
-                    setTimeout(function () { if ($status.length) $status.text(''); }, 2500);
-                }
-                if (!silent && typeof Swal !== 'undefined' && !approve) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Job card saved',
-                        text: _jobCardIsApproved
-                            ? 'Your changes were saved and stock quantities were updated.'
-                            : 'Your changes were saved. Press Jobcard approved when you are ready to commit stock.',
-                        timer: 2200,
-                        showConfirmButton: false
-                    });
-                }
-            }).catch(function (e) {
+            var df = (typeof dataFunctions !== 'undefined' && dataFunctions) ? dataFunctions : null;
+            console.info('[Kernel Job Card] save start', { kernelId: kernelId, approve: approve, silent: silent });
+            if (!df || typeof df.upsertKernelJobCard !== 'function') {
+                var unavailableMsg = 'Save is unavailable. Refresh the page and try again.';
+                console.error('[Kernel Job Card] save failed: dataFunctions.upsertKernelJobCard missing');
+                if ($status.length) { $status.removeClass('text-success').addClass('text-danger').text('Save failed'); }
+                if (!silent && typeof Swal !== 'undefined') Swal.fire('Error', unavailableMsg, 'error');
+                return;
+            }
+            var handleSaveError = function (e) {
                 console.error('[Kernel Job Card] save failed:', e);
                 if ($status.length) { $status.removeClass('text-success').addClass('text-danger').text('Save failed'); }
-                if (!silent && typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to save job card', 'error');
-            });
+                if (!silent && typeof Swal !== 'undefined') Swal.fire('Error', (e && e.message) || 'Failed to save job card', 'error');
+            };
+            try {
+                df.upsertKernelJobCard(kernelId, jobCardObj, null, upsertOpts).then(function (result) {
+                    var inner = result;
+                    if (typeof df.unwrapKernelRpcJson === 'function') {
+                        inner = df.unwrapKernelRpcJson(result, 'upsert_kernel_job_card') || result;
+                    } else if (result && result.upsert_kernel_job_card) {
+                        inner = result.upsert_kernel_job_card;
+                    }
+                    if (inner && inner.success === false) throw new Error(inner.error || inner.Error || 'Failed to save');
+                    var stockSynced = !!(inner && (inner.stock_synced === true || inner.StockSynced === true));
+                    var hasStyleLines = typeof _kernelJobCardStock !== 'undefined'
+                        ? _kernelJobCardStock.hasStockQuantities(jobCardObj)
+                        : !!(jobCardObj.sound_kernel_styles || jobCardObj.butter_grade_styles);
+                    if (silent) {
+                        if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text('Saved'); setTimeout(function () { if ($status.length) $status.text(''); }, 2000); }
+                    } else if (approve) {
+                        scope._finishJobCardApprovedUi(kernelId, inner, stockSynced, hasStyleLines, true);
+                    } else if ($status.length) {
+                        $status.removeClass('text-danger').addClass('text-success').text('Saved');
+                        setTimeout(function () { if ($status.length) $status.text(''); }, 2500);
+                    }
+                    if (!silent && typeof Swal !== 'undefined' && !approve) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Job card saved',
+                            text: _jobCardIsApproved
+                                ? 'Your changes were saved and stock quantities were updated.'
+                                : 'Your changes were saved. Press Jobcard approved when you are ready to commit stock.',
+                            timer: 2200,
+                            showConfirmButton: false
+                        });
+                    }
+                }).catch(handleSaveError);
+            } catch (syncErr) {
+                handleSaveError(syncErr);
+            }
         },
 
         saveJobCard: () => {

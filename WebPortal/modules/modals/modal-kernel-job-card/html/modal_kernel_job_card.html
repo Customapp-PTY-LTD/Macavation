@@ -21,6 +21,9 @@
             <div class="alert alert-info small mb-3" role="status">
                 <strong>Stock on hand</strong> is driven by this job card <strong>after you press Jobcard approved</strong>. Production can prefill style lines; autosave keeps a draft only. Correct cartons or kg here, then approve when ready.
             </div>
+            <div id="jobCardSupplierMismatchAlert" class="alert alert-warning small mb-3 d-none" role="alert">
+                Batch supplier is not in the contacts list — select a supplier manually or add the contact before saving.
+            </div>
             <form id="kernelJobCardForm">
                 <input type="hidden" id="jobCardId">
                 <input type="hidden" id="jobCardProductionBatchId">
