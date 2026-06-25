@@ -2157,6 +2157,9 @@ var _dataFunctions = function () {
             if (o.remaining_by_style_cartons == null && o.RemainingByStyleCartons != null) o.remaining_by_style_cartons = o.RemainingByStyleCartons;
             if (o.grower_name == null && o.GrowerName != null) o.grower_name = o.GrowerName;
             if (o.supplier_id == null && o.SupplierId != null) o.supplier_id = o.SupplierId;
+            if (o.wet_nis_received_kg == null && o.WetNisReceivedKg != null) o.wet_nis_received_kg = o.WetNisReceivedKg;
+            if (o.actual_wet_nis_kg == null && o.ActualWetNisKg != null) o.actual_wet_nis_kg = o.ActualWetNisKg;
+            if (o.weight_difference_kg == null && o.WeightDifferenceKg != null) o.weight_difference_kg = o.WeightDifferenceKg;
             if (o.status == null && o.Status != null) o.status = o.Status;
             if (o.production_finished_at == null && o.ProductionFinishedAt != null) {
                 o.production_finished_at = o.ProductionFinishedAt;

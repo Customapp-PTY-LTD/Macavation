@@ -93,6 +93,69 @@ var _modal_kernel_job_card = (function () {
         return $label.length ? String($label.text()).replace(/\s*\*$/, '').trim() : 'A required field';
     }
 
+    function jobCardNumericPresent(val) {
+        if (val == null || val === '') return false;
+        return !isNaN(parseFloat(val));
+    }
+
+    function jobCardFieldHasValue(fieldId) {
+        var v = $('#' + fieldId).val();
+        return v != null && String(v).trim() !== '';
+    }
+
+    function receivingChecklistFromDetail(detail) {
+        if (!detail) return null;
+        var intake = detail.intake_data || detail.intakeData;
+        if (!intake || typeof intake !== 'object') return null;
+        var rc = intake.receiving_checklist || intake.receivingChecklist;
+        return rc && typeof rc === 'object' ? rc : null;
+    }
+
+    function sumReceivedItemsKg(rc) {
+        if (!rc) return null;
+        var items = rc.received_items || rc.receivedItems;
+        if (!Array.isArray(items) || !items.length) return null;
+        var sum = 0;
+        var hasAny = false;
+        items.forEach(function (item) {
+            if (!item || typeof item !== 'object') return;
+            var kg = parseFloat(item.quantity_kg != null ? item.quantity_kg : item.quantityKg);
+            if (isNaN(kg)) return;
+            sum += kg;
+            hasAny = true;
+        });
+        return hasAny ? Math.round(sum * 100) / 100 : null;
+    }
+
+    function resolveJobCardTotalWeightKg(batch, detail, jc) {
+        var rc = receivingChecklistFromDetail(detail);
+        var candidates = [
+            jc && jc.total_weight_kg,
+            detail && detail.actual_wet_nis_kg,
+            batch && batch.actual_wet_nis_kg,
+            sumReceivedItemsKg(rc),
+            detail && detail.wet_nis_received_kg,
+            batch && batch.wet_nis_received_kg
+        ];
+        for (var i = 0; i < candidates.length; i++) {
+            if (jobCardNumericPresent(candidates[i])) return candidates[i];
+        }
+        return null;
+    }
+
+    function resolveJobCardRemovedPreSizerKg(batch, detail, jc) {
+        var rc = receivingChecklistFromDetail(detail);
+        var candidates = [
+            jc && jc.removed_pre_sizer_kg,
+            rc && rc.removed_pre_sizer_kg,
+            rc && rc.removedPreSizerKg
+        ];
+        for (var i = 0; i < candidates.length; i++) {
+            if (jobCardNumericPresent(candidates[i])) return candidates[i];
+        }
+        return null;
+    }
+
     /** Best Before = 18 MONTHS (not 18 days) after the given ISO date. Returns YYYY-MM-DD or null. */
     function add18MonthsToISO(isoStr) {
         if (!isoStr) return null;
@@ -265,9 +328,9 @@ var _modal_kernel_job_card = (function () {
             scope.setJobCardField('jobCardBatchNumber', jc.batch_number);
             scope.setJobCardField('jobCardReceivedDate', fmtDate(jc.received_date));
             if (jc.supplier_id != null && jc.supplier_id !== '') scope.setJobCardField('jobCardSupplier', jc.supplier_id);
-            scope.setJobCardField('jobCardTotalWeight', jc.total_weight_kg);
-            scope.setJobCardField('jobCardRemovedPreSizer', jc.removed_pre_sizer_kg);
-            scope.setJobCardField('jobCardBalance', jc.balance_kg);
+            if (jc.total_weight_kg != null && jc.total_weight_kg !== '') scope.setJobCardField('jobCardTotalWeight', jc.total_weight_kg);
+            if (jc.removed_pre_sizer_kg != null && jc.removed_pre_sizer_kg !== '') scope.setJobCardField('jobCardRemovedPreSizer', jc.removed_pre_sizer_kg);
+            if (jc.balance_kg != null && jc.balance_kg !== '') scope.setJobCardField('jobCardBalance', jc.balance_kg);
             scope.setJobCardField('jobCardReceivingMoisture', jc.receiving_moisture_percentage);
             scope.setJobCardField('jobCardPackingMoisture', jc.packing_moisture_percentage);
             scope.setJobCardField('jobCardRemovedMoisture', jc.removed_moisture_percentage);
@@ -492,34 +555,20 @@ var _modal_kernel_job_card = (function () {
                 }
 
                 if (!hasSavedJobCard) {
-                    if (moistureResult != null) {
+                    if (moistureResult != null && !jobCardFieldHasValue('jobCardReceivingMoisture')) {
                         scope.setJobCardField('jobCardReceivingMoisture', moistureResult);
                         scope.calculateRemovedMoisture();
                     }
-                    if (packingMoistureResult != null) {
+                    if (packingMoistureResult != null && !jobCardFieldHasValue('jobCardPackingMoisture')) {
                         scope.setJobCardField('jobCardPackingMoisture', packingMoistureResult);
                         scope.calculateRemovedMoisture();
                     }
-                    // Receiving: Total Weight = Actual from grower intake; Removed Pre-Sizer from checklist or derived; Balance = Total − Removed
-                    var actualKg = (detail && (detail.actual_wet_nis_kg != null && detail.actual_wet_nis_kg !== '')) ? detail.actual_wet_nis_kg : (batch.actual_wet_nis_kg != null && batch.actual_wet_nis_kg !== '' ? batch.actual_wet_nis_kg : null);
-                    var suppliedKg = (detail && (detail.wet_nis_received_kg != null && detail.wet_nis_received_kg !== '')) ? detail.wet_nis_received_kg : (batch.wet_nis_received_kg != null && batch.wet_nis_received_kg !== '' ? batch.wet_nis_received_kg : null);
-                    var rc = (intake && intake.receiving_checklist) ? intake.receiving_checklist : {};
-                    var removedPreSizerKg = (rc.removed_pre_sizer_kg != null && rc.removed_pre_sizer_kg !== '') ? rc.removed_pre_sizer_kg : (rc.removedPreSizerKg != null && rc.removedPreSizerKg !== '' ? rc.removedPreSizerKg : null);
-                    if (actualKg != null) scope.setJobCardField('jobCardTotalWeight', actualKg);
-                    if (removedPreSizerKg != null) {
-                        scope.setJobCardField('jobCardRemovedPreSizer', removedPreSizerKg);
-                    } else if (suppliedKg != null && actualKg != null) {
-                        var supplied = parseFloat(suppliedKg);
-                        var actual = parseFloat(actualKg);
-                        if (!isNaN(supplied) && !isNaN(actual)) scope.setJobCardField('jobCardRemovedPreSizer', (supplied - actual).toFixed(2));
-                    }
-                    scope.calculateBalance();
-
-                    var supplierVal = $('#jobCardSupplier').val();
-                    var supplierIdFromBatchOrDetail = (detail && (detail.supplier_id != null && detail.supplier_id !== '')) ? detail.supplier_id : (batch.supplier_id != null && batch.supplier_id !== '' ? batch.supplier_id : null);
-                    if (supplierIdFromBatchOrDetail != null && (!supplierVal || String(supplierVal).trim() === '')) {
-                        scope.setJobCardField('jobCardSupplier', supplierIdFromBatchOrDetail);
-                    }
+                }
+                scope._prefillReceivingWeights(batch, detail, jc);
+                var supplierVal = $('#jobCardSupplier').val();
+                var supplierIdFromBatchOrDetail = (detail && (detail.supplier_id != null && detail.supplier_id !== '')) ? detail.supplier_id : (batch.supplier_id != null && batch.supplier_id !== '' ? batch.supplier_id : null);
+                if (supplierIdFromBatchOrDetail != null && (!supplierVal || String(supplierVal).trim() === '')) {
+                    scope.setJobCardField('jobCardSupplier', supplierIdFromBatchOrDetail);
                 }
                 scope._checkSupplierPrefillWarning(batch, detail, jc);
             }).then(function () {
@@ -578,6 +627,19 @@ var _modal_kernel_job_card = (function () {
                 if (typeof invalid.focus === 'function') invalid.focus();
             }
             return false;
+        },
+
+        _prefillReceivingWeights: (batch, detail, jc) => {
+            const scope = _modal_kernel_job_card;
+            if (!jobCardFieldHasValue('jobCardTotalWeight')) {
+                var totalKg = resolveJobCardTotalWeightKg(batch, detail, jc);
+                if (totalKg != null) scope.setJobCardField('jobCardTotalWeight', totalKg);
+            }
+            if (!jobCardFieldHasValue('jobCardRemovedPreSizer')) {
+                var removedKg = resolveJobCardRemovedPreSizerKg(batch, detail, jc);
+                if (removedKg != null) scope.setJobCardField('jobCardRemovedPreSizer', removedKg);
+            }
+            scope.calculateBalance();
         },
 
         _checkSupplierPrefillWarning: (batch, detail, jc) => {

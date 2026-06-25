@@ -167,7 +167,7 @@ CREATE OR REPLACE FUNCTION public.search_oil_batches(
 )
 RETURNS TABLE (
     id uuid,
-    batch_id uuid,
+    batch_id text,
     production_date date,
     shift varchar,
     product_name varchar,
@@ -177,18 +177,25 @@ RETURNS TABLE (
 )
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$
-    SELECT o.id, o.batch_id, o.production_date, o.shift, o.product_name, o.status, o.total_oil_litre, o.created_at
+    SELECT
+        o.id,
+        o.batch_id::text,
+        o.production_date,
+        (o.production_data->>'shift')::varchar AS shift,
+        (o.production_data->>'name_of_product')::varchar AS product_name,
+        o.status,
+        o.total_oil_litre,
+        o.created_at
     FROM public.oil o
-    JOIN public.batches b ON b.id = o.batch_id
     WHERE o.is_active = true
       AND (p_status IS NULL OR p_status = '' OR o.status = p_status)
       AND (p_from IS NULL OR o.production_date >= p_from)
       AND (p_to IS NULL OR o.production_date <= p_to)
       AND (
           p_search IS NULL OR trim(p_search) = ''
-          OR b.batch_number ILIKE '%' || p_search || '%'
-          OR COALESCE(o.product_name, '') ILIKE '%' || p_search || '%'
-          OR COALESCE(o.shift, '') ILIKE '%' || p_search || '%'
+          OR o.batch_id ILIKE '%' || p_search || '%'
+          OR COALESCE(o.production_data->>'name_of_product', '') ILIKE '%' || p_search || '%'
+          OR COALESCE(o.production_data->>'shift', '') ILIKE '%' || p_search || '%'
       )
     ORDER BY o.production_date DESC NULLS LAST, o.created_at DESC;
 $$;

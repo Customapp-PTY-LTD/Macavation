@@ -1,4 +1,6 @@
--- Remove the overload release_kernel_to_production(p_kernel_id uuid, p_silos integer[])
--- so only release_kernel_to_production(p_kernel_id uuid) remains. The app calls release
--- with just kernel_id, then assign_kernel_to_silos(kernel_id, silo_numbers) separately.
-DROP FUNCTION IF EXISTS public.release_kernel_to_production(uuid, integer[]);
+-- Originally dropped release_kernel_to_production(uuid, integer[]) intending to keep the
+-- single-argument overload. After 20260314000002_consolidate_release_kernel_to_production,
+-- that was the ONLY signature — so the old DROP removed the function entirely on UAT.
+-- No-op: restore is handled by 20260625120000_restore_release_kernel_to_production.sql.
+
+SELECT 1;
