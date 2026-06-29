@@ -31,7 +31,13 @@ var _executiveDashboard = function () {
         execStatDispatchPending: 'Dispatch pending',
         execDailyMinuteTests: 'Daily minute tests',
         execProductionTrends: 'Production Trends',
-        execProcurementForecast: 'Procurement & forecast'
+        execProcurementForecast: 'Procurement & forecast',
+        execStockAlerts: 'Stock alerts',
+        execRunway: 'Raw material runway',
+        execOilTrends: 'Oil production trends',
+        execStockAccuracy: 'Stock accuracy',
+        execProducedVsTarget: 'Produced vs target',
+        execDailyReportDelivery: 'Daily report delivery'
     };
 
     return {
@@ -61,6 +67,11 @@ var _executiveDashboard = function () {
             await scope.loadDailyMinuteTests();
             await scope.loadProductionTrendsChart();
             await scope.loadProcurementForecastChart();
+            await scope.loadExecutiveAlerts();
+            await scope.loadRunwaySummary();
+            await scope.loadOilTrendsChart();
+            await scope.loadStockAccuracyChart();
+            await scope.loadProducedVsTarget();
         },
 
         getDashboardVisibility: function () {
@@ -246,7 +257,16 @@ var _executiveDashboard = function () {
             var hideWeekendsEl = document.getElementById('productionTrendsHideWeekends');
             if (hideWeekendsEl) hideWeekendsEl.checked = scope.productionTrendsHideWeekends !== false;
             $('#generateReportBtn').off('click').on('click', () => {
-                Swal.fire('Info', 'Report generation coming soon', 'info');
+                if (typeof _appRouter !== 'undefined') {
+                    _appRouter.navigate('scheduled-reports-grid');
+                } else {
+                    Swal.fire('Info', 'Open Scheduled Reports from Support in the sidebar.', 'info');
+                }
+            });
+            $('#execDailyReportBtn, #execOpenScheduledReportsBtn').off('click').on('click', function () {
+                if (typeof _appRouter !== 'undefined') {
+                    _appRouter.navigate('scheduled-reports-grid');
+                }
             });
             $('#customizeDashboardBtn').off('click').on('click', function () {
                 scope.openCustomizeModal();
@@ -500,6 +520,9 @@ var _executiveDashboard = function () {
         },
 
         procurementForecastChart: null,
+        oilTrendsChart: null,
+        stockAccuracyChart: null,
+        dashboardTargets: [],
 
         loadProcurementForecastChart: async () => {
             const scope = _executiveDashboard;
@@ -601,7 +624,100 @@ var _executiveDashboard = function () {
         renderKPIs: () => {
             const scope = _executiveDashboard;
             $('#totalProduction').text(scope.kpis.total_production_kg || '0');
-            $('#qualityPassRate').text((scope.kpis.quality_pass_rate || '0') + '%');
+            var qEl = $('#qualityPassRate');
+            if (qEl.length) qEl.text((scope.kpis.quality_pass_rate || '0') + '%');
+        },
+
+        loadExecutiveAlerts: async () => {
+            var container = document.getElementById('execAlertsContainer');
+            if (!container || !dataFunctions.getDashboardAlerts) return;
+            try {
+                var alerts = await dataFunctions.getDashboardAlerts(null);
+                if (!alerts || !alerts.length) {
+                    container.innerHTML = '<p class="text-muted small mb-0">No active alerts.</p>';
+                    return;
+                }
+                container.innerHTML = alerts.slice(0, 8).map(function (a) {
+                    var sev = (a.severity || a.alert_type || 'info').toLowerCase();
+                    var cls = sev === 'critical' ? 'danger' : sev === 'warning' ? 'warning' : 'info';
+                    return '<div class="alert alert-' + cls + ' py-2 px-3 small mb-2"><strong>' + (a.title || a.alert_title || 'Alert') + '</strong> — ' + (a.message || a.alert_message || '') + '</div>';
+                }).join('');
+            } catch (e) {
+                container.innerHTML = '<p class="text-muted small mb-0">Unable to load alerts.</p>';
+            }
+        },
+
+        loadRunwaySummary: async () => {
+            if (!dataFunctions.getKernelRunwaySummary) return;
+            try {
+                var r = await dataFunctions.getKernelRunwaySummary();
+                var soh = Number(r.soh_kg || 0);
+                var weeks = r.weeks_cover;
+                var months = r.months_cover;
+                $('#execRunwaySohKg').text(soh.toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+                $('#execRunwayWeeks').text(weeks != null ? weeks + ' wks' : '—');
+                $('#execRunwayMonths').text(months != null ? months + ' mo' : '—');
+                $('#execRunwayDemand').text(Number(r.weekly_demand_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg/wk');
+            } catch (e) {
+                $('#execRunwaySohKg, #execRunwayWeeks, #execRunwayMonths, #execRunwayDemand').text('—');
+            }
+        },
+
+        loadOilTrendsChart: async () => {
+            var scope = _executiveDashboard;
+            var canvas = document.getElementById('oilTrendsChart');
+            if (!canvas || typeof Chart === 'undefined' || !dataFunctions.getOilProductionTrendsDaily) return;
+            try {
+                var rows = await dataFunctions.getOilProductionTrendsDaily(180);
+                var labels = (rows || []).map(function (r) { return String(r.trend_date || '').slice(0, 10); });
+                var litres = (rows || []).map(function (r) { return Number(r.oil_litres) || 0; });
+                if (scope.oilTrendsChart) scope.oilTrendsChart.destroy();
+                scope.oilTrendsChart = new Chart(canvas.getContext('2d'), {
+                    type: 'line',
+                    data: { labels: labels, datasets: [{ label: 'Oil (L)', data: litres, borderColor: '#198754', backgroundColor: 'rgba(25,135,84,0.2)', fill: true, tension: 0.3 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                });
+            } catch (e) {
+                console.warn('[Executive Dashboard] oil trends failed', e);
+            }
+        },
+
+        loadStockAccuracyChart: async () => {
+            var scope = _executiveDashboard;
+            var canvas = document.getElementById('stockAccuracyChart');
+            if (!canvas || typeof Chart === 'undefined' || !dataFunctions.getStockAccuracy) return;
+            try {
+                var rows = await dataFunctions.getStockAccuracy(6);
+                rows = (rows || []).slice().reverse();
+                var labels = rows.map(function (r) { return String(r.snapshot_month || '').slice(0, 7); });
+                var pct = rows.map(function (r) { return Number(r.pct_adjusted) || 0; });
+                if (scope.stockAccuracyChart) scope.stockAccuracyChart.destroy();
+                scope.stockAccuracyChart = new Chart(canvas.getContext('2d'), {
+                    type: 'bar',
+                    data: { labels: labels, datasets: [{ label: '% adjusted', data: pct, backgroundColor: 'rgba(255,193,7,0.7)' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, title: { display: true, text: '% of SOH adjusted' } } } }
+                });
+            } catch (e) {
+                console.warn('[Executive Dashboard] stock accuracy failed', e);
+            }
+        },
+
+        loadProducedVsTarget: async () => {
+            if (!dataFunctions.getDashboardTargets) return;
+            try {
+                var res = await dataFunctions.getDashboardTargets();
+                var rows = (res && res.rows) || [];
+                var prodTarget = rows.find(function (t) { return t.metric_key === 'total_production_kg'; });
+                var actual = Number(_executiveDashboard.kpis.total_production_kg) || 0;
+                var target = prodTarget ? Number(prodTarget.target_value) : 0;
+                var pct = target > 0 ? Math.min(100, Math.round((actual / target) * 100)) : 0;
+                $('#execProducedActual').text(actual.toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+                $('#execProducedTarget').text(target > 0 ? target.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
+                $('#execProducedProgress').css('width', pct + '%').attr('aria-valuenow', pct);
+                $('#execProducedPct').text(target > 0 ? pct + '% of target' : 'Set target in Dashboard Targets');
+            } catch (e) {
+                $('#execProducedActual, #execProducedTarget, #execProducedPct').text('—');
+            }
         }
     };
 }();

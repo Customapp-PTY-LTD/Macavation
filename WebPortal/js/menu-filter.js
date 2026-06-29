@@ -125,9 +125,11 @@ var _menuFilter = function () {
          */
         updateParentMenus: function () {
             var collapseIds = [
-                'crmCollapse',
+                'homeCollapse',
                 'kernelCollapse',
                 'oilCollapse',
+                'supportCollapse',
+                'crmCollapse',
                 'qualityCollapse',
                 'businessCollapse',
                 'userManagementCollapse',

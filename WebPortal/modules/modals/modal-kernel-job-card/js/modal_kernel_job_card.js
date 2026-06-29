@@ -852,6 +852,16 @@ var _modal_kernel_job_card = (function () {
             if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.patchBatchJobcardApproved) {
                 _kernelProductionGrid.patchBatchJobcardApproved(kernelId, true);
             }
+            if (typeof dataFunctions !== 'undefined' && dataFunctions.notifyRole) {
+                var batchNum = (detail && (detail.batch_number || detail.BatchNumber)) || kernelId;
+                dataFunctions.notifyRole({
+                    role_name: 'Production Manager',
+                    title: 'Job card approved',
+                    body: 'Batch ' + batchNum + ' job card was approved and is ready for release when complete.',
+                    severity: 'info',
+                    link_route: 'kernel-production-grid'
+                }).catch(function () {});
+            }
             _skipFlushOnHide = true;
             var modalEl = document.getElementById('kernelJobCardModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {

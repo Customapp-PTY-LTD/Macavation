@@ -4,7 +4,7 @@ Phase 2 Epic 1 requires **~2 years of abbreviated historical data** from Pete be
 
 **Related ClickUp:** Macavation → **Phase 2** list → Epic 1 → *Collect Pete abbreviated 2-year dataset*
 
-**Related repo:** `migrations/20260403000001_import_historical_kernel_batch.sql`, `WebPortal/js/data-functions.js` (`importHistoricalKernelBatch`)
+**Related repo:** `migrations/20260403000001_import_historical_kernel_batch.sql`, `WebPortal/js/data-functions.js` (`importHistoricalKernelBatch`), **[Kernel historical import runbook](KERNEL_HISTORICAL_IMPORT_RUNBOOK.md)**
 
 ---
 

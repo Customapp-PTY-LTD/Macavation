@@ -87,11 +87,14 @@ var _kernelProductionGrid = function () {
     };
 
     /**
-     * Derive display status from actual production data, not just DB status.
-     * Batches with no production days/history show "Awaiting production"; only batches with real production data show "In production".
-     * Returns { label: string, filterValue: string }.
+     * Derive display status — uses shared BatchStatus when available.
      */
     const getBatchDisplayStatus = (batch) => {
+        if (typeof BatchStatus !== 'undefined') {
+            return BatchStatus.getProductionKanbanStatus(batch, {
+                hasProductionData: batchHasMeaningfulProductionData(batch)
+            });
+        }
         const hasProductionData = batchHasMeaningfulProductionData(batch);
         const productionFinished = !!batch.production_finished_at;
         const hasEndSample = !!batch.has_qa;
@@ -101,6 +104,27 @@ var _kernelProductionGrid = function () {
         if (hasProductionData) return { label: 'In production', filterValue: 'in_production' };
         return { label: 'Awaiting production', filterValue: 'awaiting_production' };
     };
+
+    function buildPrimaryProductionAction(batch, displayStatus, canReleaseToStock, isJobCardApproved) {
+        var id = batch.id;
+        var fv = displayStatus.filterValue;
+        if (fv === 'awaiting_test') {
+            return '<button type="button" class="btn btn-sm btn-primary js-end-sample-batch" data-batch-id="' + id + '"><i class="fas fa-flask me-1"></i>End sample</button>';
+        }
+        if (fv === 'release_ready') {
+            if (canReleaseToStock) {
+                return '<button type="button" class="btn btn-sm btn-success js-release-to-stock" data-batch-id="' + id + '" data-action-perm="kernel.release_to_stock"><i class="fas fa-warehouse me-1"></i>Release to stock</button>';
+            }
+            if (!isJobCardApproved) {
+                return '<button type="button" class="btn btn-sm btn-primary js-job-card-batch" data-batch-id="' + id + '"><i class="fas fa-file-alt me-1"></i>Approve job card</button>';
+            }
+            return '<button type="button" class="btn btn-sm btn-outline-secondary js-release-to-stock-disabled" data-batch-id="' + id + '"><i class="fas fa-warehouse me-1"></i>Release to stock</button>';
+        }
+        if (fv === 'in_production') {
+            return '<button type="button" class="btn btn-sm btn-primary js-production-batch" data-batch-id="' + id + '"><i class="fas fa-cogs me-1"></i>Production</button>';
+        }
+        return '<button type="button" class="btn btn-sm btn-primary js-production-batch" data-batch-id="' + id + '"><i class="fas fa-cogs me-1"></i>Start production</button>';
+    }
 
     const PRODUCTION_STAGE_LABELS = {
         cracking_data: 'Cracking',
@@ -197,6 +221,8 @@ var _kernelProductionGrid = function () {
 
         init: () => {
             const scope = _kernelProductionGrid;
+            if (typeof BatchStatus !== 'undefined') BatchStatus.applyModuleSubtitle('kernel-production-grid');
+            if (typeof HandoffDialog !== 'undefined') HandoffDialog.applyPendingSearchForRoute('kernel-production-grid');
             if (typeof _app !== 'undefined' && typeof _app.checkSession === 'function' && !_app.checkSession()) {
                 return;
             }
@@ -352,10 +378,9 @@ var _kernelProductionGrid = function () {
             $('#kpViewKanban').on('click', function () { _kernelProductionGrid.toggleView('kanban'); });
             $('#kpViewTable').on('click', function () { _kernelProductionGrid.toggleView('table'); });
             // Approved jobcards filter (release ready + job card approved only)
-            $('#kpViewApprovedJobcards').on('click', function () {
+            $('#kpApprovedJobcardsFilter').on('change', function () {
                 const scope = _kernelProductionGrid;
-                scope.approvedJobcardsOnly = !scope.approvedJobcardsOnly;
-                $('#kpViewApprovedJobcards').toggleClass('active', scope.approvedJobcardsOnly);
+                scope.approvedJobcardsOnly = !!this.checked;
                 scope.filterBatches();
             });
             $('#kpProductionCalendarPrevBtn').off('click').on('click', function () {
@@ -460,35 +485,36 @@ var _kernelProductionGrid = function () {
                     var receivedDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
                         ? (_common.formatDateDDMMYYYY(batch.received_date) || '') : '';
                     var bbDisplay = (batch.best_before_date && (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(batch.best_before_date) : batch.best_before_date)) || '';
-                    var productionIcon = batch.production_finished_at ? '<i class="fas fa-check text-success me-1"></i>' : '';
-                    var qaIcon = batch.has_qa ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     var displayStatus = getBatchDisplayStatus(batch);
                     var isJobCardApproved = isJobcardApproved(batch);
-                    var jcIcon = isJobCardApproved ? '<i class="fas fa-check text-success me-1"></i>' : '';
                     var isReleaseReadyState = batch.status === 'qa' || batch.status === 'complete' || (batch.production_finished_at && batch.has_qa);
                     var canReleaseToStock = isReleaseReadyState && isJobCardApproved;
-                    var releaseToStockBtn = '';
-                    if (displayStatus.filterValue === 'release_ready') {
-                        if (canReleaseToStock) {
-                            releaseToStockBtn = '<button type="button" class="btn btn-sm btn-success js-release-to-stock" data-batch-id="' + batch.id + '" title="Release to stock"><i class="fas fa-warehouse"></i></button>';
-                        } else {
-                            releaseToStockBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-release-to-stock-disabled" data-batch-id="' + batch.id + '" title="Release to stock (requirements not met)"><i class="fas fa-warehouse"></i></button>';
-                        }
+                    var primaryBtn = buildPrimaryProductionAction(batch, displayStatus, canReleaseToStock, isJobCardApproved);
+                    var moreItems = [
+                        '<li><a class="dropdown-item js-production-batch" href="#" data-batch-id="' + batch.id + '">Production stages</a></li>',
+                        '<li><a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '">Job card</a></li>',
+                        '<li><a class="dropdown-item js-end-sample-batch" href="#" data-batch-id="' + batch.id + '">End sample</a></li>',
+                        '<li><a class="dropdown-item js-batch-summary" href="#" data-batch-id="' + batch.id + '">Batch summary</a></li>'
+                    ];
+                    if (displayStatus.filterValue === 'release_ready' && canReleaseToStock) {
+                        moreItems.unshift('<li><a class="dropdown-item js-release-to-stock" href="#" data-batch-id="' + batch.id + '">Release to stock</a></li>');
                     }
+                    var moreMenu = '<div class="dropdown d-inline-block">' +
+                        '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">More</button>' +
+                        '<ul class="dropdown-menu dropdown-menu-end">' + moreItems.join('') + '</ul></div>';
                     return '<div class="kanban-card" data-batch-id="' + batch.id + '">' +
                         '<div class="kanban-card-title">' + KanbanHelper._esc(batch.batch_number || 'N/A') + '</div>' +
+                        (typeof BatchStatus !== 'undefined'
+                            ? '<div class="kanban-card-status-row">' + BatchStatus.statusBadgeHtml(displayStatus) + '</div>'
+                            : '') +
                         '<div class="kanban-card-meta">' +
                             '<span class="kanban-card-meta-item" title="Supplier"><i class="fas fa-user"></i> ' + KanbanHelper._esc(batch.grower_name || 'N/A') + '</span>' +
                             '<span class="kanban-card-meta-item" title="Wet NIS (kg)"><i class="fas fa-weight-hanging"></i> ' + KanbanHelper._esc(String(batch.display_wet_nis_kg != null ? batch.display_wet_nis_kg : (batch.wet_nis_received_kg || '0'))) + ' kg</span>' +
                             (receivedDate ? '<span class="kanban-card-meta-item" title="Received date"><i class="fas fa-calendar"></i> ' + KanbanHelper._esc(receivedDate) + '</span>' : '') +
                             (bbDisplay ? '<span class="kanban-card-meta-item" title="Best Before Date (from Job Card)"><i class="fas fa-calendar-check"></i> Best Before Date ' + KanbanHelper._esc(bbDisplay) + '</span>' : '') +
                         '</div>' +
-                        '<div class="kanban-card-actions">' +
-                            '<button class="btn btn-sm btn-outline-secondary js-production-batch" data-batch-id="' + batch.id + '" title="Production">' + productionIcon + '<i class="fas fa-cogs"></i></button>' +
-                            '<button class="btn btn-sm btn-outline-secondary js-job-card-batch" data-batch-id="' + batch.id + '" title="Job Card">' + jcIcon + '<i class="fas fa-file-alt"></i></button>' +
-                            '<button class="btn btn-sm btn-outline-secondary js-end-sample-batch" data-batch-id="' + batch.id + '" title="End Sample">' + qaIcon + '<i class="fas fa-flask"></i></button>' +
-                            '<button class="btn btn-sm btn-outline-info js-batch-summary" data-batch-id="' + batch.id + '" title="Batch summary"><i class="fas fa-calculator"></i></button>' +
-                            releaseToStockBtn +
+                        '<div class="kanban-card-actions d-flex flex-wrap gap-1 align-items-center">' +
+                            primaryBtn + moreMenu +
                         '</div></div>';
                 }
             );

@@ -14,6 +14,9 @@ var _stockManagementGrid = function () {
 
     /** Return ISO week key "YYYY-Www" for grouping (e.g. 2026-W10). Same as Supplier Intake / Grower Intake. */
     function getIsoWeekKey(d) {
+        if (typeof StockWeeklyShared !== 'undefined' && StockWeeklyShared.getIsoWeekKey) {
+            return StockWeeklyShared.getIsoWeekKey(d);
+        }
         if (!d) return '';
         var date;
         if (typeof d === 'string') {
@@ -205,6 +208,7 @@ var _stockManagementGrid = function () {
         kernelCurrentView: 'bystyle',
         kernelWeeklyMode: 'in',
         kernelAdjustMode: false,
+        shellLots: [],
         oilSearchTimeout: null,
         searchTimeout: null,
 
@@ -212,6 +216,15 @@ var _stockManagementGrid = function () {
             var scope = _stockManagementGrid;
             console.log('[Stock Management] Initializing grid...');
             scope.applyStreamFromRoute();
+            if (typeof BatchStatus !== 'undefined') {
+                var route = (typeof _appRouter !== 'undefined' && _appRouter.currentRoute) ? _appRouter.currentRoute : '';
+                if (route === 'stock-management-oil') BatchStatus.applyModuleSubtitle('stock-management-oil');
+                else if (route === 'stock-management-kernel') BatchStatus.applyModuleSubtitle('stock-management-kernel');
+            }
+            if (typeof HandoffDialog !== 'undefined') {
+                var r = (typeof _appRouter !== 'undefined' && _appRouter.currentRoute) ? _appRouter.currentRoute : 'stock-management-kernel';
+                HandoffDialog.applyPendingSearchForRoute(r);
+            }
 
             var loadPromises = [];
             if (typeof $ !== 'undefined' && $('.modal[route-name]').length) {
@@ -252,6 +265,7 @@ var _stockManagementGrid = function () {
                     }
                     scope.toggleKernelBatchJourney(stream);
                     if (document.getElementById('oilStockOilTableBody')) scope.loadOilLotsAndSummary(true);
+                    if (stream === 'kernel' || !stream || stream === '') scope.loadShellLots();
                 } else {
                     console.warn('[Stock Management] Toolbar not found after modal load');
                 }
@@ -324,6 +338,20 @@ var _stockManagementGrid = function () {
                 $('#kernelAdjustModeAddBatchBtn').off('click').on('click', function () {
                     scope.promptCreateKernelBatchFromStock();
                 });
+                $('#addShellLotBtn').off('click').on('click', function () { scope.promptUpsertShellLot(null); });
+                $(document).off('click', '.js-edit-shell-lot').on('click', '.js-edit-shell-lot', function () {
+                    var id = $(this).data('shell-id');
+                    var lot = (scope.shellLots || []).find(function (l) { return String(l.id) === String(id); });
+                    scope.promptUpsertShellLot(lot || null);
+                });
+                $(document).off('click', '.js-delete-shell-lot').on('click', '.js-delete-shell-lot', function () {
+                    var id = $(this).data('shell-id');
+                    if (!id || !dataFunctions.deleteShellStockLot) return;
+                    Swal.fire({ title: 'Delete shell lot?', icon: 'warning', showCancelButton: true }).then(function (r) {
+                        if (!r.isConfirmed) return;
+                        dataFunctions.deleteShellStockLot(id).then(function () { scope.loadShellLots(); });
+                    });
+                });
                 $('#importHistoricalKernelRefreshBtn').off('click').on('click', function () {
                     scope.loadKernelBatches(true);
                     var modalEl = document.getElementById('importHistoricalKernelModal');
@@ -341,9 +369,11 @@ var _stockManagementGrid = function () {
                 $('#oilBulkAddStockBtn').off('click').on('click', function () {
                     if (typeof _modal_stock_oil_bulk_add !== 'undefined' && _modal_stock_oil_bulk_add.show) _modal_stock_oil_bulk_add.show();
                 });
-                $('#osViewByStock, #osViewWeekly, #osViewOverview').off('click').on('click', function () {
-                    var v = $(this).data('oil-view');
-                    if (v) scope.toggleOilView(v);
+                $('#osViewByStock').off('click').on('click', function () {
+                    scope.toggleOilView('bystock');
+                });
+                $(document).off('click.osMoreView', '.js-os-more-view').on('click.osMoreView', '.js-os-more-view', function () {
+                    scope.toggleOilView($(this).data('oil-view'));
                 });
                 $('#osWeeklyViewMode').off('change').on('change', function () {
                     scope.oilWeeklyMode = $(this).val() || 'in';
@@ -363,9 +393,11 @@ var _stockManagementGrid = function () {
                     $('#filterStockLocation').val('');
                     scope.filterStockItems();
                 });
-                $('#ksViewByStyle, #ksViewWeekly, #ksViewOverview').off('click').on('click', function () {
-                    var view = $(this).data('view');
-                    if (view) scope.toggleKernelView(view);
+                $('#ksViewByStyle').off('click').on('click', function () {
+                    scope.toggleKernelView('bystyle');
+                });
+                $(document).off('click.ksMoreView', '.js-ks-more-view').on('click.ksMoreView', '.js-ks-more-view', function () {
+                    scope.toggleKernelView($(this).data('view'));
                 });
                 $('#ksWeeklyViewMode').off('change').on('change', function () {
                     scope.kernelWeeklyMode = $(this).val() || 'in';
@@ -526,6 +558,7 @@ var _stockManagementGrid = function () {
             if (stream === 'kernel') {
                 if (card) card.style.display = '';
                 scope.loadKernelBatches();
+                scope.loadShellLots();
                 if (oilCard) oilCard.style.display = 'none';
                 if (mainFiltersCard) mainFiltersCard.style.display = 'none';
                 if (mainTableCard) mainTableCard.style.display = 'none';
@@ -561,6 +594,7 @@ var _stockManagementGrid = function () {
                 scope.kernelRawBatches = [];
                 scope.kernelFinishedBatches = all;
                 scope.renderKernelBatches();
+                scope.runStockAlertEvaluation('kernel');
                 return loadDispatch;
             }).then(function (orders) {
                 scope.kernelDispatchOrders = Array.isArray(orders) ? orders : [];
@@ -987,8 +1021,7 @@ var _stockManagementGrid = function () {
             if (weeklyPanel) weeklyPanel.style.display = (view === 'weekly') ? '' : 'none';
             if (overviewPanel) overviewPanel.style.display = (view === 'overview') ? '' : 'none';
             $('#ksViewByStyle').toggleClass('active', view === 'bystyle');
-            $('#ksViewWeekly').toggleClass('active', view === 'weekly');
-            $('#ksViewOverview').toggleClass('active', view === 'overview');
+            $('#ksMoreViewsBtn').toggleClass('active', view === 'weekly' || view === 'overview');
             if (view === 'weekly') scope.renderKernelWeekly();
             if (view === 'overview') scope.renderKernelOverview();
         },
@@ -1456,6 +1489,108 @@ var _stockManagementGrid = function () {
                 if (scope.oilCurrentView === 'weekly') scope.renderOilWeekly();
                 if (scope.oilCurrentView === 'overview') scope.renderOilOverview();
                 scope.renderOilStockTables();
+                scope.runStockAlertEvaluation('oil');
+            });
+        },
+
+        runStockAlertEvaluation: function (stream) {
+            if (typeof StockAlertsShared === 'undefined') return;
+            var scope = _stockManagementGrid;
+            var obs = [];
+            if (stream === 'kernel' || !stream) {
+                obs = obs.concat(StockAlertsShared.collectFromKernelBatches(scope.kernelFinishedBatches, KERNEL_STYLE_OPTIONS));
+            }
+            if (stream === 'oil' || !stream) {
+                obs = obs.concat(StockAlertsShared.collectFromOilLots(scope.oilLots));
+            }
+            if (scope.shellLots && scope.shellLots.length) {
+                obs = obs.concat(StockAlertsShared.collectFromShellLots(scope.shellLots));
+            }
+            StockAlertsShared.evaluateObservations(obs).then(function (res) {
+                if (res && res.raised > 0 && typeof window.refreshNotificationsBadge === 'function') {
+                    window.refreshNotificationsBadge();
+                }
+            });
+            if (stream === 'kernel' && scope.kernelFinishedBatches) {
+                var totalSoh = 0;
+                (scope.kernelFinishedBatches || []).forEach(function (b) { totalSoh += totalKgFromRemaining(b); });
+                StockAlertsShared.captureAccuracySnapshot(totalSoh, 0, 0, 'kernel');
+            }
+        },
+
+        loadShellLots: function () {
+            var scope = _stockManagementGrid;
+            if (!dataFunctions || !dataFunctions.getShellStockLots) return Promise.resolve();
+            return dataFunctions.getShellStockLots().then(function (lots) {
+                scope.shellLots = Array.isArray(lots) ? lots : [];
+                scope.renderShellLots();
+                scope.runStockAlertEvaluation('kernel');
+            }).catch(function (e) {
+                console.warn('[Stock Management] loadShellLots failed:', e);
+                scope.shellLots = [];
+                scope.renderShellLots();
+            });
+        },
+
+        renderShellLots: function () {
+            var tbody = document.getElementById('shellStockLotsBody');
+            if (!tbody) return;
+            var lots = _stockManagementGrid.shellLots || [];
+            if (!lots.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No shell waste lots yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = lots.map(function (l) {
+                return '<tr data-shell-id="' + escapeHtml(l.id || '') + '">' +
+                    '<td>' + escapeHtml(l.lot_number || '') + '</td>' +
+                    '<td>' + escapeHtml(l.source_batch_number || '') + '</td>' +
+                    '<td class="text-end">' + (l.quantity_kg != null ? Number(l.quantity_kg).toFixed(2) : '0') + '</td>' +
+                    '<td>' + escapeHtml(l.status || '') + '</td>' +
+                    '<td class="text-nowrap">' +
+                    '<button type="button" class="btn btn-sm btn-outline-primary js-edit-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage"><i class="fas fa-edit"></i></button> ' +
+                    '<button type="button" class="btn btn-sm btn-outline-danger js-delete-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage"><i class="fas fa-trash"></i></button>' +
+                    '</td></tr>';
+            }).join('');
+        },
+
+        promptUpsertShellLot: function (existing) {
+            var scope = _stockManagementGrid;
+            if (typeof hasAction === 'function' && !hasAction('stock.shell.manage')) {
+                Swal.fire('Not permitted', 'You do not have permission to manage shell waste stock.', 'warning');
+                return;
+            }
+            if (!dataFunctions || !dataFunctions.upsertShellStockLot) return;
+            Swal.fire({
+                title: existing ? 'Edit shell lot' : 'Add shell lot',
+                html: '<input id="swalShellLotNumber" class="swal2-input" placeholder="Lot number (auto if blank)" value="' + escapeHtml(existing && existing.lot_number ? existing.lot_number : '') + '">' +
+                    '<input id="swalShellSourceBatch" class="swal2-input" placeholder="Source kernel batch" value="' + escapeHtml(existing && existing.source_batch_number ? existing.source_batch_number : '') + '">' +
+                    '<input id="swalShellQty" type="number" class="swal2-input" placeholder="Quantity kg" value="' + (existing && existing.quantity_kg != null ? existing.quantity_kg : '') + '">' +
+                    '<select id="swalShellStatus" class="swal2-input"><option value="in_stock">In stock</option><option value="dispatched">Dispatched</option><option value="written_off">Written off</option></select>',
+                didOpen: function () {
+                    if (existing && existing.status) {
+                        var sel = document.getElementById('swalShellStatus');
+                        if (sel) sel.value = existing.status;
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                preConfirm: function () {
+                    return {
+                        id: existing ? existing.id : null,
+                        lot_number: (document.getElementById('swalShellLotNumber').value || '').trim(),
+                        source_batch_number: (document.getElementById('swalShellSourceBatch').value || '').trim(),
+                        quantity_kg: parseFloat(document.getElementById('swalShellQty').value) || 0,
+                        status: document.getElementById('swalShellStatus').value || 'in_stock'
+                    };
+                }
+            }).then(function (result) {
+                if (!result.isConfirmed) return;
+                dataFunctions.upsertShellStockLot(result.value).then(function () {
+                    scope.loadShellLots();
+                    Swal.fire('Saved', 'Shell lot updated.', 'success');
+                }).catch(function (e) {
+                    Swal.fire('Error', e.message || 'Save failed', 'error');
+                });
             });
         },
 
@@ -1469,8 +1604,7 @@ var _stockManagementGrid = function () {
             if (weekly) weekly.style.display = (view === 'weekly') ? '' : 'none';
             if (overview) overview.style.display = (view === 'overview') ? '' : 'none';
             $('#osViewByStock').toggleClass('active', view === 'bystock');
-            $('#osViewWeekly').toggleClass('active', view === 'weekly');
-            $('#osViewOverview').toggleClass('active', view === 'overview');
+            $('#osMoreViewsBtn').toggleClass('active', view === 'weekly' || view === 'overview');
             if (view === 'weekly') scope.renderOilWeekly();
             if (view === 'overview') scope.renderOilOverview();
             if (view === 'bystock') scope.renderOilStockTables();

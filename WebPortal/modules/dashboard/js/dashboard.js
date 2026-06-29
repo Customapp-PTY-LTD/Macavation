@@ -444,6 +444,7 @@ var _dashboard = function () {
         loadAlerts: async () => {
     const $container = $('#alertsContainer');
     if (!$container.length) return;
+    $container.show();
     
     try {
         if (typeof dataFunctions === 'undefined' || !dataFunctions.getDashboardAlerts) {
@@ -455,7 +456,8 @@ var _dashboard = function () {
         const alerts = await dataFunctions.getDashboardAlerts(null);
         
         if (alerts && alerts.length > 0) {
-            $container.html(alerts.map(alert => {
+            $container.html('<div class="col-12"><div class="card border-warning mb-0"><div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Stock &amp; operational alerts</h5></div><div class="card-body p-0">' +
+            alerts.map(alert => {
                 const sev = (alert.severity || '').toLowerCase();
                 const alertClass = sev === 'critical' ? 'danger' :
                     sev === 'warning' ? 'warning' :
@@ -472,9 +474,9 @@ var _dashboard = function () {
                         </div>
                     </div>
                 `;
-            }).join(''));
+            }).join('') + '</div></div></div>');
         } else {
-            $container.html('<div class="col-12"><div class="alert alert-info">No alerts at this time.</div></div>');
+            $container.html('');
         }
             } catch (error) {
                 console.error('Error loading alerts:', error);

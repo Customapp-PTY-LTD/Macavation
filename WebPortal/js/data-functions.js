@@ -1763,8 +1763,8 @@ var _dataFunctions = function () {
                 p_type: n.type || 'info',
                 p_severity: n.severity || 'info',
                 p_link_route: n.link_route || null,
-                p_target_user_id: n.target_user_id || null,
-                p_target_role_id: n.target_role_id || null,
+                p_target_user_id: n.target_user_id || n.user_id || null,
+                p_target_role_id: n.target_role_id || n.role_id || null,
                 p_created_by: n.created_by || null
             }, token);
         },
@@ -1788,6 +1788,52 @@ var _dataFunctions = function () {
                 p_channel: report.channel || 'email',
                 p_is_active: report.is_active !== false
             }, token);
+        },
+
+        /** Daily digest JSON for preview and edge function. */
+        getDailyDigest: async function (token = null) {
+            var raw = await this.callFunction('get_daily_digest', {}, token, { useCache: false });
+            if (raw && raw.get_daily_digest) return raw.get_daily_digest;
+            return raw || {};
+        },
+
+        /** Notify all users with a role by role_name. */
+        notifyRole: async function (n, token = null) {
+            return await this.callFunction('notify_role', {
+                p_role_name: n.role_name || n.roleName,
+                p_title: n.title,
+                p_body: n.body || null,
+                p_type: n.type || 'info',
+                p_severity: n.severity || 'info',
+                p_link_route: n.link_route || null
+            }, token);
+        },
+
+        /** Daily oil litres and protein kg for executive dashboard chart. */
+        getOilProductionTrendsDaily: async function (days, token = null) {
+            try {
+                var raw = await this.callFunction('get_oil_production_trends_daily', { p_days: parseInt(days, 10) || 365 }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_oil_production_trends_daily)) return raw.get_oil_production_trends_daily;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_oil_production_trends_daily failed. Apply migration 20260629120000_phase2_portal_features.sql.', e.message);
+                return [];
+            }
+        },
+
+        /** Kernel SOH vs forecast demand runway summary. */
+        getKernelRunwaySummary: async function (token = null) {
+            try {
+                var raw = await this.callFunction('get_kernel_runway_summary', {}, token, { useCache: false });
+                if (raw && raw.get_kernel_runway_summary) return raw.get_kernel_runway_summary;
+                if (Array.isArray(raw) && raw[0]) return raw[0];
+                return raw || {};
+            } catch (e) {
+                console.warn('[Dashboard] get_kernel_runway_summary failed.', e.message);
+                return {};
+            }
         },
 
         /**

@@ -1,75 +1,140 @@
 <div class="module-content">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 mb-0">Batch Journey</h1>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+            <h1 class="h3 mb-1">Find a batch</h1>
+            <p class="text-muted mb-0 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Search any kernel or oil batch — see status and open the module where it lives.</p>
+        </div>
         <div class="btn-toolbar mb-0">
             <a href="help/index.html#batch-journey-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="card mb-3">
-        <div class="card-body py-2">
-            <div class="row align-items-center g-2">
-                <div class="col-md-4">
-                    <input type="text" class="form-control form-control-sm" id="bjSearchInput"
-                        placeholder="Search batch, grower...">
+    <ul class="nav nav-tabs mb-3" id="bjStreamTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" type="button" data-stream="kernel" role="tab">Kernel</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" type="button" data-stream="oil" role="tab">Oil &amp; Protein</button>
+        </li>
+    </ul>
+
+    <div id="bjKernelPanel">
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <div class="row align-items-center g-2">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control form-control-sm" id="bjSearchInput"
+                            placeholder="Search batch, grower...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" id="bjStatusFilter">
+                            <option value="">All statuses</option>
+                            <option value="grower-intake">All grower intake</option>
+                            <option value="gi-receiving">Receiving</option>
+                            <option value="gi-intake-received">Intake received</option>
+                            <option value="gi-quality-pending">Quality pending</option>
+                            <option value="gi-quality-approved">Quality approved</option>
+                            <option value="production-module">All production / QA</option>
+                            <option value="awaiting-production">Awaiting production</option>
+                            <option value="in-production">In production</option>
+                            <option value="awaiting-test">Awaiting test</option>
+                            <option value="release-ready">Release ready</option>
+                            <option value="stock">Stock</option>
+                            <option value="complete">Complete</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" id="bjSortBy">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="status">By Status</option>
+                            <option value="grower">By Grower</option>
+                            <option value="weight">By Weight (Heaviest)</option>
+                            <option value="moisture">By Moisture Level</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <span class="text-muted small" id="bjBatchCount"></span>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select form-select-sm" id="bjStatusFilter">
-                        <option value="">All statuses</option>
-                        <option value="grower-intake">All grower intake</option>
-                        <option value="gi-receiving">Receiving</option>
-                        <option value="gi-intake-received">Intake received</option>
-                        <option value="gi-quality-pending">Quality pending</option>
-                        <option value="gi-quality-approved">Quality approved</option>
-                        <option value="production-module">All production / QA</option>
-                        <option value="awaiting-production">Awaiting production</option>
-                        <option value="in-production">In production</option>
-                        <option value="awaiting-test">Awaiting test</option>
-                        <option value="release-ready">Release ready</option>
-                        <option value="stock">Stock</option>
-                        <option value="complete">Complete</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select class="form-select form-select-sm" id="bjSortBy">
-                        <option value="newest">Newest First</option>
-                        <option value="oldest">Oldest First</option>
-                        <option value="status">By Status</option>
-                        <option value="grower">By Grower</option>
-                        <option value="weight">By Weight (Heaviest)</option>
-                        <option value="moisture">By Moisture Level</option>
-                    </select>
-                </div>
-                <div class="col-md-2 text-end">
-                    <span class="text-muted small" id="bjBatchCount"></span>
-                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0" id="bjTable">
+                    <thead>
+                        <tr>
+                            <th>Batch #</th>
+                            <th>Grower</th>
+                            <th>Status</th>
+                            <th>Received</th>
+                            <th class="text-end">Weight (kg)</th>
+                            <th class="text-end">Moisture</th>
+                            <th class="text-end">Total Yield (kg)</th>
+                            <th class="text-end">Open</th>
+                            <th class="text-end" style="width:1%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bjTableBody"></tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <!-- Table -->
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0" id="bjTable">
-                <thead>
-                    <tr>
-                        <th>Batch #</th>
-                        <th>Grower</th>
-                        <th>Status</th>
-                        <th>Received</th>
-                        <th class="text-end">Weight (kg)</th>
-                        <th class="text-end">Moisture</th>
-                        <th class="text-end">Total Yield (kg)</th>
-                        <th class="text-end" style="width:1%">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="bjTableBody">
-                </tbody>
-            </table>
+    <div id="bjOilPanel" style="display:none">
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <div class="row align-items-center g-2">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control form-control-sm" id="bjOilSearchInput"
+                            placeholder="Search batch, supplier...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" id="bjOilStatusFilter">
+                            <option value="">All statuses</option>
+                            <option value="oil-awaiting-test">Awaiting tests</option>
+                            <option value="oil-ready">Ready for Oil Production</option>
+                            <option value="oil-in-production">In oil production</option>
+                            <option value="oil-in-stock">In stock</option>
+                            <option value="oil-dispatched">Dispatched</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" id="bjOilSortBy">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="status">By Status</option>
+                            <option value="grower">By Supplier</option>
+                            <option value="weight">By Weight</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <span class="text-muted small" id="bjOilBatchCount"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0" id="bjOilTable">
+                    <thead>
+                        <tr>
+                            <th>Batch #</th>
+                            <th>Supplier</th>
+                            <th>Status</th>
+                            <th>Received</th>
+                            <th class="text-end">Qty (kg)</th>
+                            <th class="text-end">Open</th>
+                            <th class="text-end">History</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bjOilTableBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- Batch History Modal -->
     <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="batchHistoryModal" role="dialog" route-name="batch-history-modal" tabindex="-1" aria-labelledby="batchHistoryModalLabel" aria-hidden="true"></div>
 </div>

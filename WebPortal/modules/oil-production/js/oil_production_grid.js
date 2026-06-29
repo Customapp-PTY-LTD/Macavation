@@ -335,6 +335,8 @@ var _oilProductionGrid = function () {
         /** Map oil id string → raw oil row while Link ingredients modal is open */
         _linkIngredientsOilRows: {},
         proteinBinBatches: [],
+        consolidatedBatches: [],
+        oilSearchResults: [],
         _linkProteinIngredientsOilRows: {},
         currentProductionSheetDate: null,
 
@@ -363,6 +365,19 @@ var _oilProductionGrid = function () {
                 if (iso) scope.refreshProductionSheetDateInfo(iso);
             });
             $('#opStartOilBinBtn').off('click').on('click', function () { scope.startOilBin(); });
+            $('#opOilSearchBtn').off('click').on('click', function () { scope.runOilBatchSearch(); });
+            $('#opOilSearchInput').off('keydown').on('keydown', function (e) { if (e.key === 'Enter') scope.runOilBatchSearch(); });
+            $('#opCreateConsolidatedBtn').off('click').on('click', function () { scope.promptCreateConsolidatedBatch(); });
+            $(document).on('click', '.op-edit-consolidated-btn', function () {
+                var id = $(this).data('consolidated-id');
+                var row = (scope.consolidatedBatches || []).find(function (c) { return String(c.id) === String(id); });
+                if (row) scope.promptEditConsolidatedBatch(row);
+            });
+            $(document).on('click', '.op-add-member-search-btn', function () {
+                var oilId = $(this).data('oil-id');
+                var consolidatedId = $(this).data('consolidated-id');
+                if (oilId && consolidatedId) scope.addConsolidatedMember(consolidatedId, oilId);
+            });
             $(document).on('click', '.op-send-oil-bin-to-stock', function (e) {
                 e.preventDefault();
                 var id = $(this).data('oil-bin-batch-id');
@@ -721,6 +736,130 @@ var _oilProductionGrid = function () {
             scope.loadFinishedRawIngredients(forceRefresh);
             scope.loadOilBinBatches(forceRefresh);
             scope.loadProteinBinBatches(forceRefresh);
+            scope.loadConsolidatedBatches(forceRefresh);
+        },
+
+        loadConsolidatedBatches: function () {
+            var scope = _oilProductionGrid;
+            if (!dataFunctions || !dataFunctions.getOilConsolidatedBatches) return;
+            dataFunctions.getOilConsolidatedBatches().then(function (rows) {
+                scope.consolidatedBatches = Array.isArray(rows) ? rows : [];
+                scope.renderConsolidatedBatches();
+            }).catch(function () {
+                scope.consolidatedBatches = [];
+                scope.renderConsolidatedBatches();
+            });
+        },
+
+        renderConsolidatedBatches: function () {
+            var el = document.getElementById('opConsolidatedBatchesList');
+            if (!el) return;
+            var rows = _oilProductionGrid.consolidatedBatches || [];
+            if (!rows.length) {
+                el.innerHTML = '<p class="text-muted mb-0">No consolidated batches yet.</p>';
+                return;
+            }
+            el.innerHTML = rows.map(function (c) {
+                return '<div class="border rounded p-3 mb-2">' +
+                    '<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">' +
+                    '<div><strong>' + escapeHtml(c.consolidated_number || '') + '</strong>' +
+                    ' · ' + escapeHtml(c.status || '') +
+                    ' · ' + (c.member_count || 0) + ' sheets · ' + Number(c.total_oil_litre || c.members_litre || 0).toFixed(1) + ' L</div>' +
+                    '<button type="button" class="btn btn-sm btn-outline-primary op-edit-consolidated-btn" data-consolidated-id="' + escapeHtml(c.id || '') + '" data-action-perm="oil.consolidated.manage"><i class="fas fa-edit me-1"></i>Lab / edit</button>' +
+                    '</div>' +
+                    (c.lab_test_doc_ref ? '<div class="small text-muted mt-1">Lab ref: ' + escapeHtml(c.lab_test_doc_ref) + '</div>' : '') +
+                    (c.lab_test_notes ? '<div class="small mt-1">' + escapeHtml(c.lab_test_notes) + '</div>' : '') +
+                    '</div>';
+            }).join('');
+        },
+
+        runOilBatchSearch: function () {
+            var scope = _oilProductionGrid;
+            var q = ($('#opOilSearchInput').val() || '').trim();
+            var out = document.getElementById('opOilSearchResults');
+            if (!out || !dataFunctions.searchOilBatches) return;
+            if (!q) { out.innerHTML = '<span class="text-muted">Enter a search term.</span>'; return; }
+            out.innerHTML = 'Searching…';
+            dataFunctions.searchOilBatches({ search: q, limit: 25 }).then(function (rows) {
+                scope.oilSearchResults = Array.isArray(rows) ? rows : [];
+                if (!scope.oilSearchResults.length) {
+                    out.innerHTML = '<span class="text-muted">No matches.</span>';
+                    return;
+                }
+                var consolidatedOpts = (scope.consolidatedBatches || []).filter(function (c) { return c.status === 'open'; });
+                out.innerHTML = scope.oilSearchResults.map(function (b) {
+                    var addBtns = consolidatedOpts.map(function (c) {
+                        return '<button type="button" class="btn btn-xs btn-outline-success btn-sm op-add-member-search-btn ms-1" data-oil-id="' + escapeHtml(b.id || '') + '" data-consolidated-id="' + escapeHtml(c.id || '') + '" data-action-perm="oil.consolidated.manage">+ ' + escapeHtml(c.consolidated_number || 'batch') + '</button>';
+                    }).join('');
+                    return '<div class="py-1 border-bottom">' + escapeHtml(b.batch_id || '') + ' · ' + escapeHtml(b.product_name || '') + ' · ' + Number(b.total_oil_litre || 0).toFixed(1) + ' L ' + addBtns + '</div>';
+                }).join('');
+            }).catch(function (e) {
+                out.innerHTML = '<span class="text-danger">' + escapeHtml(e.message || 'Search failed') + '</span>';
+            });
+        },
+
+        promptCreateConsolidatedBatch: function () {
+            if (typeof hasAction === 'function' && !hasAction('oil.consolidated.manage')) {
+                Swal.fire('Not permitted', 'You do not have permission to manage consolidated batches.', 'warning');
+                return;
+            }
+            Swal.fire({
+                title: 'New consolidated batch',
+                input: 'text',
+                inputLabel: 'Consolidated batch number',
+                showCancelButton: true,
+                confirmButtonText: 'Create'
+            }).then(function (r) {
+                if (!r.isConfirmed || !r.value) return;
+                dataFunctions.upsertOilConsolidatedBatch({ consolidated_number: r.value.trim(), status: 'open' }).then(function () {
+                    _oilProductionGrid.loadConsolidatedBatches();
+                    Swal.fire('Created', 'Consolidated batch created.', 'success');
+                });
+            });
+        },
+
+        promptEditConsolidatedBatch: function (row) {
+            if (typeof hasAction === 'function' && !hasAction('oil.consolidated.manage')) {
+                Swal.fire('Not permitted', 'You do not have permission to manage consolidated batches.', 'warning');
+                return;
+            }
+            Swal.fire({
+                title: 'Consolidated batch — lab results',
+                html: '<input id="swalConLabRef" class="swal2-input" placeholder="Lab document ref" value="' + escapeHtml(row.lab_test_doc_ref || '') + '">' +
+                    '<textarea id="swalConLabNotes" class="swal2-textarea" placeholder="Lab notes">' + escapeHtml(row.lab_test_notes || '') + '</textarea>' +
+                    '<select id="swalConStatus" class="swal2-input"><option value="open">Open</option><option value="closed">Closed</option><option value="released">Released</option></select>',
+                didOpen: function () {
+                    var sel = document.getElementById('swalConStatus');
+                    if (sel && row.status) sel.value = row.status;
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                preConfirm: function () {
+                    return {
+                        id: row.id,
+                        consolidated_number: row.consolidated_number,
+                        lab_test_doc_ref: (document.getElementById('swalConLabRef').value || '').trim(),
+                        lab_test_notes: (document.getElementById('swalConLabNotes').value || '').trim(),
+                        status: document.getElementById('swalConStatus').value || 'open'
+                    };
+                }
+            }).then(function (r) {
+                if (!r.isConfirmed) return;
+                dataFunctions.upsertOilConsolidatedBatch(r.value).then(function () {
+                    _oilProductionGrid.loadConsolidatedBatches();
+                    Swal.fire('Saved', 'Consolidated batch updated.', 'success');
+                });
+            });
+        },
+
+        addConsolidatedMember: function (consolidatedId, oilId) {
+            if (!dataFunctions.addOilConsolidatedMember) return;
+            dataFunctions.addOilConsolidatedMember(consolidatedId, oilId).then(function () {
+                _oilProductionGrid.loadConsolidatedBatches();
+                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Added', timer: 1500, showConfirmButton: false });
+            }).catch(function (e) {
+                Swal.fire('Error', e.message || 'Could not add member', 'error');
+            });
         },
 
         confirmMarkRawIngredientEmpty: function (oilId) {

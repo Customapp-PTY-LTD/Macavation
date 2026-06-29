@@ -37,7 +37,7 @@
       <ul>
         <li><a href="#dashboard">Dashboard</a></li>
         <li><a href="#my-day">My Day</a></li>
-        <li><a href="#batch-journey">Batch Journey</a></li>
+        <li><a href="#batch-journey">Find a batch</a></li>
       </ul>
       <h2>Kernel stream</h2>
       <ul>
@@ -131,8 +131,8 @@
         <ul>
           <li><strong>Sign-in</strong> (<code>signin.html</code>) — authentication and optional client code in the URL; successful login loads <code>index.html</code>.</li>
           <li><strong>Top navbar</strong> — user menu, profile access, and <strong>Sign out</strong>.</li>
-          <li><strong>My Day</strong> — compact task list in the header dropdown; <strong>View full</strong> opens route <code>my-day</code> for the complete workflow page.</li>
-          <li><strong>Sidebar</strong> — collapsible menu with grouped sections that mirror operations: Dashboard, Batch Journey, CRM, Kernel, Oil &amp; Protein, Quality, Business (Sales / Financial), Document Management, Palladium, <strong>User &amp; access</strong> (with optional Features catalogue), and (where enabled) Test Management.</li>
+          <li><strong>Sidebar</strong> — journey-centric groups: <strong>Home</strong> (Dashboard, My Day), <strong>Find a batch</strong>, <strong>Kernel pipeline</strong> and <strong>Oil pipeline</strong> (four numbered steps each), and <strong>Support</strong> (forecasts, CRM, Quality, Documents, Business, integrations, User &amp; access).</li>
+          <li><strong>My Day</strong> — in the sidebar under Home and in the header dropdown; shows intake, production, and stock work queues with <strong>Do now</strong> buttons.</li>
           <li><strong>Sidebar footer</strong> — <strong>Dark mode</strong> toggle and <strong>Collapse</strong> to widen the content area.</li>
         </ul>
         <p>The main <strong>content area</strong> loads HTML/JS per route; breadcrumbs and last page may be restored from storage after refresh.</p>
@@ -187,9 +187,9 @@
       <article id="my-day" class="manual-chapter">
         <h2>My Day</h2>
         <span class="route-tag">my-day</span>
-        <p><strong>My Day</strong> is a role-based workflow view: shortcuts and tasks relevant to your job. It is useful when you want a short list instead of browsing every module.</p>
+        <p><strong>My Day</strong> is your start-of-shift view: work queues for intake, production, and stock/dispatch (with <strong>Do now</strong> buttons), plus role-based tasks from the server when configured.</p>
         <ol>
-          <li>Open <strong>My Day</strong> from the sidebar (or the “full view” link from the compact widget if shown).</li>
+          <li>Open <strong>My Day</strong> from the sidebar under <strong>Home</strong> (or the header dropdown).</li>
           <li>Work items in an order your team agrees (priority, age, or customer urgency).</li>
           <li>Follow each item into the owning module; completing work there updates queues and dashboards for others.</li>
         </ol>
@@ -197,9 +197,9 @@
       </article>
 
       <article id="batch-journey" class="manual-chapter">
-        <h2>Batch Journey</h2>
+        <h2>Find a batch</h2>
         <span class="route-tag">batch-journey</span>
-        <p>Use <strong>Batch Journey</strong> when you know a batch or grower but not which module currently owns the work. It searches across intake, production, QA, and dispatch-style statuses.</p>
+        <p>Use <strong>Find a batch</strong> when you know a batch or grower but not which module currently owns the work. Search kernel batches across the full journey, or switch to the <strong>Oil &amp; Protein</strong> tab for supplier oil batches. Each row shows one status label and an <strong>Open</strong> button that takes you to the correct module (Grower Intake, Kernel Production, Stock, and so on).</p>
         <ol>
           <li>Search by batch, grower, or other supported fields.</li>
           <li>Filter and sort (for example by status or date) to shorten the list.</li>
@@ -285,7 +285,7 @@
           <li>Open <strong>Stock (Kernel)</strong> from the sidebar.</li>
           <li>Filter by status, product type, and location; confirm the on-screen list matches the physical warehouse.</li>
           <li>Use <strong>Send to Dispatch</strong> when moving selected lines toward a kernel dispatch basket (quantities must match reality).</li>
-          <li>On <strong>Kernel stock by style</strong>, use <strong>Edit</strong> to update batch details (number, grower, received date, wet NIS, FFA, best before) when your role allows. In <strong>Adjust Stock</strong>, you can capture cartons or kg and the system calculates boxes before saving. Batches drop off <strong>By style</strong> when every style is empty (zero remaining). Turn on <strong>Adjust Stock</strong> to see batches that still have production yield but no remaining stock, or use <strong>Add Batch</strong> to search completed batches by number and click a row to bring one back into the grid. You can also fill supplier and styles there to create a <strong>new</strong> historical batch. Use <strong>Delete</strong> to remove a batch from stock view (soft delete), or <strong>Send back to production</strong> when the batch should return to the production flow instead.</li>
+          <li>On <strong>Kernel stock by style</strong>, use <strong>Edit</strong> to update batch details (number, grower, received date, wet NIS, FFA, best before) when your role allows. Turn on <strong>Correct on-hand</strong> to capture cartons or kg (the system calculates boxes before saving). Batches drop off <strong>By style</strong> when every style is empty (zero remaining). Use <strong>Correct on-hand</strong> to see batches that still have production yield but no remaining stock, or use <strong>Add Batch</strong> to search completed batches by number and click a row to bring one back into the grid. You can also fill supplier and styles there to create a <strong>new</strong> historical batch. Use <strong>Delete</strong> to remove a batch from stock view (soft delete), or <strong>Send back to production</strong> when the batch should return to the production flow instead.</li>
           <li>Use stock take, receiving checklist, or raw material issued dialogs when your process requires adjustments or issues to production.</li>
         </ol>
         <div class="callout">
@@ -318,8 +318,8 @@
           <li>Open <strong>Supplier Intake</strong>; choose Board, Table, Weekly, or Overview as needed.</li>
           <li>Start a new delivery with <strong>Receiver checklist</strong>; tie the supplier to CRM and capture <strong>manufactured date</strong> per bag.</li>
           <li><strong>Best before date</strong> is auto-calculated as <strong>manufactured date + 18 months</strong> in the receiver checklist flow.</li>
-          <li>In both <strong>Receiver checklist</strong> and <strong>Adjust stock</strong>, <strong>Add bag</strong> asks how many rows to add, copies first-row values, and sequences batch numbers automatically.</li>
-          <li><strong>Adjust stock</strong> follows the same rule: enter manufactured date per bag, with best-before calculated automatically (+18 months).</li>
+          <li>In both <strong>Receiver checklist</strong> and <strong>Quick stock entry</strong>, <strong>Add bag</strong> asks how many rows to add, copies first-row values, and sequences batch numbers automatically.</li>
+          <li><strong>Quick stock entry</strong> follows the same rule: enter manufactured date per bag, with best-before calculated automatically (+18 months).</li>
           <li>Complete sample tests when enabled; release batches toward oil production when rules pass.</li>
           <li>Edit batch headers through row actions only where your role allows post-receipt changes.</li>
         </ol>

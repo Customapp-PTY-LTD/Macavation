@@ -67,7 +67,11 @@ var _kernelProductionBatchActions = function () {
                             inner = result.complete_kernel_batch;
                         }
                         if (inner && inner.success === false) throw new Error(inner.error || inner.Error || 'Update failed');
-                        Swal.fire({ icon: 'success', title: 'Released to stock', text: batchLabel + ' is now in kernel stock.', timer: 2000, showConfirmButton: false });
+                        if (typeof HandoffDialog !== 'undefined' && HandoffDialog.showKernelReleaseToStock) {
+                            HandoffDialog.showKernelReleaseToStock(batch || { batch_number: batchLabel });
+                        } else if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'success', title: 'Released to stock', text: batchLabel + ' is now in kernel stock.', timer: 2000, showConfirmButton: false });
+                        }
                     if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
                     if (typeof _stockManagementGrid !== 'undefined' && _stockManagementGrid.loadKernelBatches) {
                         _stockManagementGrid.loadKernelBatches(true);

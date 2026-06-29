@@ -1,0 +1,70 @@
+/* Shared batch journey status badges (Batch Journey, kanban cards, tables) */
+.bj-status {
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.25rem;
+    text-transform: none;
+}
+
+.bj-status-gi-receiving,
+.bj-status-gi-intake-received,
+.bj-status-gi-quality-pending,
+.bj-status-gi-quality-approved,
+.bj-status-oil-awaiting-test,
+.bj-status-oil-ready,
+.bj-status-oil-received {
+    background: #fff8e1;
+    color: #b8860b;
+    border: 1px solid rgba(184, 134, 11, 0.35);
+}
+
+.bj-status-awaiting-test {
+    background: #f3e5f5;
+    color: #6a1b9a;
+    border: 1px solid rgba(106, 27, 154, 0.25);
+}
+
+.bj-status-awaiting-production,
+.bj-status-in-production,
+.bj-status-release-ready,
+.bj-status-oil-in-production {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid rgba(198, 40, 40, 0.25);
+}
+
+.bj-status-stock,
+.bj-status-oil-in-stock {
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid rgba(21, 101, 192, 0.25);
+}
+
+.bj-status-complete,
+.bj-status-oil-dispatched {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid rgba(46, 125, 50, 0.25);
+}
+
+.kanban-card-status-row {
+    margin-bottom: 0.35rem;
+}
+
+.macavation-module-journey-subtitle {
+    font-size: 0.875rem;
+}
+
+/* More views dropdown for secondary layouts */
+.macavation-more-views-panel {
+    display: none;
+}
+
+.macavation-more-views-panel.is-open {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+}
