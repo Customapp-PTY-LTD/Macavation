@@ -174,7 +174,7 @@ var _stockManagementGrid = function () {
     }
 
     /**
-     * Kernel by-style grid: normally list only batches that still show remaining on hand.
+     * Kernel by-style grid: list batches that still show remaining on hand in at least one style.
      * In adjust-stock mode also list batches that have production yield but zero remaining — otherwise
      * the grid looked empty / non-editable after full dispatch when users still need to correct stock.
      */
@@ -184,10 +184,6 @@ var _stockManagementGrid = function () {
             return parseNum(cells[k]) > 0;
         });
         if (hasRemaining) return true;
-        // Finished batches with no dispatch lines still belong in stock on hand until first dispatch.
-        if (batch && kernelBatchStatusIsFinishedStock(batch) && !kernelBatchHasDispatch(batch)) {
-            return true;
-        }
         if (!adjustMode || !batch) return false;
         var yieldObj = kernelStyleMapFromBatch(batch, 'yield_by_style');
         return KERNEL_STYLE_OPTIONS.some(function (k) {
