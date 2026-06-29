@@ -12,6 +12,7 @@ function resolveDefaultProxyUrl() {
 
 var _dataFunctions = function () {
     return {
+        // Placeholder only — ensureConfigured() overrides these from appRouter before any DB call.
         proxyUrl: resolveDefaultProxyUrl(),
         supabaseUrl: '',
         supabaseAnonKey: '',
@@ -404,18 +405,27 @@ var _dataFunctions = function () {
             }
         },
 
+        /**
+         * Gate every DB call on appRouter being configured. appRouter is the single source
+         * of truth for which database/environment to use; if it cannot configure, we fail
+         * loudly here instead of silently falling back to a hardcoded or global database.
+         */
+        ensureConfigured: async function () {
+            if (typeof _appRouter === 'undefined' || !_appRouter || typeof _appRouter.ensureConfigured !== 'function') {
+                throw new Error('dataFunctions: appRouter is required to resolve the database configuration but is unavailable.');
+            }
+            await _appRouter.ensureConfigured();
+            // Pull the authoritative values from appRouter (the only source).
+            this.proxyUrl = _appRouter.LambdaProxyUrl;
+            this.supabaseUrl = _appRouter.SupabaseUrl;
+            this.supabaseAnonKey = _appRouter.SupabaseAnonKey;
+        },
+
         getSupabaseRestConfig: function () {
             const scope = this;
-            let url = scope.supabaseUrl || '';
-            let anonKey = scope.supabaseAnonKey || '';
-            if (typeof _appRouter !== 'undefined' && _appRouter) {
-                url = url || _appRouter.SupabaseUrl || '';
-                anonKey = anonKey || _appRouter.SupabaseAnonKey || '';
-            }
-            if ((!url || !anonKey) && typeof window !== 'undefined' && window.MACAVATION_SUPABASE) {
-                url = url || window.MACAVATION_SUPABASE.url || '';
-                anonKey = anonKey || window.MACAVATION_SUPABASE.anonKey || '';
-            }
+            // After ensureConfigured() these are populated from appRouter (single source of truth).
+            let url = scope.supabaseUrl || (typeof _appRouter !== 'undefined' && _appRouter ? _appRouter.SupabaseUrl : '') || '';
+            let anonKey = scope.supabaseAnonKey || (typeof _appRouter !== 'undefined' && _appRouter ? _appRouter.SupabaseAnonKey : '') || '';
             url = String(url || '').replace(/\/$/, '');
             if (url && typeof window !== 'undefined' && window.MACAVATION_SUPABASE) {
                 window.MACAVATION_SUPABASE.assertMacavationSupabaseUrl(url);
@@ -433,6 +443,7 @@ var _dataFunctions = function () {
         callSupabaseRpc: async function (functionName, params, token, options) {
             const scope = this;
             options = options || {};
+            await scope.ensureConfigured();
             const cfg = scope.getSupabaseRestConfig();
             const userToken = token || this.getToken();
             if (!cfg.url || !cfg.anonKey || cfg.anonKey === 'your-anon-key-here') {
@@ -575,6 +586,8 @@ var _dataFunctions = function () {
             // Create promise for this request
             const requestPromise = (async () => {
                 try {
+                    // appRouter is the single source of truth for proxyUrl/Supabase config.
+                    await scope.ensureConfigured();
                     if (options.supabaseRpcFallback !== false &&
                         scope.kernelRpcDirectFirst.has(functionName)) {
                         try {
