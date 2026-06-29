@@ -22,32 +22,12 @@ var _app = {
         // Initialize common utilities
         this.initCommon();
 
-        // Initialize the new router system (loads Macavation Supabase settings)
+        // Initialize the new router system (loads Macavation Supabase settings).
+        // appRouter is the single source of truth for the database/environment config;
+        // dataFunctions resolves it on demand via appRouter.ensureConfigured().
         await this.initializeAppRouter();
 
-        // Supabase client after router config is available
-        this.initSupabase();
-
         console.log('Application initialized successfully');
-    },
-
-    // Initialize Supabase client
-    initSupabase: function () {
-        if (typeof window.supabase === 'undefined') {
-            console.warn('Supabase library not loaded');
-            return;
-        }
-        var url = (typeof _appRouter !== 'undefined' && _appRouter.SupabaseUrl)
-            ? _appRouter.SupabaseUrl
-            : this.config.supabaseUrl;
-        var anonKey = (typeof _appRouter !== 'undefined' && _appRouter.SupabaseAnonKey)
-            ? _appRouter.SupabaseAnonKey
-            : this.config.supabaseAnonKey;
-        if (typeof window.MACAVATION_SUPABASE !== 'undefined') {
-            window.MACAVATION_SUPABASE.assertMacavationSupabaseUrl(url);
-        }
-        window._supabase = window.supabase.createClient(url, anonKey);
-        console.log('Supabase client initialized for Macavation');
     },
 
     // Initialize router

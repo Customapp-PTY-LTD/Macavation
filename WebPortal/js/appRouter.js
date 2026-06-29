@@ -7,6 +7,7 @@ var _appRouter = function () {
         SupabaseUrl: "",
         SupabaseAnonKey: "",
         LambdaProxyUrl: "",
+        _configPromise: null,
         //-----------------------
 
         breadCrumbs: [],
@@ -33,7 +34,7 @@ var _appRouter = function () {
             }
 
             //bind nav event
-            await _appRouter.loadRouteConfig();
+            await _appRouter.ensureConfigured();
 
             // Check localStorage first (persists across sessions), then sessionStorage, then default
             var activePage = Session.get('lastActivePage') ||
@@ -81,65 +82,24 @@ var _appRouter = function () {
             });
 
         },
-        loadRouteConfig: () => {
-
-            return fetch(_appRouter.routeConfigPath)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('error fetching config: ' + response.status);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    _appRouter.basePath = data.basePath;
-                    _appRouter.defaultRoute = data.defaultRoute;
-                    _appRouter.contentContainer = data.contentContainer;
-                    _appRouter.routeConfig = data.appRoutes;
-
-
-                    //console.log(_appRouter.routeConfig);
-                    //get environment
-
-                    const environment = _appRouter.getEnvironment();
-
-                    if (data.environmentSettings) {
-                        let environmentSetting = data.environmentSettings[environment];
-                        if (!environmentSetting || !Object.keys(environmentSetting || {}).length) {
-                            environmentSetting = data.environmentSettings.default;
+        // appRouter is the single source of truth for environment + database config.
+        // Memoized so appRouteConfig.json is loaded exactly once; safe to await from anywhere
+        // (e.g. dataFunctions before a DB call). On failure it rejects loudly rather than
+        // letting callers fall back to a hardcoded/global database.
+        ensureConfigured: () => {
+            if (!_appRouter._configPromise) {
+                _appRouter._configPromise = _appRouter.loadRouteConfig()
+                    .then(() => {
+                        if (!_appRouter.SupabaseUrl || !_appRouter.LambdaProxyUrl) {
+                            throw new Error('appRouter: environment configuration missing for "' + _appRouter.getEnvironment() + '" (SupabaseUrl/LambdaProxyUrl). Check appRouteConfig.json.');
                         }
-
-                        if (!environmentSetting) {
-                            console.error(`no environment setting configured for ${environment} found in appRouteConfig`);
-                            return;
-                        }
-
-                        _appRouter.env = environmentSetting;
-
-                        _appRouter.SupabaseUrl = environmentSetting.SupabaseUrl;
-                        _appRouter.SupabaseAnonKey = environmentSetting.SupabaseAnonKey || '';
-                        _appRouter.LambdaProxyUrl = environmentSetting.LambdaProxyUrl;
-                        if (typeof dataFunctions !== 'undefined' && dataFunctions) {
-                            if (environmentSetting.LambdaProxyUrl) {
-                                dataFunctions.proxyUrl = environmentSetting.LambdaProxyUrl;
-                            }
-                            if (environmentSetting.SupabaseUrl) {
-                                if (typeof window.MACAVATION_SUPABASE !== 'undefined') {
-                                    window.MACAVATION_SUPABASE.assertMacavationSupabaseUrl(environmentSetting.SupabaseUrl);
-                                }
-                                dataFunctions.supabaseUrl = environmentSetting.SupabaseUrl;
-                            }
-                            if (environmentSetting.SupabaseAnonKey) {
-                                dataFunctions.supabaseAnonKey = environmentSetting.SupabaseAnonKey;
-                            }
-                        }
-                        // _appRouter.routeConfig = _appRouter.loadRoleConfig(data.appRoutes);
-
-                    }
-
-                })
-                .catch(error => {
-                    console.error('There was a problem fetching the config:', error);
-                });
+                    })
+                    .catch((err) => {
+                        _appRouter._configPromise = null; // allow a later call to retry
+                        throw err;
+                    });
+            }
+            return _appRouter._configPromise;
         },
         loadContent: async ({ routeName, elementSelector }) => {
 
@@ -1004,6 +964,7 @@ var _appRouter = function () {
                 })
                 .catch(error => {
                     console.error('There was a problem fetching the config:', error);
+                    throw error;
                 });
         },
         routeConfig: {
