@@ -776,11 +776,14 @@ var _oilProductionGrid = function () {
         runOilBatchSearch: function () {
             var scope = _oilProductionGrid;
             var q = ($('#opOilSearchInput').val() || '').trim();
+            var from = ($('#opOilSearchFrom').val() || '').trim() || null;
+            var to = ($('#opOilSearchTo').val() || '').trim() || null;
+            var status = ($('#opOilSearchStatus').val() || '').trim() || null;
             var out = document.getElementById('opOilSearchResults');
             if (!out || !dataFunctions.searchOilBatches) return;
-            if (!q) { out.innerHTML = '<span class="text-muted">Enter a search term.</span>'; return; }
+            if (!q && !from && !to && !status) { out.innerHTML = '<span class="text-muted">Enter a search term or filter.</span>'; return; }
             out.innerHTML = 'Searching…';
-            dataFunctions.searchOilBatches({ search: q, limit: 25 }).then(function (rows) {
+            dataFunctions.searchOilBatches({ search: q || null, from: from, to: to, status: status }).then(function (rows) {
                 scope.oilSearchResults = Array.isArray(rows) ? rows : [];
                 if (!scope.oilSearchResults.length) {
                     out.innerHTML = '<span class="text-muted">No matches.</span>';

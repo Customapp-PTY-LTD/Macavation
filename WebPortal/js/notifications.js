@@ -98,13 +98,19 @@ var notificationsInbox = (function () {
                 body.innerHTML = list.map(function (n) {
                     var sev = severityClass(n.severity);
                     var unread = !n.is_read;
+                    var linkBadge = '';
+                    if (n.link_route) {
+                        var ref = (n.link_params && (n.link_params.ref || n.link_params.batch_number || n.link_params.lot_number)) || '';
+                        linkBadge = '<span class="badge bg-light text-dark border ms-1">' + escapeHtml(n.link_route + (ref ? ': ' + ref : '')) + '</span>';
+                    }
                     return '<a href="#" class="d-block text-decoration-none p-2 rounded mb-1 notif-item ' +
                         (unread ? 'bg-light' : '') + '" data-notif-id="' + n.id + '"' +
-                        (n.link_route ? ' data-route="' + escapeHtml(n.link_route) + '"' : '') + '>' +
+                        (n.link_route ? ' data-route="' + escapeHtml(n.link_route) + '"' : '') +
+                        (n.link_params ? ' data-link-params="' + escapeHtml(JSON.stringify(n.link_params)) + '"' : '') + '>' +
                         '<div class="d-flex align-items-start">' +
                         '<span class="badge bg-' + sev + ' me-2 mt-1">&nbsp;</span>' +
                         '<div class="flex-grow-1">' +
-                        '<div class="fw-' + (unread ? 'semibold' : 'normal') + ' text-dark small">' + escapeHtml(n.title) + '</div>' +
+                        '<div class="fw-' + (unread ? 'semibold' : 'normal') + ' text-dark small">' + escapeHtml(n.title) + linkBadge + '</div>' +
                         (n.body ? '<div class="text-muted small">' + escapeHtml(n.body) + '</div>' : '') +
                         '<div class="text-muted" style="font-size:0.7rem;">' + timeAgo(n.created_at) + '</div>' +
                         '</div></div></a>';
@@ -120,6 +126,15 @@ var notificationsInbox = (function () {
                             self.refreshBadge();
                         }
                         if (route && typeof _appRouter !== 'undefined' && _appRouter.navigate) {
+                            var paramsRaw = el.getAttribute('data-link-params');
+                            if (paramsRaw) {
+                                try {
+                                    var params = JSON.parse(paramsRaw);
+                                    if (params.ref || params.batch_number) {
+                                        sessionStorage.setItem('macavation_nav_search', params.ref || params.batch_number);
+                                    }
+                                } catch (err) { /* ignore */ }
+                            }
                             _appRouter.navigate(route);
                         }
                     });

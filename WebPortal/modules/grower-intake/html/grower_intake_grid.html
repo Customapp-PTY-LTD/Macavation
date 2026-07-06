@@ -58,28 +58,6 @@
         </div>
     </div>
 
-    <!-- Mass balance & procurement variance -->
-    <div class="card mb-4" id="giMassBalanceCard">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0"><i class="fas fa-balance-scale me-2"></i>Mass balance &amp; procurement</h5>
-            <div class="d-flex gap-2 align-items-center">
-                <input type="date" class="form-control form-control-sm" id="giMassBalanceFrom" style="max-width:10rem;">
-                <span class="text-muted small">to</span>
-                <input type="date" class="form-control form-control-sm" id="giMassBalanceTo" style="max-width:10rem;">
-                <button type="button" class="btn btn-sm btn-outline-primary" id="giMassBalanceRefreshBtn"><i class="fas fa-sync-alt"></i></button>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="row g-3 mb-3" id="giMassBalanceSummary">
-                <div class="col-md-3"><div class="border rounded p-2 text-center"><div class="small text-muted">Cracked (kg)</div><div class="fw-bold" id="giMbCracked">—</div></div></div>
-                <div class="col-md-3"><div class="border rounded p-2 text-center"><div class="small text-muted">Packed (kg)</div><div class="fw-bold" id="giMbPacked">—</div></div></div>
-                <div class="col-md-3"><div class="border rounded p-2 text-center"><div class="small text-muted">Balance %</div><div class="fw-bold" id="giMbBalancePct">—</div></div></div>
-                <div class="col-md-3"><div class="border rounded p-2 text-center"><div class="small text-muted">Procurement scheduled (kg)</div><div class="fw-bold" id="giMbProcurementKg">—</div></div></div>
-            </div>
-            <p class="text-muted small mb-0" id="giProcurementVarianceHint">Compare scheduled procurement to intake batches in the selected period.</p>
-        </div>
-    </div>
-
     <!-- Search and Filters -->
     <div class="card mb-3">
         <div class="card-body">

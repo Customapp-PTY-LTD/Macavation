@@ -29,7 +29,7 @@ var _scheduledReportsGrid = function () {
         load: async () => {
             const scope = _scheduledReportsGrid;
             var tbody = document.getElementById('scheduledReportsTableBody');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading...</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading...</td></tr>';
             try {
                 var rows = await dataFunctions.getScheduledReports();
                 scope.rows = Array.isArray(rows) ? rows : [];
@@ -44,7 +44,7 @@ var _scheduledReportsGrid = function () {
             var tbody = document.getElementById('scheduledReportsTableBody');
             if (!tbody) return;
             if (scope.rows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No subscriptions. Use Add subscription.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No subscriptions. Use Add subscription.</td></tr>';
                 return;
             }
             tbody.innerHTML = scope.rows.map(function (r) { return scope.rowHtml(r); }).join('');
@@ -73,12 +73,17 @@ var _scheduledReportsGrid = function () {
             const scope = _scheduledReportsGrid;
             var id = r && r.id ? r.id : '';
             var email = scope.escapeHtml(r && r.email ? r.email : '');
+            var phone = scope.escapeHtml(r && r.phone ? r.phone : '');
+            var channel = (r && r.channel) ? String(r.channel).toLowerCase() : 'email';
             var active = r && r.is_active !== false;
             var lastSent = r && r.last_sent_at ? String(r.last_sent_at).slice(0, 16).replace('T', ' ') : '—';
             return '<tr data-report-id="' + id + '">' +
-                '<td><input type="email" class="form-control form-control-sm sr-email" value="' + email + '" placeholder="recipient@example.com"></td>' +
+                '<td><input type="email" class="form-control form-control-sm sr-email" value="' + email + '" placeholder="email@example.com"></td>' +
+                '<td><input type="text" class="form-control form-control-sm sr-phone" value="' + phone + '" placeholder="+27…"></td>' +
                 '<td><select class="form-select form-select-sm sr-type"><option value="daily_digest" selected>Daily digest</option></select></td>' +
-                '<td><select class="form-select form-select-sm sr-channel"><option value="email" selected>Email</option><option value="whatsapp" disabled>WhatsApp (deferred)</option></select></td>' +
+                '<td><select class="form-select form-select-sm sr-channel">' +
+                '<option value="email"' + (channel === 'email' ? ' selected' : '') + '>Email</option>' +
+                '<option value="whatsapp"' + (channel === 'whatsapp' ? ' selected' : '') + '>WhatsApp</option></select></td>' +
                 '<td><input type="checkbox" class="form-check-input sr-active"' + (active ? ' checked' : '') + '></td>' +
                 '<td class="small text-muted">' + lastSent + '</td>' +
                 '<td class="text-end"><button type="button" class="btn btn-sm btn-primary js-save-scheduled-report" title="Save"><i class="fas fa-save"></i></button></td>' +
@@ -97,17 +102,24 @@ var _scheduledReportsGrid = function () {
             const scope = _scheduledReportsGrid;
             var id = $tr.data('report-id');
             var email = ($tr.find('.sr-email').val() || '').trim();
-            if (!email) {
-                scope.toast('Email is required.', 'error');
+            var phone = ($tr.find('.sr-phone').val() || '').trim();
+            var channel = ($tr.find('.sr-channel').val() || 'email').toLowerCase();
+            if (channel === 'email' && !email) {
+                scope.toast('Email is required for email channel.', 'error');
+                return;
+            }
+            if (channel === 'whatsapp' && !phone) {
+                scope.toast('Phone number is required for WhatsApp channel.', 'error');
                 return;
             }
             try {
                 await dataFunctions.upsertScheduledReport({
                     id: id || null,
                     user_id: null,
-                    email: email,
+                    email: email || phone,
+                    phone: phone || null,
                     report_type: 'daily_digest',
-                    channel: 'email',
+                    channel: channel,
                     is_active: $tr.find('.sr-active').prop('checked')
                 });
                 scope.toast('Subscription saved.', 'success');
@@ -141,8 +153,10 @@ var _scheduledReportsGrid = function () {
             var lines = [
                 'Macavation daily digest · ' + (digest.date || 'today'),
                 '',
-                'Production: ' + (ks.kg_cracked_today != null ? ks.kg_cracked_today + ' kg cracked today' : '—'),
+                'Kernel: ' + (ks.kg_cracked_today != null ? ks.kg_cracked_today + ' kg cracked today' : '—'),
                 'Packed this week: ' + (ks.kg_packed_week != null ? ks.kg_packed_week + ' kg' : '—'),
+                'Oil: ' + ((digest.oil_stats || {}).litres_today ?? '—') + ' L today',
+                'Runway: ' + ((digest.runway || {}).weeks_cover ?? '—') + ' wks',
                 'Open alerts: ' + (alerts.length || 0),
                 'Procurement today: ' + (proc.deliveries_today || 0) + ' deliveries, ' + Math.round(Number(proc.predicted_kg_today) || 0) + ' kg',
                 '',

@@ -1617,6 +1617,13 @@ var _modal_production_stages = (function () {
                 scope.refreshProductionDatePickers();
                 scope.updateProductionActionButtonTicks();
                 scope.clearProductionStagesDraft(batchId);
+                var shellKg = cracking_data && cracking_data.shell_total != null ? parseFloat(cracking_data.shell_total) : 0;
+                if (shellKg > 0 && dataFunctions.autoCreateShellLotFromProduction) {
+                    var batchNum = ($('#productionStagesBatchNumber').text() || $('#productionStagesBatchId').val() || '').trim();
+                    if (batchNum) {
+                        dataFunctions.autoCreateShellLotFromProduction(batchNum, shellKg, 'Production stages save').catch(function () { /* non-blocking */ });
+                    }
+                }
                 if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
                 if (silent) {
                     if ($status.length) { $status.removeClass('text-danger').addClass('text-success').text(hadExistingDataForDate && !hasMeaningfulData ? 'Cleared' : 'Saved'); }

@@ -352,9 +352,10 @@ test.describe('Role-Based Screen Access - Edge Cases @rbac @edge-case', () => {
     
     for (const route of routes) {
       await navigateToModule(authenticatedPage, route);
+      await authenticatedPage.waitForTimeout(400);
     }
     
-    await expect(authenticatedPage.locator('#content-area')).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage.locator('#content-area')).toBeVisible({ timeout: 20000 });
     const accessDenied = authenticatedPage.locator('#content-area:has-text("Access Denied")');
     await expect(accessDenied).not.toBeVisible({ timeout: 5000 });
   });

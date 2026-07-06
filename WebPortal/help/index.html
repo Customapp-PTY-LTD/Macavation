@@ -325,15 +325,16 @@
 
   <section id="executive-dashboard" class="guide-section" data-guide-id="executive-dashboard">
     <h2>Executive dashboard &amp; reporting</h2>
-<p class="guide-lead">KPIs and reporting for leadership. Use <strong>Customize</strong> to choose visible widgets and <strong>Generate Report</strong> for PDF output.</p>
-    <p class="guide-how">Choose widgets with Customize, export PDFs with Generate Report, and treat figures as summaries—drill into Kernel / Oil &amp; protein modules for detail.</p>
+<p class="guide-lead">KPIs and reporting for leadership: production trends, procurement forecast, runway, sound kernel recovery, oil yield, stock on hand, consolidated oil batches, and active alerts with resolve actions.</p>
+    <p class="guide-how">Choose widgets with Customize. Use <strong>Resolve</strong> on active alerts when stock recovers or the issue is handled. Daily email and WhatsApp digests are configured under Scheduled Reports.</p>
 
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Executive dashboard</strong> from the menu.</li>
-      <li>Click <strong>Customize</strong> (or equivalent) to choose which KPI widgets and charts appear.</li>
-      <li>Use <strong>Generate report</strong> or export controls when you need a PDF or file for meetings.</li>
-      <li>Treat numbers as summaries—open Kernel or Oil &amp; protein modules for line-level detail when something needs investigation.</li>
+      <li>Review Phase 2 KPI cards: recovery %, oil yield, stock on hand, and open consolidated oil batches.</li>
+      <li>Click <strong>Customize</strong> to choose which KPI widgets and charts appear.</li>
+      <li>On <strong>Active alerts</strong>, click <strong>Resolve</strong> (requires <em>Resolve alerts</em> action permission) to clear handled red flags.</li>
+      <li>Use <strong>Manage subscriptions</strong> on the daily report card to add email or WhatsApp digest recipients.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/executive-dashboard.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -1037,8 +1038,9 @@
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Support → Scheduled Reports</strong> (or <strong>Executive Dashboard → Daily report</strong> / <strong>Manage subscriptions</strong>).</li>
-      <li><strong>Email digest</strong> tab — add recipient emails; active rows receive the daily summary once the edge function is deployed.</li>
-      <li><strong>WhatsApp digest</strong> tab — preview where mobile subscriptions will live (coming soon; requires WhatsApp Business API). Sample message shows the short text format.</li>
+      <li><strong>Email digest</strong> tab — add recipient emails; active rows receive the enriched daily summary at 06:00 SAST.</li>
+      <li><strong>WhatsApp digest</strong> tab — add phone numbers with channel <strong>WhatsApp</strong>; requires Meta Business API credentials on the edge function.</li>
+      <li>Each subscription row has email, phone, channel, and active flag — save after editing.</li>
       <li>Use <strong>Load preview</strong> at the bottom to see the full digest JSON shared by both channels.</li>
     </ol>
     <figure class="guide-shot">

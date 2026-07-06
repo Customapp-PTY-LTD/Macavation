@@ -344,6 +344,25 @@ var _stockManagementGrid = function () {
                     var lot = (scope.shellLots || []).find(function (l) { return String(l.id) === String(id); });
                     scope.promptUpsertShellLot(lot || null);
                 });
+                $(document).off('click', '.js-dispatch-shell-lot').on('click', '.js-dispatch-shell-lot', function () {
+                    var id = $(this).data('shell-id');
+                    var lot = (scope.shellLots || []).find(function (l) { return String(l.id) === String(id); });
+                    if (!lot || !dataFunctions.dispatchShellStockLot) return;
+                    Swal.fire({
+                        title: 'Dispatch shell lot',
+                        input: 'text',
+                        inputLabel: 'Customer / reference',
+                        showCancelButton: true
+                    }).then(function (r) {
+                        if (!r.isConfirmed) return;
+                        dataFunctions.dispatchShellStockLot(lot.id, r.value || '', null).then(function () {
+                            scope.loadShellStockLots();
+                            Swal.fire('Dispatched', 'Shell lot marked as dispatched.', 'success');
+                        }).catch(function (e) {
+                            Swal.fire('Error', e.message || 'Dispatch failed', 'error');
+                        });
+                    });
+                });
                 $(document).off('click', '.js-delete-shell-lot').on('click', '.js-delete-shell-lot', function () {
                     var id = $(this).data('shell-id');
                     if (!id || !dataFunctions.deleteShellStockLot) return;
@@ -1547,6 +1566,7 @@ var _stockManagementGrid = function () {
                     '<td class="text-end">' + (l.quantity_kg != null ? Number(l.quantity_kg).toFixed(2) : '0') + '</td>' +
                     '<td>' + escapeHtml(l.status || '') + '</td>' +
                     '<td class="text-nowrap">' +
+                    '<button type="button" class="btn btn-sm btn-outline-success js-dispatch-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage" title="Dispatch"><i class="fas fa-truck"></i></button> ' +
                     '<button type="button" class="btn btn-sm btn-outline-primary js-edit-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage"><i class="fas fa-edit"></i></button> ' +
                     '<button type="button" class="btn btn-sm btn-outline-danger js-delete-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage"><i class="fas fa-trash"></i></button>' +
                     '</td></tr>';

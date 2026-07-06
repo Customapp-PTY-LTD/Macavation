@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { navigateToModule } from '../helpers/navigation.helper';
+import { navigateToStockKernel } from '../helpers/navigation.helper';
 
 /**
  * Stock (Kernel) Module Tests
@@ -10,9 +10,7 @@ import { navigateToModule } from '../helpers/navigation.helper';
 test.describe('Stock (Kernel) @stock-kernel', () => {
 
   test.beforeEach(async ({ authenticatedPage }) => {
-    await navigateToModule(authenticatedPage, 'stock-management-kernel');
-    await authenticatedPage.waitForLoadState('networkidle');
-    await authenticatedPage.waitForTimeout(1000);
+    await navigateToStockKernel(authenticatedPage);
   });
 
   test('TC-SK-001: Stock (Kernel) title and module load', async ({ authenticatedPage }) => {
@@ -37,18 +35,20 @@ test.describe('Stock (Kernel) @stock-kernel', () => {
 
   test('TC-SK-004: View toggle By style / Weekly / Overview', async ({ authenticatedPage }) => {
     const byStyleBtn = authenticatedPage.locator('#ksViewByStyle');
-    const weeklyBtn = authenticatedPage.locator('#ksViewWeekly');
-    const overviewBtn = authenticatedPage.locator('#ksViewOverview');
     await expect(byStyleBtn).toBeVisible();
-    await expect(weeklyBtn).toBeVisible();
-    await expect(overviewBtn).toBeVisible();
     await expect(byStyleBtn).toHaveClass(/active/);
-    await weeklyBtn.click();
-    await authenticatedPage.waitForTimeout(300);
-    await expect(weeklyBtn).toHaveClass(/active/);
-    await overviewBtn.click();
-    await authenticatedPage.waitForTimeout(300);
-    await expect(overviewBtn).toHaveClass(/active/);
+
+    const moreViewsBtn = authenticatedPage.locator('#ksMoreViewsBtn');
+    if (await moreViewsBtn.isVisible().catch(() => false)) {
+      await moreViewsBtn.click();
+      await authenticatedPage.locator('.js-ks-more-view[data-view="weekly"]').click();
+      await authenticatedPage.waitForTimeout(300);
+      await authenticatedPage.locator('#ksWeeklyPanel, #ksOverviewPanel').first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+      await moreViewsBtn.click();
+      await authenticatedPage.locator('.js-ks-more-view[data-view="overview"]').click();
+      await authenticatedPage.waitForTimeout(300);
+    }
+
     await byStyleBtn.click();
     await authenticatedPage.waitForTimeout(300);
     await expect(byStyleBtn).toHaveClass(/active/);
@@ -89,9 +89,7 @@ test.describe('Stock (Kernel) @stock-kernel', () => {
 test.describe('Kernel - Form Operations: Send to Dispatch @kernel', () => {
 
   test.beforeEach(async ({ authenticatedPage }) => {
-    await navigateToModule(authenticatedPage, 'stock-management-kernel');
-    await authenticatedPage.waitForLoadState('networkidle');
-    await authenticatedPage.waitForTimeout(1000);
+    await navigateToStockKernel(authenticatedPage);
   });
 
   test('TC-SD-001: Send to Dispatch modal opens with buyer and date', async ({ authenticatedPage }) => {

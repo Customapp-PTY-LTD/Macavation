@@ -37,7 +37,12 @@ var _executiveDashboard = function () {
         execOilTrends: 'Oil production trends',
         execStockAccuracy: 'Stock accuracy',
         execProducedVsTarget: 'Produced vs target',
-        execDailyReportDelivery: 'Daily report delivery'
+        execDailyReportDelivery: 'Daily report delivery',
+        execSoundRecovery: 'Sound kernel recovery',
+        execOilYield: 'Oil yield',
+        execStockOnHand: 'Stock on hand summary',
+        execConsolidatedSummary: 'Oil consolidated summary',
+        execOilForecast: 'Oil production forecast'
     };
 
     return {
@@ -72,6 +77,9 @@ var _executiveDashboard = function () {
             await scope.loadOilTrendsChart();
             await scope.loadStockAccuracyChart();
             await scope.loadProducedVsTarget();
+            await scope.loadPhase2ExtendedKpis();
+            await scope.loadConsolidatedSummary();
+            await scope.loadOilForecastChart();
         },
 
         getDashboardVisibility: function () {
@@ -632,16 +640,36 @@ var _executiveDashboard = function () {
             var container = document.getElementById('execAlertsContainer');
             if (!container || !dataFunctions.getDashboardAlerts) return;
             try {
-                var alerts = await dataFunctions.getDashboardAlerts(null);
+                var alerts = await dataFunctions.getDashboardAlerts(null, true);
                 if (!alerts || !alerts.length) {
                     container.innerHTML = '<p class="text-muted small mb-0">No active alerts.</p>';
                     return;
                 }
+                var canResolve = typeof hasAction === 'function' ? hasAction('alerts.resolve') : true;
                 container.innerHTML = alerts.slice(0, 8).map(function (a) {
                     var sev = (a.severity || a.alert_type || 'info').toLowerCase();
                     var cls = sev === 'critical' ? 'danger' : sev === 'warning' ? 'warning' : 'info';
-                    return '<div class="alert alert-' + cls + ' py-2 px-3 small mb-2"><strong>' + (a.title || a.alert_title || 'Alert') + '</strong> — ' + (a.message || a.alert_message || '') + '</div>';
+                    var id = a.id || a.alert_id || '';
+                    var resolveBtn = canResolve && id
+                        ? ' <button type="button" class="btn btn-xs btn-sm btn-outline-dark ms-2 exec-resolve-alert-btn" data-alert-id="' + id + '" data-action-perm="alerts.resolve">Resolve</button>'
+                        : '';
+                    return '<div class="alert alert-' + cls + ' py-2 px-3 small mb-2 d-flex justify-content-between align-items-start">' +
+                        '<span><strong>' + (a.title || a.alert_title || 'Alert') + '</strong> — ' + (a.message || a.alert_message || '') + '</span>' +
+                        resolveBtn + '</div>';
                 }).join('');
+                container.querySelectorAll('.exec-resolve-alert-btn').forEach(function (btn) {
+                    btn.addEventListener('click', async function () {
+                        var alertId = btn.getAttribute('data-alert-id');
+                        if (!alertId || !dataFunctions.resolveDashboardAlert) return;
+                        var note = window.prompt('Optional note when resolving this alert:', '') || '';
+                        try {
+                            await dataFunctions.resolveDashboardAlert(alertId, note);
+                            await _executiveDashboard.loadExecutiveAlerts();
+                        } catch (e) {
+                            console.warn('[Executive Dashboard] resolve alert failed', e);
+                        }
+                    });
+                });
             } catch (e) {
                 container.innerHTML = '<p class="text-muted small mb-0">Unable to load alerts.</p>';
             }
@@ -717,6 +745,60 @@ var _executiveDashboard = function () {
                 $('#execProducedPct').text(target > 0 ? pct + '% of target' : 'Set target in Dashboard Targets');
             } catch (e) {
                 $('#execProducedActual, #execProducedTarget, #execProducedPct').text('—');
+            }
+        },
+
+        loadPhase2ExtendedKpis: async () => {
+            if (!dataFunctions.getPhase2ExtendedKpis) return;
+            try {
+                var k = await dataFunctions.getPhase2ExtendedKpis();
+                var rec = k.sound_kernel_recovery_pct;
+                var yieldPct = k.oil_yield_pct;
+                $('#execSoundRecoveryPct').text(rec != null ? rec + '%' : '—');
+                $('#execOilYieldPct').text(yieldPct != null ? yieldPct + '%' : '—');
+                $('#execSohKernel').text(Number(k.kernel_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+                $('#execSohOil').text(Number(k.oil_finished_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+                $('#execSohRm').text(Number(k.oil_rm_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+                var delta = k.production_delta_pct;
+                $('#execProductionDelta').text(delta != null ? (delta >= 0 ? '+' : '') + delta + '% vs last month' : '');
+            } catch (e) {
+                $('#execSoundRecoveryPct, #execOilYieldPct, #execSohKernel, #execSohOil, #execSohRm, #execProductionDelta').text('—');
+            }
+        },
+
+        loadConsolidatedSummary: async () => {
+            if (!dataFunctions.getConsolidatedBatchDashboardSummary) return;
+            try {
+                var s = await dataFunctions.getConsolidatedBatchDashboardSummary();
+                $('#execConOpenCount').text(s.open_count != null ? s.open_count : '—');
+                $('#execConOpenLitres').text(s.total_litres_open != null ? Number(s.total_litres_open).toFixed(1) : '—');
+                $('#execConLabCount').text(s.with_lab_ref != null ? s.with_lab_ref : '—');
+            } catch (e) {
+                $('#execConOpenCount, #execConOpenLitres, #execConLabCount').text('—');
+            }
+        },
+
+        loadOilForecastChart: async () => {
+            var scope = _executiveDashboard;
+            var canvas = document.getElementById('oilForecastChart');
+            if (!canvas || typeof Chart === 'undefined' || !dataFunctions.getOilForecastByWeek) return;
+            try {
+                var rows = await dataFunctions.getOilForecastByWeek(12);
+                var byWeek = {};
+                (rows || []).forEach(function (r) {
+                    var w = String(r.week_start || '').slice(0, 10);
+                    byWeek[w] = (byWeek[w] || 0) + (Number(r.quantity_kg) || 0);
+                });
+                var weeks = Object.keys(byWeek).sort();
+                var data = weeks.map(function (w) { return byWeek[w]; });
+                if (scope.oilForecastChart) scope.oilForecastChart.destroy();
+                scope.oilForecastChart = new Chart(canvas.getContext('2d'), {
+                    type: 'bar',
+                    data: { labels: weeks, datasets: [{ label: 'Forecast kg', data: data, backgroundColor: 'rgba(13,110,253,0.6)' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                });
+            } catch (e) {
+                console.warn('[Executive Dashboard] oil forecast chart failed', e);
             }
         }
     };

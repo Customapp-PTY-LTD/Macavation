@@ -37,6 +37,20 @@
                         <textarea class="form-control" id="msgBody" rows="4" maxlength="2000" placeholder="Message body"></textarea>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Link to (optional)</label>
+                        <select class="form-select" id="msgLinkEntityType">
+                            <option value="">None — manual route below</option>
+                            <option value="batch-journey-grid">Kernel batch</option>
+                            <option value="stock-management-kernel">Kernel stock lot</option>
+                            <option value="stock-management-oil">Oil stock lot</option>
+                            <option value="grower-intake-grid">Grower intake / procurement</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Entity reference (batch #, lot #)</label>
+                        <input type="text" class="form-control" id="msgLinkEntityRef" placeholder="e.g. BATCH-2024-001">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Link route (optional)</label>
                         <input type="text" class="form-control" id="msgLinkRoute" placeholder="e.g. stock-management-grid or batch-journey-grid">
                         <div class="form-text">Opens this screen when the recipient clicks the notification.</div>

@@ -221,6 +221,46 @@
             </div>
         </div>
 
+        <div class="row mb-4" id="execPhase2KpiRow">
+            <div class="col-md-3 mb-3" data-dashboard-widget="execSoundRecovery">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Sound kernel recovery</h6>
+                        <h3 id="execSoundRecoveryPct">—</h3>
+                        <small class="text-muted" id="execProductionDelta">—</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3" data-dashboard-widget="execOilYield">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Oil yield</h6>
+                        <h3 id="execOilYieldPct">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3" data-dashboard-widget="execStockOnHand">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Stock on hand</h6>
+                        <div class="small">Kernel: <strong id="execSohKernel">—</strong> kg</div>
+                        <div class="small">Oil FG: <strong id="execSohOil">—</strong> kg</div>
+                        <div class="small">Oil RM: <strong id="execSohRm">—</strong> kg</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3" data-dashboard-widget="execConsolidatedSummary">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Oil consolidated batches</h6>
+                        <div class="small">Open: <strong id="execConOpenCount">—</strong></div>
+                        <div class="small">Litres (open): <strong id="execConOpenLitres">—</strong></div>
+                        <div class="small">With lab ref: <strong id="execConLabCount">—</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row mb-4" data-dashboard-widget="execDailyReportDelivery">
             <div class="col-12">
                 <div class="card border-secondary">
@@ -246,8 +286,8 @@
                                     <i class="fab fa-whatsapp fa-lg text-success mt-1"></i>
                                     <div>
                                         <strong>WhatsApp digest</strong>
-                                        <span class="badge bg-secondary ms-1">Coming soon</span>
-                                        <div class="small text-muted">Preview UI on Scheduled Reports → WhatsApp digest tab. Sends after Business API approval.</div>
+                                        <span class="badge bg-success ms-1">Live</span>
+                                        <div class="small text-muted">Add WhatsApp numbers under Support → Scheduled Reports (channel: WhatsApp). Requires Meta Business API credentials on the edge function.</div>
                                     </div>
                                 </div>
                             </div>
@@ -498,6 +538,15 @@
                 <div class="card h-100">
                     <div class="card-header"><h5 class="mb-0">Stock accuracy</h5><small class="text-muted">Monthly % of SOH adjusted</small></div>
                     <div class="card-body"><div style="height:280px;"><canvas id="stockAccuracyChart"></canvas></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6 mb-4" data-dashboard-widget="execOilForecast">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0">Oil production forecast (kg)</h5></div>
+                    <div class="card-body"><div style="height:280px;"><canvas id="oilForecastChart"></canvas></div></div>
                 </div>
             </div>
         </div>

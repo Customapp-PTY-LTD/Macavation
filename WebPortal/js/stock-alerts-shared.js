@@ -69,6 +69,18 @@ var StockAlertsShared = (function () {
         ];
     }
 
+    function collectFromRawRmLots(lots) {
+        var rmKg = 0;
+        (lots || []).forEach(function (l) {
+            var cat = (l.stock_category != null ? String(l.stock_category) : '').toLowerCase();
+            var s = (l.status && String(l.status).toLowerCase()) || '';
+            if (cat !== 'raw_material') return;
+            if (s !== 'on_hand' && s !== 'hold') return;
+            rmKg += num(l.kilograms);
+        });
+        return [{ product_type: 'nis_raw', style: '*', qty: rmKg }];
+    }
+
     function collectFromShellLots(lots) {
         var shellKg = 0;
         (lots || []).forEach(function (l) {
@@ -116,7 +128,9 @@ var StockAlertsShared = (function () {
             return evaluateObservations(collectFromKernelBatches(batches, styleKeys));
         },
         runOilStockCheck: function (lots) {
-            return evaluateObservations(collectFromOilLots(lots));
+            return evaluateObservations(
+                collectFromOilLots(lots).concat(collectFromRawRmLots(lots))
+            );
         },
         runShellStockCheck: function (lots) {
             return evaluateObservations(collectFromShellLots(lots));

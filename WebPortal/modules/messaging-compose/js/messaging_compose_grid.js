@@ -68,11 +68,20 @@ var _messagingComposeGrid = function () {
                 Swal.fire('Required', 'Title and message are required.', 'warning');
                 return;
             }
+            var entityType = ($('#msgLinkEntityType').val() || '').trim();
+            var entityRef = ($('#msgLinkEntityRef').val() || '').trim();
+            var linkRoute = ($('#msgLinkRoute').val() || '').trim();
+            if (entityType && !linkRoute) linkRoute = entityType;
+            var linkParams = null;
+            if (entityRef) {
+                linkParams = { ref: entityRef, batch_number: entityRef, lot_number: entityRef };
+            }
             var payload = {
                 title: title,
                 body: body,
                 severity: $('#msgSeverity').val() || 'info',
-                link_route: ($('#msgLinkRoute').val() || '').trim() || null
+                link_route: linkRoute || null,
+                link_params: linkParams
             };
             var target = $('#msgTargetType').val();
             try {

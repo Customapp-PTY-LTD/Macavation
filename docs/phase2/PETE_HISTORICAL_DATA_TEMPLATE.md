@@ -113,7 +113,7 @@ Complete with Pete and Josslyn (stock) / Mark (production) before closing Epic 1
 
 - [ ] **Pete:** “Abbreviated historical data is accurate enough for dashboard and trend use.”
 - [ ] **Josslyn:** Stock on hand after import matches physical spot-check (sample styles)
-- [ ] **Jon / Paul:** Approved to use imported history in production dashboard
+- [ ] **Paul:** Approved to use imported history in production dashboard
 
 ### Sign-off record
 
@@ -121,7 +121,7 @@ Complete with Pete and Josslyn (stock) / Mark (production) before closing Epic 1
 |------|------|------|---------------------------|
 | Sales / data owner | Pete | | |
 | Stock admin | Josslyn | | |
-| General manager | Jon | | |
+| General manager | Paul | | |
 
 ---
 

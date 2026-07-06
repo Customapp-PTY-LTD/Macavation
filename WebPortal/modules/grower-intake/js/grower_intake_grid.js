@@ -52,8 +52,6 @@ var _growerIntakeGrid = function () {
             scope.bindEvents();
             scope.loadIntakeBatches(true);
             scope.loadProcurements(true);
-            scope.initMassBalanceDefaults();
-            scope.loadMassBalanceReport();
             const loadPromises = [];
             $('.modal[route-name]').each((index, el) => {
                 const routeName = $(el).attr('route-name');
@@ -80,7 +78,6 @@ var _growerIntakeGrid = function () {
             // Procurement calendar navigation
             $(document).on('click', '#giProcurementCalendarPrevBtn', () => scope.shiftProcurementCalendarMonth(-1));
             $(document).on('click', '#giProcurementCalendarNextBtn', () => scope.shiftProcurementCalendarMonth(1));
-            $('#giMassBalanceRefreshBtn').off('click').on('click', () => scope.loadMassBalanceReport());
 
             // Day click (delegated; pills inside also bubble up, so check target is the day or its daynum)
             $(document).on('click', '#giProcurementCalendarGrid .gi-procurement-calendar-day', function (e) {
@@ -1223,43 +1220,6 @@ var _growerIntakeGrid = function () {
             receivingBody.addEventListener('drop', function () {
                 receivingBody.classList.remove('gi-receiving-drop-target');
             });
-        },
-
-        initMassBalanceDefaults: () => {
-            var to = new Date();
-            var from = new Date(to.getFullYear(), to.getMonth(), 1);
-            var fmt = function (d) { return d.toISOString().slice(0, 10); };
-            var fromEl = document.getElementById('giMassBalanceFrom');
-            var toEl = document.getElementById('giMassBalanceTo');
-            if (fromEl && !fromEl.value) fromEl.value = fmt(from);
-            if (toEl && !toEl.value) toEl.value = fmt(to);
-        },
-
-        loadMassBalanceReport: async () => {
-            const scope = _growerIntakeGrid;
-            if (!dataFunctions || !dataFunctions.getKernelMassBalance) return;
-            var from = (document.getElementById('giMassBalanceFrom') || {}).value || null;
-            var to = (document.getElementById('giMassBalanceTo') || {}).value || null;
-            try {
-                var mb = await dataFunctions.getKernelMassBalance(from, to);
-                var cracked = mb && (mb.total_cracked_kg != null ? mb.total_cracked_kg : mb.cracked_kg);
-                var packed = mb && (mb.total_packed_kg != null ? mb.total_packed_kg : mb.packed_kg);
-                var pct = mb && (mb.balance_pct != null ? mb.balance_pct : mb.balance_percentage);
-                $('#giMbCracked').text(cracked != null ? Number(cracked).toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
-                $('#giMbPacked').text(packed != null ? Number(packed).toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
-                $('#giMbBalancePct').text(pct != null ? Number(pct).toFixed(1) + '%' : '—');
-            } catch (e) {
-                $('#giMbCracked, #giMbPacked, #giMbBalancePct').text('—');
-            }
-            var procKg = 0;
-            (scope.procurements || []).forEach(function (p) {
-                if (!from || !to) return;
-                var d = String(p.scheduled_date || '').slice(0, 10);
-                if (d >= from && d <= to && p.status !== 'cancelled') {
-                    procKg += Number(p.predicted_weight_kg) || 0;
-                }
-            });
-            $('#giMbProcurementKg').text(procKg.toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
         }
 
     };

@@ -14,8 +14,12 @@ const corsHeaders = {
 
 function renderDigestHtml(digest: Record<string, unknown>): string {
   const ks = (digest.kernel_stats as Record<string, unknown>) || {};
+  const oil = (digest.oil_stats as Record<string, unknown>) || {};
   const alerts = (digest.open_alerts as unknown[]) || [];
   const proc = (digest.procurement_today as Record<string, unknown>) || {};
+  const runway = (digest.runway as Record<string, unknown>) || {};
+  const ext = (digest.extended_kpis as Record<string, unknown>) || {};
+  const pvt = (digest.produced_vs_target as Record<string, unknown>) || {};
   const alertLines = alerts.slice(0, 10).map((a: Record<string, unknown>) =>
     `<li><strong>${a.title || a.severity}</strong> — ${a.type || ''}</li>`
   ).join('');
@@ -27,6 +31,19 @@ function renderDigestHtml(digest: Record<string, unknown>): string {
 <li>Batches in production: ${ks.batches_in_production ?? '—'}</li>
 <li>Kg cracked today: ${ks.kg_cracked_today ?? '—'}</li>
 <li>Kg packed this week: ${ks.kg_packed_week ?? '—'}</li>
+</ul>
+<h3>Oil production</h3>
+<ul>
+<li>Litres today: ${oil.litres_today ?? '—'}</li>
+<li>Litres this week: ${oil.litres_week ?? '—'}</li>
+</ul>
+<h3>KPIs</h3>
+<ul>
+<li>Sound kernel recovery: ${ext.sound_kernel_recovery_pct ?? '—'}%</li>
+<li>Oil yield: ${ext.oil_yield_pct ?? '—'}%</li>
+<li>Kernel SOH: ${ext.kernel_soh_kg ?? '—'} kg</li>
+<li>Runway cover: ${runway.weeks_cover ?? '—'} weeks (${runway.months_cover ?? '—'} months)</li>
+<li>Produced vs target: ${pvt.actual_kg ?? '—'} / ${pvt.target_kg ?? '—'} kg (variance ${pvt.variance_kg ?? '—'})</li>
 </ul>
 <h3>Open alerts (${alerts.length})</h3>
 <ul>${alertLines || '<li>None</li>'}</ul>

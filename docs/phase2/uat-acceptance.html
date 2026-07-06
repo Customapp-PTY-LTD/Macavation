@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phase 2 — UAT acceptance checklist</title>
+  <link rel="stylesheet" href="phase2-docs.css" />
+</head>
+<body>
+  <nav class="p2-topbar" aria-label="Phase 2 documentation">
+    <div class="p2-topbar-inner">
+      <span class="p2-topbar-title">Macavation Phase 2</span>
+      <a href="index.html">Home</a>
+      <a href="implementation-plan.html">Implementation plan</a>
+      <a href="business-kickoff.html">Business kickoff</a>
+      <a href="uat-verification.html">UAT verification</a>
+      <a href="uat-acceptance.html" class="p2-active">UAT acceptance</a>
+    </div>
+  </nav>
+
+  <main class="p2-wrap">
+    <header class="p2-header">
+      <h1>UAT acceptance checklist</h1>
+      <p class="p2-meta">Use before Macavation Phase 2 sign-off</p>
+    </header>
+
+    <h2>Success criteria</h2>
+    <table>
+      <thead><tr><th>#</th><th>Criterion</th><th>Test</th><th>Pass</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Leadership uses dashboard / daily report</td><td>Paul confirms daily use for 2 weeks</td><td></td></tr>
+        <tr><td>2</td><td>Red flags prevent stock-outs</td><td>Alert fires below threshold; resolves when stock recovers</td><td></td></tr>
+        <tr><td>3</td><td>Oil consolidated batches with lab results</td><td>≥1 consolidation in production with lab ref/doc</td><td></td></tr>
+        <tr><td>4</td><td>Two years of history in trends</td><td>Production trends chart shows 24-month range (after Pete import)</td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Functional tests — Dashboard</h2>
+    <ul class="p2-checklist">
+      <li>Sound kernel recovery, oil yield, stock on hand widgets load</li>
+      <li>Oil forecast chart displays open demand by week</li>
+      <li>Consolidated batch summary shows open count and litres</li>
+      <li>Active alerts show Resolve button (authorized roles)</li>
+      <li>Produced vs target and runway widgets accurate</li>
+    </ul>
+
+    <h2>Stock alerts</h2>
+    <ul class="p2-checklist">
+      <li>Stock Alert Rules admin saves thresholds</li>
+      <li>Alert appears when SOH below minimum (kernel stock grid)</li>
+      <li>Alert auto-clears when SOH recovers (or manual resolve)</li>
+      <li>Scheduled cron evaluation runs (edge function logs)</li>
+    </ul>
+
+    <h2>Daily reporting</h2>
+    <ul class="p2-checklist">
+      <li>Email digest received by test subscriber</li>
+      <li>WhatsApp digest received by test number (Business API configured)</li>
+      <li>Digest includes oil stats, runway, produced vs target variance</li>
+    </ul>
+
+    <h2>Grower intake</h2>
+    <ul class="p2-checklist">
+      <li>Mass balance shows NIS in, cracked, packed, procurement variance</li>
+      <li>This-week procurement summary card loads</li>
+      <li>Procurement calendar convert-to-batch still works</li>
+    </ul>
+
+    <h2>Shell waste</h2>
+    <ul class="p2-checklist">
+      <li>Saving production stages with shell total creates/updates shell lot</li>
+      <li>Dispatch shell lot marks status dispatched</li>
+    </ul>
+
+    <h2>Permissions</h2>
+    <ul class="p2-checklist">
+      <li>Role without <code>stock.adjust_soh</code> cannot adjust stock (UI + API)</li>
+      <li>Role Actions admin lists Phase 2 action keys</li>
+    </ul>
+
+    <h2>Messaging</h2>
+    <ul class="p2-checklist">
+      <li>Compose with entity link shows badge in inbox</li>
+      <li>Clicking notification navigates to linked route</li>
+    </ul>
+
+    <h2>Oil module</h2>
+    <ul class="p2-checklist">
+      <li>Batch search with date/status filters returns results</li>
+      <li>Consolidated batch lab ref editable</li>
+    </ul>
+
+    <h2>Historical data (when Pete file ready)</h2>
+    <ul class="p2-checklist">
+      <li>Kernel CSV import via portal or CLI</li>
+      <li>Oil historical import RPC succeeds on sample row</li>
+      <li>Procurement CSV script generates valid SQL</li>
+    </ul>
+
+    <h2>Sign-off</h2>
+    <table>
+      <thead><tr><th>Role</th><th>Name</th><th>Date</th></tr></thead>
+      <tbody>
+        <tr><td>General manager</td><td></td><td></td></tr>
+        <tr><td>Stock admin</td><td></td><td></td></tr>
+        <tr><td>CustomApp lead</td><td></td><td></td></tr>
+      </tbody>
+    </table>
+
+    <footer class="p2-footer"><a href="index.html">← Back to Phase 2 home</a></footer>
+  </main>
+</body>
+</html>

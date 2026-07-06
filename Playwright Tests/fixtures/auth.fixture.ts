@@ -181,19 +181,33 @@ export const test = testDataTest.extend<AuthFixtures>({
   
   logout: async ({ page }, use) => {
     await use(async () => {
-      // Click logout button or trigger logout
-      const logoutButton = page.locator('#logoutBtn, [data-action="logout"], .logout-btn');
-      if (await logoutButton.isVisible()) {
-        await logoutButton.click();
-      } else {
-        // Fallback: Clear storage and navigate to login
-        await page.evaluate(() => {
-          localStorage.clear();
-          sessionStorage.clear();
-        });
-        await page.goto('/signin.html');
+      const userMenuToggle = page.locator('.user-dropdown-toggle').first();
+      if (await userMenuToggle.isVisible().catch(() => false)) {
+        await userMenuToggle.click();
+        await page.waitForTimeout(300);
       }
-      await page.waitForURL(/.*signin.html/);
+
+      const logoutButton = page.locator('.user-dropdown-signout, #logoutBtn, [data-action="logout"], .logout-btn').first();
+      if (await logoutButton.isVisible().catch(() => false)) {
+        await logoutButton.click();
+        const confirmBtn = page.locator('.swal2-confirm');
+        if (await confirmBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+          await confirmBtn.click();
+        }
+        await page.waitForURL(/.*signin/, { timeout: 20000 });
+        return;
+      }
+
+      await page.evaluate(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+      });
+      const cc = await page.evaluate(() =>
+        sessionStorage.getItem('clientGuid') || localStorage.getItem('clientGuid') || ''
+      );
+      const signinPath = cc ? `/signin.html?cc=${encodeURIComponent(cc)}` : '/signin.html';
+      await page.goto(signinPath);
+      await page.waitForURL(/.*signin/, { timeout: 20000 });
     });
   },
 });

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Macavation Phase 2 — Documentation</title>
+  <link rel="stylesheet" href="phase2-docs.css" />
+</head>
+<body>
+  <nav class="p2-topbar" aria-label="Phase 2 documentation">
+    <div class="p2-topbar-inner">
+      <span class="p2-topbar-title">Macavation Phase 2</span>
+      <a href="index.html" class="p2-active">Home</a>
+      <a href="implementation-plan.html">Implementation plan</a>
+      <a href="business-kickoff.html">Business kickoff</a>
+      <a href="uat-verification.html">UAT verification</a>
+      <a href="uat-acceptance.html">UAT acceptance</a>
+    </div>
+  </nav>
+
+  <main class="p2-wrap p2-wrap-wide">
+    <header class="p2-header">
+      <h1>Phase 2 documentation</h1>
+      <p class="p2-meta">Planning visibility, tighter controls, smarter alerts — delivery docs for Macavation &amp; CustomApp</p>
+      <p class="p2-lead">Open any guide below in your browser. Use <strong>Print</strong> (<kbd>Ctrl+P</kbd>) to save a PDF copy.</p>
+      <div class="p2-actions">
+        <a class="p2-btn p2-btn-primary" href="implementation-plan.html">Read implementation plan</a>
+        <a class="p2-btn" href="business-kickoff.html">Business kickoff checklist</a>
+      </div>
+    </header>
+
+    <section aria-labelledby="guides-heading">
+      <h2 id="guides-heading">Guides</h2>
+      <div class="p2-cards">
+        <a class="p2-card" href="implementation-plan.html">
+          <span class="p2-card-title">Implementation plan</span>
+          <span class="p2-card-desc">Full scope, epics, delivery sequence, effort estimates, risks, and current implementation status on UAT.</span>
+        </a>
+        <a class="p2-card" href="business-kickoff.html">
+          <span class="p2-card-title">Business kickoff checklist</span>
+          <span class="p2-card-desc">Pete data, alert thresholds, dashboard targets, report recipients, WhatsApp API, role matrix — Week 1 actions for Macavation.</span>
+        </a>
+        <a class="p2-card" href="uat-verification.html">
+          <span class="p2-card-title">UAT verification checklist</span>
+          <span class="p2-card-desc">Migrations, smoke tests, edge function deploy, cron schedules — for developers before go-live.</span>
+        </a>
+        <a class="p2-card" href="uat-acceptance.html">
+          <span class="p2-card-title">UAT acceptance checklist</span>
+          <span class="p2-card-desc">Success criteria and functional tests before Phase 2 sign-off.</span>
+        </a>
+      </div>
+    </section>
+
+    <section aria-labelledby="status-heading">
+      <h2 id="status-heading">Implementation status (summary)</h2>
+      <p>Migration <code>20260706100000_phase2_implementation_complete.sql</code> applied to UAT.</p>
+      <table>
+        <thead><tr><th>Deliverable</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Dashboard KPIs (recovery, yield, SOH, consolidated summary, oil forecast)</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+          <tr><td>Alert resolve + auto-clear + cron edge function</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+          <tr><td>Enriched email digest + WhatsApp edge function</td><td><span class="p2-badge p2-badge-partial">Deploy secrets + cron</span></td></tr>
+          <tr><td>Mass balance, procurement variance, shell automation</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+          <tr><td>Pete 24-month historical data</td><td><span class="p2-badge p2-badge-pending">Pending business</span></td></tr>
+          <tr><td>WhatsApp Meta Business API approval</td><td><span class="p2-badge p2-badge-pending">Pending Macavation IT</span></td></tr>
+        </tbody>
+      </table>
+      <p><a href="implementation-plan.html#implementation-status">Full status table →</a></p>
+    </section>
+
+    <section aria-labelledby="markdown-heading">
+      <h2 id="markdown-heading">Source files (repo)</h2>
+      <p>These HTML pages mirror the markdown in <code>docs/phase2/</code> for editing in git:</p>
+      <ul>
+        <li><code>PHASE2_IMPLEMENTATION_PLAN.md</code></li>
+        <li><code>BUSINESS_KICKOFF_CHECKLIST.md</code></li>
+        <li><code>UAT_VERIFICATION_CHECKLIST.md</code></li>
+        <li><code>UAT_ACCEPTANCE_CHECKLIST.md</code></li>
+        <li><code>PETE_HISTORICAL_DATA_TEMPLATE.md</code></li>
+        <li><code>KERNEL_HISTORICAL_IMPORT_RUNBOOK.md</code></li>
+      </ul>
+    </section>
+
+    <footer class="p2-footer">
+      Macavation Phase 2 · CustomApp · UAT project <code>nmdmddugxclpqrwylyfa</code>
+    </footer>
+  </main>
+</body>
+</html>
