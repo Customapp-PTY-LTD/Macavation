@@ -94,7 +94,7 @@
             </div>
         </div>
 
-        <div class="row mb-4" id="alertsContainer" style="display: none;"></div>
+        <div class="row mb-4" id="alertsContainer"></div>
         <div class="row g-3 mb-4" id="statsContainer" style="display: none;"></div>
 
         <div class="row">
@@ -172,8 +172,11 @@
                 <button type="button" class="btn btn-outline-secondary me-2" id="customizeDashboardBtn" title="Choose which stats to show">
                     <i class="fas fa-sliders-h me-1"></i>Customize
                 </button>
+                <button type="button" class="btn btn-outline-secondary me-2" id="execDailyReportBtn" title="Configure email and WhatsApp daily digest">
+                    <i class="fas fa-paper-plane me-1"></i>Daily report
+                </button>
                 <button type="button" class="btn btn-primary" id="generateReportBtn">
-                    <i class="fas fa-file-pdf me-1"></i>Generate Report
+                    <i class="fas fa-file-alt me-1"></i>Scheduled reports
                 </button>
             </div>
         </div>
@@ -189,6 +192,116 @@
                         <h6 class="text-muted">Total Production (kg)</h6>
                         <h3 id="totalProduction">0</h3>
                     </div>
+                </div>
+            </div>
+            <div class="col-md-5 mb-3" data-dashboard-widget="execProducedVsTarget">
+                <div class="card border-success h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Produced vs target</h6>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>Actual: <strong id="execProducedActual">—</strong> kg</span>
+                            <span>Target: <strong id="execProducedTarget">—</strong> kg</span>
+                        </div>
+                        <div class="progress mb-1" style="height: 8px;">
+                            <div class="progress-bar bg-success" id="execProducedProgress" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <small class="text-muted" id="execProducedPct">Set target in Dashboard Targets</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3" data-dashboard-widget="execRunway">
+                <div class="card border-info h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Raw material runway (kernel)</h6>
+                        <div class="small">SOH: <strong id="execRunwaySohKg">—</strong> kg</div>
+                        <div class="small">Demand: <strong id="execRunwayDemand">—</strong></div>
+                        <div class="mt-1">Cover: <strong id="execRunwayWeeks">—</strong> · <strong id="execRunwayMonths">—</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4" id="execPhase2KpiRow">
+            <div class="col-md-3 mb-3" data-dashboard-widget="execSoundRecovery">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Sound kernel recovery</h6>
+                        <h3 id="execSoundRecoveryPct">—</h3>
+                        <small class="text-muted" id="execProductionDelta">—</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3" data-dashboard-widget="execOilYield">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Oil yield</h6>
+                        <h3 id="execOilYieldPct">—</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3" data-dashboard-widget="execStockOnHand">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Stock on hand</h6>
+                        <div class="small">Kernel: <strong id="execSohKernel">—</strong> kg</div>
+                        <div class="small">Oil FG: <strong id="execSohOil">—</strong> kg</div>
+                        <div class="small">Oil RM: <strong id="execSohRm">—</strong> kg</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3" data-dashboard-widget="execConsolidatedSummary">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted">Oil consolidated batches</h6>
+                        <div class="small">Open: <strong id="execConOpenCount">—</strong></div>
+                        <div class="small">Litres (open): <strong id="execConOpenLitres">—</strong></div>
+                        <div class="small">With lab ref: <strong id="execConLabCount">—</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4" data-dashboard-widget="execDailyReportDelivery">
+            <div class="col-12">
+                <div class="card border-secondary">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="mb-0"><i class="fas fa-paper-plane me-2"></i>Daily report delivery</h5>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="execOpenScheduledReportsBtn">
+                            Manage subscriptions
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="fas fa-envelope fa-lg text-primary mt-1"></i>
+                                    <div>
+                                        <strong>Email digest</strong>
+                                        <div class="small text-muted">Live — add recipients under Support → Scheduled Reports → Email digest.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="fab fa-whatsapp fa-lg text-success mt-1"></i>
+                                    <div>
+                                        <strong>WhatsApp digest</strong>
+                                        <span class="badge bg-success ms-1">Live</span>
+                                        <div class="small text-muted">Add WhatsApp numbers under Support → Scheduled Reports (channel: WhatsApp). Requires Meta Business API credentials on the edge function.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4" data-dashboard-widget="execStockAlerts">
+            <div class="col-12">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="fas fa-flag me-2"></i>Active alerts</h5></div>
+                    <div class="card-body" id="execAlertsContainer"><p class="text-muted small mb-0">Loading alerts…</p></div>
                 </div>
             </div>
         </div>
@@ -410,6 +523,30 @@
                         </div>
                         <p class="text-muted small mb-0 mt-2 d-none" id="procurementForecastEmpty">No scheduled procurement or open forecast in the next 12 weeks.</p>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4" data-dashboard-widget="execOilTrends">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0">Oil production trends</h5></div>
+                    <div class="card-body"><div style="height:280px;"><canvas id="oilTrendsChart"></canvas></div></div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4" data-dashboard-widget="execStockAccuracy">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0">Stock accuracy</h5><small class="text-muted">Monthly % of SOH adjusted</small></div>
+                    <div class="card-body"><div style="height:280px;"><canvas id="stockAccuracyChart"></canvas></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6 mb-4" data-dashboard-widget="execOilForecast">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0">Oil production forecast (kg)</h5></div>
+                    <div class="card-body"><div style="height:280px;"><canvas id="oilForecastChart"></canvas></div></div>
                 </div>
             </div>
         </div>

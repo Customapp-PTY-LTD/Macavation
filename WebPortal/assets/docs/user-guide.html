@@ -45,11 +45,12 @@
       <h2 id="quick-start-heading">Quick start</h2>
       <ol>
         <li>Open the <a href="../../index.html">sign-in page</a> and log in with the account your administrator provided (your organisation may include a client link with a <code class="doc-kbd">cc</code> code in the URL).</li>
+        <li>Start at <strong>My Day</strong> or <strong>Find a batch</strong> when you are not sure which module to open.</li>
         <li>Use the <strong>left sidebar</strong> to open a module. What you see depends on your <strong>role</strong>.</li>
         <li>Start from <strong>grid</strong> or <strong>board</strong> views to see batches, stock lines, or records; open row actions, toolbars, or cards to run checklists, job cards, and forms.</li>
         <li>Use toolbar actions such as <strong>Create</strong>, <strong>Release to production</strong>, <strong>Send to Dispatch</strong>, <strong>Export</strong>, and <strong>Refresh</strong> as your screen provides them.</li>
         <li>Use <strong>Help</strong> on a screen to open the contextual topic for that module in a <strong>new browser tab</strong>.</li>
-        <li>Use <strong>Batch Journey</strong> when you know a batch identifier but not which module currently owns the work.</li>
+        <li>Use <strong>Find a batch</strong> when you know a batch identifier but not which module currently owns the work.</li>
       </ol>
       <a class="back-to-top" href="#top">Back to top</a>
     </section>
@@ -61,7 +62,10 @@
       <h3>Sidebar sections (typical)</h3>
       <ul>
         <li><strong>Dashboard</strong> — operational overview; may include Material Journey and Executive views.</li>
-        <li><strong>Batch Journey</strong> — search batches across intake, production, QA, and dispatch.</li>
+        <li><strong>Home</strong> — Dashboard and My Day (work queues).</li>
+        <li><strong>Find a batch</strong> — kernel and oil batch search with Open-in-module actions.</li>
+        <li><strong>Kernel pipeline</strong> / <strong>Oil pipeline</strong> — numbered intake → production → stock → dispatch steps.</li>
+        <li><strong>Support</strong> — forecasts, CRM, Quality, Documents, Business, integrations, User &amp; access.</li>
         <li><strong>CRM</strong> — contacts (NIS suppliers, kernel customers, oil and protein customers, ingredient suppliers, processors).</li>
         <li><strong>Kernel</strong> — Grower Intake, Kernel Production, Stock (Kernel), Kernel Dispatch.</li>
         <li><strong>Oil &amp; Protein</strong> — Supplier Intake, Oil Production, Stock (Oil &amp; Protein), Oil &amp; Protein Dispatch.</li>
@@ -150,7 +154,7 @@
       <h3>Stock (Kernel) and Kernel Dispatch</h3>
       <ul>
         <li><strong>Purpose:</strong> Warehouse truth for kernel lines; building and shipping customer baskets.</li>
-        <li><strong>Typical flow:</strong> Filter by location/status → align counts with the floor → finished batches with no dispatch stay on <strong>By style</strong> until the first dispatch line → use <strong>Adjust Stock</strong> for corrections (capture cartons or kg; boxes are calculated before save) → <strong>Add Batch</strong> can search completed batches by number and click to restore visibility, or create a new historical batch → <strong>Send to Dispatch</strong> → complete dispatch forms only when the physical load matches the basket. In <strong>Kernel Dispatch</strong>, use <strong>Find basket</strong> to type buyer, grower, or batch (single letter: batch prefix and name word-start; longer text: contains) and/or set supplier received date; <strong>Clear</strong> shows the full list again. If dispatch was recorded in error, Kernel Dispatch lets you <strong>Edit</strong> a dispatched basket to unlock it (clears paperwork) so you can dispatch again.</li>
+        <li><strong>Typical flow:</strong> Filter by location/status → align counts with the floor → batches with zero remaining in every style drop off <strong>By style</strong> → use <strong>Correct on-hand</strong> for corrections or to see fully dispatched batches that still have production yield (capture cartons or kg; boxes are calculated before save) → <strong>Add Batch</strong> can search completed batches by number and click to restore visibility, or create a new historical batch → after <strong>Send to Dispatch</strong>, a dialog offers <strong>Open Kernel Dispatch</strong> → complete dispatch forms only when the physical load matches the basket. In <strong>Kernel Dispatch</strong>, use <strong>Find basket</strong> to type buyer, grower, or batch (single letter: batch prefix and name word-start; longer text: contains) and/or set supplier received date; <strong>Clear</strong> shows the full list again. If dispatch was recorded in error, Kernel Dispatch lets you <strong>Edit</strong> a dispatched basket to unlock it (clears paperwork) so you can dispatch again.</li>
       </ul>
 
       <h3>Supplier Intake and Oil Production</h3>
@@ -191,7 +195,7 @@
       <ul>
         <li><strong>Dashboard</strong> — snapshot cards and links; refresh the browser if numbers look stale.</li>
         <li><strong>Material Journey / Executive</strong> — integrator or leadership views; use in-page refresh where provided. On the Executive dashboard, <strong>Production Trends</strong> includes a <strong>Hide weekends</strong> toggle (default on in daily view) to drop Saturday and Sunday from the chart axis.</li>
-        <li><strong>Batch Journey</strong> — cross-module batch search; follow links into the owning module to complete work.</li>
+        <li><strong>Find a batch</strong> — cross-module batch search; use <strong>Open</strong> to jump to the owning module.</li>
         <li><strong>Exports</strong> — many grids offer <strong>Export</strong> for spreadsheets; Data Import runs the opposite direction with strict templates.</li>
         <li><strong>Process diagrams</strong> — <a href="../../help/index.html#supply-chain-flow">supply chain flow</a> (embedded in the in-app guide) and standalone SVGs: <a href="../../help/assets/process-overview.svg" target="_blank" rel="noopener">process overview</a>, <a href="../../help/assets/kernel-batch-lifecycle.svg" target="_blank" rel="noopener">kernel lifecycle</a>, <a href="../../help/assets/oil-batch-lifecycle.svg" target="_blank" rel="noopener">oil lifecycle</a>, <a href="../../help/assets/crm-contacts-map.svg" target="_blank" rel="noopener">CRM map</a>, <a href="../../help/assets/user-access-flow.svg" target="_blank" rel="noopener">user &amp; access</a>.</li>
       </ul>

@@ -463,7 +463,12 @@ var _modal_stock_send_to_dispatch = (function () {
                 lines: lines
             }).then(function (result) {
                 if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined' && Swal.fire) Swal.fire({ icon: 'success', title: 'Dispatched', text: 'Dispatch order created successfully.', timer: 2000, showConfirmButton: false });
+                    var batchLabel = (lines[0] && lines[0].batch_number) ? lines[0].batch_number : '';
+                    if (typeof HandoffDialog !== 'undefined' && HandoffDialog.showSendToDispatch) {
+                        HandoffDialog.showSendToDispatch('kernel', batchLabel);
+                    } else if (typeof Swal !== 'undefined' && Swal.fire) {
+                        Swal.fire({ icon: 'success', title: 'Dispatched', text: 'Dispatch order created successfully.', timer: 2000, showConfirmButton: false });
+                    }
                     _dispatchLines = [];
                     _pendingDetails = null;
                     var modalEl = document.getElementById('sendToDispatchModal');

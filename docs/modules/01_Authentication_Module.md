@@ -45,7 +45,7 @@ CREATE TABLE roles (
 
 -- Seed data for Macavation roles
 INSERT INTO roles (role_name, role_description) VALUES
-    ('General Manager', 'Full system access - Jon Walters'),
+    ('General Manager', 'Full system access - Paul'),
     ('Production Manager', 'Production and maintenance oversight - Mark Payne'),
     ('Sales Executive', 'Sales, forecasting, CRM - Peter Symons'),
     ('QA Supervisor', 'Quality assurance and food safety - Simone Naidu'),

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phase 2 — Business kickoff checklist</title>
+  <link rel="stylesheet" href="phase2-docs.css" />
+</head>
+<body>
+  <nav class="p2-topbar" aria-label="Phase 2 documentation">
+    <div class="p2-topbar-inner">
+      <span class="p2-topbar-title">Macavation Phase 2</span>
+      <a href="index.html">Home</a>
+      <a href="implementation-plan.html">Implementation plan</a>
+      <a href="business-kickoff.html" class="p2-active">Business kickoff</a>
+      <a href="uat-verification.html">UAT verification</a>
+      <a href="uat-acceptance.html">UAT acceptance</a>
+    </div>
+  </nav>
+
+  <main class="p2-wrap">
+    <header class="p2-header">
+      <h1>Business kickoff checklist</h1>
+      <p class="p2-meta">Complete in Week 1 — parallel to dev UAT verification</p>
+    </header>
+
+    <h2>Pete historical data</h2>
+    <ul class="p2-checklist">
+      <li>Kickoff meeting scheduled (Pete, CustomApp)</li>
+      <li>Template shared: <code>PETE_HISTORICAL_DATA_TEMPLATE.md</code> (24-month kernel batches)</li>
+      <li>Confirmed: batch-level vs monthly aggregates for 24 months</li>
+      <li>Oil SOH snapshot scope agreed (or N/A documented)</li>
+      <li>Shell waste sales tracking confirmed with Pete</li>
+      <li>Target delivery date: ___________</li>
+    </ul>
+
+    <h2>Alert thresholds (Josslyn + Mark)</h2>
+    <p>Configure in portal: <strong>Admin → Stock Alert Rules</strong></p>
+    <table>
+      <thead><tr><th>Product</th><th>Style / grade</th><th>Min qty (kg)</th><th>Owner sign-off</th></tr></thead>
+      <tbody>
+        <tr><td>Kernel</td><td>SP</td><td></td><td></td></tr>
+        <tr><td>Kernel</td><td>0</td><td></td><td></td></tr>
+        <tr><td>Kernel</td><td>1</td><td></td><td></td></tr>
+        <tr><td>Oil finished</td><td>*</td><td></td><td></td></tr>
+        <tr><td>Oil RM</td><td>*</td><td></td><td></td></tr>
+        <tr><td>Shell</td><td>*</td><td></td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Dashboard targets (Paul)</h2>
+    <p>Configure in portal: <strong>Admin → Dashboard Targets</strong></p>
+    <table>
+      <thead><tr><th>Metric key</th><th>Target value</th><th>Period</th></tr></thead>
+      <tbody>
+        <tr><td><code>total_production_kg</code></td><td></td><td>monthly</td></tr>
+        <tr><td><code>quality_pass_rate</code></td><td></td><td>monthly</td></tr>
+        <tr><td><code>sound_kernel_recovery</code></td><td></td><td>monthly (optional)</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Daily report recipients (Paul)</h2>
+    <p>Configure in portal: <strong>Admin → Scheduled Reports</strong></p>
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>WhatsApp number</th><th>Channel</th></tr></thead>
+      <tbody>
+        <tr><td></td><td></td><td></td><td>email</td></tr>
+        <tr><td></td><td></td><td></td><td>whatsapp</td></tr>
+      </tbody>
+    </table>
+
+    <h2>WhatsApp Business API (Macavation IT)</h2>
+    <div class="p2-callout"><strong>Lead time:</strong> 2–6 weeks — start immediately. Phase 2 cannot sign off without WhatsApp.</div>
+    <ul class="p2-checklist">
+      <li>Meta Business account verified</li>
+      <li>WhatsApp Business API app created</li>
+      <li>Phone number registered and approved</li>
+      <li>Access token + Phone Number ID shared securely with CustomApp</li>
+      <li>Test message sent to Paul</li>
+    </ul>
+
+    <h2>Resend email (if not configured)</h2>
+    <ul class="p2-checklist">
+      <li>Domain verified for <code>reports@macavation.co.za</code> (or agreed sender)</li>
+      <li><code>RESEND_API_KEY</code> configured in Supabase Edge Function secrets</li>
+    </ul>
+
+    <h2>Role matrix for permissions</h2>
+    <p>Confirm which roles receive each action (configure in <strong>Role Actions</strong> after dev rollout):</p>
+    <table>
+      <thead><tr><th>Action</th><th>Production Mgr</th><th>QA</th><th>Stock</th><th>Oil</th><th>Sales</th><th>Admin</th></tr></thead>
+      <tbody>
+        <tr><td><code>stock.adjust_soh</code></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td><code>kernel.job_card.approve</code></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td><code>oil.consolidated.manage</code></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td><code>grower.procurement.manage</code></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td><code>alerts.resolve</code></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+
+    <footer class="p2-footer"><a href="index.html">← Back to Phase 2 home</a></footer>
+  </main>
+</body>
+</html>

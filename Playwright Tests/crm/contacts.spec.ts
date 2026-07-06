@@ -10,18 +10,12 @@ import { navigateToModule } from '../helpers/navigation.helper';
 test.describe('CRM - Contact Management @crm', () => {
 
   test.beforeEach(async ({ authenticatedPage }) => {
-    // Navigate to CRM module using sidebar
     await navigateToModule(authenticatedPage, 'crm-grid');
     await authenticatedPage.waitForLoadState('networkidle');
-    
-    // Wait for CRM content to load - look for tabs or tables
     await authenticatedPage.waitForSelector(
-      '#contactTypeTabs, #nisSuppliersTable, h1:has-text("Contact"), .crm-content', 
-      { state: 'visible', timeout: 15000 }
-    ).catch(() => {
-      console.log('CRM content not found with primary selectors, waiting for any content...');
-    });
-    
+      '#contactTypeTabs, #nisSuppliersTable, #nis-suppliers-tab, h1:has-text("Contact"), .crm-content',
+      { state: 'visible', timeout: 30000 }
+    );
     await authenticatedPage.waitForTimeout(500);
   });
 

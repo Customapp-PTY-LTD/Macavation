@@ -41,6 +41,114 @@ var _workflowViews = function () {
         },
 
         /**
+         * Client-side work queue from live batch data (exception-first sections).
+         */
+        buildClientWorkQueue: async function () {
+            var sections = {
+                intake: [],
+                production: [],
+                stockDispatch: []
+            };
+            if (typeof _dataFunctions === 'undefined' || !_dataFunctions.getKernelBatches) {
+                return sections;
+            }
+            try {
+                var intakeRows = await _dataFunctions.getKernelBatches(null, false, { status: 'intake,receiving', limit: 80 });
+                (intakeRows || []).forEach(function (b) {
+                    if (typeof BatchStatus === 'undefined') return;
+                    var d = BatchStatus.getDisplayStatus(b);
+                    if (d.bucket !== 'grower') return;
+                    var route = BatchStatus.getKernelRouteForStatus(d);
+                    sections.intake.push({
+                        id: 'ki-' + b.id,
+                        batch: b.batch_number || b.id,
+                        status: d.label,
+                        route: route.route,
+                        search: b.batch_number || '',
+                        searchInputId: route.searchInputId,
+                        actionLabel: 'Do now'
+                    });
+                });
+                var prodRows = await _dataFunctions.getKernelBatches(null, false, { status: 'production,qa', limit: 80 });
+                (prodRows || []).forEach(function (b) {
+                    if (typeof BatchStatus === 'undefined') return;
+                    var d = BatchStatus.getProductionKanbanStatus(b);
+                    if (d.filterValue === 'release_ready') {
+                        sections.production.push({
+                            id: 'kp-' + b.id,
+                            batch: b.batch_number || b.id,
+                            status: d.label,
+                            route: 'kernel-production-grid',
+                            search: b.batch_number || '',
+                            searchInputId: 'searchBatchesInput',
+                            actionLabel: 'Open production'
+                        });
+                    } else if (d.filterValue === 'awaiting_test') {
+                        sections.production.push({
+                            id: 'kp-test-' + b.id,
+                            batch: b.batch_number || b.id,
+                            status: d.label,
+                            route: 'kernel-production-grid',
+                            search: b.batch_number || '',
+                            searchInputId: 'searchBatchesInput',
+                            actionLabel: 'End sample'
+                        });
+                    }
+                });
+                var stockRows = await _dataFunctions.getKernelBatches(null, false, { status: 'complete', limit: 80 });
+                (stockRows || []).forEach(function (b) {
+                    if (typeof BatchStatus === 'undefined') return;
+                    var d = BatchStatus.getDisplayStatus(b);
+                    if (d.value !== 'stock') return;
+                    sections.stockDispatch.push({
+                        id: 'ks-' + b.id,
+                        batch: b.batch_number || b.id,
+                        status: d.label,
+                        route: 'stock-management-kernel',
+                        search: b.batch_number || '',
+                        searchInputId: null,
+                        actionLabel: 'Open stock'
+                    });
+                });
+            } catch (e) {
+                console.warn('[My Day] buildClientWorkQueue failed', e);
+            }
+            return sections;
+        },
+
+        renderWorkQueueSection: function (title, items, emptyText) {
+            if (!items || !items.length) {
+                return '<p class="text-muted small mb-0">' + (emptyText || 'Nothing here.') + '</p>';
+            }
+            return '<ul class="list-group list-group-flush">' + items.slice(0, 8).map(function (item) {
+                return '<li class="list-group-item d-flex justify-content-between align-items-center px-0">'
+                    + '<div><strong>' + (item.batch || '—') + '</strong>'
+                    + '<div class="small text-muted">' + (item.status || '') + '</div></div>'
+                    + '<button type="button" class="btn btn-sm btn-primary js-myday-work-action"'
+                    + ' data-route="' + (item.route || '') + '"'
+                    + ' data-search="' + (item.search || '').replace(/"/g, '&quot;') + '"'
+                    + ' data-search-input="' + (item.searchInputId || '') + '">'
+                    + (item.actionLabel || 'Do now') + '</button></li>';
+            }).join('') + '</ul>';
+        },
+
+        bindWorkQueueActions: function () {
+            var self = this;
+            document.querySelectorAll('.js-myday-work-action').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var route = btn.getAttribute('data-route');
+                    var search = btn.getAttribute('data-search') || '';
+                    var searchInputId = btn.getAttribute('data-search-input') || null;
+                    if (typeof HandoffDialog !== 'undefined' && route) {
+                        HandoffDialog.navigateToRoute(route, search, searchInputId || undefined);
+                    } else if (typeof _appRouter !== 'undefined' && _appRouter.routeTo && route) {
+                        _appRouter.routeTo(route);
+                    }
+                });
+            });
+        },
+
+        /**
          * Get "My Day" dashboard data
          */
         getMyDayData: async function () {
@@ -48,11 +156,12 @@ var _workflowViews = function () {
             if (!role) return null;
 
             try {
-                const [tasks, watching, dueItems, recentActivity] = await Promise.all([
+                const [tasks, watching, dueItems, recentActivity, workQueue] = await Promise.all([
                     this.getWorkflowTasks(role),
                     this.getWatchingItems(role),
                     this.getDueItems(role),
-                    this.getRecentActivity(role)
+                    this.getRecentActivity(role),
+                    this.buildClientWorkQueue()
                 ]);
 
                 return {
@@ -61,6 +170,7 @@ var _workflowViews = function () {
                     watching: watching,
                     dueItems: dueItems,
                     recentActivity: recentActivity,
+                    workQueue: workQueue,
                     timestamp: new Date().toISOString()
                 };
             } catch (error) {
@@ -152,7 +262,8 @@ var _workflowViews = function () {
             const container = document.getElementById(containerId);
             if (!container || !data) return;
 
-            const { role, tasks, watching, dueItems, recentActivity } = data;
+            const { role, tasks, watching, dueItems, recentActivity, workQueue } = data;
+            var wq = workQueue || { intake: [], production: [], stockDispatch: [] };
 
             const html = `
                 <div class="my-day-dashboard">
@@ -160,6 +271,33 @@ var _workflowViews = function () {
                         <h2 class="mb-1">Good ${this.getTimeOfDay()}, ${this.getUserName()}</h2>
                         <p class="text-muted mb-0">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                         <span class="badge bg-primary mt-2">${role}</span>
+                    </div>
+
+                    <div class="row g-4 mb-2">
+                        <div class="col-lg-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-warning text-dark">
+                                    <h5 class="mb-0"><i class="bi bi-inbox me-2"></i>Intake waiting</h5>
+                                </div>
+                                <div class="card-body">${this.renderWorkQueueSection('Intake', wq.intake, 'No intake batches need attention.')}</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-danger text-white">
+                                    <h5 class="mb-0"><i class="bi bi-gears me-2"></i>Production waiting</h5>
+                                </div>
+                                <div class="card-body">${this.renderWorkQueueSection('Production', wq.production, 'No production actions queued.')}</div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0"><i class="bi bi-warehouse me-2"></i>Stock &amp; dispatch</h5>
+                                </div>
+                                <div class="card-body">${this.renderWorkQueueSection('Stock', wq.stockDispatch, 'No stock handoffs queued.')}</div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row g-4">
@@ -229,6 +367,7 @@ var _workflowViews = function () {
             `;
 
             container.innerHTML = html;
+            this.bindWorkQueueActions();
         },
 
         /**

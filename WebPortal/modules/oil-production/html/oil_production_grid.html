@@ -78,6 +78,42 @@
         </div>
     </div>
 
+    <!-- Consolidated oil batches + fast search -->
+    <div class="card mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Consolidated batches</h5>
+            <button type="button" class="btn btn-sm btn-primary" id="opCreateConsolidatedBtn" data-action-perm="oil.consolidated.manage">
+                <i class="fas fa-plus me-1"></i>New consolidated batch
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row g-2 mb-3">
+                <div class="col-md-3">
+                    <input type="text" class="form-control form-control-sm" id="opOilSearchInput" placeholder="Search oil batches (number, product, shift)…">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control form-control-sm" id="opOilSearchFrom" title="From date">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control form-control-sm" id="opOilSearchTo" title="To date">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="opOilSearchStatus">
+                        <option value="">All statuses</option>
+                        <option value="production">Production</option>
+                        <option value="complete">Complete</option>
+                        <option value="intake">Intake</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="opOilSearchBtn">Search</button>
+                </div>
+            </div>
+            <div id="opOilSearchResults" class="small mb-3 text-muted">Search results appear here — select batches to add to a consolidated batch.</div>
+            <div id="opConsolidatedBatchesList"><p class="text-muted mb-0">Loading consolidated batches…</p></div>
+        </div>
+    </div>
+
     <!-- 2. Oil bin batches (production): Start oil bin / Send to stock -->
     <div class="card mb-4">
         <div class="card-header bg-light">
@@ -86,7 +122,7 @@
         <div class="card-body">
             <p class="text-muted small mb-3">Start an oil bin: you will be asked for the <strong>batch number</strong> (not auto-generated) and food vs cosmetic. <strong>Send to stock</strong> removes the batch from this list and creates a row in <strong>Stock Management</strong> (Oil stream — oil stock ledger, default location 801).</p>
             <div class="mt-2 mb-3">
-                <button type="button" class="btn btn-outline-primary" id="opStartOilBinBtn">
+                <button type="button" class="btn btn-outline-primary" id="opStartOilBinBtn" data-action-perm="oil.batch.create">
                     <i class="fas fa-play me-1"></i>Start oil bin
                 </button>
             </div>

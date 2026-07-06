@@ -47,6 +47,8 @@ var _growerIntakeGrid = function () {
 
         init: () => {
             const scope = _growerIntakeGrid;
+            if (typeof BatchStatus !== 'undefined') BatchStatus.applyModuleSubtitle('grower-intake-grid');
+            if (typeof HandoffDialog !== 'undefined') HandoffDialog.applyPendingSearchForRoute('grower-intake-grid');
             scope.bindEvents();
             scope.loadIntakeBatches(true);
             scope.loadProcurements(true);
@@ -515,6 +517,9 @@ var _growerIntakeGrid = function () {
 
                 var html = '<div class="kanban-card js-intake-batch-row" data-batch-id="' + b.id + '">';
                 html += '<div class="kanban-card-title">' + esc(batchNum) + '</div>';
+                if (typeof BatchStatus !== 'undefined') {
+                    html += '<div class="kanban-card-status-row">' + BatchStatus.statusBadgeHtml(BatchStatus.getDisplayStatus(b)) + '</div>';
+                }
                 html += '<div class="kanban-card-meta">';
                 if (b.grower_name) html += '<div class="kanban-card-meta-item" title="Grower / supplier"><i class="fas fa-user"></i> ' + esc(b.grower_name) + '</div>';
                 if (receivedDate) html += '<div class="kanban-card-meta-item" title="Received date"><i class="fas fa-calendar"></i> ' + esc(receivedDate) + '</div>';
@@ -639,8 +644,13 @@ var _growerIntakeGrid = function () {
                 var modalEl = document.getElementById('siloSelectionModal');
                 if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl).hide();
                 else if (typeof $ !== 'undefined') $('#siloSelectionModal').modal('hide');
-                if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released to production', text: 'Batch is in Kernel Production and assigned to silo(s) ' + selected.sort(function (a, b) { return a - b; }).join(', ') + '.', timer: 2500, showConfirmButton: false });
+                var batch = scope.intakeBatches.find(function (x) { return String(x.id) === String(kernelId); });
                 scope.loadIntakeBatches(true);
+                if (typeof HandoffDialog !== 'undefined' && HandoffDialog.showKernelReleaseToProduction) {
+                    HandoffDialog.showKernelReleaseToProduction(batch || { batch_number: kernelId });
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'success', title: 'Released to production', text: 'Batch is in Kernel Production and assigned to silo(s) ' + selected.sort(function (a, b) { return a - b; }).join(', ') + '.', timer: 2500, showConfirmButton: false });
+                }
             } catch (e) {
                 console.error(e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release or assign silos', 'error');
@@ -654,8 +664,13 @@ var _growerIntakeGrid = function () {
             try {
                 const result = await dataFunctions.releaseKernelToProduction({ kernel_id: batchId });
                 if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Released to production', text: 'Batch is now in Kernel Production. Start production, then complete and run tests to release to stock.', timer: 2500, showConfirmButton: false });
+                    var batch = scope.intakeBatches.find(function (x) { return String(x.id) === String(batchId); });
                     scope.loadIntakeBatches(true);
+                    if (typeof HandoffDialog !== 'undefined' && HandoffDialog.showKernelReleaseToProduction) {
+                        await HandoffDialog.showKernelReleaseToProduction(batch || { batch_number: batchId });
+                    } else if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'success', title: 'Released to production', text: 'Batch is now in Kernel Production. Start production, then complete and run tests to release to stock.', timer: 2500, showConfirmButton: false });
+                    }
                 } else {
                     throw new Error(result && result.error ? result.error : 'Release failed');
                 }

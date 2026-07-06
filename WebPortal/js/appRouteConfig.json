@@ -154,6 +154,33 @@
             ],
             "css": []
         },
+        "stock-alert-rules-grid": {
+            "description": "Stock Alert Rules",
+            "path": "stock-alert-rules",
+            "html": "html/stock_alert_rules_grid.html",
+            "js": [
+                "js/stock_alert_rules_grid.js"
+            ],
+            "css": []
+        },
+        "scheduled-reports-grid": {
+            "description": "Scheduled Reports",
+            "path": "scheduled-reports",
+            "html": "html/scheduled_reports_grid.html",
+            "js": [
+                "js/scheduled_reports_grid.js"
+            ],
+            "css": []
+        },
+        "messaging-compose-grid": {
+            "description": "Send Message",
+            "path": "messaging-compose",
+            "html": "html/messaging_compose_grid.html",
+            "js": [
+                "js/messaging_compose_grid.js"
+            ],
+            "css": []
+        },
         "features-grid": {
             "description": "Features Management",
             "path": "features",
@@ -475,6 +502,9 @@
             "path": "stock-management",
             "html": "html/stock_management_grid.html",
             "js": [
+                "js/stock_weekly_shared.js",
+                "js/stock_kernel_grid.js",
+                "js/stock_oil_grid.js",
                 "js/stock_management_grid.js"
             ],
             "css": [
@@ -486,6 +516,9 @@
             "path": "stock-management",
             "html": "html/stock_management_grid.html",
             "js": [
+                "js/stock_weekly_shared.js",
+                "js/stock_kernel_grid.js",
+                "js/stock_oil_grid.js",
                 "js/stock_management_grid.js"
             ],
             "css": [
@@ -497,6 +530,9 @@
             "path": "stock-management",
             "html": "html/stock_management_grid.html",
             "js": [
+                "js/stock_weekly_shared.js",
+                "js/stock_kernel_grid.js",
+                "js/stock_oil_grid.js",
                 "js/stock_management_grid.js"
             ],
             "css": [

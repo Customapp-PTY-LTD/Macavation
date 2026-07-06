@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Macavation Phase 2 — Implementation Plan</title>
+  <link rel="stylesheet" href="phase2-docs.css" />
+</head>
+<body>
+  <nav class="p2-topbar" aria-label="Phase 2 documentation">
+    <div class="p2-topbar-inner">
+      <span class="p2-topbar-title">Macavation Phase 2</span>
+      <a href="index.html">Home</a>
+      <a href="implementation-plan.html" class="p2-active">Implementation plan</a>
+      <a href="business-kickoff.html">Business kickoff</a>
+      <a href="uat-verification.html">UAT verification</a>
+      <a href="uat-acceptance.html">UAT acceptance</a>
+    </div>
+  </nav>
+
+  <main class="p2-wrap">
+    <header class="p2-header">
+      <h1>Phase 2 — Implementation Plan</h1>
+      <p class="p2-meta"><strong>Audience:</strong> Macavation leadership, Pete (data), CustomApp delivery team</p>
+      <p class="p2-meta"><strong>Capacity:</strong> 1 full-stack developer, ~5 days/week</p>
+      <p class="p2-meta"><strong>Sign-off:</strong> Email and WhatsApp daily digest both live before Phase 2 close</p>
+      <div class="p2-actions">
+        <a class="p2-btn" href="javascript:window.print()">Print / Save as PDF</a>
+        <a class="p2-btn" href="business-kickoff.html">Business kickoff →</a>
+      </div>
+    </header>
+
+    <nav class="p2-toc" aria-label="Table of contents">
+      <strong>On this page</strong>
+      <ul>
+        <li><a href="#implementation-status">Implementation status</a></li>
+        <li><a href="#executive-summary">Executive summary</a></li>
+        <li><a href="#where-to-start">Where to start</a></li>
+        <li><a href="#epics">Epic breakdown</a></li>
+        <li><a href="#delivery-sequence">Delivery sequence</a></li>
+        <li><a href="#dependencies">Business dependencies</a></li>
+        <li><a href="#success-criteria">Success criteria</a></li>
+        <li><a href="#risks">Risks</a></li>
+        <li><a href="#effort">Effort summary</a></li>
+        <li><a href="#next-steps">Next steps</a></li>
+      </ul>
+    </nav>
+
+    <h2 id="implementation-status">Implementation status (July 2026)</h2>
+    <p>Migration applied to UAT: <code>20260706100000_phase2_implementation_complete.sql</code></p>
+    <table>
+      <thead><tr><th>Deliverable</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard KPIs (recovery, yield, SOH, consolidated summary, oil forecast)</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+        <tr><td>Alert resolve + auto-clear + cron edge function</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+        <tr><td>Enriched email digest + WhatsApp edge function</td><td><span class="p2-badge p2-badge-partial">Deploy secrets + cron</span></td></tr>
+        <tr><td>Mass balance NIS + procurement variance + week summary</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+        <tr><td>Shell auto-lot from production + dispatch</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+        <tr><td>Messaging entity links + link_params</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+        <tr><td>Oil search date/status filters</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+        <tr><td>Permissions action keys (12 new keys)</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+        <tr><td>Oil historical import RPC</td><td><span class="p2-badge p2-badge-done">Implemented</span></td></tr>
+        <tr><td>Pete 24-month data load</td><td><span class="p2-badge p2-badge-pending">Pending business</span></td></tr>
+        <tr><td>WhatsApp Meta Business API approval</td><td><span class="p2-badge p2-badge-pending">Pending Macavation IT</span></td></tr>
+        <tr><td>Full permissions RPC tightening per role matrix</td><td><span class="p2-badge p2-badge-partial">Partial</span></td></tr>
+        <tr><td>Oil consolidated lab document upload</td><td><span class="p2-badge p2-badge-pending">Pending</span></td></tr>
+        <tr><td>Shell lot movement history UI</td><td><span class="p2-badge p2-badge-pending">Pending</span></td></tr>
+      </tbody>
+    </table>
+    <p>Checklists: <a href="uat-verification.html">UAT verification</a> · <a href="business-kickoff.html">Business kickoff</a> · <a href="uat-acceptance.html">UAT acceptance</a></p>
+
+    <h2 id="executive-summary">Executive summary</h2>
+    <p>Phase 1 gave Macavation a working portal for kernel and oil operations. Phase 2 adds <strong>planning visibility, tighter controls, and smarter alerts</strong> so the system guides daily decisions, not just records them.</p>
+    <p>A substantial portion of Phase 2 was <strong>already implemented</strong> in the repository before this sprint. Remaining work is deployment, business configuration, historical data loading, and targeted gap-filling.</p>
+    <table>
+      <thead><tr><th>Area</th><th>Built (approx.)</th><th>Remaining focus</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard enhancements</td><td>~70%</td><td>KPI widgets, oil forecast chart, trend deltas</td></tr>
+        <tr><td>Stock alerts</td><td>~75%</td><td>Resolve workflow, scheduled evaluation</td></tr>
+        <tr><td>Daily reporting</td><td>~55%</td><td>Deploy cron, WhatsApp Business API</td></tr>
+        <tr><td>Historical data</td><td>~30%</td><td>Pete dataset + import sign-off</td></tr>
+        <tr><td>Permissions</td><td>~40%</td><td>Role matrix + RPC grants</td></tr>
+        <tr><td>In-app messaging</td><td>~70%</td><td>Entity deep links</td></tr>
+        <tr><td>Grower intake / mass balance</td><td>~65%</td><td>NIS reconciliation, procurement variance</td></tr>
+        <tr><td>Shell waste</td><td>~50%</td><td>Auto-lot, dispatch workflow</td></tr>
+        <tr><td>Oil module</td><td>~75%</td><td>Search filters, lab doc upload</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Estimated remaining dev effort:</strong> 58–72 person-days (~12–15 calendar weeks at 5 days/week), plus business-side tasks.</p>
+
+    <h2 id="where-to-start">Where to start (Week 1–2)</h2>
+    <p>Three parallel tracks — do <strong>not</strong> wait for Pete's data before starting dev work.</p>
+
+    <h3>Track A — Verify and deploy (dev)</h3>
+    <ol>
+      <li>Confirm UAT has all Phase 2 migrations applied (<a href="uat-verification.html">checklist</a>)</li>
+      <li>Run <code>npm run db:check-project</code> — must point to UAT</li>
+      <li>Smoke-test executive dashboard, stock alerts, scheduled reports, messaging, grower intake, oil consolidated batches</li>
+    </ol>
+
+    <h3>Track B — Business prerequisites (Macavation)</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Owner</th></tr></thead>
+      <tbody>
+        <tr><td>Pete historical data kickoff</td><td>Pete</td></tr>
+        <tr><td>Alert thresholds</td><td>Josslyn + Mark</td></tr>
+        <tr><td>Dashboard targets</td><td>Paul</td></tr>
+        <tr><td>Report recipients</td><td>Paul</td></tr>
+        <tr><td>WhatsApp Business API (start immediately)</td><td>Macavation IT</td></tr>
+      </tbody>
+    </table>
+    <p><a href="business-kickoff.html">Full business kickoff checklist →</a></p>
+
+    <h3>Track C — Email digest infrastructure (dev)</h3>
+    <ol>
+      <li>Deploy <code>send-daily-digest</code> edge function to UAT</li>
+      <li>Configure <code>RESEND_API_KEY</code>, cron <code>0 6 * * *</code> SAST</li>
+      <li>Add test subscribers in Scheduled Reports admin</li>
+    </ol>
+
+    <h2 id="epics">Epic breakdown</h2>
+
+    <h3>Epic 1 — Historical data (2 years)</h3>
+    <p>Trustworthy trend charts and runway backed by ~24 months of history. Kernel import RPC and CLI exist; oil import RPC added. <strong>Blocked on Pete data delivery.</strong></p>
+
+    <h3>Epic 2 — Advanced permissions</h3>
+    <p>Button/action control per role — UI via <code>action-access.js</code> and API via <code>role_permissions</code>. Action keys seeded; role matrix workshop needed.</p>
+
+    <h3>Epic 3 — In-app messaging</h3>
+    <p>Notification inbox with read/unread; entity picker and <code>link_params</code> for deep links to batches, stock, grower intake.</p>
+
+    <h3>Epic 4 — Stock red-flag alerts</h3>
+    <p>Configurable thresholds; evaluate on stock grid load + scheduled cron; resolve UI; auto-clear when stock recovers.</p>
+
+    <h3>Epic 5 — Daily reporting (email + WhatsApp)</h3>
+    <p>Enriched digest: kernel, oil, alerts, procurement, runway, produced vs target. Email via Resend; WhatsApp via Meta Cloud API.</p>
+
+    <h3>Epic 6 — Dashboard enhancements</h3>
+    <p>Sound kernel recovery, oil yield, stock on hand, oil forecast chart, consolidated batch summary, produced vs target, runway, production trends.</p>
+
+    <h3>Epic 7 — Shell waste tracking</h3>
+    <p>Auto-create shell lots from production <code>shell_total</code>; dispatch workflow on kernel stock screen.</p>
+
+    <h3>Epic 8 — Grower intake: mass balance &amp; procurement</h3>
+    <p>NIS-in vs cracked/packed; planned vs actual procurement variance; this-week summary card.</p>
+
+    <h3>Epic 9 — Oil module</h3>
+    <p>Batch search with date/status filters; consolidated batches with lab ref; release workflow polish.</p>
+
+    <h2 id="delivery-sequence">Recommended delivery sequence</h2>
+    <table>
+      <thead><tr><th>Phase</th><th>Weeks</th><th>Focus</th><th>Milestone</th></tr></thead>
+      <tbody>
+        <tr><td>2a Visibility</td><td>3–5</td><td>Dashboard, alerts, email digest</td><td>Leadership uses dashboard daily</td></tr>
+        <tr><td>2b Kernel upstream</td><td>6–9</td><td>Mass balance, shell waste, historical import</td><td>Procurement workspace live</td></tr>
+        <tr><td>2c Control</td><td>10–12</td><td>Permissions, messaging links</td><td>Unauthorized actions blocked</td></tr>
+        <tr><td>2d Oil + close</td><td>13–15</td><td>Oil polish, WhatsApp, UAT sign-off</td><td>Phase 2 sign-off</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="dependencies">Business dependency register</h2>
+    <table>
+      <thead><tr><th>Dependency</th><th>Lead time</th><th>Owner</th></tr></thead>
+      <tbody>
+        <tr><td>Pete 24-month kernel batch file</td><td>2–5 weeks</td><td>Pete</td></tr>
+        <tr><td>WhatsApp Business API approved account</td><td>2–6 weeks</td><td>Macavation IT</td></tr>
+        <tr><td>Alert threshold values</td><td>1 meeting</td><td>Josslyn, Mark</td></tr>
+        <tr><td>Dashboard target values</td><td>1 meeting</td><td>Paul</td></tr>
+        <tr><td>Daily report recipient list</td><td>1 day</td><td>Paul</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="success-criteria">Success criteria</h2>
+    <table>
+      <thead><tr><th>Criterion</th><th>Verification</th></tr></thead>
+      <tbody>
+        <tr><td>Leadership uses dashboard / daily report</td><td>Paul confirms daily use for 2 consecutive weeks</td></tr>
+        <tr><td>Red flags prevent stock-outs</td><td>Alert fires in UAT; clears on recovery</td></tr>
+        <tr><td>Oil consolidated batches with lab results</td><td>≥1 in production with lab doc attached</td></tr>
+        <tr><td>Two years of history in trend charts</td><td>24-month range after Pete sign-off</td></tr>
+      </tbody>
+    </table>
+    <p><a href="uat-acceptance.html">Full acceptance checklist →</a></p>
+
+    <h2 id="risks">Risks and mitigations</h2>
+    <table>
+      <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td>WhatsApp Meta approval delayed</td><td>Apply Week 1; parallel email go-live</td></tr>
+        <tr><td>Pete data delayed</td><td>Use monthly aggregates initially</td></tr>
+        <tr><td>Permissions misaligned (UI vs API)</td><td>RPC grant audit per action</td></tr>
+        <tr><td>Scope creep (CRM, GMP forms)</td><td>Explicitly out of Phase 2 scope</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="effort">Effort summary</h2>
+    <table>
+      <thead><tr><th>Epic</th><th>Dev days</th></tr></thead>
+      <tbody>
+        <tr><td>1 Historical data</td><td>12–15</td></tr>
+        <tr><td>2 Permissions</td><td>18</td></tr>
+        <tr><td>3 Messaging</td><td>4–5</td></tr>
+        <tr><td>4 Stock alerts</td><td>5–6</td></tr>
+        <tr><td>5 Daily reporting</td><td>10–11</td></tr>
+        <tr><td>6 Dashboard</td><td>13–14</td></tr>
+        <tr><td>7 Shell waste</td><td>7–8</td></tr>
+        <tr><td>8 Grower intake</td><td>9</td></tr>
+        <tr><td>9 Oil module</td><td>6</td></tr>
+        <tr><td><strong>Net remaining</strong></td><td><strong>58–72</strong></td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="next-steps">Immediate next steps</h2>
+    <ol>
+      <li><strong>Macavation:</strong> Schedule Pete kickoff; submit WhatsApp Business API application; provide thresholds and recipients (<a href="business-kickoff.html">checklist</a>).</li>
+      <li><strong>Dev:</strong> Deploy edge functions and cron (<a href="uat-verification.html">verification checklist</a>).</li>
+      <li><strong>Both:</strong> Confirm role matrix for permissions epic.</li>
+      <li><strong>Sign-off:</strong> Run <a href="uat-acceptance.html">UAT acceptance</a> before production cutover.</li>
+    </ol>
+
+    <footer class="p2-footer">
+      <a href="index.html">← Back to Phase 2 home</a> · Source: <code>PHASE2_IMPLEMENTATION_PLAN.md</code>
+    </footer>
+  </main>
+</body>
+</html>

@@ -4,6 +4,9 @@
         <h1 class="h2">Document Management</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
             <a href="help/index.html#document-management-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <button type="button" class="btn btn-outline-primary me-2" id="newFolderBtn">
+                <i class="fas fa-folder-plus me-1"></i>New folder
+            </button>
             <button type="button" class="btn btn-primary" id="uploadDocBtn">
                 <i class="fas fa-upload me-1"></i>Upload
             </button>
@@ -54,6 +57,7 @@
 <div id="docContextMenu" class="doc-context-menu" style="display:none;" role="menu" aria-label="Folder actions">
     <div class="doc-context-menu-header small text-muted px-3 pt-2 pb-1" id="docContextMenuLabel">Upload here</div>
     <ul>
+        <li data-ctx-action="new-folder"><i class="fas fa-folder-plus me-2"></i>New folder</li>
         <li data-ctx-action="upload-files"><i class="fas fa-file me-2"></i>Upload file(s) here</li>
         <li data-ctx-action="upload-folder"><i class="fas fa-folder-open me-2"></i>Upload folder here</li>
     </ul>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phase 2 — UAT verification checklist</title>
+  <link rel="stylesheet" href="phase2-docs.css" />
+</head>
+<body>
+  <nav class="p2-topbar" aria-label="Phase 2 documentation">
+    <div class="p2-topbar-inner">
+      <span class="p2-topbar-title">Macavation Phase 2</span>
+      <a href="index.html">Home</a>
+      <a href="implementation-plan.html">Implementation plan</a>
+      <a href="business-kickoff.html">Business kickoff</a>
+      <a href="uat-verification.html" class="p2-active">UAT verification</a>
+      <a href="uat-acceptance.html">UAT acceptance</a>
+    </div>
+  </nav>
+
+  <main class="p2-wrap">
+    <header class="p2-header">
+      <h1>UAT verification checklist</h1>
+      <p class="p2-meta">Run after applying Phase 2 migrations on Macavation UAT</p>
+    </header>
+
+    <h2>Pre-flight</h2>
+    <pre><code>npm run db:check-project
+# Must report: dev → UAT / nmdmddugxclpqrwylyfa
+
+npm run db:apply -- migrations/20260706100000_phase2_implementation_complete.sql
+
+node scripts/verify-phase2-migrations.mjs</code></pre>
+
+    <h2>Required migrations (Phase 2 cluster)</h2>
+    <table>
+      <thead><tr><th>Migration</th><th>Feature</th></tr></thead>
+      <tbody>
+        <tr><td><code>20260601090000_kernel_intake_procurement.sql</code></td><td>Procurement calendar</td></tr>
+        <tr><td><code>20260602110000_dashboard_targets.sql</code></td><td>Dashboard targets</td></tr>
+        <tr><td><code>20260602120000_dashboard_forecast_aggregates.sql</code></td><td>Forecast charts</td></tr>
+        <tr><td><code>20260602130000_stock_alerts_and_accuracy.sql</code></td><td>Stock alert rules</td></tr>
+        <tr><td><code>20260602140000_oil_consolidated_shell_massbalance.sql</code></td><td>Oil consolidated, shell lots, mass balance</td></tr>
+        <tr><td><code>20260602150000_notifications.sql</code></td><td>In-app messaging</td></tr>
+        <tr><td><code>20260602160000_scheduled_reports.sql</code></td><td>Daily digest schema</td></tr>
+        <tr><td><code>20260629120000_phase2_portal_features.sql</code></td><td>Runway, oil trends, default alert rules</td></tr>
+        <tr><td><code>20260706100000_phase2_implementation_complete.sql</code></td><td>Phase 2 completion RPCs</td></tr>
+        <tr><td><code>20260706110000_phase2_grants_fix.sql</code></td><td>Re-grants after signature changes</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Smoke test (UAT portal)</h2>
+    <table>
+      <thead><tr><th>Module</th><th>Route</th><th>Pass</th></tr></thead>
+      <tbody>
+        <tr><td>Executive dashboard</td><td>Home → Dashboard</td><td></td></tr>
+        <tr><td>Stock alert rules</td><td>Admin → Stock Alert Rules</td><td></td></tr>
+        <tr><td>Scheduled reports</td><td>Admin → Scheduled Reports</td><td></td></tr>
+        <tr><td>Messaging compose</td><td>Admin → Send Message</td><td></td></tr>
+        <tr><td>Role actions</td><td>Admin → Role Actions</td><td></td></tr>
+        <tr><td>Grower intake</td><td>Grower Intake</td><td></td></tr>
+        <tr><td>Oil production</td><td>Oil Production</td><td></td></tr>
+        <tr><td>Kernel stock</td><td>Stock → Kernel</td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h2>Edge functions (deploy to UAT)</h2>
+    <pre><code>supabase functions deploy send-daily-digest --project-ref nmdmddugxclpqrwylyfa
+supabase functions deploy send-daily-digest-whatsapp --project-ref nmdmddugxclpqrwylyfa
+supabase functions deploy evaluate-stock-alerts-cron --project-ref nmdmddugxclpqrwylyfa</code></pre>
+    <p><strong>Secrets:</strong> <code>RESEND_API_KEY</code>, <code>DIGEST_FROM_EMAIL</code>, <code>WHATSAPP_ACCESS_TOKEN</code>, <code>WHATSAPP_PHONE_NUMBER_ID</code></p>
+
+    <h3>Cron (Supabase Dashboard → Edge Functions)</h3>
+    <table>
+      <thead><tr><th>Function</th><th>Schedule</th><th>Timezone</th></tr></thead>
+      <tbody>
+        <tr><td><code>send-daily-digest</code></td><td><code>0 6 * * *</code></td><td>Africa/Johannesburg</td></tr>
+        <tr><td><code>send-daily-digest-whatsapp</code></td><td><code>5 6 * * *</code></td><td>Africa/Johannesburg</td></tr>
+        <tr><td><code>evaluate-stock-alerts-cron</code></td><td><code>0 7,12,17 * * *</code></td><td>Africa/Johannesburg</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Sign-off</h2>
+    <ul class="p2-checklist">
+      <li>All migrations applied without error</li>
+      <li>Smoke tests pass for all modules above</li>
+      <li>Test email digest received</li>
+      <li>Test WhatsApp digest received (after Business API approval)</li>
+      <li>Gaps logged in ClickUp Phase 2 list</li>
+    </ul>
+
+    <footer class="p2-footer"><a href="index.html">← Back to Phase 2 home</a></footer>
+  </main>
+</body>
+</html>

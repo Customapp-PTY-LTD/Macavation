@@ -110,6 +110,8 @@ var _supplierIntakeGrid = function () {
 
         init: () => {
             const scope = _supplierIntakeGrid;
+            if (typeof BatchStatus !== 'undefined') BatchStatus.applyModuleSubtitle('supplier-intake-grid');
+            if (typeof HandoffDialog !== 'undefined') HandoffDialog.applyPendingSearchForRoute('supplier-intake-grid');
             scope.bindEvents();
             scope.loadBatches(true);
             const loadPromises = [];
@@ -151,7 +153,10 @@ var _supplierIntakeGrid = function () {
                 }
             });
             $('#exportSupplierIntakeBtn').off('click').on('click', () => scope.exportBatches());
-            $('#siViewKanban, #siViewTable, #siViewWeekly, #siViewOverview').off('click').on('click', function () {
+            $('#siViewKanban, #siViewTable').off('click').on('click', function () {
+                scope.toggleView($(this).data('view'));
+            });
+            $(document).off('click.siMoreView', '.js-si-more-view').on('click.siMoreView', '.js-si-more-view', function () {
                 scope.toggleView($(this).data('view'));
             });
 
@@ -287,7 +292,7 @@ var _supplierIntakeGrid = function () {
                 return;
             }
             Swal.fire({
-                title: 'Adjust stock',
+                title: 'Quick stock entry',
                 text: 'Are you adding new bags or editing an existing batch?',
                 input: 'radio',
                 inputOptions: {
@@ -391,8 +396,7 @@ var _supplierIntakeGrid = function () {
             else if (view === 'overview') scope.renderOverview();
             $('#siViewKanban').toggleClass('active', view === 'kanban');
             $('#siViewTable').toggleClass('active', view === 'table');
-            $('#siViewWeekly').toggleClass('active', view === 'weekly');
-            $('#siViewOverview').toggleClass('active', view === 'overview');
+            $('#siMoreViewsBtn').toggleClass('active', view === 'weekly' || view === 'overview');
         },
 
         renderKanbanIntake: () => {
@@ -420,6 +424,9 @@ var _supplierIntakeGrid = function () {
                 var deleteBtn = '<button type="button" class="btn btn-sm btn-outline-danger js-supplier-intake-delete" data-batch-id="' + esc(batchId) + '" title="Remove from intake"><i class="fas fa-trash-alt"></i></button>';
                 var html = '<div class="kanban-card js-supplier-intake-card" data-batch-id="' + batchId + '" data-kanban-id="' + esc(batchId) + '">';
                 html += '<div class="kanban-card-title">' + esc(batchNum) + '</div>';
+                if (typeof BatchStatus !== 'undefined') {
+                    html += '<div class="kanban-card-status-row">' + BatchStatus.statusBadgeHtml(BatchStatus.getOilDisplayStatus(b)) + '</div>';
+                }
                 html += '<div class="kanban-card-meta">';
                 if (productStr !== '—') html += '<div class="kanban-card-meta-item"><i class="fas fa-box"></i> ' + esc(productStr) + '</div>';
                 if (supplierStr !== '—') html += '<div class="kanban-card-meta-item"><i class="fas fa-truck"></i> ' + esc(supplierStr) + '</div>';
@@ -875,17 +882,22 @@ var _supplierIntakeGrid = function () {
                                 icon: 'warning',
                                 title: 'Released — dashboard warning',
                                 html: 'The weight before production is more than <strong>50 kg</strong> below intake weight. A warning has been added to the <strong>dashboard</strong>.',
-                                confirmButtonText: 'OK'
-                            }).then(function () {
+                                confirmButtonText: 'Open Oil Production'
+                            }).then(function (res) {
                                 scope.loadBatches(true);
-                                if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('oil-production-grid');
-                                else window.location.hash = '#oil-production-grid';
+                                if (res && res.isConfirmed && typeof HandoffDialog !== 'undefined') {
+                                    HandoffDialog.showOilReleaseToProduction(batch);
+                                } else if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
+                                    _appRouter.routeTo('oil-production-grid');
+                                }
                             });
                         } else {
-                            Swal.fire({ icon: 'success', title: 'Released', text: 'Batch has been moved to Oil Production.', timer: 2500, showConfirmButton: false });
                             scope.loadBatches(true);
-                            if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) _appRouter.routeTo('oil-production-grid');
-                            else window.location.hash = '#oil-production-grid';
+                            if (typeof HandoffDialog !== 'undefined' && HandoffDialog.showOilReleaseToProduction) {
+                                HandoffDialog.showOilReleaseToProduction(batch);
+                            } else if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
+                                _appRouter.routeTo('oil-production-grid');
+                            }
                         }
                     } else {
                         scope.loadBatches(true);

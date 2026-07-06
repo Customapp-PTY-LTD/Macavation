@@ -4,7 +4,7 @@ Phase 2 Epic 1 requires **~2 years of abbreviated historical data** from Pete be
 
 **Related ClickUp:** Macavation → **Phase 2** list → Epic 1 → *Collect Pete abbreviated 2-year dataset*
 
-**Related repo:** `migrations/20260403000001_import_historical_kernel_batch.sql`, `WebPortal/js/data-functions.js` (`importHistoricalKernelBatch`)
+**Related repo:** `migrations/20260403000001_import_historical_kernel_batch.sql`, `WebPortal/js/data-functions.js` (`importHistoricalKernelBatch`), **[Kernel historical import runbook](KERNEL_HISTORICAL_IMPORT_RUNBOOK.md)**
 
 ---
 
@@ -113,7 +113,7 @@ Complete with Pete and Josslyn (stock) / Mark (production) before closing Epic 1
 
 - [ ] **Pete:** “Abbreviated historical data is accurate enough for dashboard and trend use.”
 - [ ] **Josslyn:** Stock on hand after import matches physical spot-check (sample styles)
-- [ ] **Jon / Paul:** Approved to use imported history in production dashboard
+- [ ] **Paul:** Approved to use imported history in production dashboard
 
 ### Sign-off record
 
@@ -121,7 +121,7 @@ Complete with Pete and Josslyn (stock) / Mark (production) before closing Epic 1
 |------|------|------|---------------------------|
 | Sales / data owner | Pete | | |
 | Stock admin | Josslyn | | |
-| General manager | Jon | | |
+| General manager | Paul | | |
 
 ---
 

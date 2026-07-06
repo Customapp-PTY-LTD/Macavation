@@ -280,32 +280,16 @@
 
   <section id="document-management-grid" class="guide-section" data-guide-id="document-management-grid">
     <h2>Document Management (module)</h2>
-<p class="guide-lead">A File Explorer-style browser for storing operational documents in nested folders.</p>
-    <p class="guide-how">Navigate folders like Windows Explorer — click to open, use Back and breadcrumbs to return. Upload an entire folder and its structure is preserved automatically.</p>
+<p class="guide-lead">Store and organise operational documents linked to the business.</p>
+    <p class="guide-how">Upload with clear titles and categories; link to entities when offered so colleagues find files from batches or contacts later.</p>
 
-    <h3 class="guide-subhead">Navigating</h3>
+    <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
-      <li>Open <strong>Document Management</strong> from the menu. The root view shows top-level folders and any loose files.</li>
-      <li>Click a folder name to open it. Subfolders and files inside appear in the table.</li>
-      <li>Use the <strong>Back</strong> arrow or click any segment in the breadcrumb bar to navigate up.</li>
-      <li>Use the <strong>Search</strong> box to find files and folders across all levels at once — results show the folder path so you know where each file lives.</li>
-    </ol>
-
-    <h3 class="guide-subhead">Uploading</h3>
-    <ol class="guide-page-steps">
-      <li>Navigate to the folder you want to upload into (or stay at Home to place files at the root), then click <strong>Upload</strong>. You can also <strong>right-click</strong> any folder in the table or any segment of the breadcrumb to upload directly into that location without navigating there first — choose <em>Upload file(s) here</em> or <em>Upload folder here</em> from the menu that appears.</li>
-      <li>The dialog shows <em>Uploading to: [current location]</em> so you always know where files will land.</li>
-      <li><strong>Single file:</strong> click <strong>Select files</strong>, pick one file, and edit the document title if needed (pre-filled from the filename).</li>
-      <li><strong>Multiple files:</strong> click <strong>Select files</strong> and hold Ctrl/Cmd to select several. Each file uses its filename as the title automatically.</li>
-      <li><strong>Whole folder:</strong> click <strong>Upload folder</strong> and choose a directory. The original subfolder structure is recreated inside the current location — a mini tree preview shows exactly what will be created before you confirm.</li>
-      <li>Each file must be <strong>6 MB or smaller</strong>. Oversized files are flagged in the preview before you upload.</li>
-      <li>A progress line tracks the current file. On completion a summary reports how many documents were saved, and lists any failures.</li>
-    </ol>
-
-    <h3 class="guide-subhead">Deleting</h3>
-    <ol class="guide-page-steps">
-      <li>To delete a single file, use the trash button on its row.</li>
-      <li>To delete a folder, use the trash button on the folder row. You will be warned if the folder contains files or subfolders — confirming removes everything inside recursively.</li>
+      <li>Open <strong>Document management</strong> from the menu.</li>
+      <li>Navigate folders with breadcrumbs or by clicking folder names; use <strong>New folder</strong> to add a subfolder in the current location.</li>
+      <li>Click <strong>Upload</strong> while inside any folder to add files there, or right-click the explorer for upload and new-folder shortcuts.</li>
+      <li>Use the search box to find documents by name or category; clear the search to see the full list.</li>
+      <li>Use row actions to download or remove files; delete a folder to remove nested content after confirmation.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/document-management-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -341,15 +325,16 @@
 
   <section id="executive-dashboard" class="guide-section" data-guide-id="executive-dashboard">
     <h2>Executive dashboard &amp; reporting</h2>
-<p class="guide-lead">KPIs and reporting for leadership. Use <strong>Customize</strong> to choose visible widgets and <strong>Generate Report</strong> for PDF output.</p>
-    <p class="guide-how">Choose widgets with Customize, export PDFs with Generate Report, and treat figures as summaries—drill into Kernel / Oil &amp; protein modules for detail.</p>
+<p class="guide-lead">KPIs and reporting for leadership: production trends, procurement forecast, runway, sound kernel recovery, oil yield, stock on hand, consolidated oil batches, and active alerts with resolve actions.</p>
+    <p class="guide-how">Choose widgets with Customize. Use <strong>Resolve</strong> on active alerts when stock recovers or the issue is handled. Daily email and WhatsApp digests are configured under Scheduled Reports.</p>
 
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>Executive dashboard</strong> from the menu.</li>
-      <li>Click <strong>Customize</strong> (or equivalent) to choose which KPI widgets and charts appear.</li>
-      <li>Use <strong>Generate report</strong> or export controls when you need a PDF or file for meetings.</li>
-      <li>Treat numbers as summaries—open Kernel or Oil &amp; protein modules for line-level detail when something needs investigation.</li>
+      <li>Review Phase 2 KPI cards: recovery %, oil yield, stock on hand, and open consolidated oil batches.</li>
+      <li>Click <strong>Customize</strong> to choose which KPI widgets and charts appear.</li>
+      <li>On <strong>Active alerts</strong>, click <strong>Resolve</strong> (requires <em>Resolve alerts</em> action permission) to clear handled red flags.</li>
+      <li>Use <strong>Manage subscriptions</strong> on the daily report card to add email or WhatsApp digest recipients.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/executive-dashboard.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -577,7 +562,7 @@
     <ol class="guide-page-steps">
       <li>Open from kernel production for a batch entering or progressing production.</li>
       <li>Fill job card fields (styles, yields, equipment) per your factory standard.</li>
-      <li>Press <strong>Save job card</strong> to keep your edits (autosave also runs while you type). Press <strong>Jobcard approved</strong> when you are ready to commit stock quantities.</li>
+      <li>Save; downstream release-to-stock steps depend on accurate job card data.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-kernel-job-card.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -635,6 +620,23 @@
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/material-journey-dashboard.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="messaging-compose-grid" class="guide-section" data-guide-id="messaging-compose-grid">
+    <h2>Messaging Compose (module)</h2>
+<p class="guide-lead">Module <strong>Messaging Compose (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
+    <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open this module from the sidebar when your role includes access.</li>
+      <li>Use search, filters, and <strong>Clear</strong> (if shown) to find the rows you need.</li>
+      <li>Use toolbar buttons (add, export, refresh) for actions that create new records or refresh the whole list.</li>
+      <li>Use row actions or links inside each row to open detail, edit, or the next step in the workflow.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/messaging-compose-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 
@@ -1028,6 +1030,24 @@
     </figure>
   </section>
 
+  <section id="scheduled-reports-grid" class="guide-section" data-guide-id="scheduled-reports-grid">
+    <h2>Scheduled Reports (module)</h2>
+<p class="guide-lead">Module <strong>Scheduled Reports (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
+    <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Support → Scheduled Reports</strong> (or <strong>Executive Dashboard → Daily report</strong> / <strong>Manage subscriptions</strong>).</li>
+      <li><strong>Email digest</strong> tab — add recipient emails; active rows receive the enriched daily summary at 06:00 SAST.</li>
+      <li><strong>WhatsApp digest</strong> tab — add phone numbers with channel <strong>WhatsApp</strong>; requires Meta Business API credentials on the edge function.</li>
+      <li>Each subscription row has email, phone, channel, and active flag — save after editing.</li>
+      <li>Use <strong>Load preview</strong> at the bottom to see the full digest JSON shared by both channels.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/scheduled-reports-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
   <section id="modal-send-to-dispatch" class="guide-section" data-guide-id="modal-send-to-dispatch">
     <h2>Send To Dispatch (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
@@ -1055,6 +1075,23 @@
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-send-to-dispatch-oil.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="stock-alert-rules-grid" class="guide-section" data-guide-id="stock-alert-rules-grid">
+    <h2>Stock Alert Rules (module)</h2>
+<p class="guide-lead">Module <strong>Stock Alert Rules (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
+    <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
+
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open this module from the sidebar when your role includes access.</li>
+      <li>Use search, filters, and <strong>Clear</strong> (if shown) to find the rows you need.</li>
+      <li>Use toolbar buttons (add, export, refresh) for actions that create new records or refresh the whole list.</li>
+      <li>Use row actions or links inside each row to open detail, edit, or the next step in the workflow.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/stock-alert-rules-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
   </section>
 

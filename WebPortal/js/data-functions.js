@@ -1703,10 +1703,14 @@ var _dataFunctions = function () {
                 var row = Array.isArray(raw) ? raw[0] : (raw && raw.get_kernel_mass_balance ? raw.get_kernel_mass_balance[0] : raw);
                 if (!row) return { cracked_kg: 0, packed_kg: 0, balance_kg: 0, balance_pct: 0 };
                 return {
+                    nis_in_kg: Number(row.nis_in_kg) || 0,
                     cracked_kg: Number(row.cracked_kg) || 0,
                     packed_kg: Number(row.packed_kg) || 0,
                     balance_kg: Number(row.balance_kg) || 0,
-                    balance_pct: Number(row.balance_pct) || 0
+                    balance_pct: Number(row.balance_pct) || 0,
+                    procurement_scheduled_kg: Number(row.procurement_scheduled_kg) || 0,
+                    procurement_received_kg: Number(row.procurement_received_kg) || 0,
+                    procurement_variance_kg: Number(row.procurement_variance_kg) || 0
                 };
             } catch (e) {
                 console.warn('[Mass balance] get_kernel_mass_balance failed. Apply migration 20260602140000_oil_consolidated_shell_massbalance.sql.', e.message);
@@ -1763,8 +1767,9 @@ var _dataFunctions = function () {
                 p_type: n.type || 'info',
                 p_severity: n.severity || 'info',
                 p_link_route: n.link_route || null,
-                p_target_user_id: n.target_user_id || null,
-                p_target_role_id: n.target_role_id || null,
+                p_link_params: n.link_params || null,
+                p_target_user_id: n.target_user_id || n.user_id || null,
+                p_target_role_id: n.target_role_id || n.role_id || null,
                 p_created_by: n.created_by || null
             }, token);
         },
@@ -1786,8 +1791,130 @@ var _dataFunctions = function () {
                 p_email: report.email || null,
                 p_report_type: report.report_type || 'daily_digest',
                 p_channel: report.channel || 'email',
-                p_is_active: report.is_active !== false
+                p_is_active: report.is_active !== false,
+                p_phone: report.phone || null
             }, token);
+        },
+
+        resolveDashboardAlert: async function (alertId, note, token = null) {
+            return await this.callFunction('resolve_dashboard_alert', {
+                p_alert_id: alertId,
+                p_note: note || null
+            }, token);
+        },
+
+        getPhase2ExtendedKpis: async function (token = null) {
+            var raw = await this.callFunction('get_phase2_extended_kpis', {}, token, { useCache: false });
+            if (raw && raw.get_phase2_extended_kpis) return raw.get_phase2_extended_kpis;
+            return raw || {};
+        },
+
+        getOilForecastByWeek: async function (weeks, token = null) {
+            var raw = await this.callFunction('get_oil_forecast_by_week', { p_weeks: parseInt(weeks, 10) || 12 }, token, { useCache: false });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.get_oil_forecast_by_week)) return raw.get_oil_forecast_by_week;
+            return [];
+        },
+
+        getConsolidatedBatchDashboardSummary: async function (token = null) {
+            var raw = await this.callFunction('get_consolidated_batch_dashboard_summary', {}, token, { useCache: false });
+            if (raw && raw.get_consolidated_batch_dashboard_summary) return raw.get_consolidated_batch_dashboard_summary;
+            return raw || {};
+        },
+
+        getProcurementWeekSummary: async function (token = null) {
+            var raw = await this.callFunction('get_procurement_week_summary', {}, token, { useCache: false });
+            if (raw && raw.get_procurement_week_summary) return raw.get_procurement_week_summary;
+            return raw || {};
+        },
+
+        autoCreateShellLotFromProduction: async function (batchNumber, shellKg, notes, token = null) {
+            return await this.callFunction('auto_create_shell_lot_from_production', {
+                p_batch_number: batchNumber,
+                p_shell_kg: shellKg,
+                p_notes: notes || null
+            }, token);
+        },
+
+        dispatchShellStockLot: async function (lotId, customerRef, notes, token = null) {
+            return await this.callFunction('dispatch_shell_stock_lot', {
+                p_lot_id: lotId,
+                p_customer_ref: customerRef || null,
+                p_notes: notes || null
+            }, token);
+        },
+
+        getShellStockMovements: async function (lotId, token = null) {
+            var raw = await this.callFunction('get_shell_stock_movements', { p_lot_id: lotId }, token, { useCache: false });
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.get_shell_stock_movements)) return raw.get_shell_stock_movements;
+            return [];
+        },
+
+        importHistoricalOilStockLot: async function (data, token = null) {
+            return await this.callFunction('import_historical_oil_stock_lot', {
+                p_lot_number: data.lot_number,
+                p_product_type: data.product_type || 'oil',
+                p_quantity: data.quantity || 0,
+                p_as_at_date: data.as_at_date || null,
+                p_location: data.location || null,
+                p_batch_number: data.batch_number || null
+            }, token);
+        },
+
+        importKernelIntakeProcurementRow: async function (data, token = null) {
+            return await this.callFunction('import_kernel_intake_procurement_row', {
+                p_scheduled_date: data.scheduled_date,
+                p_grower_name: data.grower_name,
+                p_predicted_weight_kg: data.predicted_weight_kg || 0,
+                p_supplier_id: data.supplier_id || null
+            }, token);
+        },
+
+        /** Daily digest JSON for preview and edge function. */
+        getDailyDigest: async function (token = null) {
+            var raw = await this.callFunction('get_daily_digest', {}, token, { useCache: false });
+            if (raw && raw.get_daily_digest) return raw.get_daily_digest;
+            return raw || {};
+        },
+
+        /** Notify all users with a role by role_name. */
+        notifyRole: async function (n, token = null) {
+            return await this.callFunction('notify_role', {
+                p_role_name: n.role_name || n.roleName,
+                p_title: n.title,
+                p_body: n.body || null,
+                p_type: n.type || 'info',
+                p_severity: n.severity || 'info',
+                p_link_route: n.link_route || null
+            }, token);
+        },
+
+        /** Daily oil litres and protein kg for executive dashboard chart. */
+        getOilProductionTrendsDaily: async function (days, token = null) {
+            try {
+                var raw = await this.callFunction('get_oil_production_trends_daily', { p_days: parseInt(days, 10) || 365 }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_oil_production_trends_daily)) return raw.get_oil_production_trends_daily;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_oil_production_trends_daily failed. Apply migration 20260629120000_phase2_portal_features.sql.', e.message);
+                return [];
+            }
+        },
+
+        /** Kernel SOH vs forecast demand runway summary. */
+        getKernelRunwaySummary: async function (token = null) {
+            try {
+                var raw = await this.callFunction('get_kernel_runway_summary', {}, token, { useCache: false });
+                if (raw && raw.get_kernel_runway_summary) return raw.get_kernel_runway_summary;
+                if (Array.isArray(raw) && raw[0]) return raw[0];
+                return raw || {};
+            } catch (e) {
+                console.warn('[Dashboard] get_kernel_runway_summary failed.', e.message);
+                return {};
+            }
         },
 
         /**

@@ -602,7 +602,9 @@ var _modal_stock_send_to_dispatch_oil = (function () {
                 lines: lines
             }).then(function (result) {
                 if (result && result.success !== false) {
-                    if (typeof Swal !== 'undefined' && Swal.fire) {
+                    if (typeof HandoffDialog !== 'undefined' && HandoffDialog.showSendToDispatch) {
+                        HandoffDialog.showSendToDispatch('oil', (_pendingDetails && _pendingDetails.buyer_name) || '');
+                    } else if (typeof Swal !== 'undefined' && Swal.fire) {
                         Swal.fire({ icon: 'success', title: 'Order created', text: 'Oil dispatch order has been created. You can view it under Oil & Protein Dispatch.', timer: 3000, showConfirmButton: true });
                     }
                     var modalEl = document.getElementById('sendToDispatchOilModal');

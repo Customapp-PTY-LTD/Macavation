@@ -91,7 +91,7 @@
         <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0"><i class="fas fa-seedling me-2"></i>Kernel batch journey</h5>
             <div class="btn-toolbar">
-                <button type="button" class="btn btn-outline-primary btn-sm" id="importHistoricalKernelBtn" title="Load historical batches from Macadamia Kernel Statistics Excel">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="importHistoricalKernelBtn" data-action-perm="stock.import_batch" title="Load historical batches from Macadamia Kernel Statistics Excel">
                     <i class="fas fa-file-import me-1"></i>Import historical
                 </button>
                 <button type="button" class="btn btn-success" id="sendToDispatchBtn">
@@ -100,17 +100,18 @@
             </div>
         </div>
         <div class="card-body">
-            <div class="d-flex justify-content-end mb-3">
+            <div class="d-flex justify-content-end mb-3 align-items-center gap-2 flex-wrap">
                 <div class="view-toggle">
                     <button type="button" class="view-toggle-btn active" data-view="bystyle" id="ksViewByStyle" title="By style">
                         <i class="fas fa-layer-group me-1"></i>By style
                     </button>
-                    <button type="button" class="view-toggle-btn" data-view="weekly" id="ksViewWeekly" title="Weekly stock in / out">
-                        <i class="fas fa-calendar-week me-1"></i>Weekly
-                    </button>
-                    <button type="button" class="view-toggle-btn" data-view="overview" id="ksViewOverview" title="Overview by style">
-                        <i class="fas fa-chart-pie me-1"></i>Overview
-                    </button>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="ksMoreViewsBtn" data-bs-toggle="dropdown" aria-expanded="false">More views</button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="ksMoreViewsBtn">
+                        <li><button type="button" class="dropdown-item js-ks-more-view" data-view="weekly">Weekly</button></li>
+                        <li><button type="button" class="dropdown-item js-ks-more-view" data-view="overview">Overview</button></li>
+                    </ul>
                 </div>
             </div>
             <!-- By style view (default) -->
@@ -120,8 +121,8 @@
             <h6 class="text-secondary d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <span>Kernel Stock by style</span>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="toggleKernelAdjustModeBtn" title="Turn stock adjustment mode on or off">
-                        <i class="fas fa-balance-scale me-1"></i>Adjust Stock
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="toggleKernelAdjustModeBtn" title="Turn stock correction mode on or off">
+                        <i class="fas fa-balance-scale me-1"></i>Correct on-hand
                     </button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshKernelStockBtn" title="Reload kernel stock data">
                         <i class="fas fa-sync-alt me-1"></i>Refresh
@@ -170,9 +171,27 @@
                 </table>
             </div>
             <div class="d-flex justify-content-end mt-3" id="kernelAdjustModeAddBatchRow" style="display: none;">
-                <button type="button" class="btn btn-success" id="kernelAdjustModeAddBatchBtn">
+                <button type="button" class="btn btn-success" id="kernelAdjustModeAddBatchBtn" data-action-perm="stock.import_batch">
                     <i class="fas fa-plus me-1"></i>Add Batch
                 </button>
+            </div>
+            <div class="card mt-4 border-secondary" id="shellWasteStockCard">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-recycle me-2"></i>Shell waste (saleable stock)</h6>
+                    <button type="button" class="btn btn-sm btn-primary" id="addShellLotBtn" data-action-perm="stock.shell.manage">
+                        <i class="fas fa-plus me-1"></i>Add lot
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead><tr><th>Lot</th><th>Source batch</th><th class="text-end">Kg</th><th>Status</th><th></th></tr></thead>
+                            <tbody id="shellStockLotsBody">
+                                <tr><td colspan="5" class="text-center text-muted py-3">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             </div>
             <!-- Weekly view: stock in by style or stock out by style (dropdown) -->
@@ -296,12 +315,13 @@
                     <button type="button" class="view-toggle-btn active" data-oil-view="bystock" id="osViewByStock" title="Stock tables">
                         <i class="fas fa-table me-1"></i>Stock
                     </button>
-                    <button type="button" class="view-toggle-btn" data-oil-view="weekly" id="osViewWeekly" title="Weekly in / out">
-                        <i class="fas fa-calendar-week me-1"></i>Weekly
-                    </button>
-                    <button type="button" class="view-toggle-btn" data-oil-view="overview" id="osViewOverview" title="Totals">
-                        <i class="fas fa-chart-pie me-1"></i>Overview
-                    </button>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="osMoreViewsBtn" data-bs-toggle="dropdown" aria-expanded="false">More views</button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="osMoreViewsBtn">
+                        <li><button type="button" class="dropdown-item js-os-more-view" data-oil-view="weekly">Weekly</button></li>
+                        <li><button type="button" class="dropdown-item js-os-more-view" data-oil-view="overview">Overview</button></li>
+                    </ul>
                 </div>
             </div>
 

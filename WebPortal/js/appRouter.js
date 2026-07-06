@@ -279,6 +279,10 @@ var _appRouter = function () {
             // Initialize module after loading with a small delay to ensure scripts are executed
             setTimeout(() => {
                 _appRouter.initializeModule(routeName);
+                if (typeof actionAccess !== 'undefined' && actionAccess.apply) {
+                    var root = document.getElementById('content-area') || document.querySelector(elementSelector);
+                    if (root) actionAccess.apply(root);
+                }
             }, 100);
 
             return result;
