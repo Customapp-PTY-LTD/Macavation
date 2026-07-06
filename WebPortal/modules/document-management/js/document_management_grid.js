@@ -104,6 +104,7 @@ var _documentManagementGrid = (function () {
             var scope = _documentManagementGrid;
 
             $('#uploadDocBtn').on('click', function () { scope.openUploadModal(undefined, false); });
+            $('#newFolderBtn').on('click', function () { scope.promptCreateFolder(scope.currentFolderId); });
 
             $('#docUploadFile').on('change', function () { scope.onFilesSelected(this.files); });
             $('#docUploadFolderBtn').on('click', function () { scope.openFolderPicker(); });
@@ -189,6 +190,10 @@ var _documentManagementGrid = (function () {
                 var action = $(this).data('ctx-action');
                 var targetId = scope.contextMenuFolderId;
                 scope.hideContextMenu();
+                if (action === 'new-folder') {
+                    scope.promptCreateFolder(targetId);
+                    return;
+                }
                 scope.openUploadModal(targetId, action === 'upload-folder');
             });
 
@@ -308,8 +313,8 @@ var _documentManagementGrid = (function () {
 
             if (childFolders.length === 0 && childDocs.length === 0) {
                 var emptyMsg = scope.currentFolderId
-                    ? 'This folder is empty. Upload files to add documents here.'
-                    : 'No documents yet. Click \u201cUpload\u201d to add files or folders.';
+                    ? 'This folder is empty. Use New folder or Upload to add content here.'
+                    : 'No documents yet. Use New folder or Upload to get started.';
                 tbody.html('<tr><td colspan="5" class="text-center text-muted py-5">' +
                     '<i class="fas fa-folder-open me-2"></i>' + escapeHtml(emptyMsg) + '</td></tr>');
                 return;
@@ -856,6 +861,73 @@ var _documentManagementGrid = (function () {
         },
 
         // ── Folder actions ────────────────────────────────────────────────────
+
+        promptCreateFolder: function (parentFolderId) {
+            var scope = _documentManagementGrid;
+            var locationLabel = scope.folderIdToLabel(parentFolderId);
+            if (typeof Swal === 'undefined') {
+                var name = window.prompt('New folder name (in ' + locationLabel + '):');
+                if (name && name.trim()) scope.doCreateFolder(name.trim(), parentFolderId);
+                return;
+            }
+            Swal.fire({
+                title: 'New folder',
+                html: 'Create inside <strong>' + escapeHtml(locationLabel) + '</strong>',
+                input: 'text',
+                inputPlaceholder: 'Folder name',
+                inputAttributes: { maxlength: 200 },
+                showCancelButton: true,
+                confirmButtonText: 'Create',
+                inputValidator: function (value) {
+                    if (!value || !value.trim()) return 'Enter a folder name';
+                }
+            }).then(function (res) {
+                if (res.isConfirmed && res.value) {
+                    scope.doCreateFolder(res.value.trim(), parentFolderId);
+                }
+            });
+        },
+
+        doCreateFolder: function (name, parentFolderId) {
+            var scope = _documentManagementGrid;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.createDocumentCategory) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Create folder not available', 'error');
+                return;
+            }
+            var parentId = parentFolderId || null;
+            var dup = scope.allCategories.some(function (c) {
+                return (c.name || '').toLowerCase() === name.toLowerCase() &&
+                    ((parentId == null && c.parent_id == null) || c.parent_id === parentId);
+            });
+            if (dup) {
+                if (typeof Swal !== 'undefined') Swal.fire('Warning', 'A folder with this name already exists at this location.', 'warning');
+                return;
+            }
+            dataFunctions.createDocumentCategory({
+                name: name,
+                parent_id: parentId
+            }).then(function (raw) {
+                var result = unwrapRpcResult(raw, 'create_document_category_simple');
+                if (!result || result.success === false || !result.id) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', (result && result.error) || 'Could not create folder', 'error');
+                    return;
+                }
+                return dataFunctions.getDocumentCategories().then(function (cats) {
+                    scope.allCategories = Array.isArray(cats) ? cats : [];
+                    if (scope.docSearchQuery) {
+                        scope.docSearchQuery = '';
+                        $('#docSearchInput').val('');
+                        $('#docSearchClear').hide();
+                    }
+                    scope.renderExplorer();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'success', title: 'Folder created', timer: 1500, showConfirmButton: false });
+                    }
+                });
+            }).catch(function (e) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Could not create folder', 'error');
+            });
+        },
 
         deleteFolder: function (folderId) {
             var scope = _documentManagementGrid;
