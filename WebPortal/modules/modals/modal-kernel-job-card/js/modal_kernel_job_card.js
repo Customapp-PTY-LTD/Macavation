@@ -853,7 +853,7 @@ var _modal_kernel_job_card = (function () {
                 _kernelProductionGrid.patchBatchJobcardApproved(kernelId, true);
             }
             if (typeof dataFunctions !== 'undefined' && dataFunctions.notifyRole) {
-                var batchNum = (detail && (detail.batch_number || detail.BatchNumber)) || kernelId;
+                var batchNum = (row && (row.batch_number || row.BatchNumber)) || kernelId;
                 dataFunctions.notifyRole({
                     role_name: 'Production Manager',
                     title: 'Job card approved',

@@ -291,6 +291,7 @@ var _kernelProductionGrid = function () {
             });
             $(document).on('click', '.js-end-sample-batch', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
                 const batchId = $(this).data('batch-id');
                 if (!batchId) return;
                 var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch ? _kernelProductionGrid.getBatch(batchId) : null;
@@ -359,6 +360,7 @@ var _kernelProductionGrid = function () {
             });
             $(document).on('click', '.js-job-card-batch', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
                 const batchId = $(this).data('batch-id');
                 if (!batchId) return;
                 // Job card is always editable; open edit modal every time
@@ -366,9 +368,9 @@ var _kernelProductionGrid = function () {
                     _modal_kernel_job_card.showJobCardModalForBatch(batchId);
                 }
             });
-            // Kanban card click → batch history
+            // Kanban card click → batch history (card body only; not action buttons / More menu)
             $(document).on('click', '#kpKanbanBoard .kanban-card', function (e) {
-                if ($(e.target).closest('button, .btn').length) return;
+                if ($(e.target).closest('.kanban-card-actions, .dropdown, button, .btn, a').length) return;
                 const batchId = $(this).data('batch-id');
                 if (batchId && typeof _modal_batch_history !== 'undefined' && _modal_batch_history.show) {
                     _modal_batch_history.show(batchId);
