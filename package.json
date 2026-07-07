@@ -10,6 +10,7 @@
     "db:check-uat-advisors": "node scripts/check-uat-advisors.mjs",
     "supabase:sync-portal": "node scripts/sync-portal-supabase-config.mjs",
     "verify:portal-routing": "node scripts/verify-portal-data-routing.mjs",
-    "verify:uat-lambda-cors": "node scripts/check-uat-lambda-cors.mjs"
+    "verify:uat-lambda-cors": "node scripts/check-uat-lambda-cors.mjs",
+    "rbac:verify": "node scripts/verify-rbac-parity.mjs"
   }
 }
