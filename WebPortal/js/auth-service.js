@@ -1,23 +1,21 @@
 /**
  * Authentication Service for Macavation
- * Integrates with Lambda Proxy for Google OAuth and RBAC
+ * Direct Supabase only — no AWS Lambda proxy.
  */
 
-function resolveLambdaBaseUrl() {
+function resolveSupabaseAuthConfig() {
     const cfg = (typeof window !== 'undefined' && window.MACAVATION_SUPABASE) ? window.MACAVATION_SUPABASE : null;
-    if (cfg && typeof cfg.getLambdaBaseUrl === 'function') {
-        return cfg.getLambdaBaseUrl();
+    if (!cfg || !cfg.url || !cfg.anonKey) {
+        // Never guess a database: fail loudly instead of authenticating
+        // against the wrong environment.
+        throw new Error('auth-service.js: macavation-supabase.js must be loaded first.');
     }
-    const fromCfg = cfg && cfg.lambdaProxyUrl
-        ? String(cfg.lambdaProxyUrl).replace(/\/proxy\/function$/, '')
-        : '';
-    if (fromCfg) return fromCfg;
-    return 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws';
+    return cfg;
 }
 
 class AuthService {
     constructor() {
-        this.proxyUrl = resolveLambdaBaseUrl();
+        this.supabaseCfg = resolveSupabaseAuthConfig();
         this.token = Session.get('token');
         this.userInfo = this.getUserInfo();
         this._featuresFetchPromise = null;
@@ -146,29 +144,27 @@ class AuthService {
     }
 
     /**
-     * Authenticates with Google via the Lambda proxy.
+     * Authenticates with Google. The id_token signature check happens in the
+     * Supabase Edge Function auth-google (no AWS involved).
      * @param {string} idToken - Google JWT id_token from Google OAuth.
-     * @returns {Promise<object>} - The authentication result from the Lambda proxy.
+     * @returns {Promise<object>} - {success, token, user}.
      */
     async authenticateWithGoogle(idToken) {
         try {
-            const response = await fetch(`${this.proxyUrl}/auth/login`, {
+            const response = await fetch(`${this.supabaseCfg.url}/functions/v1/auth-google`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.supabaseCfg.anonKey}`,
+                    'apikey': this.supabaseCfg.anonKey
                 },
-                body: JSON.stringify({
-                    provider: 'google',
-                    id_token: idToken
-                })
+                body: JSON.stringify({ id_token: idToken })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const result = await response.json().catch(() => null);
+            if (!response.ok || !result || result.success !== true) {
+                throw new Error((result && result.message) || `Google sign-in failed (HTTP ${response.status}).`);
             }
-
-            const result = await response.json();
             if (result.token && result.user) {
                 this.token = result.token;
                 this.userInfo = result.user;
@@ -323,9 +319,11 @@ class AuthService {
     }
 
     /**
-     * Make authenticated API call to Lambda proxy
+     * RETIRED: the AWS Lambda proxy is gone; use dataFunctions.callFunction.
      */
     async makeAuthenticatedRequest(endpoint, options = {}) {
+        throw new Error('makeAuthenticatedRequest is retired — the Lambda proxy no longer exists. Use dataFunctions.callFunction.');
+        /* eslint-disable no-unreachable */
         if (!this.token) {
             throw new Error('No authentication token available');
         }
@@ -366,20 +364,23 @@ class AuthService {
     }
 
     /**
-     * Call a database function through the proxy
+     * Call a database function directly via Supabase PostgREST.
      */
     async callFunction(functionName, params = {}, token = null) {
         try {
-            const response = await fetch(`${this.proxyUrl}/proxy/function`, {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.supabaseCfg.anonKey}`,
+                'apikey': this.supabaseCfg.anonKey
+            };
+            const auditUserId = this.userInfo && (this.userInfo.id || this.userInfo.user_id);
+            if (auditUserId) {
+                headers['X-User-Id'] = auditUserId;
+            }
+            const response = await fetch(`${this.supabaseCfg.url}/rest/v1/rpc/${encodeURIComponent(functionName)}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token || this.token}`
-                },
-                body: JSON.stringify({
-                    function: functionName,
-                    params: params
-                })
+                headers: headers,
+                body: JSON.stringify(params || {})
             });
 
             if (!response.ok) {

@@ -14,9 +14,28 @@ var _signin = function () {
     }
     const SUPABASE_URL = cfg.url;
     const SUPABASE_ANON_KEY = cfg.anonKey;
-    const LAMBDA_PROXY_URL = cfg.lambdaProxyUrl.replace(/\/proxy\/function$/, '');
     cfg.assertMacavationSupabaseUrl(SUPABASE_URL);
     const DEFAULT_CLIENT_GUID = '9e1d961a-bfc2-469d-8526-8af75f536656';
+
+    /** Direct PostgREST RPC call — auth goes straight to Supabase, no Lambda. */
+    const supabaseRpc = async (fn, params) => {
+        const response = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + encodeURIComponent(fn), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                'apikey': SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify(params || {})
+        });
+        const text = await response.text();
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) { /* non-JSON body */ }
+        if (!response.ok) {
+            throw new Error((data && (data.message || data.error || data.hint)) || ('HTTP ' + response.status));
+        }
+        return data;
+    };
 
     let sbClient = null;
     try {
@@ -39,23 +58,11 @@ var _signin = function () {
      * Returns full user object for user_info, or null on failure (caller can fall back to minimal user).
      */
     const fetchFullUserData = async (token, userId) => {
-        if (!token || !userId) return null;
+        if (!userId) return null;
         try {
-            const response = await fetch(LAMBDA_PROXY_URL + '/proxy/function', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify({
-                    function: 'get_user_by_id',
-                    params: { p_id: userId }
-                })
-            });
-            if (!response.ok) return null;
-            const data = await response.json();
-            // Proxy may return { data: row } or the row directly; normalize to one object
-            const userRow = data && (data.data !== undefined ? data.data : data);
+            const data = await supabaseRpc('get_user_by_id', { p_id: userId });
+            // TABLE-returning RPC comes back as an array of rows
+            const userRow = Array.isArray(data) ? data[0] : data;
             if (userRow && (userRow.id || userRow.user_id)) {
                 return userRow;
             }
@@ -158,23 +165,15 @@ var _signin = function () {
             scope.showLoading();
 
             try {
-                const response = await fetch(LAMBDA_PROXY_URL + '/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        provider: 'email',
-                        email: email,
-                        password: password,
-                        client_unique_guid: clientGUID
-                    })
+                const authResult = await supabaseRpc('auth_login_email', {
+                    p_email: email,
+                    p_password: password
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.message || 'HTTP error! status: ' + response.status);
+                if (!authResult || authResult.success !== true) {
+                    throw new Error((authResult && authResult.message) || 'Invalid email or password.');
                 }
 
-                const authResult = await response.json();
                 if (typeof localStorage !== 'undefined') {
                     Session.set('token', authResult.token);
                     Session.set('user', authResult.user);
@@ -202,7 +201,7 @@ var _signin = function () {
                 scope.hideLoading();
                 var msg = error && error.message ? error.message : String(error);
                 if (msg === 'Failed to fetch') {
-                    msg = 'Cannot reach the auth server (network/CORS). For UAT Lambda, disable Function URL CORS in AWS if it duplicates app CORS headers — see docs/setup/UAT_LAMBDA.md.';
+                    msg = 'Cannot reach Supabase (network problem). Check your connection and try again.';
                 }
                 scope.showError('Sign in failed: ' + msg);
             }
@@ -236,22 +235,24 @@ var _signin = function () {
                     throw new Error('No Google token provided');
                 }
 
-                const response = await fetch(LAMBDA_PROXY_URL + '/auth/login', {
+                // Google id_token verification needs a server-side check of
+                // Google's signature — done in the Supabase Edge Function
+                // auth-google (no AWS involved).
+                const response = await fetch(SUPABASE_URL + '/functions/v1/auth-google', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        provider: 'google',
-                        id_token: idToken,
-                        client_unique_guid: clientGUID
-                    })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({ id_token: idToken })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.message || 'HTTP error! status: ' + response.status);
+                const authResult = await response.json().catch(() => null);
+                if (!response.ok || !authResult || authResult.success !== true) {
+                    throw new Error((authResult && authResult.message) || 'Google sign-in failed (HTTP ' + response.status + ').');
                 }
 
-                const authResult = await response.json();
                 if (typeof localStorage !== 'undefined') {
                     Session.set('token', authResult.token);
                     Session.set('user', authResult.user);
@@ -358,26 +359,16 @@ var _signin = function () {
             scope.showLoading();
 
             try {
-                const response = await fetch(LAMBDA_PROXY_URL + '/proxy/function', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        function: 'create_user_simple',
-                        params: {
-                            p_email: email,
-                            p_password: password,
-                            p_full_name: fullName,
-                            p_first_name: firstName,
-                            p_last_name: lastName,
-                            p_client_unique_guid: clientGUID,
-                            p_provider: 'email'
-                        }
-                    })
+                // create_user_simple hashes the password in-database (bcrypt).
+                // It accepts p_email / p_username / p_role_id / p_password only.
+                const created = await supabaseRpc('create_user_simple', {
+                    p_email: email,
+                    p_username: (fullName || (firstName + ' ' + lastName)).trim() || email,
+                    p_password: password
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.message || 'HTTP error! status: ' + response.status);
+                if (!created || created.success !== true) {
+                    throw new Error((created && created.message) || 'Sign up failed.');
                 }
 
                 scope.hideLoading();
