@@ -17,6 +17,7 @@ import { fileURLToPath } from 'url';
 import {
   PRODUCTION,
   DEV,
+  BLOCKED_PROJECT_REFS,
   anonKeyMatchesProject,
 } from './lib/supabase-projects.mjs';
 
@@ -116,7 +117,7 @@ function writeMacavationSupabaseJs() {
     }
     var settings = PROD_HOSTS.indexOf(host) > -1 ? PROD : DEV;
 
-    var BLOCKED_REFS = ${JSON.stringify(['iwxmuemrfopajwvqdiae'])};
+    var BLOCKED_REFS = ${JSON.stringify(BLOCKED_PROJECT_REFS)};
     var ALLOWED_REFS = ${JSON.stringify([PRODUCTION.ref, DEV.ref])};
 
     function assertAllowedSupabaseUrl(url) {

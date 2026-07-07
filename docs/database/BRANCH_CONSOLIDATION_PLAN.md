@@ -1,62 +1,33 @@
-# Branch consolidation plan: end state = `main` + `prod`, UAT deleted
+# Supabase branch topology — final state (executed 2026-07-07)
 
-**Decision (2026-07-07):** production data **stays on `main`** (`sofanhfpxifgdtooefzq`) — it is never migrated. The empty `prod` branch (`yacxxwmihxvmtjvxryrc`) is rebuilt as the new **dev** database. The `UAT` branch (`nmdmddugxclpqrwylyfa`, today's dev DB) is deleted **only when the confidence checklist below is 100% green**.
+**Decision:** names now match reality. No data was migrated; only branch labels and guards changed.
 
-Why this direction: moving production data to another branch is a full cutover with downtime and real risk, purchased only for nicer branch names. Keeping production untouched is zero-risk; the `prod` branch can be renamed `dev` at the end if naming should match meaning (rename is a label change only — the ref and URLs never change).
+| Supabase branch | Ref | Role |
+|---|---|---|
+| `main` (default) | `sofanhfpxifgdtooefzq` | **PRODUCTION** — macavation.customapp.org, live data, edge functions |
+| `dev` (was `UAT`) | `nmdmddugxclpqrwylyfa` | **DEV** — localhost, dev-macavation.customapp.org, all scripts/CLI |
+| `archive` (was `prod`) | `yacxxwmihxvmtjvxryrc` | **PARKED — nothing may ever point at it** |
 
-Current confidence in deleting UAT: **0%** — it holds the only copy of the Phase 2 schema (21 tables not recreatable from the repo), the audit system, and the working dev environment. The phases below take it to 100%.
+## What was done (2026-07-07)
 
----
+1. Branch `UAT` renamed to `dev` (ref unchanged — no config, URL, or key changed anywhere).
+2. Branch `prod` renamed to `archive`; its git-branch binding removed, so pushes to git `prod` no longer trigger anything against it.
+3. `archive`'s ref added to `blockedRefs` in `supabase/projects.json`. Enforcement:
+   - `assertAllowedProjectRef` / `assertAllowedSupabaseUrl` throw on it in every script;
+   - the portal bootstrap (`WebPortal/js/macavation-supabase.js`) refuses any URL containing it;
+   - `npm run db:check-project` scans the repo and **fails if any file references any blocked ref** (FruitLive or archive).
+4. History audit: the archive branch has never had a dependent — no commit in the repo's entire history, no config, no site, no Lambda, no stash ever referenced its ref. It was created 2026-03-30 by the git-integration setup, its migrations failed immediately, and it has been inert since.
 
-## Phase 0 — Prerequisite (one-time, this machine)
+## Rules going forward
 
-- [ ] Docker Desktop running (`supabase db dump` needs it; `pg_dump` is not installed locally).
+- Production data lives on `main` and is only changed via `CONFIRM_PROD=YES npm run db:apply-prod` per [DEV_TO_PROD_CHECKLIST.md](DEV_TO_PROD_CHECKLIST.md).
+- Dev work happens against `dev` (`nmdmddugxclpqrwylyfa`) — the CLI stays linked to it (`npm run db:check-project` verifies).
+- **`archive` is write-off storage: never link to it, never route to it, never bind git to it.** If it is ever deleted, nothing anywhere needs to change — that is the point.
+- Do not bind Supabase git integration to the `dev` branch; migrations flow through `db:apply` / `db:apply-prod`, not git hooks (`supabase/migrations/` is not the source of truth — `migrations/` is).
 
-## Phase 1 — Make git able to rebuild dev *(0% → ~80%)*
+## Still open (separate tracks)
 
-The keystone: once the schema lives in git, UAT stops being unique.
-
-- [ ] With CLI linked to dev: `supabase db dump --linked -f supabase/baselines/dev_schema_<date>.sql` (full schema: tables, functions, triggers, RLS, grants).
-- [ ] Dump seed-worthy data (RBAC tables, config/reference tables) to `supabase/baselines/dev_seed_<date>.sql`.
-- [ ] Commit both to git `dev`, mirror to `prod` branch.
-- [ ] **Gate:** rebuild proof — apply the baseline to a scratch database (local `supabase start`, or the `prod` branch itself in Phase 2) and schema-diff against dev: zero drift.
-
-## Phase 2 — Rebuild the `prod` branch as the new dev
-
-- [ ] Remove/repoint the branch's git binding (currently git `prod`) so Supabase git integration stops running failed migrations against it.
-- [ ] Reset the branch to empty.
-- [ ] Apply the Phase 1 baseline schema + seed; run `select audit.attach_all();`.
-- [ ] Deploy the 3 edge functions (`send-daily-digest`, `send-daily-digest-whatsapp`, `evaluate-stock-alerts-cron`) to the new ref.
-- [ ] Seed working data from production (adapt `scripts/copy-prod-data-to-uat.mjs` to the new target).
-- [ ] **Gate:** `audit:verify` and `rbac:verify` pass against the new DB; the portal runs against it locally.
-
-## Phase 3 — Repoint dev routing (one place, by design)
-
-- [ ] `supabase/projects.json`: dev ref `nmdmddug…` → `yacxxwm…`; run `npm run supabase:sync-portal`.
-- [ ] Update `supabase/remote.toml`; re-link CLI: `supabase link --project-ref yacxxwmihxvmtjvxryrc`.
-- [ ] `npm run routing:verify` + `npm run db:check-project` green; commit, mirror to `prod` git branch, deploy the dev site.
-- [ ] From here, nothing routes to UAT. Production routing is untouched throughout.
-
-## Phase 4 — Soak, then the 100% checklist
-
-Freeze UAT (no writes) and work normally on the new dev DB for 1–2 weeks. Delete UAT only when **every** box is ticked:
-
-- [ ] Phase 1 rebuild gate passed (git provably reconstructs the schema).
-- [ ] New dev ledger reconciled with `migrations/` files.
-- [ ] Repo sweep on **all git branches**: zero references to `nmdmddugxclpqrwylyfa` in code, config, docs, `.cursor/mcp.json`.
-- [ ] `audit:verify` + `rbac:verify` + `routing:verify` green.
-- [ ] **Supabase Storage checked**: any buckets/files in UAT (e.g. Document Management uploads — dev has 58 `documents` rows) copied to the new dev DB or explicitly written off.
-- [ ] Data worth keeping copied (or explicitly written off) — UAT's operational data is mostly a stale June copy of prod.
-- [ ] Soak period passed with no "that only existed in UAT" surprises.
-- [ ] Final full dump of UAT (schema + data) archived somewhere durable as a last-resort snapshot.
-- [ ] Then: `supabase branches delete UAT` → end state **`main` (production) + `prod` (dev)**.
-
-## Phase 5 — Optional, cosmetic
-
-- [ ] Rename branch `prod` → `dev` if names should match meaning. Zero functional impact; skip if the requirement is literally the names `main` + `prod`.
-
----
-
-## Separate track (not blocked by any of this)
-
-Production schema alignment — the 21 Phase-2 tables and 81 divergent functions missing from `main` — is its own release, driven by the same Phase 1 baseline (diff baseline vs production, review, apply via `CONFIRM_PROD=YES npm run db:apply-prod`). Do it via [DEV_TO_PROD_CHECKLIST.md](DEV_TO_PROD_CHECKLIST.md).
+- **Schema baseline into git** (needs Docker for `supabase db dump`): capture `dev`'s full schema into `supabase/baselines/` so git can rebuild it — the Phase 2 tables currently exist only in the `dev` database.
+- **Production schema alignment**: bring `main` up to `dev`'s schema (21 missing tables, 81 divergent functions) via the baseline diff and `db:apply-prod`.
+- **Pre-May 2026 history**: production pointed at FruitLive (`iwxmuemrfopajwvqdiae`) until ~May 2026; any Macavation data from that era may still live there. FruitLive remains blocklisted; sweep it read-only before it is ever deleted.
+- **Demo site** (demo-macavation.customapp.org, git `demo` branch) still points at FruitLive — repoint or retire.

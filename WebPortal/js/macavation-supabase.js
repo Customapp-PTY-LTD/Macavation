@@ -29,7 +29,7 @@
     }
     var settings = PROD_HOSTS.indexOf(host) > -1 ? PROD : DEV;
 
-    var BLOCKED_REFS = ["iwxmuemrfopajwvqdiae"];
+    var BLOCKED_REFS = ["iwxmuemrfopajwvqdiae","yacxxwmihxvmtjvxryrc"];
     var ALLOWED_REFS = ["sofanhfpxifgdtooefzq","nmdmddugxclpqrwylyfa"];
 
     function assertAllowedSupabaseUrl(url) {
