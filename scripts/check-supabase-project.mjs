@@ -16,7 +16,7 @@ import {
   assertAllowedSupabaseUrl,
   anonKeyMatchesProject,
 } from './lib/supabase-projects.mjs';
-import { readExpectedRemoteRef } from './lib/macavation-supabase.mjs';
+import { readExpectedRemoteRef, verifyCliLinkedProject } from './lib/macavation-supabase.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
@@ -133,6 +133,14 @@ function verifyRemoteToml() {
   }
 }
 
+function verifyCliLink() {
+  try {
+    verifyCliLinkedProject(root);
+  } catch (err) {
+    errors.push(`Supabase CLI link: ${err.message || err}`);
+  }
+}
+
 function verifyMcpPin() {
   const mcpPath = path.join(root, '.cursor', 'mcp.json');
   if (!fs.existsSync(mcpPath)) return;
@@ -151,7 +159,9 @@ function verifyUatAnonKeyConfigured() {
 }
 
 function verifyAppRouteConfigUrls() {
-  const devEnvs = new Set(['default', 'dev', 'uat']);
+  // Every environment except prod must use the dev database. ('uat' kept in
+  // case an old config still carries the key.)
+  const devEnvs = new Set(['default', 'dev', 'demo', 'uat']);
   for (const rel of ['WebPortal/js/appRouteConfig.json', 'js/appRouteConfig.json']) {
     const abs = path.join(root, rel);
     if (!fs.existsSync(abs)) continue;
@@ -187,6 +197,7 @@ for (const rel of SCAN_FILES) {
 }
 
 verifyRemoteToml();
+verifyCliLink();
 verifyMcpPin();
 verifyUatAnonKeyConfigured();
 verifyAppRouteConfigUrls();
@@ -199,4 +210,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`Supabase project guard OK (dev → UAT / ${UAT.ref}).`);
+console.log(`Supabase project guard OK (dev DB ${UAT.ref}; CLI link verified).`);
