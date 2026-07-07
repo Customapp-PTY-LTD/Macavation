@@ -3880,9 +3880,10 @@ var _dataFunctions = function () {
             };
         },
 
-        // Sales Forecasting Functions (placeholder)
+        // Sales Forecasting Functions (placeholder — get_sales_forecasts does not
+        // exist in any database yet; skip the call until the feature is built)
         getSalesForecasts: async function (token = null) {
-            return await this.callFunction('get_sales_forecasts', {}, token).catch(() => []);
+            return [];
         },
 
         // Oil Production Functions (cached for 1 minute)
@@ -4935,9 +4936,10 @@ var _dataFunctions = function () {
             });
         },
 
-        // Financial Management Functions (placeholder)
+        // Financial Management Functions (placeholder — get_financial_transactions
+        // does not exist in any database yet; skip the call until the feature is built)
         getFinancialTransactions: async function (token = null) {
-            return await this.callFunction('get_financial_transactions', {}, token).catch(() => []);
+            return [];
         },
 
         // Document Management Functions
