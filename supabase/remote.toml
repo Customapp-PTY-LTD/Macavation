@@ -1,5 +1,7 @@
-# Linked Supabase project for the prod branch (production).
-# Link CLI once per machine: supabase link --project-ref sofanhfpxifgdtooefzq
-project_ref = "sofanhfpxifgdtooefzq"
-name = "Macavation"
-api_url = "https://sofanhfpxifgdtooefzq.supabase.co"
+# Linked Supabase project for local work and the dev site: the DEV database.
+# Production (macavation.customapp.org / sofanhfpxifgdtooefzq) is only ever
+# targeted deliberately — never as a default or fallback.
+# Link CLI once per machine: supabase link --project-ref nmdmddugxclpqrwylyfa
+project_ref = "nmdmddugxclpqrwylyfa"
+name = "Macavation Dev"
+api_url = "https://nmdmddugxclpqrwylyfa.supabase.co"

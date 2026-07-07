@@ -40,3 +40,6 @@ agent-tools/
 scripts/_soh_batches/
 
 nul
+
+# Supabase CLI machine-local state (link target, cached versions)
+supabase/.temp/

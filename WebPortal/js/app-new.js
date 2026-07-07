@@ -5,9 +5,11 @@
 var _app = {
     // Application configuration
     config: {
+        // Placeholder only — real values come from appRouter via
+        // dataFunctions.ensureConfigured(). Never a hardcoded database URL.
         supabaseUrl: (typeof window !== 'undefined' && window.MACAVATION_SUPABASE)
             ? window.MACAVATION_SUPABASE.url
-            : 'https://nmdmddugxclpqrwylyfa.supabase.co',
+            : '',
         supabaseAnonKey: (typeof window !== 'undefined' && window.MACAVATION_SUPABASE)
             ? window.MACAVATION_SUPABASE.anonKey
             : '',

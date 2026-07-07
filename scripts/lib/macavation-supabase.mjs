@@ -40,17 +40,19 @@ export function readExpectedRemoteRef(repoRoot = process.cwd()) {
 
 export function verifyCliLinkedProject(repoRoot = process.cwd(), expectedRef = REQUIRED_PROJECT_REF) {
   assertAllowedProjectRef(expectedRef);
-  const linkedPath = path.join(repoRoot, 'supabase', '.temp', 'linked-project.json');
-  if (!fs.existsSync(linkedPath)) {
-    console.warn(
-      `WARN: Supabase CLI is not linked in this repo. Run: supabase link --project-ref ${expectedRef}`
-    );
-    return false;
-  }
-  const linked = JSON.parse(fs.readFileSync(linkedPath, 'utf8'));
-  if (linked.ref !== expectedRef) {
+  // The CLI records the linked project in supabase/.temp/project-ref (plain
+  // text). This must hard-fail on missing or mismatched links: every linked
+  // CLI command (db query, functions deploy) targets whatever is in here.
+  const linkedRefPath = path.join(repoRoot, 'supabase', '.temp', 'project-ref');
+  if (!fs.existsSync(linkedRefPath)) {
     throw new Error(
-      `CLI linked to ${linked.ref}, expected ${expectedRef}. Run: supabase link --project-ref ${expectedRef}`
+      `Supabase CLI is not linked in this repo. Run: supabase link --project-ref ${expectedRef}`
+    );
+  }
+  const linkedRef = fs.readFileSync(linkedRefPath, 'utf8').trim();
+  if (linkedRef !== expectedRef) {
+    throw new Error(
+      `CLI linked to ${linkedRef}, expected ${expectedRef}. Run: supabase link --project-ref ${expectedRef}`
     );
   }
   return true;
