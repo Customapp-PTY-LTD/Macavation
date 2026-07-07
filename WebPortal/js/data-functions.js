@@ -401,19 +401,26 @@ var _dataFunctions = function () {
         },
 
         /**
-         * Gate every DB call on appRouter being configured. appRouter is the single source
-         * of truth for which database/environment to use; if it cannot configure, we fail
-         * loudly here instead of silently falling back to a hardcoded or global database.
+         * Resolve which database to use before any DB call. appRouter is the
+         * preferred source; pages that do not load appRouter (e.g. sign-in)
+         * fall back to the host-aware MACAVATION_SUPABASE bootstrap, which is
+         * generated from the same supabase/projects.json — the two can never
+         * disagree. If neither is present we fail loudly rather than guess.
          */
         ensureConfigured: async function () {
-            if (typeof _appRouter === 'undefined' || !_appRouter || typeof _appRouter.ensureConfigured !== 'function') {
-                throw new Error('dataFunctions: appRouter is required to resolve the database configuration but is unavailable.');
+            if (typeof _appRouter !== 'undefined' && _appRouter && typeof _appRouter.ensureConfigured === 'function') {
+                await _appRouter.ensureConfigured();
+                this.supabaseUrl = _appRouter.SupabaseUrl;
+                this.supabaseAnonKey = _appRouter.SupabaseAnonKey;
+                return;
             }
-            await _appRouter.ensureConfigured();
-            // Pull the authoritative values from appRouter (the only source).
-            this.proxyUrl = _appRouter.LambdaProxyUrl;
-            this.supabaseUrl = _appRouter.SupabaseUrl;
-            this.supabaseAnonKey = _appRouter.SupabaseAnonKey;
+            const bootstrapCfg = (typeof window !== 'undefined' && window.MACAVATION_SUPABASE) ? window.MACAVATION_SUPABASE : null;
+            if (bootstrapCfg && bootstrapCfg.url && bootstrapCfg.anonKey) {
+                this.supabaseUrl = bootstrapCfg.url;
+                this.supabaseAnonKey = bootstrapCfg.anonKey;
+                return;
+            }
+            throw new Error('dataFunctions: no database configuration available (appRouter and macavation-supabase.js are both missing).');
         },
 
         getSupabaseRestConfig: function () {
