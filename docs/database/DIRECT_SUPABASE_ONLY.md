@@ -22,12 +22,11 @@ Who-did-what still works: both write paths send `X-User-Id`, which the audit tri
 
 ## Status / rollout
 
-- **Dev: live.** Migration applied, `auth-google` deployed to `nmdmddugxclpqrwylyfa`, end-to-end tested (signup → wrong-password rejected → login returns token+user → no email enumeration; edge function error paths verified).
-- **Prod: not yet.** At release time, per [DEV_TO_PROD_CHECKLIST.md](DEV_TO_PROD_CHECKLIST.md), additionally:
-  1. `CONFIRM_PROD=YES npm run db:apply-prod -- migrations/20260707150000_auth_login_email_direct.sql`
-  2. `supabase functions deploy auth-google --project-ref sofanhfpxifgdtooefzq --use-api`
-  3. Deploy the portal; verify login on the prod site.
-  4. Once stable: decommission the two AWS Lambdas (rzrx… prod, lizt… dev) and their Function URLs.
+- **Dev: live.** Migration applied, `auth-google` deployed, end-to-end tested (signup → wrong-password rejected → login returns token+user → no email enumeration; edge function error paths verified).
+- **Prod DB: live (2026-07-07).** Both migrations applied via `db:apply-prod` (audit/ownership 20260707130000 + auth 20260707150000), `auth-google` deployed to `sofanhfpxifgdtooefzq`, both smoke-tested. `npm run audit:verify` passes on both databases.
+- **Remaining:**
+  1. Push git branches and deploy the portal; verify login on the prod site.
+  2. Once stable: decommission the two AWS Lambdas (rzrx… prod, lizt… dev) and their Function URLs.
 
 ## Notes
 
