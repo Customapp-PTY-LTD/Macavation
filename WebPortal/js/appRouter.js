@@ -688,7 +688,7 @@ var _appRouter = function () {
             // here to ever resolve to the production database. Every other
             // host (localhost, dev, old uat, anything unknown) uses dev, so a
             // misconfigured or new deployment can never write to prod data.
-            const PROD_HOSTS = ['macavation.customapp.org'];
+            const PROD_HOSTS = ['macavation.customapp.org', 'macavation.customapp.co.za'];
 
             const host = (location.hostname || '').toLowerCase();
 

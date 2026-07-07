@@ -8,7 +8,7 @@
 (function (global) {
     'use strict';
 
-    var PROD_HOSTS = ["macavation.customapp.org"];
+    var PROD_HOSTS = ["macavation.customapp.org","macavation.customapp.co.za"];
 
     var PROD = {
         projectRef: 'sofanhfpxifgdtooefzq',
