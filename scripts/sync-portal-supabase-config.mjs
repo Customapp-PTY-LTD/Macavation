@@ -26,7 +26,7 @@ const root = path.join(__dirname, '..');
 
 // Hosts that may resolve to the production database. Must stay in sync with
 // getEnvironment() in js/appRouter.js and WebPortal/js/appRouter.js.
-const PROD_HOSTS = ['macavation.customapp.org'];
+const PROD_HOSTS = ['macavation.customapp.org', 'macavation.customapp.co.za'];
 
 const PROD_LAMBDA =
   PRODUCTION.lambdaProxyUrl ||

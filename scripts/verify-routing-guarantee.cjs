@@ -1,5 +1,6 @@
-// Proves the routing guarantee for the working tree it is run in:
-// only macavation.customapp.org may resolve to the production database.
+// Proves the routing guarantee for the working tree it is run in: only
+// macavation.customapp.org and macavation.customapp.co.za may resolve to
+// the production database.
 const fs = require('fs');
 const path = require('path');
 const ROOT = process.argv[2] || '.';
@@ -8,6 +9,10 @@ const PROD_REF = 'sofanhfpxifgdtooefzq', DEV_REF = 'nmdmddugxclpqrwylyfa';
 const cases = [
   ['macavation.customapp.org', true],
   ['MACAVATION.customapp.org', true],
+  ['macavation.customapp.co.za', true],
+  ['MACAVATION.customapp.co.za', true],
+  ['dev-macavation.customapp.co.za', false],
+  ['macavation.customapp.co.za.evil.com', false],
   ['dev-macavation.customapp.org', false],
   ['uat-macavation.customapp.org', false],
   ['localhost', false],
