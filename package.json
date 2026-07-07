@@ -11,6 +11,9 @@
     "supabase:sync-portal": "node scripts/sync-portal-supabase-config.mjs",
     "verify:portal-routing": "node scripts/verify-portal-data-routing.mjs",
     "verify:uat-lambda-cors": "node scripts/check-uat-lambda-cors.mjs",
-    "rbac:verify": "node scripts/verify-rbac-parity.mjs"
+    "rbac:verify": "node scripts/verify-rbac-parity.mjs",
+    "audit:verify": "node scripts/verify-audit-housekeeping.mjs",
+    "db:apply-prod": "node scripts/apply-migration-prod.mjs",
+    "routing:verify": "node scripts/verify-routing-guarantee.cjs ."
   }
 }

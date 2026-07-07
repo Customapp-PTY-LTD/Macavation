@@ -198,6 +198,19 @@ try {
 
 
 
+// Housekeeping: make any table this migration created compliant (owner
+// columns + stamp/audit triggers). No-op until the audit schema exists.
+try {
+  runLinkedQuery(
+    "do $$ begin if exists (select 1 from pg_namespace where nspname = 'audit') then perform audit.attach_all(); end if; end $$;",
+    root
+  );
+  console.log('audit.attach_all() ran: ownership + audit triggers cover all tables.');
+} catch (err) {
+  console.error('WARNING: audit.attach_all() failed — new tables may be missing audit triggers:', err.message);
+  process.exit(1);
+}
+
 process.exit(0);
 
 
