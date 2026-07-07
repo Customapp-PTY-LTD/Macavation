@@ -455,13 +455,20 @@ var _dataFunctions = function () {
             if (!bearer) {
                 throw new Error('No authentication token available. Please sign in again.');
             }
+            const rpcHeaders = {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + bearer,
+                'apikey': cfg.anonKey
+            };
+            // Identity for DB-side audit: triggers stamp created_by/updated_by
+            // and audit.audit_log from this header (see audit.current_actor).
+            const auditUserId = this.getCurrentUserId();
+            if (auditUserId) {
+                rpcHeaders['X-User-Id'] = auditUserId;
+            }
             const response = await fetch(cfg.url + '/rest/v1/rpc/' + encodeURIComponent(functionName), {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + bearer,
-                    'apikey': cfg.anonKey
-                },
+                headers: rpcHeaders,
                 body: JSON.stringify(scope.buildPostgrestRpcBody(params))
             });
             const responseText = await response.text();
@@ -603,12 +610,19 @@ var _dataFunctions = function () {
                         }
                     }
 
+                    const proxyHeaders = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    };
+                    // Identity for DB-side audit. The Lambda must forward this
+                    // header to PostgREST for proxied writes to carry an actor.
+                    const proxyAuditUserId = scope.getCurrentUserId();
+                    if (proxyAuditUserId) {
+                        proxyHeaders['X-User-Id'] = proxyAuditUserId;
+                    }
                     const response = await fetch(scope.proxyUrl, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${authToken}`
-                        },
+                        headers: proxyHeaders,
                         body: JSON.stringify({
                             function: functionName,
                             params: params
