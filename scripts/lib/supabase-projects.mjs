@@ -1,6 +1,7 @@
 /**
- * Canonical Supabase project definitions (production + UAT).
- * On the dev branch, CLI/MCP and portal dev environments use UAT (see supabase/remote.toml).
+ * Canonical Supabase project definitions (production + dev).
+ * There are exactly two environments: production (prod site only) and dev
+ * (localhost, dev site, everything else). See supabase/remote.toml.
  */
 import fs from 'fs';
 import path from 'path';
@@ -13,13 +14,16 @@ const projectsPath = path.join(root, 'supabase', 'projects.json');
 const raw = JSON.parse(fs.readFileSync(projectsPath, 'utf8'));
 
 export const PRODUCTION = raw.production;
-export const UAT = raw.uat;
-export const DEVELOPMENT_TARGET = raw.developmentTarget || 'uat';
+export const DEV = raw.dev || raw.uat;
+/** @deprecated use DEV — kept for scripts that still import UAT */
+export const UAT = DEV;
+export const DEVELOPMENT_TARGET = raw.developmentTarget || 'dev';
 export const BLOCKED_PROJECT_REFS = raw.blockedRefs || ['iwxmuemrfopajwvqdiae'];
 
 const TARGET_BY_NAME = {
   production: PRODUCTION,
-  uat: UAT,
+  dev: DEV,
+  uat: DEV,
 };
 
 export function getProjectByName(name) {
@@ -35,7 +39,7 @@ export function getDevelopmentProject() {
 }
 
 export function getAllowedProjectRefs() {
-  return [PRODUCTION.ref, UAT.ref];
+  return [PRODUCTION.ref, DEV.ref];
 }
 
 export function isBlockedProjectRef(ref) {

@@ -617,23 +617,21 @@ var _appRouter = function () {
         },
         getEnvironment: () => {
 
-            let environment = "prod";
+            // Production is an exact-match allowlist: a host must be listed
+            // here to ever resolve to the production database. Every other
+            // host (localhost, dev, old uat, anything unknown) uses dev, so a
+            // misconfigured or new deployment can never write to prod data.
+            const PROD_HOSTS = ['macavation.customapp.org'];
 
-            if (location.href.indexOf('/_static/') > -1
-                || location.href.indexOf('://dev') > -1
-                || location.href.indexOf('localhost') > -1
-                || location.href.indexOf('127.0.0.1') > -1) {
-                environment = 'dev';
-            }
-            else if (location.href.indexOf('://demo') > -1) {
-                environment = 'demo';
-            }
-            else if (location.href.indexOf('://uat') > -1) {
-                environment = 'uat';
-            }
-            return environment;
+            const host = (location.hostname || '').toLowerCase();
 
-
+            if (PROD_HOSTS.indexOf(host) > -1) {
+                return 'prod';
+            }
+            if (host.indexOf('demo') === 0) {
+                return 'demo';
+            }
+            return 'dev';
         },
         addBreadCrumb: ({ routeName, params }) => {
             if (!routeName) {

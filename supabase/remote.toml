@@ -1,5 +1,7 @@
-# Linked Supabase project for the dev branch (UAT).
+# Linked Supabase project for local work and the dev site: the DEV database.
+# Production (macavation.customapp.org / sofanhfpxifgdtooefzq) is only ever
+# targeted deliberately — never as a default or fallback.
 # Link CLI once per machine: supabase link --project-ref nmdmddugxclpqrwylyfa
 project_ref = "nmdmddugxclpqrwylyfa"
-name = "Macavation UAT"
+name = "Macavation Dev"
 api_url = "https://nmdmddugxclpqrwylyfa.supabase.co"

@@ -7,12 +7,15 @@ var _signin = function () {
     'use strict';
 
     const cfg = (typeof window !== 'undefined' && window.MACAVATION_SUPABASE) ? window.MACAVATION_SUPABASE : null;
-    const SUPABASE_URL = cfg ? cfg.url : 'https://nmdmddugxclpqrwylyfa.supabase.co';
-    const SUPABASE_ANON_KEY = cfg ? cfg.anonKey : '';
-    const LAMBDA_PROXY_URL = cfg ? cfg.lambdaProxyUrl.replace(/\/proxy\/function$/, '') : 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws';
-    if (cfg) {
-        cfg.assertMacavationSupabaseUrl(SUPABASE_URL);
+    if (!cfg) {
+        // Never guess a database: signing in against the wrong environment
+        // silently writes data to the wrong place.
+        throw new Error('signin.js: macavation-supabase.js must be loaded before signin.js.');
     }
+    const SUPABASE_URL = cfg.url;
+    const SUPABASE_ANON_KEY = cfg.anonKey;
+    const LAMBDA_PROXY_URL = cfg.lambdaProxyUrl.replace(/\/proxy\/function$/, '');
+    cfg.assertMacavationSupabaseUrl(SUPABASE_URL);
     const DEFAULT_CLIENT_GUID = '9e1d961a-bfc2-469d-8526-8af75f536656';
 
     let sbClient = null;
