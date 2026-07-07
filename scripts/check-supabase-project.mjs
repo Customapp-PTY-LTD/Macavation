@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 import {
   UAT,
   PRODUCTION,
+  BLOCKED_PROJECT_REFS,
   assertAllowedSupabaseUrl,
   anonKeyMatchesProject,
 } from './lib/supabase-projects.mjs';
@@ -66,6 +67,7 @@ const GUARD_FILES = new Set([
   'scripts/lib/supabase-projects.mjs',
   'scripts/check-supabase-project.mjs',
   'WebPortal/js/macavation-supabase.js',
+  'supabase/projects.json', // defines blockedRefs — the blocklist itself
   '.cursor/rules/supabase-macavation-only.mdc',
   '.cursor/rules/supabase-dev-uat.mdc',
 ]);
@@ -77,14 +79,9 @@ function shouldSkipFile(filePath) {
 }
 
 function isBlockedSupabaseUsage(line) {
-  const patterns = [
-    /project_ref\s*[:=]\s*["']iwxmuemrfopajwvqdiae["']/i,
-    /PROJECT_REF\s*=\s*["']iwxmuemrfopajwvqdiae["']/i,
-    /SupabaseUrl["']\s*:\s*["']https:\/\/iwxmuemrfopajwvqdiae\.supabase\.co/i,
-    /supabaseUrl\s*:\s*["']https:\/\/iwxmuemrfopajwvqdiae\.supabase\.co/i,
-    /https:\/\/iwxmuemrfopajwvqdiae\.supabase\.co/i,
-  ];
-  return patterns.some((re) => re.test(line));
+  // Any usage of a blocked project ref (FruitLive, the parked 'archive'
+  // branch, ...) anywhere in the repo is an error — nothing may point at them.
+  return BLOCKED_PROJECT_REFS.some((ref) => line.includes(ref));
 }
 
 function scanFile(absPath) {

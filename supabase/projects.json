@@ -15,6 +15,7 @@
     "lambdaProxyUrl": "https://liztgjlkisjorpow3zgjowcvcu0iwnvc.lambda-url.af-south-1.on.aws/proxy/function"
   },
   "blockedRefs": [
-    "iwxmuemrfopajwvqdiae"
+    "iwxmuemrfopajwvqdiae",
+    "yacxxwmihxvmtjvxryrc"
   ]
 }
