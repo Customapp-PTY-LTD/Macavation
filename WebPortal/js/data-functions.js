@@ -4,16 +4,11 @@
  * Following WebPortals module pattern
  */
 
-function resolveDefaultProxyUrl() {
-    const cfg = (typeof window !== 'undefined' && window.MACAVATION_SUPABASE) ? window.MACAVATION_SUPABASE : null;
-    if (cfg && cfg.lambdaProxyUrl) return cfg.lambdaProxyUrl;
-    return 'https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function';
-}
-
 var _dataFunctions = function () {
     return {
         // Placeholder only — ensureConfigured() overrides these from appRouter before any DB call.
-        proxyUrl: resolveDefaultProxyUrl(),
+        // proxyUrl is retained for legacy callers but nothing fetches through it anymore.
+        proxyUrl: '',
         supabaseUrl: '',
         supabaseAnonKey: '',
 
@@ -593,97 +588,17 @@ var _dataFunctions = function () {
             // Create promise for this request
             const requestPromise = (async () => {
                 try {
-                    // appRouter is the single source of truth for proxyUrl/Supabase config.
+                    // appRouter is the single source of truth for the Supabase config.
                     await scope.ensureConfigured();
-                    if (options.supabaseRpcFallback !== false &&
-                        scope.kernelRpcDirectFirst.has(functionName)) {
-                        try {
-                            const direct = await scope.callSupabaseRpc(
-                                functionName,
-                                scope.buildPostgrestRpcBody(params),
-                                authToken,
-                                { useAnonAuth: true }
-                            );
-                            return direct;
-                        } catch (directErr) {
-                            console.warn('[callFunction] Direct Supabase RPC failed; trying Lambda:', functionName, directErr);
-                        }
-                    }
 
-                    const proxyHeaders = {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    };
-                    // Identity for DB-side audit. The Lambda must forward this
-                    // header to PostgREST for proxied writes to carry an actor.
-                    const proxyAuditUserId = scope.getCurrentUserId();
-                    if (proxyAuditUserId) {
-                        proxyHeaders['X-User-Id'] = proxyAuditUserId;
-                    }
-                    const response = await fetch(scope.proxyUrl, {
-                        method: 'POST',
-                        headers: proxyHeaders,
-                        body: JSON.stringify({
-                            function: functionName,
-                            params: params
-                        })
-                    });
-
-                    if (!response.ok) {
-                        let errorMessage = `HTTP error! status: ${response.status}`;
-                        let errorData = null;
-                        try {
-                            const responseText = await response.text();
-                            try {
-                                errorData = JSON.parse(responseText);
-                                errorMessage = errorData.message || errorData.error || errorMessage;
-                            } catch (e) {
-                                errorMessage = responseText || response.statusText || errorMessage;
-                            }
-                        } catch (e) {
-                            errorMessage = response.statusText || errorMessage;
-                        }
-                        
-                        if (response.status === 401) {
-                            const finalMessage = errorMessage || 'Invalid or expired token';
-                            // Clear authentication data
-                            Session.clear();
-                            // Redirect to login page after a short delay to show message
-                            setTimeout(() => {
-                                window.location.href = 'signin.html';
-                            }, 1000);
-                            // Don't throw for 401 - let caller handle gracefully
-                            const error = new Error(finalMessage);
-                            error.status = 401;
-                            throw error;
-                        }
-
-                        if (options.supabaseRpcFallback !== false &&
-                            scope.shouldUseSupabaseRpcFallback(functionName, response.status, errorMessage)) {
-                            console.warn('[callFunction] Lambda RBAC denied; retrying via Supabase RPC (anon):', functionName);
-                            return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
-                        }
-                        
-                        // Create error with status code for proper error handling
-                        const error = new Error(errorMessage);
-                        error.status = response.status;
-                        throw error;
-                    }
-
-                    const responseText = await response.text();
-                    let data;
-                    try {
-                        data = JSON.parse(responseText);
-                    } catch (e) {
-                        throw new Error(`Invalid JSON response from server: ${responseText.substring(0, 200)}`);
-                    }
-
-                    const proxyErrMsg = scope.extractProxyErrorMessage(data);
-                    if (options.supabaseRpcFallback !== false &&
-                        scope.shouldUseSupabaseRpcFallback(functionName, response.status, proxyErrMsg)) {
-                        console.warn('[callFunction] Lambda RBAC denied in response body; retrying via Supabase RPC (anon):', functionName);
-                        return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
-                    }
+                    // Direct-only transport: every RPC goes straight to Supabase
+                    // PostgREST with the anon key. The AWS Lambda proxy is retired.
+                    const data = await scope.callSupabaseRpc(
+                        functionName,
+                        scope.buildPostgrestRpcBody(params),
+                        authToken,
+                        { useAnonAuth: true }
+                    );
 
                     // Cache successful responses (do not cache empty array for get_kernel_batches so we retry next load)
                     if (useCache && data && !data.error) {
@@ -697,17 +612,6 @@ var _dataFunctions = function () {
 
                     return data;
                 } catch (error) {
-                    if (options.supabaseRpcFallback !== false &&
-                        scope.shouldUseSupabaseRpcFallback(functionName, error.status, error.message)) {
-                        console.warn('[callFunction] Lambda RBAC denied; retrying via Supabase RPC (anon):', functionName);
-                        return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
-                    }
-                    if (options.supabaseRpcFallback !== false &&
-                        scope.kernelRpcSupabaseFallback.has(functionName) &&
-                        scope.isPostgrestJwtKeyError(error)) {
-                        console.warn('[callFunction] PostgREST JWT rejected; retrying via Supabase RPC (anon):', functionName);
-                        return await scope.callSupabaseRpc(functionName, params, authToken, { useAnonAuth: true });
-                    }
                     // If network error and offline, try to queue if it's a write operation
                     if (isOffline && isOfflineOperation && error.message.includes('Failed to fetch')) {
                         const isWriteOperation = functionName.includes('create') || 
