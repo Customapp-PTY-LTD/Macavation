@@ -177,20 +177,15 @@ var _stockManagementGrid = function () {
     }
 
     /**
-     * Kernel by-style grid: list batches that still show remaining on hand in at least one style.
-     * In adjust-stock mode also list batches that have production yield but zero remaining — otherwise
-     * the grid looked empty / non-editable after full dispatch when users still need to correct stock.
+     * Kernel by-style grid: only batches with on-hand in at least one style (cartons, or kg equivalent).
+     * FFA / best-before / historical yield alone do not keep a batch visible — including in Adjust Stock.
+     * To restore a fully empty batch, use Add Batch and search by batch number.
      */
-    function kernelBatchVisibleInByStyleGrid(batch, adjustMode) {
+    function kernelBatchVisibleInByStyleGrid(batch) {
+        if (!batch) return false;
         var cells = getKernelStyleCellsForDisplay(batch);
-        var hasRemaining = KERNEL_STYLE_OPTIONS.some(function (k) {
-            return parseNum(cells[k]) > 0;
-        });
-        if (hasRemaining) return true;
-        if (!adjustMode || !batch) return false;
-        var yieldObj = kernelStyleMapFromBatch(batch, 'yield_by_style');
         return KERNEL_STYLE_OPTIONS.some(function (k) {
-            return parseNum(yieldObj[k]) > 0;
+            return parseNum(cells[k]) > 0;
         });
     }
 
@@ -755,9 +750,9 @@ var _stockManagementGrid = function () {
                     var badge = disp
                         ? '<span class="badge bg-secondary ms-1">Dispatch</span>'
                         : '<span class="badge bg-success ms-1">No dispatch</span>';
-                    var vis = kernelBatchVisibleInByStyleGrid(b, false)
+                    var vis = kernelBatchVisibleInByStyleGrid(b)
                         ? '<span class="text-muted small ms-1">On By style</span>'
-                        : '<span class="text-muted small ms-1">Use Adjust Stock</span>';
+                        : '<span class="text-muted small ms-1">Not on By style — click to restore</span>';
                     return '<button type="button" class="stock-addbatch-match-row js-stock-addbatch-pick list-group-item list-group-item-action py-2 px-3 text-start w-100 border-0 border-bottom"' +
                         ' data-kernel-id="' + escapeHtml(id) + '"' +
                         (id ? '' : ' disabled') + '>' +
@@ -981,7 +976,7 @@ var _stockManagementGrid = function () {
             if (!body.length || !totalsRow.length) return;
             body.empty();
             var batches = (scope.kernelFinishedBatches || []).filter(function (b) {
-                return kernelBatchVisibleInByStyleGrid(b, scope.kernelAdjustMode);
+                return kernelBatchVisibleInByStyleGrid(b);
             });
             var totals = { 'SP': 0, '0': 0, '1': 0, '1S': 0, '4L': 0, '5': 0, '6': 0, '7/8': 0, 'Butter High Oil': 0, 'Butter Low Oil': 0 };
             var styleKeys = KERNEL_STYLE_OPTIONS.slice();
