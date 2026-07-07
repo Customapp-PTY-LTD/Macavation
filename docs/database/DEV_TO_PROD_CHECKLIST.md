@@ -27,7 +27,13 @@ Ground rules:
 
 ## 2. Promote code (git)
 
-- [ ] Merge `dev` → `prod` (and `main` if it is being kept in sync).
+Promotion order is **always `dev` → `demo` → `prod`**. Never skip `demo`. Because
+database routing is host-aware (a single config picks the DB by hostname), all three
+branches carry identical trees — only the deployed hostname differs. So each hop is a
+fast-forward/merge, not a hand-edited config.
+
+- [ ] `dev` → `demo`: `git checkout demo && git merge --ff-only dev`, then push. Deploys demo-macavation.customapp.org (routes to the **dev** DB). Confirm `git diff --stat dev demo` is empty.
+- [ ] `demo` → `prod` (and `main` if kept in sync). Confirm `git diff --stat demo prod` is empty.
 - [ ] On the merged `prod` branch, re-run: `npm run routing:verify` and `npm run db:check-project`.
 - [ ] Push and deploy.
 
