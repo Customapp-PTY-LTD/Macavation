@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phase 2 — Production cutover checklist</title>
+  <link rel="stylesheet" href="phase2-docs.css" />
+</head>
+<body>
+  <nav class="p2-topbar" aria-label="Phase 2 documentation">
+    <div class="p2-topbar-inner">
+      <span class="p2-topbar-title">Macavation Phase 2</span>
+      <a href="index.html">Home</a>
+      <a href="implementation-plan.html">Implementation plan</a>
+      <a href="prod-cutover.html" class="p2-active">Prod cutover</a>
+      <a href="uat-verification.html">UAT verification</a>
+      <a href="uat-acceptance.html">UAT acceptance</a>
+    </div>
+  </nav>
+
+  <main class="p2-wrap">
+    <header class="p2-header">
+      <h1>Production cutover checklist</h1>
+      <p class="p2-meta">After merging <code>dev</code> → <code>prod</code> in Git — apply schema, permissions, config, and edge functions on production Supabase (<code>sofanhfpxifgdtooefzq</code>).</p>
+    </header>
+
+    <div class="p2-callout"><strong>Git merge ≠ database migration.</strong> Production only changes when you run the steps below against the production project.</div>
+
+    <h2>1. Schema migrations</h2>
+    <pre><code>supabase link --project-ref sofanhfpxifgdtooefzq
+node scripts/apply-pending-prod-migrations.mjs --only-phase2
+supabase link --project-ref nmdmddugxclpqrwylyfa</code></pre>
+    <table>
+      <thead><tr><th>Migration</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>20260629120000_phase2_portal_features.sql</code></td><td>Oil trends, runway, default alerts, Phase 2 admin features</td></tr>
+        <tr><td><code>20260629140000_fix_kernel_runway_summary.sql</code></td><td>Runway RPC fix</td></tr>
+        <tr><td><code>20260706100000_phase2_implementation_complete.sql</code></td><td>Alerts, KPIs, digest, shell, action seeds</td></tr>
+        <tr><td><code>20260706110000_phase2_grants_fix.sql</code></td><td>Re-grants</td></tr>
+      </tbody>
+    </table>
+
+    <h2>2. Permission data (UAT → prod)</h2>
+    <p>Sync <code>role_features</code>, <code>role_actions</code>, and <code>role_permissions</code> keyed by role name and feature/action keys:</p>
+    <pre><code>node scripts/sync-permissions-uat-to-prod.mjs --dry-run
+node scripts/sync-permissions-uat-to-prod.mjs</code></pre>
+    <p>Users must <strong>log out and back in</strong> after permission sync.</p>
+
+    <h2>3. Operational config (UAT → prod)</h2>
+    <pre><code>node scripts/sync-config-uat-to-prod.mjs --dry-run
+node scripts/sync-config-uat-to-prod.mjs</code></pre>
+    <p>Copies <code>dashboard_targets</code>, <code>stock_alert_rules</code>, <code>scheduled_reports</code>.</p>
+
+    <h2>4. Edge functions + secrets + cron</h2>
+    <pre><code>supabase functions deploy send-daily-digest --project-ref sofanhfpxifgdtooefzq
+supabase functions deploy send-daily-digest-whatsapp --project-ref sofanhfpxifgdtooefzq
+supabase functions deploy evaluate-stock-alerts-cron --project-ref sofanhfpxifgdtooefzq</code></pre>
+    <p><strong>Secrets:</strong> <code>RESEND_API_KEY</code>, <code>DIGEST_FROM_EMAIL</code>, <code>WHATSAPP_ACCESS_TOKEN</code>, <code>WHATSAPP_PHONE_NUMBER_ID</code></p>
+    <table>
+      <thead><tr><th>Function</th><th>Schedule (SAST)</th></tr></thead>
+      <tbody>
+        <tr><td><code>send-daily-digest</code></td><td><code>0 6 * * *</code></td></tr>
+        <tr><td><code>send-daily-digest-whatsapp</code></td><td><code>5 6 * * *</code></td></tr>
+        <tr><td><code>evaluate-stock-alerts-cron</code></td><td><code>0 7,12,17 * * *</code></td></tr>
+      </tbody>
+    </table>
+
+    <h2>5. Smoke test</h2>
+    <ul class="p2-checklist">
+      <li>Login per role — sidebar modules correct</li>
+      <li>Executive dashboard KPIs load</li>
+      <li>Job card approve + release to stock</li>
+      <li>Document Management → New folder</li>
+      <li>Test email digest received</li>
+      <li>No 403 RBAC errors on Phase 2 screens</li>
+    </ul>
+
+    <h2>Do not copy from UAT</h2>
+    <ul>
+      <li>Test batches and Playwright seed users</li>
+      <li>Full database dump (overwrites live prod data)</li>
+      <li><code>auth.users</code> accounts</li>
+    </ul>
+
+    <footer class="p2-footer"><a href="index.html">← Back to Phase 2 home</a></footer>
+  </main>
+</body>
+</html>
