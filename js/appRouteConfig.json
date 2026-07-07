@@ -4,24 +4,19 @@
     "contentContainer": "#content-area",
     "environmentSettings": {
         "default": {
-            "SupabaseUrl": "https://sofanhfpxifgdtooefzq.supabase.co",
-            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZmFuaGZweGlmZ2R0b29lZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDM2MDgsImV4cCI6MjA4MTg3OTYwOH0.oFOqODGzzrk5dqUBHDVrPS9VBDzR4xThfwlC33Qri3U",
-            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+            "SupabaseUrl": "https://nmdmddugxclpqrwylyfa.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZG1kZHVneGNscHFyd3lseWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODQyNTcsImV4cCI6MjA5NjA2MDI1N30.uMdbzl4ZzsQFuAD9FDrx29DkqaR1iCG-wxMFM5QBrmc",
+            "LambdaProxyUrl": "https://liztgjlkisjorpow3zgjowcvcu0iwnvc.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "dev": {
-            "SupabaseUrl": "https://sofanhfpxifgdtooefzq.supabase.co",
-            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZmFuaGZweGlmZ2R0b29lZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDM2MDgsImV4cCI6MjA4MTg3OTYwOH0.oFOqODGzzrk5dqUBHDVrPS9VBDzR4xThfwlC33Qri3U",
-            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
-        },
-        "uat": {
-            "SupabaseUrl": "https://sofanhfpxifgdtooefzq.supabase.co",
-            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZmFuaGZweGlmZ2R0b29lZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDM2MDgsImV4cCI6MjA4MTg3OTYwOH0.oFOqODGzzrk5dqUBHDVrPS9VBDzR4xThfwlC33Qri3U",
-            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+            "SupabaseUrl": "https://nmdmddugxclpqrwylyfa.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZG1kZHVneGNscHFyd3lseWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODQyNTcsImV4cCI6MjA5NjA2MDI1N30.uMdbzl4ZzsQFuAD9FDrx29DkqaR1iCG-wxMFM5QBrmc",
+            "LambdaProxyUrl": "https://liztgjlkisjorpow3zgjowcvcu0iwnvc.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "demo": {
-            "SupabaseUrl": "https://sofanhfpxifgdtooefzq.supabase.co",
-            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvZmFuaGZweGlmZ2R0b29lZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDM2MDgsImV4cCI6MjA4MTg3OTYwOH0.oFOqODGzzrk5dqUBHDVrPS9VBDzR4xThfwlC33Qri3U",
-            "LambdaProxyUrl": "https://rzrx6ntfejvb6lxpmt4ywruvt40mjjuo.lambda-url.af-south-1.on.aws/proxy/function"
+            "SupabaseUrl": "https://nmdmddugxclpqrwylyfa.supabase.co",
+            "SupabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZG1kZHVneGNscHFyd3lseWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODQyNTcsImV4cCI6MjA5NjA2MDI1N30.uMdbzl4ZzsQFuAD9FDrx29DkqaR1iCG-wxMFM5QBrmc",
+            "LambdaProxyUrl": "https://liztgjlkisjorpow3zgjowcvcu0iwnvc.lambda-url.af-south-1.on.aws/proxy/function"
         },
         "prod": {
             "SupabaseUrl": "https://sofanhfpxifgdtooefzq.supabase.co",
@@ -198,7 +193,7 @@
             ]
         },
         "kernel-dispatch-grid": {
-            "description": "Kernel Dispatch - INV to KERNEL CUSTOMERS → DEBTORS",
+            "description": "Kernel Dispatch - INV to KERNEL CUSTOMERS \u2192 DEBTORS",
             "path": "kernel-dispatch",
             "html": "html/kernel_dispatch_grid.html",
             "js": [
@@ -209,7 +204,7 @@
             ]
         },
         "oil-dispatch-grid": {
-            "description": "Oil & Protein Dispatch - INV to FEED+OIL+PROTEIN CUSTOMERS → DEBTORS",
+            "description": "Oil & Protein Dispatch - INV to FEED+OIL+PROTEIN CUSTOMERS \u2192 DEBTORS",
             "path": "oil-dispatch",
             "html": "html/oil_dispatch_grid.html",
             "js": [

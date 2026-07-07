@@ -22,3 +22,6 @@ dist/
 build/
 *.log
 
+
+# Supabase CLI machine-local state (link target, cached versions)
+supabase/.temp/
