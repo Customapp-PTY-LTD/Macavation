@@ -77,7 +77,7 @@ var _metricUI = function () {
                     ${exceptions && exceptions.length > 0 ? `
                         <div class="metric-footer">
                             <a href="#" onclick="event.stopPropagation(); metricUI.viewExceptions('${title}')" class="metric-exceptions-link">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                <i class="fas fa-triangle-exclamation me-1"></i>
                                 ${exceptions.length} item${exceptions.length !== 1 ? 's' : ''} need attention
                             </a>
                         </div>
@@ -85,7 +85,7 @@ var _metricUI = function () {
                     ${actionUrl ? `
                         <div class="metric-footer">
                             <small class="text-muted">
-                                <i class="bi bi-arrow-right-circle me-1"></i>Click to view details
+                                <i class="fas fa-circle-arrow-right me-1"></i>Click to view details
                             </small>
                         </div>
                     ` : ''}

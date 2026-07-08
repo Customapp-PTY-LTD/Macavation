@@ -8,7 +8,7 @@
 
 /* First column (reference) as primary link */
 #oilDispatchTable .js-dispatch-row td:first-child {
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
     font-weight: 500;
 }
 #oilDispatchTable .js-dispatch-row:hover td:first-child {

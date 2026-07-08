@@ -3,10 +3,10 @@
 
 /* Status filter dropdown – green border */
 #filterBatchStatus.form-select {
-    border-color: var(--forest-deep, #008950);
+    border-color: var(--mac-green, var(--mac-green));
 }
 #filterBatchStatus.form-select:focus {
-    border-color: var(--forest-deep, #008950);
+    border-color: var(--mac-green, var(--mac-green));
     box-shadow: 0 0 0 0.2rem rgba(0, 137, 80, 0.25);
 }
 #batchesTable th { border-top: none; font-weight: 600; }
@@ -14,7 +14,7 @@
 
 /* Batch number looks clickable to emphasize row is clickable */
 #batchesTable .js-batch-row td:first-child {
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
     font-weight: 500;
 }
 
@@ -58,7 +58,7 @@
     margin-left: 0;
     margin-top: 12px;
     border-radius: 0;
-    background: #dee2e6;
+    background: var(--mac-border);
     border: 2px solid #000;
     box-sizing: border-box;
 }
@@ -67,19 +67,19 @@
     min-width: 0;
     margin-left: 1rem;
     padding: 1rem 1.25rem;
-    background: #e9ecef;
+    background: var(--mac-border);
     border-radius: 0;
     min-height: 80px;
 }
 .batch-history-timeline__block-title {
     font-size: 1rem;
     font-weight: 700;
-    color: #212529;
+    color: var(--mac-text);
     margin: 0 0 0.5rem 0;
 }
 .batch-history-timeline__block-body {
     font-size: 0.875rem;
-    color: #495057;
+    color: var(--mac-text-secondary);
     line-height: 1.5;
 }
 .batch-history-timeline__block-body p:last-child {
@@ -99,15 +99,15 @@
 }
 .kp-silo-box {
     aspect-ratio: 1;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--mac-border);
     border-radius: 0.35rem;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
     font-size: 1rem;
-    background-color: #fff;
-    color: #212529;
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
 }
 .kp-silo-box {
     flex-direction: column;
@@ -126,27 +126,27 @@
     margin-top: 0.15rem;
 }
 .kp-silo-occupied {
-    background-color: #f8d7da;
-    border-color: #f5c2c7;
-    color: #842029;
+    background-color: var(--mac-danger-light);
+    border-color: rgba(var(--mac-danger-rgb), 0.35);
+    color: var(--mac-danger);
     cursor: pointer;
 }
 .kp-silo-occupied:hover {
-    background-color: #f1aeb5;
-    border-color: #ea868f;
+    background-color: var(--mac-danger-light);
+    border-color: rgba(var(--mac-danger-rgb), 0.5);
 }
 .kp-silo-empty {
-    background-color: #fff;
+    background-color: var(--mac-bg-secondary);
     cursor: pointer;
 }
 .kp-silo-empty:hover {
-    background-color: #f8f9fa;
-    border-color: #adb5bd;
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-text-tertiary);
 }
 .kp-silo-box.kp-silo-selected {
-    border-color: #212529;
+    border-color: var(--mac-text);
     border-width: 3px;
-    box-shadow: 0 0 0 1px #212529;
+    box-shadow: 0 0 0 1px var(--mac-text);
 }
 
 .kp-production-calendar-toolbar {
@@ -205,9 +205,9 @@
 
 .kp-production-calendar-day {
     min-height: 84px;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 0.5rem;
-    background: #fff;
+    background: var(--mac-bg-secondary);
     padding: 0.5rem;
     text-align: left;
     transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
@@ -233,7 +233,7 @@
 
 .kp-production-calendar-daynum {
     font-weight: 600;
-    color: #212529;
+    color: var(--mac-text);
 }
 
 .kp-production-calendar-count {
@@ -252,15 +252,15 @@
     padding: 1rem;
     text-align: center;
     color: var(--mac-text);
-    border: 1px dashed #dee2e6;
+    border: 1px dashed var(--mac-border);
     border-radius: 0.5rem;
 }
 
 .kp-production-calendar-detail {
     min-height: 300px;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 0.75rem;
-    background: #fafbfc;
+    background: var(--mac-bg);
     padding: 1rem;
 }
 
@@ -276,9 +276,9 @@
 }
 
 .kp-production-calendar-entry {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 0.6rem;
-    background: #fff;
+    background: var(--mac-bg-secondary);
     padding: 0.75rem;
     margin-bottom: 0.75rem;
 }
@@ -297,7 +297,7 @@
 
 .kp-production-calendar-entry-batch {
     font-weight: 700;
-    color: #212529;
+    color: var(--mac-text);
 }
 
 .kp-production-calendar-entry-grower {

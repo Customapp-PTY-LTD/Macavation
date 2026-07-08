@@ -9,9 +9,9 @@
     display: inline-block;
     min-width: 4rem;
     padding: 0.25rem 0.5rem;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 0.375rem;
-    background-color: #fff;
+    background-color: var(--mac-bg-secondary);
     font-size: 0.875rem;
 }
 .minute-test-cell:empty::after { content: '\2014'; color: var(--mac-text); }

@@ -6,105 +6,105 @@
 
 /* Exceptions card header: danger when there are exceptions, success when clear */
 .dashboard-container .card-header.dashboard-exceptions-header {
-    background-color: var(--phoenix-danger);
+    background-color: var(--mac-danger);
     color: white;
     border: none;
-    border-radius: var(--phoenix-border-radius);
+    border-radius: var(--mac-radius-md);
     font-weight: 600;
     padding: 1rem 1.25rem;
 }
 .dashboard-container .card-header.dashboard-exceptions-header.dashboard-exceptions-header--clear {
-    background-color: var(--phoenix-success, #198754);
+    background-color: var(--mac-success, var(--mac-green));
     color: white;
 }
 
 /* Stats Cards */
 .stat-card {
-    border-radius: var(--phoenix-border-radius);
+    border-radius: var(--mac-radius-md);
     border: none;
-    box-shadow: var(--phoenix-box-shadow);
+    box-shadow: var(--mac-shadow-sm);
     transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s ease;
     overflow: hidden;
-    background-color: var(--phoenix-card-bg);
+    background-color: var(--mac-bg-secondary);
 }
 
 .stat-card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--phoenix-box-shadow-lg);
+    box-shadow: var(--mac-shadow-lg);
 }
 
 .stat-card .card-header {
-    background-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
     color: white;
     border-bottom: none;
     font-weight: 600;
     padding: 1rem 1.25rem;
     transition: background 0.3s ease;
-    border-radius: var(--phoenix-border-radius);
+    border-radius: var(--mac-radius-md);
 }
 
 .stat-card .card-body {
     padding: 1.5rem;
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
-    border-radius: var(--phoenix-border-radius);
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
+    border-radius: var(--mac-radius-md);
 }
 
 .stat-value {
     font-size: 2.5rem;
     font-weight: 700;
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
     line-height: 1;
     transition: color 0.3s ease;
 }
 
 .stat-label {
     font-size: 0.875rem;
-    color: var(--phoenix-text-color);
+    color: var(--mac-text);
     margin-top: 0.5rem;
     transition: color 0.3s ease;
 }
 
 /* Alert Boxes */
 .alert-warning-custom {
-    background-color: rgba(var(--phoenix-warning-rgb), 0.1);
-    border-left: 4px solid var(--phoenix-warning);
-    border-radius: var(--phoenix-border-radius);
-    color: var(--phoenix-text-color);
+    background-color: rgba(var(--mac-warning-rgb), 0.1);
+    border-left: 4px solid var(--mac-warning);
+    border-radius: var(--mac-radius-md);
+    color: var(--mac-text);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .alert-danger-custom {
-    background-color: rgba(var(--phoenix-danger-rgb), 0.1);
-    border-left: 4px solid var(--phoenix-danger);
-    border-radius: var(--phoenix-border-radius);
-    color: var(--phoenix-text-color);
+    background-color: rgba(var(--mac-danger-rgb), 0.1);
+    border-left: 4px solid var(--mac-danger);
+    border-radius: var(--mac-radius-md);
+    color: var(--mac-text);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .alert-info-custom {
-    background-color: rgba(var(--phoenix-info-rgb), 0.1);
-    border-left: 4px solid var(--phoenix-info);
-    border-radius: var(--phoenix-border-radius);
-    color: var(--phoenix-text-color);
+    background-color: rgba(var(--mac-info-rgb), 0.1);
+    border-left: 4px solid var(--mac-info);
+    border-radius: var(--mac-radius-md);
+    color: var(--mac-text);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .alert-success-custom {
-    background-color: rgba(var(--phoenix-success-rgb), 0.1);
-    border-left: 4px solid var(--phoenix-success);
-    border-radius: var(--phoenix-border-radius);
-    color: var(--phoenix-text-color);
+    background-color: rgba(var(--mac-success-rgb), 0.1);
+    border-left: 4px solid var(--mac-success);
+    border-radius: var(--mac-radius-md);
+    color: var(--mac-text);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Buttons – flat primary per UI_DESIGN_INSTRUCTIONS.md */
 .btn-dashboard {
-    background-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
     color: white;
     border: none;
     padding: 0.5rem 1.5rem;
-    border-radius: var(--phoenix-border-radius);
+    border-radius: var(--mac-radius-md);
     font-weight: 600;
     transition: all 0.3s ease;
 }
@@ -113,14 +113,14 @@
     filter: brightness(1.1);
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(var(--phoenix-primary-rgb), 0.3);
+    box-shadow: 0 4px 12px rgba(var(--mac-green-rgb), 0.3);
 }
 
 /* Action Buttons - Enhanced Visibility */
 .btn-sm {
     padding: 0.4rem 0.75rem;
     font-size: 0.875rem;
-    border-radius: var(--phoenix-border-radius);
+    border-radius: var(--mac-radius-md);
     font-weight: 600;
     min-width: 36px;
     transition: all 0.2s ease;
@@ -138,28 +138,28 @@
 }
 
 .btn-outline-primary {
-    border-color: var(--phoenix-primary);
-    color: var(--phoenix-primary);
-    background-color: rgba(var(--phoenix-primary-rgb), 0.1);
+    border-color: var(--mac-green);
+    color: var(--mac-green);
+    background-color: rgba(var(--mac-green-rgb), 0.1);
     transition: all 0.3s ease;
 }
 
 .btn-outline-primary:hover {
-    background-color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
+    border-color: var(--mac-green);
     color: white;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(var(--phoenix-primary-rgb), 0.3);
+    box-shadow: 0 2px 8px rgba(var(--mac-green-rgb), 0.3);
 }
 
 .btn-outline-info:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(var(--phoenix-info-rgb), 0.3);
+    box-shadow: 0 2px 8px rgba(var(--mac-info-rgb), 0.3);
 }
 
 .btn-outline-secondary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(var(--phoenix-secondary-rgb), 0.3);
+    box-shadow: 0 2px 8px rgba(var(--mac-border-rgb), 0.3);
 }
 
 .btn-sm i {
@@ -169,14 +169,14 @@
 
 /* Badge Styles */
 .dashboard-badge-primary {
-    background-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
     color: white;
     font-weight: 600;
     transition: background-color 0.3s ease;
 }
 
 .dashboard-badge-secondary {
-    background-color: var(--phoenix-secondary);
+    background-color: var(--mac-border);
     color: white;
     transition: background-color 0.3s ease;
 }
@@ -184,10 +184,10 @@
 /* Recent Activity List */
 .list-group-item {
     border: none;
-    border-bottom: 1px solid var(--phoenix-border-color);
+    border-bottom: 1px solid var(--mac-border);
     padding: 1rem 0;
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
     transition: border-color 0.3s ease, background-color 0.3s ease;
 }
 
@@ -201,41 +201,41 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--phoenix-border-radius);
+    border-radius: var(--mac-radius-md);
     font-size: 1.25rem;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .activity-icon.success {
-    background-color: rgba(var(--phoenix-success-rgb), 0.2);
-    color: var(--phoenix-success);
+    background-color: rgba(var(--mac-success-rgb), 0.2);
+    color: var(--mac-success);
 }
 
 .activity-icon.info {
-    background-color: rgba(var(--phoenix-info-rgb), 0.2);
-    color: var(--phoenix-info);
+    background-color: rgba(var(--mac-info-rgb), 0.2);
+    color: var(--mac-info);
 }
 
 .activity-icon.warning {
-    background-color: rgba(var(--phoenix-warning-rgb), 0.2);
-    color: var(--phoenix-warning);
+    background-color: rgba(var(--mac-warning-rgb), 0.2);
+    color: var(--mac-warning);
 }
 
 .activity-icon.primary {
-    background-color: rgba(var(--phoenix-primary-rgb), 0.2);
-    color: var(--phoenix-primary);
+    background-color: rgba(var(--mac-green-rgb), 0.2);
+    color: var(--mac-green);
 }
 
 .activity-icon.secondary {
-    background-color: rgba(var(--phoenix-secondary-rgb), 0.2);
-    color: var(--phoenix-text-color);
+    background-color: rgba(var(--mac-border-rgb), 0.2);
+    color: var(--mac-text);
 }
 
 /* Task List */
 .task-item {
     padding: 0.75rem 0;
-    border-bottom: 1px solid var(--phoenix-border-color);
-    color: var(--phoenix-text-color);
+    border-bottom: 1px solid var(--mac-border);
+    color: var(--mac-text);
     transition: border-color 0.3s ease, color 0.3s ease;
 }
 
@@ -253,23 +253,23 @@
 }
 
 .priority-high {
-    background-color: var(--phoenix-danger);
+    background-color: var(--mac-danger);
 }
 
 .priority-medium {
-    background-color: var(--phoenix-warning);
+    background-color: var(--mac-warning);
 }
 
 .priority-low {
-    background-color: var(--phoenix-info);
+    background-color: var(--mac-info);
 }
 
 /* Card Header Styles (bg-light sections) */
 .dashboard-container .card-header {
-    background-color: var(--phoenix-light);
-    border-bottom: 1px solid var(--phoenix-border-color);
-    color: var(--phoenix-text-color);
-    border-radius: var(--phoenix-border-radius);
+    background-color: var(--mac-bg-tertiary);
+    border-bottom: 1px solid var(--mac-border);
+    color: var(--mac-text);
+    border-radius: var(--mac-radius-md);
     transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
@@ -279,36 +279,36 @@
 }
 
 [data-theme-mode="dark"] .dashboard-container .card-header {
-    background-color: var(--phoenix-light);
+    background-color: var(--mac-bg-tertiary);
 }
 
 /* Text Color Adjustments */
 .dashboard-container h2,
 .dashboard-container h4,
 .dashboard-container h5 {
-    color: var(--phoenix-text-color);
+    color: var(--mac-text);
     transition: color 0.3s ease;
 }
 
 .dashboard-container .text-muted {
-    color: var(--phoenix-text-color) !important;
+    color: var(--mac-text) !important;
     transition: color 0.3s ease;
 }
 
 .dashboard-container .card {
-    background-color: var(--phoenix-card-bg);
-    border-color: var(--phoenix-border-color);
-    color: var(--phoenix-text-color);
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border);
+    color: var(--mac-text);
     transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .dashboard-container .card-body {
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
 }
 
 .dashboard-container .alert-link {
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
     transition: color 0.3s ease;
 }
 

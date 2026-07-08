@@ -184,7 +184,7 @@ var _oilDispatchGrid = function () {
                 html += '<div class="kanban-card-actions">';
                 html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet"><i class="fas fa-clipboard-list me-1"></i>View</button>';
                 if (!isDispatched) {
-                    html += '<button type="button" class="btn btn-sm btn-success js-dispatch-oil-order" data-order-id="' + (o.id || '') + '" title="Complete inspection and dispatch"><i class="fas fa-truck me-1"></i>Dispatch</button>';
+                    html += '<button type="button" class="btn btn-sm btn-primary js-dispatch-oil-order" data-order-id="' + (o.id || '') + '" title="Complete inspection and dispatch"><i class="fas fa-truck me-1"></i>Dispatch</button>';
                 }
                 html += '</div>';
                 html += '</div>';

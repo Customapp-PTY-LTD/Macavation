@@ -254,42 +254,42 @@
 
 /* ============================================
    BRAND COLOUR ACCENTS — kanban & status badges
-   Palette: tan (#8d7434), brown (#6d5822), green (#198754)
+   Palette: tan (var(--mac-tan)), brown (var(--mac-brown)), green (var(--mac-green))
    ============================================ */
 
 /* ── Status badge stage colours (tables + anywhere) ── */
-.badge-stage-first { background: rgba(141, 116, 52, 0.1); color: #8d7434; font-weight: 500; }
-.badge-stage-mid   { background: rgba(109, 88, 34, 0.1); color: #6d5822; font-weight: 500; }
-.badge-stage-last  { background: rgba(25, 135, 84, 0.1); color: #198754; font-weight: 500; }
+.badge-stage-first { background: rgba(141, 116, 52, 0.1); color: var(--mac-tan); font-weight: 500; }
+.badge-stage-mid   { background: rgba(109, 88, 34, 0.1); color: var(--mac-brown); font-weight: 500; }
+.badge-stage-last  { background: rgba(25, 135, 84, 0.1); color: var(--mac-green); font-weight: 500; }
 
-[data-theme-mode="dark"] .badge-stage-first { background: rgba(141, 116, 52, 0.18); color: #B8A04A; }
-[data-theme-mode="dark"] .badge-stage-mid   { background: rgba(109, 88, 34, 0.18); color: #C9A962; }
-[data-theme-mode="dark"] .badge-stage-last  { background: rgba(25, 135, 84, 0.15); color: #2DA44E; }
+[data-theme-mode="dark"] .badge-stage-first { background: rgba(141, 116, 52, 0.18); color: var(--mac-warning); }
+[data-theme-mode="dark"] .badge-stage-mid   { background: rgba(109, 88, 34, 0.18); color: var(--mac-warning); }
+[data-theme-mode="dark"] .badge-stage-last  { background: rgba(25, 135, 84, 0.15); color: var(--mac-success); }
 
 /* Card title — macadamia brown */
 .kanban-card-title {
-    color: #6d5822;
+    color: var(--mac-brown);
 }
 
 /* ── Stage colours: first=tan, middle=brown, last=green ── */
 
 /* First stage — tan */
-.kanban-col-first .kanban-column-header { color: #8d7434; }
-.kanban-col-first .kanban-column-count { background: rgba(141, 116, 52, 0.12); color: #8d7434; font-weight: 600; }
+.kanban-col-first .kanban-column-header { color: var(--mac-tan); }
+.kanban-col-first .kanban-column-count { background: rgba(141, 116, 52, 0.12); color: var(--mac-tan); font-weight: 600; }
 
 /* Middle stages — brown */
-.kanban-col-mid .kanban-column-header { color: #6d5822; }
-.kanban-col-mid .kanban-column-count { background: rgba(109, 88, 34, 0.12); color: #6d5822; font-weight: 600; }
+.kanban-col-mid .kanban-column-header { color: var(--mac-brown); }
+.kanban-col-mid .kanban-column-count { background: rgba(109, 88, 34, 0.12); color: var(--mac-brown); font-weight: 600; }
 
 /* Final stage — green */
-.kanban-col-last .kanban-column-header { color: #198754; }
-.kanban-col-last .kanban-column-count { background: rgba(25, 135, 84, 0.1); color: #198754; font-weight: 600; }
+.kanban-col-last .kanban-column-header { color: var(--mac-green); }
+.kanban-col-last .kanban-column-count { background: rgba(25, 135, 84, 0.1); color: var(--mac-green); font-weight: 600; }
 
 /* Dark mode */
-[data-theme-mode="dark"] .kanban-col-first .kanban-column-header { color: #B8A04A; }
-[data-theme-mode="dark"] .kanban-col-first .kanban-column-count { background: rgba(141, 116, 52, 0.18); color: #B8A04A; }
-[data-theme-mode="dark"] .kanban-col-mid .kanban-column-header { color: #C9A962; }
-[data-theme-mode="dark"] .kanban-col-mid .kanban-column-count { background: rgba(109, 88, 34, 0.18); color: #C9A962; }
-[data-theme-mode="dark"] .kanban-col-last .kanban-column-header { color: #2DA44E; }
-[data-theme-mode="dark"] .kanban-col-last .kanban-column-count { background: rgba(25, 135, 84, 0.15); color: #2DA44E; }
-[data-theme-mode="dark"] .kanban-card-title { color: #E8D4A8; }
+[data-theme-mode="dark"] .kanban-col-first .kanban-column-header { color: var(--mac-warning); }
+[data-theme-mode="dark"] .kanban-col-first .kanban-column-count { background: rgba(141, 116, 52, 0.18); color: var(--mac-warning); }
+[data-theme-mode="dark"] .kanban-col-mid .kanban-column-header { color: var(--mac-warning); }
+[data-theme-mode="dark"] .kanban-col-mid .kanban-column-count { background: rgba(109, 88, 34, 0.18); color: var(--mac-warning); }
+[data-theme-mode="dark"] .kanban-col-last .kanban-column-header { color: var(--mac-success); }
+[data-theme-mode="dark"] .kanban-col-last .kanban-column-count { background: rgba(25, 135, 84, 0.15); color: var(--mac-success); }
+[data-theme-mode="dark"] .kanban-card-title { color: var(--mac-warning-light); }

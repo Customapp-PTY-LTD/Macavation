@@ -9,7 +9,7 @@
 
 /* First column (Batch #) as primary link */
 #supplierIntakeBatchesTable .js-supplier-intake-row td:first-child {
-    color: var(--phoenix-primary, #0d6efd);
+    color: var(--mac-green, var(--mac-green));
     font-weight: 500;
 }
 #supplierIntakeBatchesTable .js-supplier-intake-row:hover td:first-child {
@@ -21,11 +21,11 @@
     font-weight: 500;
     text-decoration: none;
     cursor: pointer;
-    color: var(--phoenix-primary, #0d6efd);
+    color: var(--mac-green, var(--mac-green));
 }
 .supplier-intake-batch-number-link:hover {
     text-decoration: underline;
-    color: var(--phoenix-primary, #0d6efd);
+    color: var(--mac-green, var(--mac-green));
 }
 .supplier-intake-col-batch { overflow: visible !important; }
 
@@ -52,9 +52,9 @@
 
 /* Group header rows (supplier + delivery note + date) */
 .supplier-intake-group-row td.supplier-intake-group-cell {
-    background: rgba(13, 110, 253, 0.06);
-    border-top: 1px solid rgba(13, 110, 253, 0.18);
-    border-bottom: 1px solid rgba(13, 110, 253, 0.18);
+    background: rgba(var(--mac-green-rgb), 0.06);
+    border-top: 1px solid rgba(var(--mac-green-rgb), 0.18);
+    border-bottom: 1px solid rgba(var(--mac-green-rgb), 0.18);
     padding: 0.5rem 0.75rem;
 }
 .supplier-intake-group-title {
@@ -62,7 +62,7 @@
     margin-right: 0.5rem;
 }
 .supplier-intake-group-meta {
-    color: rgba(33, 37, 41, 0.75);
+    color: var(--mac-text-secondary);
     font-size: 0.875rem;
 }
 
@@ -128,7 +128,7 @@
     text-transform: uppercase;
     font-size: 0.72rem;
     letter-spacing: 0.04em;
-    color: #495057;
+    color: var(--mac-text-secondary);
     font-weight: 600;
     vertical-align: middle;
     white-space: nowrap;

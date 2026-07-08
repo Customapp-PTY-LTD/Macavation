@@ -23,16 +23,16 @@
     justify-content: center;
     border-radius: 0.25rem;
     background-color: transparent;
-    border: 2px solid var(--forest-deep, #008950);
-    color: var(--forest-deep, #008950);
+    border: 2px solid var(--mac-green, var(--mac-green));
+    color: var(--mac-green, var(--mac-green));
 }
 
 .mac-table-actions .btn:hover,
 .mac-table-actions .btn.show,
 .mac-table-actions-col .dropdown .btn:hover,
 .mac-table-actions-col .dropdown .btn.show {
-    background-color: var(--forest-deep, #008950);
-    border-color: var(--forest-deep, #008950);
+    background-color: var(--mac-green, var(--mac-green));
+    border-color: var(--mac-green, var(--mac-green));
     color: #fff;
 }
 

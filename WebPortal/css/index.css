@@ -38,11 +38,11 @@ body {
 }
 
 .navbar .nav-link {
-    color: var(--macadamia-dark) !important;
+    color: var(--mac-text) !important;
 }
 
 .navbar .nav-link:hover {
-    color: var(--forest-deep) !important;
+    color: var(--mac-green) !important;
 }
 
 .navbar .dropdown-menu {
@@ -169,7 +169,7 @@ body {
 }
 
 .user-dropdown-signout:hover {
-    background: #b01c26 !important;
+    background: var(--mac-danger) !important;
     color: #fff !important;
 }
 
@@ -300,7 +300,7 @@ body {
 }
 
 .sidebar .flex-grow-1:hover::-webkit-scrollbar-track {
-    background: var(--forest-light-bg);
+    background: var(--mac-green-light);
 }
 
 .sidebar .flex-grow-1::-webkit-scrollbar-thumb {
@@ -314,7 +314,7 @@ body {
 }
 
 .sidebar .flex-grow-1::-webkit-scrollbar-thumb:hover {
-    background: var(--forest-deep);
+    background: var(--mac-green);
 }
 
 /* Main content */
@@ -446,55 +446,7 @@ body {
     padding: 1rem !important;
 }
 
-/* SweetAlert — THE canonical dialog skin (all 600+ Swal.fire calls inherit
-   this; no other stylesheet may restyle .swal2-*). Confirm = green primary,
-   cancel = quiet neutral, deny = danger. */
-.swal2-popup {
-    border-radius: var(--mac-radius-lg) !important;
-    font-family: var(--mac-font) !important;
-    color: var(--mac-text) !important;
-}
-
-.swal2-title {
-    font-family: var(--mac-font) !important;
-    color: var(--mac-text) !important;
-    font-size: var(--mac-text-lg) !important;
-}
-
-.swal2-html-container {
-    color: var(--mac-text-secondary) !important;
-    font-size: var(--mac-text-base) !important;
-}
-
-.swal2-confirm {
-    background: var(--mac-green) !important;
-    border: none !important;
-    border-radius: var(--mac-radius-md) !important;
-    box-shadow: none !important;
-}
-
-.swal2-confirm:hover {
-    background: var(--mac-green-hover) !important;
-}
-
-.swal2-cancel {
-    background: var(--mac-bg-secondary) !important;
-    border: 1px solid var(--mac-border-strong) !important;
-    color: var(--mac-text-secondary) !important;
-    border-radius: var(--mac-radius-md) !important;
-    box-shadow: none !important;
-}
-
-.swal2-cancel:hover {
-    background: var(--mac-bg-tertiary) !important;
-    color: var(--mac-text) !important;
-}
-
-.swal2-deny {
-    background: var(--mac-danger) !important;
-    border: none !important;
-    border-radius: var(--mac-radius-md) !important;
-}
+/* SweetAlert skin lives in css/swal-theme.css (shared with signin). */
 
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
@@ -593,7 +545,7 @@ body {
 
 .badge.bg-warning {
     background: var(--mac-warning-light) !important;
-    color: #8a6d14 !important;
+    color: var(--mac-warning-text) !important;
 }
 
 .badge.bg-info {
@@ -626,7 +578,7 @@ body {
 
 .mac-pill-success { background: var(--mac-success-light); color: var(--mac-success); }
 .mac-pill-info    { background: var(--mac-info-light); color: var(--mac-info); }
-.mac-pill-warning { background: var(--mac-warning-light); color: #8a6d14; }
+.mac-pill-warning { background: var(--mac-warning-light); color: var(--mac-warning-text); }
 .mac-pill-danger  { background: var(--mac-danger-light); color: var(--mac-danger); }
 .mac-pill-neutral { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); border: 1px solid var(--mac-border); }
 

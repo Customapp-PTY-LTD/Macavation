@@ -421,7 +421,7 @@ var _growerIntakeGrid = function () {
                 } else if (!sampleDone) {
                     stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="New batch sample"><i class="fas fa-vial me-1"></i><span class="intake-btn-text">New batch sample</span></button>';
                 } else {
-                    stage1Btn = '<button type="button" class="btn btn-sm btn-success intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="View batch sample"><i class="fas fa-check me-1"></i><span class="intake-btn-text">Batch sample</span></button>';
+                    stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="View batch sample"><i class="fas fa-check me-1"></i><span class="intake-btn-text">Batch sample</span></button>';
                 }
 
                 var releaseItem = canRelease
@@ -505,7 +505,7 @@ var _growerIntakeGrid = function () {
                 } else if (!sampleDone) {
                     stage1Html = '<button type="button" class="btn btn-sm btn-primary js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="New batch sample"><i class="fas fa-vial me-1"></i>Sample</button>';
                 } else {
-                    stage1Html = '<button type="button" class="btn btn-sm btn-success js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="View batch sample"><i class="fas fa-check me-1"></i>Sample</button>';
+                    stage1Html = '<button type="button" class="btn btn-sm btn-primary js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="View batch sample"><i class="fas fa-check me-1"></i>Sample</button>';
                 }
 
                 var releaseHtml = canRelease

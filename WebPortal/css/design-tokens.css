@@ -22,6 +22,7 @@
     --mac-bg-tertiary: #F0F0EE;
     --mac-border: #E3E3E0;
     --mac-border-strong: #D3D3D0;
+    --mac-border-rgb: 227, 227, 224;
     /* Three text tones = the hierarchy. All pass WCAG AA on --mac-bg (#F7F7F5):
        #52524E ≈ 7.3:1, #6E6E68 ≈ 4.9:1. Do not collapse these to one value —
        contrast fixes must adjust tones, not delete the triad. */
@@ -37,6 +38,8 @@
     --mac-success-rgb: 45, 164, 78;
     --mac-success-light: rgba(45, 164, 78, 0.08);
     --mac-warning: #D4A72C;
+    /* Darker warning tone for TEXT on the warning tint (AA-readable amber) */
+    --mac-warning-text: #8a6d14;
     --mac-warning-rgb: 212, 167, 44;
     --mac-warning-light: rgba(212, 167, 44, 0.08);
     --mac-danger: #CF222E;

@@ -184,7 +184,7 @@ var _proactiveIntelligence = function () {
             const html = `
                 <div class="trend-projection">
                     <h6 class="mb-3">
-                        <i class="bi bi-graph-up me-2"></i>
+                        <i class="fas fa-chart-line me-2"></i>
                         Trend Projection
                     </h6>
                     <div class="projection-content">
@@ -222,7 +222,7 @@ var _proactiveIntelligence = function () {
                 const severity = Math.abs(projected - threshold) / threshold > 0.2 ? 'critical' : 'warning';
                 return `
                     <div class="alert alert-${severity} mt-2">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <i class="fas fa-triangle-exclamation me-2"></i>
                         Projected to breach threshold
                     </div>
                 `;
@@ -245,7 +245,7 @@ var _proactiveIntelligence = function () {
             const html = `
                 <div class="predictive-insights">
                     <h6 class="mb-3">
-                        <i class="bi bi-lightbulb me-2"></i>
+                        <i class="fas fa-lightbulb me-2"></i>
                         Predictive Insights
                     </h6>
                     <div class="insights-list">

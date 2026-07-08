@@ -46,7 +46,7 @@
 #intakeBatchesTable tbody tr.js-intake-batch-row { cursor: default; }
 
 #intakeBatchesTable .js-intake-batch-row td:first-child {
-    color: var(--phoenix-primary, #0d6efd);
+    color: var(--mac-green, var(--mac-green));
     font-weight: 500;
 }
 
@@ -55,11 +55,11 @@
     font-weight: 500;
     text-decoration: none;
     cursor: pointer;
-    color: var(--phoenix-primary, #0d6efd);
+    color: var(--mac-green, var(--mac-green));
 }
 .intake-batch-number-link:hover {
     text-decoration: underline;
-    color: var(--phoenix-primary, #0d6efd);
+    color: var(--mac-green, var(--mac-green));
 }
 .intake-col-batch { overflow: visible !important; }
 
@@ -185,7 +185,7 @@
 }
 .silo-box {
     aspect-ratio: 1;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--mac-border);
     border-radius: 0.35rem;
     display: flex;
     flex-direction: column;
@@ -193,7 +193,7 @@
     justify-content: center;
     font-weight: 600;
     font-size: 1rem;
-    background-color: #fff;
+    background-color: var(--mac-bg-secondary);
     padding: 0.25rem;
     min-width: 0;
     pointer-events: auto;
@@ -213,25 +213,25 @@
     text-align: center;
 }
 .silo-occupied {
-    background-color: #f8d7da;
-    border-color: #f5c2c7;
-    color: #842029;
+    background-color: var(--mac-danger-light);
+    border-color: rgba(var(--mac-danger-rgb), 0.35);
+    color: var(--mac-danger);
     cursor: default;
 }
-.silo-empty { background-color: #fff; color: #212529; }
+.silo-empty { background-color: var(--mac-bg-secondary); color: var(--mac-text); }
 .silo-selectable { cursor: pointer; }
 .silo-selectable:hover {
-    border-color: #0d6efd;
-    background-color: #f0f7ff;
+    border-color: var(--mac-green);
+    background-color: var(--mac-info-light);
 }
 .silo-selectable:focus {
-    outline: 2px solid #0d6efd;
+    outline: 2px solid var(--mac-green);
     outline-offset: 2px;
 }
 .silo-selected {
-    border-color: #0d6efd !important;
-    background-color: #cfe2ff !important;
-    color: #084298;
+    border-color: var(--mac-green) !important;
+    background-color: var(--mac-green-light) !important;
+    color: var(--mac-green);
 }
 
 /* ================================================================
@@ -295,9 +295,9 @@
 
 .gi-procurement-calendar-day {
     min-height: 84px;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 0.5rem;
-    background: #fff;
+    background: var(--mac-bg-secondary);
     padding: 0.5rem;
     text-align: left;
     cursor: pointer;
@@ -305,7 +305,7 @@
 }
 
 .gi-procurement-calendar-day:hover {
-    border-color: #9ec5fe;
+    border-color: var(--mac-green-light);
 }
 
 .gi-procurement-calendar-day.is-outside-month {
@@ -313,24 +313,24 @@
 }
 
 .gi-procurement-calendar-day.is-active {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+    border-color: var(--mac-green);
+    box-shadow: 0 0 0 2px rgba(var(--mac-green-rgb), 0.15);
 }
 
 .gi-procurement-calendar-day.has-procurement {
-    background: #e7f1ff;
-    border-color: #9ec5fe;
+    background: var(--mac-green-light);
+    border-color: var(--mac-green-light);
 }
 
 .gi-procurement-calendar-day.drag-over {
-    border-color: #0d6efd;
-    background: #dbeafe;
-    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+    border-color: var(--mac-green);
+    background: var(--mac-green-light);
+    box-shadow: 0 0 0 2px rgba(var(--mac-green-rgb), 0.25);
 }
 
 .gi-procurement-calendar-daynum {
     font-weight: 600;
-    color: #212529;
+    color: var(--mac-text);
     font-size: 0.85rem;
     margin-bottom: 0.25rem;
 }
@@ -350,7 +350,7 @@
     gap: 0.3rem;
     padding: 0.2rem 0.45rem;
     border-radius: 999px;
-    background: #0d6efd;
+    background: var(--mac-green);
     color: #fff;
     font-size: 0.7rem;
     font-weight: 600;
@@ -372,7 +372,7 @@
 }
 
 .gi-procurement-pill.sortable-chosen {
-    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.45);
+    box-shadow: 0 2px 8px rgba(var(--mac-green-rgb), 0.45);
 }
 
 .gi-procurement-pill-name {
@@ -389,9 +389,9 @@
 /* Detail panel (right side) */
 .gi-procurement-calendar-detail {
     min-height: 300px;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 0.75rem;
-    background: #fafbfc;
+    background: var(--mac-bg);
     padding: 1rem;
 }
 
@@ -408,8 +408,8 @@
 
 /* Add procurement form inside detail panel */
 .gi-procurement-add-form {
-    background: #fff;
-    border: 1px solid #dee2e6;
+    background: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
     border-radius: 0.6rem;
     padding: 0.75rem;
     margin-bottom: 1rem;
@@ -423,9 +423,9 @@
 
 /* Entry cards in detail panel */
 .gi-procurement-detail-entry {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 0.6rem;
-    background: #fff;
+    background: var(--mac-bg-secondary);
     padding: 0.65rem 0.75rem;
     margin-bottom: 0.5rem;
     display: flex;
@@ -446,7 +446,7 @@
 .gi-procurement-entry-grower {
     font-weight: 600;
     font-size: 0.875rem;
-    color: #212529;
+    color: var(--mac-text);
 }
 
 .gi-procurement-entry-weight {
@@ -463,9 +463,9 @@
 
 /* Receiving drop-zone highlight (applied by JS to the Receiving kanban column) */
 .gi-receiving-drop-target {
-    outline: 2px dashed #0d6efd;
+    outline: 2px dashed var(--mac-green);
     outline-offset: 3px;
-    background: rgba(13, 110, 253, 0.05) !important;
+    background: rgba(var(--mac-green-rgb), 0.05) !important;
     transition: background 0.15s ease;
 }
 

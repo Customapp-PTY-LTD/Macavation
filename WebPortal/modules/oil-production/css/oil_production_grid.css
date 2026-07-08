@@ -3,18 +3,18 @@
 
 /* Status filter dropdown – primary border */
 #filterOilBatchStatus.form-select {
-    border-color: var(--forest-deep, var(--phoenix-primary));
+    border-color: var(--mac-green, var(--mac-green));
 }
 #filterOilBatchStatus.form-select:focus {
-    border-color: var(--forest-deep, var(--phoenix-primary));
+    border-color: var(--mac-green, var(--mac-green));
     box-shadow: 0 0 0 0.2rem rgba(0, 137, 80, 0.25);
 }
 
 /* Production sheet forms – paper-style layout to match physical documents */
 .op-ps-paper {
     max-width: 100%;
-    background: #fff;
-    border: 1px solid #dee2e6;
+    background: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
     border-radius: 4px;
     padding: 1rem 1.25rem;
 }
@@ -24,7 +24,7 @@
     font-size: 1.1rem;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--mac-border);
 }
 .op-ps-section {
     margin-bottom: 1rem;
@@ -33,7 +33,7 @@
     font-weight: 600;
     font-size: 0.95rem;
     margin-bottom: 0.5rem;
-    color: #374151;
+    color: var(--mac-border);
 }
 .op-ps-field-row {
     display: flex;
@@ -60,11 +60,11 @@
 }
 .op-ps-table th,
 .op-ps-table td {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     text-align: left;
 }
 .op-ps-table th {
-    background: #f8f9fa;
+    background: var(--mac-bg-tertiary);
     font-weight: 600;
 }
 .op-ps-table input.form-control {
@@ -75,7 +75,7 @@
 .op-ps-doc-ref {
     margin-top: 1rem;
     padding-top: 0.5rem;
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--mac-border);
     font-size: 0.8rem;
     color: var(--mac-text);
 }
@@ -86,7 +86,7 @@
 .op-oil-bin-batches-table thead th { border-top: none; font-weight: 600; }
 .op-oil-bin-batches-table tbody td { vertical-align: middle; }
 .op-oil-bin-batches-table td:first-child {
-    color: var(--forest-deep, var(--phoenix-primary));
+    color: var(--mac-green, var(--mac-green));
     font-weight: 500;
 }
 .op-oil-bin-batches-table .btn-sm { white-space: nowrap; }
@@ -100,7 +100,7 @@
 .op-raw-ingredients-table td:last-child { text-align: right; }
 .op-finished-raw-table td:last-child { text-align: left; }
 .op-raw-ingredients-table td:first-child {
-    color: var(--forest-deep, var(--phoenix-primary));
+    color: var(--mac-green, var(--mac-green));
     font-weight: 500;
 }
 
@@ -109,7 +109,7 @@
     font-weight: 600;
     font-size: 0.95rem;
     margin-bottom: 0.5rem;
-    color: #374151;
+    color: var(--mac-border);
 }
 .op-pd-section-title + .table-responsive { margin-bottom: 0.5rem; }
 .op-pd-section-title + .row { margin-bottom: 0.5rem; }

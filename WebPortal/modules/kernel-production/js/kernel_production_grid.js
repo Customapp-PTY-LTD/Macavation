@@ -113,7 +113,7 @@ var _kernelProductionGrid = function () {
         }
         if (fv === 'release_ready') {
             if (canReleaseToStock) {
-                return '<button type="button" class="btn btn-sm btn-success js-release-to-stock" data-batch-id="' + id + '" data-action-perm="kernel.release_to_stock"><i class="fas fa-warehouse me-1"></i>Release to stock</button>';
+                return '<button type="button" class="btn btn-sm btn-primary js-release-to-stock" data-batch-id="' + id + '" data-action-perm="kernel.release_to_stock"><i class="fas fa-warehouse me-1"></i>Release to stock</button>';
             }
             if (!isJobCardApproved) {
                 return '<button type="button" class="btn btn-sm btn-primary js-job-card-batch" data-batch-id="' + id + '"><i class="fas fa-file-alt me-1"></i>Approve job card</button>';

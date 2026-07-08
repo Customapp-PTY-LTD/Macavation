@@ -12,14 +12,14 @@
     text-align: center;
     padding: 1.5rem 0;
     background: var(--mac-bg-secondary, #fff);
-    color: var(--mac-text, #1F1F1F);
-    border: 1px solid var(--mac-border, #E3E3E0);
+    color: var(--mac-text, var(--mac-text));
+    border: 1px solid var(--mac-border, var(--mac-border));
     border-radius: var(--mac-radius-lg, 12px);
     margin-bottom: 2rem;
 }
 
 .my-day-header h2 {
-    color: var(--mac-text, #1F1F1F);
+    color: var(--mac-text, var(--mac-text));
     font-weight: 600;
 }
 
@@ -35,7 +35,7 @@
     align-items: flex-start;
     gap: 1rem;
     padding: 1rem;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 8px;
     background: white;
     transition: box-shadow 0.2s;
@@ -46,7 +46,7 @@
 }
 
 .workflow-task.task-completed {
-    background: #f8f9fa;
+    background: var(--mac-bg-tertiary);
     opacity: 0.7;
 }
 
@@ -93,21 +93,21 @@
 /* Due Items */
 .due-item {
     padding: 0.75rem;
-    border-left: 3px solid #ffc107;
-    background: #fffbf0;
+    border-left: 3px solid var(--mac-warning);
+    background: var(--mac-warning-light);
     border-radius: 4px;
 }
 
 .due-item.overdue {
-    border-left-color: #dc3545;
-    background: #fff5f5;
+    border-left-color: var(--mac-danger);
+    background: var(--mac-danger-light);
 }
 
 /* Watching Items */
 .watching-item {
     padding: 0.75rem;
-    border-left: 3px solid #0dcaf0;
-    background: #f0f9ff;
+    border-left: 3px solid var(--mac-info);
+    background: var(--mac-info-light);
     border-radius: 4px;
 }
 
@@ -121,7 +121,7 @@
 /* Activity Items */
 .activity-item {
     padding: 0.75rem 0;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--mac-border);
 }
 
 .activity-item:last-child {
@@ -134,7 +134,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f8f9fa;
+    background: var(--mac-bg-tertiary);
     border-radius: 50%;
     color: var(--mac-text);
 }

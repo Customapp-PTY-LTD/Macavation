@@ -23,7 +23,7 @@
 }
 
 #rolesTable .js-role-row td:first-child {
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
     font-weight: 500;
 }
 
@@ -52,27 +52,27 @@
 }
 
 .pagination .page-link {
-    color: var(--phoenix-primary);
-    border-color: var(--phoenix-border-color);
+    color: var(--mac-green);
+    border-color: var(--mac-border);
 }
 
 .pagination .page-item.active .page-link {
-    background-color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
+    border-color: var(--mac-green);
 }
 
 .pagination .page-link:hover {
-    color: var(--phoenix-primary);
-    background-color: var(--phoenix-light);
-    border-color: var(--phoenix-border-color);
+    color: var(--mac-green);
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
 }
 
 /* Permissions preview (e.g. in modal) */
 #permissionsPreview {
     min-height: 100px;
-    background-color: var(--phoenix-light);
-    border: 1px solid var(--phoenix-border-color);
-    border-radius: var(--phoenix-border-radius, 0.375rem);
+    background-color: var(--mac-bg-tertiary);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md, 0.375rem);
     padding: 0.75rem;
 }
 
@@ -83,27 +83,27 @@
 
 /* Card */
 .card {
-    border: 1px solid var(--phoenix-border-color);
-    box-shadow: var(--phoenix-box-shadow);
+    border: 1px solid var(--mac-border);
+    box-shadow: var(--mac-shadow-sm);
 }
 
 .card-header {
-    background-color: var(--phoenix-light);
-    border-bottom: 1px solid var(--phoenix-border-color);
+    background-color: var(--mac-bg-tertiary);
+    border-bottom: 1px solid var(--mac-border);
 }
 
 /* Form / validation */
 .required::after {
     content: " *";
-    color: var(--phoenix-danger);
+    color: var(--mac-danger);
 }
 
 .is-invalid {
-    border-color: var(--phoenix-danger);
+    border-color: var(--mac-danger);
 }
 
 .invalid-feedback {
-    color: var(--phoenix-danger);
+    color: var(--mac-danger);
     font-size: 0.875rem;
     margin-top: 0.25rem;
 }

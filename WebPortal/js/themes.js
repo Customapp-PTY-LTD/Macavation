@@ -10,17 +10,17 @@ const ThemeManager = {
         // Clear any inline CSS variable overrides from old theme system
         var root = document.documentElement;
         var oldVars = [
-            '--phoenix-primary', '--phoenix-primary-rgb',
-            '--phoenix-secondary', '--phoenix-secondary-rgb',
+            '--mac-green', '--mac-green-rgb',
+            '--mac-border', '--mac-border-rgb',
             '--phoenix-tertiary', '--phoenix-tertiary-rgb',
-            '--phoenix-success', '--phoenix-success-rgb',
-            '--phoenix-info', '--phoenix-info-rgb',
-            '--phoenix-warning', '--phoenix-warning-rgb',
-            '--phoenix-danger', '--phoenix-danger-rgb',
-            '--phoenix-light', '--phoenix-light-rgb',
-            '--phoenix-dark', '--phoenix-dark-rgb',
-            '--phoenix-body-bg', '--phoenix-card-bg',
-            '--phoenix-text-color', '--phoenix-border-color',
+            '--mac-success', '--mac-success-rgb',
+            '--mac-info', '--mac-info-rgb',
+            '--mac-warning', '--mac-warning-rgb',
+            '--mac-danger', '--mac-danger-rgb',
+            '--mac-bg-tertiary', '--mac-bg-tertiary-rgb',
+            '--mac-text', '--mac-text-rgb',
+            '--mac-bg', '--mac-bg-secondary',
+            '--mac-text', '--mac-border',
             '--theme-sidebar-bg', '--theme-sidebar-text',
             '--theme-sidebar-active', '--theme-sidebar-hover',
             '--theme-navbar-gradient', '--theme-accent'

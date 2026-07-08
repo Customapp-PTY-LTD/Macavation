@@ -7,8 +7,8 @@
 #contactsTable th {
     border-top: none;
     font-weight: 600;
-    color: var(--phoenix-text-color);
-    background-color: var(--phoenix-light);
+    color: var(--mac-text);
+    background-color: var(--mac-bg-tertiary);
 }
 
 #contactsTable td {
@@ -39,8 +39,8 @@
 }
 
 .form-section h5 {
-    color: var(--phoenix-primary);
-    border-bottom: 2px solid var(--phoenix-primary);
+    color: var(--mac-green);
+    border-bottom: 2px solid var(--mac-green);
     padding-bottom: 0.5rem;
     margin-bottom: 1rem;
     font-size: 1.1rem;
@@ -49,7 +49,7 @@
 
 .required::after {
     content: " *";
-    color: var(--phoenix-danger);
+    color: var(--mac-danger);
 }
 
 .modal-xl {
@@ -79,16 +79,16 @@
 }
 
 .nav-tabs .nav-link {
-    color: var(--phoenix-text-color);
+    color: var(--mac-text);
 }
 
 .nav-tabs .nav-link.active {
-    color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
+    color: var(--mac-green);
+    border-color: var(--mac-green);
 }
 
 .table tbody tr:hover {
-    background-color: rgba(var(--phoenix-primary-rgb), 0.05);
+    background-color: rgba(var(--mac-green-rgb), 0.05);
 }
 
 /* Actions column: WebPortal/css/table-actions.css */

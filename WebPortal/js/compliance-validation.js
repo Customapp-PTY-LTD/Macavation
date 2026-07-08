@@ -103,7 +103,7 @@ var _complianceValidation = function () {
             panel.className = 'alert alert-danger mt-3';
             panel.innerHTML = `
                 <h6 class="alert-heading">
-                    <i class="bi bi-shield-exclamation-fill me-2"></i>
+                    <i class="fas fa-shield-halved me-2"></i>
                     Compliance Violations Detected
                 </h6>
                 <p class="mb-2">The following compliance requirements are not met:</p>
@@ -177,7 +177,7 @@ var _complianceValidation = function () {
             const html = `
                 <div class="expiring-certifications">
                     <h6 class="mb-3">
-                        <i class="bi bi-calendar-x me-2"></i>
+                        <i class="fas fa-calendar-xmark me-2"></i>
                         Certifications Expiring (${daysAhead} days)
                     </h6>
                     <div class="cert-list">
@@ -188,7 +188,7 @@ var _complianceValidation = function () {
                                         <strong>${cert.name || cert.title}</strong>
                                         <div class="text-muted small">${cert.description || ''}</div>
                                         <div class="text-muted small">
-                                            <i class="bi bi-calendar me-1"></i>
+                                            <i class="fas fa-calendar me-1"></i>
                                             Expires: ${new Date(cert.expiry_date).toLocaleDateString()}
                                             (${cert.days_until_expiry} days)
                                         </div>
