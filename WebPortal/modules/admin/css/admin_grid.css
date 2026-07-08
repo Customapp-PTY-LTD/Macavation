@@ -12,16 +12,7 @@
     background: rgba(0, 0, 0, 0.02);
 }
 
-/* Roles tab: action buttons may wrap on narrow widths */
-#adminRolesTable td.admin-role-actions {
-    text-align: right;
-    white-space: normal;
-    vertical-align: middle;
-}
-
-#adminRolesTable td.admin-role-actions .btn-sm {
-    font-size: 0.8125rem;
-}
+/* Roles tab: actions use WebPortal/css/table-actions.css (.mac-table-actions-col) */
 
 /* Page Header */
 .admin-grid h2,
@@ -89,31 +80,6 @@
     font-weight: 600;
 }
 
-.table thead th {
-    background-color: var(--phoenix-light);
-    color: var(--phoenix-text-color);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    border-top: none;
-    border-bottom: 2px solid var(--phoenix-border-color);
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-}
-
-.table tbody tr {
-    transition: background-color 0.3s ease;
-}
-
-.table tbody tr:hover {
-    background-color: rgba(var(--phoenix-primary-rgb), 0.05);
-}
-
-.table tbody td {
-    vertical-align: middle;
-    color: var(--phoenix-text-color);
-}
-
 /* Clickable rows – Admin tables (UI design instructions) */
 #adminUsersTable tbody tr.js-admin-user-row,
 #adminRolesTable tbody tr.js-admin-role-row {
@@ -131,43 +97,7 @@
     text-decoration: underline;
 }
 
-#adminUsersTable td:last-child {
-    text-align: center;
-    white-space: nowrap;
-}
-
-#adminUsersTable td:last-child .dropdown {
-    display: inline-block;
-}
-
-#adminUsersTable td:last-child .dropdown .btn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0;
-    background-color: transparent;
-    border: 2px solid var(--forest-deep, #008950);
-    color: var(--forest-deep, #008950);
-}
-
-#adminUsersTable td:last-child .dropdown .btn:hover,
-#adminUsersTable td:last-child .dropdown .btn.show {
-    background-color: var(--forest-deep, #008950);
-    border-color: var(--forest-deep, #008950);
-    color: #fff;
-}
-
-#adminUsersTable td:last-child .dropdown .btn i {
-    color: inherit;
-}
-
-#adminUsersTable td:last-child .dropdown .btn::after {
-    display: none;
-}
+/* Actions column: WebPortal/css/table-actions.css */
 
 /* Remove dropdown/select arrows in this module */
 .module-content #userRoleFilter.form-select {
@@ -279,7 +209,7 @@
 }
 
 .card-body .d-flex small {
-    color: var(--phoenix-secondary);
+    color: var(--phoenix-text-color);
     transition: color 0.3s ease;
 }
 
@@ -298,7 +228,7 @@
 
 /* Empty States */
 .text-muted {
-    color: var(--phoenix-secondary) !important;
+    color: var(--phoenix-text-color) !important;
 }
 
 /* Admin module: light grey text -> black (tabs, sidebars, etc.) */
@@ -364,7 +294,7 @@
 }
 
 #adminFeaturesTable .admin-other-row td:first-child {
-    color: var(--phoenix-secondary);
+    color: var(--phoenix-text-color);
 }
 
 #adminFeaturesTable .admin-perm-group > td {
@@ -378,8 +308,6 @@
 
 #adminFeaturesTable .admin-perm-table tbody td {
     border-color: var(--phoenix-border-color);
-    padding-top: 0.4rem;
-    padding-bottom: 0.4rem;
 }
 
 /* Indent the nested permission name under its module */

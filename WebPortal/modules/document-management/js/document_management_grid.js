@@ -335,7 +335,10 @@ var _documentManagementGrid = (function () {
                     '<td><span class="badge bg-warning text-dark">Folder</span></td>' +
                     '<td>—</td>' +
                     '<td>' + escapeHtml(dateStr) + '</td>' +
-                    '<td><button type="button" class="btn btn-sm btn-outline-danger" data-folder-delete="' + escapeHtml(cat.id) + '" title="Delete folder"><i class="fas fa-trash"></i></button></td>' +
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'docFolderActions' + cat.id,
+                        items: [{ label: 'Delete', danger: true, icon: 'fas fa-trash', attrs: { 'data-folder-delete': cat.id } }]
+                    }) + '</td>' +
                     '</tr>';
                 tbody.append(row);
             });
@@ -351,13 +354,17 @@ var _documentManagementGrid = (function () {
                     '<td><span class="badge bg-secondary">File</span></td>' +
                     '<td>' + escapeHtml(doc.uploaded_by_name || 'N/A') + '</td>' +
                     '<td>' + escapeHtml(dateStr) + '</td>' +
-                    '<td>' +
-                        '<button type="button" class="btn btn-sm btn-outline-primary me-1" data-document-action="view" data-document-id="' + escapeHtml(doc.id) + '" title="View"><i class="fas fa-eye"></i></button>' +
-                        '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-document-action="download" data-document-id="' + escapeHtml(doc.id) + '" title="Download"><i class="fas fa-download"></i></button>' +
-                        '<button type="button" class="btn btn-sm btn-outline-danger" data-document-action="delete" data-document-id="' + escapeHtml(doc.id) + '" title="Delete"><i class="fas fa-trash"></i></button>' +
-                    '</td></tr>';
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'docFileActions' + doc.id,
+                        items: [
+                            { label: 'View', icon: 'fas fa-eye', attrs: { 'data-document-action': 'view', 'data-document-id': doc.id } },
+                            { label: 'Download', icon: 'fas fa-download', attrs: { 'data-document-action': 'download', 'data-document-id': doc.id } },
+                            { label: 'Delete', danger: true, icon: 'fas fa-trash', attrs: { 'data-document-action': 'delete', 'data-document-id': doc.id } }
+                        ]
+                    }) + '</td></tr>';
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('documentsTable'));
         },
 
         renderSearchResults: function (q) {
@@ -387,7 +394,10 @@ var _documentManagementGrid = (function () {
                     '<td><span class="badge bg-warning text-dark">Folder</span></td>' +
                     '<td>—</td>' +
                     '<td>' + escapeHtml(cat.created_at ? cat.created_at.slice(0, 10) : '—') + '</td>' +
-                    '<td><button type="button" class="btn btn-sm btn-outline-danger" data-folder-delete="' + escapeHtml(cat.id) + '" title="Delete folder"><i class="fas fa-trash"></i></button></td>' +
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'docFolderActions' + cat.id,
+                        items: [{ label: 'Delete', danger: true, icon: 'fas fa-trash', attrs: { 'data-folder-delete': cat.id } }]
+                    }) + '</td>' +
                     '</tr>';
                 tbody.append(row);
             });
@@ -405,13 +415,17 @@ var _documentManagementGrid = (function () {
                     '<td><span class="badge bg-secondary">File</span></td>' +
                     '<td>' + escapeHtml(doc.uploaded_by_name || 'N/A') + '</td>' +
                     '<td>' + escapeHtml(dateStr) + '</td>' +
-                    '<td>' +
-                        '<button type="button" class="btn btn-sm btn-outline-primary me-1" data-document-action="view" data-document-id="' + escapeHtml(doc.id) + '" title="View"><i class="fas fa-eye"></i></button>' +
-                        '<button type="button" class="btn btn-sm btn-outline-secondary me-1" data-document-action="download" data-document-id="' + escapeHtml(doc.id) + '" title="Download"><i class="fas fa-download"></i></button>' +
-                        '<button type="button" class="btn btn-sm btn-outline-danger" data-document-action="delete" data-document-id="' + escapeHtml(doc.id) + '" title="Delete"><i class="fas fa-trash"></i></button>' +
-                    '</td></tr>';
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'docFileActions' + doc.id,
+                        items: [
+                            { label: 'View', icon: 'fas fa-eye', attrs: { 'data-document-action': 'view', 'data-document-id': doc.id } },
+                            { label: 'Download', icon: 'fas fa-download', attrs: { 'data-document-action': 'download', 'data-document-id': doc.id } },
+                            { label: 'Delete', danger: true, icon: 'fas fa-trash', attrs: { 'data-document-action': 'delete', 'data-document-id': doc.id } }
+                        ]
+                    }) + '</td></tr>';
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('documentsTable'));
         },
 
         // ── Upload modal helpers ──────────────────────────────────────────────

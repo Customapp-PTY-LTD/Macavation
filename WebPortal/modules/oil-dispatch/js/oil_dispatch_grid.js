@@ -105,9 +105,14 @@ var _oilDispatchGrid = function () {
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = typeof KanbanHelper !== 'undefined' ? KanbanHelper.statusBadge(o.status || 'confirmed', 'first') : '<span class="badge bg-secondary">' + (o.status || 'confirmed') + '</span>';
-                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order me-1" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
-                    var dispatchBtn = '<button type="button" class="btn btn-sm btn-success js-dispatch-oil-order" data-order-id="' + (o.id || '') + '" title="Complete inspection and dispatch"><i class="fas fa-truck me-1"></i>Dispatch</button>';
-                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + dispatchBtn + '</td></tr>');
+                    var actions = MacTableActions.render({
+                        id: 'odPendingActions' + (o.id || ''),
+                        items: [
+                            { label: 'View sheet', className: 'js-view-oil-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } },
+                            { label: 'Dispatch', className: 'js-dispatch-oil-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } }
+                        ]
+                    });
+                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
                 });
             }
 
@@ -123,10 +128,17 @@ var _oilDispatchGrid = function () {
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = typeof KanbanHelper !== 'undefined' ? KanbanHelper.statusBadge('dispatched', 'last') : '<span class="badge bg-success">dispatched</span>';
-                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
-                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + '</td></tr>');
+                    var actions = MacTableActions.render({
+                        id: 'odDispatchedActions' + (o.id || ''),
+                        items: [
+                            { label: 'View sheet', className: 'js-view-oil-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
+                        ]
+                    });
+                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
                 });
             }
+            MacTableActions.init(document.getElementById('oilDispatchTable'));
+            MacTableActions.init(document.getElementById('oilDispatchedTable'));
         },
 
         toggleView: (view) => {

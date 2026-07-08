@@ -64,6 +64,11 @@ var _qualityAssuranceGrid = function () {
                 $('#filterTestResult').val('');
                 scope.filterTests();
             });
+
+            $(document).on('click', '.js-view-qa-test', function (e) {
+                e.preventDefault();
+                scope.viewTest($(this).data('test-id'));
+            });
         },
 
         filterTests: () => {
@@ -113,9 +118,12 @@ var _qualityAssuranceGrid = function () {
             }
             scope.filteredTests.forEach(function (test) {
                 var badgeClass = test.overall_result === 'pass' ? 'bg-success' : (test.overall_result === 'fail' ? 'bg-danger' : 'bg-warning');
-                var row = '<tr><td>' + scope.escapeHtml(test.test_number || 'N/A') + '</td><td>' + scope.escapeHtml(test.test_type || 'N/A') + '</td><td>' + scope.escapeHtml(test.product_type || 'N/A') + '</td><td>' + scope.escapeHtml(test.batch_number || 'N/A') + '</td><td>' + scope.escapeHtml(test.test_date || 'N/A') + '</td><td><span class="badge ' + badgeClass + '">' + scope.escapeHtml(test.overall_result || 'pending') + '</span></td><td><button class="btn btn-sm btn-outline-primary" onclick="qualityAssuranceGrid.viewTest(\'' + scope.escapeHtml(test.id || '') + '\')"><i class="fas fa-eye"></i></button></td></tr>';
+                var row = '<tr><td>' + scope.escapeHtml(test.test_number || 'N/A') + '</td><td>' + scope.escapeHtml(test.test_type || 'N/A') + '</td><td>' + scope.escapeHtml(test.product_type || 'N/A') + '</td><td>' + scope.escapeHtml(test.batch_number || 'N/A') + '</td><td>' + scope.escapeHtml(test.test_date || 'N/A') + '</td><td><span class="badge ' + badgeClass + '">' + scope.escapeHtml(test.overall_result || 'pending') + '</span></td><td class="mac-table-actions-col">' + MacTableActions.render({
+                    items: [{ label: 'View', className: 'js-view-qa-test', icon: 'fas fa-eye', dataAttrs: { 'test-id': test.id || '' } }]
+                }) + '</td></tr>';
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('testsTable'));
         },
 
         viewTest: (testId) => {

@@ -221,10 +221,15 @@ var _kernelDispatchGrid = function () {
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = KanbanHelper.statusBadge(o.status || 'confirmed', 'first');
-                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order me-1" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
-                    var editBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatch-order me-1" data-order-id="' + (o.id || '') + '">Edit</button>';
-                    var dispatchBtn = '<button type="button" class="btn btn-sm btn-success js-dispatch-order" data-order-id="' + (o.id || '') + '"><i class="fas fa-truck me-1"></i>Dispatch</button>';
-                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="text-nowrap">' + statusBadge + ' ' + viewBtn + editBtn + dispatchBtn + '</td></tr>');
+                    var actions = MacTableActions.render({
+                        id: 'kdPendingActions' + (o.id || ''),
+                        items: [
+                            { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } },
+                            { label: 'Edit', className: 'js-edit-dispatch-order', dataAttrs: { 'order-id': o.id || '' } },
+                            { label: 'Dispatch', className: 'js-dispatch-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } }
+                        ]
+                    });
+                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
                 });
             }
 
@@ -243,11 +248,18 @@ var _kernelDispatchGrid = function () {
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = KanbanHelper.statusBadge('dispatched', 'last');
-                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
-                    var editDispatchedBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-edit-dispatched-basket me-1" data-order-id="' + (o.id || '') + '" title="Edit: unlock basket (clears dispatch paperwork, returns to ready to dispatch)">Edit</button>';
-                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + editDispatchedBtn + ' ' + viewBtn + '</td></tr>');
+                    var actions = MacTableActions.render({
+                        id: 'kdDispatchedActions' + (o.id || ''),
+                        items: [
+                            { label: 'Edit', className: 'js-edit-dispatched-basket', dataAttrs: { 'order-id': o.id || '' } },
+                            { label: 'View sheet', className: 'js-view-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
+                        ]
+                    });
+                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
                 });
             }
+            MacTableActions.init(document.getElementById('kernelDispatchTable'));
+            MacTableActions.init(document.getElementById('kernelDispatchedTable'));
         },
 
         toggleView: (view) => {

@@ -39,7 +39,7 @@
         gap: 0.25rem;
         padding: 0.5rem;
         text-decoration: none;
-        color: #6c757d;
+        color: var(--mac-text);
         font-size: 0.75rem;
         min-width: 60px;
     }
@@ -105,7 +105,7 @@
 
     .photo-capture-btn i {
         font-size: 3rem;
-        color: #6c757d;
+        color: var(--mac-text);
     }
 
     /* Large action buttons */
@@ -160,7 +160,7 @@
     }
 
     .mobile-card-item-label {
-        color: #6c757d;
+        color: var(--mac-text);
         font-size: 0.9rem;
     }
 
@@ -256,12 +256,6 @@
     textarea.form-control {
         min-height: 44px;
         font-size: 16px;
-    }
-
-    /* Table rows — more padding for tap comfort */
-    .table td,
-    .table th {
-        padding: 0.75rem 0.5rem;
     }
 
     /* Kanban cards — comfortable tap area */

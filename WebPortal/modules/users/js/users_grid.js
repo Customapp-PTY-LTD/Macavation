@@ -177,14 +177,13 @@ var _usersGrid = function () {
                     const rawName = (user.first_name || '') + ' ' + (user.last_name || '');
                     const fullName = rawName.trim() || user.username || 'Unknown User';
                     const userId = scope.escapeHtml(user.id);
-                    const actionsCell = '<td>' +
-                        '<div class="dropdown">' +
-                        '<button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">' +
-                        '<i class="fas fa-ellipsis"></i></button>' +
-                        '<ul class="dropdown-menu dropdown-menu-end">' +
-                        '<li><a class="dropdown-item js-user-edit" href="#" data-user-id="' + userId + '">Edit</a></li>' +
-                        '<li><a class="dropdown-item js-user-deactivate text-danger" href="#" data-user-id="' + userId + '">Deactivate</a></li>' +
-                        '</ul></div></td>';
+                    const actionsCell = MacTableActions.renderCell({
+                        wrapLi: true,
+                        items: [
+                            { label: 'Edit', className: 'js-user-edit', dataAttrs: { 'user-id': user.id } },
+                            { label: 'Deactivate', className: 'js-user-deactivate', danger: true, dataAttrs: { 'user-id': user.id } }
+                        ]
+                    });
                     return '<tr class="js-user-row" data-user-id="' + userId + '">' +
                         '<td><div class="d-flex align-items-center">' + avatarHtml +
                         '<span class="ms-2">' + scope.escapeHtml(fullName) + '</span></div></td>' +
@@ -195,6 +194,7 @@ var _usersGrid = function () {
             }
 
             $('#usersTableBody').html(usersHtml);
+            MacTableActions.init(document.getElementById('usersTable'));
             scope.renderPagination();
         },
 

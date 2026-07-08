@@ -4,7 +4,7 @@
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
             <h1 class="h2 mb-0" id="stockManagementTitle">Stock Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="help/index.html#stock-management-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#stock-management-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn btn-outline-secondary" id="exportStockBtn">
                 <i class="fas fa-download me-1"></i>Export
             </button>
@@ -67,7 +67,7 @@
     <div class="card mb-4 stock-management-table-card" id="mainStockTableCard">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover" id="stockTable">
+                <table class="table align-middle table-hover" id="stockTable">
                     <thead>
                         <tr>
                             <th>Stock Number</th>
@@ -134,7 +134,7 @@
                 Adjustment mode is on. Click the batch/style cell you want to change, then enter <code>+</code> or <code>-</code> and the number of cartons.
             </div>
             <div class="table-responsive kernel-stock-table-wrapper">
-                <table class="table table-sm table-bordered" id="kernelStockByStyleTable">
+                <table class="table align-middle table-bordered" id="kernelStockByStyleTable">
                     <thead>
                         <tr>
                             <th>Batch</th>
@@ -175,7 +175,7 @@
                     <i class="fas fa-plus me-1"></i>Add Batch
                 </button>
             </div>
-            <div class="card mt-4 border-secondary" id="shellWasteStockCard">
+            <div class="card mt-4 border-secondary mac-table-actions-card" id="shellWasteStockCard">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h6 class="mb-0"><i class="fas fa-recycle me-2"></i>Shell waste (saleable stock)</h6>
                     <button type="button" class="btn btn-sm btn-primary" id="addShellLotBtn" data-action-perm="stock.shell.manage">
@@ -184,8 +184,8 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead><tr><th>Lot</th><th>Source batch</th><th class="text-end">Kg</th><th>Status</th><th></th></tr></thead>
+                        <table class="table align-middle table-hover mb-0">
+                            <thead><tr><th>Lot</th><th>Source batch</th><th class="text-end">Kg</th><th>Status</th><th>Actions</th></tr></thead>
                             <tbody id="shellStockLotsBody">
                                 <tr><td colspan="5" class="text-center text-muted py-3">Loading…</td></tr>
                             </tbody>
@@ -206,7 +206,7 @@
                     </select>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover table-sm" id="ksWeeklyTable">
+                    <table class="table align-middle table-hover " id="ksWeeklyTable">
                         <thead>
                             <tr id="ksWeeklyTableHead">
                                 <th>Week</th>
@@ -234,7 +234,7 @@
                 <h6 class="text-secondary"><i class="fas fa-chart-pie me-2"></i>Overview by style</h6>
                 <p class="text-muted small mb-3">Total remaining <strong>cartons</strong> (or carton equivalent from kg) by style across all batches in kernel stock.</p>
                 <div class="table-responsive">
-                    <table class="table table-hover table-sm">
+                    <table class="table align-middle table-hover ">
                         <thead>
                             <tr>
                                 <th>Style</th>
@@ -330,7 +330,7 @@
                 <h6 class="text-secondary"><i class="fas fa-oil-can me-2"></i>Oil</h6>
                 <p class="text-muted small mb-2">Crude / EV / cosmetic and other non–protein-powder lines (location 801 / 850).</p>
                 <div class="table-responsive oil-stock-table-wrapper mb-4">
-                    <table class="table table-sm table-bordered table-hover" id="oilStockOilTable">
+                    <table class="table align-middle table-bordered table-hover" id="oilStockOilTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Location</th>
@@ -351,7 +351,7 @@
                 <h6 class="text-secondary"><i class="fas fa-flask me-2"></i>Protein powder</h6>
                 <p class="text-muted small mb-2">Finished protein powder lots (e.g. grade &quot;Protein powder&quot;).</p>
                 <div class="table-responsive oil-stock-table-wrapper">
-                    <table class="table table-sm table-bordered table-hover" id="oilStockProteinTable">
+                    <table class="table align-middle table-bordered table-hover" id="oilStockProteinTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Location</th>
@@ -382,7 +382,7 @@
                     </select>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover table-sm" id="osWeeklyTable">
+                    <table class="table align-middle table-hover " id="osWeeklyTable">
                         <thead>
                             <tr>
                                 <th>Week</th>
@@ -402,7 +402,7 @@
                 <h6 class="text-secondary"><i class="fas fa-chart-pie me-2"></i>Overview (on-hand kg)</h6>
                 <p class="text-muted small mb-3">Totals for lots with status <strong>on hand</strong> only.</p>
                 <div class="table-responsive">
-                    <table class="table table-hover table-sm">
+                    <table class="table align-middle table-hover ">
                         <thead>
                             <tr>
                                 <th>Stream</th>

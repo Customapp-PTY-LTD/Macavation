@@ -125,7 +125,7 @@
 }
 
 .offline-data-counter .counter-label {
-    color: #6c757d;
+    color: var(--mac-text);
 }
 
 .offline-data-counter .counter-value {
@@ -186,7 +186,7 @@
 
 .pwa-install-prompt .prompt-text p {
     margin: 0;
-    color: #6c757d;
+    color: var(--mac-text);
     font-size: 13px;
 }
 

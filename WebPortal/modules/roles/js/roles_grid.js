@@ -145,14 +145,13 @@ var _rolesGrid = function () {
             } else {
                 rolesHtml = rolesToShow.map(function (role) {
                     var roleId = scope.escapeHtml(role.id);
-                    var actionsCell = '<td>' +
-                        '<div class="dropdown">' +
-                        '<button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">' +
-                        '<i class="fas fa-ellipsis"></i></button>' +
-                        '<ul class="dropdown-menu dropdown-menu-end">' +
-                        '<li><a class="dropdown-item js-role-edit" href="#" data-role-id="' + roleId + '">Edit</a></li>' +
-                        '<li><a class="dropdown-item js-role-deactivate text-danger" href="#" data-role-id="' + roleId + '">Deactivate</a></li>' +
-                        '</ul></div></td>';
+                    var actionsCell = MacTableActions.renderCell({
+                        wrapLi: true,
+                        items: [
+                            { label: 'Edit', className: 'js-role-edit', dataAttrs: { 'role-id': role.id } },
+                            { label: 'Deactivate', className: 'js-role-deactivate', danger: true, dataAttrs: { 'role-id': role.id } }
+                        ]
+                    });
                     return '<tr class="js-role-row" data-role-id="' + roleId + '">' +
                         '<td>' + scope.escapeHtml(role.role_name || '') + '</td>' +
                         '<td>' + scope.escapeHtml(role.description || '') + '</td>' +
@@ -161,22 +160,8 @@ var _rolesGrid = function () {
                 }).join('');
             }
             $('#rolesTableBody').html(rolesHtml);
-            scope.initRolesTableDropdowns();
+            MacTableActions.init(document.getElementById('rolesTable'));
             scope.renderPagination();
-        },
-
-        /** Bootstrap .table-responsive clips overflow; use fixed Popper so the menu is not cut off. */
-        initRolesTableDropdowns: () => {
-            if (typeof bootstrap === 'undefined' || !bootstrap.Dropdown) return;
-            document.querySelectorAll('#rolesTableBody [data-bs-toggle="dropdown"]').forEach(function (toggleEl) {
-                bootstrap.Dropdown.getOrCreateInstance(toggleEl, {
-                    popperConfig: function (defaultBsPopperConfig) {
-                        var cfg = defaultBsPopperConfig ? Object.assign({}, defaultBsPopperConfig) : {};
-                        cfg.strategy = 'fixed';
-                        return cfg;
-                    }
-                });
-            });
         },
 
         renderPagination: () => {

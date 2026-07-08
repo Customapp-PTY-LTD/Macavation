@@ -41,7 +41,7 @@ var _modal_job_card_view = (function () {
                 var sk = jc.sound_kernel_styles;
                 if (typeof sk === 'string') { try { sk = JSON.parse(sk); } catch (e) { sk = null; } }
                 if (sk && Array.isArray(sk) && sk.length > 0) {
-                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Sound kernel</strong></div><div class="card-body py-2"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Sound kernel</strong></div><div class="card-body py-2"><table class="table align-middle table-bordered mb-0"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
                     for (var i = 0; i < sk.length; i++) html += '<tr><td>' + fmt(sk[i].style) + '</td><td>' + fmt(sk[i].cartons) + '</td><td>' + fmt(sk[i].weight_kg) + '</td></tr>';
                     html += '</tbody></table><div class="mt-1">Total cartons: ' + fmt(jc.sound_kernel_total_cartons) + ' &nbsp; Total kg: ' + fmt(jc.sound_kernel_total_kg) + '</div></div></div>';
                 } else {
@@ -50,7 +50,7 @@ var _modal_job_card_view = (function () {
                 var bg = jc.butter_grade_styles;
                 if (typeof bg === 'string') { try { bg = JSON.parse(bg); } catch (e) { bg = null; } }
                 if (bg && Array.isArray(bg) && bg.length > 0) {
-                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Butter grade</strong></div><div class="card-body py-2"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
+                    html += '<div class="card mb-2"><div class="card-header py-1"><strong>Butter grade</strong></div><div class="card-body py-2"><table class="table align-middle table-bordered mb-0"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
                     for (var j = 0; j < bg.length; j++) html += '<tr><td>' + fmt(bg[j].style) + '</td><td>' + fmt(bg[j].cartons) + '</td><td>' + fmt(bg[j].weight_kg) + '</td></tr>';
                     html += '</tbody></table><div class="mt-1">Total cartons: ' + fmt(jc.butter_grade_total_cartons) + ' &nbsp; Total kg: ' + fmt(jc.butter_grade_total_kg) + '</div></div></div>';
                 } else {

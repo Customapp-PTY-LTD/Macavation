@@ -26,7 +26,7 @@
 }
 .doc-folder-name:hover { text-decoration: underline; color: #1558b0; }
 .doc-folder-icon { color: #f6b53d; font-size: 1.1em; }
-.doc-file-icon { color: #6c757d; font-size: 1.05em; }
+.doc-file-icon { color: var(--mac-text); font-size: 1.05em; }
 
 /* Upload preview tree */
 .doc-upload-preview { border: 1px solid #dee2e6; border-radius: 4px; padding: 6px 8px; background: #fff; }
@@ -36,7 +36,7 @@
 .doc-upload-tree .tree-folder { font-weight: 600; color: #856404; }
 .doc-upload-tree .tree-folder i { color: #f6b53d; }
 .doc-upload-tree .tree-file { color: #495057; }
-.doc-upload-tree .tree-file i { color: #6c757d; }
+.doc-upload-tree .tree-file i { color: var(--mac-text); }
 .doc-upload-tree .file-size { color: #adb5bd; font-size: 0.85em; }
 
 /* Search results show folder path */
@@ -56,7 +56,7 @@
 .doc-context-menu-header {
     border-bottom: 1px solid #f0f0f0;
     font-weight: 600;
-    color: #6c757d;
+    color: var(--mac-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

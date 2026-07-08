@@ -492,12 +492,21 @@ body {
     background: var(--mac-text-tertiary);
 }
 
-/* Tables */
+/* Tables — single standard row height (overrides Bootstrap cell padding) */
 .table {
     background: transparent;
     border-radius: 0 !important;
     overflow: hidden;
-    font-size: 0.875rem;
+    font-size: var(--mac-table-font-size);
+}
+
+.table > :not(caption) > * > * {
+    padding: var(--mac-table-cell-padding-y) var(--mac-table-cell-padding-x);
+    vertical-align: middle;
+}
+
+.table.table-sm > :not(caption) > * > * {
+    padding: var(--mac-table-cell-padding-y) var(--mac-table-cell-padding-x);
 }
 
 .table thead th,
@@ -507,12 +516,11 @@ body {
     background: var(--mac-bg-tertiary);
     color: var(--mac-text-secondary);
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: var(--mac-table-header-font-size);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     border: none;
     border-bottom: 1px solid var(--mac-border);
-    padding: 0.625rem 0.75rem;
 }
 
 .table tbody tr {
@@ -521,11 +529,6 @@ body {
 
 .table tbody tr:hover {
     background: var(--mac-bg-tertiary);
-}
-
-.table td {
-    padding: 0.625rem 0.75rem;
-    vertical-align: middle;
 }
 
 /* Form Controls */

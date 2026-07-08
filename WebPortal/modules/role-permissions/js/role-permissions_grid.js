@@ -176,14 +176,13 @@ var _rolePermissionsGrid = function () {
             } else {
                 permissionsHtml = permissionsToShow.map(function (permission) {
                     var permId = scope.escapeHtml(permission.id);
-                    var actionsCell = '<td>' +
-                        '<div class="dropdown">' +
-                        '<button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">' +
-                        '<i class="fas fa-ellipsis"></i></button>' +
-                        '<ul class="dropdown-menu dropdown-menu-end">' +
-                        '<li><a class="dropdown-item js-permission-edit" href="#" data-permission-id="' + permId + '">Edit</a></li>' +
-                        '<li><a class="dropdown-item js-permission-delete text-danger" href="#" data-permission-id="' + permId + '">Delete</a></li>' +
-                        '</ul></div></td>';
+                    var actionsCell = MacTableActions.renderCell({
+                        wrapLi: true,
+                        items: [
+                            { label: 'Edit', className: 'js-permission-edit', dataAttrs: { 'permission-id': permission.id } },
+                            { label: 'Delete', className: 'js-permission-delete', danger: true, dataAttrs: { 'permission-id': permission.id } }
+                        ]
+                    });
                     return '<tr class="js-permission-row" data-permission-id="' + permId + '">' +
                         '<td>' + scope.escapeHtml(permission.object_name || '') + '</td>' +
                         '<td>' + scope.escapeHtml(permission.role_name || 'No Role') + '</td>' +
@@ -193,6 +192,7 @@ var _rolePermissionsGrid = function () {
                 }).join('');
             }
             $('#permissionsTableBody').html(permissionsHtml);
+            MacTableActions.init(document.getElementById('permissionsTable'));
             scope.renderPagination();
         },
 

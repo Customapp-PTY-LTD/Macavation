@@ -4,7 +4,7 @@
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
             <h1 class="h2 mb-0">Grower Intake Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
-                <a href="help/index.html#grower-intake-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+                <a target="_blank" rel="noopener noreferrer" href="help/index.html#grower-intake-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn btn-primary" id="createKernelBatchBtn" data-action-perm="grower.batch.create">
                     <i class="fas fa-plus me-1"></i>Create kernel batch
                 </button>
@@ -99,10 +99,10 @@
     <div id="giKanbanBoard" class="kanban-board"></div>
 
     <!-- Table View (hidden by default) -->
-    <div class="card mb-4 grower-intake-table-card" id="giTableCard" style="display:none">
+    <div class="card mb-4 grower-intake-table-card mac-table-actions-card" id="giTableCard" style="display:none">
         <div class="card-body p-2 p-md-3">
             <div class="table-responsive intake-table-responsive">
-                <table class="table table-hover" id="intakeBatchesTable">
+                <table class="table align-middle table-hover" id="intakeBatchesTable">
                     <thead>
                         <tr>
                             <th class="intake-col-batch">Batch number</th>

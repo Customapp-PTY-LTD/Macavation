@@ -74,20 +74,7 @@
     .intake-table-responsive { margin-left: 0; margin-right: 0; }
 }
 
-/* Prevent actions dropdown from being clipped by card border-radius (UI_DESIGN_INSTRUCTIONS / oil-production pattern) */
-.grower-intake-table-card .table-responsive,
-.grower-intake-table-card .intake-table-responsive {
-    overflow: visible;
-}
-.grower-intake-table-card .card-body {
-    overflow: visible;
-}
-.grower-intake-table-card #intakeBatchesTable {
-    overflow: visible !important;
-}
-.grower-intake-table-card #intakeBatchesTable tbody tr td {
-    overflow: visible;
-}
+/* Prevent actions dropdown from being clipped — use mac-table-actions-card on table card */
 
 #intakeBatchesTable {
     margin-bottom: 0;
@@ -126,34 +113,13 @@
     background-color: rgba(255, 193, 7, 0.2);
 }
 
-/* Actions dropdown (match supplier-intake / oil-production pattern) */
-#intakeBatchesTable .dropdown-menu {
-    z-index: 1060;
-    background-color: var(--phoenix-body-bg, #fff);
-    border: 1px solid rgba(0, 0, 0, 0.15);
-}
-#intakeBatchesTable .dropdown-item {
-    color: var(--phoenix-body-color, #212529);
-    display: block;
-    padding: 0.5rem 1rem;
-}
-#intakeBatchesTable .dropdown-item:hover {
-    background-color: rgba(0, 0, 0, 0.08);
-}
-#intakeBatchesTable .dropdown-item.text-muted {
-    cursor: default;
-}
+/* Actions column: WebPortal/css/table-actions.css */
 
 /* ----- Tablet (iPad portrait ~768px and below) ----- */
 @media (max-width: 1024px) {
     #intakeBatchesTable {
         font-size: 0.875rem;
         min-width: 480px;
-    }
-    #intakeBatchesTable th,
-    #intakeBatchesTable td {
-        padding: 0.4rem 0.5rem;
-        vertical-align: middle;
     }
     .intake-step-btn {
         font-size: 0.75rem;
@@ -170,10 +136,6 @@
     #intakeBatchesTable {
         font-size: 0.8125rem;
         min-width: 420px;
-    }
-    #intakeBatchesTable th,
-    #intakeBatchesTable td {
-        padding: 0.35rem 0.4rem;
     }
     .intake-step-btn {
         font-size: 0.7rem;
@@ -328,7 +290,7 @@
     text-align: center;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #6c757d;
+    color: var(--mac-text);
 }
 
 .gi-procurement-calendar-day {
@@ -440,7 +402,7 @@
 }
 
 .gi-procurement-calendar-detail-empty {
-    color: #6c757d;
+    color: var(--mac-text);
     font-size: 0.9rem;
 }
 
@@ -488,7 +450,7 @@
 }
 
 .gi-procurement-entry-weight {
-    color: #6c757d;
+    color: var(--mac-text);
     font-size: 0.82rem;
     margin-top: 0.1rem;
 }

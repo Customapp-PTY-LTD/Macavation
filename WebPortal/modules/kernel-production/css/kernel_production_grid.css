@@ -22,51 +22,7 @@
     text-decoration: underline;
 }
 
-/* Actions column: center-aligned, square three horizontal dots button */
-#batchesTable td:last-child {
-    text-align: center;
-}
-
-#batchesTable td:last-child .dropdown {
-    display: inline-block;
-}
-
-#batchesTable td:last-child .dropdown .btn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.25rem;
-    background-color: transparent;
-    border: 2px solid var(--forest-deep, #008950);
-    color: var(--forest-deep, #008950);
-}
-#batchesTable td:last-child .dropdown .btn:hover,
-#batchesTable td:last-child .dropdown .btn.show {
-    background-color: var(--forest-deep, #008950);
-    border-color: var(--forest-deep, #008950);
-    color: #fff;
-}
-#batchesTable td:last-child .dropdown .btn i {
-    color: inherit;
-}
-
-/* Prevent actions dropdown from being clipped by card border-radius (UI_DESIGN_INSTRUCTIONS / oil-production pattern) */
-.kernel-production-table-card .table-responsive {
-    overflow: visible;
-}
-.kernel-production-table-card .card-body {
-    overflow: visible;
-}
-.kernel-production-table-card #batchesTable {
-    overflow: visible !important;
-}
-.kernel-production-table-card #batchesTable tbody tr td {
-    overflow: visible;
-}
+/* Actions column styles: WebPortal/css/table-actions.css (.mac-table-actions-col) */
 
 /* Batch History Modal – vertical timeline */
 .batch-history-timeline {
@@ -132,10 +88,6 @@
 .batch-history-timeline__block-body .table {
     margin-top: 0.5rem;
     background: var(--mac-bg-secondary);
-}
-.batch-history-timeline__block-body .table th,
-.batch-history-timeline__block-body .table td {
-    padding: 0.35rem 0.5rem;
 }
 
 /* Silos grid at top: 2 rows x 6, red = occupied, white = empty */
@@ -248,7 +200,7 @@
     text-align: center;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #6c757d;
+    color: var(--mac-text);
 }
 
 .kp-production-calendar-day {
@@ -299,7 +251,7 @@
     grid-column: 1 / -1;
     padding: 1rem;
     text-align: center;
-    color: #6c757d;
+    color: var(--mac-text);
     border: 1px dashed #dee2e6;
     border-radius: 0.5rem;
 }
@@ -319,7 +271,7 @@
 }
 
 .kp-production-calendar-detail-empty {
-    color: #6c757d;
+    color: var(--mac-text);
     font-size: 0.9rem;
 }
 
@@ -349,7 +301,7 @@
 }
 
 .kp-production-calendar-entry-grower {
-    color: #6c757d;
+    color: var(--mac-text);
     font-size: 0.85rem;
 }
 

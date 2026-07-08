@@ -265,20 +265,26 @@ var _kernelProductionForecastGrid = function () {
                     '<td>' + escapeHtml(due) + '</td>' +
                     '<td><span class="badge ' + statusBadgeClass(f.status) + '">' + escapeHtml(f.status || '') + '</span></td>' +
                     '<td class="small text-muted">' + escapeHtml(f.notes || '') + '</td>' +
-                    '<td class="text-nowrap">' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary me-1" data-act="edit" data-id="' + escapeHtml(f.id) + '">Edit</button>' +
-                    '<button type="button" class="btn btn-sm btn-outline-danger" data-act="del" data-id="' + escapeHtml(f.id) + '">Delete</button>' +
-                    '</td>';
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'kfActions' + f.id,
+                        items: [
+                            { label: 'Edit', attrs: { 'data-act': 'edit', 'data-id': f.id } },
+                            { label: 'Delete', danger: true, attrs: { 'data-act': 'del', 'data-id': f.id } }
+                        ]
+                    }) + '</td>';
                 tbody.appendChild(tr);
             });
-            $(tbody).find('button[data-act="edit"]').on('click', function () {
+            $(tbody).find('[data-act="edit"]').on('click', function (e) {
+                e.preventDefault();
                 var id = $(this).data('id');
                 var row = scope.forecasts.filter(function (x) { return x.id === id; })[0];
                 if (row) scope.openEditModal(row);
             });
-            $(tbody).find('button[data-act="del"]').on('click', function () {
+            $(tbody).find('[data-act="del"]').on('click', function (e) {
+                e.preventDefault();
                 scope.deleteRow($(this).data('id'));
             });
+            MacTableActions.init(document.getElementById('kernelForecastLinesTable'));
         },
 
         showError: function (message) {

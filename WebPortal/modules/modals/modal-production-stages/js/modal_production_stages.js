@@ -1324,27 +1324,27 @@ var _modal_production_stages = (function () {
                 var hasSK = skStyles.some(function (s) { return v(p, s[0] + '_qty') > 0 || v(p, s[0] + '_cartons') > 0; });
                 if (hasSK) {
                     html.push('<div style="margin:4px 0 8px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Sound Kernel</div>');
-                    html.push('<table style="width:100%;font-size:0.85rem;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid var(--mac-border,#e0e0e0);">');
-                    html.push('<th style="text-align:left;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Grade</th>');
-                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Qty (kg)</th>');
-                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Cartons</th>');
+                    html.push('<table class="table align-middle table-hover mb-0"><thead><tr>');
+                    html.push('<th>Grade</th>');
+                    html.push('<th class="text-end">Qty (kg)</th>');
+                    html.push('<th class="text-end">Cartons</th>');
                     html.push('</tr></thead><tbody>');
                     skStyles.forEach(function (pair) {
                         var qty = v(p, pair[0] + '_qty');
                         var ctn = v(p, pair[0] + '_cartons');
                         if (qty > 0 || ctn > 0) {
-                            html.push('<tr style="border-bottom:1px solid var(--mac-border-light,rgba(0,0,0,0.05));">');
-                            html.push('<td style="padding:4px 0;">' + pair[1] + '</td>');
-                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (qty > 0 ? qty.toFixed(1) : '—') + '</td>');
-                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (ctn > 0 ? num(ctn) : '—') + '</td>');
+                            html.push('<tr>');
+                            html.push('<td>' + pair[1] + '</td>');
+                            html.push('<td class="text-end fw-semibold">' + (qty > 0 ? qty.toFixed(1) : '—') + '</td>');
+                            html.push('<td class="text-end fw-semibold">' + (ctn > 0 ? num(ctn) : '—') + '</td>');
                             html.push('</tr>');
                         }
                     });
                     if (has(p, 'total_sk_kg') || has(p, 'total_sk_cartons')) {
-                        html.push('<tr style="border-top:2px solid var(--mac-border,#e0e0e0);font-weight:700;">');
-                        html.push('<td style="padding:4px 0;">Total</td>');
-                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_sk_kg') > 0 ? v(p, 'total_sk_kg').toFixed(1) : '—') + '</td>');
-                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_sk_cartons') > 0 ? num(v(p, 'total_sk_cartons')) : '—') + '</td>');
+                        html.push('<tr class="fw-bold">');
+                        html.push('<td>Total</td>');
+                        html.push('<td class="text-end">' + (v(p, 'total_sk_kg') > 0 ? v(p, 'total_sk_kg').toFixed(1) : '—') + '</td>');
+                        html.push('<td class="text-end">' + (v(p, 'total_sk_cartons') > 0 ? num(v(p, 'total_sk_cartons')) : '—') + '</td>');
                         html.push('</tr>');
                     }
                     html.push('</tbody></table>');
@@ -1359,27 +1359,27 @@ var _modal_production_stages = (function () {
                 var hasBT = btStyles.some(function (s) { return v(p, s[0] + '_qty') > 0 || v(p, s[0] + '_cartons') > 0; });
                 if (hasBT) {
                     html.push('<div style="margin:14px 0 8px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Butter Grade</div>');
-                    html.push('<table style="width:100%;font-size:0.85rem;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid var(--mac-border,#e0e0e0);">');
-                    html.push('<th style="text-align:left;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Grade</th>');
-                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Qty (kg)</th>');
-                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Cartons</th>');
+                    html.push('<table class="table align-middle table-hover mb-0"><thead><tr>');
+                    html.push('<th>Grade</th>');
+                    html.push('<th class="text-end">Qty (kg)</th>');
+                    html.push('<th class="text-end">Cartons</th>');
                     html.push('</tr></thead><tbody>');
                     btStyles.forEach(function (pair) {
                         var qty = v(p, pair[0] + '_qty');
                         var ctn = v(p, pair[0] + '_cartons');
                         if (qty > 0 || ctn > 0) {
-                            html.push('<tr style="border-bottom:1px solid var(--mac-border-light,rgba(0,0,0,0.05));">');
-                            html.push('<td style="padding:4px 0;">' + pair[1] + '</td>');
-                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (qty > 0 ? qty.toFixed(1) : '—') + '</td>');
-                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (ctn > 0 ? num(ctn) : '—') + '</td>');
+                            html.push('<tr>');
+                            html.push('<td>' + pair[1] + '</td>');
+                            html.push('<td class="text-end fw-semibold">' + (qty > 0 ? qty.toFixed(1) : '—') + '</td>');
+                            html.push('<td class="text-end fw-semibold">' + (ctn > 0 ? num(ctn) : '—') + '</td>');
                             html.push('</tr>');
                         }
                     });
                     if (has(p, 'total_bt_kg') || has(p, 'total_bt_cartons')) {
-                        html.push('<tr style="border-top:2px solid var(--mac-border,#e0e0e0);font-weight:700;">');
-                        html.push('<td style="padding:4px 0;">Total</td>');
-                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_bt_kg') > 0 ? v(p, 'total_bt_kg').toFixed(1) : '—') + '</td>');
-                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_bt_cartons') > 0 ? num(v(p, 'total_bt_cartons')) : '—') + '</td>');
+                        html.push('<tr class="fw-bold">');
+                        html.push('<td>Total</td>');
+                        html.push('<td class="text-end">' + (v(p, 'total_bt_kg') > 0 ? v(p, 'total_bt_kg').toFixed(1) : '—') + '</td>');
+                        html.push('<td class="text-end">' + (v(p, 'total_bt_cartons') > 0 ? num(v(p, 'total_bt_cartons')) : '—') + '</td>');
                         html.push('</tr>');
                     }
                     html.push('</tbody></table>');
@@ -1776,7 +1776,7 @@ var _modal_production_stages = (function () {
                 if (!data || typeof data !== 'object') return '<p class="text-muted mb-0">No data</p>';
                 var rows = [];
                 for (var k in data) { if (data.hasOwnProperty(k)) rows.push('<tr><td class="text-nowrap">' + k + '</td><td>' + fmt(data[k]) + '</td></tr>'); }
-                return rows.length ? '<table class="table table-sm table-bordered mb-2"><tbody>' + rows.join('') + '</tbody></table>' : '<p class="text-muted mb-0">No data</p>';
+                return rows.length ? '<table class="table align-middle table-bordered mb-2"><tbody>' + rows.join('') + '</tbody></table>' : '<p class="text-muted mb-0">No data</p>';
             };
             var batchNum = detail ? (detail.batch_number || '—') : '—';
             var grower   = detail ? (detail.grower_name || '—') : '—';

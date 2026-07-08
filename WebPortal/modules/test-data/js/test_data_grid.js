@@ -170,7 +170,14 @@ var _testDataGrid = function () {
                 scope.deleteDataSet(setId);
             });
 
-            $(document).on('click', '.edit-record-btn', function () {
+            $(document).on('click', '.view-record-details-btn', function (e) {
+                e.preventDefault();
+                var recordId = $(this).data('record-id');
+                if (recordId) scope.viewRecordDetails(recordId);
+            });
+
+            $(document).on('click', '.edit-record-btn', function (e) {
+                e.preventDefault();
                 const scope = _testDataGrid;
                 var recordId = $(this).data('record-id');
                 if (!dataFunctions.canAccessTestManagement()) {
@@ -410,13 +417,17 @@ var _testDataGrid = function () {
                     '<td><span class="badge bg-info">' + (set.record_count || 0) + '</span></td>' +
                     '<td><span class="badge bg-secondary">' + scenarioCount + '</span></td>' +
                     '<td>' + statusBadge + '</td>' +
-                    '<td><div class="btn-group btn-group-sm" role="group">' +
-                    '<button type="button" class="btn btn-outline-primary edit-data-set-btn" data-set-id="' + scope.escapeHtml(set.id) + '" title="Edit"><i class="fas fa-edit"></i></button>' +
-                    '<button type="button" class="btn btn-outline-info view-records-btn" data-set-id="' + scope.escapeHtml(set.id) + '" title="View Records"><i class="fas fa-list"></i></button>' +
-                    '<button type="button" class="btn btn-outline-danger delete-data-set-btn" data-set-id="' + scope.escapeHtml(set.id) + '" title="Delete"><i class="fas fa-trash"></i></button>' +
-                    '</div></td></tr>';
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'tdsActions' + set.id,
+                        items: [
+                            { label: 'Edit', className: 'edit-data-set-btn', icon: 'fas fa-edit', dataAttrs: { 'set-id': set.id } },
+                            { label: 'View Records', className: 'view-records-btn', icon: 'fas fa-list', dataAttrs: { 'set-id': set.id } },
+                            { label: 'Delete', className: 'delete-data-set-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'set-id': set.id } }
+                        ]
+                    }) + '</td></tr>';
             });
             $('#dataSetsTableBody').html(html);
+            MacTableActions.init(document.getElementById('dataSetsTable'));
             scope.renderPagination();
         },
 
@@ -446,13 +457,17 @@ var _testDataGrid = function () {
                     '<td>' + scope.escapeHtml(record.set_name || 'N/A') + '</td>' +
                     '<td>' + scope.escapeHtml(record.purpose || 'N/A') + '</td>' +
                     '<td>' + cleanupBadge + '</td>' +
-                    '<td><div class="btn-group btn-group-sm" role="group">' +
-                    '<button type="button" class="btn btn-outline-primary edit-record-btn" data-record-id="' + scope.escapeHtml(record.id) + '" title="Edit"><i class="fas fa-edit"></i></button>' +
-                    '<button type="button" class="btn btn-outline-info" onclick="testDataGrid.viewRecordDetails(\'' + scope.escapeHtml(record.id) + '\')" title="View Details"><i class="fas fa-eye"></i></button>' +
-                    '<button type="button" class="btn btn-outline-danger delete-record-btn" data-record-id="' + scope.escapeHtml(record.id) + '" title="Delete"><i class="fas fa-trash"></i></button>' +
-                    '</div></td></tr>';
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'tdrActions' + record.id,
+                        items: [
+                            { label: 'Edit', className: 'edit-record-btn', icon: 'fas fa-edit', dataAttrs: { 'record-id': record.id } },
+                            { label: 'View Details', className: 'view-record-details-btn', icon: 'fas fa-eye', dataAttrs: { 'record-id': record.id } },
+                            { label: 'Delete', className: 'delete-record-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'record-id': record.id } }
+                        ]
+                    }) + '</td></tr>';
             });
             $('#recordsTableBody').html(html);
+            MacTableActions.init(document.getElementById('recordsTable'));
             scope.renderPagination();
         },
 

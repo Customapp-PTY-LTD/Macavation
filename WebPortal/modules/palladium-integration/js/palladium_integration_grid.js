@@ -33,6 +33,11 @@ var _palladiumIntegrationGrid = function () {
             $('#syncBtn').on('click', function () {
                 scope.performSync();
             });
+            $(document).on('click', '.js-sync-entity', function (e) {
+                e.preventDefault();
+                var entity = $(this).attr('data-entity-type');
+                if (entity) scope.syncEntity(entity);
+            });
         },
 
         loadSyncStatus: async () => {
@@ -58,9 +63,12 @@ var _palladiumIntegrationGrid = function () {
             scope.syncStatus.forEach(function (item) {
                 var statusClass = item.status === 'success' ? 'bg-success' : (item.status === 'error' ? 'bg-danger' : 'bg-warning');
                 var entityEscaped = scope.escapeHtml(item.entity_type || '');
-                var row = '<tr><td>' + entityEscaped + '</td><td>' + scope.escapeHtml(item.last_sync || 'Never') + '</td><td><span class="badge ' + statusClass + '">' + scope.escapeHtml(item.status || 'N/A') + '</span></td><td>' + (item.records_synced != null ? item.records_synced : '0') + '</td><td><button class="btn btn-sm btn-outline-primary" onclick="palladiumIntegrationGrid.syncEntity(\'' + entityEscaped.replace(/'/g, '&#39;') + '\')"><i class="fas fa-sync"></i></button></td></tr>';
+                var row = '<tr><td>' + entityEscaped + '</td><td>' + scope.escapeHtml(item.last_sync || 'Never') + '</td><td><span class="badge ' + statusClass + '">' + scope.escapeHtml(item.status || 'N/A') + '</span></td><td>' + (item.records_synced != null ? item.records_synced : '0') + '</td><td class="mac-table-actions-col">' + MacTableActions.render({
+                    items: [{ label: 'Sync', className: 'js-sync-entity', icon: 'fas fa-sync', attrs: { 'data-entity-type': item.entity_type || '' } }]
+                }) + '</td></tr>';
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('syncTable'));
         },
 
         performSync: async () => {

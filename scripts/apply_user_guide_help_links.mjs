@@ -22,12 +22,13 @@ function writeUtf8(file, text) {
   fs.writeFileSync(file, text, "utf8");
 }
 
+const HELP_LINK_ATTRS = `target="_blank" rel="noopener noreferrer"`;
 const HELP_BTN_TOOLBAR = (anchor) =>
-  `<a href="help/index.html#${anchor}" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>`;
+  `<a href="help/index.html#${anchor}" ${HELP_LINK_ATTRS} class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>`;
 const HELP_BTN_MODAL = (anchor) =>
-  `<a href="help/index.html#${anchor}" class="btn btn-sm btn-outline-secondary ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>`;
+  `<a href="help/index.html#${anchor}" ${HELP_LINK_ATTRS} class="btn btn-sm btn-outline-secondary ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>`;
 const HELP_BTN_LIGHT = (anchor) =>
-  `<a href="help/index.html#${anchor}" class="btn btn-sm btn-outline-light ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>`;
+  `<a href="help/index.html#${anchor}" ${HELP_LINK_ATTRS} class="btn btn-sm btn-outline-light ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>`;
 
 function walkDir(dir, acc = []) {
   if (!fs.existsSync(dir)) return acc;
@@ -1027,18 +1028,25 @@ function syncHelpAssets() {
   }
 }
 
+function ensureHelpLinkOpensInNewTab(openTag) {
+  if (!openTag.includes("macavation-help-link") || !openTag.includes('href="help/index.html')) {
+    return openTag;
+  }
+  if (/\btarget\s*=/.test(openTag)) return openTag;
+  return openTag.replace("<a ", `<a ${HELP_LINK_ATTRS} `);
+}
+
 function upgradeLegacyHelpLinks() {
   for (const file of walkDir(WEBPORTAL_MODULES)) {
     if (!file.endsWith(".html")) continue;
     let t = readUtf8(file);
-    if (!t.includes("../docs/user-guide.html") && !t.includes("help/index.html#")) continue;
+    if (!t.includes("../docs/user-guide.html") && !t.includes("help/index.html")) continue;
     let n = t.replaceAll("../docs/user-guide.html", "help/index.html");
-    n = n.replace(/\s*target="_blank"\s*/g, " ");
-    n = n.replace(/\s*rel="noopener noreferrer"\s*/g, " ");
-    n = n.replace(/<a href="(help\/index\.html#[^"]+)"([^>]*class=")([^"]*)"/g, (match, href, mid, clsVal) => {
+    n = n.replace(/<a href="(help\/index\.html[^"]*)"([^>]*class=")([^"]*)"/g, (match, href, mid, clsVal) => {
       if (clsVal.includes("macavation-help-link")) return match;
       return `<a href="${href}"${mid}${clsVal} macavation-help-link"`;
     });
+    n = n.replace(/<a\b[^>]*>/g, ensureHelpLinkOpensInNewTab);
     if (n !== t) writeUtf8(file, n);
   }
 }

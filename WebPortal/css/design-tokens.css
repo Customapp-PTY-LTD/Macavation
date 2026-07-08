@@ -23,8 +23,11 @@
     --mac-border: #E3E3E0;
     --mac-border-strong: #D3D3D0;
     --mac-text: #1F1F1F;
-    --mac-text-secondary: #6B6B6B;
-    --mac-text-tertiary: #9B9B9B;
+    --mac-text-secondary: #1F1F1F;
+    --mac-text-tertiary: #1F1F1F;
+
+    /* Bootstrap: readable body text on white/light backgrounds */
+    --bs-secondary-color: #1F1F1F;
 
     /* --- Semantic --- */
     --mac-success: #2DA44E;
@@ -51,6 +54,12 @@
     --mac-space-lg: 24px;
     --mac-space-xl: 32px;
     --mac-space-2xl: 48px;
+
+    /* --- Tables (single standard row height) --- */
+    --mac-table-cell-padding-y: 0.625rem;
+    --mac-table-cell-padding-x: 0.75rem;
+    --mac-table-font-size: 0.875rem;
+    --mac-table-header-font-size: 0.75rem;
 
     /* --- Radii (softened to match client site) --- */
     --mac-radius-sm: 8px;

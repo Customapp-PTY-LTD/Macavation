@@ -108,7 +108,7 @@
 }
 
 .exception-metrics strong {
-    color: #6c757d;
+    color: var(--mac-text);
     font-size: 0.8rem;
     text-transform: uppercase;
 }

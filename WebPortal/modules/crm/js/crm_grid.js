@@ -20,6 +20,15 @@ var _crmGrid = function () {
         importData: null,
         importWorkbook: null,
 
+        contactActionsCell: (contactId) => {
+            return '<td class="mac-table-actions-col text-nowrap">' + MacTableActions.render({
+                items: [
+                    { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contactId } },
+                    { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contactId } }
+                ]
+            }) + '</td>';
+        },
+
         init: async () => {
             const scope = _crmGrid;
             console.log('[CRM] Initializing CRM Grid module...');
@@ -402,20 +411,17 @@ var _crmGrid = function () {
                         <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${notesDisplay || 'N/A'}
                         </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
+                        <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
+                            items: [
+                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
+                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
+                            ]
+                        })}</td>
                     </tr>
                 `;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('nisSuppliersTable'));
         },
 
         renderOilProcessors: (processors = null) => {
@@ -456,20 +462,17 @@ var _crmGrid = function () {
                         <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${notesDisplay || 'N/A'}
                         </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
+                        <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
+                            items: [
+                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
+                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
+                            ]
+                        })}</td>
                     </tr>
                 `;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('oilProcessorsTable'));
         },
 
         renderOilIngredientSuppliers: (suppliers = null) => {
@@ -499,20 +502,17 @@ var _crmGrid = function () {
                         <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${notesDisplay || 'N/A'}
                         </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
+                        <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
+                            items: [
+                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
+                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
+                            ]
+                        })}</td>
                     </tr>
                 `;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('oilIngredientSuppliersTable'));
         },
 
         renderOilProteinCustomers: (customers = null) => {
@@ -540,20 +540,17 @@ var _crmGrid = function () {
                         <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${notesDisplay || 'N/A'}
                         </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
+                        <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
+                            items: [
+                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
+                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
+                            ]
+                        })}</td>
                     </tr>
                 `;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('oilProteinCustomersTable'));
         },
 
         escapeHtml: (text) => {
@@ -591,20 +588,17 @@ var _crmGrid = function () {
                         <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${notesDisplay || 'N/A'}
                         </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
+                        <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
+                            items: [
+                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
+                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
+                            ]
+                        })}</td>
                     </tr>
                 `;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('kernelCustomersTable'));
         },
 
         editContact: async (contactId) => {

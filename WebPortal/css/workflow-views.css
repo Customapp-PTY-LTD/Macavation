@@ -68,7 +68,7 @@
 
 .task-time {
     font-size: 0.85rem;
-    color: #6c757d;
+    color: var(--mac-text);
     font-weight: 500;
     margin-bottom: 0.25rem;
 }
@@ -134,7 +134,7 @@
     justify-content: center;
     background: #f8f9fa;
     border-radius: 50%;
-    color: #6c757d;
+    color: var(--mac-text);
 }
 
 .activity-description {

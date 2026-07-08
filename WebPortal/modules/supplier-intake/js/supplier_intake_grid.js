@@ -264,23 +264,6 @@ var _supplierIntakeGrid = function () {
                 var batchId = $(this).data('batch-id');
                 if (batchId) scope.showBatchDetail(batchId);
             });
-            /* Move Actions dropdown menu to body so it is not clipped by table overflow */
-            $(document).on('show.bs.dropdown', '#supplierIntakeBatchesTable .dropdown', function () {
-                var $dropdown = $(this);
-                var $menu = $dropdown.find('.dropdown-menu');
-                if ($menu.length) {
-                    $dropdown.data('si-menu', $menu);
-                    $menu.addClass('supplier-intake-actions-menu').appendTo(document.body);
-                }
-            });
-            $(document).on('hidden.bs.dropdown', '#supplierIntakeBatchesTable .dropdown', function () {
-                var $dropdown = $(this);
-                var $menu = $dropdown.data('si-menu');
-                if ($menu && $menu.length) {
-                    $menu.removeClass('supplier-intake-actions-menu').appendTo($dropdown);
-                    $dropdown.removeData('si-menu');
-                }
-            });
         },
 
         openAdjustStockChoice: () => {
@@ -516,9 +499,10 @@ var _supplierIntakeGrid = function () {
                 const viewItem = '<a class="dropdown-item js-supplier-intake-view" href="#" data-batch-id="' + batchId + '"><i class="fas fa-eye me-2"></i>View</a>';
                 const editItem = '<a class="dropdown-item js-supplier-intake-edit" href="#" data-batch-id="' + batchId + '"><i class="fas fa-edit me-2"></i>Edit</a>';
                 const deleteItem = '<a class="dropdown-item text-danger js-supplier-intake-delete" href="#" data-batch-id="' + escapeHtml(batchId) + '"><i class="fas fa-trash-alt me-2"></i>Remove from intake</a>';
-                const actionsCell = '<div class="dropdown">' +
-                    '<button class="btn btn-sm btn-outline-secondary" type="button" id="supplierIntakeActions' + escapeHtml(batchId) + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
-                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="supplierIntakeActions' + escapeHtml(batchId) + '">' + releaseItem + viewItem + editItem + deleteItem + '</ul></div>';
+                const actionsCell = MacTableActions.render({
+                    id: 'supplierIntakeActions' + batchId,
+                    items: [releaseItem, viewItem, editItem, deleteItem]
+                });
                 var statusLabel = colKey === 'release_ready' ? 'Ready for Oil Production' : 'Awaiting tests';
                 var stagePos = colKey === 'release_ready' ? 'last' : 'first';
                 var statusBadgeHtml = (typeof KanbanHelper !== 'undefined' && KanbanHelper.statusBadge) ? KanbanHelper.statusBadge(statusLabel, stagePos) : ('<span class="badge bg-info">' + escapeHtml(statusLabel) + '</span>');
@@ -546,10 +530,10 @@ var _supplierIntakeGrid = function () {
                     '<td class="supplier-intake-col-mfg d-none d-lg-table-cell">' + mfgBb + '</td>' +
                     '<td class="supplier-intake-col-receiving">' + receivingCell + '</td>' +
                     '<td class="supplier-intake-col-status">' + statusBadgeHtml + '</td>' +
-                    '<td class="supplier-intake-col-actions">' + actionsCell + '</td></tr>';
+                    '<td class="supplier-intake-col-actions mac-table-actions-col">' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
-            scope.initActionsDropdowns();
+            MacTableActions.init(document.getElementById('supplierIntakeBatchesTable'));
         },
 
         loadWeeklySnapshot: function (forceRefresh) {
@@ -723,30 +707,6 @@ var _supplierIntakeGrid = function () {
                 product_type: batch.product_type || null
             };
             _modal_quality_test.show(undefined, context);
-        },
-
-        initActionsDropdowns: () => {
-            if (typeof bootstrap === 'undefined' || !bootstrap.Dropdown) return;
-            $('#supplierIntakeBatchesTable [data-bs-toggle="dropdown"]').each(function () {
-                var trigger = this;
-                var existing = bootstrap.Dropdown.getInstance(trigger);
-                if (existing) existing.dispose();
-                new bootstrap.Dropdown(trigger, {
-                    popperConfig: function (cfg) {
-                        var c = Object.assign({}, cfg || {}, { strategy: 'fixed', placement: 'bottom-end' });
-                        var mods = Array.isArray(c.modifiers) ? c.modifiers.slice() : [];
-                        for (var i = 0; i < mods.length; i++) {
-                            if (mods[i] && mods[i].name === 'flip') {
-                                mods[i] = Object.assign({}, mods[i], { enabled: false });
-                                break;
-                            }
-                        }
-                        if (mods.every(function (m) { return m.name !== 'flip'; })) mods.push({ name: 'flip', enabled: false });
-                        c.modifiers = mods;
-                        return c;
-                    }
-                });
-            });
         },
 
         showBatchDetail: (batchId) => {

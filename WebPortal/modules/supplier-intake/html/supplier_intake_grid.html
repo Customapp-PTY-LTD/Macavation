@@ -4,7 +4,7 @@
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
             <h1 class="h2 mb-0">Supplier Intake Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
-                <a href="help/index.html#supplier-intake-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+                <a target="_blank" rel="noopener noreferrer" href="help/index.html#supplier-intake-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
                 <button type="button" class="btn btn-outline-primary" id="supplierAdjustStockBtn" title="Add bags without the receiving checklist, or edit an existing batch">
                     <i class="fas fa-sliders me-1"></i>Quick stock entry
                 </button>
@@ -65,10 +65,10 @@
     <div id="siKanbanBoard" class="kanban-board"></div>
 
     <!-- Table View (hidden by default) -->
-    <div class="card mb-4 supplier-intake-table-card" id="siTableCard" style="display:none">
+    <div class="card mb-4 supplier-intake-table-card mac-table-actions-card" id="siTableCard" style="display:none">
         <div class="card-body p-2 p-md-3">
             <div class="table-responsive supplier-intake-table-responsive">
-                <table class="table table-hover" id="supplierIntakeBatchesTable">
+                <table class="table align-middle table-hover" id="supplierIntakeBatchesTable">
                     <thead>
                         <tr>
                             <th class="supplier-intake-col-batch">Batch #</th>
@@ -106,7 +106,7 @@
                 </select>
             </div>
             <div class="table-responsive">
-                <table class="table table-hover table-sm si-weekly-stock-table" id="siWeeklyTable">
+                <table class="table align-middle table-hover si-weekly-stock-table" id="siWeeklyTable">
                     <thead id="siWeeklyTableHead" class="table-light">
                         <tr>
                             <th class="si-weekly-th-week">Week</th>
@@ -129,7 +129,7 @@
         <div class="card-body">
             <p class="text-muted small mb-3">Total quantity by product type (current batches in Supplier Intake).</p>
             <div class="table-responsive">
-                <table class="table table-hover table-sm" id="siOverviewTable">
+                <table class="table align-middle table-hover " id="siOverviewTable">
                     <thead>
                         <tr>
                             <th>Ingredient</th>

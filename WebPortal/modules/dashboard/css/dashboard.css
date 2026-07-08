@@ -60,7 +60,7 @@
 
 .stat-label {
     font-size: 0.875rem;
-    color: var(--phoenix-secondary);
+    color: var(--phoenix-text-color);
     margin-top: 0.5rem;
     transition: color 0.3s ease;
 }
@@ -228,7 +228,7 @@
 
 .activity-icon.secondary {
     background-color: rgba(var(--phoenix-secondary-rgb), 0.2);
-    color: var(--phoenix-secondary);
+    color: var(--phoenix-text-color);
 }
 
 /* Task List */
@@ -291,7 +291,7 @@
 }
 
 .dashboard-container .text-muted {
-    color: var(--phoenix-secondary) !important;
+    color: var(--phoenix-text-color) !important;
     transition: color 0.3s ease;
 }
 

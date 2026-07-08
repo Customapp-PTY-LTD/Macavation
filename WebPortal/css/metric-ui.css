@@ -46,7 +46,7 @@
 
 .metric-icon {
     font-size: 1.25rem;
-    color: #6c757d;
+    color: var(--mac-text);
 }
 
 .metric-title {
@@ -72,7 +72,7 @@
 
 .metric-label {
     font-size: 0.9rem;
-    color: #6c757d;
+    color: var(--mac-text);
     margin-bottom: 1rem;
 }
 
@@ -102,7 +102,7 @@
 
 .metric-target {
     font-size: 0.85rem;
-    color: #6c757d;
+    color: var(--mac-text);
     margin-bottom: 0.75rem;
 }
 
@@ -134,12 +134,12 @@
 }
 
 .trend-neutral {
-    color: #6c757d;
+    color: var(--mac-text);
 }
 
 .period {
     font-size: 0.8rem;
-    color: #6c757d;
+    color: var(--mac-text);
 }
 
 /* Metric Footer */

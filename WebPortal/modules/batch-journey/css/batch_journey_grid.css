@@ -33,19 +33,7 @@
     text-decoration: underline;
 }
 
-#bjTable td.bj-actions-col {
-    cursor: default;
-    white-space: nowrap;
-    vertical-align: middle;
-}
-
-#bjTable tbody tr:hover td.bj-actions-col {
-    text-decoration: none;
-}
-
-#bjTable td.bj-actions-col .dropdown-toggle::after {
-    margin-left: 0.35em;
-}
+/* Actions column: WebPortal/css/table-actions.css */
 
 /* Status badges — colours match journey: grower intake (yellow), awaiting test (purple), production (red), stock (blue), complete (green) */
 .bj-status {

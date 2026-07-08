@@ -4,7 +4,7 @@
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Oil &amp; Protein Dispatch</h1>
         <div class="d-flex align-items-center gap-2">
-            <a href="help/index.html#oil-dispatch-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#oil-dispatch-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <div class="view-toggle">
                 <button class="view-toggle-btn active" data-view="kanban" id="odViewKanban" title="Board view">
                     <i class="fas fa-columns me-1"></i>Board
@@ -27,14 +27,14 @@
 
     <!-- Table View (hidden by default) -->
     <div id="odTableCards" style="display:none">
-    <div class="card mb-4">
+    <div class="card mb-4 mac-table-actions-card">
         <div class="card-header bg-light">
             <h5 class="mb-0">Dispatch orders (baskets)</h5>
         </div>
         <p class="card-text text-muted small px-3 pt-2 mb-0">Orders sent from Stock (Oil &amp; Protein) appear here. Use <strong>View basket</strong> to see products and quantities, or <strong>Dispatch</strong> to complete the inspection and dispatch form.</p>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover" id="oilDispatchTable">
+                <table class="table align-middle table-hover" id="oilDispatchTable">
                     <thead>
                         <tr>
                             <th>Buyer</th>
@@ -42,7 +42,7 @@
                             <th>Created</th>
                             <th class="text-end">Lines</th>
                             <th class="text-end">Total (kg)</th>
-                            <th>Action</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="oilDispatchTableBody"></tbody>
@@ -50,14 +50,14 @@
             </div>
         </div>
     </div>
-    <div class="card mb-4">
+    <div class="card mb-4 mac-table-actions-card">
         <div class="card-header bg-secondary text-white">
             <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Baskets marked as dispatched</h5>
         </div>
         <p class="card-text text-muted small px-3 pt-2 mb-0">Orders that have had the inspection and dispatch form completed.</p>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover" id="oilDispatchedTable">
+                <table class="table align-middle table-hover" id="oilDispatchedTable">
                     <thead>
                         <tr>
                             <th>Buyer</th>
@@ -65,7 +65,7 @@
                             <th>Created</th>
                             <th class="text-end">Lines</th>
                             <th class="text-end">Total (kg)</th>
-                            <th>Action</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="oilDispatchedTableBody"></tbody>

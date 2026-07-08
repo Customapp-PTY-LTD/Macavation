@@ -33,6 +33,11 @@ var _salesForecastingGrid = function () {
             $('#addForecastBtn').on('click', function () {
                 if (typeof Swal !== 'undefined') Swal.fire('Info', 'New forecast form coming soon', 'info');
             });
+            $(document).on('click', '.js-view-forecast', function (e) {
+                e.preventDefault();
+                var id = $(this).attr('data-forecast-id');
+                scope.viewForecast(id);
+            });
         },
 
         loadForecasts: async () => {
@@ -57,9 +62,12 @@ var _salesForecastingGrid = function () {
                 return;
             }
             scope.forecasts.forEach(function (forecast) {
-                var row = '<tr><td>' + (forecast.forecast_period || 'N/A') + '</td><td>' + (forecast.product_type || 'N/A') + '</td><td>' + (forecast.forecasted_quantity_kg || '0') + '</td><td>' + (forecast.confidence_level || 'N/A') + '</td><td><span class="badge bg-info">' + (forecast.status || 'draft') + '</span></td><td><button class="btn btn-sm btn-outline-primary" onclick="salesForecastingGrid.viewForecast(\'' + (forecast.id || '') + '\')"><i class="fas fa-eye"></i></button></td></tr>';
+                var row = '<tr><td>' + (forecast.forecast_period || 'N/A') + '</td><td>' + (forecast.product_type || 'N/A') + '</td><td>' + (forecast.forecasted_quantity_kg || '0') + '</td><td>' + (forecast.confidence_level || 'N/A') + '</td><td><span class="badge bg-info">' + (forecast.status || 'draft') + '</span></td><td class="mac-table-actions-col">' + MacTableActions.render({
+                    items: [{ label: 'View', className: 'js-view-forecast', icon: 'fas fa-eye', attrs: { 'data-forecast-id': forecast.id || '' } }]
+                }) + '</td></tr>';
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('forecastsTable'));
         },
 
         viewForecast: (forecastId) => {

@@ -156,7 +156,7 @@ var _adminGrid = function () {
                 }
             }
             root.addEventListener('click', function (e) {
-                if (e.target.closest('#adminBtnAddUser, #adminBtnAddUserTab')) openAdd(e);
+                if (e.target.closest('#adminBtnAddUserTab')) openAdd(e);
                 prefetchModals(e);
             });
         },
@@ -326,19 +326,18 @@ var _adminGrid = function () {
             <td>${roleBadge}</td>
             <td>${statusBadge}</td>
             <td><small class="text-muted">${escapeHtml(lastLogin)}</small></td>
-            <td>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions" title="Actions">
-                        <i class="fas fa-ellipsis"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#" data-admin-edit-user="${escapeHtml(String(user.id))}"><i class="fas fa-pen me-2"></i>Edit user</a></li>
-                    </ul>
-                </div>
-            </td>
+            <td class="mac-table-actions-col">${MacTableActions.render({
+                wrapLi: true,
+                items: [{
+                    label: 'Edit user',
+                    icon: 'fas fa-pen me-2',
+                    attrs: { 'data-admin-edit-user': String(user.id) }
+                }]
+            })}</td>
         </tr>
         `;
             }).join('');
+            MacTableActions.init(document.getElementById('adminUsersTable'));
         },
 
         getRoleBadge: (roleName) => {
@@ -479,19 +478,17 @@ var _adminGrid = function () {
                 <td><small class="text-muted">${desc}</small></td>
                 <td><span class="badge bg-info">${userCount} users</span></td>
                 <td>${statusBadge}</td>
-                <td class="text-end admin-role-actions">
-                    <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-admin-edit-role="${rid}" title="Edit role name and description">
-                            <i class="fas fa-pen me-1"></i>Edit role
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-admin-customize-role="${rid}" title="Choose which sidebar modules this role can open">
-                            <i class="fas fa-sliders-h me-1"></i>Customize
-                        </button>
-                    </div>
-                </td>
+                <td class="mac-table-actions-col">${MacTableActions.render({
+                    wrapLi: true,
+                    items: [
+                        { label: 'Edit role', icon: 'fas fa-pen me-1', attrs: { 'data-admin-edit-role': String(role.id) } },
+                        { label: 'Customize', icon: 'fas fa-sliders-h me-1', attrs: { 'data-admin-customize-role': String(role.id) } }
+                    ]
+                })}</td>
             </tr>
         `;
             }).join('');
+            MacTableActions.init(document.getElementById('adminRolesTable'));
             if (scope.selectedRoleId) scope.highlightRoleRow(scope.selectedRoleId);
         },
 
@@ -681,7 +678,7 @@ var _adminGrid = function () {
                     '</tr>';
                 if (expanded && perms.length) {
                     html += '<tr class="admin-perm-group" data-feature-key="' + fk + '"><td colspan="5" class="p-0">' +
-                        '<table class="table table-sm mb-0 admin-perm-table"><tbody>' +
+                        '<table class="table align-middle mb-0 admin-perm-table"><tbody>' +
                         scope.renderAdminPermRows(perms) +
                         '</tbody></table></td></tr>';
                 }
@@ -702,7 +699,7 @@ var _adminGrid = function () {
                     '</td></tr>';
                 if (otherExpanded) {
                     html += '<tr class="admin-perm-group" data-feature-key="__other__"><td colspan="5" class="p-0">' +
-                        '<table class="table table-sm mb-0 admin-perm-table"><tbody>' +
+                        '<table class="table align-middle mb-0 admin-perm-table"><tbody>' +
                         scope.renderAdminPermRows(grouped.other) +
                         '</tbody></table></td></tr>';
                 }

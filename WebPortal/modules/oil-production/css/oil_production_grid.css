@@ -10,70 +10,6 @@
     box-shadow: 0 0 0 0.2rem rgba(0, 137, 80, 0.25);
 }
 
-#oilBatchesTable th { border-top: none; font-weight: 600; }
-#oilBatchesTable tbody tr.js-oil-batch-row { cursor: pointer; }
-
-/* First column (batch number) as primary link */
-#oilBatchesTable .js-oil-batch-row td:first-child {
-    color: var(--phoenix-primary);
-    font-weight: 500;
-}
-#oilBatchesTable .js-oil-batch-row:hover td:first-child {
-    text-decoration: underline;
-}
-
-/* Actions column: center-aligned, square ellipsis button (match kernel) */
-#oilBatchesTable td:last-child { text-align: center; }
-#oilBatchesTable td:last-child .dropdown { display: inline-block; }
-#oilBatchesTable td:last-child .dropdown .btn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--phoenix-border-radius, 0.25rem);
-    background-color: transparent;
-    border: 2px solid var(--forest-deep, var(--phoenix-primary));
-    color: var(--forest-deep, var(--phoenix-primary));
-}
-#oilBatchesTable td:last-child .dropdown .btn:hover,
-#oilBatchesTable td:last-child .dropdown .btn.show {
-    background-color: var(--forest-deep, var(--phoenix-primary));
-    border-color: var(--forest-deep, var(--phoenix-primary));
-    color: #fff;
-}
-#oilBatchesTable td:last-child .dropdown .btn i { color: inherit; }
-
-/* Prevent dropdown from being clipped */
-.oil-production-grid-card .table-responsive { overflow: visible; }
-.oil-production-grid-card .card-body { overflow: visible; }
-.oil-production-grid-card #oilBatchesTable {
-    min-width: 640px;
-    overflow: visible !important;
-}
-.oil-production-grid-card #oilBatchesTable tbody tr td { overflow: visible; }
-
-/* Dropdown menu */
-#oilBatchesTable .dropdown-menu {
-    z-index: 1060;
-    background-color: var(--phoenix-body-bg, #fff);
-    border: 1px solid rgba(0, 0, 0, 0.15);
-}
-#oilBatchesTable .dropdown-item {
-    color: var(--phoenix-body-color, #212529);
-    display: block;
-    padding: 0.5rem 1rem;
-}
-#oilBatchesTable .dropdown-item:hover {
-    background-color: rgba(0, 0, 0, 0.08);
-    color: #212529;
-}
-#oilBatchesTable .dropdown-item.text-muted {
-    cursor: default;
-}
-
 /* Production sheet forms – paper-style layout to match physical documents */
 .op-ps-paper {
     max-width: 100%;
@@ -125,7 +61,6 @@
 .op-ps-table th,
 .op-ps-table td {
     border: 1px solid #dee2e6;
-    padding: 0.35rem 0.5rem;
     text-align: left;
 }
 .op-ps-table th {
@@ -142,7 +77,7 @@
     padding-top: 0.5rem;
     border-top: 1px solid #dee2e6;
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--mac-text);
 }
 .op-ps-add-row { margin-top: 0.35rem; }
 

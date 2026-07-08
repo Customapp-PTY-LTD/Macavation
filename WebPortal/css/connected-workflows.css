@@ -48,7 +48,7 @@
 
 .impact-icon {
     font-size: 1.25rem;
-    color: #6c757d;
+    color: var(--mac-text);
 }
 
 .impact-title {

@@ -429,11 +429,10 @@ var _growerIntakeGrid = function () {
                     : '<span class="dropdown-item text-muted" role="button" tabindex="0">Release to production</span>';
                 var editItem = '<a class="dropdown-item js-intake-edit" href="#" data-batch-id="' + b.id + '"><i class="fas fa-pen me-2"></i>Edit</a>';
                 var deleteItem = '<a class="dropdown-item js-intake-delete-btn text-danger" href="#" data-batch-id="' + b.id + '"><i class="fas fa-trash me-2"></i>Delete batch</a>';
-                var actionsCell = '<div class="dropdown">' +
-                    '<button class="btn btn-sm btn-outline-secondary" type="button" id="intakeBatchActions' + b.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
-                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="intakeBatchActions' + b.id + '">' +
-                    releaseItem + editItem + deleteItem +
-                    '</ul></div>';
+                var actionsCell = MacTableActions.render({
+                    id: 'intakeBatchActions' + b.id,
+                    items: [releaseItem, editItem, deleteItem]
+                });
 
                 const stage1Cell = '<div class="intake-stage1-buttons">' + stage1Btn + '</div>';
 
@@ -464,9 +463,10 @@ var _growerIntakeGrid = function () {
                     '<td class="intake-col-wet d-none d-sm-table-cell">' + wetCellContent + '</td>' +
                     '<td class="intake-col-stage1">' + stage1Cell + '</td>' +
                     '<td class="intake-col-status">' + (function() { var ik = getIntakeColumnKey(b); var sp = ik === 'receiving' ? 'first' : ik === 'quality_approved' ? 'last' : 'mid'; return KanbanHelper.statusBadge(b.status || '', sp); })() + '</td>' +
-                    '<td class="intake-col-actions">' + actionsCell + '</td></tr>';
+                    '<td class="intake-col-actions mac-table-actions-col">' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('intakeBatchesTable'));
         },
 
         toggleView: (view) => {

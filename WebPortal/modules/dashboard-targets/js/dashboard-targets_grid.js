@@ -53,6 +53,7 @@ var _dashboardTargetsGrid = function () {
                 return;
             }
             tbody.innerHTML = scope.rows.map(function (t) { return scope.rowHtml(t); }).join('');
+            MacTableActions.init(document.getElementById('targetsTable'));
         },
 
         rowHtml: (t) => {
@@ -76,10 +77,13 @@ var _dashboardTargetsGrid = function () {
                 '<td><input type="number" step="any" class="form-control form-control-sm t-value" value="' + value + '"></td>' +
                 '<td><input type="date" class="form-control form-control-sm t-eff" value="' + eff + '"></td>' +
                 '<td><input type="text" class="form-control form-control-sm t-notes" value="' + notes + '"></td>' +
-                '<td class="text-end">' +
-                '<button type="button" class="btn btn-sm btn-primary js-save-target" title="Save"><i class="fas fa-save"></i></button> ' +
-                '<button type="button" class="btn btn-sm btn-outline-danger js-delete-target" title="Delete"><i class="fas fa-trash"></i></button>' +
-                '</td></tr>';
+                '<td class="mac-table-actions-col text-end">' + MacTableActions.render({
+                    id: 'dtActions' + id,
+                    items: [
+                        { label: 'Save', className: 'js-save-target', icon: 'fas fa-save' },
+                        { label: 'Delete', className: 'js-delete-target', danger: true, icon: 'fas fa-trash' }
+                    ]
+                }) + '</td></tr>';
         },
 
         addRow: () => {

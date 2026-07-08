@@ -1009,16 +1009,20 @@ var _stockManagementGrid = function () {
                 var bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (from Job Card or packing completion + 18 months)';
                 row += '<td class="text-end" title="' + ffaTitle.replace(/"/g, '&quot;') + '">' + ffaDisplay + '</td><td class="text-end" title="' + bbTitle.replace(/"/g, '&quot;') + '">' + bbDisplay + '</td>';
                 var kid = kernelIdFromBatch(b);
-                row += '<td class="text-center"><div class="d-inline-flex flex-wrap gap-1 justify-content-center align-items-center">';
-                row += '<button type="button" class="btn btn-sm btn-outline-secondary js-release-batch-to-production" data-kernel-id="' + escapeHtml(kid) + '" data-batch-number="' + escapeHtml(batchNum) + '" title="Send this batch back to production"><i class="fas fa-undo me-1"></i>Send back to production</button>';
+                var kernelActionItems = [
+                    { label: 'Send back to production', className: 'js-release-batch-to-production', icon: 'fas fa-undo', dataAttrs: { 'kernel-id': kid, 'batch-number': batchNum } }
+                ];
                 if (kid) {
-                    row += '<button type="button" class="btn btn-sm btn-outline-primary edit-kernel-batch-btn" data-kernel-id="' + escapeHtml(kid) + '" title="Edit batch details (number, grower, dates, FFA)"><i class="fas fa-edit me-1"></i>Edit</button>';
-                    row += '<button type="button" class="btn btn-sm btn-outline-danger delete-kernel-batch-btn" data-kernel-id="' + escapeHtml(kid) + '" data-batch-label="' + escapeHtml(batchNum) + '" title="Delete batch (soft delete)"><i class="fas fa-trash me-1"></i>Delete</button>';
+                    kernelActionItems.push(
+                        { label: 'Edit', className: 'edit-kernel-batch-btn', icon: 'fas fa-edit', dataAttrs: { 'kernel-id': kid } },
+                        { label: 'Delete', className: 'delete-kernel-batch-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'kernel-id': kid, 'batch-label': batchNum } }
+                    );
                 }
-                row += '</div></td>';
+                row += '<td class="mac-table-actions-col">' + MacTableActions.render({ id: 'ksActions' + kid, items: kernelActionItems }) + '</td>';
                 row += '</tr>';
                 body.append(row);
             });
+            MacTableActions.init(document.getElementById('kernelStockByStyleTable'));
             totalsRow.find('td[data-style]').each(function () {
                 var k = $(this).data('style');
                 $(this).text(totals[k] != null ? totals[k] : 0);
@@ -1457,9 +1461,12 @@ var _stockManagementGrid = function () {
             }
             scope.filteredStockItems.forEach(function (item) {
                 var statusClass = item.status === 'available' ? 'bg-success' : item.status === 'reserved' ? 'bg-warning' : 'bg-secondary';
-                var row = '<tr><td>' + (item.stock_number || 'N/A') + '</td><td>' + (item.product_type || 'N/A') + '</td><td>' + (item.style || 'N/A') + '</td><td>' + (item.batch_number || 'N/A') + '</td><td>' + (item.quantity_kg || '0') + '</td><td>' + (item.location || 'N/A') + '</td><td><span class="badge ' + statusClass + '">' + (item.status || 'N/A') + '</span></td><td><button class="btn btn-sm btn-outline-primary" data-view-item="' + (item.id || '') + '"><i class="fas fa-eye"></i></button></td></tr>';
+                var row = '<tr><td>' + (item.stock_number || 'N/A') + '</td><td>' + (item.product_type || 'N/A') + '</td><td>' + (item.style || 'N/A') + '</td><td>' + (item.batch_number || 'N/A') + '</td><td>' + (item.quantity_kg || '0') + '</td><td>' + (item.location || 'N/A') + '</td><td><span class="badge ' + statusClass + '">' + (item.status || 'N/A') + '</span></td><td class="mac-table-actions-col">' + MacTableActions.render({
+                    items: [{ label: 'View', className: '', icon: 'fas fa-eye', attrs: { 'data-view-item': item.id || '' } }]
+                }) + '</td></tr>';
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('stockTable'));
         },
 
         viewItem: function (itemId) {
@@ -1555,17 +1562,22 @@ var _stockManagementGrid = function () {
                 return;
             }
             tbody.innerHTML = lots.map(function (l) {
-                return '<tr data-shell-id="' + escapeHtml(l.id || '') + '">' +
+                var shellId = l.id || '';
+                return '<tr data-shell-id="' + escapeHtml(shellId) + '">' +
                     '<td>' + escapeHtml(l.lot_number || '') + '</td>' +
                     '<td>' + escapeHtml(l.source_batch_number || '') + '</td>' +
                     '<td class="text-end">' + (l.quantity_kg != null ? Number(l.quantity_kg).toFixed(2) : '0') + '</td>' +
                     '<td>' + escapeHtml(l.status || '') + '</td>' +
-                    '<td class="text-nowrap">' +
-                    '<button type="button" class="btn btn-sm btn-outline-success js-dispatch-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage" title="Dispatch"><i class="fas fa-truck"></i></button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary js-edit-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage"><i class="fas fa-edit"></i></button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-danger js-delete-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage"><i class="fas fa-trash"></i></button>' +
-                    '</td></tr>';
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'shellActions' + shellId,
+                        items: [
+                            { label: 'Dispatch', className: 'js-dispatch-shell-lot', icon: 'fas fa-truck', dataAttrs: { 'shell-id': shellId, 'action-perm': 'stock.shell.manage' } },
+                            { label: 'Edit', className: 'js-edit-shell-lot', icon: 'fas fa-edit', dataAttrs: { 'shell-id': shellId, 'action-perm': 'stock.shell.manage' } },
+                            { label: 'Delete', className: 'js-delete-shell-lot', danger: true, icon: 'fas fa-trash', dataAttrs: { 'shell-id': shellId, 'action-perm': 'stock.shell.manage' } }
+                        ]
+                    }) + '</td></tr>';
             }).join('');
+            MacTableActions.init(document.getElementById('shellWasteStockCard'));
         },
 
         promptUpsertShellLot: function (existing) {
@@ -1797,9 +1809,15 @@ var _stockManagementGrid = function () {
                     '<td>' + bbDisplay + '</td>' +
                     '<td class="text-end ' + daysClass + '">' + (days !== '' ? days : '') + '</td>' +
                     '<td>' + (l.status || '') + '</td>' +
-                    '<td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-info oil-batch-ingredients-btn" data-oil-batch-number="' + escapeHtml(String(l.batch_number || '')) + '" title="Ingredients used for this batch"><i class="fas fa-carrot"></i></button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary adjust-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Adjust stock on hand"><i class="fas fa-balance-scale"></i></button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary edit-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Edit lot details"><i class="fas fa-edit me-1"></i>Edit</button> <button type="button" class="btn btn-sm btn-outline-danger delete-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Delete batch (soft delete)"><i class="fas fa-trash me-1"></i>Delete</button></td>';
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'oilLotActions' + l.id,
+                        items: [
+                            { label: 'Ingredients', className: 'oil-batch-ingredients-btn', icon: 'fas fa-carrot', dataAttrs: { 'oil-batch-number': String(l.batch_number || '') } },
+                            { label: 'Adjust stock', className: 'adjust-oil-lot-btn', icon: 'fas fa-balance-scale', dataAttrs: { 'oil-lot-id': l.id } },
+                            { label: 'Edit', className: 'edit-oil-lot-btn', icon: 'fas fa-edit', dataAttrs: { 'oil-lot-id': l.id } },
+                            { label: 'Delete', className: 'delete-oil-lot-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'oil-lot-id': l.id } }
+                        ]
+                    }) + '</td>';
                 tbody.appendChild(tr);
             }
 
@@ -1810,6 +1828,8 @@ var _stockManagementGrid = function () {
             if (!protRows.length) {
                 bodyProt.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No protein powder stock lines match your search.</td></tr>';
             } else protRows.forEach(function (l) { renderRow(l, bodyProt); });
+            MacTableActions.init(document.getElementById('oilStockOilTable'));
+            MacTableActions.init(document.getElementById('oilStockProteinTable'));
         },
 
         daysRemainingFromBbDate: function (bbDate) {
@@ -1869,7 +1889,7 @@ var _stockManagementGrid = function () {
                         });
                     }
                     if (ings && Array.isArray(ings) && ings.length) {
-                        parts.push('<table class="table table-sm table-bordered mt-1 mb-0"><thead><tr><th>Item</th><th>Supplier</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>');
+                        parts.push('<table class="table align-middle table-bordered mt-1 mb-0"><thead><tr><th>Item</th><th>Supplier</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>');
                         ings.forEach(function (ing) {
                             var desc = ing.description || ing.batch_id || ing.product_type || '';
                             var qty = ing.qty_kg != null ? ing.qty_kg : (ing.quantity_kg != null ? ing.quantity_kg : '');
@@ -1884,7 +1904,7 @@ var _stockManagementGrid = function () {
             var audit = d.raw_ingredient_audit;
             if (audit && Array.isArray(audit) && audit.length) {
                 parts.push('<h6 class="mt-2 mb-1 text-start">Raw ingredient audit</h6>');
-                parts.push('<table class="table table-sm table-bordered text-start"><thead><tr><th>Batch</th><th>Supplier</th><th>Product / description</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>');
+                parts.push('<table class="table align-middle table-bordered text-start"><thead><tr><th>Batch</th><th>Supplier</th><th>Product / description</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>');
                 audit.forEach(function (row) {
                     var bid = row.batch_id != null ? row.batch_id : '';
                     var pt = row.product_type || row.description || '';

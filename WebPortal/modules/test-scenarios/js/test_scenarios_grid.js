@@ -308,13 +308,17 @@ var _testScenariosGrid = function () {
                     '<td>' + scope.escapeHtml(scenario.role_name || 'N/A') + '</td>' +
                     '<td>' + automatedBadge + '</td>' +
                     '<td>' + statusBadge + '</td>' +
-                    '<td><div class="btn-group btn-group-sm" role="group">' +
-                    '<button type="button" class="btn btn-outline-primary edit-scenario-btn" data-scenario-id="' + scope.escapeHtml(scenario.id) + '" title="Edit"><i class="fas fa-edit"></i></button>' +
-                    '<button type="button" class="btn btn-outline-danger delete-scenario-btn" data-scenario-id="' + scope.escapeHtml(scenario.id) + '" title="Delete"><i class="fas fa-trash"></i></button>' +
-                    '</div></td></tr>';
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'tsActions' + scenario.id,
+                        items: [
+                            { label: 'Edit', className: 'edit-scenario-btn', icon: 'fas fa-edit', dataAttrs: { 'scenario-id': scenario.id } },
+                            { label: 'Delete', className: 'delete-scenario-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'scenario-id': scenario.id } }
+                        ]
+                    }) + '</td></tr>';
             });
 
             $('#scenariosTableBody').html(html);
+            MacTableActions.init(document.getElementById('scenariosTable'));
             scope.renderPagination();
         },
 

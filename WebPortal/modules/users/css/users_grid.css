@@ -31,29 +31,7 @@
     text-decoration: underline;
 }
 
-/* Actions column: centered, single dropdown with square ellipsis button */
-#usersTable td:last-child {
-    text-align: center;
-}
-
-#usersTable td:last-child .dropdown {
-    display: inline-block;
-}
-
-#usersTable td:last-child .dropdown .btn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0;
-}
-
-#usersTable td:last-child .dropdown .btn::after {
-    display: none;
-}
+/* Actions column: WebPortal/css/table-actions.css */
 
 /* Remove dropdown/select arrows in this module */
 .module-content #filterRole.form-select {

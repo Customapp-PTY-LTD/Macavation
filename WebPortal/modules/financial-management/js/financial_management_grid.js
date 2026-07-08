@@ -62,10 +62,13 @@ var _financialManagementGrid = function () {
                     <td>R ${trans.amount || '0.00'}</td>
                     <td>${(typeof _common !== 'undefined' && _common.formatDateDDMMYYYY ? _common.formatDateDDMMYYYY(trans.transaction_date) : trans.transaction_date) || 'N/A'}</td>
                     <td><span class="badge ${statusClass}">${trans.status || 'N/A'}</span></td>
-                    <td><button type="button" class="btn btn-sm btn-outline-primary js-view-transaction" data-id="${trans.id}"><i class="fas fa-eye"></i></button></td>
+                    <td class="mac-table-actions-col">${MacTableActions.render({
+                        items: [{ label: 'View', className: 'js-view-transaction', icon: 'fas fa-eye', dataAttrs: { id: trans.id } }]
+                    })}</td>
                 </tr>`;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('transactionsTable'));
         },
 
         viewTransaction: (transId) => {

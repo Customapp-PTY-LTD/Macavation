@@ -70,6 +70,47 @@ var _batchJourneyGrid = (function () {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function normalizeOilBatchList(raw) {
+        if (Array.isArray(raw)) return raw;
+        if (raw && raw.get_oil_batches && Array.isArray(raw.get_oil_batches)) return raw.get_oil_batches;
+        if (raw && raw.data && Array.isArray(raw.data)) return raw.data;
+        return [];
+    }
+
+    /** Map get_oil_batches row to grid fields (batch_id → batch_number, intake_data → supplier/qty/date). */
+    function mapOilRowForJourney(o) {
+        if (!o || typeof o !== 'object') return o;
+        var intakeRaw = o.intake_data;
+        var intake = {};
+        if (intakeRaw != null) {
+            if (typeof intakeRaw === 'string') {
+                try { intake = JSON.parse(intakeRaw); } catch (e) { intake = {}; }
+            } else if (typeof intakeRaw === 'object') {
+                intake = intakeRaw;
+            }
+        }
+        var supplier = intake.supplier || intake.supplier_details || '';
+        var qty = intake.quantity_kg;
+        if (qty == null && intake.items && intake.items[0]) qty = intake.items[0].quantity_kg;
+        if (qty == null && o.total_oil_litre != null) qty = o.total_oil_litre;
+        var received = intake.date_received || o.production_date || o.created_at;
+        return {
+            id: o.id,
+            batch_number: o.batch_id || o.batch_number,
+            supplier_name: supplier,
+            supplier_details: supplier,
+            grower_name: supplier,
+            quantity_kg: qty,
+            date_received: received,
+            received_date: received,
+            status: o.status,
+            intake_data: o.intake_data,
+            production_data: o.production_data,
+            stock_data: o.stock_data,
+            dispatch_data: o.dispatch_data
+        };
+    }
+
     function statusBadgeHtml(d) {
         return typeof BatchStatus !== 'undefined' ? BatchStatus.statusBadgeHtml(d) : escapeHtml(d.label || '');
     }
@@ -181,15 +222,19 @@ var _batchJourneyGrid = (function () {
                 + '<td class="text-end">' + (moisture != null ? formatNumber(moisture, 1) + '%' : '-') + '</td>'
                 + '<td class="text-end">' + (totalYield > 0 ? formatNumber(totalYield) : '-') + '</td>'
                 + '<td class="text-end"><button type="button" class="btn btn-sm btn-primary js-bj-open-module" data-batch-id="' + kid + '" title="' + escapeHtml(routeInfo.label) + '">' + escapeHtml(routeInfo.label.replace(/^Open /, '')) + '</button></td>'
-                + '<td class="bj-actions-col text-end">'
-                + '<div class="dropdown">'
-                + '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="bjEdit' + ddSuffix + '" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Edit batch">Edit</button>'
-                + '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bjEdit' + ddSuffix + '">'
-                + '<li><a class="dropdown-item text-danger bj-delete-batch" href="#" data-kernel-id="' + kid + '"><i class="fas fa-trash-alt me-1"></i>Delete permanently</a></li>'
-                + '</ul></div></td>'
+                + '<td class="mac-table-actions-col">'
+                + MacTableActions.render({
+                    id: 'bjActions' + ddSuffix,
+                    wrapLi: true,
+                    items: [
+                        { label: 'Delete permanently', className: 'bj-delete-batch', danger: true, icon: 'fas fa-trash-alt', dataAttrs: { 'kernel-id': b.id } }
+                    ]
+                })
+                + '</td>'
                 + '</tr>';
         }
         tbody.innerHTML = html;
+        MacTableActions.init(document.getElementById('bjTable'));
     }
 
     function renderOilTable() {
@@ -198,7 +243,7 @@ var _batchJourneyGrid = (function () {
         if (!tbody) return;
 
         if (!scope.filteredOilBatches.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No oil batches found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No oil batches found</td></tr>';
             if (countEl) countEl.textContent = '0 batches';
             return;
         }
@@ -215,16 +260,24 @@ var _batchJourneyGrid = (function () {
             var oid = escapeHtml(ob.id);
             var oilRoute = typeof BatchStatus !== 'undefined' ? BatchStatus.getOilRouteForStatus(od) : { label: 'Open' };
             html += '<tr class="js-bj-oil-row" data-oil-id="' + oid + '">'
-                + '<td>' + (ob.batch_number || '-') + '</td>'
-                + '<td>' + (ob.supplier_name || ob.grower_name || '-') + '</td>'
+                + '<td>' + escapeHtml(ob.batch_number || ob.batch_id || '-') + '</td>'
+                + '<td>' + escapeHtml(ob.supplier_name || ob.supplier_details || ob.grower_name || '-') + '</td>'
                 + '<td>' + statusBadgeHtml(od) + '</td>'
                 + '<td>' + received + '</td>'
                 + '<td class="text-end">' + formatNumber(ob.quantity_kg, 2) + '</td>'
-                + '<td class="text-end"><button type="button" class="btn btn-sm btn-primary js-bj-oil-open-module" data-oil-id="' + oid + '">' + escapeHtml(oilRoute.label.replace(/^Open /, '')) + '</button></td>'
-                + '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary js-bj-oil-history" data-oil-id="' + oid + '" title="Batch history"><i class="fas fa-history"></i></button></td>'
+                + '<td class="mac-table-actions-col">'
+                + MacTableActions.render({
+                    id: 'bjOilActions' + String(ob.id || '').replace(/-/g, ''),
+                    items: [
+                        { label: oilRoute.label.replace(/^Open /, ''), className: 'js-bj-oil-open-module', dataAttrs: { 'oil-id': ob.id } },
+                        { label: 'History', className: 'js-bj-oil-history', icon: 'fas fa-history', dataAttrs: { 'oil-id': ob.id } }
+                    ]
+                })
+                + '</td>'
                 + '</tr>';
         }
         tbody.innerHTML = html;
+        MacTableActions.init(document.getElementById('bjOilTable'));
     }
 
     function filterAndSort() {
@@ -263,7 +316,7 @@ var _batchJourneyGrid = (function () {
                 if (d.value !== statusFilter) return false;
             }
             if (search) {
-                var hay = ((b.batch_number || '') + ' ' + (b.supplier_name || b.grower_name || '')).toLowerCase();
+                var hay = ((b.batch_number || b.batch_id || '') + ' ' + (b.supplier_name || b.supplier_details || b.grower_name || '')).toLowerCase();
                 if (hay.indexOf(search) === -1) return false;
             }
             return true;
@@ -425,18 +478,19 @@ var _batchJourneyGrid = (function () {
     }
 
     function loadOilBatches() {
-        if (typeof dataFunctions === 'undefined' || !dataFunctions.getOilBatches) {
+        var df = (typeof dataFunctions !== 'undefined') ? dataFunctions : (typeof _dataFunctions !== 'undefined' ? _dataFunctions : null);
+        if (!df || !df.getOilBatches) {
             var tbody = document.getElementById('bjOilTableBody');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Oil batch list is not available.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Oil batch list is not available.</td></tr>';
             return;
         }
-        dataFunctions.getOilBatches({ limit: 500 }, null, false).then(function (rows) {
-            scope.oilBatches = rows || [];
+        df.getOilBatches({ limit: 500 }, null, false).then(function (rows) {
+            scope.oilBatches = normalizeOilBatchList(rows).map(mapOilRowForJourney);
             filterAndSortOil();
         }).catch(function (err) {
             console.error('Batch Journey: failed to load oil batches', err);
             var tbody = document.getElementById('bjOilTableBody');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load oil batches</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load oil batches</td></tr>';
         });
     }
 

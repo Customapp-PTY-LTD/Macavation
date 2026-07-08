@@ -516,7 +516,7 @@ var _oilProductionGrid = function () {
                     fieldRow('IBC 2 BN (Litre)', 'op_ps_ibc2', 'number') +
                     fieldRow('IBC 3 BN (Litre)', 'op_ps_ibc3', 'number'));
                 html += section('Main production data',
-                    '<div class="op-ps-table-wrap"><table class="table table-sm op-ps-table"><thead><tr><th>Batch number of Raw material used</th><th>Weight of Raw material in (kg)</th><th>Weight of Oil out (kg)</th><th>Weight of Cake out (kg)</th></tr></thead><tbody id="opProdSheetTableFoodGrade"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="food_grade_oil">Add row</button>');
+                    '<div class="op-ps-table-wrap"><table class="table align-middle op-ps-table"><thead><tr><th>Batch number of Raw material used</th><th>Weight of Raw material in (kg)</th><th>Weight of Oil out (kg)</th><th>Weight of Cake out (kg)</th></tr></thead><tbody id="opProdSheetTableFoodGrade"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="food_grade_oil">Add row</button>');
                 html += section('Comments', '<textarea class="form-control" name="op_ps_comments" rows="2" placeholder="Comments"></textarea>');
                 html += section('Waste at end of run', fieldRow('General waste (kg)', 'op_ps_waste_general', 'number') + fieldRow('Floor waste (kg)', 'op_ps_waste_floor', 'number') + fieldRow('Product waste (kg)', 'op_ps_waste_product', 'number'));
                 html += '<div class="op-ps-doc-ref">MP5.2.3.1 Rev 04 &nbsp; Date issued: 09.12.2025</div>';
@@ -533,7 +533,7 @@ var _oilProductionGrid = function () {
                 html += section('Run details',
                     fieldRow('Start time', 'op_ps_start_time') + fieldRow('End time', 'op_ps_end_time') + fieldRow('Temperature', 'op_ps_temperature', 'number') + fieldRow('Speed for infeed', 'op_ps_speed_infeed') + fieldRow('Speed for Press', 'op_ps_speed_press'));
                 html += section('Main production data',
-                    '<div class="op-ps-table-wrap"><table class="table table-sm op-ps-table"><thead><tr><th>Batch number of Raw material used</th><th>Weight of Raw material in (kg)</th><th>Weight of cake out (kg)</th><th>Total weight of Protein Powder hammermilled (kg)</th></tr></thead><tbody id="opProdSheetTableProtein"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="protein_powder">Add row</button>');
+                    '<div class="op-ps-table-wrap"><table class="table align-middle op-ps-table"><thead><tr><th>Batch number of Raw material used</th><th>Weight of Raw material in (kg)</th><th>Weight of cake out (kg)</th><th>Total weight of Protein Powder hammermilled (kg)</th></tr></thead><tbody id="opProdSheetTableProtein"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="protein_powder">Add row</button>');
                 html += section('Comments', '<textarea class="form-control" name="op_ps_comments" rows="2" placeholder="Comments"></textarea>');
                 html += section('Waste at end of run', fieldRow('General waste (kg)', 'op_ps_waste_general', 'number') + fieldRow('Floor waste (kg)', 'op_ps_waste_floor', 'number') + fieldRow('Product waste (kg)', 'op_ps_waste_product', 'number'));
                 html += '<div class="op-ps-doc-ref">MP5.2.3.5 Rev 01</div>';
@@ -544,7 +544,7 @@ var _oilProductionGrid = function () {
                 html +=                 section('Date and supervisory details',
                     fieldRow('Date', 'op_ps_date', 'text', '', 'flatpickr-date') + fieldRow('Period', 'op_ps_shift') + fieldRow('Supervisor', 'op_ps_shift_supervisor') + fieldRow('Signature', 'op_ps_signature') + fieldRow('Start Oil BN', 'op_ps_start_oil_bn'));
                 html += section('Production log (time, quantities kg)',
-                    '<div class="op-ps-table-wrap"><table class="table table-sm op-ps-table"><thead><tr><th>No.</th><th>Time</th><th>Crude kernel</th><th>Kernel dust</th><th>Crush</th><th>Cracker dust</th><th>Cake</th><th>Raw Material Traceability – Description</th><th>Batch #</th></tr></thead><tbody id="opProdSheetTableCosmetic"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="cosmetic_oil">Add row</button>');
+                    '<div class="op-ps-table-wrap"><table class="table align-middle op-ps-table"><thead><tr><th>No.</th><th>Time</th><th>Crude kernel</th><th>Kernel dust</th><th>Crush</th><th>Cracker dust</th><th>Cake</th><th>Raw Material Traceability – Description</th><th>Batch #</th></tr></thead><tbody id="opProdSheetTableCosmetic"></tbody></table></div><button type="button" class="btn btn-sm btn-outline-secondary op-ps-add-row" data-sheet="cosmetic_oil">Add row</button>');
                 html += section('Totals and oil',
                     fieldRow('IBC 1 (Litre)', 'op_ps_ibc1', 'number') + fieldRow('IBC 2 (Litre)', 'op_ps_ibc2', 'number') + fieldRow('IBC 3 (Litre)', 'op_ps_ibc3', 'number') + fieldRow('Oil BN', 'op_ps_oil_bn') + fieldRow('Literage', 'op_ps_literage', 'number'));
                 html += section('Interruptions', fieldRow('1 Start', 'op_ps_int1_start') + fieldRow('1 End', 'op_ps_int1_end') + fieldRow('2 Start', 'op_ps_int2_start') + fieldRow('2 End', 'op_ps_int2_end'));
@@ -952,7 +952,7 @@ var _oilProductionGrid = function () {
                     var d = i.date_received || o.production_date;
                     return d ? fromISO(String(d).split('T')[0]) : '—';
                 };
-                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Date received</th></tr></thead><tbody>';
+                var tbl = '<div class="table-responsive"><table class="table align-middle table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Date received</th></tr></thead><tbody>';
                 raw.forEach(function (o) {
                     var bf = officialBagFfaFromOil(o);
                     var i = intake(o);
@@ -980,7 +980,7 @@ var _oilProductionGrid = function () {
                         return String(t);
                     }
                 };
-                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Emptied at</th></tr></thead><tbody>';
+                var tbl = '<div class="table-responsive"><table class="table align-middle table-bordered mb-0"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Emptied at</th></tr></thead><tbody>';
                 rawFin.forEach(function (o) {
                     var bf = officialBagFfaFromOil(o);
                     var i = intake(o);
@@ -992,7 +992,7 @@ var _oilProductionGrid = function () {
 
             html += section(scope.oilBinBatchesReport != null ? 'Oil bin batches (all)' : 'Oil bin batches (production)', 'fas fa-flask', (function () {
                 if (!batches.length) return '<p class="text-muted small mb-0">No oil bin batches yet.</p>';
-                var tbl = '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Batch number</th><th>Grade</th><th>Ingredients</th><th>Start date</th><th>Letrerage</th><th>FFA %</th><th>FFA test</th><th>Status</th></tr></thead><tbody>';
+                var tbl = '<div class="table-responsive"><table class="table align-middle table-bordered mb-0"><thead><tr><th>Batch number</th><th>Grade</th><th>Ingredients</th><th>Start date</th><th>Letrerage</th><th>FFA %</th><th>FFA test</th><th>Status</th></tr></thead><tbody>';
                 batches.forEach(function (b) {
                     var startDate = b.start_date ? (typeof b.start_date === 'string' ? b.start_date.split('T')[0] : b.start_date) : '—';
                     var ffaPct = b.ffa != null ? escapeHtml(String(b.ffa)) + ' %' : '—';
@@ -1039,15 +1039,19 @@ var _oilProductionGrid = function () {
                     return d ? fromISO(String(d).split('T')[0]) : '—';
                 };
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Date received</th><th class="text-end">Action</th></tr></thead><tbody>';
+                var html = '<div class="table-responsive"><table class="table align-middle table-hover mb-0 op-raw-ingredients-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Date received</th><th class="text-end">Action</th></tr></thead><tbody>';
                 rows.forEach(function (o) {
                     var bagFfa = officialBagFfaFromOil(o);
                     var ffaCell = bagFfa != null ? escapeHtml(String(bagFfa)) : '—';
                     var i = intake(o);
-                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + ffaCell + '</td><td>' + formatKgPairHtml(i) + '</td><td>' + escapeHtml(dateReceived(o)) + '</td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary op-raw-empty-btn" data-oil-id="' + escapeHtml(o.id) + '" title="Bag finished in press">Empty</button></td></tr>';
+                    html += '<tr><td>' + escapeHtml(o.batch_id || '—') + '</td><td>' + escapeHtml(supplierLabelFromOil(o) || '—') + '</td><td>' + escapeHtml(productLabel(o)) + '</td><td>' + ffaCell + '</td><td>' + formatKgPairHtml(i) + '</td><td>' + escapeHtml(dateReceived(o)) + '</td><td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'opRawEmpty' + o.id,
+                        items: [{ label: 'Empty', className: 'op-raw-empty-btn', dataAttrs: { 'oil-id': o.id } }]
+                    }) + '</td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
+                MacTableActions.init(el);
             } catch (e) {
                 console.error('[Oil Production] loadRawIngredients:', e);
                 el.innerHTML = '<p class="text-danger mb-0">Failed to load raw ingredients.</p>';
@@ -1089,7 +1093,7 @@ var _oilProductionGrid = function () {
                     }
                 };
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-raw-ingredients-table op-finished-raw-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Emptied at</th></tr></thead><tbody>';
+                var html = '<div class="table-responsive"><table class="table align-middle table-hover mb-0 op-raw-ingredients-table op-finished-raw-table"><thead><tr><th>Batch #</th><th>Supplier</th><th>Product type</th><th>FFA (bag) %</th><th>Weight (kg)</th><th>Emptied at</th></tr></thead><tbody>';
                 rows.forEach(function (o) {
                     var bagFfa = officialBagFfaFromOil(o);
                     var ffaCell = bagFfa != null ? escapeHtml(String(bagFfa)) : '—';
@@ -1136,7 +1140,7 @@ var _oilProductionGrid = function () {
                     return;
                 }
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-oil-bin-batches-table"><thead><tr><th>Batch number</th><th>Grade</th><th>Ingredients</th><th>Start date</th><th>Letrerage</th><th>FFA %</th><th>FFA test</th><th class="text-end">Actions</th></tr></thead><tbody>';
+                var html = '<div class="table-responsive"><table class="table align-middle table-hover mb-0 op-oil-bin-batches-table"><thead><tr><th>Batch number</th><th>Grade</th><th>Ingredients</th><th>Start date</th><th>Letrerage</th><th>FFA %</th><th>FFA test</th><th class="text-end">Actions</th></tr></thead><tbody>';
                 rows.forEach(function (b) {
                     var startDate = b.start_date ? (typeof b.start_date === 'string' ? b.start_date.split('T')[0] : b.start_date) : '—';
                     var actions = '';
@@ -1147,24 +1151,36 @@ var _oilProductionGrid = function () {
                     }
                     ffaTestCell += '</div>';
                     if (b.status === 'in_production') {
-                        actions += '<div class="d-flex flex-wrap gap-1 justify-content-end"><button type="button" class="btn btn-sm btn-outline-success op-link-ingredients-btn" data-oil-bin-batch-id="' + escapeHtml(b.id) + '" title="Link raw ingredients in production to this bin"><i class="fas fa-link me-1"></i>Ingredients</button>';
-                        actions += '<button type="button" class="btn btn-sm btn-outline-secondary op-edit-oil-bin-batch" data-oil-bin-batch-id="' + escapeHtml(b.id) + '" title="Edit"><i class="fas fa-edit"></i></button>';
-                        actions += '<button type="button" class="btn btn-sm btn-outline-danger op-delete-oil-bin-batch" data-oil-bin-batch-id="' + escapeHtml(b.id) + '" title="Delete batch"><i class="fas fa-trash-alt"></i></button>';
-                        actions += '<button type="button" class="btn btn-sm btn-outline-primary op-send-oil-bin-to-stock" data-oil-bin-batch-id="' + escapeHtml(b.id) + '">Send to stock</button></div>';
+                        actions = MacTableActions.render({
+                            id: 'opOilBinActions' + b.id,
+                            items: [
+                                { label: 'Ingredients', className: 'op-link-ingredients-btn', icon: 'fas fa-link', dataAttrs: { 'oil-bin-batch-id': b.id } },
+                                { label: 'Edit', className: 'op-edit-oil-bin-batch', icon: 'fas fa-edit', dataAttrs: { 'oil-bin-batch-id': b.id } },
+                                { label: 'Delete', className: 'op-delete-oil-bin-batch', danger: true, icon: 'fas fa-trash-alt', dataAttrs: { 'oil-bin-batch-id': b.id } },
+                                { label: 'Send to stock', className: 'op-send-oil-bin-to-stock', dataAttrs: { 'oil-bin-batch-id': b.id } }
+                            ]
+                        });
+                    } else if (b.oil_id) {
+                        actions = MacTableActions.render({
+                            id: 'opOilBinSentActions' + b.id,
+                            items: [
+                                { label: 'Production data', className: 'op-production-data-btn', dataAttrs: { 'oil-id': b.oil_id } }
+                            ]
+                        });
                     } else {
-                        if (b.oil_id) {
-                            actions = '<div class="d-flex flex-wrap gap-1 justify-content-end"><span class="text-muted small align-self-center me-1">Sent</span><button type="button" class="btn btn-sm btn-outline-secondary op-production-data-btn" data-oil-id="' + escapeHtml(b.oil_id) + '" title="Edit production data">Production data</button></div>';
-                        } else {
-                            actions = '<div class="d-flex flex-wrap gap-1 justify-content-end"><span class="text-muted small align-self-center">Sent</span></div>';
-                        }
+                        actions = MacTableActions.render({
+                            id: 'opOilBinSentActions' + b.id,
+                            items: [{ label: 'Sent', disabled: true }]
+                        });
                     }
                     var ingN = rawIngredientAuditCount(b);
                     var ingCell = '<span class="d-inline-block">' + escapeHtml(b.ingredients != null && String(b.ingredients).trim() !== '' ? String(b.ingredients) : '—') +
                         (ingN ? ' <span class="badge bg-success align-middle" title="Raw batches linked for traceability">' + ingN + ' linked</span>' : '') + '</span>';
-                    html += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + escapeHtml(formatOilStreamLabel(b.oil_stream)) + '</td><td>' + ingCell + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.letrerage != null ? b.letrerage : '—') + '</td><td>' + ffaPctCell + '</td><td>' + ffaTestCell + '</td><td class="text-end">' + actions + '</td></tr>';
+                    html += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + escapeHtml(formatOilStreamLabel(b.oil_stream)) + '</td><td>' + ingCell + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.letrerage != null ? b.letrerage : '—') + '</td><td>' + ffaPctCell + '</td><td>' + ffaTestCell + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
+                MacTableActions.init(el);
             } catch (e) {
                 console.error('[Oil Production] loadOilBinBatches:', e);
                 el.innerHTML = '<p class="text-danger mb-0">Failed to load oil bin batches.</p>';
@@ -1188,7 +1204,7 @@ var _oilProductionGrid = function () {
                     return;
                 }
 
-                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 op-protein-bin-batches-table"><thead><tr><th>Batch number</th><th>Ingredients</th><th>Start date</th><th>Weight (kg)</th><th class="text-end">Actions</th></tr></thead><tbody>';
+                var html = '<div class="table-responsive"><table class="table align-middle table-hover mb-0 op-protein-bin-batches-table"><thead><tr><th>Batch number</th><th>Ingredients</th><th>Start date</th><th>Weight (kg)</th><th class="text-end">Actions</th></tr></thead><tbody>';
                 rows.forEach(function (b) {
                     var startDate = b.start_date ? (typeof b.start_date === 'string' ? b.start_date.split('T')[0] : b.start_date) : '—';
                     var actions = '';
@@ -1196,16 +1212,24 @@ var _oilProductionGrid = function () {
                     var ingCell = '<span class="d-inline-block">' + escapeHtml(b.ingredients != null && String(b.ingredients).trim() !== '' ? String(b.ingredients) : '—') +
                         (ingN ? ' <span class="badge bg-success align-middle" title="Raw batches linked">' + ingN + ' linked</span>' : '') + '</span>';
                     if (b.status === 'in_production') {
-                        actions += '<div class="d-flex flex-wrap gap-1 justify-content-end">' +
-                            '<button type="button" class="btn btn-sm btn-outline-success op-link-protein-ingredients-btn" data-protein-bin-batch-id="' + escapeHtml(b.id) + '" title="Link raw ingredients"><i class="fas fa-link me-1"></i>Ingredients</button>' +
-                            '<button type="button" class="btn btn-sm btn-outline-primary op-send-protein-bin-to-stock" data-protein-bin-batch-id="' + escapeHtml(b.id) + '">Send to stock</button></div>';
+                        actions = MacTableActions.render({
+                            id: 'opProteinBinActions' + b.id,
+                            items: [
+                                { label: 'Ingredients', className: 'op-link-protein-ingredients-btn', icon: 'fas fa-link', dataAttrs: { 'protein-bin-batch-id': b.id } },
+                                { label: 'Send to stock', className: 'op-send-protein-bin-to-stock', dataAttrs: { 'protein-bin-batch-id': b.id } }
+                            ]
+                        });
                     } else {
-                        actions = '<span class="text-muted small">Sent</span>';
+                        actions = MacTableActions.render({
+                            id: 'opProteinBinSentActions' + b.id,
+                            items: [{ label: 'Sent', disabled: true }]
+                        });
                     }
-                    html += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + ingCell + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.batch_weight_kg != null ? escapeHtml(String(b.batch_weight_kg)) : '—') + '</td><td class="text-end">' + actions + '</td></tr>';
+                    html += '<tr><td>' + escapeHtml(b.batch_number || '—') + '</td><td>' + ingCell + '</td><td>' + escapeHtml(startDate) + '</td><td>' + (b.batch_weight_kg != null ? escapeHtml(String(b.batch_weight_kg)) : '—') + '</td><td class="mac-table-actions-col">' + actions + '</td></tr>';
                 });
                 html += '</tbody></table></div>';
                 el.innerHTML = html;
+                MacTableActions.init(el);
             } catch (e) {
                 console.error('[Oil Production] loadProteinBinBatches:', e);
                 el.innerHTML = '<p class="text-danger mb-0">Failed to load protein batches.</p>';

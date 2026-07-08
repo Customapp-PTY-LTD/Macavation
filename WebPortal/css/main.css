@@ -739,8 +739,8 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .btn-outline-secondary {
-    color: var(--phoenix-secondary);
-    border-color: var(--phoenix-secondary);
+    color: var(--mac-text);
+    border-color: var(--mac-border-strong);
 }
 
 .btn-outline-secondary:hover {
@@ -928,7 +928,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .breadcrumb-item.active {
-    color: var(--phoenix-secondary);
+    color: var(--mac-text);
 }
 
 /* Loading States */
@@ -1183,7 +1183,18 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .text-secondary {
-    color: var(--phoenix-secondary) !important;
+    color: var(--mac-text) !important;
+}
+
+/* Light mode: ensure muted/secondary labels are readable on white backgrounds */
+:root:not([data-theme-mode="dark"]) .text-muted,
+:root:not([data-theme-mode="dark"]) .form-text,
+:root:not([data-theme-mode="dark"]) small.text-muted,
+:root:not([data-theme-mode="dark"]) .form-label.text-muted,
+:root:not([data-theme-mode="dark"]) .stat-label,
+:root:not([data-theme-mode="dark"]) .card-body .d-flex small,
+:root:not([data-theme-mode="dark"]) .breadcrumb-item.active {
+    color: var(--mac-text) !important;
 }
 
 .text-success {

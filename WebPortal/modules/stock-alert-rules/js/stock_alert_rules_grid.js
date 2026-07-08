@@ -51,6 +51,7 @@ var _stockAlertRulesGrid = function () {
                 return;
             }
             tbody.innerHTML = scope.rows.map(function (r) { return scope.rowHtml(r); }).join('');
+            MacTableActions.init(document.getElementById('stockAlertRulesTable'));
         },
 
         rowHtml: (r) => {
@@ -74,10 +75,13 @@ var _stockAlertRulesGrid = function () {
                 '<td><input type="text" class="form-control form-control-sm r-unit" value="' + scope.escapeHtml(unit) + '"></td>' +
                 '<td><select class="form-select form-select-sm r-severity">' + opts(SEVERITIES, sev) + '</select></td>' +
                 '<td><input type="checkbox" class="form-check-input r-active"' + (active ? ' checked' : '') + '></td>' +
-                '<td class="text-end">' +
-                '<button type="button" class="btn btn-sm btn-primary js-save-stock-alert-rule" title="Save"><i class="fas fa-save"></i></button> ' +
-                '<button type="button" class="btn btn-sm btn-outline-danger js-delete-stock-alert-rule" title="Delete"><i class="fas fa-trash"></i></button>' +
-                '</td></tr>';
+                '<td class="mac-table-actions-col text-end">' + MacTableActions.render({
+                    id: 'sarActions' + id,
+                    items: [
+                        { label: 'Save', className: 'js-save-stock-alert-rule', icon: 'fas fa-save' },
+                        { label: 'Delete', className: 'js-delete-stock-alert-rule', danger: true, icon: 'fas fa-trash' }
+                    ]
+                }) + '</td></tr>';
         },
 
         addRow: () => {
