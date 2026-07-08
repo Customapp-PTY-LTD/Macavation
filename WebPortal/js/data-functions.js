@@ -810,6 +810,28 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Change the signed-in user's own password. Requires the current
+         * password (verified in-DB), so it is safe over the anon RPC.
+         */
+        changePassword: async function (email, currentPassword, newPassword, token = null) {
+            return await this.callFunction('change_password', {
+                p_email: email,
+                p_current_password: currentPassword,
+                p_new_password: newPassword
+            }, token, { useCache: false });
+        },
+
+        /**
+         * Complete a forgot-password reset using the token from the email link.
+         */
+        confirmPasswordReset: async function (resetToken, newPassword) {
+            return await this.callFunction('confirm_password_reset', {
+                p_token: resetToken,
+                p_new_password: newPassword
+            }, null, { useCache: false });
+        },
+
+        /**
          * Delete user (hard delete, invalidates cache)
          */
         deleteUser: async function (userId, token = null) {

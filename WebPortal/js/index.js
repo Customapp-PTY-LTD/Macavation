@@ -321,16 +321,51 @@ function initProfilePictureInput() {
 }
 
 function showChangePassword() {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            title: 'Change password',
-            text: 'Password change can be done from the User Management area or your identity provider.',
-            icon: 'info',
-            confirmButtonText: 'OK'
-        });
-    } else {
-        alert('Change password is available from User Management or your identity provider.');
+    if (typeof Swal === 'undefined') {
+        alert('Change password is unavailable right now.');
+        return;
     }
+    var user = (typeof Session !== 'undefined' && Session.get) ? Session.get('user') : null;
+    var email = user && (user.email || user.user_email);
+    if (!email) {
+        Swal.fire('Error', 'Could not determine your account email. Please sign in again.', 'error');
+        return;
+    }
+    Swal.fire({
+        title: 'Change password',
+        html:
+            '<input type="password" id="cpCurrent" class="swal2-input" placeholder="Current password" autocomplete="current-password">' +
+            '<input type="password" id="cpNew" class="swal2-input" placeholder="New password (min 8 characters)" autocomplete="new-password">' +
+            '<input type="password" id="cpConfirm" class="swal2-input" placeholder="Confirm new password" autocomplete="new-password">',
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Change password',
+        preConfirm: function () {
+            var cur = (document.getElementById('cpCurrent') || {}).value || '';
+            var nw = (document.getElementById('cpNew') || {}).value || '';
+            var cf = (document.getElementById('cpConfirm') || {}).value || '';
+            if (!cur || !nw || !cf) { Swal.showValidationMessage('All fields are required'); return false; }
+            if (nw.length < 8) { Swal.showValidationMessage('New password must be at least 8 characters'); return false; }
+            if (nw !== cf) { Swal.showValidationMessage('New passwords do not match'); return false; }
+            return { cur: cur, nw: nw };
+        }
+    }).then(async function (res) {
+        if (!res.isConfirmed || !res.value) return;
+        if (typeof dataFunctions === 'undefined' || !dataFunctions.changePassword) {
+            Swal.fire('Error', 'Password change is unavailable right now.', 'error');
+            return;
+        }
+        try {
+            var r = await dataFunctions.changePassword(email, res.value.cur, res.value.nw);
+            if (r && r.success) {
+                Swal.fire('Done', (r && r.message) || 'Password changed successfully.', 'success');
+            } else {
+                Swal.fire('Could not change password', (r && r.message) || 'Please try again.', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', (e && e.message) || 'Could not change password.', 'error');
+        }
+    });
 }
 
 function initializeSidebarCollapse() {
