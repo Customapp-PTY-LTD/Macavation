@@ -22,6 +22,10 @@ var _modal_user = (function () {
         },
 
         show: async function (user) {
+            if (user && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageUser(user)) {
+                api.showError('You do not have permission to manage this user.');
+                return;
+            }
             var title = document.getElementById('userModalLabel');
             if (title) title.textContent = user ? 'Edit User' : 'Add User';
             api.clearForm();
@@ -79,7 +83,9 @@ var _modal_user = (function () {
         loadRolesForDropdown: async function () {
             var select = document.getElementById('cboRole');
             if (!select || typeof dataFunctions === 'undefined' || !dataFunctions.getRoles) return;
-            var roles = await dataFunctions.getRoles();
+            var roles = await (dataFunctions.getRolesForAssignment
+                ? dataFunctions.getRolesForAssignment()
+                : dataFunctions.getRoles());
             var html = '<option value="">Select Role</option>';
             if (roles && Array.isArray(roles)) {
                 roles.forEach(function (role) {

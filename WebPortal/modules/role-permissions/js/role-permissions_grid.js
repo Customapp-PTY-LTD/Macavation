@@ -118,7 +118,9 @@ var _rolePermissionsGrid = function () {
         loadRolesForDropdown: async () => {
             const scope = _rolePermissionsGrid;
             try {
-                var roles = await dataFunctions.getRoles();
+                var roles = await (dataFunctions.getRolesForAssignment
+                    ? dataFunctions.getRolesForAssignment()
+                    : dataFunctions.getRoles());
                 if (!roles || !Array.isArray(roles) || roles.length === 0) return;
                 var select = document.getElementById('rpFilterRole');
                 if (select) {

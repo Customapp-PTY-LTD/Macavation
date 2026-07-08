@@ -450,12 +450,13 @@
       <article id="admin" class="manual-chapter">
         <h2>User &amp; access</h2>
         <span class="route-tag">admin-grid</span>
-        <p><strong>User &amp; access</strong> is the unified administration hub: <strong>People</strong> (user list and edit with optional password), <strong>Roles &amp; modules</strong> (full-width roles list; <strong>Customize</strong> opens module toggles and the per-module database permissions, <strong>Edit role</strong> edits name and description), and <strong>System</strong> (placeholder or environment tools depending on deployment).</p>
+        <p><strong>User &amp; access</strong> is the unified administration hub: <strong>People</strong> (user list and edit with optional password), <strong>Roles &amp; modules</strong> (full-width roles list; <strong>Customize</strong> opens module toggles and the per-module database permissions, <strong>Edit role</strong> edits name and description, <strong>Deactivate</strong> retires a role when the <code>admin.roles.delete</code> action is granted), and <strong>System</strong> (placeholder or environment tools depending on deployment).</p>
         <h3>Typical tasks</h3>
         <ol>
           <li>Open <strong>User &amp; access</strong> from the sidebar.</li>
           <li>On <strong>People</strong>, add or edit users; assign roles; use the same edit dialog behaviour as the standalone Users screen where applicable.</li>
-          <li>On <strong>Roles &amp; modules</strong>, use <strong>Customize</strong> to align module toggles with responsibility, and expand a module there to adjust its database function permissions.</li>
+          <li>On <strong>Roles &amp; modules</strong>, use <strong>Customize</strong> to align module toggles with responsibility, expand a module there to adjust its database function permissions, and use <strong>Deactivate</strong> only when your role has the <strong>Deactivate role</strong> action (<code>admin.roles.delete</code> in <strong>Role Actions</strong>). The <strong>super_user</strong> role is visible here but only a <strong>super_user</strong> actor may edit or customize it; the same role is hidden from other permission admin screens.</li>
+          <li><strong>super_user</strong> accounts and <strong>@customapp.co.za</strong> staff logins are visible only to other <strong>super_user</strong> actors in the People list.</li>
           <li>After permission or feature changes, test with a non-admin login; users may need to sign out and back in to refresh menu visibility.</li>
         </ol>
         <p class="contextual-help"><a href="index.html#admin-users-permissions">People</a> · <a href="index.html#admin-roles-management">Roles &amp; modules</a> · <a href="index.html#admin-system-configuration">System</a> · <a href="index.html#modal-admin-add-user">Add user</a> · <a href="index.html#modal-admin-add-role">Add role</a></p>

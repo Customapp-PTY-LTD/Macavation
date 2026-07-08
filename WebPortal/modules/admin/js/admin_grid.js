@@ -472,6 +472,17 @@ var _adminGrid = function () {
                 const roleName = escapeHtml(role.role_name || '');
                 const desc = escapeHtml(role.description || 'No description');
                 const rid = escapeHtml(String(role.id));
+                const canManage = typeof superUserVisibility === 'undefined' || superUserVisibility.canManageRole(role);
+                const actionItems = [];
+                if (canManage) {
+                    actionItems.push(
+                        { label: 'Edit role', icon: 'fas fa-pen me-1', attrs: { 'data-admin-edit-role': String(role.id) } },
+                        { label: 'Customize', icon: 'fas fa-sliders-h me-1', attrs: { 'data-admin-customize-role': String(role.id) } },
+                        { label: 'Deactivate', icon: 'fas fa-user-slash me-1', danger: true, className: 'js-admin-deactivate-role', dataAttrs: { 'role-id': String(role.id), 'action-perm': 'admin.roles.delete' } }
+                    );
+                } else {
+                    actionItems.push({ label: 'View only', disabled: true, className: 'text-muted' });
+                }
                 return `
             <tr class="js-admin-role-row" data-role-id="${rid}">
                 <td><strong>${roleName}</strong></td>
@@ -480,15 +491,15 @@ var _adminGrid = function () {
                 <td>${statusBadge}</td>
                 <td class="mac-table-actions-col">${MacTableActions.render({
                     wrapLi: true,
-                    items: [
-                        { label: 'Edit role', icon: 'fas fa-pen me-1', attrs: { 'data-admin-edit-role': String(role.id) } },
-                        { label: 'Customize', icon: 'fas fa-sliders-h me-1', attrs: { 'data-admin-customize-role': String(role.id) } }
-                    ]
+                    items: actionItems
                 })}</td>
             </tr>
         `;
             }).join('');
             MacTableActions.init(document.getElementById('adminRolesTable'));
+            if (typeof actionAccess !== 'undefined' && actionAccess.apply) {
+                actionAccess.apply(document.getElementById('adminRolesTable') || document);
+            }
             if (scope.selectedRoleId) scope.highlightRoleRow(scope.selectedRoleId);
         },
 
@@ -524,9 +535,13 @@ var _adminGrid = function () {
         openCustomizeModulesModal: (roleId) => {
             const scope = _adminGrid;
             if (!roleId) return;
+            var role = scope.data.roles.find(function (r) { return String(r.id) === String(roleId); });
+            if (role && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(role)) {
+                scope.showNotification('Only super users may change permissions for the super_user role.', 'warning');
+                return;
+            }
             scope.selectedRoleId = roleId;
             scope.highlightRoleRow(roleId);
-            var role = scope.data.roles.find(function (r) { return String(r.id) === String(roleId); });
             var sub = document.getElementById('adminCustomizeModalSubtitle');
             if (role && sub) {
                 var uc = scope.data.users.filter((u) => u.role === role.role_name).length;
@@ -734,6 +749,12 @@ var _adminGrid = function () {
         toggleAdminFeature: async (featureId, _featureKey, enabled, $checkbox) => {
             const scope = _adminGrid;
             if (!scope.selectedRoleId || !featureId) return;
+            var selectedRole = scope.data.roles.find(function (r) { return String(r.id) === String(scope.selectedRoleId); });
+            if (selectedRole && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(selectedRole)) {
+                scope.showNotification('Only super users may change permissions for the super_user role.', 'warning');
+                $checkbox.prop('checked', !enabled);
+                return;
+            }
             $checkbox.prop('disabled', true);
             try {
                 if (enabled) {
@@ -791,6 +812,12 @@ var _adminGrid = function () {
         toggleAdminPermission: async (permissionId, enabled, $checkbox) => {
             const scope = _adminGrid;
             if (!scope.selectedRoleId || !permissionId) return;
+            var selectedRole = scope.data.roles.find(function (r) { return String(r.id) === String(scope.selectedRoleId); });
+            if (selectedRole && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(selectedRole)) {
+                scope.showNotification('Only super users may change permissions for the super_user role.', 'warning');
+                $checkbox.prop('checked', !enabled);
+                return;
+            }
             var perm = scope.adminAllPermissions.find(function (p) { return String(p.id) === String(permissionId); });
             if (!perm) return;
             $checkbox.prop('disabled', true);
@@ -872,6 +899,12 @@ var _adminGrid = function () {
                     scope.openCustomizeModulesModal(customizeBtn.getAttribute('data-admin-customize-role'));
                     return;
                 }
+                var deactivateRoleBtn = e.target.closest('.js-admin-deactivate-role');
+                if (deactivateRoleBtn) {
+                    e.preventDefault();
+                    scope.deactivateRole(deactivateRoleBtn.getAttribute('data-role-id'));
+                    return;
+                }
                 var userRow = e.target.closest('tr.js-admin-user-row');
                 if (userRow) {
                     if (e.target.closest('.dropdown') || e.target.closest('button') || e.target.closest('.btn')) return;
@@ -893,6 +926,10 @@ var _adminGrid = function () {
             var user = scope.data.users.find(function (u) { return String(u.id) === String(userId); });
             if (!user) {
                 scope.showNotification('User not found in the current list. Refresh and try again.', 'warning');
+                return;
+            }
+            if (typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageUser(user)) {
+                scope.showNotification('You do not have permission to manage this user.', 'warning');
                 return;
             }
             var raw = {
@@ -919,12 +956,56 @@ var _adminGrid = function () {
                 scope.showNotification('Role not found.', 'warning');
                 return;
             }
+            if (typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(role)) {
+                scope.showNotification('Only super users may edit the super_user role.', 'warning');
+                return;
+            }
             await scope.ensureModalsLoaded();
             if (typeof _modal_role !== 'undefined' && _modal_role.show) {
                 _modal_role.show(role);
             } else {
                 scope.showNotification('Role editor is not loaded yet.', 'warning');
             }
+        },
+
+        deactivateRole: (roleId) => {
+            const scope = _adminGrid;
+            if (typeof hasAction === 'function' && !hasAction('admin.roles.delete')) {
+                scope.showNotification('You do not have permission to deactivate roles.', 'warning');
+                return;
+            }
+            var role = scope.data.roles.find(function (r) { return String(r.id) === String(roleId); });
+            if (!role) {
+                scope.showNotification('Role not found.', 'warning');
+                return;
+            }
+            if (typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(role)) {
+                scope.showNotification('Only super users may deactivate the super_user role.', 'warning');
+                return;
+            }
+            if (typeof Swal === 'undefined') {
+                scope.showNotification('Confirmation dialog is not available.', 'error');
+                return;
+            }
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you want to deactivate "' + (role.role_name || '') + '"?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, deactivate!'
+            }).then(async function (result) {
+                if (!result.isConfirmed) return;
+                try {
+                    await dataFunctions.deactivateRole(roleId);
+                    scope.showNotification('Role deactivated successfully', 'success');
+                    await scope.loadRoles();
+                } catch (error) {
+                    console.error('Error deactivating role:', error);
+                    scope.showNotification('Error deactivating role: ' + (error.message || ''), 'error');
+                }
+            });
         },
 
         showNotification: (message, type = 'info') => {

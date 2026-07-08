@@ -145,12 +145,19 @@ var _rolesGrid = function () {
             } else {
                 rolesHtml = rolesToShow.map(function (role) {
                     var roleId = scope.escapeHtml(role.id);
+                    var canManage = typeof superUserVisibility === 'undefined' || superUserVisibility.canManageRole(role);
+                    var actionItems = [];
+                    if (canManage) {
+                        actionItems.push(
+                            { label: 'Edit', className: 'js-role-edit', dataAttrs: { 'role-id': role.id } },
+                            { label: 'Deactivate', className: 'js-role-deactivate', danger: true, dataAttrs: { 'role-id': role.id, 'action-perm': 'admin.roles.delete' } }
+                        );
+                    } else {
+                        actionItems.push({ label: 'View only', disabled: true, className: 'text-muted' });
+                    }
                     var actionsCell = MacTableActions.renderCell({
                         wrapLi: true,
-                        items: [
-                            { label: 'Edit', className: 'js-role-edit', dataAttrs: { 'role-id': role.id } },
-                            { label: 'Deactivate', className: 'js-role-deactivate', danger: true, dataAttrs: { 'role-id': role.id } }
-                        ]
+                        items: actionItems
                     });
                     return '<tr class="js-role-row" data-role-id="' + roleId + '">' +
                         '<td>' + scope.escapeHtml(role.role_name || '') + '</td>' +
@@ -161,6 +168,9 @@ var _rolesGrid = function () {
             }
             $('#rolesTableBody').html(rolesHtml);
             MacTableActions.init(document.getElementById('rolesTable'));
+            if (typeof actionAccess !== 'undefined' && actionAccess.apply) {
+                actionAccess.apply(document.getElementById('rolesTable') || document);
+            }
             scope.renderPagination();
         },
 
@@ -196,13 +206,25 @@ var _rolesGrid = function () {
                 scope.showError('Role not found');
                 return;
             }
+            if (typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(role)) {
+                scope.showError('Only super users may edit the super_user role.');
+                return;
+            }
             if (typeof _modal_role !== 'undefined' && _modal_role.show) _modal_role.show(role);
         },
 
         deleteRole: (roleId) => {
             const scope = _rolesGrid;
+            if (typeof hasAction === 'function' && !hasAction('admin.roles.delete')) {
+                scope.showError('You do not have permission to deactivate roles.');
+                return;
+            }
             var role = scope.roles.find(function (r) { return r.id === roleId; });
             if (!role) return;
+            if (typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(role)) {
+                scope.showError('Only super users may deactivate the super_user role.');
+                return;
+            }
             Swal.fire({
                 title: 'Are you sure?',
                 text: 'Do you want to deactivate "' + (role.role_name || '') + '"?',

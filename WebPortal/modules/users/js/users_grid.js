@@ -120,7 +120,9 @@ var _usersGrid = function () {
         loadRolesForDropdown: async () => {
             const scope = _usersGrid;
             try {
-                const response = await dataFunctions.getRoles();
+                const response = await dataFunctions.getRolesForAssignment
+                    ? dataFunctions.getRolesForAssignment()
+                    : dataFunctions.getRoles();
                 var roles = response;
                 if (!roles || !Array.isArray(roles) || roles.length === 0) {
                     console.error('No valid roles data!');
@@ -250,6 +252,10 @@ var _usersGrid = function () {
                 scope.showError('User not found');
                 return;
             }
+            if (typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageUser(user)) {
+                scope.showError('You do not have permission to manage this user.');
+                return;
+            }
             if (typeof _modal_user !== 'undefined' && _modal_user.show) _modal_user.show(user);
         },
 
@@ -257,6 +263,10 @@ var _usersGrid = function () {
             const scope = _usersGrid;
             const user = scope.users.find(function (u) { return u.id === userId; });
             if (!user) return;
+            if (typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageUser(user)) {
+                scope.showError('You do not have permission to manage this user.');
+                return;
+            }
 
             Swal.fire({
                 title: 'Are you sure?',

@@ -245,6 +245,57 @@ var _dataFunctions = function () {
             } catch (e) { return null; }
         },
 
+        _applySuperUserVisibility: function (type, data) {
+            if (typeof superUserVisibility === 'undefined') return data;
+            if (type === 'users') return superUserVisibility.filterUsers(data);
+            if (type === 'roles') return superUserVisibility.filterRoles(data);
+            if (type === 'roleAssignments') return superUserVisibility.filterRoleAssignments(data);
+            return data;
+        },
+
+        _assertCanManageUserRecord: async function (userRecord, token) {
+            if (typeof superUserVisibility === 'undefined') return;
+            var user = userRecord;
+            if (typeof userRecord === 'string') {
+                user = await this.callFunction('get_user_by_id', { p_id: userRecord }, token || null, { useCache: false });
+            }
+            if (!user) return;
+            if (!superUserVisibility.canManageUser(user)) {
+                throw new Error('You do not have permission to manage this user.');
+            }
+        },
+
+        _assertCanManageRoleRecord: async function (roleRecord, token) {
+            if (typeof superUserVisibility === 'undefined') return;
+            var role = roleRecord;
+            if (typeof roleRecord === 'string') {
+                role = await this.callFunction('get_role_by_id', { p_id: roleRecord }, token || null);
+            }
+            if (!role) return;
+            if (!superUserVisibility.canManageRole(role)) {
+                throw new Error('You do not have permission to manage the super_user role.');
+            }
+        },
+
+        _assertCanAssignRoleId: async function (roleId, token) {
+            if (typeof superUserVisibility === 'undefined' || !roleId) return;
+            if (superUserVisibility.isCurrentUserSuperUser()) return;
+            var role = await this.getRoleById(roleId, token || null);
+            var roleName = role && (role.role_name || role.name || role.role);
+            if (superUserVisibility.isSuperUserRole(roleName)) {
+                throw new Error('Only super users may assign the super_user role.');
+            }
+        },
+
+        _normalizeListResponse: function (raw, key) {
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (key && raw && Array.isArray(raw[key])) return raw[key];
+            if (raw && Array.isArray(raw.result)) return raw.result;
+            if (raw && Array.isArray(raw.body)) return raw.body;
+            return [];
+        },
+
         /**
          * Check if current user has admin privileges
          */
@@ -688,30 +739,35 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
-            if (Array.isArray(raw)) return raw;
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            if (raw && Array.isArray(raw.get_users)) return raw.get_users;
-            if (raw && Array.isArray(raw.result)) return raw.result;
-            if (raw && Array.isArray(raw.body)) return raw.body;
-            return [];
+            return this._applySuperUserVisibility('users', this._normalizeListResponse(raw, 'get_users'));
         },
 
         /**
          * Get user by ID (cached for 5 minutes)
          */
         getUserById: async function (userId, token = null, forceRefresh = false) {
-            return await this.callFunction('get_user_by_id', { p_id: userId }, token, {
+            var user = await this.callFunction('get_user_by_id', { p_id: userId }, token, {
                 cacheKey: `user_${userId}`,
                 useCache: true,
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
+            if (user && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canSeeUser(user)) {
+                return null;
+            }
+            return user;
         },
 
         /**
          * Create user (invalidates users cache)
          */
         createUser: async function (userData, token = null) {
+            await this._assertCanAssignRoleId(userData.role_id, token);
+            if (typeof superUserVisibility !== 'undefined' &&
+                superUserVisibility.isCustomAppEmail(userData.email) &&
+                !superUserVisibility.isCurrentUserSuperUser()) {
+                throw new Error('Only super users may create @customapp.co.za accounts.');
+            }
             const params = {
                 p_email: userData.email,
                 p_username: userData.username || null,
@@ -728,6 +784,13 @@ var _dataFunctions = function () {
          * Update user (invalidates user cache)
          */
         updateUser: async function (userId, userData, token = null) {
+            await this._assertCanManageUserRecord(userId, token);
+            await this._assertCanAssignRoleId(userData.role_id, token);
+            if (typeof superUserVisibility !== 'undefined' &&
+                superUserVisibility.isCustomAppEmail(userData.email) &&
+                !superUserVisibility.isCurrentUserSuperUser()) {
+                throw new Error('Only super users may change @customapp.co.za accounts.');
+            }
             const params = {
                 p_user_id: userId,
                 p_email: userData.email || null,
@@ -748,6 +811,7 @@ var _dataFunctions = function () {
          * Delete user (hard delete, invalidates cache)
          */
         deleteUser: async function (userId, token = null) {
+            await this._assertCanManageUserRecord(userId, token);
             const result = await this.callFunction('delete_user_hard', { p_user_id: userId }, token, { useCache: false });
             this.clearCache(`user_${userId}`);
             this.clearCachePattern('users');
@@ -758,6 +822,7 @@ var _dataFunctions = function () {
          * Deactivate user (soft delete, invalidates cache)
          */
         deactivateUser: async function (userId, token = null) {
+            await this._assertCanManageUserRecord(userId, token);
             const result = await this.callFunction('deactivate_user', { p_user_id: userId }, token, { useCache: false });
             this.clearCache(`user_${userId}`);
             this.clearCachePattern('users');
@@ -777,12 +842,14 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
-            if (Array.isArray(raw)) return raw;
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            if (raw && Array.isArray(raw.get_roles)) return raw.get_roles;
-            if (raw && Array.isArray(raw.result)) return raw.result;
-            if (raw && Array.isArray(raw.body)) return raw.body;
-            return [];
+            return this._normalizeListResponse(raw, 'get_roles');
+        },
+
+        /**
+         * Roles for dropdowns / assignment (hides super_user from non-super_user actors).
+         */
+        getRolesForAssignment: async function (token = null, forceRefresh = false) {
+            return this._applySuperUserVisibility('roles', await this.getRoles(token, forceRefresh));
         },
 
         /**
@@ -810,6 +877,7 @@ var _dataFunctions = function () {
          * Update role (invalidates roles cache)
          */
         updateRole: async function (roleId, roleData, token = null) {
+            await this._assertCanManageRoleRecord(roleId, token);
             const params = {
                 p_role_id: roleId,
                 p_role_name: roleData.role_name || null,
@@ -825,6 +893,7 @@ var _dataFunctions = function () {
          * Deactivate role (soft delete, invalidates cache)
          */
         deactivateRole: async function (roleId, token = null) {
+            await this._assertCanManageRoleRecord(roleId, token);
             const result = await this.callFunction('deactivate_role', { p_id: roleId }, token, { useCache: false });
             this.clearCachePattern('roles');
             return result;
@@ -836,7 +905,8 @@ var _dataFunctions = function () {
          * Get all role permissions
          */
         getRolePermissions: async function (token = null) {
-            return await this.callFunction('get_role_permissions', {}, token);
+            var raw = await this.callFunction('get_role_permissions', {}, token);
+            return this._applySuperUserVisibility('roleAssignments', this._normalizeListResponse(raw, 'get_role_permissions'));
         },
 
         /**
@@ -851,12 +921,10 @@ var _dataFunctions = function () {
                 p_is_active: filters.isActive !== undefined ? filters.isActive : null
             };
             const response = await this.callFunction('get_role_permissions_filtered', params, token);
-
-            // Handle the wrapped response format
-            if (response && response.get_role_permissions_filtered) {
-                return response.get_role_permissions_filtered;
-            }
-            return response || [];
+            var list = (response && response.get_role_permissions_filtered)
+                ? response.get_role_permissions_filtered
+                : this._normalizeListResponse(response, 'get_role_permissions_filtered');
+            return this._applySuperUserVisibility('roleAssignments', list);
         },
 
         /**
@@ -870,6 +938,7 @@ var _dataFunctions = function () {
          * Create role permission
          */
         createRolePermission: async function (permissionData, token = null) {
+            await this._assertCanManageRoleRecord(permissionData.role_id, token);
             const params = {
                 p_role_id: permissionData.role_id,
                 p_object_type: permissionData.object_type,
@@ -884,6 +953,7 @@ var _dataFunctions = function () {
          * Update role permission
          */
         updateRolePermission: async function (permissionId, permissionData, token = null) {
+            await this._assertCanManageRoleRecord(permissionData.role_id, token);
             const params = {
                 p_permission_id: permissionId,
                 p_role_id: permissionData.role_id || null,
@@ -1156,7 +1226,8 @@ var _dataFunctions = function () {
          * Get all role features
          */
         getRoleFeatures: async function (token = null) {
-            return await this.callFunction('get_role_features', {}, token);
+            var raw = await this.callFunction('get_role_features', {}, token);
+            return this._applySuperUserVisibility('roleAssignments', this._normalizeListResponse(raw, 'get_role_features'));
         },
 
         /**
@@ -1170,6 +1241,7 @@ var _dataFunctions = function () {
          * Create role feature
          */
         createRoleFeature: async function (featureData, token = null) {
+            await this._assertCanManageRoleRecord(featureData.role_id, token);
             const params = {
                 role_id: featureData.role_id,
                 feature_id: featureData.feature_id,
@@ -1182,6 +1254,7 @@ var _dataFunctions = function () {
          * Update role feature
          */
         updateRoleFeature: async function (featureId, featureData, token = null) {
+            await this._assertCanManageRoleRecord(featureData.role_id, token);
             const params = {
                 role_feature_id: featureId,
                 role_id: featureData.role_id,
@@ -1235,10 +1308,7 @@ var _dataFunctions = function () {
         /** List all role/action assignments (joined) for the admin grid. */
         getRoleActions: async function (token = null) {
             var raw = await this.callFunction('get_role_actions', {}, token, { useCache: false });
-            if (Array.isArray(raw)) return raw;
-            if (raw && Array.isArray(raw.get_role_actions)) return raw.get_role_actions;
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            return [];
+            return this._applySuperUserVisibility('roleAssignments', this._normalizeListResponse(raw, 'get_role_actions'));
         },
 
         /**
@@ -1264,6 +1334,7 @@ var _dataFunctions = function () {
 
         /** Grant a role/action (ON CONFLICT updates value). */
         createRoleAction: async function (data, token = null) {
+            await this._assertCanManageRoleRecord(data.role_id, token);
             return await this.callFunction('create_role_action_simple', {
                 role_id: data.role_id,
                 action_id: data.action_id,
