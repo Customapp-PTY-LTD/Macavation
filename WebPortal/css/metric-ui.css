@@ -1,37 +1,38 @@
 /**
- * Context-Aware Metric UI Styles
- * Implements Process-Driven Design: Context-Aware Metrics
+ * KPI / metric tiles — token-native (design-system Phase 1 rewrite of the
+ * Gen-1 "Context-Aware Metric UI"). One tile spec for every dashboard number.
+ * Status accents use the semantic tokens only.
  */
 
 .metric-card {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
+    background: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-lg);
     padding: 1.25rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--mac-shadow-card);
     transition: transform 0.2s, box-shadow 0.2s;
     height: 100%;
 }
 
 .metric-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--mac-shadow-md);
 }
 
 .metric-card.status-excellent {
-    border-left: 4px solid #28a745;
+    border-left: 4px solid var(--mac-success);
 }
 
 .metric-card.status-good {
-    border-left: 4px solid #17a2b8;
+    border-left: 4px solid var(--mac-info);
 }
 
 .metric-card.status-warning {
-    border-left: 4px solid #ffc107;
+    border-left: 4px solid var(--mac-warning);
 }
 
 .metric-card.status-critical {
-    border-left: 4px solid #dc3545;
+    border-left: 4px solid var(--mac-danger);
 }
 
 /* Metric Header */
@@ -41,20 +42,20 @@
     gap: 0.5rem;
     margin-bottom: 1rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--mac-border);
 }
 
 .metric-icon {
-    font-size: 1.25rem;
-    color: var(--mac-text);
+    font-size: var(--mac-text-lg);
+    color: var(--mac-text-secondary);
 }
 
 .metric-title {
     font-weight: 600;
-    font-size: 0.9rem;
-    color: #495057;
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.04em;
 }
 
 /* Metric Body */
@@ -63,46 +64,46 @@
 }
 
 .metric-value {
-    font-size: 2.5rem;
+    font-size: var(--mac-text-xl);
     font-weight: 700;
-    color: #212529;
+    color: var(--mac-text);
     line-height: 1;
     margin-bottom: 0.5rem;
 }
 
 .metric-label {
-    font-size: 0.9rem;
-    color: var(--mac-text);
+    font-size: var(--mac-text-base);
+    color: var(--mac-text-secondary);
     margin-bottom: 1rem;
 }
 
-/* Progress Bar */
+/* Progress Bar — flat semantic fills, no gradients */
 .metric-progress {
     width: 100%;
     height: 8px;
-    background: #e9ecef;
-    border-radius: 4px;
+    background: var(--mac-bg-tertiary);
+    border-radius: var(--mac-radius-pill);
     overflow: hidden;
     margin-bottom: 0.5rem;
 }
 
 .metric-progress .progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #17a2b8 0%, #28a745 100%);
+    background: var(--mac-success);
     transition: width 0.3s ease;
 }
 
 .metric-card.status-warning .metric-progress .progress-bar {
-    background: linear-gradient(90deg, #ffc107 0%, #fd7e14 100%);
+    background: var(--mac-warning);
 }
 
 .metric-card.status-critical .metric-progress .progress-bar {
-    background: linear-gradient(90deg, #dc3545 0%, #c82333 100%);
+    background: var(--mac-danger);
 }
 
 .metric-target {
-    font-size: 0.85rem;
-    color: var(--mac-text);
+    font-size: var(--mac-text-sm);
+    color: var(--mac-text-secondary);
     margin-bottom: 0.75rem;
 }
 
@@ -114,7 +115,7 @@
     gap: 0.5rem;
     margin-top: 0.75rem;
     padding-top: 0.75rem;
-    border-top: 1px solid #e9ecef;
+    border-top: 1px solid var(--mac-border);
 }
 
 .trend {
@@ -122,44 +123,43 @@
     align-items: center;
     gap: 0.25rem;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: var(--mac-text-base);
 }
 
 .trend-up {
-    color: #28a745;
+    color: var(--mac-success);
 }
 
 .trend-down {
-    color: #dc3545;
+    color: var(--mac-danger);
 }
 
 .trend-neutral {
-    color: var(--mac-text);
+    color: var(--mac-text-secondary);
 }
 
 .period {
-    font-size: 0.8rem;
-    color: var(--mac-text);
+    font-size: var(--mac-text-sm);
+    color: var(--mac-text-tertiary);
 }
 
 /* Metric Footer */
 .metric-footer {
     margin-top: 1rem;
     padding-top: 0.75rem;
-    border-top: 1px solid #e9ecef;
+    border-top: 1px solid var(--mac-border);
     text-align: center;
 }
 
 .metric-exceptions-link {
-    color: #dc3545;
+    color: var(--mac-danger);
     text-decoration: none;
-    font-size: 0.85rem;
+    font-size: var(--mac-text-sm);
     font-weight: 500;
     transition: color 0.2s;
 }
 
 .metric-exceptions-link:hover {
-    color: #c82333;
     text-decoration: underline;
 }
 
@@ -171,8 +171,8 @@
 
 .metric-card-clickable:hover {
     transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    border-color: #17a2b8;
+    box-shadow: var(--mac-shadow-md);
+    border-color: var(--mac-green);
 }
 
 .metric-card-clickable:active {
@@ -182,7 +182,6 @@
 /* Responsive */
 @media (max-width: 768px) {
     .metric-value {
-        font-size: 2rem;
+        font-size: var(--mac-text-lg);
     }
 }
-

@@ -1,22 +1,10 @@
-/* Index page overrides – extracted from index.html */
-:root {
-    /* Macadamia-inspired color palette */
-    --macadamia-cream: #F5F0E8;
-    --macadamia-shell: #8B7355;
-    --macadamia-kernel: #E8DCC8;
-    --macadamia-dark: #4A3728;
-    --forest-deep: #198754;
-    --forest-light: #198754;
-    --forest-light-bg: rgba(25, 135, 84, 0.08);
-    --earth-rich: #6B4423;
-    --gold-accent: #C9A962;
-    --gold-light: #E8D4A8;
-    --shadow-warm: rgba(74, 55, 40, 0.15);
-}
+/* Index page overrides – extracted from index.html.
+   Legacy palette names (--macadamia-*, --forest-*, --gold-*) resolve via the
+   deprecated bridge in design-tokens.css — do not redefine them here. */
 
 body {
-    font-family: var(--phoenix-font-sans-serif);
-    background: #F5F5F5;
+    font-family: var(--mac-font);
+    background: var(--mac-bg);
 }
 
 /* Navbar Styling */
@@ -417,18 +405,19 @@ body {
     background: var(--mac-green-hover);
 }
 
-/* Outline buttons */
+/* Outline buttons — button grammar: outline-primary is the green secondary
+   action (visibly related to the primary), outline-secondary is neutral. */
 .btn-outline-primary {
-    border: 1px solid var(--mac-border-strong);
-    color: var(--mac-text);
+    border: 1px solid var(--mac-green);
+    color: var(--mac-green);
     border-radius: var(--mac-radius-md);
     background: transparent;
 }
 
 .btn-outline-primary:hover {
-    background: var(--mac-bg-tertiary);
-    border-color: var(--mac-border-strong);
-    color: var(--mac-text);
+    background: var(--mac-green-light);
+    border-color: var(--mac-green);
+    color: var(--mac-green);
 }
 
 .btn-outline-secondary {
@@ -457,19 +446,53 @@ body {
     padding: 1rem !important;
 }
 
-/* SweetAlert Customization */
+/* SweetAlert — THE canonical dialog skin (all 600+ Swal.fire calls inherit
+   this; no other stylesheet may restyle .swal2-*). Confirm = green primary,
+   cancel = quiet neutral, deny = danger. */
 .swal2-popup {
     border-radius: var(--mac-radius-lg) !important;
     font-family: var(--mac-font) !important;
+    color: var(--mac-text) !important;
 }
 
 .swal2-title {
     font-family: var(--mac-font) !important;
     color: var(--mac-text) !important;
+    font-size: var(--mac-text-lg) !important;
+}
+
+.swal2-html-container {
+    color: var(--mac-text-secondary) !important;
+    font-size: var(--mac-text-base) !important;
 }
 
 .swal2-confirm {
     background: var(--mac-green) !important;
+    border: none !important;
+    border-radius: var(--mac-radius-md) !important;
+    box-shadow: none !important;
+}
+
+.swal2-confirm:hover {
+    background: var(--mac-green-hover) !important;
+}
+
+.swal2-cancel {
+    background: var(--mac-bg-secondary) !important;
+    border: 1px solid var(--mac-border-strong) !important;
+    color: var(--mac-text-secondary) !important;
+    border-radius: var(--mac-radius-md) !important;
+    box-shadow: none !important;
+}
+
+.swal2-cancel:hover {
+    background: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text) !important;
+}
+
+.swal2-deny {
+    background: var(--mac-danger) !important;
+    border: none !important;
     border-radius: var(--mac-radius-md) !important;
 }
 
@@ -587,6 +610,47 @@ body {
     background: var(--mac-bg-tertiary) !important;
     color: var(--mac-text-secondary) !important;
     border: 1px solid var(--mac-border);
+}
+
+/* MacStatus pills — THE status language (js/mac-status.js). Same tint recipe
+   as the badges above; semantic tones only. */
+.mac-pill {
+    display: inline-block;
+    font-size: var(--mac-text-xs);
+    font-weight: 500;
+    padding: 0.2em 0.6em;
+    border-radius: var(--mac-radius-pill);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+.mac-pill-success { background: var(--mac-success-light); color: var(--mac-success); }
+.mac-pill-info    { background: var(--mac-info-light); color: var(--mac-info); }
+.mac-pill-warning { background: var(--mac-warning-light); color: #8a6d14; }
+.mac-pill-danger  { background: var(--mac-danger-light); color: var(--mac-danger); }
+.mac-pill-neutral { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); border: 1px solid var(--mac-border); }
+
+/* Shared loading / empty states (js/ui-states.js) */
+.mac-state-loading,
+.mac-state-empty {
+    color: var(--mac-text-tertiary);
+    font-size: var(--mac-text-base);
+}
+
+.mac-empty-state .mac-empty-icon {
+    font-size: 1.5rem;
+    color: var(--mac-text-tertiary);
+    display: block;
+}
+
+.mac-empty-state .mac-empty-title {
+    color: var(--mac-text-secondary);
+    font-weight: 500;
+}
+
+.mac-empty-state .mac-empty-hint {
+    color: var(--mac-text-tertiary);
+    font-size: var(--mac-text-sm);
 }
 
 /* Modal Styling */
