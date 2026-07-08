@@ -455,7 +455,7 @@
         <ol>
           <li>Open <strong>User &amp; access</strong> from the sidebar.</li>
           <li>On <strong>People</strong>, add or edit users; assign roles; use the same edit dialog behaviour as the standalone Users screen where applicable.</li>
-          <li>On <strong>Roles &amp; modules</strong>, use <strong>Customize</strong> to align module toggles with responsibility, expand a module there to adjust its database function permissions, and use <strong>Deactivate</strong> only when your role has the <strong>Deactivate role</strong> action (<code>admin.roles.delete</code> in <strong>Role Actions</strong>). The <strong>super_user</strong> role is visible here but only a <strong>super_user</strong> actor may edit or customize it; the same role is hidden from other permission admin screens.</li>
+          <li>On <strong>Roles &amp; modules</strong>, use <strong>Customize</strong> to align module toggles with responsibility, expand a module there to adjust its database function permissions, and use <strong>Delete role</strong> when your role has <code>admin.users.manage</code> or <code>admin.roles.delete</code>. The <strong>super_user</strong> role is visible here but only a <strong>super_user</strong> actor may edit or customize it; the same role is hidden from other permission admin screens.</li>
           <li><strong>super_user</strong> accounts and <strong>@customapp.co.za</strong> staff logins are visible only to other <strong>super_user</strong> actors in the People list.</li>
           <li>After permission or feature changes, test with a non-admin login; users may need to sign out and back in to refresh menu visibility.</li>
         </ol>

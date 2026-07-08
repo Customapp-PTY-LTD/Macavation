@@ -14,6 +14,17 @@ var _adminGrid = function () {
         return div.innerHTML;
     }
 
+    /** True when the actor may delete/deactivate a role from Roles & modules. */
+    function canDeleteRoleInHub() {
+        if (typeof hasAction === 'function') {
+            return hasAction('admin.roles.delete') || hasAction('admin.users.manage');
+        }
+        if (typeof dataFunctions !== 'undefined' && typeof dataFunctions.canAccessUserManagement === 'function') {
+            return dataFunctions.canAccessUserManagement();
+        }
+        return false;
+    }
+
     return {
         data: {
             users: [],
@@ -477,9 +488,17 @@ var _adminGrid = function () {
                 if (canManage) {
                     actionItems.push(
                         { label: 'Edit role', icon: 'fas fa-pen me-1', attrs: { 'data-admin-edit-role': String(role.id) } },
-                        { label: 'Customize', icon: 'fas fa-sliders-h me-1', attrs: { 'data-admin-customize-role': String(role.id) } },
-                        { label: 'Deactivate', icon: 'fas fa-user-slash me-1', danger: true, className: 'js-admin-deactivate-role', dataAttrs: { 'role-id': String(role.id), 'action-perm': 'admin.roles.delete' } }
+                        { label: 'Customize', icon: 'fas fa-sliders-h me-1', attrs: { 'data-admin-customize-role': String(role.id) } }
                     );
+                    if (canDeleteRoleInHub()) {
+                        actionItems.push({
+                            label: 'Delete role',
+                            icon: 'fas fa-trash me-1',
+                            danger: true,
+                            className: 'js-admin-deactivate-role',
+                            dataAttrs: { 'role-id': String(role.id) }
+                        });
+                    }
                 } else {
                     actionItems.push({ label: 'View only', disabled: true, className: 'text-muted' });
                 }
@@ -497,9 +516,6 @@ var _adminGrid = function () {
         `;
             }).join('');
             MacTableActions.init(document.getElementById('adminRolesTable'));
-            if (typeof actionAccess !== 'undefined' && actionAccess.apply) {
-                actionAccess.apply(document.getElementById('adminRolesTable') || document);
-            }
             if (scope.selectedRoleId) scope.highlightRoleRow(scope.selectedRoleId);
         },
 
@@ -970,8 +986,8 @@ var _adminGrid = function () {
 
         deactivateRole: (roleId) => {
             const scope = _adminGrid;
-            if (typeof hasAction === 'function' && !hasAction('admin.roles.delete')) {
-                scope.showNotification('You do not have permission to deactivate roles.', 'warning');
+            if (!canDeleteRoleInHub()) {
+                scope.showNotification('You do not have permission to delete roles.', 'warning');
                 return;
             }
             var role = scope.data.roles.find(function (r) { return String(r.id) === String(roleId); });
@@ -988,18 +1004,18 @@ var _adminGrid = function () {
                 return;
             }
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'Do you want to deactivate "' + (role.role_name || '') + '"?',
+                title: 'Delete role?',
+                text: 'Do you want to deactivate "' + (role.role_name || '') + '"? Users assigned to this role will need to be reassigned.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, deactivate!'
+                confirmButtonText: 'Yes, delete role'
             }).then(async function (result) {
                 if (!result.isConfirmed) return;
                 try {
                     await dataFunctions.deactivateRole(roleId);
-                    scope.showNotification('Role deactivated successfully', 'success');
+                    scope.showNotification('Role deleted successfully', 'success');
                     await scope.loadRoles();
                 } catch (error) {
                     console.error('Error deactivating role:', error);

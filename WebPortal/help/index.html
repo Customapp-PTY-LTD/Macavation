@@ -1342,7 +1342,7 @@
   <section id="admin-roles-management" class="guide-section" data-guide-id="admin-roles-management">
     <h2>User &amp; access — Roles &amp; modules</h2>
 <p class="guide-lead"><strong>Roles &amp; modules</strong> (User &amp; access) — full-width roles list; use <strong>Customize</strong> for both the sidebar modules and the database function permissions inside each module.</p>
-    <p class="guide-how">Each row has <strong>Edit role</strong> (name and description only), <strong>Customize</strong>, and <strong>Deactivate</strong> when your role has the <code>admin.roles.delete</code> action. In Customize, the <strong>On</strong> tick shows the module in the sidebar, and expanding a module reveals its database permissions (Supabase functions) with their own tick boxes. Click a row (outside the buttons) to highlight it.</p>
+    <p class="guide-how">Each row has <strong>Edit role</strong> (name and description only), <strong>Customize</strong>, and <strong>Delete role</strong> when your role has user-management access (<code>admin.users.manage</code> or <code>admin.roles.delete</code>). In Customize, the <strong>On</strong> tick shows the module in the sidebar, and expanding a module reveals its database permissions (Supabase functions) with their own tick boxes. Click a row (outside the buttons) to highlight it.</p>
 
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
@@ -1351,7 +1351,7 @@
       <li>Expand a module (the database permissions button on its row) to grant or revoke the individual Supabase functions the role may run; toggle cautiously and follow least privilege.</li>
       <li>Permissions that are not tied to a single module appear under <strong>Other / shared</strong> at the bottom of the list.</li>
       <li>Use <strong>Edit role</strong> when you only need to change the role name or description.</li>
-      <li>Use <strong>Deactivate</strong> to retire a role that is no longer used (requires the <strong>Deactivate role</strong> action under Administration in <strong>Role Actions</strong>).</li>
+      <li>Use <strong>Delete role</strong> to retire a role that is no longer used (soft delete; requires <code>admin.users.manage</code> or <code>admin.roles.delete</code>).</li>
       <li>The <strong>super_user</strong> role appears in this list but only another <strong>super_user</strong> may edit or customize it. It is hidden from <strong>Role Permissions</strong>, <strong>Role Features</strong>, and <strong>Role Actions</strong> dropdowns for everyone else.</li>
       <li><strong>super_user</strong> accounts and <strong>@customapp.co.za</strong> logins are listed under <strong>People</strong> only for <strong>super_user</strong> actors.</li>
     </ol>
