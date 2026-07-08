@@ -106,34 +106,9 @@
     -moz-appearance: none;
 }
 
-/* Badges */
-.badge {
-    padding: 0.35em 0.65em;
-    font-weight: 500;
-    font-size: 0.85rem;
-    transition: background-color 0.3s ease;
-}
-
-/* Role Badges */
-.badge.bg-danger {
-    background-color: var(--phoenix-danger) !important;
-}
-
-.badge.bg-primary {
-    background-color: var(--phoenix-primary) !important;
-}
-
-.badge.bg-info {
-    background-color: var(--phoenix-info) !important;
-}
-
-.badge.bg-secondary {
-    background-color: var(--phoenix-secondary) !important;
-}
-
-.badge.bg-success {
-    background-color: var(--phoenix-success) !important;
-}
+/* Badges: use the global tinted-pill standard (index.css). The old solid
+   phoenix fills painted the tinted text color onto same-color backgrounds,
+   rendering Status as unreadable solid blocks. */
 
 /* Action Buttons - Enhanced Visibility */
 .btn-sm {
@@ -277,11 +252,7 @@
 }
 
 
-/* Role Definitions Section */
-.card-body .badge {
-    min-width: 100px;
-    text-align: center;
-}
+/* Role Definitions Section: badges size to their content (no stretched blocks) */
 
 /* Customize modules dialog: per-module database permission groups */
 #adminFeaturesTable .js-admin-feature-expand {

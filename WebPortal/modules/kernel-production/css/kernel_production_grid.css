@@ -214,7 +214,7 @@
 }
 
 .kp-production-calendar-day:hover {
-    border-color: #9ec5fe;
+    border-color: var(--mac-green);
 }
 
 .kp-production-calendar-day.is-outside-month {
@@ -222,13 +222,13 @@
 }
 
 .kp-production-calendar-day.is-active {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+    border-color: var(--mac-green);
+    box-shadow: 0 0 0 2px rgba(var(--mac-green-rgb), 0.15);
 }
 
 .kp-production-calendar-day.has-production {
-    background: #e7f1ff;
-    border-color: #9ec5fe;
+    background: var(--mac-green-light);
+    border-color: var(--mac-green);
 }
 
 .kp-production-calendar-daynum {
@@ -241,7 +241,7 @@
     margin-top: 0.4rem;
     padding: 0.1rem 0.45rem;
     border-radius: 999px;
-    background: #0d6efd;
+    background: var(--mac-green);
     color: #fff;
     font-size: 0.72rem;
     font-weight: 600;
@@ -316,8 +316,8 @@
     align-items: center;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
-    background: #dbeafe;
-    color: #0b5ed7;
+    background: var(--mac-green-light);
+    color: var(--mac-green);
     font-size: 0.75rem;
     font-weight: 600;
 }

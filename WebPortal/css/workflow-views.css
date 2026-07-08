@@ -7,17 +7,19 @@
     padding: 1rem 0;
 }
 
+/* Flat, warm greeting panel — no gradients (design system: calm chrome). */
 .my-day-header {
     text-align: center;
-    padding: 2rem 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 8px;
+    padding: 1.5rem 0;
+    background: var(--mac-bg-secondary, #fff);
+    color: var(--mac-text, #1F1F1F);
+    border: 1px solid var(--mac-border, #E3E3E0);
+    border-radius: var(--mac-radius-lg, 12px);
     margin-bottom: 2rem;
 }
 
 .my-day-header h2 {
-    color: white;
+    color: var(--mac-text, #1F1F1F);
     font-weight: 600;
 }
 

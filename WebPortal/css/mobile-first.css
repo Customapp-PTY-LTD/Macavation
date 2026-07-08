@@ -45,7 +45,7 @@
     }
 
     .mobile-nav-item.active {
-        color: #0d6efd;
+        color: var(--mac-green);
     }
 
     .mobile-nav-item i {

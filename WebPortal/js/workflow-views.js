@@ -124,7 +124,7 @@ var _workflowViews = function () {
                 return '<li class="list-group-item d-flex justify-content-between align-items-center px-0">'
                     + '<div><strong>' + (item.batch || '—') + '</strong>'
                     + '<div class="small text-muted">' + (item.status || '') + '</div></div>'
-                    + '<button type="button" class="btn btn-sm btn-primary js-myday-work-action"'
+                    + '<button type="button" class="btn btn-sm btn-outline-primary js-myday-work-action"'
                     + ' data-route="' + (item.route || '') + '"'
                     + ' data-search="' + (item.search || '').replace(/"/g, '&quot;') + '"'
                     + ' data-search-input="' + (item.searchInputId || '') + '">'
@@ -270,13 +270,13 @@ var _workflowViews = function () {
                     <div class="my-day-header mb-4">
                         <h2 class="mb-1">Good ${this.getTimeOfDay()}, ${this.getUserName()}</h2>
                         <p class="text-muted mb-0">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        <span class="badge bg-primary mt-2">${role}</span>
+                        <span class="badge bg-primary mt-2">${typeof formatRoleName === 'function' ? formatRoleName(role) : role}</span>
                     </div>
 
                     <div class="row g-4 mb-2">
                         <div class="col-lg-4">
                             <div class="card h-100">
-                                <div class="card-header bg-warning text-dark">
+                                <div class="card-header">
                                     <h5 class="mb-0"><i class="bi bi-inbox me-2"></i>Intake waiting</h5>
                                 </div>
                                 <div class="card-body">${this.renderWorkQueueSection('Intake', wq.intake, 'No intake batches need attention.')}</div>
@@ -284,7 +284,7 @@ var _workflowViews = function () {
                         </div>
                         <div class="col-lg-4">
                             <div class="card h-100">
-                                <div class="card-header bg-danger text-white">
+                                <div class="card-header">
                                     <h5 class="mb-0"><i class="bi bi-gears me-2"></i>Production waiting</h5>
                                 </div>
                                 <div class="card-body">${this.renderWorkQueueSection('Production', wq.production, 'No production actions queued.')}</div>
@@ -292,7 +292,7 @@ var _workflowViews = function () {
                         </div>
                         <div class="col-lg-4">
                             <div class="card h-100">
-                                <div class="card-header bg-info text-white">
+                                <div class="card-header">
                                     <h5 class="mb-0"><i class="bi bi-warehouse me-2"></i>Stock &amp; dispatch</h5>
                                 </div>
                                 <div class="card-body">${this.renderWorkQueueSection('Stock', wq.stockDispatch, 'No stock handoffs queued.')}</div>
@@ -304,7 +304,7 @@ var _workflowViews = function () {
                         <!-- Today's Workflow -->
                         <div class="col-lg-8">
                             <div class="card">
-                                <div class="card-header bg-primary text-white">
+                                <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="bi bi-list-check me-2"></i>
                                         Today's Workflow
@@ -319,7 +319,7 @@ var _workflowViews = function () {
                         <!-- Due This Period -->
                         <div class="col-lg-4">
                             <div class="card">
-                                <div class="card-header bg-warning text-dark">
+                                <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="bi bi-calendar-event me-2"></i>
                                         Due This Period
@@ -336,7 +336,7 @@ var _workflowViews = function () {
                         <!-- Watching (Proactive Intelligence) -->
                         <div class="col-lg-6">
                             <div class="card">
-                                <div class="card-header bg-info text-white">
+                                <div class="card-header">
                                     <h5 class="mb-0">
                                         <i class="bi bi-eye me-2"></i>
                                         Watching

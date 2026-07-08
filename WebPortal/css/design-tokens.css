@@ -22,12 +22,15 @@
     --mac-bg-tertiary: #F0F0EE;
     --mac-border: #E3E3E0;
     --mac-border-strong: #D3D3D0;
+    /* Three text tones = the hierarchy. All pass WCAG AA on --mac-bg (#F7F7F5):
+       #52524E ≈ 7.3:1, #6E6E68 ≈ 4.9:1. Do not collapse these to one value —
+       contrast fixes must adjust tones, not delete the triad. */
     --mac-text: #1F1F1F;
-    --mac-text-secondary: #1F1F1F;
-    --mac-text-tertiary: #1F1F1F;
+    --mac-text-secondary: #52524E;
+    --mac-text-tertiary: #6E6E68;
 
-    /* Bootstrap: readable body text on white/light backgrounds */
-    --bs-secondary-color: #1F1F1F;
+    /* Bootstrap: readable secondary text on white/light backgrounds */
+    --bs-secondary-color: #52524E;
 
     /* --- Semantic --- */
     --mac-success: #2DA44E;

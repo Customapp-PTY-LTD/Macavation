@@ -452,7 +452,10 @@
                         </ul>
                     </div>
                     <div class="sidebar-footer p-3 border-top border-secondary sidebar-footer-inner">
-                        <button class="btn btn-link w-100 text-start p-2" type="button" id="darkModeToggle"
+                        <!-- Dark mode hidden until the module sweep makes it consistent
+                             (design plan Phase 5): only 1 of 34 module stylesheets has
+                             dark rules today, so the toggle produced broken screens. -->
+                        <button class="btn btn-link w-100 text-start p-2 d-none" type="button" id="darkModeToggle"
                             title="Toggle Dark Mode">
                             <i class="fas fa-moon me-2"></i><span class="toggle-text">Dark mode</span>
                         </button>

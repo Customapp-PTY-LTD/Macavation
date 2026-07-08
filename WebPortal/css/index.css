@@ -583,6 +583,12 @@ body {
     color: var(--mac-danger) !important;
 }
 
+.badge.bg-secondary {
+    background: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text-secondary) !important;
+    border: 1px solid var(--mac-border);
+}
+
 /* Modal Styling */
 .modal-content {
     border-radius: var(--mac-radius-lg) !important;

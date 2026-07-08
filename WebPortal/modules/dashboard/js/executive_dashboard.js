@@ -750,10 +750,19 @@ var _executiveDashboard = function () {
 
         loadPhase2ExtendedKpis: async () => {
             if (!dataFunctions.getPhase2ExtendedKpis) return;
+            // Derived percentages are only meaningful when their inputs are real.
+            // With missing/partial inputs the DB can return nonsense (e.g. oil
+            // yield of 100000% when only 6 kg of raw material is recorded) —
+            // showing that erodes trust in the whole dashboard. Render '—' instead.
+            var sanePct = function (v) {
+                var n = Number(v);
+                if (v == null || !isFinite(n) || n < 0 || n > 500) return null;
+                return n;
+            };
             try {
                 var k = await dataFunctions.getPhase2ExtendedKpis();
-                var rec = k.sound_kernel_recovery_pct;
-                var yieldPct = k.oil_yield_pct;
+                var rec = sanePct(k.sound_kernel_recovery_pct);
+                var yieldPct = sanePct(k.oil_yield_pct);
                 $('#execSoundRecoveryPct').text(rec != null ? rec + '%' : '—');
                 $('#execOilYieldPct').text(yieldPct != null ? yieldPct + '%' : '—');
                 $('#execSohKernel').text(Number(k.kernel_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));

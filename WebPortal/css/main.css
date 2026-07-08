@@ -170,15 +170,18 @@ thead th,
     border-top: 1px solid var(--mac-glass-border);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
+/* Cancel/close (.btn-secondary) in modals is a quiet neutral action — never a
+   filled red button (red is reserved for destructive actions; a red Cancel
+   reads as more dangerous than Save). */
 .modal-content .modal-footer .btn-secondary {
-    background-color: #dc3545 !important;
-    border-color: #dc3545 !important;
-    color: #fff !important;
+    background-color: var(--mac-bg-secondary) !important;
+    border-color: var(--mac-border-strong) !important;
+    color: var(--mac-text-secondary) !important;
 }
 .modal-content .modal-footer .btn-secondary:hover {
-    background-color: #bb2d3b !important;
-    border-color: #b02a37 !important;
-    color: #fff !important;
+    background-color: var(--mac-bg-tertiary) !important;
+    border-color: var(--mac-border-strong) !important;
+    color: var(--mac-text) !important;
 }
 .modal-content .modal-footer .btn-primary,
 .modal-content .modal-footer .btn-primary:focus,
@@ -186,16 +189,16 @@ thead th,
     box-shadow: none !important;
 }
 
-/* Modal body actions (when footer is removed: buttons in body) – same red Cancel, no glow on primary */
+/* Modal body actions (when footer is removed: buttons in body) – same neutral Cancel, no glow on primary */
 .modal-content .modal-body .modal-body-actions .btn-secondary {
-    background-color: #dc3545 !important;
-    border-color: #dc3545 !important;
-    color: #fff !important;
+    background-color: var(--mac-bg-secondary) !important;
+    border-color: var(--mac-border-strong) !important;
+    color: var(--mac-text-secondary) !important;
 }
 .modal-content .modal-body .modal-body-actions .btn-secondary:hover {
-    background-color: #bb2d3b !important;
-    border-color: #b02a37 !important;
-    color: #fff !important;
+    background-color: var(--mac-bg-tertiary) !important;
+    border-color: var(--mac-border-strong) !important;
+    color: var(--mac-text) !important;
 }
 .modal-content .modal-body .modal-body-actions .btn-primary,
 .modal-content .modal-body .modal-body-actions .btn-primary:focus,
@@ -712,19 +715,25 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .btn-primary:hover {
-    background-color: #0b5ed7;
-    border-color: #0a58ca;
+    /* Brand green hover — the old values here were Bootstrap blue, making
+       green buttons flash blue on hover. */
+    background-color: var(--mac-green-hover);
+    border-color: var(--mac-green-hover);
 }
 
+/* Neutral secondary button: quiet surface + readable text (the old
+   phoenix-secondary background is near-white, which made the white
+   text unreadable). */
 .btn-secondary {
-    background-color: var(--phoenix-secondary);
-    border-color: var(--phoenix-secondary);
-    color: white;
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border-strong);
+    color: var(--mac-text-secondary);
 }
 
 .btn-secondary:hover {
-    background-color: #5c636a;
-    border-color: #565e64;
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border-strong);
+    color: var(--mac-text);
 }
 
 .btn-outline-primary {
@@ -1183,10 +1192,12 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .text-secondary {
-    color: var(--mac-text) !important;
+    color: var(--mac-text-secondary) !important;
 }
 
-/* Light mode: ensure muted/secondary labels are readable on white backgrounds */
+/* Light mode: muted/secondary labels use the secondary tone — readable (AA on
+   the warm background) but visibly quieter than primary text, preserving the
+   three-tier hierarchy. */
 :root:not([data-theme-mode="dark"]) .text-muted,
 :root:not([data-theme-mode="dark"]) .form-text,
 :root:not([data-theme-mode="dark"]) small.text-muted,
@@ -1194,7 +1205,7 @@ h1, h2, h3, h4, h5, h6,
 :root:not([data-theme-mode="dark"]) .stat-label,
 :root:not([data-theme-mode="dark"]) .card-body .d-flex small,
 :root:not([data-theme-mode="dark"]) .breadcrumb-item.active {
-    color: var(--mac-text) !important;
+    color: var(--mac-text-secondary) !important;
 }
 
 .text-success {
