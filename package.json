@@ -17,6 +17,7 @@
     "rbac:verify": "node scripts/verify-rbac-parity.mjs",
     "audit:verify": "node scripts/verify-audit-housekeeping.mjs",
     "db:apply-prod": "node scripts/apply-migration-prod.mjs",
+    "ui:verify": "node scripts/verify-ui-standard.mjs",
     "routing:verify": "node scripts/verify-routing-guarantee.cjs ."
   }
 }

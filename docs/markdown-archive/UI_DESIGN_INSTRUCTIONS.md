@@ -1,3 +1,9 @@
+> ⚠️ **DEPRECATED (2026-07-09).** Superseded by
+> [`docs/design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md), which matches the
+> live tokens and is enforced by `npm run ui:verify`. This file still carries
+> stale Gen-2 values (`#008950`, 5px radius, `far`-only icons, pink modal
+> titles) the design system has moved past. Kept for history only.
+
 # WebPortal UI Design Instructions
 
 Reference module: **kernel-production** (`modules/kernel-production`). Use these patterns for layout, spacing, tables, and clickable rows so modules look and behave consistently.

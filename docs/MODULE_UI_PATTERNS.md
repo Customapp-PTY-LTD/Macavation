@@ -1,3 +1,8 @@
+> ⚠️ **DEPRECATED (2026-07-09).** Superseded by
+> [`docs/design/DESIGN_SYSTEM.md`](design/DESIGN_SYSTEM.md). Describes the retired
+> sharp-corner / solid-fill generation (`border-radius: 0` ellipsis buttons) that
+> predates the shared `MacTableActions` + token system. Kept for history only.
+
 # Module UI Patterns
 
 Reusable UI patterns for app modules. Use this guide when building or updating data grids, tables, and action menus so behaviour and styling stay consistent.

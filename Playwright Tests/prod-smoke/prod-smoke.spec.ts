@@ -140,7 +140,10 @@ test.describe('Deployed-site smoke @prod-smoke', () => {
 
     await test.step('CRM: deactivate test contact via UI', async () => {
       const row = page.locator(`#nisSuppliersTable tr:has-text("${COMPANY_NAME}")`).first();
-      await row.locator('.delete-contact-btn').click();
+      // Row actions live behind the shared MacTableActions ellipsis — open it first.
+      await row.locator('.mac-table-actions [data-bs-toggle="dropdown"]').click();
+      await page.waitForTimeout(400);
+      await page.locator('.delete-contact-btn:visible').first().click();
 
       await page.waitForSelector('.swal2-popup', { state: 'visible', timeout: 10_000 });
       await page.click('.swal2-confirm'); // "Yes, deactivate it!"
