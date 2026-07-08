@@ -190,7 +190,7 @@ var _usersGrid = function () {
                         '<td><div class="d-flex align-items-center">' + avatarHtml +
                         '<span class="ms-2">' + scope.escapeHtml(fullName) + '</span></div></td>' +
                         '<td>' + scope.escapeHtml(user.email || '') + '</td>' +
-                        '<td>' + scope.escapeHtml(user.role_name || 'No Role') + '</td>' +
+                        '<td>' + scope.escapeHtml(window.formatRoleName(user.role_name) || 'No Role') + '</td>' +
                         actionsCell + '</tr>';
                 }).join('');
             }

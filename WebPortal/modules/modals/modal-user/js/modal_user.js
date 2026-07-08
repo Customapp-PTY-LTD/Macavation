@@ -89,7 +89,7 @@ var _modal_user = (function () {
             var html = '<option value="">Select Role</option>';
             if (roles && Array.isArray(roles)) {
                 roles.forEach(function (role) {
-                    html += '<option value="' + escapeHtml(role.id) + '">' + escapeHtml(role.role_name || '') + '</option>';
+                    html += '<option value="' + escapeHtml(role.id) + '" data-role-name="' + escapeHtml(role.role_name || '') + '">' + escapeHtml(window.formatRoleName(role.role_name || '')) + '</option>';
                 });
             }
             select.innerHTML = html;
@@ -168,7 +168,7 @@ var _modal_user = (function () {
                         if (currentUser) {
                             currentUser.role_id = formData.role_id;
                             var selectedOption = $('#cboRole option:selected');
-                            if (selectedOption.length) currentUser.role_name = selectedOption.text().trim() || currentUser.role_name;
+                            if (selectedOption.length) currentUser.role_name = (selectedOption.attr('data-role-name') || selectedOption.text()).trim() || currentUser.role_name;
                             if (typeof Session !== 'undefined' && Session.set) Session.set('user', currentUser);
                         }
                         if (typeof authService !== 'undefined' && authService.userInfo) {

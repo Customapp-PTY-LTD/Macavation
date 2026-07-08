@@ -358,7 +358,7 @@ var _adminGrid = function () {
                 'user': { label: 'User', color: 'info' },
                 'viewer': { label: 'Viewer', color: 'secondary' }
             };
-            const role = roleMap[roleName] || { label: roleName, color: 'secondary' };
+            const role = roleMap[roleName] || { label: window.formatRoleName(roleName), color: 'secondary' };
             return `<span class="badge bg-${role.color}">${escapeHtml(String(role.label))}</span>`;
         },
 
@@ -393,7 +393,7 @@ var _adminGrid = function () {
                 'user': { label: 'User' },
                 'viewer': { label: 'Viewer' }
             };
-            return roleMap[roleName] || { label: roleName };
+            return roleMap[roleName] || { label: window.formatRoleName(roleName) };
         },
 
         updateRoleFilter: () => {
@@ -504,7 +504,7 @@ var _adminGrid = function () {
                 }
                 return `
             <tr class="js-admin-role-row" data-role-id="${rid}">
-                <td><strong>${roleName}</strong></td>
+                <td><strong>${window.formatRoleName(roleName)}</strong></td>
                 <td><small class="text-muted">${desc}</small></td>
                 <td><span class="badge bg-info">${userCount} users</span></td>
                 <td>${statusBadge}</td>

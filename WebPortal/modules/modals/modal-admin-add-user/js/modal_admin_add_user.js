@@ -30,7 +30,7 @@ var _modal_admin_add_user = (function () {
                 var currentValue = select.value;
                 select.innerHTML = '<option value="">Select role...</option>' +
                     roles.filter(function (r) { return r.is_active !== false; }).map(function (role) {
-                        return '<option value="' + (role.id || '') + '">' + (scope.escapeHtml(role.role_name || role.name || '')) + '</option>';
+                        return '<option value="' + (role.id || '') + '">' + (scope.escapeHtml(window.formatRoleName(role.role_name || role.name || ''))) + '</option>';
                     }).join('');
                 if (currentValue) select.value = currentValue;
             } catch (e) {

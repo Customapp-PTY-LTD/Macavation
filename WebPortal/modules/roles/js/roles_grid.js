@@ -160,7 +160,7 @@ var _rolesGrid = function () {
                         items: actionItems
                     });
                     return '<tr class="js-role-row" data-role-id="' + roleId + '">' +
-                        '<td>' + scope.escapeHtml(role.role_name || '') + '</td>' +
+                        '<td>' + scope.escapeHtml(window.formatRoleName(role.role_name)) + '</td>' +
                         '<td>' + scope.escapeHtml(role.description || '') + '</td>' +
                         '<td><span class="badge bg-info">' + (role.users_count != null ? role.users_count : 0) + '</span></td>' +
                         actionsCell + '</tr>';
@@ -227,7 +227,7 @@ var _rolesGrid = function () {
             }
             Swal.fire({
                 title: 'Are you sure?',
-                text: 'Do you want to deactivate "' + (role.role_name || '') + '"?',
+                text: 'Do you want to deactivate "' + window.formatRoleName(role.role_name) + '"?',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
