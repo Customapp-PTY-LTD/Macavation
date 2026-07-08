@@ -34,7 +34,6 @@ var _modal_user = (function () {
             if (user) {
                 if (form && user.id) form.setAttribute('data-editing-id', user.id);
                 if (typeof $ !== 'undefined') {
-                    $('#username').val(user.username || user.user_name || user.userName || '');
                     $('#email').val(((user.email || user.email_address || '') + '').trim().toLowerCase());
                     $('#firstName').val(user.first_name || user.firstName || user.firstname || '');
                     $('#lastName').val(user.last_name || user.lastName || user.lastname || '');
@@ -103,15 +102,14 @@ var _modal_user = (function () {
             var email = emailRaw.toLowerCase();
             $('#email').val(email);
             var formData = {
-                username: $('#username').val().trim(),
                 email: email,
                 first_name: $('#firstName').val().trim(),
                 last_name: $('#lastName').val().trim(),
                 role_id: $('#cboRole').val(),
                 is_active: $('#isActive').is(':checked')
             };
-            if (!formData.username) {
-                api.showError('Username is required');
+            if (!formData.first_name) {
+                api.showError('First name is required');
                 return;
             }
             if (!formData.email) {

@@ -770,7 +770,8 @@ var _dataFunctions = function () {
             }
             const params = {
                 p_email: userData.email,
-                p_username: userData.username || null,
+                p_first_name: userData.first_name || null,
+                p_last_name: userData.last_name || null,
                 p_role_id: userData.role_id || null,
                 p_password: userData.password || null
             };
@@ -794,7 +795,8 @@ var _dataFunctions = function () {
             const params = {
                 p_user_id: userId,
                 p_email: userData.email || null,
-                p_username: userData.username || null,
+                p_first_name: userData.first_name || null,
+                p_last_name: userData.last_name || null,
                 p_role_id: userData.role_id || null,
                 p_is_active: userData.is_active !== undefined ? userData.is_active : null,
                 p_password: userData.password || null

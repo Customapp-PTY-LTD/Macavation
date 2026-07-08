@@ -177,7 +177,7 @@ var _usersGrid = function () {
                 usersHtml = usersToShow.map(function (user) {
                     const avatarHtml = scope.generateAvatar(user);
                     const rawName = (user.first_name || '') + ' ' + (user.last_name || '');
-                    const fullName = rawName.trim() || user.username || 'Unknown User';
+                    const fullName = rawName.trim() || 'Unknown User';
                     const userId = scope.escapeHtml(user.id);
                     const actionsCell = MacTableActions.renderCell({
                         wrapLi: true,

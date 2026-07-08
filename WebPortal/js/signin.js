@@ -360,10 +360,11 @@ var _signin = function () {
 
             try {
                 // create_user_simple hashes the password in-database (bcrypt).
-                // It accepts p_email / p_username / p_role_id / p_password only.
+                // It accepts p_email / p_first_name / p_last_name / p_role_id / p_password.
                 const created = await supabaseRpc('create_user_simple', {
                     p_email: email,
-                    p_username: (fullName || (firstName + ' ' + lastName)).trim() || email,
+                    p_first_name: firstName || null,
+                    p_last_name: lastName || null,
                     p_password: password
                 });
 
