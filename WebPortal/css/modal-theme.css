@@ -1,0 +1,34 @@
+/* ============================================
+   MACAVATION MODAL THEME — shared modal size + branded backdrop
+   Loaded by index.html and signin.html. Owns Bootstrap modals.
+   (The Swal confirmation backdrop mirrors this in css/swal-theme.css, which
+   owns every SweetAlert dialog rule — enforced by ui:verify.)
+   ============================================ */
+
+/* 1. Size — the sign-in card (max 960px) is the precedent for every modal.
+   Excludes the fullscreen variants, which must stay edge-to-edge. */
+.modal-dialog:not([class*="modal-fullscreen"]) {
+    max-width: 960px;
+}
+
+/* 2. Backdrop — deliberately an easter egg: an *extremely* faint brown tint over
+   a lightly blurred page, with the macadamia / oil line-art scattered exactly
+   like the sign-in page. Meant to be noticed on a second look, not immediately. */
+.modal-backdrop,
+.modal-backdrop.show {
+    opacity: 1;                                     /* alpha lives in the tint below */
+    background-color: rgba(var(--mac-brown-rgb), 0.05);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+}
+.modal-backdrop.show::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.18;                                  /* faint line-art (matches sign-in) */
+    background-image: url("../assets/decor/backdrop-scatter.svg");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+}

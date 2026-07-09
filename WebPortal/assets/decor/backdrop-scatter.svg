@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" preserveAspectRatio="none">
+<!--
+  Full-viewport scatter mirroring the sign-in layout (same 13 motifs, positions
+  and rotations). Faint background-image on modal / Swal backdrops — an easter
+  egg. Paths are inlined (not <use>/<defs>) because SVGs loaded as CSS
+  background-images run in secure static mode and won't resolve internal <use>.
+  Colours mirror mac-brown (#6d5822) / mac-green (#198754); faintness is set
+  by CSS opacity on the pseudo-element.
+-->
+  <!-- s1 nut -->
+  <g transform="translate(80,54) scale(1.10) rotate(-14 60 60)" fill="none" stroke="#6d5822" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 19 C 83 19 101 38 101 62 C 101 86 83 102 60 102 C 37 102 19 86 19 62 C 19 38 37 19 60 19 Z"/>
+    <path d="M61 23 C 85 42 85 82 61 99"/>
+  </g>
+  <!-- s2 oil drop -->
+  <g transform="translate(432,36) scale(0.55) rotate(9 60 60)" fill="none" stroke="#198754" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 14 C 68 36 88 55 88 76 A 28 28 0 1 1 32 76 C 32 55 52 36 60 14 Z"/>
+    <path d="M46 68 C 42 77 42 89 48 98"/>
+  </g>
+  <!-- s3 leaf -->
+  <g transform="translate(992,90) scale(0.82) rotate(20 60 60)" fill="none" stroke="#198754" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 12 C 43 30 33 56 35 86 C 37 99 51 106 60 106 C 69 106 83 99 85 86 C 87 56 77 30 60 12 Z"/>
+    <path d="M60 18 C 58 46 59 74 60 102"/>
+    <path d="M60 46 C 52 50 46 57 43 66 M60 46 C 68 50 74 57 77 66"/>
+  </g>
+  <!-- s4 cracked -->
+  <g transform="translate(1344,54) scale(1.00) rotate(12 60 60)" fill="none" stroke="#6d5822" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M42 34 C 29 42 22 54 22 66 C 22 88 39 102 60 102 C 81 102 98 88 98 66 C 98 54 91 42 78 34 L 71 29 L 63 35 L 55 28 L 48 34 Z"/>
+    <path d="M60 40 C 75 40 84 51 84 62 C 84 73 74 80 60 80 C 46 80 36 73 36 62 C 36 51 45 40 60 40 Z"/>
+  </g>
+  <!-- s5 bottle -->
+  <g transform="translate(1440,225) scale(0.68) rotate(-6 60 60)" fill="none" stroke="#198754" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="51" y="10" width="18" height="11" rx="3"/>
+    <path d="M54 21 L 66 21 L 66 36 C 66 41 88 48 88 62 L 88 100 A 9 9 0 0 1 79 109 L 41 109 A 9 9 0 0 1 32 100 L 32 62 C 32 48 54 41 54 36 Z"/>
+    <path d="M34 66 C 46 71 60 63 72 69 C 80 72 85 68 86 66"/>
+    <rect x="40" y="80" width="40" height="22" rx="3"/>
+  </g>
+  <!-- s6 oil drop -->
+  <g transform="translate(1424,531) scale(0.48) rotate(14 60 60)" fill="none" stroke="#198754" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 14 C 68 36 88 55 88 76 A 28 28 0 1 1 32 76 C 32 55 52 36 60 14 Z"/>
+    <path d="M46 68 C 42 77 42 89 48 98"/>
+  </g>
+  <!-- s7 nut -->
+  <g transform="translate(1328,720) scale(1.02) rotate(-18 60 60)" fill="none" stroke="#6d5822" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 19 C 83 19 101 38 101 62 C 101 86 83 102 60 102 C 37 102 19 86 19 62 C 19 38 37 19 60 19 Z"/>
+    <path d="M61 23 C 85 42 85 82 61 99"/>
+  </g>
+  <!-- s8 leaf -->
+  <g transform="translate(912,783) scale(0.77) rotate(-10 60 60)" fill="none" stroke="#198754" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 12 C 43 30 33 56 35 86 C 37 99 51 106 60 106 C 69 106 83 99 85 86 C 87 56 77 30 60 12 Z"/>
+    <path d="M60 18 C 58 46 59 74 60 102"/>
+    <path d="M60 46 C 52 50 46 57 43 66 M60 46 C 68 50 74 57 77 66"/>
+  </g>
+  <!-- s9 oil drop -->
+  <g transform="translate(528,801) scale(0.53) rotate(10 60 60)" fill="none" stroke="#198754" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 14 C 68 36 88 55 88 76 A 28 28 0 1 1 32 76 C 32 55 52 36 60 14 Z"/>
+    <path d="M46 68 C 42 77 42 89 48 98"/>
+  </g>
+  <!-- s10 cracked -->
+  <g transform="translate(80,711) scale(1.00) rotate(16 60 60)" fill="none" stroke="#6d5822" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M42 34 C 29 42 22 54 22 66 C 22 88 39 102 60 102 C 81 102 98 88 98 66 C 98 54 91 42 78 34 L 71 29 L 63 35 L 55 28 L 48 34 Z"/>
+    <path d="M60 40 C 75 40 84 51 84 62 C 84 73 74 80 60 80 C 46 80 36 73 36 62 C 36 51 45 40 60 40 Z"/>
+  </g>
+  <!-- s11 bottle -->
+  <g transform="translate(48,477) scale(0.67) rotate(8 60 60)" fill="none" stroke="#198754" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="51" y="10" width="18" height="11" rx="3"/>
+    <path d="M54 21 L 66 21 L 66 36 C 66 41 88 48 88 62 L 88 100 A 9 9 0 0 1 79 109 L 41 109 A 9 9 0 0 1 32 100 L 32 62 C 32 48 54 41 54 36 Z"/>
+    <path d="M34 66 C 46 71 60 63 72 69 C 80 72 85 68 86 66"/>
+    <rect x="40" y="80" width="40" height="22" rx="3"/>
+  </g>
+  <!-- s12 nut -->
+  <g transform="translate(112,261) scale(0.77) rotate(-10 60 60)" fill="none" stroke="#6d5822" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 19 C 83 19 101 38 101 62 C 101 86 83 102 60 102 C 37 102 19 86 19 62 C 19 38 37 19 60 19 Z"/>
+    <path d="M61 23 C 85 42 85 82 61 99"/>
+  </g>
+  <!-- s13 oil drop -->
+  <g transform="translate(256,369) scale(0.38) rotate(-6 60 60)" fill="none" stroke="#198754" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 14 C 68 36 88 55 88 76 A 28 28 0 1 1 32 76 C 32 55 52 36 60 14 Z"/>
+    <path d="M46 68 C 42 77 42 89 48 98"/>
+  </g>
+</svg>

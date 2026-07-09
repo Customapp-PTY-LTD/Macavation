@@ -22,17 +22,31 @@
     <!-- Design tokens + shared dialog skin (single source of truth with the app) -->
     <link href="css/design-tokens.css" rel="stylesheet">
     <link href="css/swal-theme.css" rel="stylesheet">
+    <link href="css/modal-theme.css" rel="stylesheet">
     <!-- Sign-in page styles -->
     <link href="css/signin.css" rel="stylesheet">
 
 </head>
 
 <body>
-    <!-- Background decorations -->
-    <div class="pattern-overlay"></div>
-    <i class="fas fa-circle nut-decoration nut-1"></i>
-    <i class="fas fa-circle nut-decoration nut-2"></i>
-    <i class="fas fa-circle nut-decoration nut-3"></i>
+    <!-- Scattered line-art collage. Detailed figures live as standalone SVGs in
+         assets/decor/ and are referenced as images (baked brand colours; the page
+         controls only size, position and opacity). -->
+    <div class="auth-scatter" aria-hidden="true">
+        <img class="scatter-item scatter-nut float s1" src="assets/decor/mac-nut.svg" alt="" style="--rot:-14deg; top:6%; left:5%; width:132px; animation-duration:15s;">
+        <img class="scatter-item scatter-oil float s2" src="assets/decor/mac-oil-drop.svg" alt="" style="--rot:9deg; top:4%; left:27%; width:66px; animation-duration:12s; animation-delay:-3s;">
+        <img class="scatter-item scatter-leaf s3" src="assets/decor/mac-leaf.svg" alt="" style="--rot:20deg; top:10%; left:62%; width:98px;">
+        <img class="scatter-item scatter-nut float s4" src="assets/decor/mac-nut-cracked.svg" alt="" style="--rot:12deg; top:6%; left:84%; width:120px; animation-duration:17s; animation-delay:-6s;">
+        <img class="scatter-item scatter-oil s5" src="assets/decor/mac-oil-bottle.svg" alt="" style="--rot:-6deg; top:25%; left:90%; width:82px;">
+        <img class="scatter-item scatter-oil float s6" src="assets/decor/mac-oil-drop.svg" alt="" style="--rot:14deg; top:59%; left:89%; width:58px; animation-duration:13s; animation-delay:-2s;">
+        <img class="scatter-item scatter-nut float s7" src="assets/decor/mac-nut.svg" alt="" style="--rot:-18deg; top:80%; left:83%; width:122px; animation-duration:16s; animation-delay:-8s;">
+        <img class="scatter-item scatter-leaf s8" src="assets/decor/mac-leaf.svg" alt="" style="--rot:-10deg; top:87%; left:57%; width:92px;">
+        <img class="scatter-item scatter-oil float s9" src="assets/decor/mac-oil-drop.svg" alt="" style="--rot:10deg; top:89%; left:33%; width:64px; animation-duration:14s; animation-delay:-5s;">
+        <img class="scatter-item scatter-nut float s10" src="assets/decor/mac-nut-cracked.svg" alt="" style="--rot:16deg; top:79%; left:5%; width:120px; animation-duration:18s; animation-delay:-4s;">
+        <img class="scatter-item scatter-oil s11" src="assets/decor/mac-oil-bottle.svg" alt="" style="--rot:8deg; top:53%; left:3%; width:80px;">
+        <img class="scatter-item scatter-nut float s12" src="assets/decor/mac-nut.svg" alt="" style="--rot:-10deg; top:29%; left:7%; width:92px; animation-duration:15s; animation-delay:-7s;">
+        <img class="scatter-item scatter-oil float s13" src="assets/decor/mac-oil-drop.svg" alt="" style="--rot:-6deg; top:41%; left:16%; width:46px; animation-duration:11s; animation-delay:-1s;">
+    </div>
 
     <div class="auth-container">
         <div class="auth-wrapper">
@@ -82,7 +96,7 @@
 
                 <!-- Google Sign-in Button (locale pinned so it always renders in English) -->
                 <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
-                    data-text="continue_with" data-size="large" data-logo_alignment="left" data-width="100%"
+                    data-text="continue_with" data-size="large" data-logo_alignment="left" data-width="400"
                     data-locale="en">
                 </div>
 

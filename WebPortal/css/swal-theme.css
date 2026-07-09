@@ -7,6 +7,35 @@
  * Grammar: confirm = green primary · cancel = quiet neutral · deny = danger.
  */
 
+/* Backdrop — mirrors the Bootstrap modal backdrop (css/modal-theme.css): an
+   extremely faint brown tint + light blur, with the macadamia / oil line-art
+   scattered like the sign-in page (an easter egg). The tint (::before) and the
+   line-art (::after) sit behind the popup — .swal2-container also holds the
+   dialog, so the effect must live on pseudo-elements, not the container itself. */
+.swal2-container.swal2-backdrop-show {
+    background: transparent !important;
+}
+.swal2-container.swal2-backdrop-show::before,
+.swal2-container.swal2-backdrop-show::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+.swal2-container.swal2-backdrop-show::before {
+    background-color: rgba(var(--mac-brown-rgb), 0.05);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+}
+.swal2-container.swal2-backdrop-show::after {
+    opacity: 0.18;
+    background-image: url("../assets/decor/backdrop-scatter.svg");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
 .swal2-popup {
     border-radius: var(--mac-radius-lg) !important;
     font-family: var(--mac-font) !important;

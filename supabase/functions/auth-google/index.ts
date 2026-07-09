@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     );
     const { data: users, error } = await admin
       .from("users")
-      .select("id, email, username, role, role_id, is_active, roles(role_name)")
+      .select("id, email, first_name, last_name, role, role_id, is_active, roles(role_name)")
       .ilike("email", info.email)
       .limit(1);
     if (error) {
@@ -86,7 +86,8 @@ Deno.serve(async (req) => {
       user: {
         id: u.id,
         email: u.email,
-        username: u.username,
+        first_name: u.first_name,
+        last_name: u.last_name,
         role: u.role,
         role_id: u.role_id,
         role_name: (u as { roles?: { role_name?: string } }).roles?.role_name ?? null,

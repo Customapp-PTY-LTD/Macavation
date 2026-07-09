@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+<style>
+.ln{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.oil{stroke:#198754}
+.main{stroke-width:2.4}.fine{stroke-width:1.2}.vfine{stroke-width:0.9}
+.dot{fill:#198754;stroke:none}
+</style>
+<!-- main droplet -->
+<path class="ln oil main" d="M60 14 C 68 36 88 55 88 76 A 28 28 0 1 1 32 76 C 32 55 52 36 60 14 Z"/>
+<!-- highlight streak + glints -->
+<path class="ln oil fine" d="M46 68 C 42 77 42 89 48 98"/>
+<circle class="ln oil fine" cx="51" cy="63" r="2.6"/>
+<circle class="dot" cx="45" cy="57" r="1.1"/>
+<!-- shadow contour on the lower-right rim -->
+<path class="ln oil fine" d="M80 70 C 84 79 82 90 75 97"/>
+<!-- surface reflection ripple near the base -->
+<path class="ln oil vfine" d="M50 90 C 56 93 64 93 70 90"/>
+<!-- small secondary droplet -->
+<path class="ln oil fine" d="M99 92 C 101 88 106 88 107 92 A 4.5 4.5 0 1 1 99 92 Z"/>
+</svg>

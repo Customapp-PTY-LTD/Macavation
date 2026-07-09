@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+<style>
+.ln{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.nut{stroke:#6d5822}
+.main{stroke-width:2.4}.mid{stroke-width:1.8}.fine{stroke-width:1.2}.vfine{stroke-width:0.9}
+.dot{fill:#6d5822;stroke:none}
+</style>
+<!-- shell body (rounded) -->
+<path class="ln nut main" d="M60 19 C 83 19 101 38 101 62 C 101 86 83 102 60 102 C 37 102 19 86 19 62 C 19 38 37 19 60 19 Z"/>
+<!-- seam groove near the right rim, as a double line for depth -->
+<path class="ln nut mid" d="M61 23 C 85 42 85 82 61 99"/>
+<path class="ln nut vfine" d="M64 27 C 82 44 82 80 64 95"/>
+<!-- micropyle scar at the top of the seam -->
+<ellipse class="ln nut fine" cx="61" cy="24" rx="5" ry="3.2"/>
+<circle class="dot" cx="61" cy="24" r="1.3"/>
+<!-- fine suture ticks along the seam -->
+<path class="ln nut fine" d="M72 35 l 6 3 M76 45 l 6 2 M79 56 l 6 1 M79 68 l 6 0 M77 79 l 6 -2"/>
+<!-- highlights (implied light, upper-left) -->
+<path class="ln nut fine" d="M34 46 C 38 37 45 32 53 30"/>
+<path class="ln nut vfine" d="M31 57 C 33 50 37 45 42 42"/>
+<!-- lower-left rim hatch (form shading) -->
+<path class="ln nut vfine" d="M25 60 l 6 2 M25 69 l 6 3 M29 77 l 6 3 M35 84 l 5 3 M42 89 l 5 2"/>
+<!-- shell stipple (pitted texture) -->
+<circle class="dot" cx="45" cy="52" r="1"/>
+<circle class="dot" cx="52" cy="46" r="0.9"/>
+<circle class="dot" cx="40" cy="63" r="1"/>
+<circle class="dot" cx="49" cy="70" r="0.9"/>
+<circle class="dot" cx="56" cy="60" r="1"/>
+<circle class="dot" cx="38" cy="45" r="0.8"/>
+<circle class="dot" cx="59" cy="73" r="0.9"/>
+<circle class="dot" cx="45" cy="79" r="0.8"/>
+<circle class="dot" cx="53" cy="53" r="0.8"/>
+</svg>

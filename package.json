@@ -18,6 +18,7 @@
     "audit:verify": "node scripts/verify-audit-housekeeping.mjs",
     "db:apply-prod": "node scripts/apply-migration-prod.mjs",
     "ui:verify": "node scripts/verify-ui-standard.mjs",
-    "routing:verify": "node scripts/verify-routing-guarantee.cjs ."
+    "routing:verify": "node scripts/verify-routing-guarantee.cjs .",
+    "username:verify": "node scripts/verify-no-username.mjs"
   }
 }

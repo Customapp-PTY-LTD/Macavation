@@ -148,7 +148,13 @@ function updateUserDisplay() {
             displayName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
             if (!displayName) displayName = 'User';
         } else if (user.email) {
-            displayName = user.email.split('@')[0];
+            // Last-resort fallback: title-case the email local part so it never
+            // renders as raw lowercase (e.g. "aidan" -> "Aidan").
+            displayName = user.email.split('@')[0]
+                .split(/[._-]+/)
+                .filter(Boolean)
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(' ') || 'User';
         }
 
         updateUserNameDisplay(displayName);
