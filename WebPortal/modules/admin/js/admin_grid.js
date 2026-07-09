@@ -223,9 +223,7 @@ var _adminGrid = function () {
             switch (targetId) {
                 case '#users':
                     if (scope._usersLoaded) {
-                        scope.renderUsersTable(scope.data.users);
-                        scope.updateUserStats(scope.data.users);
-                        scope.updateRoleFilter();
+                        scope.renderUsersFromCache();
                     } else {
                         scope.loadUsers();
                     }
@@ -237,8 +235,6 @@ var _adminGrid = function () {
                         scope.loadRoles();
                     }
                     break;
-                case '#system':
-                    break;
                 default:
                     break;
             }
@@ -246,9 +242,29 @@ var _adminGrid = function () {
 
         renderUsersFromCache: () => {
             const scope = _adminGrid;
-            scope.renderUsersTable(scope.data.users);
-            scope.updateUserStats(scope.data.users);
             scope.updateRoleFilter();
+            scope.applyUserFilters();
+        },
+
+        // Search + role + status filters, combined. Renders the matching subset.
+        applyUserFilters: () => {
+            const scope = _adminGrid;
+            const searchEl = document.getElementById('userSearchInput');
+            const roleEl = document.getElementById('userRoleFilter');
+            const statusEl = document.getElementById('userStatusFilter');
+            const q = ((searchEl && searchEl.value) || '').trim().toLowerCase();
+            const role = (roleEl && roleEl.value) || '';
+            const status = (statusEl && statusEl.value) || '';
+            let list = scope.data.users || [];
+            if (role) list = list.filter((u) => u.role === role);
+            if (status) list = list.filter((u) => u.status === status);
+            if (q) {
+                list = list.filter((u) => {
+                    const name = ((u.first_name || '') + ' ' + (u.last_name || '')).toLowerCase();
+                    return name.indexOf(q) !== -1 || (u.email || '').toLowerCase().indexOf(q) !== -1;
+                });
+            }
+            scope.renderUsersTable(list);
         },
 
         loadUsers: async (options) => {
@@ -278,7 +294,6 @@ var _adminGrid = function () {
                         role_id: user.role_id,
                         is_active: user.is_active !== false,
                         status: user.is_active !== false ? 'active' : 'inactive',
-                        last_login: user.last_login || null,
                         phone_number: user.phone_number || null
                     }));
                 }
@@ -313,7 +328,7 @@ var _adminGrid = function () {
             if (!tbody) return;
 
             if (!users || users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No users found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No users found.</td></tr>';
                 return;
             }
 
@@ -322,7 +337,6 @@ var _adminGrid = function () {
                 const statusBadge = user.status === 'active'
                     ? '<span class="badge bg-success">Active</span>'
                     : '<span class="badge bg-secondary">Inactive</span>';
-                const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never';
                 const name = escapeHtml((user.first_name || '') + ' ' + (user.last_name || '').trim() || 'User');
                 const phone = user.phone_number ? escapeHtml(user.phone_number) : '';
                 const email = escapeHtml(user.email || '');
@@ -335,7 +349,6 @@ var _adminGrid = function () {
             <td>${email}</td>
             <td>${roleBadge}</td>
             <td>${statusBadge}</td>
-            <td><small class="text-muted">${escapeHtml(lastLogin)}</small></td>
             <td class="mac-table-actions-col">${MacTableActions.render({
                 wrapLi: true,
                 items: [{
@@ -877,19 +890,15 @@ var _adminGrid = function () {
         setupFormHandlersOnce: () => {
             const scope = _adminGrid;
 
-            const userRoleFilter = document.getElementById('userRoleFilter');
-            if (userRoleFilter && !userRoleFilter.dataset.adminFilterBound) {
-                userRoleFilter.dataset.adminFilterBound = '1';
-                userRoleFilter.addEventListener('change', function () {
-                    const filterValue = this.value;
-                    if (filterValue) {
-                        const filtered = scope.data.users.filter((u) => u.role === filterValue);
-                        scope.renderUsersTable(filtered);
-                    } else {
-                        scope.renderUsersTable(scope.data.users);
-                    }
-                });
-            }
+            ['userSearchInput', 'userRoleFilter', 'userStatusFilter'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el && !el.dataset.adminFilterBound) {
+                    el.dataset.adminFilterBound = '1';
+                    el.addEventListener(id === 'userSearchInput' ? 'input' : 'change', function () {
+                        scope.applyUserFilters();
+                    });
+                }
+            });
 
             if (window.__adminGridClickBound) return;
             window.__adminGridClickBound = true;

@@ -21,64 +21,53 @@
                 <i class="fas fa-shield-alt me-2"></i>Roles &amp; modules
             </button>
         </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab" aria-controls="system" aria-selected="false" data-help-anchor="admin-system-configuration">
-                <i class="fas fa-cog me-2"></i>System
-            </button>
-        </li>
     </ul>
 
     <div class="tab-content" id="adminTabContent">
         <!-- People -->
         <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
             <p class="text-muted small mb-3">Create accounts, assign roles, and set or reset passwords. Changes apply on next sign-in where noted.</p>
-            <div class="row g-3">
-                <div class="col-lg-8">
-                    <div class="card mb-4">
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <h5 class="mb-0 fw-bold">Users</h5>
-                            <div class="d-flex align-items-center gap-2">
-                                <select class="form-select form-select-sm admin-user-role-filter" id="userRoleFilter" title="Filter by role">
-                                    <option value="">All roles</option>
-                                </select>
-                                <button type="button" class="btn btn-sm btn-primary" id="adminBtnAddUserTab">
-                                    <i class="fas fa-plus me-1"></i>Add user
-                                </button>
-                            </div>
+            <div class="card mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0 fw-bold">Users</h5>
+                    <div class="d-flex align-items-center gap-2 flex-wrap admin-user-filters">
+                        <div class="input-group input-group-sm admin-user-search">
+                            <span class="input-group-text"><i class="fas fa-magnifying-glass"></i></span>
+                            <input type="search" class="form-control" id="userSearchInput" placeholder="Search name or email…" autocomplete="off">
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table align-middle table-hover mb-0" id="adminUsersTable">
-                                    <thead>
-                                        <tr>
-                                            <th>User</th>
-                                            <th>Email</th>
-                                            <th>Role</th>
-                                            <th>Status</th>
-                                            <th>Last login</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="usersTableBody">
-                                        <tr>
-                                            <td colspan="6" class="text-center text-muted py-4">
-                                                <i class="fas fa-spinner fa-spin me-2"></i>Loading...
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                        <select class="form-select form-select-sm admin-user-filter" id="userRoleFilter" title="Filter by role">
+                            <option value="">All roles</option>
+                        </select>
+                        <select class="form-select form-select-sm admin-user-filter" id="userStatusFilter" title="Filter by status">
+                            <option value="">All statuses</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        <button type="button" class="btn btn-sm btn-primary" id="adminBtnAddUserTab">
+                            <i class="fas fa-plus me-1"></i>Add user
+                        </button>
                     </div>
                 </div>
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0 fw-bold">Users by role</h6>
-                        </div>
-                        <div class="card-body" id="userStatisticsContainer">
-                            <p class="text-muted small">Loading…</p>
-                        </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle table-hover mb-0" id="adminUsersTable">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Loading...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -115,26 +104,6 @@
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- System -->
-        <div class="tab-pane fade" id="system" role="tabpanel" aria-labelledby="system-tab">
-            <p class="text-muted small mb-3">Environment and integration settings will appear here when your deployment exposes them.</p>
-            <div class="row">
-                <div class="col-12">
-                    <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0 fw-bold">System settings</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info mb-0">
-                                <i class="fas fa-info-circle me-2"></i>
-                                System configuration options will be available here as needed.
-                            </div>
                         </div>
                     </div>
                 </div>

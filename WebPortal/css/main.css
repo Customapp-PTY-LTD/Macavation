@@ -156,6 +156,44 @@ thead th,
 .modal-content .modal-header .btn-close:hover {
     opacity: 1;
 }
+
+/* ── Help control — a quiet "?" icon that sits right after its heading ──
+   Every help link carries .macavation-help-link; help-viewer.js relocates each
+   one to directly follow its section heading ("Heading ?"). This turns the old
+   "Help" text button into one consistent icon (text hidden, button chrome gone). */
+.macavation-help-link,
+.macavation-help-link.btn {
+    width: 1.4rem;
+    height: 1.4rem;
+    margin: 0 0 0 0.4rem;               /* space from the heading text */
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
+    color: var(--mac-text-tertiary);
+    font-size: 0;                       /* collapse the "Help" text node */
+    line-height: 1;
+    text-decoration: none;
+    flex-shrink: 0;
+    position: relative;
+    top: -0.06em;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+.macavation-help-link:hover,
+.macavation-help-link:focus-visible {
+    color: var(--mac-green);
+    background: var(--mac-green-light);
+}
+.macavation-help-link i {
+    font-size: 0.95rem;                 /* the ? glyph, restored after font-size:0 */
+    margin: 0 !important;
+}
+
 .modal-content .modal-body {
     background-color: var(--mac-bg) !important;
     color: var(--mac-text);

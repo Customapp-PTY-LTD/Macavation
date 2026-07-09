@@ -12,39 +12,39 @@ import { cleanupE2ePlaywrightFixtureUsers } from '../helpers/database.helper';
 
 // Test user data for different roles
 const TEST_USERS = {
-  growerIntake: {
+  factory: {
     firstName: 'E2E',
-    lastName: 'Grower Intake',
-    email: `e2e.grower.${Date.now()}@test.macavation.co.za`,
-    role: 'PWA Grower Intake',
+    lastName: 'Factory',
+    email: `e2e.factory.${Date.now()}@test.macavation.co.za`,
+    role: 'Factory Manager',
     password: 'Testing123$',
   },
   production: {
     firstName: 'E2E',
     lastName: 'Production',
     email: `e2e.prod.${Date.now()}@test.macavation.co.za`,
-    role: 'PWA Production',
+    role: 'Production Manager',
     password: 'Testing123$',
   },
-  qualityAssurance: {
+  quality: {
     firstName: 'E2E',
-    lastName: 'QA',
+    lastName: 'Quality',
     email: `e2e.qa.${Date.now()}@test.macavation.co.za`,
-    role: 'PWA Quality Assurance',
+    role: 'Quality Assurance',
     password: 'Testing123$',
   },
   sales: {
     firstName: 'E2E',
     lastName: 'Sales',
     email: `e2e.sales.${Date.now()}@test.macavation.co.za`,
-    role: 'PWA Sales',
+    role: 'Sales Exec',
     password: 'Testing123$',
   },
-  finance: {
+  palladium: {
     firstName: 'E2E',
-    lastName: 'Finance',
-    email: `e2e.finance.${Date.now()}@test.macavation.co.za`,
-    role: 'PWA Finance',
+    lastName: 'Palladium',
+    email: `e2e.pall.${Date.now()}@test.macavation.co.za`,
+    role: 'Palladium Manager',
     password: 'Testing123$',
   },
 };
@@ -95,11 +95,11 @@ test.describe('User Management - CRUD Operations @user-management @critical', ()
     await authenticatedPage.click('#userModal .btn-close');
   });
 
-  test('TC-UM-003: Create User with PWA Grower Intake Role', async ({ authenticatedPage }) => {
+  test('TC-UM-003: Create User with Factory Manager Role', async ({ authenticatedPage }) => {
     /**
-     * Create a new user with PWA Grower Intake role
+     * Create a new user with Factory Manager role
      */
-    const user = TEST_USERS.growerIntake;
+    const user = TEST_USERS.factory;
 
     // Click Add User button
     await authenticatedPage.click('#adminBtnAddUser, #adminBtnAddUserTab, #addUserBtn');
@@ -130,9 +130,9 @@ test.describe('User Management - CRUD Operations @user-management @critical', ()
     expect(successVisible || modalClosed).toBeTruthy();
   });
 
-  test('TC-UM-004: Create User with PWA Production Role', async ({ authenticatedPage }) => {
+  test('TC-UM-004: Create User with Production Manager Role', async ({ authenticatedPage }) => {
     /**
-     * Create a new user with PWA Production role
+     * Create a new user with Production Manager role
      */
     const user = TEST_USERS.production;
 
@@ -153,11 +153,11 @@ test.describe('User Management - CRUD Operations @user-management @critical', ()
     expect(modalClosed).toBeTruthy();
   });
 
-  test('TC-UM-005: Create User with PWA Quality Assurance Role', async ({ authenticatedPage }) => {
+  test('TC-UM-005: Create User with Quality Assurance Role', async ({ authenticatedPage }) => {
     /**
-     * Create a new user with PWA Quality Assurance role
+     * Create a new user with Quality Assurance role
      */
-    const user = TEST_USERS.qualityAssurance;
+    const user = TEST_USERS.quality;
 
     await authenticatedPage.click('#adminBtnAddUser, #adminBtnAddUserTab, #addUserBtn');
     await authenticatedPage.waitForSelector('#userModal.show', { state: 'visible' });
@@ -173,9 +173,9 @@ test.describe('User Management - CRUD Operations @user-management @critical', ()
     await authenticatedPage.waitForTimeout(2000);
   });
 
-  test('TC-UM-006: Create User with PWA Sales Role', async ({ authenticatedPage }) => {
+  test('TC-UM-006: Create User with Sales Exec Role', async ({ authenticatedPage }) => {
     /**
-     * Create a new user with PWA Sales role
+     * Create a new user with Sales Exec role
      */
     const user = TEST_USERS.sales;
 
@@ -193,11 +193,11 @@ test.describe('User Management - CRUD Operations @user-management @critical', ()
     await authenticatedPage.waitForTimeout(2000);
   });
 
-  test('TC-UM-007: Create User with PWA Finance Role', async ({ authenticatedPage }) => {
+  test('TC-UM-007: Create User with Palladium Manager Role', async ({ authenticatedPage }) => {
     /**
-     * Create a new user with PWA Finance role
+     * Create a new user with Palladium Manager role
      */
-    const user = TEST_USERS.finance;
+    const user = TEST_USERS.palladium;
 
     await authenticatedPage.click('#adminBtnAddUser, #adminBtnAddUserTab, #addUserBtn');
     await authenticatedPage.waitForSelector('#userModal.show', { state: 'visible' });
