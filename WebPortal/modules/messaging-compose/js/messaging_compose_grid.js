@@ -45,7 +45,7 @@ var _messagingComposeGrid = function () {
                     scope.users = await dataFunctions.getUsers() || [];
                     var userOpts = ['<option value="">Select user</option>'];
                     scope.users.forEach(function (u) {
-                        var label = (u.full_name || u.email || u.username || u.id || '').toString();
+                        var label = (u.full_name || u.email || u.id || '').toString();
                         userOpts.push('<option value="' + (u.id || '') + '">' + scope.escapeHtml(label) + '</option>');
                     });
                     $('#msgUserSelect').html(userOpts.join(''));

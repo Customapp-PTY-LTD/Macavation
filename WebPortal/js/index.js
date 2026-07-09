@@ -149,8 +149,6 @@ function updateUserDisplay() {
             if (!displayName) displayName = 'User';
         } else if (user.email) {
             displayName = user.email.split('@')[0];
-        } else if (user.username) {
-            displayName = user.username;
         }
 
         updateUserNameDisplay(displayName);
@@ -158,14 +156,16 @@ function updateUserDisplay() {
         const setEl = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text || '—'; };
         setEl('userInfoName', displayName);
         setEl('userInfoEmail', user.email);
-        setEl('userInfoUsername', user.username);
 
         const roleDisplay = document.getElementById('userRoleDisplay');
         if (roleDisplay) {
             const updateRoleDisplay = (roleName) => {
                 if (!roleName) roleName = 'User';
-                roleDisplay.textContent = roleName;
-                setEl('userInfoRole', roleName);
+                // Display the friendly label ("Super User"); keep the raw key
+                // (roleName) for the class checks below.
+                const label = (typeof window.formatRoleName === 'function') ? window.formatRoleName(roleName) : roleName;
+                roleDisplay.textContent = label;
+                setEl('userInfoRole', label);
                 if (roleName.startsWith('PWA ')) {
                     roleDisplay.className = 'badge bg-info text-white';
                 } else if (roleName === 'admin' || roleName === 'super_user') {

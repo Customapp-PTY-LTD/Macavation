@@ -118,7 +118,7 @@ var _modal_quality_test = (function () {
                         var html = '<option value="">Select Tester</option>';
                         if (users && Array.isArray(users)) {
                             users.forEach(function (user) {
-                                var name = user.email || user.username || 'Unknown';
+                                var name = ((user.first_name || '') + ' ' + (user.last_name || '')).trim() || user.email || 'Unknown';
                                 html += '<option value="' + (user.id || '') + '">' + (name.replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '</option>';
                             });
                         }

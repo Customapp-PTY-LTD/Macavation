@@ -278,11 +278,11 @@ var _stockManagementGrid = function () {
             if (route === 'stock-management-kernel') {
                 stream = 'kernel';
                 if (titleEl) titleEl.textContent = 'Stock (Kernel)';
-                if (subtitleEl) subtitleEl.textContent = 'Track kernel batches by style (totals across the top, on hand from the saved job card). Production prefills the job card; correct style lines there if needed, then save—stock updates to match. Select a batch and send to dispatch—or export when you\'re ready.';
+                if (subtitleEl) subtitleEl.textContent = 'Kernel batches by style — send to dispatch, or export.';
             } else if (route === 'stock-management-oil') {
                 stream = 'oil';
                 if (titleEl) titleEl.textContent = 'Stock (Oil & Protein)';
-                if (subtitleEl) subtitleEl.textContent = 'Oil stock on top, protein powder below. Use Add stock for many batches at once (like Supplier Intake adjust stock), Add lot for a single row, or import from Excel. Weekly in/out, send to dispatch when ready—export anytime.';
+                if (subtitleEl) subtitleEl.textContent = 'Oil stock on top, protein powder below — add by lot or bulk, send to dispatch.';
             }
             var streamSel = document.getElementById('filterStockStream');
             if (streamSel) {

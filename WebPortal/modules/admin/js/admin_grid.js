@@ -271,8 +271,7 @@ var _adminGrid = function () {
                 } else {
                     scope.data.users = users.map((user) => ({
                         id: user.id,
-                        username: user.username || user.user_name || user.userName || '',
-                        first_name: user.first_name || user.username || user.email?.split('@')[0] || 'User',
+                        first_name: user.first_name || user.email?.split('@')[0] || 'User',
                         last_name: user.last_name || '',
                         email: user.email,
                         role: user.role || user.role_name || 'user',
@@ -950,7 +949,6 @@ var _adminGrid = function () {
             }
             var raw = {
                 id: user.id,
-                username: user.username,
                 email: user.email,
                 first_name: user.first_name,
                 last_name: user.last_name,

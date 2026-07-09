@@ -615,7 +615,7 @@ var _workflowViews = function () {
         getUserName: function () {
             const user = Session.get('user');
             if (!user) return 'User';
-            return user.first_name || user.username || user.email || 'User';
+            return user.first_name || user.email || 'User';
         },
 
         /**

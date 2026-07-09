@@ -148,7 +148,6 @@ var _usersGrid = function () {
 
             scope.filteredUsers = scope.users.filter(function (user) {
                 const matchesSearch = !searchTerm ||
-                    (user.username && user.username.toLowerCase().includes(searchTerm)) ||
                     (user.email && user.email.toLowerCase().includes(searchTerm)) ||
                     (user.first_name && user.first_name.toLowerCase().includes(searchTerm)) ||
                     (user.last_name && user.last_name.toLowerCase().includes(searchTerm));
@@ -350,7 +349,8 @@ var _usersGrid = function () {
                 return;
             }
             const columns = [
-                { key: 'username', label: 'Username' },
+                { key: 'first_name', label: 'First Name' },
+                { key: 'last_name', label: 'Last Name' },
                 { key: 'email', label: 'Email' },
                 { key: 'role', label: 'Role' },
                 { key: 'is_active', label: 'Active' },
