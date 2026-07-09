@@ -410,6 +410,18 @@ var _stockManagementGrid = function () {
                 $('#ksViewByStyle').off('click').on('click', function () {
                     scope.toggleKernelView('bystyle');
                 });
+                // Card 1 search — filter the by-style batch rows by text (client-side)
+                $('#kernelStockSearch').off('input.ksSearch').on('input.ksSearch', function () {
+                    var q = ($(this).val() || '').toLowerCase().trim();
+                    $('#kernelStockByStyleBody tr').each(function () {
+                        var t = ($(this).text() || '').toLowerCase();
+                        this.style.display = (!q || t.indexOf(q) !== -1) ? '' : 'none';
+                    });
+                });
+                $('#kernelStockClearSearch').off('click.ksSearch').on('click.ksSearch', function () {
+                    $('#kernelStockSearch').val('');
+                    $('#kernelStockByStyleBody tr').each(function () { this.style.display = ''; });
+                });
                 $(document).off('click.ksMoreView', '.js-ks-more-view').on('click.ksMoreView', '.js-ks-more-view', function () {
                     scope.toggleKernelView($(this).data('view'));
                 });
@@ -1589,10 +1601,39 @@ var _stockManagementGrid = function () {
             if (!dataFunctions || !dataFunctions.upsertShellStockLot) return;
             Swal.fire({
                 title: existing ? 'Edit shell lot' : 'Add shell lot',
-                html: '<input id="swalShellLotNumber" class="swal2-input" placeholder="Lot number (auto if blank)" value="' + escapeHtml(existing && existing.lot_number ? existing.lot_number : '') + '">' +
-                    '<input id="swalShellSourceBatch" class="swal2-input" placeholder="Source kernel batch" value="' + escapeHtml(existing && existing.source_batch_number ? existing.source_batch_number : '') + '">' +
-                    '<input id="swalShellQty" type="number" class="swal2-input" placeholder="Quantity kg" value="' + (existing && existing.quantity_kg != null ? existing.quantity_kg : '') + '">' +
-                    '<select id="swalShellStatus" class="swal2-input"><option value="in_stock">In stock</option><option value="dispatched">Dispatched</option><option value="written_off">Written off</option></select>',
+                width: 480,
+                html: [
+                    '<style>',
+                    '.mac-form{text-align:left;display:grid;gap:.85rem;margin:.35rem 0 0;}',
+                    '.mac-form .row2{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;}',
+                    '@media(max-width:420px){.mac-form .row2{grid-template-columns:1fr;}}',
+                    '.mac-form label{display:block;font-size:.78rem;font-weight:600;color:var(--mac-text);margin:0 0 .3rem;}',
+                    '.mac-form .mac-input,.mac-form .mac-select{width:100%;box-sizing:border-box;padding:.5rem .7rem;border:1px solid var(--mac-border);border-radius:var(--mac-radius-md,8px);font-size:.95rem;background:var(--mac-bg-secondary);color:var(--mac-text);}',
+                    '.mac-form .mac-input:focus,.mac-form .mac-select:focus{outline:none;border-color:var(--mac-green);box-shadow:0 0 0 3px var(--mac-green-light);}',
+                    '.mac-form .hint{font-size:.74rem;color:var(--mac-text-tertiary);margin:.28rem 0 0;}',
+                    '</style>',
+                    '<div class="mac-form">',
+                    '<div>',
+                    '<label for="swalShellLotNumber">Lot number</label>',
+                    '<input id="swalShellLotNumber" class="mac-input" placeholder="Leave blank to auto-generate" value="' + escapeHtml(existing && existing.lot_number ? existing.lot_number : '') + '">',
+                    '<div class="hint">A lot number is generated automatically if you leave this blank.</div>',
+                    '</div>',
+                    '<div>',
+                    '<label for="swalShellSourceBatch">Source kernel batch</label>',
+                    '<input id="swalShellSourceBatch" class="mac-input" placeholder="e.g. Bn 63 26 20" value="' + escapeHtml(existing && existing.source_batch_number ? existing.source_batch_number : '') + '">',
+                    '</div>',
+                    '<div class="row2">',
+                    '<div>',
+                    '<label for="swalShellQty">Quantity (kg)</label>',
+                    '<input id="swalShellQty" type="number" min="0" step="any" class="mac-input" placeholder="0" value="' + (existing && existing.quantity_kg != null ? existing.quantity_kg : '') + '">',
+                    '</div>',
+                    '<div>',
+                    '<label for="swalShellStatus">Status</label>',
+                    '<select id="swalShellStatus" class="mac-select"><option value="in_stock">In stock</option><option value="dispatched">Dispatched</option><option value="written_off">Written off</option></select>',
+                    '</div>',
+                    '</div>',
+                    '</div>'
+                ].join(''),
                 didOpen: function () {
                     if (existing && existing.status) {
                         var sel = document.getElementById('swalShellStatus');

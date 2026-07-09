@@ -349,12 +349,27 @@ var _batchJourneyGrid = (function () {
         document.getElementById('bjStatusFilter').addEventListener('change', filterAndSort);
         document.getElementById('bjSortBy').addEventListener('change', filterAndSort);
 
+        var clearBtn = document.getElementById('bjClearBtn');
+        if (clearBtn) clearBtn.addEventListener('click', function () {
+            document.getElementById('bjSearchInput').value = '';
+            document.getElementById('bjStatusFilter').value = '';
+            document.getElementById('bjSortBy').value = 'newest';
+            filterAndSort();
+        });
+
         var oilSearch = document.getElementById('bjOilSearchInput');
         if (oilSearch) oilSearch.addEventListener('input', filterAndSortOil);
         var oilStatus = document.getElementById('bjOilStatusFilter');
         if (oilStatus) oilStatus.addEventListener('change', filterAndSortOil);
         var oilSort = document.getElementById('bjOilSortBy');
         if (oilSort) oilSort.addEventListener('change', filterAndSortOil);
+        var oilClearBtn = document.getElementById('bjOilClearBtn');
+        if (oilClearBtn) oilClearBtn.addEventListener('click', function () {
+            if (oilSearch) oilSearch.value = '';
+            if (oilStatus) oilStatus.value = '';
+            if (oilSort) oilSort.value = 'newest';
+            filterAndSortOil();
+        });
 
         document.querySelectorAll('#bjStreamTabs .nav-link').forEach(function (btn) {
             btn.addEventListener('click', function (e) {

@@ -275,7 +275,7 @@ function initProfilePicture() {
         img.classList.remove('d-none');
         placeholder.classList.add('d-none');
     }
-    var navAvatar = document.querySelector('.navbar .nav-item.dropdown .avatar .avatar-name');
+    var navAvatar = document.querySelector('.sidebar-profile-toggle .avatar-name');
     if (navAvatar && navAvatar.parentElement) {
         var navImg = navAvatar.parentElement.querySelector('img.navbar-profile-img');
         if (!navImg) {
@@ -306,8 +306,8 @@ function initProfilePictureInput() {
             img.src = dataUrl;
             img.classList.remove('d-none');
             placeholder.classList.add('d-none');
-            var navPlace = document.querySelector('.navbar .avatar .avatar-name');
-            var navImg = document.querySelector('.navbar .navbar-profile-img');
+            var navPlace = document.querySelector('.sidebar-profile-toggle .avatar-name');
+            var navImg = document.querySelector('.sidebar-profile-toggle .navbar-profile-img');
             if (navPlace && navPlace.parentElement) {
                 if (!navImg) {
                     navImg = document.createElement('img');

@@ -26,12 +26,28 @@ var _oilDispatchGrid = function () {
         orders: [],
         _handlersBound: false,
         currentView: 'kanban',
+        dispatchListFilters: { buyer: '', deliveryDate: '' },
 
         init: async () => {
             const scope = _oilDispatchGrid;
             $('#oilDispatchRefreshBtn').off('click').on('click', function () { scope.loadOrders(true); });
             $('#odViewKanban, #odViewTable').off('click').on('click', function () {
                 scope.toggleView($(this).data('view'));
+            });
+            $('#odFilterBuyer').off('input.odFilter').on('input.odFilter', function () {
+                scope.dispatchListFilters.buyer = ($(this).val() || '').trim();
+                scope.render();
+            });
+            $('#odFilterDeliveryDate').off('change.odFilter input.odFilter').on('change.odFilter input.odFilter', function () {
+                scope.dispatchListFilters.deliveryDate = ($(this).val() || '').trim();
+                scope.render();
+            });
+            $('#odFilterClear').off('click').on('click', function () {
+                scope.dispatchListFilters.buyer = '';
+                scope.dispatchListFilters.deliveryDate = '';
+                $('#odFilterBuyer').val('');
+                $('#odFilterDeliveryDate').val('');
+                scope.render();
             });
             if (!scope._handlersBound) {
                 scope._handlersBound = true;
@@ -84,14 +100,26 @@ var _oilDispatchGrid = function () {
             }
         },
 
+        filteredOrders: () => {
+            const scope = _oilDispatchGrid;
+            var buyer = (scope.dispatchListFilters.buyer || '').toLowerCase();
+            var deliveryDate = scope.dispatchListFilters.deliveryDate || '';
+            return scope.orders.filter(function (o) {
+                if (buyer && (o.buyer_name || '').toLowerCase().indexOf(buyer) === -1) return false;
+                if (deliveryDate && String(o.delivery_date || '').slice(0, 10) !== deliveryDate) return false;
+                return true;
+            });
+        },
+
         render: () => {
             const scope = _oilDispatchGrid;
             if (scope.currentView === 'kanban') {
                 scope.renderKanban();
                 return;
             }
-            var pending = scope.orders.filter(function (o) { return o.status !== 'dispatched'; });
-            var dispatched = scope.orders.filter(function (o) { return o.status === 'dispatched'; });
+            var orders = scope.filteredOrders();
+            var pending = orders.filter(function (o) { return o.status !== 'dispatched'; });
+            var dispatched = orders.filter(function (o) { return o.status === 'dispatched'; });
 
             var pendingTbody = $('#oilDispatchTableBody');
             pendingTbody.empty();
@@ -163,7 +191,7 @@ var _oilDispatchGrid = function () {
             const scope = _oilDispatchGrid;
             if (typeof KanbanHelper === 'undefined') return;
 
-            KanbanHelper.render('odKanbanBoard', DISPATCH_KANBAN_COLUMNS, scope.orders, function (o) {
+            KanbanHelper.render('odKanbanBoard', DISPATCH_KANBAN_COLUMNS, scope.filteredOrders(), function (o) {
                 return o.status === 'dispatched' ? 'dispatched' : 'confirmed';
             }, function (o) {
                 var esc = KanbanHelper._esc;

@@ -3,17 +3,39 @@
 <div class="module-content">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Oil &amp; Protein Dispatch</h1>
-        <div class="d-flex align-items-center gap-2">
+        <div class="btn-toolbar align-items-center gap-2">
             <a target="_blank" rel="noopener noreferrer" href="help/index.html#oil-dispatch-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
-            <div class="view-toggle">
-                <button class="view-toggle-btn active" data-view="kanban" id="odViewKanban" title="Board view">
-                    <i class="fas fa-columns me-1"></i>Board
-                </button>
-                <button class="view-toggle-btn" data-view="table" id="odViewTable" title="Table view">
-                    <i class="fas fa-list me-1"></i>Table
-                </button>
-            </div>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="oilDispatchRefreshBtn" title="Refresh orders"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
+        </div>
+    </div>
+    <!-- Search and Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3 col-lg-4">
+                    <label for="odFilterBuyer" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="odFilterBuyer" placeholder="Buyer (typing filters)" autocomplete="off">
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <label for="odFilterDeliveryDate" class="form-label">Delivery date</label>
+                    <input type="date" class="form-control" id="odFilterDeliveryDate" title="Delivery date">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" id="odFilterClear" title="Clear search">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </button>
+                </div>
+                <div class="col-12 col-md-4 col-lg-4 mt-2 mt-md-0 d-flex justify-content-md-end align-items-end">
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" data-view="kanban" id="odViewKanban" title="Board view">
+                            <i class="fas fa-columns me-1"></i>Board
+                        </button>
+                        <button class="view-toggle-btn" data-view="table" id="odViewTable" title="Table view">
+                            <i class="fas fa-list me-1"></i>Table
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <div class="card border-success mb-3">

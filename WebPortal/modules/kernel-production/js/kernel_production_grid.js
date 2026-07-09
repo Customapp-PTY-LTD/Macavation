@@ -391,14 +391,6 @@ var _kernelProductionGrid = function () {
             $('#kpProductionCalendarNextBtn').off('click').on('click', function () {
                 _kernelProductionGrid.shiftProductionCalendarMonth(1);
             });
-            $('#kpProductionCalendarCollapse').off('shown.bs.collapse hidden.bs.collapse').on('shown.bs.collapse hidden.bs.collapse', function () {
-                var isExpanded = this.classList.contains('show');
-                $('#kpProductionCalendarToggleBtn').attr('aria-expanded', isExpanded ? 'true' : 'false');
-            });
-            $('#kpSilosCollapse').off('shown.bs.collapse hidden.bs.collapse').on('shown.bs.collapse hidden.bs.collapse', function () {
-                var isExpanded = this.classList.contains('show');
-                $('#kpSilosToggleBtn').attr('aria-expanded', isExpanded ? 'true' : 'false');
-            });
             $(document).on('click', '#kpProductionCalendarGrid .kp-production-calendar-day', function () {
                 var iso = $(this).attr('data-iso');
                 if (!iso) return;

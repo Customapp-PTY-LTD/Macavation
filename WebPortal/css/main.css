@@ -729,14 +729,64 @@ h1, h2, h3, h4, h5, h6,
     box-shadow: var(--mac-shadow-lg);
 }
 
+/* Card / accordion headers — one modern standard across every module: the
+   header blends with the card body (no grey fill), separated by a hairline, with
+   a confident title and roomy padding instead of the old cramped grey bar. */
 .card-header {
-    background-color: var(--mac-bg-tertiary);
+    background-color: var(--mac-bg-secondary);
     border-bottom: 1px solid var(--mac-border);
+    padding: 0.85rem 1.25rem;
     font-weight: 600;
+    font-size: 0.95rem;
     color: var(--mac-text);
+}
+/* Neutralise Bootstrap's grey utility fills so headers stay clean everywhere. */
+.card > .card-header.bg-light,
+.card > .card-header.bg-secondary {
+    background-color: var(--mac-bg-secondary) !important;
+    color: var(--mac-text) !important;
+}
+/* Consistent header title sizing regardless of the h-tag a module used. */
+.card-header h5,
+.card-header h6,
+.card-header .card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 0;
+    color: var(--mac-text);
+}
+.card-header .text-muted.small,
+.card-header small {
+    font-weight: 400;
 }
 
 /* dark card-header removed */
+
+/* ── Module header — one standard across every module ──
+   Consistent page title + a right-aligned action toolbar, so the heading and
+   its buttons sit in the same place on every screen (they used to vary). */
+.module-content h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    color: var(--mac-text);
+}
+.module-content .btn-toolbar {
+    margin-left: auto;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+/* One consistent size for header action buttons (normalises btn vs btn-sm across
+   modules). The icon-only help link keeps its own styling. */
+.module-content .btn-toolbar .btn:not(.macavation-help-link) {
+    padding: 0.44rem 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: var(--mac-radius-md);
+}
 
 /* Buttons - Phoenix Style */
 .btn {

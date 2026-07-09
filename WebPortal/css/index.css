@@ -96,36 +96,34 @@ body {
     font-size: 0.8rem;
 }
 
-/* User dropdown card – bigger, consistent radius */
+/* Account menu — compact, sidebar-appropriate (avatar + name + email, then
+   change password / sign out). No repeated name/role blocks. */
 .user-dropdown-card {
-    min-width: 320px;
-    padding: 0;
-    border-radius: 5px !important;
+    min-width: 250px;
+    max-width: 268px;
+    padding: 0.35rem;
+    border-radius: var(--mac-radius-md) !important;
 }
 
-.user-dropdown-card .dropdown-header {
-    border-radius: 5px;
-}
-
-.user-dropdown-profile {
-    width: 100%;
+.user-dropdown-head {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.45rem 0.5rem 0.55rem;
 }
 
 .user-dropdown-avatar-wrap {
     cursor: pointer;
     position: relative;
-}
-
-.user-dropdown-avatar-wrap:hover .user-dropdown-change-pic {
-    opacity: 1;
+    flex-shrink: 0;
 }
 
 /* Single slot: image and placeholder stacked so only one circle shows */
 .user-dropdown-avatar-slot {
     position: relative;
-    width: 80px;
-    height: 80px;
-    margin: 0 auto;
+    width: 44px;
+    height: 44px;
+    margin: 0;
 }
 
 .user-dropdown-avatar-slot .user-dropdown-avatar,
@@ -144,33 +142,88 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1rem;
 }
 
+/* Change-picture: a small camera badge on the avatar, revealed on hover */
 .user-dropdown-change-pic {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--mac-green);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    border: 2px solid var(--mac-bg-secondary);
+}
+
+.user-dropdown-avatar-wrap:hover .user-dropdown-change-pic {
+    opacity: 1;
+}
+
+.user-dropdown-headtext {
+    min-width: 0;
+}
+
+.user-dropdown-headname {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--mac-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-dropdown-headtext small {
     display: block;
-    font-size: 0.75rem;
-    color: var(--mac-green);
-    margin-top: 4px;
-    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.user-dropdown-info {
-    background: var(--mac-bg-tertiary);
-    padding: 0.5rem 0.75rem;
+/* Account actions as clean menu rows (icon + label, hover highlight). */
+.user-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.5rem 0.55rem;
+    border: none;
+    background: transparent;
+    text-align: left;
     border-radius: var(--mac-radius-md);
+    font-size: 0.875rem;
+    color: var(--mac-text);
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
 }
 
-.user-dropdown-signout {
-    background: var(--mac-danger) !important;
-    border: none !important;
-    color: #fff !important;
-    border-radius: var(--mac-radius-md) !important;
-    font-weight: 500;
+.user-dropdown-item i {
+    width: 1.05rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--mac-text-tertiary);
+}
+
+.user-dropdown-item:hover {
+    background: var(--mac-bg-tertiary);
+}
+
+.user-dropdown-signout,
+.user-dropdown-signout i {
+    color: var(--mac-danger);
 }
 
 .user-dropdown-signout:hover {
-    background: var(--mac-danger) !important;
-    color: #fff !important;
+    background: var(--mac-danger-light);
+    color: var(--mac-danger);
 }
 
 /* Sidebar Styling – floating card (collapse still works) */
@@ -355,20 +408,20 @@ body {
     box-shadow: var(--mac-shadow-md);
 }
 
-.card.border-primary {
-    border-left-color: var(--mac-green) !important;
-}
-
-.card.border-success {
-    border-left-color: var(--mac-success) !important;
-}
-
-.card.border-info {
-    border-left-color: var(--mac-info) !important;
-}
-
-.card.border-warning {
-    border-left-color: var(--mac-warning) !important;
+/* Cards use ONE neutral border everywhere. A coloured border-* utility on a card
+   used to paint a green/amber outline (via the global .border-* remap), which
+   made some cards look outlined and others not. Neutralise it at the card level
+   so every card matches — the utility classes can stay in the markup harmlessly. */
+.card.border-primary,
+.card.border-success,
+.card.border-info,
+.card.border-warning,
+.card.border-danger,
+.card.border-primary-subtle,
+.card.border-success-subtle,
+.card.border-info-subtle,
+.card.border-warning-subtle {
+    border-color: var(--mac-border) !important;
 }
 
 .text-primary {

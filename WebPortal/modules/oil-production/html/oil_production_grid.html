@@ -87,26 +87,30 @@
             </button>
         </div>
         <div class="card-body">
-            <div class="row g-2 mb-3">
-                <div class="col-md-3">
-                    <input type="text" class="form-control form-control-sm" id="opOilSearchInput" placeholder="Search oil batches (number, product, shift)…">
+            <div class="row g-3 mb-3">
+                <div class="col-md-3 col-lg-4">
+                    <label for="opOilSearchInput" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="opOilSearchInput" placeholder="Search oil batches (number, product, shift)…">
                 </div>
                 <div class="col-md-2">
-                    <input type="date" class="form-control form-control-sm" id="opOilSearchFrom" title="From date">
+                    <label for="opOilSearchFrom" class="form-label">From</label>
+                    <input type="date" class="form-control" id="opOilSearchFrom" title="From date">
                 </div>
                 <div class="col-md-2">
-                    <input type="date" class="form-control form-control-sm" id="opOilSearchTo" title="To date">
+                    <label for="opOilSearchTo" class="form-label">To</label>
+                    <input type="date" class="form-control" id="opOilSearchTo" title="To date">
                 </div>
                 <div class="col-md-2">
-                    <select class="form-select form-select-sm" id="opOilSearchStatus">
+                    <label for="opOilSearchStatus" class="form-label">Status</label>
+                    <select class="form-select" id="opOilSearchStatus">
                         <option value="">All statuses</option>
                         <option value="production">Production</option>
                         <option value="complete">Complete</option>
                         <option value="intake">Intake</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="opOilSearchBtn">Search</button>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" id="opOilSearchBtn"><i class="fas fa-search me-1"></i>Search</button>
                 </div>
             </div>
             <div id="opOilSearchResults" class="small mb-3 text-muted">Search results appear here — select batches to add to a consolidated batch.</div>

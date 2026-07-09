@@ -155,23 +155,6 @@
     gap: 0.5rem;
 }
 
-.kp-production-calendar-toggle {
-    color: inherit;
-}
-
-.kp-production-calendar-toggle:hover {
-    color: inherit;
-}
-
-.kp-production-calendar-toggle-icon {
-    font-size: 0.85rem;
-    transition: transform 0.15s ease;
-}
-
-.kp-production-calendar-toggle[aria-expanded="false"] .kp-production-calendar-toggle-icon {
-    transform: rotate(180deg);
-}
-
 .kp-production-calendar-month {
     min-width: 140px;
     text-align: center;
@@ -327,4 +310,9 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* NOTE: toolbar-dropdown sizing (Silos horizontal scroll + compact calendar)
+   lives in a <style> block inside kernel_production_grid.html, not here —
+   appRouter loads this .css with a plain href (no cache-bust), so edits here can
+   lag behind the freshly-fetched module HTML. Keep that layout in the HTML. */
 

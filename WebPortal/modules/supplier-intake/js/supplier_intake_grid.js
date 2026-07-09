@@ -276,18 +276,45 @@ var _supplierIntakeGrid = function () {
             }
             Swal.fire({
                 title: 'Quick stock entry',
-                text: 'Are you adding new bags or editing an existing batch?',
-                input: 'radio',
-                inputOptions: {
-                    add: 'Adding — quick entry (no receiving checklist)',
-                    edit: 'Editing — open the full batch form (receiver checklist)'
-                },
-                inputValidator: function (value) {
-                    if (!value) return 'Choose adding or editing';
-                },
+                html: [
+                    '<style>',
+                    '.mac-choice-sub{color:var(--mac-text-secondary);font-size:.95rem;margin:0 0 1rem;}',
+                    '.mac-choice-cards{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;text-align:left;}',
+                    '@media(max-width:480px){.mac-choice-cards{grid-template-columns:1fr;}}',
+                    '.mac-choice-card{display:flex;flex-direction:column;gap:.3rem;padding:1rem;border:1.5px solid var(--mac-border);border-radius:var(--mac-radius-md,10px);background:var(--mac-bg-secondary);cursor:pointer;transition:border-color .12s ease,background .12s ease,box-shadow .12s ease;}',
+                    '.mac-choice-card:hover{border-color:var(--mac-green);background:var(--mac-green-light);}',
+                    '.mac-choice-card:focus{outline:none;box-shadow:none;}',
+                    '.mac-choice-card:focus-visible{outline:2px solid var(--mac-green);outline-offset:2px;}',
+                    '.mac-choice-card.selected{border-color:var(--mac-green)!important;background:var(--mac-green-light);box-shadow:inset 0 0 0 1px var(--mac-green);}',
+                    '.mac-choice-card i{font-size:1.3rem;color:var(--mac-green);}',
+                    '.mac-choice-card .t{font-weight:700;color:var(--mac-text);}',
+                    '.mac-choice-card .d{font-size:.82rem;color:var(--mac-text-secondary);line-height:1.35;}',
+                    '</style>',
+                    '<p class="mac-choice-sub">Are you adding new bags or editing an existing batch?</p>',
+                    '<div class="mac-choice-cards">',
+                    '<button type="button" class="mac-choice-card" data-choice="add"><i class="fas fa-plus-circle"></i><span class="t">Adding</span><span class="d">Quick entry — no receiving checklist</span></button>',
+                    '<button type="button" class="mac-choice-card" data-choice="edit"><i class="fas fa-pen-to-square"></i><span class="t">Editing</span><span class="d">Open the full batch form (receiver checklist)</span></button>',
+                    '</div>'
+                ].join(''),
                 showCancelButton: true,
                 confirmButtonText: 'Continue',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+                focusConfirm: false,
+                didOpen: function () {
+                    var cards = Swal.getPopup().querySelectorAll('.mac-choice-card');
+                    cards.forEach(function (card) {
+                        card.addEventListener('click', function () {
+                            cards.forEach(function (c) { c.classList.remove('selected'); });
+                            card.classList.add('selected');
+                        });
+                        card.addEventListener('dblclick', function () { Swal.clickConfirm(); });
+                    });
+                },
+                preConfirm: function () {
+                    var sel = Swal.getPopup().querySelector('.mac-choice-card.selected');
+                    if (!sel) { Swal.showValidationMessage('Choose adding or editing'); return false; }
+                    return sel.getAttribute('data-choice');
+                }
             }).then(function (result) {
                 if (!result.isConfirmed) return;
                 if (result.value === 'add') {

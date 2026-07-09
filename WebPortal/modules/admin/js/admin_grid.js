@@ -900,6 +900,18 @@ var _adminGrid = function () {
                 }
             });
 
+            const clearUserFiltersBtn = document.getElementById('clearUserFiltersBtn');
+            if (clearUserFiltersBtn && !clearUserFiltersBtn.dataset.adminFilterBound) {
+                clearUserFiltersBtn.dataset.adminFilterBound = '1';
+                clearUserFiltersBtn.addEventListener('click', function () {
+                    ['userSearchInput', 'userRoleFilter', 'userStatusFilter'].forEach(function (id) {
+                        const el = document.getElementById(id);
+                        if (el) el.value = '';
+                    });
+                    scope.applyUserFilters();
+                });
+            }
+
             if (window.__adminGridClickBound) return;
             window.__adminGridClickBound = true;
 

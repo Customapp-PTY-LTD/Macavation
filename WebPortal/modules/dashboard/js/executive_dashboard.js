@@ -631,7 +631,7 @@ var _executiveDashboard = function () {
 
         renderKPIs: () => {
             const scope = _executiveDashboard;
-            $('#totalProduction').text(scope.kpis.total_production_kg || '0');
+            $('#totalProduction').text(Number(scope.kpis.total_production_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
             var qEl = $('#qualityPassRate');
             if (qEl.length) qEl.text((scope.kpis.quality_pass_rate || '0') + '%');
         },

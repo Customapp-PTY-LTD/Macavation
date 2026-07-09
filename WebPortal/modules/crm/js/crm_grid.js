@@ -99,9 +99,6 @@ var _crmGrid = function () {
             $('#nisFilterProvince, #nisFilterStatus').on('change', function () {
                 scope.filterNISSuppliers();
             });
-            $('#nisApplyFiltersBtn').on('click', function () {
-                scope.filterNISSuppliers();
-            });
             $('#nisClearFiltersBtn').on('click', function () {
                 $('#nisSearchInput').val('');
                 $('#nisFilterProvince').val('');
@@ -117,9 +114,6 @@ var _crmGrid = function () {
                 }, 300);
             });
             $('#oilFilterProvince').on('change', function () {
-                scope.filterOilProcessors();
-            });
-            $('#oilApplyFiltersBtn').on('click', function () {
                 scope.filterOilProcessors();
             });
             $('#oilClearFiltersBtn').on('click', function () {
@@ -138,9 +132,6 @@ var _crmGrid = function () {
             $('#customerFilterProvince').on('change', function () {
                 scope.filterKernelCustomers();
             });
-            $('#customerApplyFiltersBtn').on('click', function () {
-                scope.filterKernelCustomers();
-            });
             $('#customerClearFiltersBtn').on('click', function () {
                 $('#customerSearchInput').val('');
                 $('#customerFilterProvince').val('');
@@ -152,7 +143,6 @@ var _crmGrid = function () {
                 scope.searchTimeout = setTimeout(() => { scope.filterOilIngredientSuppliers(); }, 300);
             });
             $('#oiFilterProvince, #oiFilterStatus').on('change', function () { scope.filterOilIngredientSuppliers(); });
-            $('#oiApplyFiltersBtn').on('click', function () { scope.filterOilIngredientSuppliers(); });
             $('#oiClearFiltersBtn').on('click', function () {
                 $('#oiSearchInput').val('');
                 $('#oiFilterProvince').val('');
@@ -165,7 +155,6 @@ var _crmGrid = function () {
                 scope.searchTimeout = setTimeout(() => { scope.filterOilProteinCustomers(); }, 300);
             });
             $('#opcFilterProvince').on('change', function () { scope.filterOilProteinCustomers(); });
-            $('#opcApplyFiltersBtn').on('click', function () { scope.filterOilProteinCustomers(); });
             $('#opcClearFiltersBtn').on('click', function () {
                 $('#opcSearchInput').val('');
                 $('#opcFilterProvince').val('');

@@ -48,51 +48,38 @@
         <!-- NIS Suppliers Tab -->
         <div class="tab-pane fade show active" id="nis-suppliers" role="tabpanel">
             <div id="nisSuppliersContent">
-                            <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#nisFiltersCollapse">
-                                <i class="fas fa-filter me-1"></i>Filters
-                            </button>
-                        </h5>
-                    </div>
-                    <div class="collapse" id="nisFiltersCollapse">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <label for="nisFilterProvince" class="form-label">Province</label>
-                                    <select id="nisFilterProvince" class="form-select">
-                                        <option value="">All Provinces</option>
-                                        <option value="Mpumalanga">Mpumalanga</option>
-                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                                        <option value="Limpopo">Limpopo</option>
-                                        <option value="Western Cape">Western Cape</option>
-                                        <option value="Eastern Cape">Eastern Cape</option>
-                                        <option value="Gauteng">Gauteng</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="nisFilterStatus" class="form-label">Status</label>
-                                    <select id="nisFilterStatus" class="form-select">
-                                        <option value="">All Statuses</option>
-                                        <option value="active">Active (Current)</option>
-                                        <option value="inactive">Inactive</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="nisSearchInput" class="form-label">Search</label>
-                                    <input type="text" id="nisSearchInput" class="form-control" placeholder="Search supplier name, contact, area...">
-                                </div>
+                <!-- Search and Filters -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4 col-lg-5">
+                                <label for="nisSearchInput" class="form-label">Search</label>
+                                <input type="text" id="nisSearchInput" class="form-control" placeholder="Search supplier name, contact, area...">
                             </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <button type="button" class="btn btn-primary me-2" id="nisApplyFiltersBtn">
-                                        <i class="fas fa-search me-1"></i>Apply Filters
-                                    </button>
-                                    <button type="button" class="btn btn-secondary" id="nisClearFiltersBtn">
-                                        <i class="fas fa-times me-1"></i>Clear Filters
-                                    </button>
-                                </div>
+                            <div class="col-md-3">
+                                <label for="nisFilterProvince" class="form-label">Province</label>
+                                <select id="nisFilterProvince" class="form-select">
+                                    <option value="">All Provinces</option>
+                                    <option value="Mpumalanga">Mpumalanga</option>
+                                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                    <option value="Limpopo">Limpopo</option>
+                                    <option value="Western Cape">Western Cape</option>
+                                    <option value="Eastern Cape">Eastern Cape</option>
+                                    <option value="Gauteng">Gauteng</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-lg-2">
+                                <label for="nisFilterStatus" class="form-label">Status</label>
+                                <select id="nisFilterStatus" class="form-select">
+                                    <option value="">All Statuses</option>
+                                    <option value="active">Active (Current)</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-secondary w-100" id="nisClearFiltersBtn">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -133,40 +120,27 @@
         <!-- Oil Processors Tab -->
         <div class="tab-pane fade" id="oil-processors" role="tabpanel">
             <div id="oilProcessorsContent">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#oilFiltersCollapse">
-                                <i class="fas fa-filter me-1"></i>Filters
-                            </button>
-                        </h5>
-                    </div>
-                    <div class="collapse" id="oilFiltersCollapse">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <label for="oilFilterProvince" class="form-label">Province</label>
-                                    <select id="oilFilterProvince" class="form-select">
-                                        <option value="">All Provinces</option>
-                                        <option value="Mpumalanga">Mpumalanga</option>
-                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                                        <option value="Limpopo">Limpopo</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="oilSearchInput" class="form-label">Search</label>
-                                    <input type="text" id="oilSearchInput" class="form-control" placeholder="Search processor name, contact...">
-                                </div>
+                <!-- Search and Filters -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4 col-lg-6">
+                                <label for="oilSearchInput" class="form-label">Search</label>
+                                <input type="text" id="oilSearchInput" class="form-control" placeholder="Search processor name, contact...">
                             </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <button type="button" class="btn btn-primary me-2" id="oilApplyFiltersBtn">
-                                        <i class="fas fa-search me-1"></i>Apply Filters
-                                    </button>
-                                    <button type="button" class="btn btn-secondary" id="oilClearFiltersBtn">
-                                        <i class="fas fa-times me-1"></i>Clear Filters
-                                    </button>
-                                </div>
+                            <div class="col-md-4 col-lg-4">
+                                <label for="oilFilterProvince" class="form-label">Province</label>
+                                <select id="oilFilterProvince" class="form-select">
+                                    <option value="">All Provinces</option>
+                                    <option value="Mpumalanga">Mpumalanga</option>
+                                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                    <option value="Limpopo">Limpopo</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-secondary w-100" id="oilClearFiltersBtn">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -210,47 +184,38 @@
         <!-- Oil Ingredient Suppliers Tab -->
         <div class="tab-pane fade" id="oil-ingredient-suppliers" role="tabpanel">
             <div id="oilIngredientSuppliersContent">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#oiFiltersCollapse">
-                                <i class="fas fa-filter me-1"></i>Filters
-                            </button>
-                        </h5>
-                    </div>
-                    <div class="collapse" id="oiFiltersCollapse">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <label for="oiFilterProvince" class="form-label">Province</label>
-                                    <select id="oiFilterProvince" class="form-select">
-                                        <option value="">All Provinces</option>
-                                        <option value="Mpumalanga">Mpumalanga</option>
-                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                                        <option value="Limpopo">Limpopo</option>
-                                        <option value="Western Cape">Western Cape</option>
-                                        <option value="Eastern Cape">Eastern Cape</option>
-                                        <option value="Gauteng">Gauteng</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="oiFilterStatus" class="form-label">Status</label>
-                                    <select id="oiFilterStatus" class="form-select">
-                                        <option value="">All Statuses</option>
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="oiSearchInput" class="form-label">Search</label>
-                                    <input type="text" id="oiSearchInput" class="form-control" placeholder="Search supplier name, contact, area...">
-                                </div>
+                <!-- Search and Filters -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4 col-lg-5">
+                                <label for="oiSearchInput" class="form-label">Search</label>
+                                <input type="text" id="oiSearchInput" class="form-control" placeholder="Search supplier name, contact, area...">
                             </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <button type="button" class="btn btn-primary me-2" id="oiApplyFiltersBtn"><i class="fas fa-search me-1"></i>Apply Filters</button>
-                                    <button type="button" class="btn btn-secondary" id="oiClearFiltersBtn"><i class="fas fa-times me-1"></i>Clear Filters</button>
-                                </div>
+                            <div class="col-md-3">
+                                <label for="oiFilterProvince" class="form-label">Province</label>
+                                <select id="oiFilterProvince" class="form-select">
+                                    <option value="">All Provinces</option>
+                                    <option value="Mpumalanga">Mpumalanga</option>
+                                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                    <option value="Limpopo">Limpopo</option>
+                                    <option value="Western Cape">Western Cape</option>
+                                    <option value="Eastern Cape">Eastern Cape</option>
+                                    <option value="Gauteng">Gauteng</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-lg-2">
+                                <label for="oiFilterStatus" class="form-label">Status</label>
+                                <select id="oiFilterStatus" class="form-select">
+                                    <option value="">All Statuses</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-secondary w-100" id="oiClearFiltersBtn">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -286,38 +251,29 @@
         <!-- Oil & Protein Customers Tab -->
         <div class="tab-pane fade" id="oil-protein-customers" role="tabpanel">
             <div id="oilProteinCustomersContent">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#opcFiltersCollapse">
-                                <i class="fas fa-filter me-1"></i>Filters
-                            </button>
-                        </h5>
-                    </div>
-                    <div class="collapse" id="opcFiltersCollapse">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <label for="opcFilterProvince" class="form-label">Province</label>
-                                    <select id="opcFilterProvince" class="form-select">
-                                        <option value="">All Provinces</option>
-                                        <option value="Western Cape">Western Cape</option>
-                                        <option value="Eastern Cape">Eastern Cape</option>
-                                        <option value="Gauteng">Gauteng</option>
-                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                                        <option value="Mpumalanga">Mpumalanga</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="opcSearchInput" class="form-label">Search</label>
-                                    <input type="text" id="opcSearchInput" class="form-control" placeholder="Search customer name, contact...">
-                                </div>
+                <!-- Search and Filters -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4 col-lg-6">
+                                <label for="opcSearchInput" class="form-label">Search</label>
+                                <input type="text" id="opcSearchInput" class="form-control" placeholder="Search customer name, contact...">
                             </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <button type="button" class="btn btn-primary me-2" id="opcApplyFiltersBtn"><i class="fas fa-search me-1"></i>Apply Filters</button>
-                                    <button type="button" class="btn btn-secondary" id="opcClearFiltersBtn"><i class="fas fa-times me-1"></i>Clear Filters</button>
-                                </div>
+                            <div class="col-md-4 col-lg-4">
+                                <label for="opcFilterProvince" class="form-label">Province</label>
+                                <select id="opcFilterProvince" class="form-select">
+                                    <option value="">All Provinces</option>
+                                    <option value="Western Cape">Western Cape</option>
+                                    <option value="Eastern Cape">Eastern Cape</option>
+                                    <option value="Gauteng">Gauteng</option>
+                                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                    <option value="Mpumalanga">Mpumalanga</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-secondary w-100" id="opcClearFiltersBtn">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -350,42 +306,29 @@
         <!-- Kernel Customers Tab -->
         <div class="tab-pane fade" id="kernel-customers" role="tabpanel">
             <div id="kernelCustomersContent">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#customerFiltersCollapse">
-                                <i class="fas fa-filter me-1"></i>Filters
-                            </button>
-                        </h5>
-                    </div>
-                    <div class="collapse" id="customerFiltersCollapse">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <label for="customerFilterProvince" class="form-label">Province</label>
-                                    <select id="customerFilterProvince" class="form-select">
-                                        <option value="">All Provinces</option>
-                                        <option value="Western Cape">Western Cape</option>
-                                        <option value="Eastern Cape">Eastern Cape</option>
-                                        <option value="Gauteng">Gauteng</option>
-                                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                                        <option value="Mpumalanga">Mpumalanga</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="customerSearchInput" class="form-label">Search</label>
-                                    <input type="text" id="customerSearchInput" class="form-control" placeholder="Search customer name, contact...">
-                                </div>
+                <!-- Search and Filters -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4 col-lg-6">
+                                <label for="customerSearchInput" class="form-label">Search</label>
+                                <input type="text" id="customerSearchInput" class="form-control" placeholder="Search customer name, contact...">
                             </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <button type="button" class="btn btn-primary me-2" id="customerApplyFiltersBtn">
-                                        <i class="fas fa-search me-1"></i>Apply Filters
-                                    </button>
-                                    <button type="button" class="btn btn-secondary" id="customerClearFiltersBtn">
-                                        <i class="fas fa-times me-1"></i>Clear Filters
-                                    </button>
-                                </div>
+                            <div class="col-md-4 col-lg-4">
+                                <label for="customerFilterProvince" class="form-label">Province</label>
+                                <select id="customerFilterProvince" class="form-select">
+                                    <option value="">All Provinces</option>
+                                    <option value="Western Cape">Western Cape</option>
+                                    <option value="Eastern Cape">Eastern Cape</option>
+                                    <option value="Gauteng">Gauteng</option>
+                                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                    <option value="Mpumalanga">Mpumalanga</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-secondary w-100" id="customerClearFiltersBtn">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </button>
                             </div>
                         </div>
                     </div>

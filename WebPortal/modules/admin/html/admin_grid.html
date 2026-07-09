@@ -27,26 +27,44 @@
         <!-- People -->
         <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
             <p class="text-muted small mb-3">Create accounts, assign roles, and set or reset passwords. Changes apply on next sign-in where noted.</p>
+            <!-- Search and filters (standard search card — matches the pipeline modules) -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4 col-lg-5">
+                            <label for="userSearchInput" class="form-label">Search</label>
+                            <input type="search" class="form-control" id="userSearchInput" placeholder="Search by name or email…" autocomplete="off">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="userRoleFilter" class="form-label">Role</label>
+                            <select class="form-select" id="userRoleFilter">
+                                <option value="">All roles</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-lg-2">
+                            <label for="userStatusFilter" class="form-label">Status</label>
+                            <select class="form-select" id="userStatusFilter">
+                                <option value="">All statuses</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-secondary w-100" id="clearUserFiltersBtn">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users table -->
             <div class="card mb-4">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="mb-0 fw-bold">Users</h5>
-                    <div class="d-flex align-items-center gap-2 flex-wrap admin-user-filters">
-                        <div class="input-group input-group-sm admin-user-search">
-                            <span class="input-group-text"><i class="fas fa-magnifying-glass"></i></span>
-                            <input type="search" class="form-control" id="userSearchInput" placeholder="Search name or email…" autocomplete="off">
-                        </div>
-                        <select class="form-select form-select-sm admin-user-filter" id="userRoleFilter" title="Filter by role">
-                            <option value="">All roles</option>
-                        </select>
-                        <select class="form-select form-select-sm admin-user-filter" id="userStatusFilter" title="Filter by status">
-                            <option value="">All statuses</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                        <button type="button" class="btn btn-sm btn-primary" id="adminBtnAddUserTab">
-                            <i class="fas fa-plus me-1"></i>Add user
-                        </button>
-                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" id="adminBtnAddUserTab">
+                        <i class="fas fa-plus me-1"></i>Add user
+                    </button>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
