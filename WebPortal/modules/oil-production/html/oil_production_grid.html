@@ -14,10 +14,13 @@
     </div>
 
     <!-- 1. Raw ingredients in production (released from Supplier Intake) -->
-    <div class="card mb-4">
+    <div class="card mb-4 mac-section-collapse-card">
         <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Raw ingredients in production</h5>
+            <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" id="opRawIngredientsToggleBtn" data-bs-toggle="collapse" data-bs-target="#opRawIngredientsCollapse" aria-expanded="false" aria-controls="opRawIngredientsCollapse">
+                <h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Raw ingredients in production <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+            </button>
         </div>
+        <div class="collapse" id="opRawIngredientsCollapse">
         <div class="card-body">
             <p class="text-muted small mb-3">Batches sent through from Supplier Intake for use in oil extraction.</p>
             <div id="opRawIngredientsList" class="op-raw-list">
@@ -34,6 +37,7 @@
                     <p class="text-muted small mb-0">Loading…</p>
                 </div>
             </div>
+        </div>
         </div>
     </div>
 
@@ -79,13 +83,16 @@
     </div>
 
     <!-- Consolidated oil batches + fast search -->
-    <div class="card mb-4">
+    <div class="card mb-4 mac-section-collapse-card">
         <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Consolidated batches</h5>
+            <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" id="opConsolidatedToggleBtn" data-bs-toggle="collapse" data-bs-target="#opConsolidatedCollapse" aria-expanded="false" aria-controls="opConsolidatedCollapse">
+                <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Consolidated batches <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+            </button>
             <button type="button" class="btn btn-sm btn-primary" id="opCreateConsolidatedBtn" data-action-perm="oil.consolidated.manage">
                 <i class="fas fa-plus me-1"></i>New consolidated batch
             </button>
         </div>
+        <div class="collapse" id="opConsolidatedCollapse">
         <div class="card-body">
             <div class="row g-3 mb-3">
                 <div class="col-md-3 col-lg-4">
@@ -116,13 +123,17 @@
             <div id="opOilSearchResults" class="small mb-3 text-muted">Search results appear here — select batches to add to a consolidated batch.</div>
             <div id="opConsolidatedBatchesList"><p class="text-muted mb-0">Loading consolidated batches…</p></div>
         </div>
+        </div>
     </div>
 
     <!-- 2. Oil bin batches (production): Start oil bin / Send to stock -->
-    <div class="card mb-4">
+    <div class="card mb-4 mac-section-collapse-card">
         <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-flask me-2"></i>Oil bin batches (production)</h5>
+            <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" id="opOilBinToggleBtn" data-bs-toggle="collapse" data-bs-target="#opOilBinCollapse" aria-expanded="false" aria-controls="opOilBinCollapse">
+                <h5 class="mb-0"><i class="fas fa-flask me-2"></i>Oil bin batches (production) <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+            </button>
         </div>
+        <div class="collapse" id="opOilBinCollapse">
         <div class="card-body">
             <p class="text-muted small mb-3">Start an oil bin: you will be asked for the <strong>batch number</strong> (not auto-generated) and food vs cosmetic. <strong>Send to stock</strong> removes the batch from this list and creates a row in <strong>Stock Management</strong> (Oil stream — oil stock ledger, default location 801).</p>
             <div class="mt-2 mb-3">
@@ -134,13 +145,17 @@
                 <p class="text-muted mb-0">Loading…</p>
             </div>
         </div>
+        </div>
     </div>
 
     <!-- 3. Protein production batches -->
-    <div class="card mb-4">
+    <div class="card mb-4 mac-section-collapse-card">
         <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-drumstick-bite me-2"></i>Protein production (batches)</h5>
+            <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" id="opProteinToggleBtn" data-bs-toggle="collapse" data-bs-target="#opProteinCollapse" aria-expanded="false" aria-controls="opProteinCollapse">
+                <h5 class="mb-0"><i class="fas fa-drumstick-bite me-2"></i>Protein production (batches) <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+            </button>
         </div>
+        <div class="collapse" id="opProteinCollapse">
         <div class="card-body">
             <p class="text-muted small mb-3">Start a protein powder batch: you will enter the <strong>batch number</strong> (not auto-generated). Then link the same raw ingredient batches as oil production, then send to stock. <strong>Send to stock</strong> asks for <strong>batch weight (kg)</strong> and creates a finished-good line in <strong>Stock Management</strong> (location 801).</p>
             <div class="mt-2 mb-3">
@@ -151,6 +166,7 @@
             <div id="opProteinBinBatchesList" class="op-protein-bin-batches-list">
                 <p class="text-muted mb-0">Loading…</p>
             </div>
+        </div>
         </div>
     </div>
 

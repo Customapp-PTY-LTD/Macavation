@@ -118,34 +118,38 @@ var _kernelProductionBatchActions = function () {
             });
         },
 
-        deleteBatch: (batchId) => {
+        archiveBatch: (batchId) => {
             if (!batchId) return;
             if (typeof dataFunctions === 'undefined' || !dataFunctions.deactivateKernelBatch) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete function not available. Please refresh.', 'error');
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Archive is not available. Please refresh.', 'error');
                 return;
             }
             var batch = (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch) ? _kernelProductionGrid.getBatch(batchId) : null;
             var batchLabel = batch ? (batch.batch_number || 'this batch') : 'this batch';
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'Do you want to delete "' + batchLabel + '"? This will remove it from production and intake. This action cannot be undone.',
+                title: 'Archive kernel batch?',
+                html: 'Send <strong>' + batchLabel + '</strong> to the archive? It will be removed from production lists. Restore later from Stock → <strong>View archive</strong>.',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete!'
+                confirmButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, archive',
+                cancelButtonText: 'Cancel'
             }).then((res) => {
                 if (!res.isConfirmed) return;
                 dataFunctions.deactivateKernelBatch(batchId).then((result) => {
                     var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
-                    if (inner && inner.success === false) throw new Error(inner.error || 'Delete failed');
-                    Swal.fire({ icon: 'success', title: 'Batch deleted', text: batchLabel + ' has been removed.', timer: 2000, showConfirmButton: false });
+                    if (inner && inner.success === false) throw new Error(inner.error || 'Archive failed');
+                    Swal.fire({ icon: 'success', title: 'Batch archived', text: batchLabel + ' has been sent to the archive.', timer: 2200, showConfirmButton: false });
                     if (typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.loadBatches) _kernelProductionGrid.loadBatches(true);
                 }).catch((e) => {
                     console.error(e);
-                    Swal.fire('Error', e.message || 'Failed to delete batch', 'error');
+                    Swal.fire('Error', e.message || 'Failed to archive batch', 'error');
                 });
             });
+        },
+
+        deleteBatch: (batchId) => {
+            _kernelProductionBatchActions.archiveBatch(batchId);
         },
 
         /** Prefill batch number from DB; uses received date year (matches create_kernel_batch). */

@@ -50,6 +50,9 @@ var _growerIntakeGrid = function () {
             if (typeof BatchStatus !== 'undefined') BatchStatus.applyModuleSubtitle('grower-intake-grid');
             if (typeof HandoffDialog !== 'undefined') HandoffDialog.applyPendingSearchForRoute('grower-intake-grid');
             scope.bindEvents();
+            if (typeof initMacSectionCollapses === 'function') {
+                initMacSectionCollapses(document.querySelector('.module-content'));
+            }
             scope.loadIntakeBatches(true);
             scope.loadProcurements(true);
             const loadPromises = [];
@@ -204,7 +207,7 @@ var _growerIntakeGrid = function () {
                     Swal.fire('Error', 'Receiving checklist modal not loaded. Please refresh the page.', 'error');
                 }
             });
-            $(document).on('click', '#intakeBatchesTableBody .js-intake-delete-btn, #giKanbanBoard .js-intake-delete-btn', function (e) {
+            $(document).on('click', '#intakeBatchesTableBody .js-intake-archive-btn, #giKanbanBoard .js-intake-archive-btn', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
@@ -428,7 +431,7 @@ var _growerIntakeGrid = function () {
                     ? '<a class="dropdown-item js-intake-release-btn" href="#" data-batch-id="' + b.id + '"><i class="fas fa-arrow-right me-2"></i>Release to production</a>'
                     : '<span class="dropdown-item text-muted" role="button" tabindex="0">Release to production</span>';
                 var editItem = '<a class="dropdown-item js-intake-edit" href="#" data-batch-id="' + b.id + '"><i class="fas fa-pen me-2"></i>Edit</a>';
-                var deleteItem = '<a class="dropdown-item js-intake-delete-btn text-danger" href="#" data-batch-id="' + b.id + '"><i class="fas fa-trash me-2"></i>Delete batch</a>';
+                var deleteItem = '<a class="dropdown-item js-intake-archive-btn text-secondary" href="#" data-batch-id="' + b.id + '"><i class="fas fa-archive me-2"></i>Archive batch</a>';
                 var actionsCell = MacTableActions.render({
                     id: 'intakeBatchActions' + b.id,
                     items: [releaseItem, editItem, deleteItem]
@@ -511,7 +514,7 @@ var _growerIntakeGrid = function () {
                 var releaseHtml = canRelease
                     ? '<button type="button" class="btn btn-sm btn-outline-success js-intake-release-btn" data-batch-id="' + b.id + '" title="Release to production"><i class="fas fa-arrow-right me-1"></i>Release</button>'
                     : '';
-                var deleteHtml = '<button type="button" class="btn btn-sm btn-outline-danger js-intake-delete-btn" data-batch-id="' + b.id + '" title="Delete batch"><i class="fas fa-trash"></i></button>';
+                var deleteHtml = '<button type="button" class="btn btn-sm btn-outline-secondary js-intake-archive-btn" data-batch-id="' + b.id + '" title="Archive batch"><i class="fas fa-archive"></i></button>';
 
                 var weightLabel = b.wet_nis_received_kg != null ? b.wet_nis_received_kg + ' kg' : '';
 
@@ -680,35 +683,39 @@ var _growerIntakeGrid = function () {
             }
         },
 
-        deleteBatch: (batchId) => {
+        archiveBatch: (batchId) => {
             const scope = _growerIntakeGrid;
             if (!batchId) return;
             if (typeof dataFunctions === 'undefined' || !dataFunctions.deactivateKernelBatch) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete function not available. Please refresh.', 'error');
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Archive is not available. Please refresh.', 'error');
                 return;
             }
             const batch = scope.intakeBatches.find((b) => String(b.id) === String(batchId));
             const batchLabel = batch ? (batch.batch_number || 'this batch') : 'this batch';
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'Do you want to delete "' + batchLabel + '"? This will remove it from intake and production. This action cannot be undone.',
+                title: 'Archive kernel batch?',
+                html: 'Send <strong>' + batchLabel + '</strong> to the archive? It will be removed from intake and production lists. Restore later from Stock → <strong>View archive</strong>.',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete!'
+                confirmButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, archive',
+                cancelButtonText: 'Cancel'
             }).then((res) => {
                 if (!res.isConfirmed) return;
                 dataFunctions.deactivateKernelBatch(batchId).then((result) => {
                     var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
-                    if (inner && inner.success === false) throw new Error(inner.error || 'Delete failed');
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Batch deleted', text: batchLabel + ' has been removed.', timer: 2000, showConfirmButton: false });
+                    if (inner && inner.success === false) throw new Error(inner.error || 'Archive failed');
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Batch archived', text: batchLabel + ' has been sent to the archive.', timer: 2200, showConfirmButton: false });
                     scope.loadIntakeBatches(true);
                 }).catch((e) => {
                     console.error(e);
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to delete batch', 'error');
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to archive batch', 'error');
                 });
             });
+        },
+
+        deleteBatch: (batchId) => {
+            _growerIntakeGrid.archiveBatch(batchId);
         },
 
         showAddSampleModal: () => {

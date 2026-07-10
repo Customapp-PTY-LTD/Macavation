@@ -227,7 +227,7 @@ var _batchJourneyGrid = (function () {
                     id: 'bjActions' + ddSuffix,
                     wrapLi: true,
                     items: [
-                        { label: 'Delete permanently', className: 'bj-delete-batch', danger: true, icon: 'fas fa-trash-alt', dataAttrs: { 'kernel-id': b.id } }
+                        { label: 'Archive', className: 'bj-archive-batch', icon: 'fas fa-archive', dataAttrs: { 'kernel-id': b.id } }
                     ]
                 })
                 + '</td>'
@@ -421,58 +421,63 @@ var _batchJourneyGrid = (function () {
             e.stopPropagation();
         });
 
-        $(document).on('click', '#bjTableBody .bj-delete-batch', function (e) {
+        $(document).on('click', '#bjTableBody .bj-archive-batch', function (e) {
             e.preventDefault();
             e.stopPropagation();
             var kernelId = $(this).data('kernel-id');
             if (!kernelId) return;
             var row = $(this).closest('tr.js-bj-row');
             var label = (row.find('td').first().text() || 'This batch').trim();
-            if (typeof Swal === 'undefined') {
-                if (!window.confirm('Permanently delete batch ' + label + '? This cannot be undone.')) return;
-                scope.runPermanentDelete(kernelId, label);
-                return;
-            }
-            Swal.fire({
-                title: 'Delete batch permanently?',
-                html: '<p class="mb-0">Batch <strong>' + escapeHtml(label) + '</strong> will be removed from the database (kernel record, batch header, silo assignment, and dispatch lines for this batch). This cannot be undone.</p>',
-                icon: 'warning',
-                showCancelButton: true,
-                focusCancel: true,
-                confirmButtonText: 'Yes, delete forever',
-                confirmButtonColor: '#dc3545',
-                cancelButtonText: 'Cancel'
-            }).then(function (res) {
-                if (res && res.isConfirmed) scope.runPermanentDelete(kernelId, label);
-            });
+            scope.archiveKernelBatch(kernelId, label);
         });
     }
 
-    scope.runPermanentDelete = function (kernelId, label) {
-        if (typeof _dataFunctions === 'undefined' || !_dataFunctions.deleteKernelBatchPermanent) {
-            if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete is not available. Refresh the page or apply the latest database migration.', 'error');
-            else window.alert('Delete is not available.');
+    scope.archiveKernelBatch = function (kernelId, label) {
+        var df = (typeof dataFunctions !== 'undefined') ? dataFunctions : (typeof _dataFunctions !== 'undefined' ? _dataFunctions : null);
+        if (!df || !df.deactivateKernelBatch) {
+            if (typeof Swal !== 'undefined') Swal.fire('Error', 'Archive is not available. Please refresh.', 'error');
+            else window.alert('Archive is not available.');
             return;
         }
-        _dataFunctions.deleteKernelBatchPermanent(kernelId).then(function (result) {
-            if (!result || result.success === false) {
-                throw new Error((result && result.error) || 'Delete failed');
-            }
-            if (typeof Swal !== 'undefined') {
+        var batchLabel = (label && String(label).trim()) ? String(label).trim() : 'this batch';
+        if (typeof Swal === 'undefined') {
+            if (!window.confirm('Archive batch ' + batchLabel + '?')) return;
+            df.deactivateKernelBatch(kernelId).then(function (result) {
+                var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
+                if (inner && inner.success === false) throw new Error(inner.error || 'Archive failed');
+                loadBatches();
+            }).catch(function (err) {
+                console.error('Batch Journey: archive failed', err);
+                window.alert((err && err.message) ? err.message : 'Archive failed');
+            });
+            return;
+        }
+        Swal.fire({
+            title: 'Archive kernel batch?',
+            html: 'Send <strong>' + escapeHtml(batchLabel) + '</strong> to the archive? It will be removed from active lists. Restore later from Stock → <strong>View archive</strong>.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, archive',
+            cancelButtonText: 'Cancel'
+        }).then(function (res) {
+            if (!res || !res.isConfirmed) return;
+            df.deactivateKernelBatch(kernelId).then(function (result) {
+                var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
+                if (inner && inner.success === false) throw new Error(inner.error || 'Archive failed');
                 Swal.fire({
                     icon: 'success',
-                    title: 'Batch deleted',
-                    text: (label || 'Batch') + ' was permanently removed.',
+                    title: 'Batch archived',
+                    text: batchLabel + ' has been sent to the archive.',
                     timer: 2200,
                     showConfirmButton: false
                 });
-            }
-            loadBatches();
-        }).catch(function (err) {
-            console.error('Batch Journey: permanent delete failed', err);
-            var msg = (err && err.message) ? err.message : 'Delete failed';
-            if (typeof Swal !== 'undefined') Swal.fire('Error', msg, 'error');
-            else window.alert(msg);
+                loadBatches();
+            }).catch(function (err) {
+                console.error('Batch Journey: archive failed', err);
+                var msg = (err && err.message) ? err.message : 'Failed to archive batch';
+                Swal.fire('Error', msg, 'error');
+            });
         });
     };
 

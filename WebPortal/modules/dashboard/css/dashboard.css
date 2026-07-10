@@ -1,5 +1,13 @@
 /* Dashboard Module – aligned with UI_DESIGN_INSTRUCTIONS.md (border radius, flat primary, layout) */
 
+.dashboard-unified .mac-section-collapse-card > .card-header.dashboard-exceptions-header {
+    padding: 1rem 1.25rem;
+}
+
+.dashboard-unified .mac-section-collapse-card > .card-header.dashboard-exceptions-header .mac-section-collapse-toggle {
+    color: inherit;
+}
+
 .dashboard-container {
     padding: 0;
 }

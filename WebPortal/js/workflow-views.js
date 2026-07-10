@@ -262,17 +262,11 @@ var _workflowViews = function () {
             const container = document.getElementById(containerId);
             if (!container || !data) return;
 
-            const { role, tasks, watching, dueItems, recentActivity, workQueue } = data;
+            const { tasks, watching, dueItems, recentActivity, workQueue } = data;
             var wq = workQueue || { intake: [], production: [], stockDispatch: [] };
 
             const html = `
                 <div class="my-day-dashboard">
-                    <div class="my-day-header mb-4">
-                        <h2 class="mb-1">Good ${this.getTimeOfDay()}, ${this.getUserName()}</h2>
-                        <p class="text-muted mb-0">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        <span class="badge bg-primary mt-2">${typeof formatRoleName === 'function' ? formatRoleName(role) : role}</span>
-                    </div>
-
                     <div class="row g-4 mb-2">
                         <div class="col-lg-4">
                             <div class="card h-100">
@@ -597,25 +591,6 @@ var _workflowViews = function () {
             }
             lines.push('</div>');
             return lines.join('');
-        },
-
-        /**
-         * Get time of day greeting
-         */
-        getTimeOfDay: function () {
-            const hour = new Date().getHours();
-            if (hour < 12) return 'morning';
-            if (hour < 17) return 'afternoon';
-            return 'evening';
-        },
-
-        /**
-         * Get user name
-         */
-        getUserName: function () {
-            const user = Session.get('user');
-            if (!user) return 'User';
-            return user.first_name || user.email || 'User';
         },
 
         /**

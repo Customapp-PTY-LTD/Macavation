@@ -65,16 +65,15 @@
         <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Stage 1: Complete Receiving checklist for each batch (box becomes a tick); then Batch test / Batch sample (enabled after checklist). Release to production is only enabled once both forms are completed.</p>
     </div>
 
-
     <!-- Search and Filters -->
-    <div class="card mb-3">
+    <div class="card mb-3 mac-module-filter-bar">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-sm-6 col-lg-4">
                     <label for="searchIntakeBatchesInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchIntakeBatchesInput" placeholder="Search by batch number or grower...">
                 </div>
-                <div class="col-md-3">
+                <div class="col-6 col-lg-3">
                     <label for="filterIntakeBatchStatus" class="form-label">Status</label>
                     <select class="form-select" id="filterIntakeBatchStatus">
                         <option value="">All Statuses</option>
@@ -84,12 +83,12 @@
                         <option value="quality_approved">Quality approved</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-6 col-lg-2">
                     <button type="button" class="btn btn-outline-secondary w-100" id="clearIntakeBatchFiltersBtn">
                         <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
-                <div class="col-md-3 d-flex justify-content-end align-items-end">
+                <div class="col-12 col-lg-3 mac-filter-bar-view d-flex justify-content-lg-end">
                     <div class="view-toggle">
                         <button class="view-toggle-btn active" data-view="kanban" id="giViewKanban">
                             <i class="fas fa-columns me-1"></i>Board

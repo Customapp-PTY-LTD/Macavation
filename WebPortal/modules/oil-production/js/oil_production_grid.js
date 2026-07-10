@@ -343,6 +343,9 @@ var _oilProductionGrid = function () {
         init: function () {
             var scope = _oilProductionGrid;
             scope.bindEvents();
+            if (typeof initMacSectionCollapses === 'function') {
+                initMacSectionCollapses(document.querySelector('.module-content'));
+            }
             scope.loadAll();
         },
 

@@ -20,14 +20,14 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="card mb-3">
+    <div class="card mb-3 mac-module-filter-bar">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3 col-lg-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-sm-6 col-lg-4">
                     <label for="searchSupplierIntakeInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchSupplierIntakeInput" placeholder="Search by batch #, supplier, delivery note...">
                 </div>
-                <div class="col-md-3 col-lg-2">
+                <div class="col-6 col-lg-2">
                     <label for="filterSupplierIntakeStatus" class="form-label">Status</label>
                     <select class="form-select" id="filterSupplierIntakeStatus">
                         <option value="">All Statuses</option>
@@ -35,12 +35,12 @@
                         <option value="release_ready">Ready for Oil Production</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-6 col-lg-2">
                     <button type="button" class="btn btn-outline-secondary w-100" id="clearSupplierIntakeFiltersBtn">
                         <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
-                <div class="col-12 col-md-4 col-lg-4 mt-2 mt-md-0 d-flex justify-content-md-end align-items-end gap-2 flex-wrap">
+                <div class="col-12 col-lg-4 mac-filter-bar-trailing">
                     <div class="view-toggle">
                         <button class="view-toggle-btn active" data-view="kanban" id="siViewKanban">
                             <i class="fas fa-columns me-1"></i>Board

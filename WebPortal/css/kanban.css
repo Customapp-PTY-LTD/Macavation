@@ -212,6 +212,46 @@
 }
 
 /* ============================================
+   MODULE FILTER BAR (Search / Status / Clear / Board|Table)
+   Shared by Grower Intake, Kernel Production, Supplier Intake, etc.
+   ============================================ */
+
+.mac-module-filter-bar .row {
+    align-items: flex-end;
+}
+
+.mac-module-filter-bar .form-label {
+    margin-bottom: 0.25rem;
+}
+
+.mac-module-filter-bar .form-check.mac-filter-bar-checkbox {
+    margin-bottom: 0;
+    min-height: calc(1.5em + 0.75rem + 2px);
+    display: flex;
+    align-items: center;
+    padding-top: 0;
+}
+
+.mac-module-filter-bar .mac-filter-bar-trailing {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.mac-module-filter-bar .mac-filter-bar-trailing .view-toggle {
+    flex-shrink: 0;
+}
+
+@media (max-width: 991.98px) {
+    .mac-module-filter-bar .mac-filter-bar-view {
+        display: flex;
+        justify-content: flex-end;
+    }
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 

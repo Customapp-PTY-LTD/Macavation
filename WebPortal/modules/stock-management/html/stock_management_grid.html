@@ -20,9 +20,9 @@
 
     <input type="hidden" id="filterStockStream" value="kernel">
     <!-- Search and Filters (hidden when Kernel Stock - only batch journey / by-style table shown) -->
-    <div class="card mb-3" id="mainStockFiltersCard">
+    <div class="card mb-3 mac-module-filter-bar" id="mainStockFiltersCard">
         <div class="card-body">
-            <div class="row g-3">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label for="searchStockInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchStockInput" placeholder="Search by stock number, batch, or location...">
@@ -152,6 +152,9 @@
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleKernelAdjustModeBtn" title="Turn stock correction mode on or off">
                             <i class="fas fa-balance-scale me-1"></i>Correct on-hand
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="kernelBatchViewArchiveBtn" data-action-perm="stock.import_batch" title="View archived batches and restore">
+                            <i class="fas fa-archive me-1"></i>View archive
                         </button>
                         <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshKernelStockBtn" title="Reload kernel stock data">
                             <i class="fas fa-sync-alt me-1"></i>Refresh

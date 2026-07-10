@@ -327,6 +327,9 @@ var _stockManagementGrid = function () {
                 $('#refreshKernelStockBtn').off('click').on('click', function () {
                     scope.loadKernelBatches(true);
                 });
+                $('#kernelBatchViewArchiveBtn').off('click').on('click', function () {
+                    scope.openKernelBatchArchiveModal();
+                });
                 $('#toggleKernelAdjustModeBtn').off('click').on('click', function () {
                     scope.setKernelAdjustMode(!scope.kernelAdjustMode);
                 });
@@ -473,10 +476,10 @@ var _stockManagementGrid = function () {
                     var id = $(this).data('kernel-id');
                     if (id) scope.promptEditKernelBatch(id);
                 });
-                $(document).on('click', '.delete-kernel-batch-btn', function () {
+                $(document).on('click', '.archive-kernel-batch-btn', function () {
                     var id = $(this).data('kernel-id');
                     var label = $(this).data('batch-label');
-                    if (id) scope.deleteKernelBatch(id, label);
+                    if (id) scope.archiveKernelBatch(id, label);
                 });
                 $(document).on('click', '.adjust-oil-lot-btn', function () {
                     if (typeof hasAction === 'function' && !hasAction('stock.adjust_soh')) {
@@ -1027,7 +1030,7 @@ var _stockManagementGrid = function () {
                 if (kid) {
                     kernelActionItems.push(
                         { label: 'Edit', className: 'edit-kernel-batch-btn', icon: 'fas fa-edit', dataAttrs: { 'kernel-id': kid } },
-                        { label: 'Delete', className: 'delete-kernel-batch-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'kernel-id': kid, 'batch-label': batchNum } }
+                        { label: 'Archive', className: 'archive-kernel-batch-btn', icon: 'fas fa-archive', dataAttrs: { 'kernel-id': kid, 'batch-label': batchNum } }
                     );
                 }
                 row += '<td class="mac-table-actions-col">' + MacTableActions.render({ id: 'ksActions' + kid, items: kernelActionItems }) + '</td>';
@@ -2097,34 +2100,182 @@ var _stockManagementGrid = function () {
             });
         },
 
-        deleteKernelBatch: function (kernelId, batchLabel) {
+        archiveKernelBatch: function (kernelId, batchLabel) {
             var scope = _stockManagementGrid;
             if (!kernelId) return;
             if (typeof dataFunctions === 'undefined' || !dataFunctions.deactivateKernelBatch) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete is not available. Please refresh.', 'error');
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Archive is not available. Please refresh.', 'error');
                 return;
             }
             var label = (batchLabel && String(batchLabel).trim()) ? String(batchLabel).trim() : 'this batch';
             Swal.fire({
-                title: 'Delete kernel batch?',
-                html: 'Remove <strong>' + escapeHtml(label) + '</strong> from stock? It will be hidden from lists (soft delete).',
+                title: 'Archive kernel batch?',
+                html: 'Send <strong>' + escapeHtml(label) + '</strong> to the archive? It will be removed from active lists. You can restore it later from <strong>View archive</strong>.',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'Yes, delete',
+                confirmButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, archive',
                 cancelButtonText: 'Cancel'
             }).then(function (res) {
                 if (!res.isConfirmed) return;
                 dataFunctions.deactivateKernelBatch(kernelId).then(function (result) {
                     var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
-                    if (inner && inner.success === false) throw new Error(inner.error || 'Delete failed');
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Batch deleted', text: label + ' has been removed from stock.', timer: 2000, showConfirmButton: false });
+                    if (inner && inner.success === false) throw new Error(inner.error || 'Archive failed');
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Batch archived', text: label + ' has been sent to the archive.', timer: 2200, showConfirmButton: false });
                     scope.loadKernelBatches(true);
                 }).catch(function (e) {
-                    console.error('[Stock Management] deleteKernelBatch failed:', e);
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to delete batch', 'error');
+                    console.error('[Stock Management] archiveKernelBatch failed:', e);
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to archive batch', 'error');
                 });
             });
+        },
+
+        openKernelBatchArchiveModal: function () {
+            var scope = _stockManagementGrid;
+            if (typeof Swal === 'undefined') return;
+            var df = (typeof _dataFunctions !== 'undefined' && _dataFunctions) ? _dataFunctions : dataFunctions;
+            if (!df || !df.getKernelBatchArchive) {
+                Swal.fire('Error', 'View archive is not available. Apply migration kernel_batch_archive_restore_ui.', 'error');
+                return;
+            }
+            scope._kernelArchiveRows = [];
+            scope._kernelArchiveSearch = '';
+            Swal.fire({
+                title: 'Archived kernel batches',
+                width: '52rem',
+                html:
+                    '<p class="small text-muted text-start mb-2">Batches removed via <strong>Archive</strong> on stock, grower intake, or production. Restore brings them back; enter a new batch number if the original is already in use.</p>' +
+                    '<input type="search" id="swalKernelArchiveSearch" class="form-control form-control-sm mb-2" placeholder="Search batch, grower, or archived by…">' +
+                    '<div id="swalKernelArchiveList" class="text-start border rounded" style="max-height:22rem;overflow:auto;"><div class="p-3 text-muted small">Loading…</div></div>',
+                showConfirmButton: false,
+                showCloseButton: true,
+                didOpen: function () {
+                    var searchEl = document.getElementById('swalKernelArchiveSearch');
+                    var debounce = null;
+                    var load = function (q) {
+                        scope._kernelArchiveSearch = q || '';
+                        var listEl = document.getElementById('swalKernelArchiveList');
+                        if (listEl) listEl.innerHTML = '<div class="p-3 text-muted small">Loading…</div>';
+                        df.getKernelBatchArchive(q || null, null, { limit: 200 }).then(function (rows) {
+                            scope._kernelArchiveRows = Array.isArray(rows) ? rows : [];
+                            scope.renderKernelArchiveList();
+                        }).catch(function (e) {
+                            if (listEl) listEl.innerHTML = '<div class="p-3 text-danger small">' + escapeHtml(e.message || 'Failed to load archive') + '</div>';
+                        });
+                    };
+                    if (searchEl) {
+                        searchEl.addEventListener('input', function () {
+                            if (debounce) clearTimeout(debounce);
+                            debounce = setTimeout(function () { load((searchEl.value || '').trim()); }, 280);
+                        });
+                    }
+                    $(document).off('click.kernelArchiveRestore').on('click.kernelArchiveRestore', '.js-kernel-archive-restore', function (ev) {
+                        ev.preventDefault();
+                        var aid = $(this).data('archive-id');
+                        var bn = $(this).data('batch-number') || '';
+                        var inUse = $(this).data('number-in-use') === true || $(this).data('number-in-use') === 'true';
+                        if (aid) scope.restoreKernelBatchFromArchiveEntry(aid, bn, inUse);
+                    });
+                    load('');
+                },
+                willClose: function () {
+                    $(document).off('click.kernelArchiveRestore');
+                }
+            });
+        },
+
+        renderKernelArchiveList: function () {
+            var listEl = document.getElementById('swalKernelArchiveList');
+            if (!listEl) return;
+            var rows = (_stockManagementGrid._kernelArchiveRows || []);
+            if (!rows.length) {
+                listEl.innerHTML = '<div class="p-3 text-muted small">No archived batches match your search.</div>';
+                return;
+            }
+            var html = '<table class="table table-sm table-hover mb-0"><thead class="table-light sticky-top"><tr>' +
+                '<th>Batch</th><th>Grower</th><th>Archived</th><th>Archived by</th><th>Type</th><th></th></tr></thead><tbody>';
+            rows.forEach(function (r) {
+                var bn = r.batch_number != null ? String(r.batch_number) : '—';
+                var grower = r.grower_name != null ? String(r.grower_name) : '—';
+                var at = r.deactivated_at ? String(r.deactivated_at).slice(0, 16).replace('T', ' ') : '—';
+                var by = r.deactivated_by_name != null ? String(r.deactivated_by_name) : '—';
+                var dtype = r.deactivation_type === 'permanent_delete' ? 'Permanent' : 'Soft';
+                var canRestore = r.can_restore === true;
+                var inUse = r.number_in_use === true;
+                var action = '';
+                if (canRestore) {
+                    action = '<button type="button" class="btn btn-sm btn-outline-primary js-kernel-archive-restore" data-archive-id="' + escapeHtml(String(r.id)) + '" data-batch-number="' + escapeHtml(bn) + '" data-number-in-use="' + (inUse ? 'true' : 'false') + '">Restore</button>';
+                    if (inUse) action += ' <span class="badge bg-warning text-dark ms-1" title="Original number in use"># in use</span>';
+                } else {
+                    action = '<span class="text-muted small">Cannot restore</span>';
+                }
+                html += '<tr><td class="fw-semibold">' + escapeHtml(bn) + '</td><td>' + escapeHtml(grower) + '</td><td class="small text-muted">' + escapeHtml(at) + '</td><td class="small">' + escapeHtml(by) + '</td><td class="small">' + escapeHtml(dtype) + '</td><td>' + action + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            listEl.innerHTML = html;
+        },
+
+        restoreKernelBatchFromArchiveEntry: function (archiveId, originalBatchNumber, numberInUse) {
+            var scope = _stockManagementGrid;
+            var df = (typeof _dataFunctions !== 'undefined' && _dataFunctions) ? _dataFunctions : dataFunctions;
+            if (!df || !df.restoreKernelBatchFromArchive) return;
+
+            var attemptRestore = function (newNumber) {
+                return df.restoreKernelBatchFromArchive(archiveId, newNumber).then(function (result) {
+                    if (result && result.needs_new_number) {
+                        return scope.promptNewBatchNumberForRestore(originalBatchNumber).then(function (entered) {
+                            if (!entered) return null;
+                            return df.restoreKernelBatchFromArchive(archiveId, entered);
+                        });
+                    }
+                    return result;
+                });
+            };
+
+            var start = numberInUse
+                ? scope.promptNewBatchNumberForRestore(originalBatchNumber)
+                : Promise.resolve(null);
+
+            start.then(function (preEntered) {
+                if (numberInUse && !preEntered) return null;
+                return attemptRestore(preEntered || null);
+            }).then(function (result) {
+                if (!result) return;
+                if (result.success === false) throw new Error(result.error || 'Restore failed');
+                var bn = result.batch_number || originalBatchNumber || 'batch';
+                Swal.fire({ icon: 'success', title: 'Batch restored', text: bn + ' is active again.', timer: 2200, showConfirmButton: false });
+                scope.loadKernelBatches(true);
+                return df.getKernelBatchArchive(scope._kernelArchiveSearch || null, null, { limit: 200 });
+            }).then(function (rows) {
+                if (rows) {
+                    scope._kernelArchiveRows = rows;
+                    scope.renderKernelArchiveList();
+                }
+            }).catch(function (e) {
+                console.error('[Stock Management] restoreKernelBatchFromArchiveEntry failed:', e);
+                Swal.fire('Error', e.message || 'Failed to restore batch', 'error');
+            });
+        },
+
+        promptNewBatchNumberForRestore: function (originalBatchNumber) {
+            var orig = originalBatchNumber != null ? String(originalBatchNumber) : '';
+            return Swal.fire({
+                title: 'New batch number required',
+                html: 'Batch number <strong>' + escapeHtml(orig) + '</strong> is already in use by another active batch. Enter a new number for the restored batch.',
+                input: 'text',
+                inputPlaceholder: 'e.g. Bn 01 26 05',
+                showCancelButton: true,
+                confirmButtonText: 'Restore with new number',
+                inputValidator: function (value) {
+                    if (!value || !String(value).trim()) return 'Enter a batch number';
+                }
+            }).then(function (res) {
+                return (res.isConfirmed && res.value) ? String(res.value).trim() : null;
+            });
+        },
+
+        deleteKernelBatch: function (kernelId, batchLabel) {
+            return _stockManagementGrid.archiveKernelBatch(kernelId, batchLabel);
         },
 
         promptAdjustOilLot: function (lot) {

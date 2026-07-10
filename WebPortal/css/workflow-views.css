@@ -7,22 +7,6 @@
     padding: 1rem 0;
 }
 
-/* Flat, warm greeting panel — no gradients (design system: calm chrome). */
-.my-day-header {
-    text-align: center;
-    padding: 1.5rem 0;
-    background: var(--mac-bg-secondary, #fff);
-    color: var(--mac-text, var(--mac-text));
-    border: 1px solid var(--mac-border, var(--mac-border));
-    border-radius: var(--mac-radius-lg, 12px);
-    margin-bottom: 2rem;
-}
-
-.my-day-header h2 {
-    color: var(--mac-text, var(--mac-text));
-    font-weight: 600;
-}
-
 /* Workflow Tasks */
 .workflow-tasks {
     display: flex;

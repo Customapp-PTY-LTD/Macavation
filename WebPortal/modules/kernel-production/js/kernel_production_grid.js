@@ -315,11 +315,11 @@ var _kernelProductionGrid = function () {
                     _kernelProductionBatchActions.releaseBatchToStock(batchId);
                 }
             });
-            $(document).on('click', '.js-delete-batch', function (e) {
+            $(document).on('click', '.js-archive-batch', function (e) {
                 e.preventDefault();
                 const batchId = $(this).data('batch-id');
-                if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.deleteBatch) {
-                    _kernelProductionBatchActions.deleteBatch(batchId);
+                if (batchId && typeof _kernelProductionBatchActions !== 'undefined' && _kernelProductionBatchActions.archiveBatch) {
+                    _kernelProductionBatchActions.archiveBatch(batchId);
                 }
             });
             $(document).on('click', '.js-release-to-stock-disabled', function (e) {
@@ -391,6 +391,9 @@ var _kernelProductionGrid = function () {
             $('#kpProductionCalendarNextBtn').off('click').on('click', function () {
                 _kernelProductionGrid.shiftProductionCalendarMonth(1);
             });
+            if (typeof initMacSectionCollapses === 'function') {
+                initMacSectionCollapses(document.querySelector('.module-content'));
+            }
             $(document).on('click', '#kpProductionCalendarGrid .kp-production-calendar-day', function () {
                 var iso = $(this).attr('data-iso');
                 if (!iso) return;
@@ -867,7 +870,7 @@ var _kernelProductionGrid = function () {
                 } else {
                     menuItems.push('<span class="dropdown-item text-muted js-release-to-stock-disabled" role="button" tabindex="0">Release to stock</span>');
                 }
-                menuItems.push('<a class="dropdown-item js-delete-batch text-danger" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-trash me-1"></i>Delete batch</a>');
+                menuItems.push('<a class="dropdown-item js-archive-batch text-secondary" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-archive me-1"></i>Archive batch</a>');
                 // TEMPORARY: KP Data Admin sees only Production button. Remove when replacing with real auth.
                 const isKpDataAdmin = typeof ROLE_FEATURE !== 'undefined' && ROLE_FEATURE.isKpDataAdmin && ROLE_FEATURE.isKpDataAdmin();
                 let actionsCell;

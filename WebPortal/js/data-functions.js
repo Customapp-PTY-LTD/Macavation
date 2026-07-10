@@ -23,6 +23,8 @@ var _dataFunctions = function () {
             'adjust_kernel_stock_on_hand',
             'update_kernel_stock_batch_info',
             'import_historical_kernel_batch',
+            'get_kernel_batch_archive',
+            'restore_kernel_batch_from_archive',
             // Document Management — DB grants apply; Lambda RBAC may deny with 403
             'get_documents',
             'get_document_by_id',
@@ -48,6 +50,8 @@ var _dataFunctions = function () {
             'return_kernel_from_stock_to_production',
             'get_kernel_jobcard_approval_map',
             'import_historical_kernel_batch',
+            'get_kernel_batch_archive',
+            'restore_kernel_batch_from_archive',
             // Document Management reads
             'get_documents',
             'get_document_categories',
@@ -3150,13 +3154,53 @@ var _dataFunctions = function () {
         },
 
         /**
-         * deactivateKernelBatch — soft delete: set kernel.is_active = false. Batch is hidden from all lists.
-         * Used by: Kernel Production and Grower Intake "Delete batch" actions.
+         * deactivateKernelBatch — archive (soft delete): writes kernel_batch_archive, hides batch from active lists.
+         * Used by: Stock, Grower Intake, and Kernel Production "Archive batch" actions.
          */
         deactivateKernelBatch: async function (kernelId, token = null) {
             const result = await this.callFunction('deactivate_kernel_batch', { p_kernel_id: kernelId }, token, { useCache: false });
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
             this.clearCachePattern('kernel_batches');
+            this.clearCachePattern('kernel_batch_archive');
+            return result;
+        },
+
+        /**
+         * getKernelBatchArchive — list archived kernel batches (who archived, restore eligibility).
+         */
+        getKernelBatchArchive: async function (search, token = null, options) {
+            const opts = options || {};
+            const params = {
+                p_search: search != null && String(search).trim() !== '' ? String(search).trim() : null,
+                p_limit: opts.limit != null ? opts.limit : 200,
+                p_offset: opts.offset != null ? opts.offset : 0
+            };
+            let raw = await this.callFunction('get_kernel_batch_archive', params, token, { useCache: false });
+            if (raw && raw.get_kernel_batch_archive !== undefined) raw = raw.get_kernel_batch_archive;
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+
+        /**
+         * restoreKernelBatchFromArchive — reactivate a soft-archived batch; pass batchNumber when original is taken.
+         */
+        restoreKernelBatchFromArchive: async function (archiveId, batchNumber, token = null) {
+            const params = {
+                p_archive_id: archiveId,
+                p_batch_number: batchNumber != null && String(batchNumber).trim() !== '' ? String(batchNumber).trim() : null
+            };
+            let result = await this.callFunction('restore_kernel_batch_from_archive', params, token, { useCache: false });
+            result = this.unwrapKernelRpcJson(result, 'restore_kernel_batch_from_archive') || result;
+            if (result && typeof result === 'object') {
+                if (result.success === undefined && result.Success !== undefined) result.success = result.Success;
+                if (result.error === undefined && result.Error !== undefined) result.error = result.Error;
+                if (result.needs_new_number === undefined && result.NeedsNewNumber !== undefined) {
+                    result.needs_new_number = result.NeedsNewNumber;
+                }
+            }
+            this.clearCachePattern('kernel_batches');
+            this.clearCachePattern('kernel_batch_archive');
             return result;
         },
 

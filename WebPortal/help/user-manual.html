@@ -170,7 +170,7 @@
       <article id="dashboard" class="manual-chapter">
         <h2>Dashboard</h2>
         <span class="route-tag">dashboard</span>
-        <p>The dashboard is the default landing area for many users. It can include multiple views depending on configuration:</p>
+        <p>The dashboard is the default landing area for many users. It can include multiple views depending on configuration. On overview and executive views, major panels load <strong>collapsed</strong>—expand a section heading when you need that detail.</p>
         <ul>
           <li><strong>Dashboard overview</strong> — operational snapshot: production, packing, tasks, and links into deeper grids.</li>
           <li><strong>Material journey</strong> — integrator-style view of movement and alerts; use Refresh before acting on cards.</li>
@@ -179,6 +179,7 @@
         <h3>Typical tasks</h3>
         <ol>
           <li>Open the dashboard from the sidebar after sign-in.</li>
+          <li>Expand the sections you need using the chevron on each panel heading.</li>
           <li>Read summary cards for the day; drill into linked modules if a number needs investigation.</li>
           <li>If figures look wrong, refresh the browser once before assuming a data fault.</li>
         </ol>
@@ -204,7 +205,7 @@
         <ol>
           <li>Search by batch, grower, or other supported fields.</li>
           <li>Filter and sort (for example by status or date) to shorten the list.</li>
-          <li>Click a row to open batch history. The <strong>Dispatch</strong> tab lists kernel dispatch orders that include this batch (buyer, dates, style, cartons, and kg). Use <strong>Intake</strong>, <strong>Production</strong>, and <strong>End sample (QA)</strong> for the other timeline panes (empty tabs are hidden). Use <strong>Edit</strong> → <strong>Delete permanently</strong> only when the batch must be erased from the database (this cannot be undone).</li>
+          <li>Click a row to open batch history. The <strong>Dispatch</strong> tab lists kernel dispatch orders that include this batch (buyer, dates, style, cartons, and kg). Use <strong>Intake</strong>, <strong>Production</strong>, and <strong>End sample (QA)</strong> for the other timeline panes (empty tabs are hidden). Use <strong>Edit</strong> → <strong>Archive</strong> to send a batch to the historical archive and remove it from active lists. Restore from Stock → <strong>View archive</strong> when needed.</li>
         </ol>
         <p class="contextual-help"><a href="index.html#batch-journey-grid">Batch Journey topic</a></p>
       </article>
@@ -234,7 +235,7 @@
         <span class="route-tag">grower-intake-grid</span>
         <p><strong>Grower Intake</strong> is the kernel-side receiving process: it includes a <strong>Procurement Calendar</strong> for planning expected deliveries, as well as receiving checklists, batch testing and samples, and creation of kernel batches before production.</p>
         <h3>Procurement Calendar</h3>
-        <p>The collapsible <strong>Procurement Calendar</strong> sits above the search bar. It lets the team schedule expected grower deliveries before they arrive, so purchasing intentions are visible to everyone in the portal.</p>
+        <p>The collapsible <strong>Procurement Calendar</strong> sits above the search bar (it loads <strong>collapsed</strong>—expand the heading when scheduling). It lets the team schedule expected grower deliveries before they arrive, so purchasing intentions are visible to everyone in the portal.</p>
         <ul>
           <li>Click any calendar day to select it. The right panel shows existing procurement entries for that day and an <strong>Add procurement</strong> form.</li>
           <li>Fill in the optional grower/supplier dropdown, an optional free-text grower name override, and the <strong>predicted weight in kg</strong>, then click <strong>Add procurement</strong>. The delivery appears as a pill on the day.</li>
@@ -246,8 +247,9 @@
         <h3>Batch intake workflow</h3>
         <ul>
           <li><strong>Receiving checklist</strong> (stage 1) must be completed before batch test and sample actions unlock.</li>
-          <li><strong>Create kernel batch</strong> registers a new intake record tied to a CRM grower/supplier.</li>
+          <li><strong>Create kernel batch</strong> registers a new intake record tied to a CRM grower/supplier. Each batch number must be unique among <strong>active</strong> kernel batches — you cannot create a second active batch with the same number while one is still in use.</li>
           <li><strong>Release to production</strong> hands the batch to Kernel Production when quality and checklist rules are satisfied (silo selection may apply).</li>
+          <li><strong>Archive batch</strong> (row action) sends the batch to the historical archive and removes it from active intake/production lists. Restore from Stock → <strong>View archive</strong> when needed.</li>
         </ul>
         <h3>Typical tasks</h3>
         <ol>
@@ -263,16 +265,17 @@
       <article id="kernel-production" class="manual-chapter">
         <h2>Kernel Production</h2>
         <span class="route-tag">kernel-production-grid</span>
-        <p><strong>Kernel Production</strong> tracks batches through factory steps: silo status, job cards, production stages, batch summary, history, and hand-off toward stock.</p>
+        <p><strong>Kernel Production</strong> tracks batches through factory steps: silo status, job cards, production stages, batch summary, history, and hand-off toward stock. <strong>Silos</strong> and <strong>Production Calendar</strong> load collapsed—expand them when needed.</p>
         <h3>Silos</h3>
-        <p>The silo panel shows occupancy. Click occupied or empty silos according to your SOP to mark state changes and associate batches when prompted.</p>
+        <p>The silo panel shows occupancy (expand the <strong>Silos</strong> section first). Click occupied or empty silos according to your SOP to mark state changes and associate batches when prompted.</p>
         <h3>Typical tasks</h3>
         <ol>
-          <li>Open <strong>Kernel Production</strong>; review silos and filters.</li>
+          <li>Open <strong>Kernel Production</strong>; expand <strong>Silos</strong> or <strong>Production Calendar</strong> if needed, then review filters.</li>
           <li>Open a batch card or row to manage job cards and production stages in order.</li>
           <li>Use Batch summary, Batch history, or view-only job card dialogs for audits and customer queries.</li>
           <li>Review the job card (production can prefill style lines). Press <strong>Save job card</strong> to keep edits; press <strong>Jobcard approved</strong> to commit stock quantities.</li>
           <li>Complete release to stock when the batch is release ready and the job card is approved.</li>
+          <li><strong>Archive batch</strong> (row menu) sends the batch to the historical archive; restore from Stock → <strong>View archive</strong> when needed.</li>
         </ol>
         <p class="contextual-help"><a href="index.html#kernel-production-grid">Kernel Production</a> · <a href="index.html#modal-kernel-job-card">Job card</a> · <a href="index.html#modal-production-stages">Production stages</a> · <a href="index.html#modal-batch-summary">Batch summary</a> · <a href="index.html#modal-batch-history">Batch history</a></p>
       </article>
@@ -286,7 +289,7 @@
           <li>Open <strong>Stock (Kernel)</strong> from the sidebar.</li>
           <li>Filter by status, product type, and location; confirm the on-screen list matches the physical warehouse.</li>
           <li>Use <strong>Send to Dispatch</strong> when moving selected lines toward a kernel dispatch basket (quantities must match reality).</li>
-          <li>On <strong>Kernel stock by style</strong>, use <strong>Edit</strong> to update batch details (number, grower, received date, wet NIS, FFA, best before) when your role allows. Turn on <strong>Adjust Stock</strong> to capture cartons or kg (the system calculates boxes before saving). A batch appears on <strong>By style</strong> only when at least one style still has remaining boxes (cartons or kg equivalent). FFA or historical production yield alone does not keep a batch on the grid — including in Adjust Stock. To restore or correct a batch with no remaining stock, use <strong>Add Batch</strong>, search by batch number, and click a match to bring it back. You can also fill supplier and styles there to create a <strong>new</strong> historical batch. Use <strong>Delete</strong> to remove a batch from stock view (soft delete), or <strong>Send back to production</strong> when the batch should return to the production flow instead.</li>
+          <li>On <strong>Kernel stock by style</strong>, use <strong>Edit</strong> to update batch details (number, grower, received date, wet NIS, FFA, best before) when your role allows. Turn on <strong>Adjust Stock</strong> to capture cartons or kg (the system calculates boxes before saving). A batch appears on <strong>By style</strong> only when at least one style still has remaining boxes (cartons or kg equivalent). FFA or historical production yield alone does not keep a batch on the grid — including in Adjust Stock. To restore or correct a batch with no remaining stock, use <strong>Add Batch</strong>, search by batch number, and click a match to bring it back. You can also fill supplier and styles there to create a <strong>new</strong> historical batch. Use <strong>Archive</strong> (batch row action) to send a batch to the historical archive — it records who archived it and when. Open <strong>View archive</strong> (toolbar) to search archived batches, see who archived them, and <strong>Restore</strong>. If the original batch number is already in use by another active batch, enter a new number when prompted. Batch numbers may be reused after archive, but not while another <strong>active</strong> batch holds the number. Use <strong>Send back to production</strong> when the batch should return to the production flow instead.</li>
           <li>Use stock take, receiving checklist, or raw material issued dialogs when your process requires adjustments or issues to production.</li>
         </ol>
         <div class="callout">
@@ -330,9 +333,10 @@
       <article id="oil-production" class="manual-chapter">
         <h2>Oil Production</h2>
         <span class="route-tag">oil-production-grid</span>
-        <p><strong>Oil Production</strong> manages extraction and finishing steps for the oil stream: raw batches released from supplier intake, production sheets (food-grade oil, protein powder, cosmetic oil, and similar), and links to finished stock.</p>
+        <p><strong>Oil Production</strong> manages extraction and finishing steps for the oil stream: raw batches released from supplier intake, production sheets (food-grade oil, protein powder, cosmetic oil, and similar), and links to finished stock. Major panels load <strong>collapsed</strong>—expand a section heading when you need that area.</p>
         <ol>
           <li>Open <strong>Oil Production</strong>.</li>
+          <li>Expand the section you need (raw ingredients, consolidated batches, oil bins, or protein batches).</li>
           <li>Review <strong>Raw ingredients in production</strong>; open batches to run steps or mark bags empty when the press run is finished.</li>
           <li>Create or open <strong>Production sheets</strong>; use form entry or file upload if both are offered.</li>
           <li>Use toolbar refresh and analytics where available after others change data.</li>

@@ -93,6 +93,10 @@ var _dashboard = function () {
                 }
             });
 
+            if (typeof initMacSectionCollapses === 'function') {
+                initMacSectionCollapses(document.querySelector('.dashboard-unified'));
+            }
+
             // Delegate to role-specific sub-init (it handles its own data loading)
             if (section === 'pallandium-integrator') {
                 if (typeof _amandaDashboard !== 'undefined' && _amandaDashboard.init) {
