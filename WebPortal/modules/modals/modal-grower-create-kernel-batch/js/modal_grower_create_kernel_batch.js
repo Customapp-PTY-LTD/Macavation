@@ -7,6 +7,27 @@ var _modal_grower_create_kernel_batch = (function () {
     'use strict';
 
     var CONTAINER_ID = 'createKernelBatchModal';
+    var CREATE_ACTION_KEY = 'grower.intake.create';
+
+    function canCreateIntakeBatch() {
+        if (typeof actionAccess !== 'undefined' && actionAccess.denyUnless) {
+            return actionAccess.denyUnless(CREATE_ACTION_KEY, 'You do not have permission to create kernel intake batches.');
+        }
+        if (typeof hasAction === 'function' && !hasAction(CREATE_ACTION_KEY)) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Not permitted', 'You do not have permission to create kernel intake batches.', 'warning');
+            }
+            return false;
+        }
+        return true;
+    }
+
+    function applyCreateBatchActionGates() {
+        if (typeof actionAccess !== 'undefined' && actionAccess.apply) {
+            var modalEl = document.getElementById(CONTAINER_ID);
+            if (modalEl) actionAccess.apply(modalEl);
+        }
+    }
 
     var SUPPLIER_TYPES = ['nis_supplier', 'supplier', 'both'];
     /** True after user edits batch number; date-only changes won't overwrite until grower changes or Refresh. */
@@ -17,6 +38,7 @@ var _modal_grower_create_kernel_batch = (function () {
 
     var api = {
         init: function () {
+            applyCreateBatchActionGates();
             var saveBtn = document.getElementById('saveCreateKernelBatchBtn');
             if (saveBtn) saveBtn.addEventListener('click', function (e) { e.preventDefault(); api.save(); });
             // Clear pending procurement on cancel / close
@@ -161,6 +183,7 @@ var _modal_grower_create_kernel_batch = (function () {
         },
 
         show: async function (options) {
+            if (!canCreateIntakeBatch()) return;
             var opts = options || {};
             var today = new Date().toISOString().split('T')[0];
 
@@ -197,6 +220,7 @@ var _modal_grower_create_kernel_batch = (function () {
         /** Open from the procurement calendar with pre-filled data. */
         showFromProcurement: function (procurement) {
             if (!procurement) return;
+            if (!canCreateIntakeBatch()) return;
             _pendingProcurementId = procurement.id || null;
             api.show({
                 supplierId:        procurement.supplier_id || null,
@@ -251,6 +275,7 @@ var _modal_grower_create_kernel_batch = (function () {
         },
 
         save: async function () {
+            if (!canCreateIntakeBatch()) return;
             var form = document.getElementById('createKernelBatchForm');
             if (!form || !form.checkValidity()) {
                 form.reportValidity();

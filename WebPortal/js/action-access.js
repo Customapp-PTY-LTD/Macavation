@@ -47,6 +47,18 @@ var actionAccess = (function () {
         },
 
         /**
+         * Block an operation unless the role has the action key.
+         * @returns {boolean} true when allowed
+         */
+        denyUnless: function (key, message) {
+            if (this.has(key)) return true;
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Not permitted', message || 'You do not have permission for this action.', 'warning');
+            }
+            return false;
+        },
+
+        /**
          * Hide/disable controls under root based on their data-action-perm key.
          * @param {HTMLElement|Document} [root=document]
          */

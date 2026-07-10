@@ -35,6 +35,8 @@ var _adminGrid = function () {
         adminAllFeatures: [],
         adminRoleFeatureIdMap: {},
         adminAllPermissions: [],
+        adminAllActions: [],
+        adminRoleActionIdMap: {},
         adminExpandedFeatureKeys: {},
         adminCustomizePermSearch: '',
         _usersLoaded: false,
@@ -200,6 +202,10 @@ var _adminGrid = function () {
                 }
                 if (t.classList.contains('admin-perm-checkbox')) {
                     scope.toggleAdminPermission(t.getAttribute('data-permission-id'), t.checked, $(t));
+                    return;
+                }
+                if (t.classList.contains('admin-action-checkbox')) {
+                    scope.toggleAdminAction(t.getAttribute('data-action-id'), t.getAttribute('data-action-key'), t.checked, $(t));
                 }
             });
             var searchInput = document.getElementById('adminCustomizePermSearch');
@@ -543,6 +549,8 @@ var _adminGrid = function () {
             scope.adminAllFeatures = [];
             scope.adminRoleFeatureIdMap = {};
             scope.adminAllPermissions = [];
+            scope.adminAllActions = [];
+            scope.adminRoleActionIdMap = {};
             scope.adminExpandedFeatureKeys = {};
             document.querySelectorAll('tr.js-admin-role-row').forEach(function (tr) { tr.classList.remove('table-active'); });
             var tbody = document.getElementById('adminFeaturesTableBody');
@@ -592,11 +600,15 @@ var _adminGrid = function () {
                 var results = await Promise.all([
                     dataFunctions.getFeatures(),
                     dataFunctions.getRoleFeatures(),
-                    dataFunctions.getRolePermissionsFiltered ? dataFunctions.getRolePermissionsFiltered({ roleId: roleId }) : []
+                    dataFunctions.getRolePermissionsFiltered ? dataFunctions.getRolePermissionsFiltered({ roleId: roleId }) : [],
+                    dataFunctions.getActions ? dataFunctions.getActions() : [],
+                    dataFunctions.getRoleActions ? dataFunctions.getRoleActions() : []
                 ]);
                 var featuresResponse = results[0];
                 var allRoleFeatures = results[1];
                 var permissions = results[2];
+                var actionsResponse = results[3];
+                var allRoleActions = results[4];
                 if (Array.isArray(featuresResponse)) {
                     scope.adminAllFeatures = featuresResponse;
                 } else if (featuresResponse && featuresResponse.get_features) {
@@ -612,6 +624,13 @@ var _adminGrid = function () {
                     }
                 });
                 scope.adminAllPermissions = Array.isArray(permissions) ? permissions : [];
+                scope.adminAllActions = Array.isArray(actionsResponse) ? actionsResponse : [];
+                scope.adminRoleActionIdMap = {};
+                (Array.isArray(allRoleActions) ? allRoleActions : []).forEach(function (ra) {
+                    if (String(ra.role_id) === String(roleId) && ra.value === 'true') {
+                        scope.adminRoleActionIdMap[String(ra.action_key)] = ra.id;
+                    }
+                });
                 scope.renderAdminFeatureRows();
                 scope.updateAdminFeatureSummary();
             } catch (error) {
@@ -643,6 +662,67 @@ var _adminGrid = function () {
                 if (!placed) other.push(perm);
             });
             return { groups: groups, other: other };
+        },
+
+        groupAdminActions: () => {
+            const scope = _adminGrid;
+            var map = (typeof _permissionModuleMap !== 'undefined') ? _permissionModuleMap : null;
+            var groups = {};
+            var other = [];
+            scope.adminAllFeatures.forEach(function (f) { groups[String(f.key)] = []; });
+            scope.adminAllActions.forEach(function (action) {
+                var placed = false;
+                if (map && map.actionBelongsToFeature) {
+                    for (var i = 0; i < scope.adminAllFeatures.length; i++) {
+                        var fk = scope.adminAllFeatures[i].key;
+                        if (map.actionBelongsToFeature(action, fk)) {
+                            groups[String(fk)].push(action);
+                            placed = true;
+                            break;
+                        }
+                    }
+                }
+                if (!placed) other.push(action);
+            });
+            return { groups: groups, other: other };
+        },
+
+        actionMatchesSearch: (action) => {
+            const scope = _adminGrid;
+            var term = (scope.adminCustomizePermSearch || '').toLowerCase();
+            if (!term) return true;
+            return String(action.key || '').toLowerCase().indexOf(term) !== -1 ||
+                String(action.label || '').toLowerCase().indexOf(term) !== -1 ||
+                String(action.description || '').toLowerCase().indexOf(term) !== -1;
+        },
+
+        isActionAllowed: (action) => {
+            const scope = _adminGrid;
+            return Object.prototype.hasOwnProperty.call(scope.adminRoleActionIdMap, String(action.key));
+        },
+
+        renderAdminActionRows: (actions) => {
+            const scope = _adminGrid;
+            var visible = actions.filter(scope.actionMatchesSearch);
+            if (!visible.length) {
+                return '';
+            }
+            var rows = visible.map(function (a) {
+                var aid = escapeHtml(String(a.id));
+                var akey = escapeHtml(String(a.key || ''));
+                var allowed = scope.isActionAllowed(a) ? ' checked' : '';
+                return '<tr class="admin-action-row">' +
+                    '<td class="text-center">' +
+                    '<div class="form-check d-flex justify-content-center mb-0">' +
+                    '<input class="form-check-input admin-action-checkbox" type="checkbox" data-action-id="' + aid + '" data-action-key="' + akey + '"' + allowed + '>' +
+                    '</div></td>' +
+                    '<td class="admin-perm-name">' + escapeHtml(a.label || '') + '</td>' +
+                    '<td class="text-muted small"><code>' + akey + '</code></td>' +
+                    '<td class="text-muted small">Button action</td>' +
+                    '<td></td>' +
+                    '</tr>';
+            }).join('');
+            return '<tr class="admin-perm-section-row"><td></td><td colspan="4" class="text-uppercase small text-muted py-2">Button actions</td></tr>' + rows;
         },
 
         permissionMatchesSearch: (perm) => {
@@ -683,6 +763,26 @@ var _adminGrid = function () {
             }).join('');
         },
 
+        renderAdminExpandedRows: (actions, perms) => {
+            const scope = _adminGrid;
+            var html = '';
+            var actionRows = scope.renderAdminActionRows(actions);
+            if (actionRows) html += actionRows;
+            var permRows = scope.renderAdminPermRows(perms);
+            if (permRows && perms.length) {
+                if (actionRows) {
+                    html += '<tr class="admin-perm-section-row"><td></td><td colspan="4" class="text-uppercase small text-muted py-2">Database functions</td></tr>';
+                }
+                html += permRows;
+            }
+            if (!html) {
+                html = '<tr class="admin-perm-row"><td></td><td colspan="4" class="text-muted small py-2">' +
+                    (scope.adminCustomizePermSearch ? 'No permissions or actions match the filter.' : 'No button actions or database permissions in this module.') +
+                    '</td></tr>';
+            }
+            return html;
+        },
+
         renderAdminFeatureRows: () => {
             const scope = _adminGrid;
             var tbody = document.getElementById('adminFeaturesTableBody');
@@ -692,6 +792,7 @@ var _adminGrid = function () {
                 return;
             }
             var grouped = scope.groupAdminPermissions();
+            var actionGrouped = scope.groupAdminActions();
             var html = '';
             scope.adminAllFeatures.forEach(function (feature) {
                 var fkRaw = String(feature.key || '');
@@ -701,12 +802,14 @@ var _adminGrid = function () {
                 var fn = escapeHtml(feature.name || '');
                 var fd = escapeHtml(feature.description || '');
                 var perms = grouped.groups[fkRaw] || [];
+                var actions = actionGrouped.groups[fkRaw] || [];
                 var expanded = scope.adminExpandedFeatureKeys[fkRaw] === true;
-                var allowedCount = perms.filter(scope.isPermissionAllowed).length;
+                var allowedCount = perms.filter(scope.isPermissionAllowed).length + actions.filter(scope.isActionAllowed).length;
+                var totalCount = perms.length + actions.length;
                 var expandBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-admin-feature-expand" data-feature-key="' + fk + '"' +
-                    (perms.length ? '' : ' disabled') + ' aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
+                    (totalCount ? '' : ' disabled') + ' aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
                     '<i class="fas fa-chevron-' + (expanded ? 'down' : 'right') + ' me-1"></i>' +
-                    allowedCount + ' / ' + perms.length +
+                    allowedCount + ' / ' + totalCount +
                     '</button>';
                 html += '<tr class="feature-row" data-feature-key="' + fk + '">' +
                     '<td class="text-center">' +
@@ -719,16 +822,18 @@ var _adminGrid = function () {
                     '<td class="text-muted small">' + fd + '</td>' +
                     '<td class="text-end">' + expandBtn + '</td>' +
                     '</tr>';
-                if (expanded && perms.length) {
+                if (expanded && totalCount) {
                     html += '<tr class="admin-perm-group" data-feature-key="' + fk + '"><td colspan="5" class="p-0">' +
                         '<table class="table align-middle mb-0 admin-perm-table"><tbody>' +
-                        scope.renderAdminPermRows(perms) +
+                        scope.renderAdminExpandedRows(actions, perms) +
                         '</tbody></table></td></tr>';
                 }
             });
-            if (grouped.other.length) {
+            if (grouped.other.length || actionGrouped.other.length) {
                 var otherExpanded = scope.adminExpandedFeatureKeys.__other__ === true;
-                var otherAllowed = grouped.other.filter(scope.isPermissionAllowed).length;
+                var otherAllowed = grouped.other.filter(scope.isPermissionAllowed).length +
+                    actionGrouped.other.filter(scope.isActionAllowed).length;
+                var otherTotal = grouped.other.length + actionGrouped.other.length;
                 html += '<tr class="feature-row admin-other-row" data-feature-key="__other__">' +
                     '<td class="text-center text-muted"><i class="fas fa-shapes"></i></td>' +
                     '<td class="fw-medium">Other / shared</td>' +
@@ -737,13 +842,13 @@ var _adminGrid = function () {
                     '<td class="text-end">' +
                     '<button type="button" class="btn btn-sm btn-outline-secondary js-admin-feature-expand" data-feature-key="__other__" aria-expanded="' + (otherExpanded ? 'true' : 'false') + '">' +
                     '<i class="fas fa-chevron-' + (otherExpanded ? 'down' : 'right') + ' me-1"></i>' +
-                    otherAllowed + ' / ' + grouped.other.length +
+                    otherAllowed + ' / ' + otherTotal +
                     '</button>' +
                     '</td></tr>';
                 if (otherExpanded) {
                     html += '<tr class="admin-perm-group" data-feature-key="__other__"><td colspan="5" class="p-0">' +
                         '<table class="table align-middle mb-0 admin-perm-table"><tbody>' +
-                        scope.renderAdminPermRows(grouped.other) +
+                        scope.renderAdminExpandedRows(actionGrouped.other, grouped.other) +
                         '</tbody></table></td></tr>';
                 }
             }
@@ -767,9 +872,13 @@ var _adminGrid = function () {
             }).length;
             var permTotal = scope.adminAllPermissions.length;
             var permAllowed = scope.adminAllPermissions.filter(scope.isPermissionAllowed).length;
+            var actionTotal = scope.adminAllActions.length;
+            var actionAllowed = scope.adminAllActions.filter(scope.isActionAllowed).length;
             summaryEl.style.display = '';
             summaryEl.innerHTML = '<span class="badge bg-primary me-2">' + enabled + ' / ' + total + '</span>' +
                 '<span class="text-muted me-3">modules enabled</span>' +
+                '<span class="badge bg-secondary me-2">' + actionAllowed + ' / ' + actionTotal + '</span>' +
+                '<span class="text-muted me-3">button actions</span>' +
                 '<span class="badge bg-secondary me-2">' + permAllowed + ' / ' + permTotal + '</span>' +
                 '<span class="text-muted">database permissions allowed</span>';
         },
@@ -837,6 +946,66 @@ var _adminGrid = function () {
             }
         },
 
+        toggleAdminAction: async (actionId, actionKey, enabled, $checkbox) => {
+            const scope = _adminGrid;
+            if (!scope.selectedRoleId || !actionId) return;
+            var selectedRole = scope.data.roles.find(function (r) { return String(r.id) === String(scope.selectedRoleId); });
+            if (selectedRole && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(selectedRole)) {
+                scope.showNotification('Only super users may change permissions for the super_user role.', 'warning');
+                $checkbox.prop('checked', !enabled);
+                return;
+            }
+            $checkbox.prop('disabled', true);
+            try {
+                if (enabled) {
+                    var result = await dataFunctions.createRoleAction({
+                        role_id: scope.selectedRoleId,
+                        action_id: actionId,
+                        value: 'true'
+                    });
+                    var newId = null;
+                    if (result) {
+                        if (result.id) newId = result.id;
+                        else if (Array.isArray(result) && result[0] && result[0].id) newId = result[0].id;
+                    }
+                    if (newId) scope.adminRoleActionIdMap[String(actionKey)] = newId;
+                    else {
+                        var allRoleActions = await dataFunctions.getRoleActions();
+                        (Array.isArray(allRoleActions) ? allRoleActions : []).forEach(function (ra) {
+                            if (String(ra.role_id) === String(scope.selectedRoleId) && String(ra.action_key) === String(actionKey)) {
+                                scope.adminRoleActionIdMap[String(actionKey)] = ra.id;
+                            }
+                        });
+                    }
+                } else {
+                    var roleActionId = scope.adminRoleActionIdMap[String(actionKey)];
+                    if (roleActionId) {
+                        await dataFunctions.deleteRoleAction(roleActionId);
+                        delete scope.adminRoleActionIdMap[String(actionKey)];
+                    }
+                }
+                if (dataFunctions.clearCachePattern) {
+                    dataFunctions.clearCachePattern('get_role_actions');
+                    dataFunctions.clearCachePattern('get_actions_for_role');
+                }
+                scope.updateAdminFeatureSummary();
+                scope.refreshAdminExpandBadges();
+                var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
+                var currentRoleId = user && user.role_id ? user.role_id : null;
+                if (currentRoleId && String(currentRoleId) === String(scope.selectedRoleId)) {
+                    if (typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
+                        authService.fetchAndCacheFeatures(currentRoleId);
+                    }
+                }
+            } catch (error) {
+                console.error('[Admin] Action toggle error:', error);
+                scope.showNotification('Error saving: ' + (error.message || ''), 'error');
+                $checkbox.prop('checked', !enabled);
+            } finally {
+                $checkbox.prop('disabled', false);
+            }
+        },
+
         toggleAdminPermission: async (permissionId, enabled, $checkbox) => {
             const scope = _adminGrid;
             if (!scope.selectedRoleId || !permissionId) return;
@@ -878,12 +1047,15 @@ var _adminGrid = function () {
         refreshAdminExpandBadges: () => {
             const scope = _adminGrid;
             var grouped = scope.groupAdminPermissions();
+            var actionGrouped = scope.groupAdminActions();
             document.querySelectorAll('#adminFeaturesTableBody .js-admin-feature-expand').forEach(function (btn) {
                 var key = btn.getAttribute('data-feature-key');
                 var perms = key === '__other__' ? grouped.other : (grouped.groups[key] || []);
-                var allowed = perms.filter(scope.isPermissionAllowed).length;
-                var icon = btn.querySelector('i');
-                btn.innerHTML = (icon ? icon.outerHTML : '') + allowed + ' / ' + perms.length;
+                var actions = key === '__other__' ? actionGrouped.other : (actionGrouped.groups[key] || []);
+                var allowed = perms.filter(scope.isPermissionAllowed).length + actions.filter(scope.isActionAllowed).length;
+                var total = perms.length + actions.length;
+                var expanded = btn.getAttribute('aria-expanded') === 'true';
+                btn.innerHTML = '<i class="fas fa-chevron-' + (expanded ? 'down' : 'right') + ' me-1"></i>' + allowed + ' / ' + total;
             });
         },
 

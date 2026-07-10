@@ -49,7 +49,7 @@
     <ol class="guide-page-steps">
       <li>Open from <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> → <strong>Add role</strong> (or equivalent).</li>
       <li>Enter a clear role name and description other admins will recognise.</li>
-      <li>Save, then use <strong>Customize</strong> on that role to set sidebar modules and their database permissions so menus and APIs match responsibility.</li>
+      <li>Save, then use <strong>Customize</strong> on that role to set sidebar modules, button actions (for example <strong>Create intake batch</strong> on Grower Intake), and database permissions so menus and APIs match responsibility.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-admin-add-role.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -1343,13 +1343,13 @@
   <section id="admin-roles-management" class="guide-section" data-guide-id="admin-roles-management">
     <h2>User &amp; access — Roles &amp; modules</h2>
 <p class="guide-lead"><strong>Roles &amp; modules</strong> (User &amp; access) — full-width roles list; use <strong>Customize</strong> for both the sidebar modules and the database function permissions inside each module.</p>
-    <p class="guide-how">Each row has <strong>Edit role</strong> (name and description only) and <strong>Customize</strong>. In Customize, the <strong>On</strong> tick shows the module in the sidebar, and expanding a module reveals its database permissions (Supabase functions) with their own tick boxes. Click a row (outside the buttons) to highlight it.</p>
+    <p class="guide-how">Each row has <strong>Edit role</strong> (name and description only) and <strong>Customize</strong>. In Customize, the <strong>On</strong> tick shows the module in the sidebar. Expanding a module reveals <strong>button actions</strong> (controls such as <em>Create intake batch</em>) and <strong>database functions</strong> with their own tick boxes. Click a row (outside the buttons) to highlight it.</p>
 
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> tab.</li>
       <li>Use <strong>Customize</strong> on a role to open the dialog; the <strong>On</strong> tick controls sidebar visibility (this matches the former Role Features screen).</li>
-      <li>Expand a module (the database permissions button on its row) to grant or revoke the individual Supabase functions the role may run; toggle cautiously and follow least privilege.</li>
+      <li>Expand a module (the actions &amp; permissions button on its row) to grant or revoke button actions and Supabase functions; toggle cautiously and follow least privilege. Button actions such as <strong>Create intake batch</strong> are enforced in the UI (toolbar, modal save, and procurement drag) — not only hidden. The <code>admin</code> and <code>super_user</code> roles always retain all button actions regardless of these ticks.</li>
       <li>Permissions that are not tied to a single module appear under <strong>Other / shared</strong> at the bottom of the list.</li>
       <li>Use <strong>Edit role</strong> when you only need to change the role name or description.</li>
     </ol>

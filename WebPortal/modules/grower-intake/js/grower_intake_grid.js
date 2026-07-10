@@ -67,6 +67,9 @@ var _growerIntakeGrid = function () {
                 if (typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.init) _modal_grower_receiving_checklist.init();
                 if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.init) _modal_grower_create_kernel_batch.init();
                 if (typeof _modal_grower_link_sample_to_batch !== 'undefined' && _modal_grower_link_sample_to_batch.init) _modal_grower_link_sample_to_batch.init();
+                if (typeof actionAccess !== 'undefined' && actionAccess.apply) {
+                    actionAccess.apply(document.querySelector('.module-content') || document.getElementById('content-area') || document);
+                }
             }).catch((err) => {
                 console.error('[Grower Intake] Error loading modals:', err);
                 if (typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.init) _modal_grower_receiving_checklist.init();
@@ -113,6 +116,10 @@ var _growerIntakeGrid = function () {
 
             $('#addSampleBtn').off('click').on('click', () => scope.showAddSampleModal());
             $('#createKernelBatchBtn').off('click').on('click', () => {
+                if (typeof actionAccess !== 'undefined' && actionAccess.denyUnless &&
+                    !actionAccess.denyUnless('grower.intake.create', 'You do not have permission to create kernel intake batches.')) {
+                    return;
+                }
                 if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.show) {
                     _modal_grower_create_kernel_batch.show();
                 } else if (typeof Swal !== 'undefined') {
@@ -1205,6 +1212,11 @@ var _growerIntakeGrid = function () {
                     var procurement = null;
                     (scope.procurementItems || []).forEach(function (p) { if (p.id === procurementId) procurement = p; });
                     if (!procurement) return;
+
+                    if (typeof actionAccess !== 'undefined' && actionAccess.denyUnless &&
+                        !actionAccess.denyUnless('grower.intake.create', 'You do not have permission to create kernel intake batches from procurement.')) {
+                        return;
+                    }
 
                     // Open create-batch modal pre-filled
                     if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.showFromProcurement) {
