@@ -426,11 +426,16 @@ var _dataFunctions = function () {
                 msg.indexOf('PGRST301') >= 0;
         },
 
-        buildPostgrestRpcBody: function (params) {
+        buildPostgrestRpcBody: function (params, options) {
             const out = {};
             if (!params || typeof params !== 'object') return out;
+            const preserveNulls = !!(options && options.preserveNulls);
             Object.keys(params).forEach(function (key) {
                 const val = params[key];
+                if (preserveNulls && val === null) {
+                    out[key] = null;
+                    return;
+                }
                 if (val !== null && val !== undefined && val !== '') {
                     out[key] = val;
                 }
@@ -526,7 +531,7 @@ var _dataFunctions = function () {
             const response = await fetch(cfg.url + '/rest/v1/rpc/' + encodeURIComponent(functionName), {
                 method: 'POST',
                 headers: rpcHeaders,
-                body: JSON.stringify(scope.buildPostgrestRpcBody(params))
+                body: JSON.stringify(scope.buildPostgrestRpcBody(params, { preserveNulls: options.preserveNullParams === true }))
             });
             const responseText = await response.text();
             if (!response.ok) {
@@ -2718,11 +2723,18 @@ var _dataFunctions = function () {
                 p_id:                  payload.id != null && payload.id !== '' ? payload.id : null,
                 p_scheduled_date:      payload.scheduled_date || null,
                 p_supplier_id:         payload.supplier_id != null && payload.supplier_id !== '' ? payload.supplier_id : null,
-                p_grower_name:         payload.grower_name != null ? payload.grower_name : '',
+                p_grower_name:         payload.grower_name != null && String(payload.grower_name).trim() !== '' ? String(payload.grower_name).trim() : null,
                 p_predicted_weight_kg: payload.predicted_weight_kg != null ? payload.predicted_weight_kg : null,
                 p_sort_index:          payload.sort_index != null ? payload.sort_index : null
             };
-            const result = await this.callFunction('upsert_kernel_intake_procurement', params, token, { useCache: false });
+            await this.ensureConfigured();
+            const authToken = token || this.getToken();
+            const result = await this.callSupabaseRpc(
+                'upsert_kernel_intake_procurement',
+                params,
+                authToken,
+                { useAnonAuth: true, preserveNullParams: true }
+            );
             this.clearCachePattern('kernel_intake_procurements');
             const rows = this.extractKernelIntakeProcurementRowsFromRaw(result, 0);
             return rows.length > 0 ? this.normalizeKernelIntakeProcurementRow(rows[0]) : null;
