@@ -85,7 +85,7 @@
           <p><strong>Kernel stream</strong></p>
           <ol>
             <li>Grower Intake (wet NIS, receiving, samples)</li>
-            <li>Kernel Production (job cards, stages, silos)</li>
+            <li>Kernel Production (job cards, stages)</li>
             <li>Stock (Kernel) and Kernel Dispatch</li>
           </ol>
           <p><strong>Oil and protein stream</strong></p>
@@ -248,7 +248,7 @@
         <ul>
           <li><strong>Receiving checklist</strong> (stage 1) must be completed before batch test and sample actions unlock.</li>
           <li><strong>Create kernel batch</strong> registers a new intake record tied to a CRM grower/supplier. Each batch number must be unique among <strong>active</strong> kernel batches — you cannot create a second active batch with the same number while one is still in use.</li>
-          <li><strong>Release to production</strong> hands the batch to Kernel Production when quality and checklist rules are satisfied (silo selection may apply).</li>
+          <li><strong>Release to production</strong> hands the batch to Kernel Production when quality and checklist rules are satisfied.</li>
           <li><strong>Archive batch</strong> (row action) sends the batch to the historical archive and removes it from active intake/production lists. Restore from Stock → <strong>View archive</strong> when needed.</li>
         </ul>
         <h3>Typical tasks</h3>
@@ -265,12 +265,10 @@
       <article id="kernel-production" class="manual-chapter">
         <h2>Kernel Production</h2>
         <span class="route-tag">kernel-production-grid</span>
-        <p><strong>Kernel Production</strong> tracks batches through factory steps: silo status, job cards, production stages, batch summary, history, and hand-off toward stock. <strong>Silos</strong> and <strong>Production Calendar</strong> load collapsed—expand them when needed.</p>
-        <h3>Silos</h3>
-        <p>The silo panel shows occupancy (expand the <strong>Silos</strong> section first). Click occupied or empty silos according to your SOP to mark state changes and associate batches when prompted.</p>
+        <p><strong>Kernel Production</strong> tracks batches through factory steps: job cards, production stages, batch summary, history, and hand-off toward stock. Use <strong>Production Calendar</strong> from the toolbar when you need day-by-day activity.</p>
         <h3>Typical tasks</h3>
         <ol>
-          <li>Open <strong>Kernel Production</strong>; expand <strong>Silos</strong> or <strong>Production Calendar</strong> if needed, then review filters.</li>
+          <li>Open <strong>Kernel Production</strong>; open <strong>Production Calendar</strong> if needed, then review filters.</li>
           <li>Open a batch card or row to manage job cards and production stages in order.</li>
           <li>Use Batch summary, Batch history, or view-only job card dialogs for audits and customer queries.</li>
           <li>Review the job card (production can prefill style lines). Press <strong>Save job card</strong> to keep edits; press <strong>Jobcard approved</strong> to commit stock quantities.</li>

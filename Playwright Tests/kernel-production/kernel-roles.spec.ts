@@ -8,7 +8,7 @@ import { navigateToModule } from '../helpers/navigation.helper';
 
 const KERNEL_ROUTES = [
   { route: 'stock-management-kernel', name: 'Stock (Kernel)', selector: '#kernelBatchJourneyCard, #stockManagementTitle' },
-  { route: 'kernel-production-grid', name: 'Kernel Production', selector: '#kpSilosGrid, #kpKanbanBoard, .module-content' },
+  { route: 'kernel-production-grid', name: 'Kernel Production', selector: '#kpKanbanBoard, #kpTableCard, .module-content' },
   { route: 'kernel-dispatch-grid', name: 'Kernel Dispatch', selector: '#kdKanbanBoard, #kdTableCards, .module-content' },
 ] as const;
 
@@ -31,7 +31,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
     await navigateToModule(page, 'kernel-production-grid');
     await page.waitForTimeout(1500);
     await expect(page.locator('#content-area:has-text("Access Denied")')).not.toBeVisible();
-    await expect(page.locator('#kpSilosGrid, #kpKanbanBoard, .module-content').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#kpKanbanBoard, #kpTableCard, .module-content').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('TC-KR-003: Sales Executive can access Kernel Dispatch', async ({ testData, loginAsSalesExecutive }) => {
@@ -61,7 +61,7 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
     await navigateToModule(page, 'kernel-production-grid');
     await page.waitForTimeout(1500);
     await expect(page.locator('#content-area:has-text("Access Denied")')).not.toBeVisible();
-    await expect(page.locator('#kpSilosGrid, #kpKanbanBoard, .module-content').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#kpKanbanBoard, #kpTableCard, .module-content').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('TC-KR-006: Production Manager can access Kernel Dispatch', async ({ testData, loginAsProductionManager }) => {
@@ -96,6 +96,6 @@ test.describe('Kernel modules - Role-based access @kernel @rbac', () => {
     await navigateToModule(page, 'kernel-production-grid');
     await page.waitForTimeout(1500);
     await expect(page.locator('#content-area:has-text("Access Denied")')).not.toBeVisible();
-    await expect(page.locator('#kpSilosGrid, .module-content').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#kpKanbanBoard, #kpTableCard, .module-content').first()).toBeVisible({ timeout: 10000 });
   });
 });

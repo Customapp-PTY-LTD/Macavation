@@ -31,10 +31,8 @@ var _growerIntakeGrid = function () {
         filteredIntakeBatches: [],
         currentPage: 1,
         itemsPerPage: 20,
-        wetNisDisplayMode: 'both', // 'supplied' | 'actual' | 'both'
         currentView: 'kanban',
-        releaseBatchIdForSilos: null,
-        siloList: [],
+        wetNisDisplayMode: 'both', // 'supplied' | 'actual' | 'both'
 
         // Procurement calendar state
         procurementCalendarMonth: null,
@@ -197,9 +195,7 @@ var _growerIntakeGrid = function () {
                 e.preventDefault();
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
-                if (batchId && typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.showSiloPickerModal) {
-                    _growerIntakeGrid.showSiloPickerModal(batchId);
-                } else if (batchId && _growerIntakeGrid.moveBatchToRawStock) {
+                if (batchId && typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.moveBatchToRawStock) {
                     _growerIntakeGrid.moveBatchToRawStock(batchId);
                 }
             });
@@ -221,35 +217,6 @@ var _growerIntakeGrid = function () {
                 if (batchId && typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.deleteBatch) {
                     _growerIntakeGrid.deleteBatch(batchId);
                 }
-            });
-            // Silo selection modal: toggle selection on empty silo click (delegate from grid so clicks on label/children work).
-            // Use namespaced events and .off() first so re-running bindEvents (e.g. after re-navigating to Grower Intake) never stacks handlers; duplicate handlers cause toggle to run twice and selection to appear to do nothing (intermittent "can't select").
-            $(document).off('click.growerIntakeSilo', '#siloSelectionGrid .silo-box').on('click.growerIntakeSilo', '#siloSelectionGrid .silo-box', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var $box = $(this);
-                if ($box.hasClass('silo-selectable')) {
-                    $box.toggleClass('silo-selected');
-                    _growerIntakeGrid.updateSiloSelectionSummary();
-                }
-            });
-            $(document).off('keydown.growerIntakeSilo', '#siloSelectionGrid .silo-box').on('keydown.growerIntakeSilo', '#siloSelectionGrid .silo-box', function (e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    var $box = $(this);
-                    if ($box.hasClass('silo-selectable')) {
-                        $box.toggleClass('silo-selected');
-                        _growerIntakeGrid.updateSiloSelectionSummary();
-                    }
-                }
-            });
-            $('#siloSelectionConfirmBtn').off('click').on('click', function () {
-                if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.confirmSiloSelection) {
-                    _growerIntakeGrid.confirmSiloSelection();
-                }
-            });
-            $('#siloSelectionModal').off('hidden.bs.modal.growerIntakeSilo').on('hidden.bs.modal.growerIntakeSilo', function () {
-                _growerIntakeGrid.releaseBatchIdForSilos = null;
             });
         },
 
@@ -561,111 +528,6 @@ var _growerIntakeGrid = function () {
                     }
                 }
             });
-        },
-
-        showSiloPickerModal: async (batchId) => {
-            const scope = _growerIntakeGrid;
-            if (!batchId) return;
-            scope.releaseBatchIdForSilos = batchId;
-            var gridEl = document.getElementById('siloSelectionGrid');
-            var btnEl = document.getElementById('siloSelectionConfirmBtn');
-            if (gridEl) gridEl.innerHTML = '<p class="text-muted mb-0">Loading silos…</p>';
-            if (btnEl) btnEl.disabled = true;
-            try {
-                var list = typeof dataFunctions !== 'undefined' && dataFunctions.getSilos ? await dataFunctions.getSilos(null, true) : [];
-                scope.siloList = Array.isArray(list) ? list : [];
-                scope.renderSiloSelectionGrid();
-                scope.updateSiloSelectionSummary();
-            } catch (e) {
-                console.error(e);
-                if (gridEl) gridEl.innerHTML = '<p class="text-danger mb-0">Failed to load silos.</p>';
-            }
-            var modalEl = document.getElementById('siloSelectionModal');
-            if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
-            else if (typeof $ !== 'undefined' && $.fn.modal) $('#siloSelectionModal').modal('show');
-        },
-
-        renderSiloSelectionGrid: () => {
-            const scope = _growerIntakeGrid;
-            var gridEl = document.getElementById('siloSelectionGrid');
-            if (!gridEl) return;
-            var occupied = {};
-            (scope.siloList || []).forEach(function (s) {
-                var num = s.silo_number != null ? Number(s.silo_number) : null;
-                if (num >= 1 && num <= 12 && (s.kernel_id || s.oil_batch_id)) {
-                    occupied[num] = { grower_name: s.grower_name || s.growerName || null };
-                }
-            });
-            function escapeHtml(t) {
-                if (t == null || typeof t !== 'string') return '';
-                var div = document.createElement('div');
-                div.textContent = t;
-                return div.innerHTML;
-            }
-            var html = '';
-            for (var n = 1; n <= 12; n++) {
-                var isOccupied = !!occupied[n];
-                var cls = 'silo-box ' + (isOccupied ? 'silo-occupied' : 'silo-empty silo-selectable');
-                var grower = occupied[n] && occupied[n].grower_name ? occupied[n].grower_name : null;
-                var labelHtml = grower
-                    ? '<span class="silo-label">' + n + '</span><span class="silo-grower">' + escapeHtml(grower) + '</span>'
-                    : '<span class="silo-label">' + n + '</span>';
-                var title = isOccupied ? ('Silo ' + n + (grower ? ': ' + grower : '') + ' (occupied)') : ('Silo ' + n + ' (available)');
-                html += '<div class="' + cls + '" data-silo-number="' + n + '" role="button" tabindex="0" title="' + escapeHtml(title) + '">' + labelHtml + '</div>';
-            }
-            gridEl.innerHTML = html;
-        },
-
-        updateSiloSelectionSummary: () => {
-            var selected = [];
-            $('#siloSelectionGrid .silo-selectable.silo-selected').each(function () {
-                var n = $(this).data('silo-number');
-                if (n != null) selected.push(Number(n));
-            });
-            var summaryEl = document.getElementById('siloSelectionSummary');
-            var btnEl = document.getElementById('siloSelectionConfirmBtn');
-            if (summaryEl) summaryEl.textContent = selected.length > 0 ? 'Silos selected: ' + selected.sort(function (a, b) { return a - b; }).join(', ') : 'Select at least one silo.';
-            if (btnEl) btnEl.disabled = selected.length === 0;
-        },
-
-        confirmSiloSelection: async () => {
-            const scope = _growerIntakeGrid;
-            var kernelId = scope.releaseBatchIdForSilos;
-            if (!kernelId) return;
-            var selected = [];
-            $('#siloSelectionGrid .silo-selectable.silo-selected').each(function () {
-                var n = $(this).data('silo-number');
-                if (n != null) selected.push(Number(n));
-            });
-            if (selected.length === 0) return;
-            var btnEl = document.getElementById('siloSelectionConfirmBtn');
-            if (btnEl) btnEl.disabled = true;
-            try {
-                var releaseResult = await dataFunctions.releaseKernelToProduction({ kernel_id: kernelId });
-                if (releaseResult && releaseResult.success === false) {
-                    throw new Error(releaseResult.error || 'Release failed');
-                }
-                if (typeof dataFunctions.assignKernelToSilos === 'function') {
-                    var assignResult = await dataFunctions.assignKernelToSilos(kernelId, selected);
-                    if (assignResult && assignResult.success === false) {
-                        throw new Error(assignResult.error || 'Silo assignment failed');
-                    }
-                }
-                var modalEl = document.getElementById('siloSelectionModal');
-                if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl).hide();
-                else if (typeof $ !== 'undefined') $('#siloSelectionModal').modal('hide');
-                var batch = scope.intakeBatches.find(function (x) { return String(x.id) === String(kernelId); });
-                scope.loadIntakeBatches(true);
-                if (typeof HandoffDialog !== 'undefined' && HandoffDialog.showKernelReleaseToProduction) {
-                    HandoffDialog.showKernelReleaseToProduction(batch || { batch_number: kernelId });
-                } else if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'success', title: 'Released to production', text: 'Batch is in Kernel Production and assigned to silo(s) ' + selected.sort(function (a, b) { return a - b; }).join(', ') + '.', timer: 2500, showConfirmButton: false });
-                }
-            } catch (e) {
-                console.error(e);
-                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to release or assign silos', 'error');
-                if (btnEl) btnEl.disabled = false;
-            }
         },
 
         moveBatchToRawStock: async (batchId) => {
