@@ -90,65 +90,6 @@
     background: var(--mac-bg-secondary);
 }
 
-/* Silos grid at top: 2 rows x 6, red = occupied, white = empty */
-.kp-silos-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0.5rem;
-    max-width: 100%;
-}
-.kp-silo-box {
-    aspect-ratio: 1;
-    border: 2px solid var(--mac-border);
-    border-radius: 0.35rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 1rem;
-    background-color: var(--mac-bg-secondary);
-    color: var(--mac-text);
-}
-.kp-silo-box {
-    flex-direction: column;
-    padding: 0.25rem;
-}
-.kp-silo-box .kp-silo-label { pointer-events: none; font-size: 1rem; }
-.kp-silo-box .kp-silo-grower {
-    pointer-events: none;
-    font-size: 0.65rem;
-    font-weight: 500;
-    line-height: 1.15;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin-top: 0.15rem;
-}
-.kp-silo-occupied {
-    background-color: var(--mac-danger-light);
-    border-color: rgba(var(--mac-danger-rgb), 0.35);
-    color: var(--mac-danger);
-    cursor: pointer;
-}
-.kp-silo-occupied:hover {
-    background-color: var(--mac-danger-light);
-    border-color: rgba(var(--mac-danger-rgb), 0.5);
-}
-.kp-silo-empty {
-    background-color: var(--mac-bg-secondary);
-    cursor: pointer;
-}
-.kp-silo-empty:hover {
-    background-color: var(--mac-bg-tertiary);
-    border-color: var(--mac-text-tertiary);
-}
-.kp-silo-box.kp-silo-selected {
-    border-color: var(--mac-text);
-    border-width: 3px;
-    box-shadow: 0 0 0 1px var(--mac-text);
-}
-
 .kp-production-calendar-toolbar {
     display: flex;
     align-items: center;
@@ -311,8 +252,8 @@
     }
 }
 
-/* NOTE: toolbar-dropdown sizing (Silos horizontal scroll + compact calendar)
-   lives in a <style> block inside kernel_production_grid.html, not here —
-   appRouter loads this .css with a plain href (no cache-bust), so edits here can
-   lag behind the freshly-fetched module HTML. Keep that layout in the HTML. */
+/* NOTE: toolbar-dropdown sizing (compact calendar) lives in a <style> block
+   inside kernel_production_grid.html, not here — appRouter loads this .css with
+   a plain href (no cache-bust), so edits here can lag behind the freshly-fetched
+   module HTML. Keep that layout in the HTML. */
 

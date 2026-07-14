@@ -10,7 +10,7 @@ import { navigateToModule } from '../helpers/navigation.helper';
 
 const KERNEL_MODULES: { route: string; name: string; contentSelector: string }[] = [
   { route: 'grower-intake-grid', name: 'Grower Intake', contentSelector: '.module-content, #growerIntakeGrid' },
-  { route: 'kernel-production-grid', name: 'Kernel Production', contentSelector: '#kpSilosGrid, #kpKanbanBoard, .module-content' },
+  { route: 'kernel-production-grid', name: 'Kernel Production', contentSelector: '#kpKanbanBoard, #kpTableCard, .module-content' },
   { route: 'stock-management-kernel', name: 'Stock (Kernel)', contentSelector: '#kernelBatchJourneyCard, #stockManagementTitle, .module-content' },
   { route: 'kernel-dispatch-grid', name: 'Kernel Dispatch', contentSelector: '#kdKanbanBoard, #kdTableCards, .module-content' },
 ];

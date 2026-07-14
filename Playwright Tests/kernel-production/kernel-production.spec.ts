@@ -18,15 +18,13 @@ test.describe('Kernel Production - Batch Management @kernel-production', () => {
   test('TC-KP-001: View Production Batches List', async ({ authenticatedPage }) => {
     await authenticatedPage.waitForTimeout(500);
     await expect(authenticatedPage.locator('h1:has-text("Kernel Production Workflow"), h2:has-text("Kernel Production")').first()).toBeVisible({ timeout: 10000 });
-    await expect(authenticatedPage.locator('#kpSilosGrid, #kpKanbanBoard, #kpTableCard').first()).toBeVisible({ timeout: 10000 });
+    await expect(authenticatedPage.locator('#kpKanbanBoard, #kpTableCard').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('TC-KP-002: Create New Production Batch Button', async ({ authenticatedPage }) => {
-    // Kernel Production adds batches via silos (click empty silo), not a header button.
+  test('TC-KP-002: Production batches come from Grower Intake', async ({ authenticatedPage }) => {
+    // Kernel Production receives batches via Grower Intake "Release to production" — no header create button.
     await expect(authenticatedPage.locator('h1:has-text("Kernel Production Workflow")')).toBeVisible({ timeout: 10000 });
-    await expect(authenticatedPage.locator('#kpSilosGrid')).toBeVisible({ timeout: 5000 });
-    // Silos are divs .kp-silo-box (loaded async); empty silo = entry point for "add batch"
-    await expect(authenticatedPage.locator('#kpSilosGrid .kp-silo-box').first()).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage.locator('#kpKanbanBoard, #kpTableCard').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('TC-KP-003: Batch Status Workflow Steps', async ({ authenticatedPage }) => {
@@ -90,9 +88,8 @@ test.describe('Kernel Production - Batch Management @kernel-production', () => {
     await expect(exportBtn).toBeVisible({ timeout: 5000 });
   });
 
-  test('TC-KP-010: Silos section and Board/Table view toggle', async ({ authenticatedPage }) => {
-    await expect(authenticatedPage.locator('#kpSilosGrid')).toBeVisible({ timeout: 10000 });
-    await expect(authenticatedPage.locator('h5:has-text("Silos")')).toBeVisible();
+  test('TC-KP-010: Board/Table view toggle', async ({ authenticatedPage }) => {
+    await expect(authenticatedPage.locator('#kpKanbanBoard, #kpTableCard').first()).toBeVisible({ timeout: 10000 });
     const boardBtn = authenticatedPage.locator('#kpViewKanban');
     const tableBtn = authenticatedPage.locator('#kpViewTable');
     await expect(boardBtn).toHaveClass(/active/);

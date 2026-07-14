@@ -3242,7 +3242,7 @@ var _dataFunctions = function () {
 
         /**
          * deleteKernelBatchPermanent — hard delete kernel batch (batches + kernel row). Irreversible.
-         * Cleans silo assignment and kernel_dispatch_orders lines referencing this kernel.
+         * Cleans kernel_dispatch_orders lines referencing this kernel.
          */
         deleteKernelBatchPermanent: async function (kernelId, token = null) {
             let result = await this.callFunction('delete_kernel_batch_permanent', { p_kernel_id: kernelId }, token, { useCache: false });
@@ -3263,7 +3263,6 @@ var _dataFunctions = function () {
             }
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
             this.clearCachePattern('kernel_batches');
-            this.clearCachePattern('silos');
             this.clearCachePattern('production_batches');
             this.clearCachePattern('kernel_dispatch_orders_list');
             return result;
@@ -4188,18 +4187,13 @@ var _dataFunctions = function () {
         /**
          * Release a kernel batch to production.
          * Validates both ziplock_sample and five_kg_sample are saved, then sets status = 'production'.
-         * Optionally assigns silos when data.silos (integer[]) is provided.
-         * @param {object} data - { kernel_id [, silos ] }
+         * @param {object} data - { kernel_id }
          * @returns {Promise<object>} { success, kernel_id } or { success: false, error }
          */
         releaseKernelToProduction: async function (data, token = null) {
             const params = { p_kernel_id: data.kernel_id };
-            if (Array.isArray(data.silos) && data.silos.length > 0) {
-                params.p_silos = data.silos;
-            }
             const result = await this.callFunction('release_kernel_to_production', params, token, { useCache: false });
             this.clearCachePattern('kernel_batches');
-            this.clearCachePattern('silos');
             return result && (result.data !== undefined ? result.data : result);
         },
 
@@ -4251,39 +4245,6 @@ var _dataFunctions = function () {
                 scope.clearCachePattern('kernel_batch_detail_' + resolvedId);
             }
             return inner;
-        },
-
-        /** Get silo status for all 12 silos (kernel + oil). Used by Grower Intake silo picker and Kernel Production silo grid. */
-        getSilos: async function (token = null, forceRefresh = false) {
-            const raw = await this.callFunction('get_silos', {}, token, {
-                cacheKey: 'silos_list',
-                useCache: !forceRefresh,
-                cacheTtl: this.cache.ttl.dynamic,
-                forceRefresh: forceRefresh
-            });
-            if (Array.isArray(raw)) return raw;
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            if (raw && raw.get_silos) return Array.isArray(raw.get_silos) ? raw.get_silos : [raw.get_silos];
-            return [];
-        },
-
-        /** Mark a silo (1-12) as empty. Used from Kernel Production silo grid. */
-        setSiloEmpty: async function (siloNumber, token = null) {
-            const result = await this.callFunction('set_silo_empty', { p_silo_number: siloNumber }, token, { useCache: false });
-            this.clearCachePattern('silos');
-            return result && (result.data !== undefined ? result.data : result);
-        },
-
-        /** Assign a kernel batch to one or more silos (1-12). Call after releaseKernelToProduction. */
-        assignKernelToSilos: async function (kernelId, siloNumbers, token = null) {
-            if (!Array.isArray(siloNumbers) || siloNumbers.length === 0) return { success: true, silos_assigned: 0 };
-            const result = await this.callFunction('assign_kernel_to_silos', {
-                p_kernel_id: kernelId,
-                p_silo_numbers: siloNumbers
-            }, token, { useCache: false });
-            this.clearCachePattern('silos');
-            this.clearCachePattern('kernel_batches');
-            return result && (result.data !== undefined ? result.data : result);
         },
 
         getOilBatches: async function (options = {}, token = null, forceRefresh = false) {

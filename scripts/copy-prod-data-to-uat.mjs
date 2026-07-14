@@ -43,7 +43,7 @@ const TABLE_ORDER = [
   'predictive_insights', 'product', 'production_batches', 'protein_bin_batch',
   'sample_submissions', 'quality_tests', 'raw_material_issued', 'receiving_checklists',
   'received_items', 'recent_activity', 'role_actions', 'role_features', 'role_permissions',
-  'scheduled_reports', 'silo', 'stock_accuracy_snapshot', 'stock_alert_rules', 'stock_items',
+  'scheduled_reports', 'stock_accuracy_snapshot', 'stock_alert_rules', 'stock_items',
   'stock_takes', 'stock_take_items', 'supplier_intake_batches', 'test_scenarios',
   'test_instances', 'test_runs', 'watching_items', 'workflow_tasks',
 ];
@@ -75,12 +75,6 @@ async function restDeleteAll(projectRef, table) {
 
 function normalizeRow(table, row) {
   const out = { ...row };
-  if (table === 'kernel' && (out.silos === null || out.silos === undefined)) {
-    out.silos = [];
-  }
-  if (table === 'silo' && (out.created_at === null || out.created_at === undefined)) {
-    out.created_at = out.updated_at || new Date().toISOString();
-  }
   return out;
 }
 
