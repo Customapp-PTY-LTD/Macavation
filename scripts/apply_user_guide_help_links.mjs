@@ -474,7 +474,7 @@ const PAGE_STEPS = {
     "Use <strong>Search</strong>, <strong>Status</strong>, and <strong>Clear</strong> to find the batch; switch <strong>Board</strong> vs <strong>Table</strong> to match how you like to work.",
     "For each delivery: complete the <strong>Receiving checklist</strong> (Stage 1) from the batch card or row actions—both batch test and batch sample unlock only after the checklist is done.",
     "Use <strong>Create kernel batch</strong> when you need a new intake record; use <strong>Export</strong> for a spreadsheet snapshot when auditing.",
-    "When quality steps are satisfied, use <strong>Release to production</strong> (and silo selection if prompted) so Kernel Production can receive the batch.",
+    "When quality steps are satisfied, use <strong>Release to production</strong> so Kernel Production can receive the batch.",
   ],
   "supplier-intake-grid": [
     "Open <strong>Supplier intake</strong> from the menu.",
@@ -485,8 +485,7 @@ const PAGE_STEPS = {
   ],
   "kernel-production-grid": [
     "Open <strong>Kernel production</strong> from the menu.",
-    "Review the <strong>Silos</strong> panel: click an occupied (red) silo to mark empty, or an empty (white) silo to mark full and pick a production batch from the list modal.",
-    "Search and filter batches; use <strong>Clear</strong> to reset. Toggle <strong>Board</strong>, <strong>Table</strong>, or <strong>Approved jobcards</strong> as needed.",
+    "Search and filter batches; use <strong>Clear</strong> to reset. Toggle <strong>Board</strong>, <strong>Table</strong>, or <strong>Approved jobcards</strong> as needed. Open the <strong>Production Calendar</strong> from the toolbar when you need day-by-day activity.",
     "Open a batch card or row to manage job cards, production stages, and QA hand-offs—complete stages in order so stock and release status stay truthful.",
     "Use <strong>Export</strong> for reporting; when release-ready, follow the in-app actions to send finished product toward stock and dispatch per your process.",
   ],

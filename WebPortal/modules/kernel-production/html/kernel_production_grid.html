@@ -4,15 +4,6 @@
        always loads fresh with the module HTML — appRouter loads the .css with a
        plain, browser-cached href, so .css edits can lag. */
 
-    /* Silos: fit them all in a compact grid — no scrolling at all. 4 columns
-       (12 silos => a tidy 3×4 block); the grid just grows a row for any extras. */
-    .kp-silos-dropdown-menu { width: 340px; max-width: 92vw; }
-    .kp-silos-dropdown-menu .kp-silos-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.5rem;
-    }
-
     /* Production Calendar: compact so the whole month fits with no scrolling. */
     .kp-calendar-dropdown-menu { width: 720px; max-width: 94vw; }
     .kp-calendar-dropdown-menu .kp-production-calendar-layout {
@@ -45,7 +36,6 @@
         padding: 0.75rem;
     }
     @media (max-width: 767.98px) {
-        .kp-silos-dropdown-menu,
         .kp-calendar-dropdown-menu { width: 92vw; }
         .kp-calendar-dropdown-menu .kp-production-calendar-layout { grid-template-columns: 1fr; }
     }
@@ -58,24 +48,6 @@
         </div>
         <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2 align-items-center">
             <a target="_blank" rel="noopener noreferrer" href="help/index.html#kernel-production-grid" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
-
-            <!-- Silos: compact icon dropdown (was a full-width accordion) -->
-            <div class="dropdown">
-                <button type="button" class="btn btn-outline-secondary" id="kpSilosDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Silos" aria-label="Silos">
-                    <i class="fas fa-warehouse"></i>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end p-3 kp-tool-dropdown-menu kp-silos-dropdown-menu" aria-labelledby="kpSilosDropdownBtn">
-                    <p class="text-muted small mb-3">Click an occupied silo (red) to mark it as empty. Click an empty silo (white) to mark it as full with a batch.</p>
-                    <div id="kpSilosGrid" class="kp-silos-grid">
-                        <p class="text-muted mb-0">Loading…</p>
-                    </div>
-                    <div id="kpSiloFillArea" class="mt-3 p-3 border rounded bg-light" style="display: none;">
-                        <span class="me-2">Silo <strong id="kpSiloFillSiloNum"></strong> selected.</span>
-                        <button type="button" class="btn btn-primary btn-sm" id="kpMarkFullBtn">Mark as full</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm ms-2" id="kpSiloFillCancel">Cancel</button>
-                    </div>
-                </div>
-            </div>
 
             <!-- Production Calendar: compact icon dropdown (was a full-width accordion) -->
             <div class="dropdown">
@@ -124,27 +96,6 @@
         </div>
     </div>
 
-    <!-- Modal: select production batch to put in the selected empty silo -->
-    <div class="modal fade" id="kpSiloFillBatchModal" tabindex="-1" aria-labelledby="kpSiloFillBatchModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="kpSiloFillBatchModalLabel">Select batch for silo</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted small mb-2">Choose a production batch to assign to the selected silo.</p>
-                    <div id="kpSiloFillBatchList" class="list-group list-group-flush">
-                        <!-- Filled by JS from production batches -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Search and Filters -->
     <div class="card mb-3 mac-module-filter-bar">
         <div class="card-body">
