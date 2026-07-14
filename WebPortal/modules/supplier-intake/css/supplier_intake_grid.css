@@ -3,26 +3,13 @@
 
 #supplierIntakeBatchesTable th { border-top: none; font-weight: 600; }
 
-/* Table card: overflow visible so dropdowns are not clipped (mirror grower-intake-table-card) */
-.supplier-intake-table-card .table-responsive,
-.supplier-intake-table-card .supplier-intake-table-responsive {
-    overflow: visible;
-}
-.supplier-intake-table-card .card-body {
-    overflow: visible;
-}
-.supplier-intake-table-card #supplierIntakeBatchesTable {
-    overflow: visible !important;
-}
-.supplier-intake-table-card #supplierIntakeBatchesTable tbody tr td {
-    overflow: visible;
-}
+/* Table card: overflow visible via mac-table-actions-card on table card */
 
 #supplierIntakeBatchesTable tbody tr.js-supplier-intake-row { cursor: pointer; }
 
 /* First column (Batch #) as primary link */
 #supplierIntakeBatchesTable .js-supplier-intake-row td:first-child {
-    color: var(--phoenix-primary, #0d6efd);
+    color: var(--mac-green, var(--mac-green));
     font-weight: 500;
 }
 #supplierIntakeBatchesTable .js-supplier-intake-row:hover td:first-child {
@@ -34,11 +21,11 @@
     font-weight: 500;
     text-decoration: none;
     cursor: pointer;
-    color: var(--phoenix-primary, #0d6efd);
+    color: var(--mac-green, var(--mac-green));
 }
 .supplier-intake-batch-number-link:hover {
     text-decoration: underline;
-    color: var(--phoenix-primary, #0d6efd);
+    color: var(--mac-green, var(--mac-green));
 }
 .supplier-intake-col-batch { overflow: visible !important; }
 
@@ -65,9 +52,9 @@
 
 /* Group header rows (supplier + delivery note + date) */
 .supplier-intake-group-row td.supplier-intake-group-cell {
-    background: rgba(13, 110, 253, 0.06);
-    border-top: 1px solid rgba(13, 110, 253, 0.18);
-    border-bottom: 1px solid rgba(13, 110, 253, 0.18);
+    background: rgba(var(--mac-green-rgb), 0.06);
+    border-top: 1px solid rgba(var(--mac-green-rgb), 0.18);
+    border-bottom: 1px solid rgba(var(--mac-green-rgb), 0.18);
     padding: 0.5rem 0.75rem;
 }
 .supplier-intake-group-title {
@@ -75,7 +62,7 @@
     margin-right: 0.5rem;
 }
 .supplier-intake-group-meta {
-    color: rgba(33, 37, 41, 0.75);
+    color: var(--mac-text-secondary);
     font-size: 0.875rem;
 }
 
@@ -95,63 +82,16 @@
     min-width: 620px;
 }
 
-/* Actions column: centered, single dropdown with ellipsis */
-.supplier-intake-col-actions { width: 1%; text-align: center; overflow: visible !important; }
+/* Actions column: WebPortal/css/table-actions.css */
+.supplier-intake-col-actions { width: 1%; overflow: visible !important; }
 .supplier-intake-col-batch { min-width: 6rem; }
 .supplier-intake-col-date { min-width: 5.5rem; }
-
-#supplierIntakeBatchesTable td:last-child { text-align: center; }
-#supplierIntakeBatchesTable td:last-child .dropdown { display: inline-block; }
-#supplierIntakeBatchesTable td:last-child .dropdown .btn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0;
-}
-#supplierIntakeBatchesTable td:last-child .dropdown .btn i { color: inherit; }
-
-/* Dropdown menu (when in table and when moved to body to avoid clipping) */
-#supplierIntakeBatchesTable .dropdown-menu,
-.supplier-intake-actions-menu {
-    z-index: 1060;
-    background-color: var(--phoenix-body-bg, #fff);
-    border: 1px solid rgba(0, 0, 0, 0.15);
-}
-#supplierIntakeBatchesTable .dropdown-item {
-    color: var(--phoenix-body-color, #212529);
-    display: block;
-    padding: 0.5rem 1rem;
-}
-#supplierIntakeBatchesTable .dropdown-item:hover {
-    background-color: rgba(0, 0, 0, 0.08);
-}
-#supplierIntakeBatchesTable .dropdown-item.text-muted,
-.supplier-intake-actions-menu .dropdown-item.text-muted {
-    cursor: default;
-}
-.supplier-intake-actions-menu .dropdown-item {
-    color: var(--phoenix-body-color, #212529);
-    display: block;
-    padding: 0.5rem 1rem;
-}
-.supplier-intake-actions-menu .dropdown-item:hover {
-    background-color: rgba(0, 0, 0, 0.08);
-}
 
 /* Responsive */
 @media (max-width: 1024px) {
     #supplierIntakeBatchesTable {
         font-size: 0.875rem;
         min-width: 480px;
-    }
-    #supplierIntakeBatchesTable th,
-    #supplierIntakeBatchesTable td {
-        padding: 0.4rem 0.5rem;
-        vertical-align: middle;
     }
 }
 
@@ -160,10 +100,6 @@
     #supplierIntakeBatchesTable {
         font-size: 0.8125rem;
         min-width: 520px;
-    }
-    #supplierIntakeBatchesTable th,
-    #supplierIntakeBatchesTable td {
-        padding: 0.35rem 0.4rem;
     }
     .supplier-intake-col-batch { min-width: 5rem; }
     .supplier-intake-col-date { min-width: 4.5rem; }
@@ -192,7 +128,7 @@
     text-transform: uppercase;
     font-size: 0.72rem;
     letter-spacing: 0.04em;
-    color: #495057;
+    color: var(--mac-text-secondary);
     font-weight: 600;
     vertical-align: middle;
     white-space: nowrap;

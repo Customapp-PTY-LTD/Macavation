@@ -6,7 +6,7 @@
             <p class="text-muted small mb-0">Daily operational digest — email and WhatsApp delivery</p>
         </div>
         <div class="btn-toolbar mb-2 mb-md-0 ms-auto">
-            <a href="help/index.html#scheduled-reports-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#scheduled-reports-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn btn-outline-secondary me-2" id="refreshScheduledReportsBtn">
                 <i class="fas fa-sync-alt me-1"></i>Refresh
             </button>
@@ -41,7 +41,7 @@
                 <div class="card-header bg-light"><strong>Email recipients</strong></div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
+                        <table class="table align-middle table-hover align-middle mb-0">
                             <thead>
                                 <tr>
                                     <th>Email</th>
@@ -89,7 +89,7 @@
                                 <input class="form-check-input" type="checkbox" id="srWhatsAppActive" disabled checked>
                                 <label class="form-check-label text-muted" for="srWhatsAppActive">Send daily digest at 06:00 SAST</label>
                             </div>
-                            <button type="button" class="btn btn-success" id="srWhatsAppSaveBtn" disabled title="Requires WhatsApp Business API">
+                            <button type="button" class="btn btn-primary" id="srWhatsAppSaveBtn" disabled title="Requires WhatsApp Business API">
                                 <i class="fab fa-whatsapp me-1"></i>Save subscription (disabled)
                             </button>
                         </div>
@@ -114,7 +114,7 @@
             <div class="card mt-4">
                 <div class="card-header bg-light"><strong>Planned WhatsApp subscriber list</strong></div>
                 <div class="card-body p-0">
-                    <table class="table table-sm mb-0 text-muted">
+                    <table class="table align-middle mb-0 text-muted">
                         <thead><tr><th>Phone</th><th>Report</th><th>Status</th><th>Last sent</th></tr></thead>
                         <tbody id="srWhatsAppPlannedListBody">
                             <tr><td colspan="4" class="text-center py-4 small">No WhatsApp subscriptions yet — channel goes live after Business API setup.</td></tr>

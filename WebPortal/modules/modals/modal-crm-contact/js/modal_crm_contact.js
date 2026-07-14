@@ -144,7 +144,7 @@ var _modal_crm_contact = (function () {
                 var html = '<option value="">Select Account Manager</option>';
                 if (users && Array.isArray(users)) {
                     users.forEach(function (user) {
-                        var name = ((user.first_name || '') + ' ' + (user.last_name || '')).trim() || user.username || user.email;
+                        var name = ((user.first_name || '') + ' ' + (user.last_name || '')).trim() || user.email;
                         html += '<option value="' + (user.id || '') + '">' + (name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</option>';
                     });
                 }

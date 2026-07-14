@@ -3,5 +3,5 @@
 /* Default placeholder options in Signed dropdowns – show as muted until a user is selected */
 #endSampleSupervisorSigned option[value=""],
 #endSampleNutPlantManagerSigned option[value=""] {
-    color: var(--bs-secondary-color, #6c757d);
+    color: var(--bs-secondary-color, var(--mac-text-secondary));
 }

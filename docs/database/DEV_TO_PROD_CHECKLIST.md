@@ -20,6 +20,7 @@ Ground rules:
 
 - [ ] `npm run db:check-project` — CLI linked to dev, no blocked/unknown project refs anywhere.
 - [ ] `npm run routing:verify` — only `macavation.customapp.org` can resolve to the production DB.
+- [ ] `npm run ui:verify` — design standard holds (tokens only, one icon set, one dialog skin, button grammar). See docs/design/DESIGN_SYSTEM.md.
 - [ ] Every schema change for this release exists as a `migrations/VERSION_name.sql` file and was applied to dev with `npm run db:apply -- migrations/<file>.sql` (this also records the dev ledger and runs `audit.attach_all()`).
 - [ ] Feature-test the release against the dev site / dev DB.
 - [ ] `npm run audit:verify` — dev side reports every table covered (owner columns + stamp + audit triggers).

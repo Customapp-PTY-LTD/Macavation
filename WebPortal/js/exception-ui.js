@@ -79,7 +79,7 @@ var _exceptionUI = function () {
                 html += `
                     <div class="exception-section">
                         <h5 class="exception-section-title text-danger">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <i class="fas fa-triangle-exclamation me-2"></i>
                             REQUIRES IMMEDIATE ACTION (${critical.length})
                         </h5>
                         <div class="exception-list">
@@ -94,7 +94,7 @@ var _exceptionUI = function () {
                 html += `
                     <div class="exception-section">
                         <h5 class="exception-section-title text-warning">
-                            <i class="bi bi-exclamation-circle-fill me-2"></i>
+                            <i class="fas fa-circle-exclamation me-2"></i>
                             WARNINGS (${warning.length})
                         </h5>
                         <div class="exception-list">
@@ -109,7 +109,7 @@ var _exceptionUI = function () {
                 html += `
                     <div class="exception-section">
                         <h5 class="exception-section-title text-info">
-                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <i class="fas fa-circle-info me-2"></i>
                             INFORMATION (${info.length})
                         </h5>
                         <div class="exception-list">

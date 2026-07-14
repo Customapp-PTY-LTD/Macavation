@@ -148,9 +148,13 @@ function updateUserDisplay() {
             displayName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
             if (!displayName) displayName = 'User';
         } else if (user.email) {
-            displayName = user.email.split('@')[0];
-        } else if (user.username) {
-            displayName = user.username;
+            // Last-resort fallback: title-case the email local part so it never
+            // renders as raw lowercase (e.g. "aidan" -> "Aidan").
+            displayName = user.email.split('@')[0]
+                .split(/[._-]+/)
+                .filter(Boolean)
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(' ') || 'User';
         }
 
         updateUserNameDisplay(displayName);
@@ -158,14 +162,16 @@ function updateUserDisplay() {
         const setEl = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text || '—'; };
         setEl('userInfoName', displayName);
         setEl('userInfoEmail', user.email);
-        setEl('userInfoUsername', user.username);
 
         const roleDisplay = document.getElementById('userRoleDisplay');
         if (roleDisplay) {
             const updateRoleDisplay = (roleName) => {
                 if (!roleName) roleName = 'User';
-                roleDisplay.textContent = roleName;
-                setEl('userInfoRole', roleName);
+                // Display the friendly label ("Super User"); keep the raw key
+                // (roleName) for the class checks below.
+                const label = (typeof window.formatRoleName === 'function') ? window.formatRoleName(roleName) : roleName;
+                roleDisplay.textContent = label;
+                setEl('userInfoRole', label);
                 if (roleName.startsWith('PWA ')) {
                     roleDisplay.className = 'badge bg-info text-white';
                 } else if (roleName === 'admin' || roleName === 'super_user') {
@@ -269,7 +275,7 @@ function initProfilePicture() {
         img.classList.remove('d-none');
         placeholder.classList.add('d-none');
     }
-    var navAvatar = document.querySelector('.navbar .nav-item.dropdown .avatar .avatar-name');
+    var navAvatar = document.querySelector('.sidebar-profile-toggle .avatar-name');
     if (navAvatar && navAvatar.parentElement) {
         var navImg = navAvatar.parentElement.querySelector('img.navbar-profile-img');
         if (!navImg) {
@@ -300,8 +306,8 @@ function initProfilePictureInput() {
             img.src = dataUrl;
             img.classList.remove('d-none');
             placeholder.classList.add('d-none');
-            var navPlace = document.querySelector('.navbar .avatar .avatar-name');
-            var navImg = document.querySelector('.navbar .navbar-profile-img');
+            var navPlace = document.querySelector('.sidebar-profile-toggle .avatar-name');
+            var navImg = document.querySelector('.sidebar-profile-toggle .navbar-profile-img');
             if (navPlace && navPlace.parentElement) {
                 if (!navImg) {
                     navImg = document.createElement('img');
@@ -321,16 +327,51 @@ function initProfilePictureInput() {
 }
 
 function showChangePassword() {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            title: 'Change password',
-            text: 'Password change can be done from the User Management area or your identity provider.',
-            icon: 'info',
-            confirmButtonText: 'OK'
-        });
-    } else {
-        alert('Change password is available from User Management or your identity provider.');
+    if (typeof Swal === 'undefined') {
+        alert('Change password is unavailable right now.');
+        return;
     }
+    var user = (typeof Session !== 'undefined' && Session.get) ? Session.get('user') : null;
+    var email = user && (user.email || user.user_email);
+    if (!email) {
+        Swal.fire('Error', 'Could not determine your account email. Please sign in again.', 'error');
+        return;
+    }
+    Swal.fire({
+        title: 'Change password',
+        html:
+            '<input type="password" id="cpCurrent" class="swal2-input" placeholder="Current password" autocomplete="current-password">' +
+            '<input type="password" id="cpNew" class="swal2-input" placeholder="New password (min 8 characters)" autocomplete="new-password">' +
+            '<input type="password" id="cpConfirm" class="swal2-input" placeholder="Confirm new password" autocomplete="new-password">',
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Change password',
+        preConfirm: function () {
+            var cur = (document.getElementById('cpCurrent') || {}).value || '';
+            var nw = (document.getElementById('cpNew') || {}).value || '';
+            var cf = (document.getElementById('cpConfirm') || {}).value || '';
+            if (!cur || !nw || !cf) { Swal.showValidationMessage('All fields are required'); return false; }
+            if (nw.length < 8) { Swal.showValidationMessage('New password must be at least 8 characters'); return false; }
+            if (nw !== cf) { Swal.showValidationMessage('New passwords do not match'); return false; }
+            return { cur: cur, nw: nw };
+        }
+    }).then(async function (res) {
+        if (!res.isConfirmed || !res.value) return;
+        if (typeof dataFunctions === 'undefined' || !dataFunctions.changePassword) {
+            Swal.fire('Error', 'Password change is unavailable right now.', 'error');
+            return;
+        }
+        try {
+            var r = await dataFunctions.changePassword(email, res.value.cur, res.value.nw);
+            if (r && r.success) {
+                Swal.fire('Done', (r && r.message) || 'Password changed successfully.', 'success');
+            } else {
+                Swal.fire('Could not change password', (r && r.message) || 'Please try again.', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', (e && e.message) || 'Could not change password.', 'error');
+        }
+    });
 }
 
 function initializeSidebarCollapse() {

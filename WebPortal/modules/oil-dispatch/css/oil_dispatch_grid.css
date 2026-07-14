@@ -8,49 +8,11 @@
 
 /* First column (reference) as primary link */
 #oilDispatchTable .js-dispatch-row td:first-child {
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
     font-weight: 500;
 }
 #oilDispatchTable .js-dispatch-row:hover td:first-child {
     text-decoration: underline;
 }
 
-/* Actions column: centered, single dropdown with ellipsis */
-#oilDispatchTable td:last-child { text-align: center; }
-#oilDispatchTable td:last-child .dropdown { display: inline-block; }
-#oilDispatchTable td:last-child .dropdown .btn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0;
-}
-#oilDispatchTable td:last-child .dropdown .btn i { color: inherit; }
-
-/* Prevent dropdown from being clipped */
-.oil-dispatch-grid-card .table-responsive { overflow: visible; }
-.oil-dispatch-grid-card .card-body { overflow: visible; }
-.oil-dispatch-grid-card #oilDispatchTable {
-    min-width: 640px;
-    overflow: visible !important;
-}
-.oil-dispatch-grid-card #oilDispatchTable tbody tr td { overflow: visible; }
-
-/* Ensure Actions dropdown menu and items are visible */
-#oilDispatchTable .dropdown-menu {
-    z-index: 1060;
-    background-color: var(--mac-bg-secondary);
-    border: 1px solid rgba(0, 0, 0, 0.15);
-}
-#oilDispatchTable .dropdown-item {
-    color: #212529;
-    display: block;
-    padding: 0.5rem 1rem;
-}
-#oilDispatchTable .dropdown-item:hover {
-    background-color: rgba(0, 0, 0, 0.08);
-    color: #212529;
-}
+/* Actions column: WebPortal/css/table-actions.css */

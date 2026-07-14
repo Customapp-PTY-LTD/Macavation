@@ -48,6 +48,7 @@ var _scheduledReportsGrid = function () {
                 return;
             }
             tbody.innerHTML = scope.rows.map(function (r) { return scope.rowHtml(r); }).join('');
+            MacTableActions.init(document.getElementById('scheduledReportsTable'));
             scope.renderWhatsAppPlannedList();
         },
 
@@ -86,7 +87,10 @@ var _scheduledReportsGrid = function () {
                 '<option value="whatsapp"' + (channel === 'whatsapp' ? ' selected' : '') + '>WhatsApp</option></select></td>' +
                 '<td><input type="checkbox" class="form-check-input sr-active"' + (active ? ' checked' : '') + '></td>' +
                 '<td class="small text-muted">' + lastSent + '</td>' +
-                '<td class="text-end"><button type="button" class="btn btn-sm btn-primary js-save-scheduled-report" title="Save"><i class="fas fa-save"></i></button></td>' +
+                '<td class="mac-table-actions-col text-end">' + MacTableActions.render({
+                    id: 'srActions' + id,
+                    items: [{ label: 'Save', className: 'js-save-scheduled-report', icon: 'fas fa-save' }]
+                }) + '</td>' +
                 '</tr>';
         },
 

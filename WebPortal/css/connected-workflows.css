@@ -17,24 +17,24 @@
 
 .impact-item {
     padding: 1rem;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 8px;
     background: white;
 }
 
 .impact-item.impact-critical {
-    border-left: 4px solid #dc3545;
-    background: #fff5f5;
+    border-left: 4px solid var(--mac-danger);
+    background: var(--mac-danger-light);
 }
 
 .impact-item.impact-warning {
-    border-left: 4px solid #ffc107;
-    background: #fffbf0;
+    border-left: 4px solid var(--mac-warning);
+    background: var(--mac-warning-light);
 }
 
 .impact-item.impact-info {
-    border-left: 4px solid #0dcaf0;
-    background: #f0f9ff;
+    border-left: 4px solid var(--mac-info);
+    background: var(--mac-info-light);
 }
 
 .impact-header {
@@ -48,7 +48,7 @@
 
 .impact-icon {
     font-size: 1.25rem;
-    color: #6c757d;
+    color: var(--mac-text);
 }
 
 .impact-title {
@@ -62,7 +62,7 @@
 
 .impact-description {
     margin-bottom: 0.5rem;
-    color: #495057;
+    color: var(--mac-text-secondary);
 }
 
 .impact-action-required {
@@ -80,7 +80,7 @@
 /* Linked Records */
 .linked-record-item {
     padding: 0.75rem;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 8px;
     background: white;
     margin-bottom: 0.5rem;
@@ -92,7 +92,7 @@
 }
 
 .conflict-warnings .alert {
-    border-left: 4px solid #ffc107;
+    border-left: 4px solid var(--mac-warning);
 }
 
 .conflict-warnings ul {

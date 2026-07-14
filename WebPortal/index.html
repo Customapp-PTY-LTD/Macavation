@@ -9,7 +9,7 @@
     <meta http-equiv="Expires" content="0">
     <title>Macavation - Admin Portal</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="manifest" href="/manifest.json">
+    <!-- (manifest link removed — no manifest.json ships with the portal; PWA retired) -->
     <meta name="theme-color" content="#2D4A3E">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,9 +18,7 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- FontAwesome -->
+    <!-- FontAwesome (the one icon set — Bootstrap Icons removed) -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Phoenix Theme CSS removed to avoid 404/CORB issues -->
     <!-- SweetAlert2 -->
@@ -31,8 +29,12 @@
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <!-- Design Tokens (must load before all custom CSS) -->
     <link href="css/design-tokens.css" rel="stylesheet">
+    <link href="css/swal-theme.css" rel="stylesheet">
+    <link href="css/modal-theme.css" rel="stylesheet">
+    <link href="css/table-actions.css" rel="stylesheet">
     <!-- Custom Styles -->
     <link href="css/main.css" rel="stylesheet">
+    <link href="css/mac-section-collapse.css" rel="stylesheet">
     <!-- Exception UI Styles -->
     <link href="css/exception-ui.css" rel="stylesheet">
     <!-- Metric UI Styles -->
@@ -46,10 +48,10 @@
     <link href="css/batch-status.css" rel="stylesheet">
     <!-- Mobile-First Styles -->
     <link href="css/mobile-first.css" rel="stylesheet">
-    <!-- PWA Offline Styles -->
-    <link href="css/pwa-offline.css" rel="stylesheet">
+    <!-- (PWA offline stylesheet removed — design plan Phase 2 dead-layer cleanup) -->
     <!-- Performance Utilities -->
     <script src="js/performance-utils.js"></script>
+    <script src="js/mac-section-collapse.js"></script>
     <!-- Anomaly Detection -->
     <script src="js/anomaly-detection.js"></script>
     <!-- Exception UI -->
@@ -71,128 +73,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link href="css/index.css" rel="stylesheet">
+    <!-- App shell (unified sidebar) — loaded last so it supersedes legacy nav/sidebar layout -->
+    <link href="css/shell.css" rel="stylesheet">
 </head>
 
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="#" route="dashboard">
-                <i class="fas fa-seedling me-2 text-primary"></i>
-                <span class="fw-bold text-dark">Macavation</span>
-            </a>
+    <!-- Mobile top strip (drawer toggle). Desktop uses the full-height sidebar. -->
+    <div class="mobile-navbar">
+        <button class="mobile-menu-btn" type="button" id="mobileMenuBtn" aria-label="Open menu"><i class="fas fa-bars"></i></button>
+        <span class="mobile-brand"><i class="fas fa-seedling me-2"></i>Macavation</span>
+    </div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <!-- Navigation items can be added here if needed -->
-                </ul>
-
-                <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item dropdown me-2" id="notificationsDropdownNav">
-                        <a class="nav-link d-flex align-items-center p-2 rounded position-relative" href="#" role="button" id="notificationsDropdownToggle"
-                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
-                            <i class="fas fa-bell fa-lg text-primary" title="Notifications"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="notificationsBadge" style="font-size:0.65rem;">0</span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end shadow border-0" id="notificationsDropdownMenu" style="min-width: 340px; max-width: 400px;">
-                            <div class="px-3 pt-3 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0 fw-bold">Notifications</h6>
-                                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="notificationsMarkAllBtn">Mark all read</button>
-                            </div>
-                            <div class="dropdown-body p-2" id="notificationsDropdownBody" style="max-height: 360px; overflow-y: auto;">
-                                <div class="text-center text-muted py-3 small">Loading…</div>
-                            </div>
-                        </div>
-                    </li>
-                    <li class="nav-item dropdown me-2" id="myDayDropdownNav">
-                        <a class="nav-link d-flex align-items-center p-2 rounded" href="#" role="button" id="myDayDropdownToggle"
-                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="My Day">
-                            <i class="fas fa-calendar-day fa-lg text-primary" title="My Day"></i>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end shadow border-0 my-day-dropdown-card" id="myDayDropdownMenu" style="min-width: 320px; max-width: 380px;">
-                            <div class="px-3 pt-3 pb-2 border-bottom">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-calendar-day fa-2x text-primary me-3"></i>
-                                    <div>
-                                        <h6 class="mb-0 fw-bold">My Day</h6>
-                                        <small class="text-muted">Your day at a glance</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="dropdown-body p-3" id="myDayDropdownBody">
-                                <div class="text-center text-muted py-3 small">Loading…</div>
-                            </div>
-                            <div class="dropdown-footer px-3 py-2 border-top bg-light">
-                                <a class="btn btn-outline-primary btn-sm w-100" href="#" id="myDayViewFullLink" route="my-day">
-                                    <i class="fas fa-external-link-alt me-1"></i>View full My Day
-                                </a>
-                            </div>
-                        </div>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle user-dropdown-toggle d-flex align-items-center p-0" href="#" role="button"
-                            data-bs-toggle="dropdown" aria-label="User menu">
-                            <div class="avatar avatar-sm navbar-profile-avatar">
-                                <div
-                                    class="avatar-name rounded-circle bg-light text-primary d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                            </div>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end user-dropdown-card">
-                            <li class="dropdown-header py-3">
-                                <div class="user-dropdown-profile text-center">
-                                    <input type="file" id="profilePictureInput" accept="image/*" class="d-none">
-                                    <label for="profilePictureInput" class="user-dropdown-avatar-wrap d-inline-block mb-2">
-                                        <div class="user-dropdown-avatar-slot">
-                                            <img id="userProfileImage" src="" alt="Profile" class="user-dropdown-avatar rounded-circle d-none">
-                                            <div id="userProfilePlaceholder" class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
-                                                <i class="fas fa-user fa-2x"></i>
-                                            </div>
-                                        </div>
-                                        <span class="user-dropdown-change-pic"><i class="fas fa-camera me-1"></i>Change picture</span>
-                                    </label>
-                                    <div class="fw-bold fs-6" id="userDisplayNameDropdown">Loading...</div>
-                                    <small id="userRoleDisplay" class="text-muted">Administrator</small>
-                                </div>
-                            </li>
-                            <li class="px-3 pb-2">
-                                <div class="user-dropdown-info small">
-                                    <div class="d-flex flex-wrap gap-2 mb-1"><span class="text-muted">Name:</span><span id="userInfoName">—</span></div>
-                                    <div class="d-flex flex-wrap gap-2 mb-1"><span class="text-muted">Email:</span><span id="userInfoEmail">—</span></div>
-                                    <div class="d-flex flex-wrap gap-2 mb-1"><span class="text-muted">Username:</span><span id="userInfoUsername">—</span></div>
-                                    <div class="d-flex flex-wrap gap-2 mb-1"><span class="text-muted">Role:</span><span id="userInfoRole">—</span></div>
-                                </div>
-                            </li>
-                            <li class="dropdown-divider my-0"></li>
-                            <li class="px-3 py-2">
-                                <button type="button" class="btn btn-outline-primary btn-sm w-100" style="border-radius: 0;" onclick="showChangePassword()">
-                                    <i class="fas fa-key me-2"></i>Change password
-                                </button>
-                            </li>
-                            <li class="px-3 pb-3 pt-1">
-                                <button type="button" class="btn btn-danger btn-sm w-100 user-dropdown-signout" onclick="signOut()">
-                                    <i class="fas fa-sign-out-alt me-2"></i>Sign Out
-                                </button>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="container-fluid mt-navbar">
+    <!-- App shell -->
+    <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
+            <!-- Unified sidebar -->
             <nav class="col-md-3 col-lg-2 d-md-block sidebar" id="sidebarMenu">
                 <div class="d-flex flex-column h-100">
-                    <div class="flex-grow-1 pt-3">
+                    <!-- Brand -->
+                    <div class="sidebar-brand">
+                        <a class="sidebar-logo" href="#" route="dashboard">
+                            <i class="fas fa-seedling"></i><span>Macavation</span>
+                        </a>
+                    </div>
+                    <div class="flex-grow-1 sidebar-scroll">
                         <ul class="nav flex-column gap-1">
                             <!-- Home -->
                             <li class="nav-item d-none" data-parent="homeCollapse">
@@ -450,14 +355,101 @@
                             </li>
                         </ul>
                     </div>
-                    <div class="sidebar-footer p-3 border-top border-secondary sidebar-footer-inner">
-                        <button class="btn btn-link w-100 text-start p-2" type="button" id="darkModeToggle"
-                            title="Toggle Dark Mode">
-                            <i class="fas fa-moon me-2"></i><span class="toggle-text">Dark mode</span>
-                        </button>
-                        <button class="btn btn-link w-100 text-start p-2" type="button" id="sidebarToggle"
-                            title="Toggle Sidebar">
-                            <i class="fas fa-chevron-left me-2"></i><span class="toggle-text">Collapse</span>
+                    <div class="sidebar-footer sidebar-footer-inner">
+                        <!-- Tools re-homed from the old top bar: notifications, my day, dark mode -->
+                        <div class="sidebar-tools">
+                            <div class="dropup" id="notificationsDropdownNav">
+                                <button class="sidebar-tool-btn" type="button" id="notificationsDropdownToggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications" title="Notifications">
+                                    <i class="fas fa-bell"></i>
+                                    <span class="position-absolute badge rounded-pill bg-danger d-none" id="notificationsBadge" style="font-size:0.6rem; top:0.15rem; right:0.35rem;">0</span>
+                                </button>
+                                <div class="dropdown-menu shadow border-0" id="notificationsDropdownMenu" style="min-width: 320px; max-width: 380px;">
+                                    <div class="px-3 pt-3 pb-2 border-bottom d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0 fw-bold">Notifications</h6>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="notificationsMarkAllBtn">Mark all read</button>
+                                    </div>
+                                    <div class="dropdown-body p-2" id="notificationsDropdownBody" style="max-height: 360px; overflow-y: auto;">
+                                        <div class="text-center text-muted py-3 small">Loading…</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropup" id="myDayDropdownNav">
+                                <button class="sidebar-tool-btn" type="button" id="myDayDropdownToggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="My Day" title="My Day">
+                                    <i class="fas fa-calendar-day"></i>
+                                </button>
+                                <div class="dropdown-menu shadow border-0 my-day-dropdown-card" id="myDayDropdownMenu" style="min-width: 300px; max-width: 360px;">
+                                    <div class="px-3 pt-3 pb-2 border-bottom">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-calendar-day fa-2x text-primary me-3"></i>
+                                            <div>
+                                                <h6 class="mb-0 fw-bold">My Day</h6>
+                                                <small class="text-muted">Your day at a glance</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown-body p-3" id="myDayDropdownBody">
+                                        <div class="text-center text-muted py-3 small">Loading…</div>
+                                    </div>
+                                    <div class="dropdown-footer px-3 py-2 border-top bg-light">
+                                        <a class="btn btn-outline-primary btn-sm w-100" href="#" id="myDayViewFullLink" route="my-day">
+                                            <i class="fas fa-external-link-alt me-1"></i>View full My Day
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="sidebar-tool-btn" type="button" id="darkModeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+                                <i class="fas fa-moon"></i>
+                            </button>
+                        </div>
+
+                        <!-- Profile — menu flies out to the right, past the sidebar edge -->
+                        <div class="dropend sidebar-profile">
+                            <a class="sidebar-profile-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="User menu">
+                                <div class="avatar avatar-sm navbar-profile-avatar">
+                                    <div class="avatar-name rounded-circle bg-light text-primary d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                </div>
+                                <span class="sidebar-profile-meta">
+                                    <span class="sidebar-profile-name" id="userDisplayName">User</span>
+                                    <span class="sidebar-profile-role" id="userRoleDisplay">—</span>
+                                </span>
+                                <i class="fas fa-chevron-up"></i>
+                            </a>
+                            <ul class="dropdown-menu user-dropdown-card">
+                                <li class="user-dropdown-head">
+                                    <input type="file" id="profilePictureInput" accept="image/*" class="d-none">
+                                    <label for="profilePictureInput" class="user-dropdown-avatar-wrap" title="Change picture">
+                                        <div class="user-dropdown-avatar-slot">
+                                            <img id="userProfileImage" src="" alt="Profile" class="user-dropdown-avatar rounded-circle d-none">
+                                            <div id="userProfilePlaceholder" class="avatar-name rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                        </div>
+                                        <span class="user-dropdown-change-pic"><i class="fas fa-camera"></i></span>
+                                    </label>
+                                    <div class="user-dropdown-headtext">
+                                        <div class="user-dropdown-headname" id="userDisplayNameDropdown">Loading...</div>
+                                        <small class="text-muted" id="userInfoEmail">—</small>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider my-1"></li>
+                                <li>
+                                    <button type="button" class="user-dropdown-item" onclick="showChangePassword()">
+                                        <i class="fas fa-key"></i><span>Change password</span>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button" class="user-dropdown-item user-dropdown-signout" onclick="signOut()">
+                                        <i class="fas fa-arrow-right-from-bracket"></i><span>Sign out</span>
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Collapse rail (desktop only) -->
+                        <button class="sidebar-collapse-btn d-none d-md-flex" type="button" id="sidebarToggle" title="Collapse sidebar">
+                            <i class="fas fa-chevron-left"></i><span>Collapse</span>
                         </button>
                     </div>
                 </div>
@@ -468,101 +460,11 @@
 
                 <!-- Content Area -->
                 <div id="content-area">
-                    <!-- Dashboard content will be loaded here -->
-                    <div class="row">
-                        <div class="col-12">
-                            <!-- Page Header -->
-                            <div
-                                class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-3 mb-4">
-                                <div>
-                                    <h1 class="h2 mb-1 text-dark">Dashboard</h1>
-                                </div>
-                                <div class="btn-toolbar mb-2 mb-md-0">
-                                    <button class="btn btn-primary" onclick="_appRouter.routeTo('admin-grid')">
-                                        <i class="fas fa-users me-1"></i>Manage Users
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-start border-primary border-4 shadow h-100">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total
-                                                Users</div>
-                                            <div class="h5 mb-0 fw-bold text-gray-800">150</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-            <!-- Quick link to Data Import -->
-            <div class="row mb-3">
-                <div class="col-12">
-                    <button class="btn btn-outline-primary btn-sm" route="data-import-grid">
-                        <i class="fas fa-file-excel me-1"></i>Data Import (Excel)
-                    </button>
-                </div>
-            </div>
-
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-start border-success border-4 shadow h-100">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs fw-bold text-success text-uppercase mb-1">
-                                                Active Users</div>
-                                            <div class="h5 mb-0 fw-bold text-gray-800">142</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-start border-info border-4 shadow h-100">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs fw-bold text-info text-uppercase mb-1">Total
-                                                Roles</div>
-                                            <div class="h5 mb-0 fw-bold text-gray-800">8</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-user-tag fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-start border-warning border-4 shadow h-100">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs fw-bold text-warning text-uppercase mb-1">
-                                                Pending Actions</div>
-                                            <div class="h5 mb-0 fw-bold text-gray-800">3</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-clock fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Neutral loading state. The router replaces this with the real
+                         page on load, so there is no flash of placeholder cards. -->
+                    <div class="content-area-loading d-flex flex-column align-items-center justify-content-center text-muted" style="min-height: 60vh;">
+                        <div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading…</span></div>
+                        <p class="small mt-3 mb-0">Loading…</p>
                     </div>
                 </div>
             </main>
@@ -591,18 +493,20 @@
     <!-- Application Scripts -->
     <script src="js/session.js"></script>
     <script src="js/themes.js"></script>
-    <script src="js/data-functions.js?v=20260707b"></script>
+    <script src="js/super-user-visibility.js?v=20260708a"></script>
+    <script src="js/data-functions.js?v=20260708a"></script>
     <script src="js/auth-service.js?v=20260707a"></script>
     <script src="js/common.js?v=20260610a"></script>
     <script src="js/export-utils.js"></script>
+    <!-- Display-only role label formatter: super_user -> "Super User" (never renames the key) -->
+    <script src="js/role-label.js?v=20260708a"></script>
+    <!-- Design-system shared components: status pills + loading/empty states -->
+    <script src="js/mac-status.js?v=20260708a"></script>
+    <script src="js/ui-states.js?v=20260708a"></script>
     
-    <!-- Offline PWA Scripts -->
-    <script src="js/offline-storage.js"></script>
-    <script src="js/offline-sync.js"></script>
-    <script src="js/offline-detector.js?v=20260515a"></script>
-    <script src="js/data-validation.js"></script>
-    <script src="js/offline-helpers.js"></script>
-    
+    <!-- (Offline/PWA stack removed — design plan Phase 2: SW was already disabled;
+         data-functions guards all offlineStorage usage with typeof checks.) -->
+
     <!-- Role-Based Menu Scripts -->
     <script src="js/role-menu-config.js"></script>
     <script src="js/menu-filter.js?v=20260515a"></script>
@@ -614,9 +518,12 @@
     <script src="js/batch-status.js"></script>
     <script src="js/handoff-dialog.js"></script>
     <script src="js/kanban-helper.js"></script>
+    <script src="js/table-actions.js"></script>
+    <script src="js/help-viewer.js"></script>
     <script src="js/appRouter.js?v=20260707c"></script>
     <script src="js/app.js"></script>
     <script src="js/index.js?v=20260515a"></script>
+    <script src="js/shell.js"></script>
 </body>
 
 </html>

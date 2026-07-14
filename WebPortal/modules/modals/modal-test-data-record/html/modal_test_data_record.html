@@ -2,7 +2,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h5 class="modal-title" id="recordModalLabel">Add New Record</h5>
-            <a href="help/index.html#modal-test-data-record" class="btn btn-sm btn-outline-secondary ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#modal-test-data-record" class="btn btn-sm btn-outline-secondary ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -57,12 +57,12 @@
                     <div class="col-12">
                         <div class="mb-3">
                             <label for="recordDataValue" class="form-label required">Data Value (JSON)</label>
-                            <textarea class="form-control font-monospace" id="recordDataValue" rows="12" required placeholder='{"username": "testuser", "email": "test@example.com"}'></textarea>
+                            <textarea class="form-control font-monospace" id="recordDataValue" rows="12" required placeholder='{"first_name": "Test", "email": "test@example.com"}'></textarea>
                             <small class="form-text text-muted">Enter test data as JSON object</small>
                         </div>
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-1"></i>
-                            <strong>Example:</strong> <code>{"username": "testuser", "email": "test@example.com", "role": "admin"}</code>
+                            <strong>Example:</strong> <code>{"first_name": "Test", "email": "test@example.com", "role": "admin"}</code>
                         </div>
                     </div>
                 </div>

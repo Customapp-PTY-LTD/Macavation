@@ -1,0 +1,22 @@
+/* Shared collapsible module section headers (Bootstrap collapse toggles) */
+.mac-section-collapse-toggle {
+    color: inherit;
+    text-decoration: none;
+}
+
+.mac-section-collapse-toggle:hover {
+    color: inherit;
+}
+
+.mac-section-collapse-icon {
+    font-size: 0.85rem;
+    transition: transform 0.15s ease;
+}
+
+.mac-section-collapse-toggle[aria-expanded="false"] .mac-section-collapse-icon {
+    transform: rotate(180deg);
+}
+
+.mac-section-collapse-card > .card-header {
+    background-color: var(--phoenix-light, #f8f9fa);
+}

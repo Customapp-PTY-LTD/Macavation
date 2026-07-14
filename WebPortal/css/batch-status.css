@@ -15,38 +15,36 @@
 .bj-status-oil-awaiting-test,
 .bj-status-oil-ready,
 .bj-status-oil-received {
-    background: #fff8e1;
-    color: #b8860b;
-    border: 1px solid rgba(184, 134, 11, 0.35);
+    background: var(--mac-warning-light);
+    color: var(--mac-warning-text);
+    border: 1px solid rgba(var(--mac-warning-rgb), 0.35);
 }
 
+/* Queued for a check → neutral */
 .bj-status-awaiting-test {
-    background: #f3e5f5;
-    color: #6a1b9a;
-    border: 1px solid rgba(106, 27, 154, 0.25);
+    background: var(--mac-bg-tertiary);
+    color: var(--mac-text-secondary);
+    border: 1px solid var(--mac-border);
 }
 
+/* Actively moving through production → info (NOT danger — production is not an error) */
 .bj-status-awaiting-production,
 .bj-status-in-production,
 .bj-status-release-ready,
 .bj-status-oil-in-production {
-    background: #ffebee;
-    color: #c62828;
-    border: 1px solid rgba(198, 40, 40, 0.25);
+    background: var(--mac-info-light);
+    color: var(--mac-info);
+    border: 1px solid rgba(var(--mac-info-rgb), 0.25);
 }
 
+/* Available in stock / completed / dispatched → success (done, healthy) */
 .bj-status-stock,
-.bj-status-oil-in-stock {
-    background: #e3f2fd;
-    color: #1565c0;
-    border: 1px solid rgba(21, 101, 192, 0.25);
-}
-
+.bj-status-oil-in-stock,
 .bj-status-complete,
 .bj-status-oil-dispatched {
-    background: #e8f5e9;
-    color: #2e7d32;
-    border: 1px solid rgba(46, 125, 50, 0.25);
+    background: var(--mac-success-light);
+    color: var(--mac-success);
+    border: 1px solid rgba(var(--mac-success-rgb), 0.25);
 }
 
 .kanban-card-status-row {

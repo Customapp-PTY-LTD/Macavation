@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+<style>
+.ln{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.oil{stroke:#198754}
+.main{stroke-width:2.4}.mid{stroke-width:1.8}.fine{stroke-width:1.2}.vfine{stroke-width:0.9}
+</style>
+<!-- blade -->
+<path class="ln oil main" d="M60 12 C 43 30 33 56 35 86 C 37 99 51 106 60 106 C 69 106 83 99 85 86 C 87 56 77 30 60 12 Z"/>
+<!-- midrib -->
+<path class="ln oil mid" d="M60 18 C 58 46 59 74 60 102"/>
+<!-- lateral veins (four pairs) -->
+<path class="ln oil fine" d="M60 30 C 54 33 50 38 47 45 M60 30 C 66 33 70 38 73 45"/>
+<path class="ln oil fine" d="M60 46 C 52 50 46 57 43 66 M60 46 C 68 50 74 57 77 66"/>
+<path class="ln oil fine" d="M60 64 C 53 67 48 73 45 81 M60 64 C 67 67 72 73 75 81"/>
+<path class="ln oil fine" d="M60 82 C 55 84 51 88 49 94 M60 82 C 65 84 69 88 71 94"/>
+<!-- tertiary veinlets -->
+<path class="ln oil vfine" d="M52 51 l -4 5 M67 51 l 4 5 M50 69 l -4 5 M69 69 l 4 5"/>
+<!-- serrated margin ticks -->
+<path class="ln oil vfine" d="M45 42 l -4 -3 M40 55 l -5 -2 M38 68 l -5 -1 M40 81 l -5 1 M46 91 l -4 2
+                              M75 42 l 4 -3 M80 55 l 5 -2 M82 68 l 5 -1 M80 81 l 5 1 M74 91 l 4 2"/>
+<!-- petiole -->
+<path class="ln oil mid" d="M60 106 L 60 114"/>
+</svg>

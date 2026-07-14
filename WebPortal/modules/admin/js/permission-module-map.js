@@ -74,10 +74,31 @@ var _permissionModuleMap = (function () {
         return featureKeyToModuleSlugs(featureKey).indexOf(slug) !== -1;
     }
 
+    // actions.module (catalogue label) -> sidebar feature keys that own those buttons.
+    var ACTION_MODULE_FEATURE_KEYS = {
+        'Grower Intake': ['grower-intake-grid'],
+        'Kernel Production': ['kernel-production-grid'],
+        'Kernel Dispatch': ['kernel-dispatch-grid'],
+        'Stock': ['stock-management-kernel', 'stock-management-oil'],
+        'Oil Production': ['oil-production-grid'],
+        'Quality Assurance': ['quality-assurance-grid'],
+        'Dashboard': ['dashboard', 'executive-dashboard', 'amanda-dashboard', 'my-day'],
+        'Reporting': ['scheduled-reports-grid'],
+        'Administration': ['admin-grid', 'users-grid', 'roles-grid', 'role-permissions-grid', 'role-features-grid', 'role-actions-grid'],
+        'Messaging': ['messaging-compose-grid']
+    };
+
+    function actionBelongsToFeature(action, featureKey) {
+        var mod = action && action.module ? String(action.module) : '';
+        var keys = ACTION_MODULE_FEATURE_KEYS[mod] || [];
+        return keys.indexOf(featureKey) !== -1;
+    }
+
     return {
         resolveModuleSlug: resolveModuleSlug,
         featureKeyToModuleSlugs: featureKeyToModuleSlugs,
-        permissionBelongsToFeature: permissionBelongsToFeature
+        permissionBelongsToFeature: permissionBelongsToFeature,
+        actionBelongsToFeature: actionBelongsToFeature
     };
 })();
 

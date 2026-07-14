@@ -57,7 +57,9 @@ var _roleFeaturesGrid = function () {
 
         loadRolesDropdown: async () => {
             try {
-                var roles = await dataFunctions.getRoles();
+                var roles = await (dataFunctions.getRolesForAssignment
+                    ? dataFunctions.getRolesForAssignment()
+                    : dataFunctions.getRoles());
                 if (!roles || !Array.isArray(roles) || roles.length === 0) return;
                 var select = document.getElementById('roleSelect');
                 if (!select) return;
@@ -75,6 +77,13 @@ var _roleFeaturesGrid = function () {
         loadFeaturesForRole: async (roleId) => {
             const scope = _roleFeaturesGrid;
             scope.selectedRoleId = roleId;
+            scope.selectedRoleRecord = null;
+            if (typeof dataFunctions !== 'undefined' && dataFunctions.getRoles) {
+                var allRoles = await dataFunctions.getRoles();
+                scope.selectedRoleRecord = (Array.isArray(allRoles) ? allRoles : []).find(function (r) {
+                    return String(r.id) === String(roleId);
+                }) || null;
+            }
             scope.showLoading();
 
             try {
@@ -150,6 +159,12 @@ var _roleFeaturesGrid = function () {
         toggleFeature: async (featureId, _featureKey, enabled, checkboxEl) => {
             const scope = _roleFeaturesGrid;
             if (!scope.selectedRoleId) return;
+            if (typeof superUserVisibility !== 'undefined' && scope.selectedRoleRecord &&
+                !superUserVisibility.canManageRole(scope.selectedRoleRecord)) {
+                scope.showError('Only super users may change features for the super_user role.');
+                checkboxEl.prop('checked', !enabled);
+                return;
+            }
 
             checkboxEl.prop('disabled', true);
 

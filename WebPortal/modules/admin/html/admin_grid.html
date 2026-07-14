@@ -3,16 +3,10 @@
     <div class="admin-access-header d-flex justify-content-between flex-wrap flex-md-nowrap align-items-start pt-3 pb-2 mb-3 border-bottom gap-2">
         <div>
             <h1 class="h2 mb-1">User &amp; access</h1>
-            <p class="text-muted small mb-0 admin-access-lead">One place for <strong>people</strong> (logins and passwords), <strong>roles</strong>, which <strong>modules</strong> each role sees in the sidebar, and optional <strong>advanced</strong> database permissions.</p>
+            <p class="text-muted small mb-0 admin-access-lead">People, roles, and which modules each role sees.</p>
         </div>
         <div class="btn-toolbar mb-2 mb-md-0 ms-md-auto flex-shrink-0">
-            <a href="help/index.html#admin-users-permissions" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide" data-macavation-help-tablist="#adminTab"><i class="fas fa-circle-question me-1"></i>Help</a>
-            <button type="button" class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#addRoleModal" title="Create a new role (name and description)">
-                <i class="fas fa-shield-alt me-1"></i>Add role
-            </button>
-            <button type="button" class="btn btn-primary" id="adminBtnAddUser" title="Add a user (email, password, role)">
-                <i class="fas fa-plus me-1"></i>Add user
-            </button>
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#admin-users-permissions" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide" data-macavation-help-tablist="#adminTab"><i class="fas fa-circle-question me-1"></i>Help</a>
         </div>
     </div>
 
@@ -27,64 +21,71 @@
                 <i class="fas fa-shield-alt me-2"></i>Roles &amp; modules
             </button>
         </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab" aria-controls="system" aria-selected="false" data-help-anchor="admin-system-configuration">
-                <i class="fas fa-cog me-2"></i>System
-            </button>
-        </li>
     </ul>
 
     <div class="tab-content" id="adminTabContent">
         <!-- People -->
         <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
             <p class="text-muted small mb-3">Create accounts, assign roles, and set or reset passwords. Changes apply on next sign-in where noted.</p>
-            <div class="row g-3">
-                <div class="col-lg-8">
-                    <div class="card mb-4">
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <h5 class="mb-0 fw-bold">Users</h5>
-                            <div class="d-flex align-items-center gap-2">
-                                <select class="form-select form-select-sm admin-user-role-filter" id="userRoleFilter" title="Filter by role">
-                                    <option value="">All roles</option>
-                                </select>
-                                <button type="button" class="btn btn-sm btn-primary" id="adminBtnAddUserTab">
-                                    <i class="fas fa-plus me-1"></i>Add user
-                                </button>
-                            </div>
+            <!-- Search and filters (standard search card — matches the pipeline modules) -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4 col-lg-5">
+                            <label for="userSearchInput" class="form-label">Search</label>
+                            <input type="search" class="form-control" id="userSearchInput" placeholder="Search by name or email…" autocomplete="off">
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0" id="adminUsersTable">
-                                    <thead>
-                                        <tr>
-                                            <th>User</th>
-                                            <th>Email</th>
-                                            <th>Role</th>
-                                            <th>Status</th>
-                                            <th>Last login</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="usersTableBody">
-                                        <tr>
-                                            <td colspan="6" class="text-center text-muted py-4">
-                                                <i class="fas fa-spinner fa-spin me-2"></i>Loading...
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div class="col-md-3">
+                            <label for="userRoleFilter" class="form-label">Role</label>
+                            <select class="form-select" id="userRoleFilter">
+                                <option value="">All roles</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-lg-2">
+                            <label for="userStatusFilter" class="form-label">Status</label>
+                            <select class="form-select" id="userStatusFilter">
+                                <option value="">All statuses</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-secondary w-100" id="clearUserFiltersBtn">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0 fw-bold">Users by role</h6>
-                        </div>
-                        <div class="card-body" id="userStatisticsContainer">
-                            <p class="text-muted small">Loading…</p>
-                        </div>
+            </div>
+
+            <!-- Users table -->
+            <div class="card mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0 fw-bold">Users</h5>
+                    <button type="button" class="btn btn-sm btn-primary" id="adminBtnAddUserTab">
+                        <i class="fas fa-plus me-1"></i>Add user
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle table-hover mb-0" id="adminUsersTable">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Loading...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -103,7 +104,7 @@
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-hover mb-0" id="adminRolesTable">
+                            <table class="table align-middle table-hover mb-0" id="adminRolesTable">
                                 <thead>
                                     <tr>
                                         <th>Role name</th>
@@ -121,26 +122,6 @@
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- System -->
-        <div class="tab-pane fade" id="system" role="tabpanel" aria-labelledby="system-tab">
-            <p class="text-muted small mb-3">Environment and integration settings will appear here when your deployment exposes them.</p>
-            <div class="row">
-                <div class="col-12">
-                    <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0 fw-bold">System settings</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info mb-0">
-                                <i class="fas fa-info-circle me-2"></i>
-                                System configuration options will be available here as needed.
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -169,9 +150,9 @@
             </div>
             <div class="modal-body p-0">
                 <div class="p-3 border-bottom bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <p class="small text-muted mb-0 flex-grow-1" style="min-width:14rem;">The <strong>On</strong> tick shows the module in the sidebar. Expand a module to grant or revoke the individual <strong>database permissions</strong> (Supabase functions) the role may run inside it. Changes apply on next login for affected users.</p>
+                    <p class="small text-muted mb-0 flex-grow-1" style="min-width:14rem;">The <strong>On</strong> tick shows the module in the sidebar. Expand a module to grant or revoke its <strong>button actions</strong> (for example <em>Create intake batch</em> on Grower Intake) and <strong>database permissions</strong> (Supabase functions). Changes apply on next login for affected users.</p>
                     <div class="input-group input-group-sm flex-shrink-0" style="width:auto;">
-                        <input type="text" class="form-control" id="adminCustomizePermSearch" placeholder="Filter permissions…" autocomplete="off" style="max-width:12rem;">
+                        <input type="text" class="form-control" id="adminCustomizePermSearch" placeholder="Filter actions &amp; permissions…" autocomplete="off" style="max-width:12rem;">
                         <button type="button" class="btn btn-outline-secondary" id="adminRefreshFeaturesBtn" title="Reload from server">
                             <i class="fas fa-sync-alt me-1"></i>Refresh
                         </button>
@@ -179,14 +160,14 @@
                 </div>
                 <div class="px-3 py-2 border-bottom small" id="adminFeatureSummary" style="display:none;"></div>
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="adminFeaturesTable">
+                    <table class="table align-middle table-hover mb-0" id="adminFeaturesTable">
                         <thead>
                             <tr>
                                 <th style="width:60px" class="text-center">On</th>
                                 <th>Module</th>
                                 <th>Key</th>
                                 <th>Description</th>
-                                <th style="width:14rem" class="text-end">Database permissions</th>
+                                <th style="width:14rem" class="text-end">Actions &amp; permissions</th>
                             </tr>
                         </thead>
                         <tbody id="adminFeaturesTableBody">

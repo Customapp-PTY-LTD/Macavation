@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+<style>
+.ln{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.nut{stroke:#6d5822}
+.main{stroke-width:2.4}.mid{stroke-width:1.8}.fine{stroke-width:1.2}.vfine{stroke-width:0.9}
+.dot{fill:#6d5822;stroke:none}
+.cream{fill:#6d5822;fill-opacity:.05}
+</style>
+<!-- lower shell, broken open across the top with a controlled crack -->
+<path class="ln nut main" d="M42 34 C 29 42 22 54 22 66 C 22 88 39 102 60 102 C 81 102 98 88 98 66 C 98 54 91 42 78 34
+                             L 71 29 L 63 35 L 55 28 L 48 34 Z"/>
+<!-- shell wall thickness at the broken rim -->
+<path class="ln nut fine" d="M46 39 C 35 46 30 56 30 66"/>
+<path class="ln nut fine" d="M74 39 C 85 46 90 56 90 66"/>
+<!-- fine ticks along the jagged crack -->
+<path class="ln nut vfine" d="M52 32 l 2 3 M60 33 l 2 3 M68 32 l 2 3"/>
+<!-- round kernel resting inside -->
+<path class="ln nut mid cream" d="M60 40 C 75 40 84 51 84 62 C 84 73 74 80 60 80 C 46 80 36 73 36 62 C 36 51 45 40 60 40 Z"/>
+<!-- kernel dimple, highlight, germ + surface stipple -->
+<path class="ln nut fine" d="M60 43 C 55 52 55 66 60 76"/>
+<path class="ln nut fine" d="M45 53 C 48 48 53 46 58 46"/>
+<circle class="dot" cx="60" cy="60" r="1.1"/>
+<circle class="dot" cx="52" cy="66" r="0.8"/>
+<circle class="dot" cx="68" cy="56" r="0.8"/>
+<circle class="dot" cx="64" cy="70" r="0.7"/>
+<!-- shell interior/base shading hatch -->
+<path class="ln nut vfine" d="M33 74 l 4 4 M40 82 l 4 3 M83 76 l 4 3 M88 69 l 4 2"/>
+<!-- shell exterior stipple -->
+<circle class="dot" cx="30" cy="72" r="0.9"/>
+<circle class="dot" cx="88" cy="78" r="0.9"/>
+<circle class="dot" cx="46" cy="94" r="0.9"/>
+<circle class="dot" cx="72" cy="95" r="0.8"/>
+</svg>

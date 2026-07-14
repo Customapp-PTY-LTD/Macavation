@@ -2,7 +2,7 @@
     <div class="modal-content">
         <div class="modal-header bg-success text-white">
             <h5 class="modal-title" id="sendToDispatchOilModalLabel"><i class="fas fa-truck me-2"></i>Send to Dispatch (Oil &amp; Protein)</h5>
-            <a href="help/index.html#modal-send-to-dispatch-oil" class="btn btn-sm btn-outline-light ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#modal-send-to-dispatch-oil" class="btn btn-sm btn-outline-light ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -76,7 +76,7 @@
                 <p class="text-muted small mb-2">Basket starts empty. <strong>Oil</strong> rows use <strong>letrerage (L)</strong> from stock; <strong>protein powder</strong> rows use <strong>kg</strong>. Click <strong>Add</strong> to add the full amount shown (or change it first for a partial).</p>
                 <h6 class="text-secondary mt-2 mb-2"><i class="fas fa-oil-can me-2"></i>Oil (letrerage)</h6>
                 <div class="table-responsive mb-4">
-                    <table class="table table-sm table-bordered" id="dispatchOilStreamOilTable">
+                    <table class="table align-middle table-bordered" id="dispatchOilStreamOilTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Location</th>
@@ -93,7 +93,7 @@
                 </div>
                 <h6 class="text-secondary mb-2"><i class="fas fa-flask me-2"></i>Protein powder (kg)</h6>
                 <div class="table-responsive mb-3">
-                    <table class="table table-sm table-bordered" id="dispatchOilStreamProteinTable">
+                    <table class="table align-middle table-bordered" id="dispatchOilStreamProteinTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Location</th>
@@ -113,7 +113,7 @@
                     <hr class="my-3">
                     <h6 class="text-primary mb-2"><i class="fas fa-shopping-basket me-2"></i>Basket</h6>
                     <div class="table-responsive">
-                        <table class="table table-sm table-bordered mb-0">
+                        <table class="table align-middle table-bordered mb-0">
                             <thead class="table-light">
                                 <tr><th>Batch #</th><th>Product</th><th class="text-end">Qty</th><th></th></tr>
                             </thead>
@@ -134,7 +134,7 @@
         </div>
         <div class="modal-footer" id="sendToDispatchOilStep2Footer" style="display: none;">
             <button type="button" class="btn btn-secondary" id="dispatchOilModalBackBtn">Back</button>
-            <button type="button" class="btn btn-success" id="dispatchOilModalSendBtn" disabled>
+            <button type="button" class="btn btn-primary" id="dispatchOilModalSendBtn" disabled>
                 <i class="fas fa-paper-plane me-1"></i>Send Dispatch Order
             </button>
         </div>

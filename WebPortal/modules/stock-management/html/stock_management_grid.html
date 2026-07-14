@@ -1,23 +1,28 @@
 <!-- Stock Management Grid Module - Kernel and Oil & Protein are separate (per supply chain flow). -->
+<style>
+    /* Shell waste is a compact toolbar dropdown (kept inline; module .css is browser-cached). */
+    .ks-shell-dropdown-menu { width: 560px; max-width: 94vw; }
+    @media (max-width: 575.98px) { .ks-shell-dropdown-menu { width: 94vw; } }
+</style>
 <div class="module-content">
     <div class="pt-3 pb-2 mb-3 border-bottom">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
             <h1 class="h2 mb-0" id="stockManagementTitle">Stock Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="help/index.html#stock-management-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#stock-management-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn btn-outline-secondary" id="exportStockBtn">
                 <i class="fas fa-download me-1"></i>Export
             </button>
             </div>
         </div>
-        <p class="text-muted mb-0 mt-2 small" id="stockManagementSubtitle">Search and filter your stock; track kernel batches by style (totals across the top, on hand from the <strong>saved job card</strong> after production prefill—edit the job card if quantities are wrong), select a batch and send to dispatch; for oil &amp; protein use <strong>Add stock</strong> for many batches at once, <strong>Add lot</strong> for one row, or import from Excel—then export when you're ready.</p>
+        <p class="text-muted mb-0 mt-2 small" id="stockManagementSubtitle">Track kernel batches by style and send to dispatch; manage oil &amp; protein stock by lot, bulk, or Excel import.</p>
     </div>
 
     <input type="hidden" id="filterStockStream" value="kernel">
     <!-- Search and Filters (hidden when Kernel Stock - only batch journey / by-style table shown) -->
-    <div class="card mb-3" id="mainStockFiltersCard">
+    <div class="card mb-3 mac-module-filter-bar" id="mainStockFiltersCard">
         <div class="card-body">
-            <div class="row g-3">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label for="searchStockInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchStockInput" placeholder="Search by stock number, batch, or location...">
@@ -67,7 +72,7 @@
     <div class="card mb-4 stock-management-table-card" id="mainStockTableCard">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover" id="stockTable">
+                <table class="table align-middle table-hover" id="stockTable">
                     <thead>
                         <tr>
                             <th>Stock Number</th>
@@ -86,55 +91,83 @@
         </div>
     </div>
 
-    <!-- Kernel batch journey (visible when stream = Kernel) -->
-    <div class="card mb-4 border-primary" id="kernelBatchJourneyCard" style="display: none;">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0"><i class="fas fa-seedling me-2"></i>Kernel batch journey</h5>
-            <div class="btn-toolbar">
-                <button type="button" class="btn btn-outline-primary btn-sm" id="importHistoricalKernelBtn" data-action-perm="stock.import_batch" title="Load historical batches from Macadamia Kernel Statistics Excel">
+    <!-- Kernel stock (visible when stream = Kernel) — flat: Search / table / shell-waste sibling cards.
+         Heading comes from the module header (#stockManagementTitle); just the actions here. -->
+    <div id="kernelBatchJourneyCard" style="display: none;">
+        <div class="d-flex justify-content-end mb-3">
+            <div class="btn-toolbar align-items-center gap-2">
+                <!-- Shell waste — compact icon dropdown (was a full-width card) -->
+                <div class="dropdown">
+                    <button type="button" class="btn btn-outline-secondary" id="shellWasteDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Shell waste (saleable stock)" aria-label="Shell waste">
+                        <i class="fas fa-recycle"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end p-3 ks-shell-dropdown-menu" aria-labelledby="shellWasteDropdownBtn">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h6 class="mb-0"><i class="fas fa-recycle me-2"></i>Shell waste (saleable stock)</h6>
+                            <button type="button" class="btn btn-sm btn-primary" id="addShellLotBtn" data-action-perm="stock.shell.manage">
+                                <i class="fas fa-plus me-1"></i>Add lot
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover mb-0">
+                                <thead><tr><th>Lot</th><th>Source batch</th><th class="text-end">Kg</th><th>Status</th><th>Actions</th></tr></thead>
+                                <tbody id="shellStockLotsBody">
+                                    <tr><td colspan="5" class="text-center text-muted py-3">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="importHistoricalKernelBtn" data-action-perm="stock.import_batch" title="Load historical batches from Macadamia Kernel Statistics Excel">
                     <i class="fas fa-file-import me-1"></i>Import historical
                 </button>
-                <button type="button" class="btn btn-success" id="sendToDispatchBtn">
+                <button type="button" class="btn btn-primary" id="sendToDispatchBtn">
                     <i class="fas fa-truck me-1"></i>Send to Dispatch
                 </button>
             </div>
         </div>
-        <div class="card-body">
-            <div class="d-flex justify-content-end mb-3 align-items-center gap-2 flex-wrap">
-                <div class="view-toggle">
-                    <button type="button" class="view-toggle-btn active" data-view="bystyle" id="ksViewByStyle" title="By style">
-                        <i class="fas fa-layer-group me-1"></i>By style
-                    </button>
-                </div>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="ksMoreViewsBtn" data-bs-toggle="dropdown" aria-expanded="false">More views</button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="ksMoreViewsBtn">
-                        <li><button type="button" class="dropdown-item js-ks-more-view" data-view="weekly">Weekly</button></li>
-                        <li><button type="button" class="dropdown-item js-ks-more-view" data-view="overview">Overview</button></li>
-                    </ul>
+
+        <!-- By style view (default) -->
+        <div id="ksByStylePanel">
+            <!-- Card 1 — search -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4 col-lg-5">
+                            <label for="kernelStockSearch" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="kernelStockSearch" placeholder="Search by batch number…">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-secondary w-100" id="kernelStockClearSearch">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <!-- By style view (default) -->
-            <div id="ksByStylePanel">
-            <p class="text-muted small mb-3">Batches released from Grower Intake go to Kernel Production; release to stock from there. Raw (NIS = R NIL) is legacy; finished (KERNEL R YES) are ready for dispatch.</p>
-            <hr class="my-3">
-            <h6 class="text-secondary d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <span>Kernel Stock by style</span>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="toggleKernelAdjustModeBtn" title="Turn stock correction mode on or off">
-                        <i class="fas fa-balance-scale me-1"></i>Correct on-hand
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshKernelStockBtn" title="Reload kernel stock data">
-                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                    </button>
+            <!-- Card 2 — kernel stock by style -->
+            <div class="card mb-3">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="fw-semibold">Kernel stock by style</span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleKernelAdjustModeBtn" title="Turn stock correction mode on or off">
+                            <i class="fas fa-balance-scale me-1"></i>Correct on-hand
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="kernelBatchViewArchiveBtn" data-action-perm="stock.import_batch" title="View archived batches and restore">
+                            <i class="fas fa-archive me-1"></i>View archive
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshKernelStockBtn" title="Reload kernel stock data">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                    </div>
                 </div>
-            </h6>
+                <div class="card-body">
             <p class="text-muted small mb-2">Styles at the top with totals; batches down the left with <strong>remaining cartons</strong> per style (from packing data). If a row only has kg recorded, the grid shows a carton equivalent at 11.34&nbsp;kg per carton. Click Send to Dispatch to choose a buyer, select items from the shopping cart, and submit a dispatch order.</p>
             <div class="alert alert-info py-2 px-3 small mb-2" id="kernelAdjustModeHint" style="display: none;">
                 Adjustment mode is on. Click the batch/style cell you want to change, then enter <code>+</code> or <code>-</code> and the number of cartons.
             </div>
             <div class="table-responsive kernel-stock-table-wrapper">
-                <table class="table table-sm table-bordered" id="kernelStockByStyleTable">
+                <table class="table align-middle table-bordered" id="kernelStockByStyleTable">
                     <thead>
                         <tr>
                             <th>Batch</th>
@@ -170,81 +203,11 @@
                     <tbody id="kernelStockByStyleBody"></tbody>
                 </table>
             </div>
-            <div class="d-flex justify-content-end mt-3" id="kernelAdjustModeAddBatchRow" style="display: none;">
-                <button type="button" class="btn btn-success" id="kernelAdjustModeAddBatchBtn" data-action-perm="stock.import_batch">
-                    <i class="fas fa-plus me-1"></i>Add Batch
-                </button>
-            </div>
-            <div class="card mt-4 border-secondary" id="shellWasteStockCard">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0"><i class="fas fa-recycle me-2"></i>Shell waste (saleable stock)</h6>
-                    <button type="button" class="btn btn-sm btn-primary" id="addShellLotBtn" data-action-perm="stock.shell.manage">
-                        <i class="fas fa-plus me-1"></i>Add lot
-                    </button>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead><tr><th>Lot</th><th>Source batch</th><th class="text-end">Kg</th><th>Status</th><th></th></tr></thead>
-                            <tbody id="shellStockLotsBody">
-                                <tr><td colspan="5" class="text-center text-muted py-3">Loading…</td></tr>
-                            </tbody>
-                        </table>
+                    <div class="d-flex justify-content-end mt-3" id="kernelAdjustModeAddBatchRow" style="display: none;">
+                        <button type="button" class="btn btn-primary" id="kernelAdjustModeAddBatchBtn" data-action-perm="stock.import_batch">
+                            <i class="fas fa-plus me-1"></i>Add Batch
+                        </button>
                     </div>
-                </div>
-            </div>
-            </div>
-            <!-- Weekly view: stock in by style or stock out by style (dropdown) -->
-            <div class="card mb-0 border-0" id="ksWeeklyPanel" style="display: none;">
-                <h6 class="text-secondary"><i class="fas fa-calendar-week me-2"></i>Weekly stock (kg)</h6>
-                <p class="text-muted small mb-3">View weekly stock in or weekly stock out by style. Use the dropdown to switch.</p>
-                <div class="mb-3">
-                    <label for="ksWeeklyViewMode" class="form-label small text-muted">View</label>
-                    <select id="ksWeeklyViewMode" class="form-select form-select-sm" style="max-width: 16rem;">
-                        <option value="in">Weekly in (by style)</option>
-                        <option value="out">Weekly out (by style)</option>
-                    </select>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm" id="ksWeeklyTable">
-                        <thead>
-                            <tr id="ksWeeklyTableHead">
-                                <th>Week</th>
-                                <th class="text-end kernel-style-col" title="Sound Kernel SP — premium SP grade. Kg for this style in this week.">SP</th>
-                                <th class="text-end kernel-style-col" title="Sound kernel — style 0. Kg for this style in this week.">0</th>
-                                <th class="text-end kernel-style-col" title="Sound kernel — style 1. Kg for this style in this week.">1</th>
-                                <th class="text-end kernel-style-col" title="Sound kernel — style 1S. Kg for this style in this week.">1S</th>
-                                <th class="text-end kernel-style-col" title="Sound kernel — style 4L. Kg for this style in this week.">4L</th>
-                                <th class="text-end kernel-style-col" title="Sound kernel — style 5. Kg for this style in this week.">5</th>
-                                <th class="text-end kernel-style-col" title="Sound kernel — style 6. Kg for this style in this week.">6</th>
-                                <th class="text-end kernel-style-col" title="Butter — style 7/8. Kg for this style in this week.">7/8</th>
-                                <th class="text-end kernel-style-col" title="Butter High Oil grade. Kg for this style in this week.">B.High</th>
-                                <th class="text-end kernel-style-col" title="Butter Low Oil grade. Kg for this style in this week.">B.Low</th>
-                                <th class="text-end fw-bold" id="ksWeeklyTotalHeader">Total in (kg)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ksWeeklyTableBody">
-                            <tr><td colspan="12" class="text-center text-muted py-4">Loading…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- Overview view: total cartons by style -->
-            <div class="card mb-0 border-0" id="ksOverviewPanel" style="display: none;">
-                <h6 class="text-secondary"><i class="fas fa-chart-pie me-2"></i>Overview by style</h6>
-                <p class="text-muted small mb-3">Total remaining <strong>cartons</strong> (or carton equivalent from kg) by style across all batches in kernel stock.</p>
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm">
-                        <thead>
-                            <tr>
-                                <th>Style</th>
-                                <th class="text-end">Total (cartons)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ksOverviewTableBody">
-                            <tr><td colspan="2" class="text-center text-muted py-4">Loading…</td></tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
@@ -289,7 +252,7 @@
                 <button type="button" class="btn btn-primary btn-sm" id="oilBulkAddStockBtn" title="Add many on-hand lots at once (batch # and kg per row)">
                     <i class="fas fa-layer-group me-1"></i>Add stock
                 </button>
-                <button type="button" class="btn btn-success btn-sm" id="sendToDispatchOilBtn" title="Create an Oil &amp; Protein dispatch order">
+                <button type="button" class="btn btn-primary btn-sm" id="sendToDispatchOilBtn" title="Create an Oil &amp; Protein dispatch order">
                     <i class="fas fa-truck me-1"></i>Send to Dispatch
                 </button>
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshOilStockBtn" title="Reload stock">
@@ -311,18 +274,6 @@
                     <label for="oilSearchInput" class="form-label small text-muted mb-0">Search</label>
                     <input type="text" class="form-control form-control-sm" id="oilSearchInput" placeholder="Batch, grade, supplier…">
                 </div>
-                <div class="view-toggle">
-                    <button type="button" class="view-toggle-btn active" data-oil-view="bystock" id="osViewByStock" title="Stock tables">
-                        <i class="fas fa-table me-1"></i>Stock
-                    </button>
-                </div>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="osMoreViewsBtn" data-bs-toggle="dropdown" aria-expanded="false">More views</button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="osMoreViewsBtn">
-                        <li><button type="button" class="dropdown-item js-os-more-view" data-oil-view="weekly">Weekly</button></li>
-                        <li><button type="button" class="dropdown-item js-os-more-view" data-oil-view="overview">Overview</button></li>
-                    </ul>
-                </div>
             </div>
 
             <!-- Stock view: oil table first, then protein -->
@@ -330,7 +281,7 @@
                 <h6 class="text-secondary"><i class="fas fa-oil-can me-2"></i>Oil</h6>
                 <p class="text-muted small mb-2">Crude / EV / cosmetic and other non–protein-powder lines (location 801 / 850).</p>
                 <div class="table-responsive oil-stock-table-wrapper mb-4">
-                    <table class="table table-sm table-bordered table-hover" id="oilStockOilTable">
+                    <table class="table align-middle table-bordered table-hover" id="oilStockOilTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Location</th>
@@ -351,7 +302,7 @@
                 <h6 class="text-secondary"><i class="fas fa-flask me-2"></i>Protein powder</h6>
                 <p class="text-muted small mb-2">Finished protein powder lots (e.g. grade &quot;Protein powder&quot;).</p>
                 <div class="table-responsive oil-stock-table-wrapper">
-                    <table class="table table-sm table-bordered table-hover" id="oilStockProteinTable">
+                    <table class="table align-middle table-bordered table-hover" id="oilStockProteinTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Location</th>
@@ -371,50 +322,6 @@
                 </div>
             </div>
 
-            <div id="osWeeklyPanel" style="display: none;">
-                <h6 class="text-secondary"><i class="fas fa-calendar-week me-2"></i>Weekly stock (kg)</h6>
-                <p class="text-muted small mb-3">Stock <strong>in</strong> from ledger <code>created_at</code>; stock <strong>out</strong> from oil dispatch orders with a dispatch date. Split into oil vs protein powder.</p>
-                <div class="mb-3">
-                    <label for="osWeeklyViewMode" class="form-label small text-muted">View</label>
-                    <select id="osWeeklyViewMode" class="form-select form-select-sm" style="max-width: 16rem;">
-                        <option value="in">Weekly in</option>
-                        <option value="out">Weekly out</option>
-                    </select>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm" id="osWeeklyTable">
-                        <thead>
-                            <tr>
-                                <th>Week</th>
-                                <th class="text-end">Oil (kg)</th>
-                                <th class="text-end">Protein (kg)</th>
-                                <th class="text-end fw-bold" id="osWeeklyTotalHeader">Total (kg)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="osWeeklyTableBody">
-                            <tr><td colspan="4" class="text-center text-muted py-4">Loading…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="osOverviewPanel" style="display: none;">
-                <h6 class="text-secondary"><i class="fas fa-chart-pie me-2"></i>Overview (on-hand kg)</h6>
-                <p class="text-muted small mb-3">Totals for lots with status <strong>on hand</strong> only.</p>
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm">
-                        <thead>
-                            <tr>
-                                <th>Stream</th>
-                                <th class="text-end">Total (kg)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="osOverviewTableBody">
-                            <tr><td colspan="2" class="text-center text-muted py-4">Loading…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     </div>
 </div>

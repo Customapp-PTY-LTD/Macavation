@@ -40,13 +40,13 @@
 .form-section h5 {
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #dee2e6;
-    color: #495057;
+    border-bottom: 1px solid var(--mac-border);
+    color: var(--mac-text-secondary);
 }
 
 .form-label.required::after {
     content: " *";
-    color: #dc3545;
+    color: var(--mac-danger);
 }
 
 .font-monospace {
@@ -76,10 +76,5 @@
 @media (max-width: 768px) {
     #scenariosTable {
         font-size: 0.8rem;
-    }
-    
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
     }
 }

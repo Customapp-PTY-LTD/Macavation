@@ -26,12 +26,28 @@ var _oilDispatchGrid = function () {
         orders: [],
         _handlersBound: false,
         currentView: 'kanban',
+        dispatchListFilters: { buyer: '', deliveryDate: '' },
 
         init: async () => {
             const scope = _oilDispatchGrid;
             $('#oilDispatchRefreshBtn').off('click').on('click', function () { scope.loadOrders(true); });
             $('#odViewKanban, #odViewTable').off('click').on('click', function () {
                 scope.toggleView($(this).data('view'));
+            });
+            $('#odFilterBuyer').off('input.odFilter').on('input.odFilter', function () {
+                scope.dispatchListFilters.buyer = ($(this).val() || '').trim();
+                scope.render();
+            });
+            $('#odFilterDeliveryDate').off('change.odFilter input.odFilter').on('change.odFilter input.odFilter', function () {
+                scope.dispatchListFilters.deliveryDate = ($(this).val() || '').trim();
+                scope.render();
+            });
+            $('#odFilterClear').off('click').on('click', function () {
+                scope.dispatchListFilters.buyer = '';
+                scope.dispatchListFilters.deliveryDate = '';
+                $('#odFilterBuyer').val('');
+                $('#odFilterDeliveryDate').val('');
+                scope.render();
             });
             if (!scope._handlersBound) {
                 scope._handlersBound = true;
@@ -84,14 +100,26 @@ var _oilDispatchGrid = function () {
             }
         },
 
+        filteredOrders: () => {
+            const scope = _oilDispatchGrid;
+            var buyer = (scope.dispatchListFilters.buyer || '').toLowerCase();
+            var deliveryDate = scope.dispatchListFilters.deliveryDate || '';
+            return scope.orders.filter(function (o) {
+                if (buyer && (o.buyer_name || '').toLowerCase().indexOf(buyer) === -1) return false;
+                if (deliveryDate && String(o.delivery_date || '').slice(0, 10) !== deliveryDate) return false;
+                return true;
+            });
+        },
+
         render: () => {
             const scope = _oilDispatchGrid;
             if (scope.currentView === 'kanban') {
                 scope.renderKanban();
                 return;
             }
-            var pending = scope.orders.filter(function (o) { return o.status !== 'dispatched'; });
-            var dispatched = scope.orders.filter(function (o) { return o.status === 'dispatched'; });
+            var orders = scope.filteredOrders();
+            var pending = orders.filter(function (o) { return o.status !== 'dispatched'; });
+            var dispatched = orders.filter(function (o) { return o.status === 'dispatched'; });
 
             var pendingTbody = $('#oilDispatchTableBody');
             pendingTbody.empty();
@@ -105,9 +133,14 @@ var _oilDispatchGrid = function () {
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = typeof KanbanHelper !== 'undefined' ? KanbanHelper.statusBadge(o.status || 'confirmed', 'first') : '<span class="badge bg-secondary">' + (o.status || 'confirmed') + '</span>';
-                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order me-1" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
-                    var dispatchBtn = '<button type="button" class="btn btn-sm btn-success js-dispatch-oil-order" data-order-id="' + (o.id || '') + '" title="Complete inspection and dispatch"><i class="fas fa-truck me-1"></i>Dispatch</button>';
-                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + dispatchBtn + '</td></tr>');
+                    var actions = MacTableActions.render({
+                        id: 'odPendingActions' + (o.id || ''),
+                        items: [
+                            { label: 'View sheet', className: 'js-view-oil-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } },
+                            { label: 'Dispatch', className: 'js-dispatch-oil-order', icon: 'fas fa-truck', dataAttrs: { 'order-id': o.id || '' } }
+                        ]
+                    });
+                    pendingTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
                 });
             }
 
@@ -123,10 +156,17 @@ var _oilDispatchGrid = function () {
                     var lineCount = o.line_count != null ? o.line_count : 0;
                     var totalKg = o.total_kg != null ? Number(o.total_kg) : 0;
                     var statusBadge = typeof KanbanHelper !== 'undefined' ? KanbanHelper.statusBadge('dispatched', 'last') : '<span class="badge bg-success">dispatched</span>';
-                    var viewBtn = '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet and basket"><i class="fas fa-clipboard-list me-1"></i>View sheet</button>';
-                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td>' + statusBadge + ' ' + viewBtn + '</td></tr>');
+                    var actions = MacTableActions.render({
+                        id: 'odDispatchedActions' + (o.id || ''),
+                        items: [
+                            { label: 'View sheet', className: 'js-view-oil-dispatch-order', icon: 'fas fa-clipboard-list', dataAttrs: { 'order-id': o.id || '' } }
+                        ]
+                    });
+                    dispatchedTbody.append('<tr><td>' + buyer + '</td><td>' + deliveryStr + '</td><td>' + createdStr + '</td><td class="text-end">' + lineCount + '</td><td class="text-end">' + totalKg.toFixed(1) + '</td><td class="mac-table-actions-col">' + statusBadge + ' ' + actions + '</td></tr>');
                 });
             }
+            MacTableActions.init(document.getElementById('oilDispatchTable'));
+            MacTableActions.init(document.getElementById('oilDispatchedTable'));
         },
 
         toggleView: (view) => {
@@ -151,7 +191,7 @@ var _oilDispatchGrid = function () {
             const scope = _oilDispatchGrid;
             if (typeof KanbanHelper === 'undefined') return;
 
-            KanbanHelper.render('odKanbanBoard', DISPATCH_KANBAN_COLUMNS, scope.orders, function (o) {
+            KanbanHelper.render('odKanbanBoard', DISPATCH_KANBAN_COLUMNS, scope.filteredOrders(), function (o) {
                 return o.status === 'dispatched' ? 'dispatched' : 'confirmed';
             }, function (o) {
                 var esc = KanbanHelper._esc;
@@ -172,7 +212,7 @@ var _oilDispatchGrid = function () {
                 html += '<div class="kanban-card-actions">';
                 html += '<button type="button" class="btn btn-sm btn-outline-primary js-view-oil-dispatch-order" data-order-id="' + (o.id || '') + '" title="View dispatch sheet"><i class="fas fa-clipboard-list me-1"></i>View</button>';
                 if (!isDispatched) {
-                    html += '<button type="button" class="btn btn-sm btn-success js-dispatch-oil-order" data-order-id="' + (o.id || '') + '" title="Complete inspection and dispatch"><i class="fas fa-truck me-1"></i>Dispatch</button>';
+                    html += '<button type="button" class="btn btn-sm btn-primary js-dispatch-oil-order" data-order-id="' + (o.id || '') + '" title="Complete inspection and dispatch"><i class="fas fa-truck me-1"></i>Dispatch</button>';
                 }
                 html += '</div>';
                 html += '</div>';

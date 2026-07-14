@@ -8,73 +8,73 @@
 }
 
 .admin-role-layout .border-dashed {
-    border: 2px dashed var(--phoenix-border-color, #dee2e6);
+    border: 2px dashed var(--mac-border, var(--mac-border));
     background: rgba(0, 0, 0, 0.02);
 }
 
-/* Roles tab: action buttons may wrap on narrow widths */
-#adminRolesTable td.admin-role-actions {
-    text-align: right;
-    white-space: normal;
-    vertical-align: middle;
-}
-
-#adminRolesTable td.admin-role-actions .btn-sm {
-    font-size: 0.8125rem;
-}
+/* Roles tab: actions use WebPortal/css/table-actions.css (.mac-table-actions-col) */
 
 /* Page Header */
 .admin-grid h2,
 .admin-access-module h2 {
-    color: var(--phoenix-text-color);
+    color: var(--mac-text);
     transition: color 0.3s ease;
 }
 
 /* Other cards in admin (tables, sidebars) keep solid background */
 .module-content .card {
-    border-radius: var(--phoenix-border-radius);
-    box-shadow: var(--phoenix-box-shadow);
+    border-radius: var(--mac-radius-md);
+    box-shadow: var(--mac-shadow-sm);
     transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
-    background-color: var(--phoenix-card-bg);
-    border-color: var(--phoenix-border-color);
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border);
 }
 
 .module-content .card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--phoenix-box-shadow-lg);
+    box-shadow: var(--mac-shadow-lg);
 }
 
-/* Tabs */
+/* Tabs — flat underline, no rounded "tab" corners. The border-radius: 0
+   override is deliberate: main.css forces a radius on every .nav-tabs .nav-link,
+   which is what gave the active tab its curved look. */
 .nav-tabs {
-    border-bottom: 2px solid var(--phoenix-border-color);
+    border-bottom: 1px solid var(--mac-border);
+    gap: 0.25rem;
 }
 
 .nav-tabs .nav-link {
-    color: #212529;
+    color: var(--mac-text-secondary);
     font-weight: 500;
     border: none;
-    border-bottom: 3px solid transparent;
-    padding: 0.75rem 1.5rem;
-    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+    border-radius: 0 !important;
+    padding: 0.6rem 1.1rem;
+    margin-bottom: -1px;
+    background: transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 .nav-tabs .nav-link:hover {
-    color: var(--phoenix-primary);
+    color: var(--mac-text);
     border-color: transparent;
-    background-color: rgba(0, 0, 0, 0.04);
+    border-bottom-color: var(--mac-border-strong);
+    background-color: transparent;
 }
 
 .nav-tabs .nav-link.active {
-    color: var(--phoenix-primary);
-    border-bottom-color: var(--phoenix-primary);
+    color: var(--mac-green);
+    border-bottom-color: var(--mac-green);
     background-color: transparent;
+    font-weight: 600;
 }
+
 
 
 /* Progress Bars */
 .progress {
     border-radius: 10px;
-    background-color: var(--phoenix-light);
+    background-color: var(--mac-bg-tertiary);
 }
 
 .progress-bar {
@@ -89,31 +89,6 @@
     font-weight: 600;
 }
 
-.table thead th {
-    background-color: var(--phoenix-light);
-    color: var(--phoenix-text-color);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    border-top: none;
-    border-bottom: 2px solid var(--phoenix-border-color);
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-}
-
-.table tbody tr {
-    transition: background-color 0.3s ease;
-}
-
-.table tbody tr:hover {
-    background-color: rgba(var(--phoenix-primary-rgb), 0.05);
-}
-
-.table tbody td {
-    vertical-align: middle;
-    color: var(--phoenix-text-color);
-}
-
 /* Clickable rows – Admin tables (UI design instructions) */
 #adminUsersTable tbody tr.js-admin-user-row,
 #adminRolesTable tbody tr.js-admin-role-row {
@@ -122,7 +97,7 @@
 
 #adminUsersTable .js-admin-user-row td:first-child,
 #adminRolesTable .js-admin-role-row td:first-child {
-    color: var(--forest-deep, #008950);
+    color: var(--mac-green, var(--mac-green));
     font-weight: 500;
 }
 
@@ -131,43 +106,7 @@
     text-decoration: underline;
 }
 
-#adminUsersTable td:last-child {
-    text-align: center;
-    white-space: nowrap;
-}
-
-#adminUsersTable td:last-child .dropdown {
-    display: inline-block;
-}
-
-#adminUsersTable td:last-child .dropdown .btn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0;
-    background-color: transparent;
-    border: 2px solid var(--forest-deep, #008950);
-    color: var(--forest-deep, #008950);
-}
-
-#adminUsersTable td:last-child .dropdown .btn:hover,
-#adminUsersTable td:last-child .dropdown .btn.show {
-    background-color: var(--forest-deep, #008950);
-    border-color: var(--forest-deep, #008950);
-    color: #fff;
-}
-
-#adminUsersTable td:last-child .dropdown .btn i {
-    color: inherit;
-}
-
-#adminUsersTable td:last-child .dropdown .btn::after {
-    display: none;
-}
+/* Actions column: WebPortal/css/table-actions.css */
 
 /* Remove dropdown/select arrows in this module */
 .module-content #userRoleFilter.form-select {
@@ -176,40 +115,15 @@
     -moz-appearance: none;
 }
 
-/* Badges */
-.badge {
-    padding: 0.35em 0.65em;
-    font-weight: 500;
-    font-size: 0.85rem;
-    transition: background-color 0.3s ease;
-}
-
-/* Role Badges */
-.badge.bg-danger {
-    background-color: var(--phoenix-danger) !important;
-}
-
-.badge.bg-primary {
-    background-color: var(--phoenix-primary) !important;
-}
-
-.badge.bg-info {
-    background-color: var(--phoenix-info) !important;
-}
-
-.badge.bg-secondary {
-    background-color: var(--phoenix-secondary) !important;
-}
-
-.badge.bg-success {
-    background-color: var(--phoenix-success) !important;
-}
+/* Badges: use the global tinted-pill standard (index.css). The old solid
+   phoenix fills painted the tinted text color onto same-color backgrounds,
+   rendering Status as unreadable solid blocks. */
 
 /* Action Buttons - Enhanced Visibility */
 .btn-sm {
     padding: 0.4rem 0.75rem;
     font-size: 0.875rem;
-    border-radius: var(--phoenix-border-radius);
+    border-radius: var(--mac-radius-md);
     font-weight: 600;
     min-width: 36px;
     transition: all 0.3s ease;
@@ -225,17 +139,17 @@
 }
 
 .btn-outline-primary {
-    border-color: var(--phoenix-primary);
-    color: var(--phoenix-primary);
-    background-color: rgba(var(--phoenix-primary-rgb), 0.1);
+    border-color: var(--mac-green);
+    color: var(--mac-green);
+    background-color: rgba(var(--mac-green-rgb), 0.1);
 }
 
 .btn-outline-primary:hover {
-    background-color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
+    border-color: var(--mac-green);
     color: white;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(var(--phoenix-primary-rgb), 0.3);
+    box-shadow: 0 2px 8px rgba(var(--mac-green-rgb), 0.3);
 }
 
 .btn-sm i {
@@ -245,7 +159,7 @@
 
 /* Form Elements */
 .form-label {
-    color: var(--phoenix-text-color);
+    color: var(--mac-text);
     font-weight: 500;
     margin-bottom: 0.5rem;
     transition: color 0.3s ease;
@@ -253,18 +167,18 @@
 
 .form-control,
 .form-select {
-    border: 1px solid var(--phoenix-border-color);
-    border-radius: var(--phoenix-border-radius);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
     padding: 0.5rem 0.75rem;
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
     transition: all 0.3s ease;
 }
 
 .form-control:focus,
 .form-select:focus {
-    border-color: var(--phoenix-primary);
-    box-shadow: 0 0 0 0.2rem rgba(var(--phoenix-primary-rgb), 0.15);
+    border-color: var(--mac-green);
+    box-shadow: 0 0 0 0.2rem rgba(var(--mac-green-rgb), 0.15);
 }
 
 /* Resource Transfer Form */
@@ -279,12 +193,12 @@
 }
 
 .card-body .d-flex small {
-    color: var(--phoenix-secondary);
+    color: var(--mac-text);
     transition: color 0.3s ease;
 }
 
 .card-body .d-flex strong {
-    color: var(--phoenix-text-color);
+    color: var(--mac-text);
     transition: color 0.3s ease;
 }
 
@@ -293,12 +207,12 @@
 .spinner-border {
     width: 2rem;
     height: 2rem;
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
 }
 
 /* Empty States */
 .text-muted {
-    color: var(--phoenix-secondary) !important;
+    color: var(--mac-text) !important;
 }
 
 /* Admin module: light grey text -> black (tabs, sidebars, etc.) */
@@ -309,7 +223,7 @@
 .module-content #userStatisticsContainer small,
 .module-content #permissionCategoriesContainer .text-muted,
 .module-content #permissionCategoriesContainer small {
-    color: #212529 !important;
+    color: var(--mac-text) !important;
 }
 
 /* Responsive Adjustments */
@@ -332,26 +246,22 @@
 
 #analytics .text-center h3 {
     margin-bottom: 0.5rem;
-    color: var(--phoenix-text-color);
+    color: var(--mac-text);
 }
 
 #analytics .border {
-    border: 2px solid var(--phoenix-border-color) !important;
+    border: 2px solid var(--mac-border) !important;
     border-radius: 10px;
     transition: all 0.3s ease;
 }
 
 #analytics .border:hover {
-    border-color: var(--phoenix-primary) !important;
-    box-shadow: 0 4px 12px rgba(var(--phoenix-primary-rgb), 0.1);
+    border-color: var(--mac-green) !important;
+    box-shadow: 0 4px 12px rgba(var(--mac-green-rgb), 0.1);
 }
 
 
-/* Role Definitions Section */
-.card-body .badge {
-    min-width: 100px;
-    text-align: center;
-}
+/* Role Definitions Section: badges size to their content (no stretched blocks) */
 
 /* Customize modules dialog: per-module database permission groups */
 #adminFeaturesTable .js-admin-feature-expand {
@@ -364,11 +274,11 @@
 }
 
 #adminFeaturesTable .admin-other-row td:first-child {
-    color: var(--phoenix-secondary);
+    color: var(--mac-text);
 }
 
 #adminFeaturesTable .admin-perm-group > td {
-    background: rgba(var(--phoenix-primary-rgb), 0.03);
+    background: rgba(var(--mac-green-rgb), 0.03);
     border-top: 0;
 }
 
@@ -377,9 +287,7 @@
 }
 
 #adminFeaturesTable .admin-perm-table tbody td {
-    border-color: var(--phoenix-border-color);
-    padding-top: 0.4rem;
-    padding-bottom: 0.4rem;
+    border-color: var(--mac-border);
 }
 
 /* Indent the nested permission name under its module */
@@ -393,10 +301,10 @@
 
 /* Transfer Table Status */
 .table tbody td code {
-    background-color: var(--phoenix-light);
+    background-color: var(--mac-bg-tertiary);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.85rem;
-    color: var(--phoenix-text-color);
+    color: var(--mac-text);
     transition: background-color 0.3s ease, color 0.3s ease;
 }

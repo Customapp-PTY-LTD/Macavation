@@ -42,7 +42,6 @@ class AuthService {
         };
         return {
             email: normalized(user.email || user.user_email || user.email_address),
-            username: normalized(user.username || user.user_name || user.login),
             firstName: normalized(user.first_name),
             lastName: normalized(user.last_name),
             fullName: normalized(user.full_name || user.name || ((user.first_name || '') + ' ' + (user.last_name || ''))),
@@ -61,12 +60,10 @@ class AuthService {
             'mark@macavation.co.za',
             'mark.payne@macavation.co.za'
         ]);
-        const overrideUsernames = new Set(['pete', 'mark', 'peter.symons', 'mark.payne']);
         const overrideFullNames = new Set(['pete', 'mark', 'peter symons', 'mark payne']);
 
         const isOverrideUser =
             overrideEmails.has(identity.email) ||
-            overrideUsernames.has(identity.username) ||
             overrideFullNames.has(identity.firstName) ||
             overrideFullNames.has(identity.fullName) ||
             overrideFullNames.has(identity.displayName);

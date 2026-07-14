@@ -138,14 +138,13 @@ var _featuresGrid = function () {
                     var statusBadge = f.is_active !== false
                         ? '<span class="badge bg-success">Active</span>'
                         : '<span class="badge bg-secondary">Inactive</span>';
-                    var actionsCell = '<td>' +
-                        '<div class="dropdown">' +
-                        '<button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">' +
-                        '<i class="fas fa-ellipsis"></i></button>' +
-                        '<ul class="dropdown-menu dropdown-menu-end">' +
-                        '<li><a class="dropdown-item js-feature-edit" href="#" data-feature-id="' + fId + '">Edit</a></li>' +
-                        '<li><a class="dropdown-item js-feature-delete text-danger" href="#" data-feature-id="' + fId + '">Delete</a></li>' +
-                        '</ul></div></td>';
+                    var actionsCell = MacTableActions.renderCell({
+                        wrapLi: true,
+                        items: [
+                            { label: 'Edit', className: 'js-feature-edit', dataAttrs: { 'feature-id': f.id } },
+                            { label: 'Delete', className: 'js-feature-delete', danger: true, dataAttrs: { 'feature-id': f.id } }
+                        ]
+                    });
                     return '<tr class="js-feature-row" data-feature-id="' + fId + '">' +
                         '<td>' + scope.escapeHtml(f.name || '') + '</td>' +
                         '<td><code>' + scope.escapeHtml(f.key || '') + '</code></td>' +
@@ -155,6 +154,7 @@ var _featuresGrid = function () {
                 }).join('');
             }
             $('#featuresTableBody').html(html);
+            MacTableActions.init(document.getElementById('featuresTable'));
             scope.renderPagination();
         },
 

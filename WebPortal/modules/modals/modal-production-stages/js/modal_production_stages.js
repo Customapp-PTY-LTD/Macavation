@@ -73,16 +73,113 @@ function getStagesLatestDate(stages) {
     return dates[dates.length - 1];
 }
 
+function parseStageNum(v) {
+    if (v == null || v === '') return null;
+    var n = parseFloat(v);
+    return isNaN(n) ? null : n;
+}
+
+function roundStagePct(numerator, denominator) {
+    if (!denominator || denominator <= 0) return null;
+    return +(Math.round((numerator / denominator) * 1000) / 10).toFixed(1);
+}
+
+/**
+ * Compute derived statistics (yield, recovery, totals) from raw stage inputs.
+ * Called before save and when rendering batch summary so stored/displayed figures stay consistent.
+ */
+function enrichProductionStageCalculations(cracking_data, washing_data, sorting_data, packing_data, nisKg) {
+    var c = Object.assign({}, cracking_data || {});
+    var w = Object.assign({}, washing_data || {});
+    var s = Object.assign({}, sorting_data || {});
+    var p = Object.assign({}, packing_data || {});
+    var nis = parseStageNum(nisKg);
+
+    var totalWholes = (parseStageNum(c.wholes_07) || 0) + (parseStageNum(c.wholes_10) || 0) + (parseStageNum(c.wholes_13) || 0);
+    var totalSlotQty = (parseStageNum(c.total_07) || 0) + (parseStageNum(c.total_10) || 0) + (parseStageNum(c.total_13) || 0);
+    var totalqty = parseStageNum(c.totalqty);
+    var crackOutput = totalqty != null ? totalqty : (totalSlotQty > 0 ? totalSlotQty : null);
+    if (totalWholes > 0) c.total_wholes = +totalWholes.toFixed(2);
+    if (crackOutput != null && crackOutput > 0) c.total_output = +crackOutput.toFixed(2);
+    var shellTotal = parseStageNum(c.shell_total) || 0;
+    var crackPct = nis && crackOutput ? roundStagePct(crackOutput, nis)
+        : (crackOutput && (crackOutput + shellTotal) > 0 ? roundStagePct(crackOutput, crackOutput + shellTotal) : null);
+    if (crackPct != null) c.cracking_percentage = crackPct;
+
+    var qtyIn = parseStageNum(w.qty_in) || 0;
+    var floaterQty = parseStageNum(w.floater_qty) || 0;
+    var sinkerQty = parseStageNum(w.sinker_qty) || 0;
+    var washOut = floaterQty + sinkerQty;
+    var washTotalQty = parseStageNum(w.total_qty);
+    if (washOut > 0) {
+        w.total_qty = +washOut.toFixed(2);
+        w.floater_total = +floaterQty.toFixed(2);
+        w.sinker_total = +sinkerQty.toFixed(2);
+        w.total_output = +washOut.toFixed(2);
+    } else if (washTotalQty != null && washTotalQty > 0) {
+        washOut = washTotalQty;
+        w.total_output = +washTotalQty.toFixed(2);
+    }
+    if (qtyIn > 0) {
+        w.total_in = +qtyIn.toFixed(2);
+        w.qty_diff = +(qtyIn - washOut).toFixed(2);
+    }
+    var washRecovery = roundStagePct(washOut, qtyIn);
+    if (washRecovery != null) w.recovery = washRecovery;
+
+    var floaterIn = parseStageNum(s.floater_qty_in) || 0;
+    var sinkerIn = parseStageNum(s.sinker_qty_in) || 0;
+    var sortIn = floaterIn + sinkerIn;
+    var soundQty = parseStageNum(s.sound_qty) || 0;
+    var butterQty = parseStageNum(s.butter_qty) || 0;
+    var sortOut = soundQty + butterQty;
+    if (sortIn > 0) s.total_in = +sortIn.toFixed(2);
+    if (sortOut > 0) s.total_output = +sortOut.toFixed(2);
+    var sortRecovery = roundStagePct(sortOut, sortIn);
+    if (sortRecovery != null) s.recovery = sortRecovery;
+    [
+        ['style0', 'style0_qty'], ['style1', 'style1_qty'], ['style1s', 'style1s_qty'],
+        ['style4l', 'style4l_qty'], ['style5', 'style5_qty'], ['style6', 'style6_qty'], ['style78', 'style78_qty']
+    ].forEach(function (pair) {
+        var qty = parseStageNum(s[pair[1]]);
+        if (qty != null && qty > 0) s[pair[0] + '_weight'] = +qty.toFixed(2);
+    });
+
+    var skKg = parseStageNum(p.sk_total_qty);
+    var btKg = parseStageNum(p.bt_total_qty);
+    if (skKg != null && skKg > 0) p.total_sk_kg = +skKg.toFixed(2);
+    if (btKg != null && btKg > 0) p.total_bt_kg = +btKg.toFixed(2);
+    var skCartons = parseStageNum(p.sk_total_cartons);
+    var btCartons = parseStageNum(p.bt_total_cartons);
+    if (skCartons != null && skCartons > 0) p.total_sk_cartons = skCartons;
+    if (btCartons != null && btCartons > 0) p.total_bt_cartons = btCartons;
+
+    return { cracking_data: c, washing_data: w, sorting_data: s, packing_data: p };
+}
+
+function enrichAggregatedProductionStats(agg, nisKg) {
+    if (!agg) return agg;
+    var enriched = enrichProductionStageCalculations(
+        agg.cracking_data, agg.washing_data, agg.sorting_data, agg.packing_data, nisKg
+    );
+    agg.cracking_data = enriched.cracking_data;
+    agg.washing_data = enriched.washing_data;
+    agg.sorting_data = enriched.sorting_data;
+    agg.packing_data = enriched.packing_data;
+    return agg;
+}
+
 /**
  * Derive summary_data from the four stage blobs (Cracking/Washing/Sorting/Packing).
  * Used on save so Summary is always computed; also for timeline snippets.
  * Field mapping: see Summary tab IDs (ps_sum_*) in modal_production_stages.html.
  */
 function deriveSummaryFromStages(cracking_data, washing_data, sorting_data, packing_data) {
-    var c = cracking_data || {};
-    var w = washing_data || {};
-    var s = sorting_data || {};
-    var p = packing_data || {};
+    var enriched = enrichProductionStageCalculations(cracking_data, washing_data, sorting_data, packing_data, null);
+    var c = enriched.cracking_data;
+    var w = enriched.washing_data;
+    var s = enriched.sorting_data;
+    var p = enriched.packing_data;
     var num = function (v) { var n = parseFloat(v); return isNaN(n) ? '' : n; };
     var str = function (v) { return v != null && v !== '' ? String(v) : ''; };
     return {
@@ -243,9 +340,12 @@ var _modal_production_stages = (function () {
             // Washing/Sorting: kg fields are manual; only crate/carton counts drive row-independent totals where noted.
             // Packing: cartons → kg uses × 11.34 (standard carton weight).
             // Washing: only crate fields auto-update Total/Crate difference; all kg fields are manual (no ×11.34).
-            $(document).on('input change', '.wash-crate-input', function () { scope.recalcWashingQty(); });
+            $(document).on('input change', '.wash-crate-input, .ps-wash-manual-kg', function () { scope.recalcWashingQty(); });
             $(document).on('input change', '.sort-crate-input, .ps-sort-manual-kg', function () { scope.recalcSortingQty(); });
             $(document).on('input change', '.pack-carton-input', function () { scope.recalcPackingQty(); });
+            $(document).on('input change', '#ps_crack_totalqty, [id^="ps_crack_total_"], [id^="ps_crack_wholes_"], #ps_crack_shell_total', function () {
+                scope.recalcCrackingStats();
+            });
             // Map section date field IDs to their section key
             var sectionDateFields = {
                 'ps_crack_date': 'crack',
@@ -377,6 +477,23 @@ var _modal_production_stages = (function () {
             var diffC = Math.abs(cratesIn - totalOutC);
             $('#ps_wash_total_crates').val(totalOutC || '');
             $('#ps_wash_crate_diff').val(diffC || '');
+            var floaterKg = calc('ps_wash_floater_qty');
+            var sinkerKg = calc('ps_wash_sinker_qty');
+            var totalOutKg = floaterKg + sinkerKg;
+            if (totalOutKg > 0) $('#ps_wash_total_qty').val(+totalOutKg.toFixed(2));
+            var qtyIn = calc('ps_wash_qty_in');
+            if (qtyIn > 0 || totalOutKg > 0) {
+                $('#ps_wash_qty_diff').val(+(qtyIn - totalOutKg).toFixed(2));
+            }
+        },
+
+        recalcCrackingStats: () => {
+            var calc = function (id) { return parseFloat($('#' + id).val()) || 0; };
+            var totalSlots = calc('ps_crack_total_07') + calc('ps_crack_total_10') + calc('ps_crack_total_13');
+            var totalqty = calc('ps_crack_totalqty');
+            if (!totalqty && totalSlots > 0) {
+                $('#ps_crack_totalqty').val(+totalSlots.toFixed(2));
+            }
         },
 
         recalcSortingQty: () => {
@@ -1029,6 +1146,9 @@ var _modal_production_stages = (function () {
         },
 
         renderBatchSummaryHtml: (agg, dayCount, batch, detail) => {
+            var nisReceived = (detail && detail.wet_nis_received_kg) ? parseFloat(detail.wet_nis_received_kg)
+                : ((batch && batch.wet_nis_received_kg) ? parseFloat(batch.wet_nis_received_kg) : null);
+            enrichAggregatedProductionStats(agg, nisReceived);
             var n = function (v) { return (v != null && typeof v === 'number') ? v : parseFloat(v); };
             var kg = function (v) { var x = n(v); return isNaN(x) ? '—' : x.toFixed(1) + ' kg'; };
             var num = function (v) { var x = n(v); return isNaN(x) ? '—' : (x % 1 === 0 ? String(x) : x.toFixed(2)); };
@@ -1064,7 +1184,8 @@ var _modal_production_stages = (function () {
                ═══════════════════════════════════════════ */
             var batchName = (batch && batch.batch_number) ? batch.batch_number : (detail && detail.batch_number) ? detail.batch_number : '';
             var grower = (batch && batch.grower_name) ? batch.grower_name : (detail && detail.supplier_name) ? detail.supplier_name : '';
-            var nisReceived = (detail && detail.wet_nis_received_kg) ? n(detail.wet_nis_received_kg) : ((batch && batch.wet_nis_received_kg) ? n(batch.wet_nis_received_kg) : NaN);
+            if (nisReceived != null && !isNaN(nisReceived)) nisReceived = n(nisReceived);
+            else nisReceived = NaN;
             var status = (batch && batch.status) ? batch.status : (detail && detail.status) ? detail.status : '';
 
             // Status pill colour
@@ -1324,27 +1445,27 @@ var _modal_production_stages = (function () {
                 var hasSK = skStyles.some(function (s) { return v(p, s[0] + '_qty') > 0 || v(p, s[0] + '_cartons') > 0; });
                 if (hasSK) {
                     html.push('<div style="margin:4px 0 8px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Sound Kernel</div>');
-                    html.push('<table style="width:100%;font-size:0.85rem;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid var(--mac-border,#e0e0e0);">');
-                    html.push('<th style="text-align:left;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Grade</th>');
-                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Qty (kg)</th>');
-                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Cartons</th>');
+                    html.push('<table class="table align-middle table-hover mb-0"><thead><tr>');
+                    html.push('<th>Grade</th>');
+                    html.push('<th class="text-end">Qty (kg)</th>');
+                    html.push('<th class="text-end">Cartons</th>');
                     html.push('</tr></thead><tbody>');
                     skStyles.forEach(function (pair) {
                         var qty = v(p, pair[0] + '_qty');
                         var ctn = v(p, pair[0] + '_cartons');
                         if (qty > 0 || ctn > 0) {
-                            html.push('<tr style="border-bottom:1px solid var(--mac-border-light,rgba(0,0,0,0.05));">');
-                            html.push('<td style="padding:4px 0;">' + pair[1] + '</td>');
-                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (qty > 0 ? qty.toFixed(1) : '—') + '</td>');
-                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (ctn > 0 ? num(ctn) : '—') + '</td>');
+                            html.push('<tr>');
+                            html.push('<td>' + pair[1] + '</td>');
+                            html.push('<td class="text-end fw-semibold">' + (qty > 0 ? qty.toFixed(1) : '—') + '</td>');
+                            html.push('<td class="text-end fw-semibold">' + (ctn > 0 ? num(ctn) : '—') + '</td>');
                             html.push('</tr>');
                         }
                     });
                     if (has(p, 'total_sk_kg') || has(p, 'total_sk_cartons')) {
-                        html.push('<tr style="border-top:2px solid var(--mac-border,#e0e0e0);font-weight:700;">');
-                        html.push('<td style="padding:4px 0;">Total</td>');
-                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_sk_kg') > 0 ? v(p, 'total_sk_kg').toFixed(1) : '—') + '</td>');
-                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_sk_cartons') > 0 ? num(v(p, 'total_sk_cartons')) : '—') + '</td>');
+                        html.push('<tr class="fw-bold">');
+                        html.push('<td>Total</td>');
+                        html.push('<td class="text-end">' + (v(p, 'total_sk_kg') > 0 ? v(p, 'total_sk_kg').toFixed(1) : '—') + '</td>');
+                        html.push('<td class="text-end">' + (v(p, 'total_sk_cartons') > 0 ? num(v(p, 'total_sk_cartons')) : '—') + '</td>');
                         html.push('</tr>');
                     }
                     html.push('</tbody></table>');
@@ -1359,27 +1480,27 @@ var _modal_production_stages = (function () {
                 var hasBT = btStyles.some(function (s) { return v(p, s[0] + '_qty') > 0 || v(p, s[0] + '_cartons') > 0; });
                 if (hasBT) {
                     html.push('<div style="margin:14px 0 8px 0;font-weight:600;font-size:0.8rem;color:var(--mac-text-secondary,#666);text-transform:uppercase;letter-spacing:0.04em;">Butter Grade</div>');
-                    html.push('<table style="width:100%;font-size:0.85rem;border-collapse:collapse;"><thead><tr style="border-bottom:2px solid var(--mac-border,#e0e0e0);">');
-                    html.push('<th style="text-align:left;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Grade</th>');
-                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Qty (kg)</th>');
-                    html.push('<th style="text-align:right;padding:4px 0;color:var(--mac-text-secondary,#666);font-weight:600;">Cartons</th>');
+                    html.push('<table class="table align-middle table-hover mb-0"><thead><tr>');
+                    html.push('<th>Grade</th>');
+                    html.push('<th class="text-end">Qty (kg)</th>');
+                    html.push('<th class="text-end">Cartons</th>');
                     html.push('</tr></thead><tbody>');
                     btStyles.forEach(function (pair) {
                         var qty = v(p, pair[0] + '_qty');
                         var ctn = v(p, pair[0] + '_cartons');
                         if (qty > 0 || ctn > 0) {
-                            html.push('<tr style="border-bottom:1px solid var(--mac-border-light,rgba(0,0,0,0.05));">');
-                            html.push('<td style="padding:4px 0;">' + pair[1] + '</td>');
-                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (qty > 0 ? qty.toFixed(1) : '—') + '</td>');
-                            html.push('<td style="text-align:right;padding:4px 0;font-weight:600;">' + (ctn > 0 ? num(ctn) : '—') + '</td>');
+                            html.push('<tr>');
+                            html.push('<td>' + pair[1] + '</td>');
+                            html.push('<td class="text-end fw-semibold">' + (qty > 0 ? qty.toFixed(1) : '—') + '</td>');
+                            html.push('<td class="text-end fw-semibold">' + (ctn > 0 ? num(ctn) : '—') + '</td>');
                             html.push('</tr>');
                         }
                     });
                     if (has(p, 'total_bt_kg') || has(p, 'total_bt_cartons')) {
-                        html.push('<tr style="border-top:2px solid var(--mac-border,#e0e0e0);font-weight:700;">');
-                        html.push('<td style="padding:4px 0;">Total</td>');
-                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_bt_kg') > 0 ? v(p, 'total_bt_kg').toFixed(1) : '—') + '</td>');
-                        html.push('<td style="text-align:right;padding:4px 0;">' + (v(p, 'total_bt_cartons') > 0 ? num(v(p, 'total_bt_cartons')) : '—') + '</td>');
+                        html.push('<tr class="fw-bold">');
+                        html.push('<td>Total</td>');
+                        html.push('<td class="text-end">' + (v(p, 'total_bt_kg') > 0 ? v(p, 'total_bt_kg').toFixed(1) : '—') + '</td>');
+                        html.push('<td class="text-end">' + (v(p, 'total_bt_cartons') > 0 ? num(v(p, 'total_bt_cartons')) : '—') + '</td>');
                         html.push('</tr>');
                     }
                     html.push('</tbody></table>');
@@ -1551,6 +1672,18 @@ var _modal_production_stages = (function () {
             var washing_data = scope.getProductionStagesSectionData('wash');
             var sorting_data = scope.getProductionStagesSectionData('sort');
             var packing_data = scope.getProductionStagesSectionData('pack');
+            var batch = typeof _kernelProductionGrid !== 'undefined' && _kernelProductionGrid.getBatch
+                ? _kernelProductionGrid.getBatch(batchId) : null;
+            var nisKg = (scope._loadedKernelDetail && scope._loadedKernelDetail.wet_nis_received_kg != null)
+                ? scope._loadedKernelDetail.wet_nis_received_kg
+                : (batch && batch.wet_nis_received_kg != null ? batch.wet_nis_received_kg : null);
+            var enrichedStages = enrichProductionStageCalculations(
+                cracking_data, washing_data, sorting_data, packing_data, nisKg
+            );
+            cracking_data = enrichedStages.cracking_data;
+            washing_data = enrichedStages.washing_data;
+            sorting_data = enrichedStages.sorting_data;
+            packing_data = enrichedStages.packing_data;
             var summary_data = deriveSummaryFromStages(cracking_data, washing_data, sorting_data, packing_data);
             var hasMeaningfulData = scope.hasAnyMeaningfulProductionData(cracking_data, washing_data, sorting_data, packing_data);
             var currentDate = cracking_data.date || washing_data.date || sorting_data.date || packing_data.date || null;
@@ -1776,7 +1909,7 @@ var _modal_production_stages = (function () {
                 if (!data || typeof data !== 'object') return '<p class="text-muted mb-0">No data</p>';
                 var rows = [];
                 for (var k in data) { if (data.hasOwnProperty(k)) rows.push('<tr><td class="text-nowrap">' + k + '</td><td>' + fmt(data[k]) + '</td></tr>'); }
-                return rows.length ? '<table class="table table-sm table-bordered mb-2"><tbody>' + rows.join('') + '</tbody></table>' : '<p class="text-muted mb-0">No data</p>';
+                return rows.length ? '<table class="table align-middle table-bordered mb-2"><tbody>' + rows.join('') + '</tbody></table>' : '<p class="text-muted mb-0">No data</p>';
             };
             var batchNum = detail ? (detail.batch_number || '—') : '—';
             var grower   = detail ? (detail.grower_name || '—') : '—';

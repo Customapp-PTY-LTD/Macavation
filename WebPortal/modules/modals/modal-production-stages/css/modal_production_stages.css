@@ -3,7 +3,7 @@
 /* Tab file-paper look: gap between tabs; no bottom radius; active tab same white as card; tab borders macadamia cream brown */
 #productionStagesModal .production-stages-nav-tabs {
     margin-bottom: 0;
-    border-bottom: 1px solid #b8a078;
+    border-bottom: 1px solid var(--mac-tan);
     background-color: var(--macavation-modal-body-bg);
     padding-left: 0.25rem;
     padding-top: 0.25rem;
@@ -13,26 +13,26 @@
     margin-bottom: 0;
 }
 #productionStagesModal .production-stages-nav-tabs .nav-link {
-    border: 1px solid #b8a078;
+    border: 1px solid var(--mac-tan);
     border-bottom: none;
-    border-top-left-radius: var(--phoenix-border-radius) !important;
-    border-top-right-radius: var(--phoenix-border-radius) !important;
+    border-top-left-radius: var(--mac-radius-md) !important;
+    border-top-right-radius: var(--mac-radius-md) !important;
     border-bottom-left-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
     margin-bottom: -1px;
     background-color: var(--macavation-modal-body-bg);
-    color: var(--phoenix-text-color);
+    color: var(--mac-text);
 }
 #productionStagesModal .production-stages-nav-tabs .nav-link:hover {
-    background-color: var(--phoenix-light);
-    border-color: #b8a078;
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-tan);
     border-bottom: none;
 }
 #productionStagesModal .production-stages-nav-tabs .nav-link.active {
-    background-color: var(--phoenix-card-bg) !important;
-    border-color: #b8a078;
-    border-bottom: 1px solid var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
+    background-color: var(--mac-bg-secondary) !important;
+    border-color: var(--mac-tan);
+    border-bottom: 1px solid var(--mac-bg-secondary);
+    color: var(--mac-text);
 }
 #productionStagesModal #productionStagesTabContent {
     padding-top: 0;

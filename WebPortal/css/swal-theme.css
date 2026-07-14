@@ -1,0 +1,112 @@
+/**
+ * SweetAlert2 — THE canonical dialog skin (light + dark).
+ * Loaded by index.html AND signin.html so every dialog in the product looks
+ * identical. No other stylesheet may declare .swal2-* rules
+ * (enforced by npm run ui:verify).
+ *
+ * Grammar: confirm = green primary · cancel = quiet neutral · deny = danger.
+ */
+
+/* Backdrop — mirrors the Bootstrap modal backdrop (css/modal-theme.css): an
+   extremely faint brown tint + light blur, with the macadamia / oil line-art
+   scattered like the sign-in page (an easter egg). The tint (::before) and the
+   line-art (::after) sit behind the popup — .swal2-container also holds the
+   dialog, so the effect must live on pseudo-elements, not the container itself. */
+.swal2-container.swal2-backdrop-show {
+    background: transparent !important;
+}
+.swal2-container.swal2-backdrop-show::before,
+.swal2-container.swal2-backdrop-show::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+.swal2-container.swal2-backdrop-show::before {
+    background-color: rgba(var(--mac-brown-rgb), 0.05);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+}
+.swal2-container.swal2-backdrop-show::after {
+    opacity: 0.18;
+    background-image: url("../assets/decor/backdrop-scatter.svg");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.swal2-popup {
+    border-radius: var(--mac-radius-lg) !important;
+    font-family: var(--mac-font) !important;
+    color: var(--mac-text) !important;
+}
+
+.swal2-title {
+    font-family: var(--mac-font) !important;
+    color: var(--mac-text) !important;
+    font-size: var(--mac-text-lg) !important;
+}
+
+.swal2-html-container {
+    color: var(--mac-text-secondary) !important;
+    font-size: var(--mac-text-base) !important;
+}
+
+.swal2-confirm {
+    background: var(--mac-green) !important;
+    border: none !important;
+    border-radius: var(--mac-radius-md) !important;
+    box-shadow: none !important;
+}
+
+.swal2-confirm:hover {
+    background: var(--mac-green-hover) !important;
+}
+
+.swal2-cancel {
+    background: var(--mac-bg-secondary) !important;
+    border: 1px solid var(--mac-border-strong) !important;
+    color: var(--mac-text-secondary) !important;
+    border-radius: var(--mac-radius-md) !important;
+    box-shadow: none !important;
+}
+
+.swal2-cancel:hover {
+    background: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text) !important;
+}
+
+.swal2-deny {
+    background: var(--mac-danger) !important;
+    border: none !important;
+    border-radius: var(--mac-radius-md) !important;
+}
+
+/* Stacking: dialogs opened above Bootstrap modals (e.g. create-buyer from
+   Send to Dispatch) must sit above the modal backdrop. */
+.swal-dispatch-buyer.swal2-container {
+    z-index: 1070 !important;
+}
+
+/* ── Dark mode ── */
+[data-theme-mode="dark"] .swal2-popup {
+    background-color: var(--mac-bg-secondary) !important;
+    color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .swal2-title {
+    color: var(--mac-text) !important;
+}
+
+[data-theme-mode="dark"] .swal2-html-container {
+    color: var(--mac-text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .swal2-input,
+[data-theme-mode="dark"] .swal2-select,
+[data-theme-mode="dark"] .swal2-textarea {
+    background-color: var(--mac-bg-tertiary) !important;
+    border-color: var(--mac-border) !important;
+    color: var(--mac-text) !important;
+}

@@ -23,6 +23,8 @@ var _dataFunctions = function () {
             'adjust_kernel_stock_on_hand',
             'update_kernel_stock_batch_info',
             'import_historical_kernel_batch',
+            'get_kernel_batch_archive',
+            'restore_kernel_batch_from_archive',
             // Document Management — DB grants apply; Lambda RBAC may deny with 403
             'get_documents',
             'get_document_by_id',
@@ -48,6 +50,8 @@ var _dataFunctions = function () {
             'return_kernel_from_stock_to_production',
             'get_kernel_jobcard_approval_map',
             'import_historical_kernel_batch',
+            'get_kernel_batch_archive',
+            'restore_kernel_batch_from_archive',
             // Document Management reads
             'get_documents',
             'get_document_categories',
@@ -245,6 +249,57 @@ var _dataFunctions = function () {
             } catch (e) { return null; }
         },
 
+        _applySuperUserVisibility: function (type, data) {
+            if (typeof superUserVisibility === 'undefined') return data;
+            if (type === 'users') return superUserVisibility.filterUsers(data);
+            if (type === 'roles') return superUserVisibility.filterRoles(data);
+            if (type === 'roleAssignments') return superUserVisibility.filterRoleAssignments(data);
+            return data;
+        },
+
+        _assertCanManageUserRecord: async function (userRecord, token) {
+            if (typeof superUserVisibility === 'undefined') return;
+            var user = userRecord;
+            if (typeof userRecord === 'string') {
+                user = await this.callFunction('get_user_by_id', { p_id: userRecord }, token || null, { useCache: false });
+            }
+            if (!user) return;
+            if (!superUserVisibility.canManageUser(user)) {
+                throw new Error('You do not have permission to manage this user.');
+            }
+        },
+
+        _assertCanManageRoleRecord: async function (roleRecord, token) {
+            if (typeof superUserVisibility === 'undefined') return;
+            var role = roleRecord;
+            if (typeof roleRecord === 'string') {
+                role = await this.callFunction('get_role_by_id', { p_id: roleRecord }, token || null);
+            }
+            if (!role) return;
+            if (!superUserVisibility.canManageRole(role)) {
+                throw new Error('You do not have permission to manage the super_user role.');
+            }
+        },
+
+        _assertCanAssignRoleId: async function (roleId, token) {
+            if (typeof superUserVisibility === 'undefined' || !roleId) return;
+            if (superUserVisibility.isCurrentUserSuperUser()) return;
+            var role = await this.getRoleById(roleId, token || null);
+            var roleName = role && (role.role_name || role.name || role.role);
+            if (superUserVisibility.isSuperUserRole(roleName)) {
+                throw new Error('Only super users may assign the super_user role.');
+            }
+        },
+
+        _normalizeListResponse: function (raw, key) {
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            if (key && raw && Array.isArray(raw[key])) return raw[key];
+            if (raw && Array.isArray(raw.result)) return raw.result;
+            if (raw && Array.isArray(raw.body)) return raw.body;
+            return [];
+        },
+
         /**
          * Check if current user has admin privileges
          */
@@ -371,11 +426,16 @@ var _dataFunctions = function () {
                 msg.indexOf('PGRST301') >= 0;
         },
 
-        buildPostgrestRpcBody: function (params) {
+        buildPostgrestRpcBody: function (params, options) {
             const out = {};
             if (!params || typeof params !== 'object') return out;
+            const preserveNulls = !!(options && options.preserveNulls);
             Object.keys(params).forEach(function (key) {
                 const val = params[key];
+                if (preserveNulls && val === null) {
+                    out[key] = null;
+                    return;
+                }
                 if (val !== null && val !== undefined && val !== '') {
                     out[key] = val;
                 }
@@ -471,7 +531,7 @@ var _dataFunctions = function () {
             const response = await fetch(cfg.url + '/rest/v1/rpc/' + encodeURIComponent(functionName), {
                 method: 'POST',
                 headers: rpcHeaders,
-                body: JSON.stringify(scope.buildPostgrestRpcBody(params))
+                body: JSON.stringify(scope.buildPostgrestRpcBody(params, { preserveNulls: options.preserveNullParams === true }))
             });
             const responseText = await response.text();
             if (!response.ok) {
@@ -688,33 +748,39 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
-            if (Array.isArray(raw)) return raw;
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            if (raw && Array.isArray(raw.get_users)) return raw.get_users;
-            if (raw && Array.isArray(raw.result)) return raw.result;
-            if (raw && Array.isArray(raw.body)) return raw.body;
-            return [];
+            return this._applySuperUserVisibility('users', this._normalizeListResponse(raw, 'get_users'));
         },
 
         /**
          * Get user by ID (cached for 5 minutes)
          */
         getUserById: async function (userId, token = null, forceRefresh = false) {
-            return await this.callFunction('get_user_by_id', { p_id: userId }, token, {
+            var user = await this.callFunction('get_user_by_id', { p_id: userId }, token, {
                 cacheKey: `user_${userId}`,
                 useCache: true,
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
+            if (user && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canSeeUser(user)) {
+                return null;
+            }
+            return user;
         },
 
         /**
          * Create user (invalidates users cache)
          */
         createUser: async function (userData, token = null) {
+            await this._assertCanAssignRoleId(userData.role_id, token);
+            if (typeof superUserVisibility !== 'undefined' &&
+                superUserVisibility.isCustomAppEmail(userData.email) &&
+                !superUserVisibility.isCurrentUserSuperUser()) {
+                throw new Error('Only super users may create @customapp.co.za accounts.');
+            }
             const params = {
                 p_email: userData.email,
-                p_username: userData.username || null,
+                p_first_name: userData.first_name || null,
+                p_last_name: userData.last_name || null,
                 p_role_id: userData.role_id || null,
                 p_password: userData.password || null
             };
@@ -728,10 +794,18 @@ var _dataFunctions = function () {
          * Update user (invalidates user cache)
          */
         updateUser: async function (userId, userData, token = null) {
+            await this._assertCanManageUserRecord(userId, token);
+            await this._assertCanAssignRoleId(userData.role_id, token);
+            if (typeof superUserVisibility !== 'undefined' &&
+                superUserVisibility.isCustomAppEmail(userData.email) &&
+                !superUserVisibility.isCurrentUserSuperUser()) {
+                throw new Error('Only super users may change @customapp.co.za accounts.');
+            }
             const params = {
                 p_user_id: userId,
                 p_email: userData.email || null,
-                p_username: userData.username || null,
+                p_first_name: userData.first_name || null,
+                p_last_name: userData.last_name || null,
                 p_role_id: userData.role_id || null,
                 p_is_active: userData.is_active !== undefined ? userData.is_active : null,
                 p_password: userData.password || null
@@ -745,9 +819,32 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Change the signed-in user's own password. Requires the current
+         * password (verified in-DB), so it is safe over the anon RPC.
+         */
+        changePassword: async function (email, currentPassword, newPassword, token = null) {
+            return await this.callFunction('change_password', {
+                p_email: email,
+                p_current_password: currentPassword,
+                p_new_password: newPassword
+            }, token, { useCache: false });
+        },
+
+        /**
+         * Complete a forgot-password reset using the token from the email link.
+         */
+        confirmPasswordReset: async function (resetToken, newPassword) {
+            return await this.callFunction('confirm_password_reset', {
+                p_token: resetToken,
+                p_new_password: newPassword
+            }, null, { useCache: false });
+        },
+
+        /**
          * Delete user (hard delete, invalidates cache)
          */
         deleteUser: async function (userId, token = null) {
+            await this._assertCanManageUserRecord(userId, token);
             const result = await this.callFunction('delete_user_hard', { p_user_id: userId }, token, { useCache: false });
             this.clearCache(`user_${userId}`);
             this.clearCachePattern('users');
@@ -758,6 +855,7 @@ var _dataFunctions = function () {
          * Deactivate user (soft delete, invalidates cache)
          */
         deactivateUser: async function (userId, token = null) {
+            await this._assertCanManageUserRecord(userId, token);
             const result = await this.callFunction('deactivate_user', { p_user_id: userId }, token, { useCache: false });
             this.clearCache(`user_${userId}`);
             this.clearCachePattern('users');
@@ -777,12 +875,14 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
-            if (Array.isArray(raw)) return raw;
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            if (raw && Array.isArray(raw.get_roles)) return raw.get_roles;
-            if (raw && Array.isArray(raw.result)) return raw.result;
-            if (raw && Array.isArray(raw.body)) return raw.body;
-            return [];
+            return this._normalizeListResponse(raw, 'get_roles');
+        },
+
+        /**
+         * Roles for dropdowns / assignment (hides super_user from non-super_user actors).
+         */
+        getRolesForAssignment: async function (token = null, forceRefresh = false) {
+            return this._applySuperUserVisibility('roles', await this.getRoles(token, forceRefresh));
         },
 
         /**
@@ -810,6 +910,7 @@ var _dataFunctions = function () {
          * Update role (invalidates roles cache)
          */
         updateRole: async function (roleId, roleData, token = null) {
+            await this._assertCanManageRoleRecord(roleId, token);
             const params = {
                 p_role_id: roleId,
                 p_role_name: roleData.role_name || null,
@@ -825,6 +926,7 @@ var _dataFunctions = function () {
          * Deactivate role (soft delete, invalidates cache)
          */
         deactivateRole: async function (roleId, token = null) {
+            await this._assertCanManageRoleRecord(roleId, token);
             const result = await this.callFunction('deactivate_role', { p_id: roleId }, token, { useCache: false });
             this.clearCachePattern('roles');
             return result;
@@ -836,7 +938,8 @@ var _dataFunctions = function () {
          * Get all role permissions
          */
         getRolePermissions: async function (token = null) {
-            return await this.callFunction('get_role_permissions', {}, token);
+            var raw = await this.callFunction('get_role_permissions', {}, token);
+            return this._applySuperUserVisibility('roleAssignments', this._normalizeListResponse(raw, 'get_role_permissions'));
         },
 
         /**
@@ -851,12 +954,10 @@ var _dataFunctions = function () {
                 p_is_active: filters.isActive !== undefined ? filters.isActive : null
             };
             const response = await this.callFunction('get_role_permissions_filtered', params, token);
-
-            // Handle the wrapped response format
-            if (response && response.get_role_permissions_filtered) {
-                return response.get_role_permissions_filtered;
-            }
-            return response || [];
+            var list = (response && response.get_role_permissions_filtered)
+                ? response.get_role_permissions_filtered
+                : this._normalizeListResponse(response, 'get_role_permissions_filtered');
+            return this._applySuperUserVisibility('roleAssignments', list);
         },
 
         /**
@@ -870,6 +971,7 @@ var _dataFunctions = function () {
          * Create role permission
          */
         createRolePermission: async function (permissionData, token = null) {
+            await this._assertCanManageRoleRecord(permissionData.role_id, token);
             const params = {
                 p_role_id: permissionData.role_id,
                 p_object_type: permissionData.object_type,
@@ -884,6 +986,7 @@ var _dataFunctions = function () {
          * Update role permission
          */
         updateRolePermission: async function (permissionId, permissionData, token = null) {
+            await this._assertCanManageRoleRecord(permissionData.role_id, token);
             const params = {
                 p_permission_id: permissionId,
                 p_role_id: permissionData.role_id || null,
@@ -1156,7 +1259,8 @@ var _dataFunctions = function () {
          * Get all role features
          */
         getRoleFeatures: async function (token = null) {
-            return await this.callFunction('get_role_features', {}, token);
+            var raw = await this.callFunction('get_role_features', {}, token);
+            return this._applySuperUserVisibility('roleAssignments', this._normalizeListResponse(raw, 'get_role_features'));
         },
 
         /**
@@ -1170,6 +1274,7 @@ var _dataFunctions = function () {
          * Create role feature
          */
         createRoleFeature: async function (featureData, token = null) {
+            await this._assertCanManageRoleRecord(featureData.role_id, token);
             const params = {
                 role_id: featureData.role_id,
                 feature_id: featureData.feature_id,
@@ -1182,6 +1287,7 @@ var _dataFunctions = function () {
          * Update role feature
          */
         updateRoleFeature: async function (featureId, featureData, token = null) {
+            await this._assertCanManageRoleRecord(featureData.role_id, token);
             const params = {
                 role_feature_id: featureId,
                 role_id: featureData.role_id,
@@ -1235,10 +1341,7 @@ var _dataFunctions = function () {
         /** List all role/action assignments (joined) for the admin grid. */
         getRoleActions: async function (token = null) {
             var raw = await this.callFunction('get_role_actions', {}, token, { useCache: false });
-            if (Array.isArray(raw)) return raw;
-            if (raw && Array.isArray(raw.get_role_actions)) return raw.get_role_actions;
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            return [];
+            return this._applySuperUserVisibility('roleAssignments', this._normalizeListResponse(raw, 'get_role_actions'));
         },
 
         /**
@@ -1264,6 +1367,7 @@ var _dataFunctions = function () {
 
         /** Grant a role/action (ON CONFLICT updates value). */
         createRoleAction: async function (data, token = null) {
+            await this._assertCanManageRoleRecord(data.role_id, token);
             return await this.callFunction('create_role_action_simple', {
                 role_id: data.role_id,
                 action_id: data.action_id,
@@ -1857,6 +1961,30 @@ var _dataFunctions = function () {
                 return [];
             } catch (e) {
                 console.warn('[Dashboard] get_production_trends_daily failed. Apply migration 20260326000001_get_production_trends_daily.sql if needed.', e.message);
+                return [];
+            }
+        },
+
+        /**
+         * Daily stock-on-hand history per style/stream for dashboard line chart.
+         * @param {string} productType - 'kernel' or 'oil'
+         * @param {number} days - Number of days (7–1826)
+         * @returns {Promise<Array<{d:string,series:string,qty_kg:number}>>}
+         */
+        getStockSohHistory: async function (productType, days, token = null) {
+            var pType = String(productType || 'kernel').toLowerCase() === 'oil' ? 'oil' : 'kernel';
+            var pDays = Math.max(7, Math.min(1826, parseInt(days, 10) || 365));
+            try {
+                var raw = await this.callFunction('get_stock_soh_history', {
+                    p_product_type: pType,
+                    p_days: pDays
+                }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_stock_soh_history)) return raw.get_stock_soh_history;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_stock_soh_history failed. Apply migration 20260713160000_get_stock_soh_history.sql if needed.', e.message);
                 return [];
             }
         },
@@ -2619,11 +2747,18 @@ var _dataFunctions = function () {
                 p_id:                  payload.id != null && payload.id !== '' ? payload.id : null,
                 p_scheduled_date:      payload.scheduled_date || null,
                 p_supplier_id:         payload.supplier_id != null && payload.supplier_id !== '' ? payload.supplier_id : null,
-                p_grower_name:         payload.grower_name != null ? payload.grower_name : '',
+                p_grower_name:         payload.grower_name != null && String(payload.grower_name).trim() !== '' ? String(payload.grower_name).trim() : null,
                 p_predicted_weight_kg: payload.predicted_weight_kg != null ? payload.predicted_weight_kg : null,
                 p_sort_index:          payload.sort_index != null ? payload.sort_index : null
             };
-            const result = await this.callFunction('upsert_kernel_intake_procurement', params, token, { useCache: false });
+            await this.ensureConfigured();
+            const authToken = token || this.getToken();
+            const result = await this.callSupabaseRpc(
+                'upsert_kernel_intake_procurement',
+                params,
+                authToken,
+                { useAnonAuth: true, preserveNullParams: true }
+            );
             this.clearCachePattern('kernel_intake_procurements');
             const rows = this.extractKernelIntakeProcurementRowsFromRaw(result, 0);
             return rows.length > 0 ? this.normalizeKernelIntakeProcurementRow(rows[0]) : null;
@@ -3055,13 +3190,53 @@ var _dataFunctions = function () {
         },
 
         /**
-         * deactivateKernelBatch — soft delete: set kernel.is_active = false. Batch is hidden from all lists.
-         * Used by: Kernel Production and Grower Intake "Delete batch" actions.
+         * deactivateKernelBatch — archive (soft delete): writes kernel_batch_archive, hides batch from active lists.
+         * Used by: Stock, Grower Intake, and Kernel Production "Archive batch" actions.
          */
         deactivateKernelBatch: async function (kernelId, token = null) {
             const result = await this.callFunction('deactivate_kernel_batch', { p_kernel_id: kernelId }, token, { useCache: false });
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
             this.clearCachePattern('kernel_batches');
+            this.clearCachePattern('kernel_batch_archive');
+            return result;
+        },
+
+        /**
+         * getKernelBatchArchive — list archived kernel batches (who archived, restore eligibility).
+         */
+        getKernelBatchArchive: async function (search, token = null, options) {
+            const opts = options || {};
+            const params = {
+                p_search: search != null && String(search).trim() !== '' ? String(search).trim() : null,
+                p_limit: opts.limit != null ? opts.limit : 200,
+                p_offset: opts.offset != null ? opts.offset : 0
+            };
+            let raw = await this.callFunction('get_kernel_batch_archive', params, token, { useCache: false });
+            if (raw && raw.get_kernel_batch_archive !== undefined) raw = raw.get_kernel_batch_archive;
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        },
+
+        /**
+         * restoreKernelBatchFromArchive — reactivate a soft-archived batch; pass batchNumber when original is taken.
+         */
+        restoreKernelBatchFromArchive: async function (archiveId, batchNumber, token = null) {
+            const params = {
+                p_archive_id: archiveId,
+                p_batch_number: batchNumber != null && String(batchNumber).trim() !== '' ? String(batchNumber).trim() : null
+            };
+            let result = await this.callFunction('restore_kernel_batch_from_archive', params, token, { useCache: false });
+            result = this.unwrapKernelRpcJson(result, 'restore_kernel_batch_from_archive') || result;
+            if (result && typeof result === 'object') {
+                if (result.success === undefined && result.Success !== undefined) result.success = result.Success;
+                if (result.error === undefined && result.Error !== undefined) result.error = result.Error;
+                if (result.needs_new_number === undefined && result.NeedsNewNumber !== undefined) {
+                    result.needs_new_number = result.NeedsNewNumber;
+                }
+            }
+            this.clearCachePattern('kernel_batches');
+            this.clearCachePattern('kernel_batch_archive');
             return result;
         },
 

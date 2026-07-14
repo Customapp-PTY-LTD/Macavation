@@ -224,7 +224,7 @@ function renderBatchHistoryProductionSchemaTable(schema, obj, nilStr) {
         }
         return '<tr><th class="text-nowrap bg-light" style="width:38%">' + historyEscapeHtml(spec.label) + '</th><td>' + cell + '</td></tr>';
     }).join('');
-    return '<table class="table table-sm table-bordered mb-3"><tbody>' + rows + '</tbody></table>';
+    return '<table class="table align-middle table-bordered mb-3"><tbody>' + rows + '</tbody></table>';
 }
 
 function buildProductionDayHistoryBody(dayGroup, nilStr) {
@@ -457,7 +457,7 @@ function buildBatchHistoryDispatchPanelHtml(detail) {
             ' · Best before ' + fmtDate(ord.best_before_date || ord.BestBeforeDate) +
             ' · Dispatched ' + (ord.dispatched_at || ord.DispatchedAt ? historyEscapeHtml(String(ord.dispatched_at || ord.DispatchedAt).replace('T', ' ').substring(0, 16)) : nil) +
             '</p>';
-        h += '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Style</th><th class="text-end">Cartons</th><th class="text-end">Weight (kg)</th></tr></thead><tbody>';
+        h += '<div class="table-responsive"><table class="table align-middle table-bordered"><thead><tr><th>Style</th><th class="text-end">Cartons</th><th class="text-end">Weight (kg)</th></tr></thead><tbody>';
         if (lines.length === 0) {
             h += '<tr><td colspan="3">' + nil + '</td></tr>';
         } else {
@@ -692,7 +692,7 @@ var _modal_batch_history = (function () {
                 var cl = intake.receiving_checklist;
                 if (cl) {
                     var html = '<div class="small">';
-                    html += '<table class="table table-sm table-bordered mb-2"><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-2"><tbody>';
                     html += '<tr><th class="text-nowrap bg-light" style="width:35%">Date received</th><td>' + historyFmtProductionDate(cl.date_received, nil) + '</td></tr>';
                     html += '<tr><th class="text-nowrap bg-light">Delivery note ref</th><td>' + fmt(cl.delivery_note_ref) + '</td></tr>';
                     html += '<tr><th class="text-nowrap bg-light">Vehicle clean</th><td>' + fmt(cl.vehicle_clean) + '</td></tr>';
@@ -702,7 +702,7 @@ var _modal_batch_history = (function () {
                     html += '</tbody></table>';
                     var items = Array.isArray(cl.received_items) ? cl.received_items : [];
                     html += '<p class="small fw-semibold mb-1">Received items</p>';
-                    html += '<table class="table table-sm table-bordered mt-0"><thead><tr><th>Description</th><th>Qty (kg)</th><th>Manufactured date</th></tr></thead><tbody>';
+                    html += '<table class="table align-middle table-bordered mt-0"><thead><tr><th>Description</th><th>Qty (kg)</th><th>Manufactured date</th></tr></thead><tbody>';
                     if (items.length === 0) {
                         html += '<tr><td>' + nil + '</td><td>' + nil + '</td><td>' + nil + '</td></tr>';
                     } else {
@@ -727,10 +727,10 @@ var _modal_batch_history = (function () {
                         return historyEscapeHtml(String(v)) + (suffix || '');
                     };
                     var html = '<div class="small">';
-                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-0"><tbody>';
                     html += '<tr><th class="text-nowrap bg-light" style="width:35%">Completed</th><td>' + historyFmtProductionDate(zl.completed_at ? String(zl.completed_at).split('T')[0] : null, nil) + '</td></tr>';
                     html += '</tbody></table>';
-                    html += '<table class="table table-sm table-bordered mt-2 mb-0"><thead><tr><th>Test</th><th>Required</th><th>Result</th></tr></thead><tbody>';
+                    html += '<table class="table align-middle table-bordered mt-2 mb-0"><thead><tr><th>Test</th><th>Required</th><th>Result</th></tr></thead><tbody>';
                     html += '<tr><td>Moisture</td><td>' + zlReq(zl.moisture_required) + '</td><td>' + zlRes(zl.moisture_result, '%') + '</td></tr>';
                     html += '<tr><td>Peroxide value</td><td>' + zlReq(zl.peroxide_required) + '</td><td>' + zlRes(zl.peroxide_result, ' meqO&#8322;/kg') + '</td></tr>';
                     html += '<tr><td>Free fatty acids</td><td>' + zlReq(zl.ffa_required) + '</td><td>' + zlRes(zl.ffa_result, '%') + '</td></tr>';
@@ -748,7 +748,7 @@ var _modal_batch_history = (function () {
                         return historyEscapeHtml(String(v)) + ' g';
                     };
                     var html = '<div class="small">';
-                    html += '<table class="table table-sm table-bordered mb-2"><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-2"><tbody>';
                     html += '<tr><th class="text-nowrap bg-light" style="width:35%">Completed</th><td>' + historyFmtProductionDate(kg5.completed_at ? String(kg5.completed_at).split('T')[0] : null, nil) + '</td></tr>';
                     html += '<tr><th class="text-nowrap bg-light">Crack out — sound kernel</th><td>' + gCell(co.sound_kernel_g) + '</td></tr>';
                     html += '<tr><th class="text-nowrap bg-light">Crack out — unsound kernel</th><td>' + gCell(co.unsound_kernel_g) + '</td></tr>';
@@ -872,28 +872,28 @@ var _modal_batch_history = (function () {
                     html += '</div></div>';
 
                     html += '<div class="card mb-2"><div class="card-header py-1"><strong>Receiving</strong></div><div class="card-body py-2 p-0">';
-                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-0"><tbody>';
                     html += rowHtml('Total weight', fmtMeasure(totalWeightKg, 'kg'));
                     html += rowHtml('Removed pre-sizer', fmtMeasure(removedPreSizerKg, 'kg'));
                     html += rowHtml('Balance', fmtMeasure(balanceKg, 'kg'));
                     html += '</tbody></table></div></div>';
 
                     html += '<div class="card mb-2"><div class="card-header py-1"><strong>Moisture</strong></div><div class="card-body py-2 p-0">';
-                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-0"><tbody>';
                     html += rowHtml('Receiving moisture', fmtMeasure(receivingMoisture, '%'));
                     html += rowHtml('Packing moisture', fmtMeasure(packingMoisture, '%'));
                     html += rowHtml('Removed moisture', fmtMeasure(removedMoisture, '%'));
                     html += '</tbody></table></div></div>';
 
                     html += '<div class="card mb-2"><div class="card-header py-1"><strong>Packing</strong></div><div class="card-body py-2 p-0">';
-                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-0"><tbody>';
                     html += rowHtml('Packing start', fmtDate(packingStart));
                     html += rowHtml('Packing completion', fmtDate(packingCompletion));
                     html += rowHtml('Best before', fmtDate(bestBefore));
                     html += '</tbody></table></div></div>';
 
                     html += '<div class="card mb-2"><div class="card-header py-1"><strong>Sound kernel</strong></div><div class="card-body py-2">';
-                    html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
                     if (soundKernelStyles && soundKernelStyles.length > 0) {
                         soundKernelStyles.forEach(function (row) {
                             html += '<tr><td>' + fmtText(row && row.style) + '</td><td>' + fmtText(row && row.cartons) + '</td><td>' + fmtMeasure(row && row.weight_kg, null) + '</td></tr>';
@@ -906,7 +906,7 @@ var _modal_batch_history = (function () {
                     html += '</div></div>';
 
                     html += '<div class="card mb-2"><div class="card-header py-1"><strong>Butter grade</strong></div><div class="card-body py-2">';
-                    html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-2"><thead><tr><th>Style</th><th>Cartons</th><th>Weight (kg)</th></tr></thead><tbody>';
                     if (butterGradeStyles && butterGradeStyles.length > 0) {
                         butterGradeStyles.forEach(function (row) {
                             html += '<tr><td>' + fmtText(row && row.style) + '</td><td>' + fmtText(row && row.cartons) + '</td><td>' + fmtMeasure(row && row.weight_kg, null) + '</td></tr>';
@@ -919,7 +919,7 @@ var _modal_batch_history = (function () {
                     html += '</div></div>';
 
                     html += '<div class="card mb-2"><div class="card-header py-1"><strong>Waste</strong></div><div class="card-body py-2 p-0">';
-                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-0"><tbody>';
                     html += rowHtml('Oil kernel', fmtMeasure(wasteOilKernel, 'kg'));
                     html += rowHtml('Shell fines', fmtMeasure(wasteShellFines, 'kg'));
                     html += rowHtml('Compost', fmtMeasure(wasteCompost, 'kg'));
@@ -927,7 +927,7 @@ var _modal_batch_history = (function () {
                     html += '</tbody></table></div></div>';
 
                     html += '<div class="card mb-0"><div class="card-header py-1"><strong>Mass balance</strong></div><div class="card-body py-2 p-0">';
-                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-0"><tbody>';
                     html += rowHtml('Mass balance in', fmtMeasure(massBalanceIn, 'kg'));
                     html += rowHtml('Mass balance out', fmtMeasure(massBalanceOut, 'kg'));
                     html += rowHtml('Mass balance %', fmtMeasure(massBalancePercentage, '%'));
@@ -947,17 +947,17 @@ var _modal_batch_history = (function () {
                     };
                     var fmt2 = function (v) { return historyFmt(v, nil); };
                     var html = '<div class="small">';
-                    html += '<table class="table table-sm table-bordered mb-2"><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-2"><tbody>';
                     html += '<tr><th class="text-nowrap bg-light" style="width:35%">Completed</th><td>' + historyFmtProductionDate(qa.completed_at ? String(qa.completed_at).split('T')[0] : null, nil) + '</td></tr>';
                     html += '</tbody></table>';
-                    html += '<table class="table table-sm table-bordered mb-2"><thead><tr><th>Test</th><th>Required</th><th>Result</th></tr></thead><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-2"><thead><tr><th>Test</th><th>Required</th><th>Result</th></tr></thead><tbody>';
                     html += '<tr><td>Moisture</td><td>' + qaReq(qa.moisture_required) + '</td><td>' + fmt2(qa.moisture_result) + '</td></tr>';
                     html += '<tr><td>Peroxide</td><td>' + qaReq(qa.peroxide_required) + '</td><td>' + fmt2(qa.peroxide_result) + '</td></tr>';
                     html += '<tr><td>FFA</td><td>' + qaReq(qa.ffa_required) + '</td><td>' + fmt2(qa.ffa_result) + '</td></tr>';
                     html += '<tr><td>Internal micro</td><td>' + qaReq(qa.internal_micro_required) + '</td><td>' + fmt2(qa.internal_micro_result) + '</td></tr>';
                     html += '<tr><td>External lab</td><td>' + qaReq(qa.external_lab_required) + '</td><td>' + fmt2(qa.external_lab_result) + '</td></tr>';
                     html += '</tbody></table>';
-                    html += '<table class="table table-sm table-bordered mb-0"><tbody>';
+                    html += '<table class="table align-middle table-bordered mb-0"><tbody>';
                     html += '<tr><th class="text-nowrap bg-light" style="width:35%">Signed (Supervisor)</th><td>' + fmt2(qa.supervisor_signed_by) + '</td></tr>';
                     html += '<tr><th class="text-nowrap bg-light">Signed (Nut Plant Manager)</th><td>' + fmt2(qa.nut_plant_manager_signed_by) + '</td></tr>';
                     html += '</tbody></table></div>';

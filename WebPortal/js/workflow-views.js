@@ -124,7 +124,7 @@ var _workflowViews = function () {
                 return '<li class="list-group-item d-flex justify-content-between align-items-center px-0">'
                     + '<div><strong>' + (item.batch || '—') + '</strong>'
                     + '<div class="small text-muted">' + (item.status || '') + '</div></div>'
-                    + '<button type="button" class="btn btn-sm btn-primary js-myday-work-action"'
+                    + '<button type="button" class="btn btn-sm btn-outline-primary js-myday-work-action"'
                     + ' data-route="' + (item.route || '') + '"'
                     + ' data-search="' + (item.search || '').replace(/"/g, '&quot;') + '"'
                     + ' data-search-input="' + (item.searchInputId || '') + '">'
@@ -262,38 +262,32 @@ var _workflowViews = function () {
             const container = document.getElementById(containerId);
             if (!container || !data) return;
 
-            const { role, tasks, watching, dueItems, recentActivity, workQueue } = data;
+            const { tasks, watching, dueItems, recentActivity, workQueue } = data;
             var wq = workQueue || { intake: [], production: [], stockDispatch: [] };
 
             const html = `
                 <div class="my-day-dashboard">
-                    <div class="my-day-header mb-4">
-                        <h2 class="mb-1">Good ${this.getTimeOfDay()}, ${this.getUserName()}</h2>
-                        <p class="text-muted mb-0">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        <span class="badge bg-primary mt-2">${role}</span>
-                    </div>
-
                     <div class="row g-4 mb-2">
                         <div class="col-lg-4">
                             <div class="card h-100">
-                                <div class="card-header bg-warning text-dark">
-                                    <h5 class="mb-0"><i class="bi bi-inbox me-2"></i>Intake waiting</h5>
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-inbox me-2"></i>Intake waiting</h5>
                                 </div>
                                 <div class="card-body">${this.renderWorkQueueSection('Intake', wq.intake, 'No intake batches need attention.')}</div>
                             </div>
                         </div>
                         <div class="col-lg-4">
                             <div class="card h-100">
-                                <div class="card-header bg-danger text-white">
-                                    <h5 class="mb-0"><i class="bi bi-gears me-2"></i>Production waiting</h5>
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-gears me-2"></i>Production waiting</h5>
                                 </div>
                                 <div class="card-body">${this.renderWorkQueueSection('Production', wq.production, 'No production actions queued.')}</div>
                             </div>
                         </div>
                         <div class="col-lg-4">
                             <div class="card h-100">
-                                <div class="card-header bg-info text-white">
-                                    <h5 class="mb-0"><i class="bi bi-warehouse me-2"></i>Stock &amp; dispatch</h5>
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-warehouse me-2"></i>Stock &amp; dispatch</h5>
                                 </div>
                                 <div class="card-body">${this.renderWorkQueueSection('Stock', wq.stockDispatch, 'No stock handoffs queued.')}</div>
                             </div>
@@ -304,9 +298,9 @@ var _workflowViews = function () {
                         <!-- Today's Workflow -->
                         <div class="col-lg-8">
                             <div class="card">
-                                <div class="card-header bg-primary text-white">
+                                <div class="card-header">
                                     <h5 class="mb-0">
-                                        <i class="bi bi-list-check me-2"></i>
+                                        <i class="fas fa-list-check me-2"></i>
                                         Today's Workflow
                                     </h5>
                                 </div>
@@ -319,9 +313,9 @@ var _workflowViews = function () {
                         <!-- Due This Period -->
                         <div class="col-lg-4">
                             <div class="card">
-                                <div class="card-header bg-warning text-dark">
+                                <div class="card-header">
                                     <h5 class="mb-0">
-                                        <i class="bi bi-calendar-event me-2"></i>
+                                        <i class="fas fa-calendar-day me-2"></i>
                                         Due This Period
                                     </h5>
                                 </div>
@@ -336,9 +330,9 @@ var _workflowViews = function () {
                         <!-- Watching (Proactive Intelligence) -->
                         <div class="col-lg-6">
                             <div class="card">
-                                <div class="card-header bg-info text-white">
+                                <div class="card-header">
                                     <h5 class="mb-0">
-                                        <i class="bi bi-eye me-2"></i>
+                                        <i class="fas fa-eye me-2"></i>
                                         Watching
                                     </h5>
                                 </div>
@@ -353,7 +347,7 @@ var _workflowViews = function () {
                             <div class="card">
                                 <div class="card-header">
                                     <h5 class="mb-0">
-                                        <i class="bi bi-clock-history me-2"></i>
+                                        <i class="fas fa-clock-rotate-left me-2"></i>
                                         Recent Activity
                                     </h5>
                                 </div>
@@ -401,12 +395,12 @@ var _workflowViews = function () {
                                     <button type="button" class="btn btn-sm btn-outline-secondary" 
                                             onclick="workflowViews.snoozeTask('${task.id}')" 
                                             title="Snooze for 1 hour">
-                                        <i class="bi bi-clock"></i>
+                                        <i class="fas fa-clock"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger" 
                                             onclick="workflowViews.dismissTask('${task.id}')" 
                                             title="Dismiss task">
-                                        <i class="bi bi-x"></i>
+                                        <i class="fas fa-xmark"></i>
                                     </button>
                                 </div>
                             </div>
@@ -433,7 +427,7 @@ var _workflowViews = function () {
                                     <strong>${item.title}</strong>
                                     <div class="text-muted small">${item.description || ''}</div>
                                     <div class="text-muted small">
-                                        <i class="bi bi-calendar me-1"></i>
+                                        <i class="fas fa-calendar me-1"></i>
                                         ${item.due_date ? new Date(item.due_date).toLocaleDateString() : 'No due date'}
                                     </div>
                                 </div>
@@ -446,17 +440,17 @@ var _workflowViews = function () {
                                     <button type="button" class="btn btn-sm btn-outline-success" 
                                             onclick="workflowViews.completeDueItem('${item.id}')" 
                                             title="Mark as complete">
-                                        <i class="bi bi-check"></i>
+                                        <i class="fas fa-check"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-secondary" 
                                             onclick="workflowViews.snoozeDueItem('${item.id}')" 
                                             title="Snooze for 1 day">
-                                        <i class="bi bi-clock"></i>
+                                        <i class="fas fa-clock"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger" 
                                             onclick="workflowViews.dismissDueItem('${item.id}')" 
                                             title="Dismiss">
-                                        <i class="bi bi-x"></i>
+                                        <i class="fas fa-xmark"></i>
                                     </button>
                                 </div>
                             </div>
@@ -498,12 +492,12 @@ var _workflowViews = function () {
                                     <button type="button" class="btn btn-sm btn-outline-secondary" 
                                             onclick="workflowViews.snoozeWatchingItem('${item.id}')" 
                                             title="Snooze for 1 day">
-                                        <i class="bi bi-clock"></i>
+                                        <i class="fas fa-clock"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger" 
                                             onclick="workflowViews.dismissWatchingItem('${item.id}')" 
                                             title="Stop watching">
-                                        <i class="bi bi-x"></i>
+                                        <i class="fas fa-xmark"></i>
                                     </button>
                                 </div>
                             </div>
@@ -597,25 +591,6 @@ var _workflowViews = function () {
             }
             lines.push('</div>');
             return lines.join('');
-        },
-
-        /**
-         * Get time of day greeting
-         */
-        getTimeOfDay: function () {
-            const hour = new Date().getHours();
-            if (hour < 12) return 'morning';
-            if (hour < 17) return 'afternoon';
-            return 'evening';
-        },
-
-        /**
-         * Get user name
-         */
-        getUserName: function () {
-            const user = Session.get('user');
-            if (!user) return 'User';
-            return user.first_name || user.username || user.email || 'User';
         },
 
         /**

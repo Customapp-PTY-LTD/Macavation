@@ -278,11 +278,11 @@ var _stockManagementGrid = function () {
             if (route === 'stock-management-kernel') {
                 stream = 'kernel';
                 if (titleEl) titleEl.textContent = 'Stock (Kernel)';
-                if (subtitleEl) subtitleEl.textContent = 'Track kernel batches by style (totals across the top, on hand from the saved job card). Production prefills the job card; correct style lines there if needed, then save—stock updates to match. Select a batch and send to dispatch—or export when you\'re ready.';
+                if (subtitleEl) subtitleEl.textContent = 'Kernel batches by style — send to dispatch, or export.';
             } else if (route === 'stock-management-oil') {
                 stream = 'oil';
                 if (titleEl) titleEl.textContent = 'Stock (Oil & Protein)';
-                if (subtitleEl) subtitleEl.textContent = 'Oil stock on top, protein powder below. Use Add stock for many batches at once (like Supplier Intake adjust stock), Add lot for a single row, or import from Excel. Weekly in/out, send to dispatch when ready—export anytime.';
+                if (subtitleEl) subtitleEl.textContent = 'Oil stock on top, protein powder below — add by lot or bulk, send to dispatch.';
             }
             var streamSel = document.getElementById('filterStockStream');
             if (streamSel) {
@@ -326,6 +326,9 @@ var _stockManagementGrid = function () {
                 });
                 $('#refreshKernelStockBtn').off('click').on('click', function () {
                     scope.loadKernelBatches(true);
+                });
+                $('#kernelBatchViewArchiveBtn').off('click').on('click', function () {
+                    scope.openKernelBatchArchiveModal();
                 });
                 $('#toggleKernelAdjustModeBtn').off('click').on('click', function () {
                     scope.setKernelAdjustMode(!scope.kernelAdjustMode);
@@ -410,6 +413,18 @@ var _stockManagementGrid = function () {
                 $('#ksViewByStyle').off('click').on('click', function () {
                     scope.toggleKernelView('bystyle');
                 });
+                // Card 1 search — filter the by-style batch rows by text (client-side)
+                $('#kernelStockSearch').off('input.ksSearch').on('input.ksSearch', function () {
+                    var q = ($(this).val() || '').toLowerCase().trim();
+                    $('#kernelStockByStyleBody tr').each(function () {
+                        var t = ($(this).text() || '').toLowerCase();
+                        this.style.display = (!q || t.indexOf(q) !== -1) ? '' : 'none';
+                    });
+                });
+                $('#kernelStockClearSearch').off('click.ksSearch').on('click.ksSearch', function () {
+                    $('#kernelStockSearch').val('');
+                    $('#kernelStockByStyleBody tr').each(function () { this.style.display = ''; });
+                });
                 $(document).off('click.ksMoreView', '.js-ks-more-view').on('click.ksMoreView', '.js-ks-more-view', function () {
                     scope.toggleKernelView($(this).data('view'));
                 });
@@ -461,10 +476,10 @@ var _stockManagementGrid = function () {
                     var id = $(this).data('kernel-id');
                     if (id) scope.promptEditKernelBatch(id);
                 });
-                $(document).on('click', '.delete-kernel-batch-btn', function () {
+                $(document).on('click', '.archive-kernel-batch-btn', function () {
                     var id = $(this).data('kernel-id');
                     var label = $(this).data('batch-label');
-                    if (id) scope.deleteKernelBatch(id, label);
+                    if (id) scope.archiveKernelBatch(id, label);
                 });
                 $(document).on('click', '.adjust-oil-lot-btn', function () {
                     if (typeof hasAction === 'function' && !hasAction('stock.adjust_soh')) {
@@ -1009,16 +1024,20 @@ var _stockManagementGrid = function () {
                 var bbTitle = bbDisplay !== '—' ? 'Best Before Date' : 'Best Before Date (from Job Card or packing completion + 18 months)';
                 row += '<td class="text-end" title="' + ffaTitle.replace(/"/g, '&quot;') + '">' + ffaDisplay + '</td><td class="text-end" title="' + bbTitle.replace(/"/g, '&quot;') + '">' + bbDisplay + '</td>';
                 var kid = kernelIdFromBatch(b);
-                row += '<td class="text-center"><div class="d-inline-flex flex-wrap gap-1 justify-content-center align-items-center">';
-                row += '<button type="button" class="btn btn-sm btn-outline-secondary js-release-batch-to-production" data-kernel-id="' + escapeHtml(kid) + '" data-batch-number="' + escapeHtml(batchNum) + '" title="Send this batch back to production"><i class="fas fa-undo me-1"></i>Send back to production</button>';
+                var kernelActionItems = [
+                    { label: 'Send back to production', className: 'js-release-batch-to-production', icon: 'fas fa-undo', dataAttrs: { 'kernel-id': kid, 'batch-number': batchNum } }
+                ];
                 if (kid) {
-                    row += '<button type="button" class="btn btn-sm btn-outline-primary edit-kernel-batch-btn" data-kernel-id="' + escapeHtml(kid) + '" title="Edit batch details (number, grower, dates, FFA)"><i class="fas fa-edit me-1"></i>Edit</button>';
-                    row += '<button type="button" class="btn btn-sm btn-outline-danger delete-kernel-batch-btn" data-kernel-id="' + escapeHtml(kid) + '" data-batch-label="' + escapeHtml(batchNum) + '" title="Delete batch (soft delete)"><i class="fas fa-trash me-1"></i>Delete</button>';
+                    kernelActionItems.push(
+                        { label: 'Edit', className: 'edit-kernel-batch-btn', icon: 'fas fa-edit', dataAttrs: { 'kernel-id': kid } },
+                        { label: 'Archive', className: 'archive-kernel-batch-btn', icon: 'fas fa-archive', dataAttrs: { 'kernel-id': kid, 'batch-label': batchNum } }
+                    );
                 }
-                row += '</div></td>';
+                row += '<td class="mac-table-actions-col">' + MacTableActions.render({ id: 'ksActions' + kid, items: kernelActionItems }) + '</td>';
                 row += '</tr>';
                 body.append(row);
             });
+            MacTableActions.init(document.getElementById('kernelStockByStyleTable'));
             totalsRow.find('td[data-style]').each(function () {
                 var k = $(this).data('style');
                 $(this).text(totals[k] != null ? totals[k] : 0);
@@ -1457,9 +1476,12 @@ var _stockManagementGrid = function () {
             }
             scope.filteredStockItems.forEach(function (item) {
                 var statusClass = item.status === 'available' ? 'bg-success' : item.status === 'reserved' ? 'bg-warning' : 'bg-secondary';
-                var row = '<tr><td>' + (item.stock_number || 'N/A') + '</td><td>' + (item.product_type || 'N/A') + '</td><td>' + (item.style || 'N/A') + '</td><td>' + (item.batch_number || 'N/A') + '</td><td>' + (item.quantity_kg || '0') + '</td><td>' + (item.location || 'N/A') + '</td><td><span class="badge ' + statusClass + '">' + (item.status || 'N/A') + '</span></td><td><button class="btn btn-sm btn-outline-primary" data-view-item="' + (item.id || '') + '"><i class="fas fa-eye"></i></button></td></tr>';
+                var row = '<tr><td>' + (item.stock_number || 'N/A') + '</td><td>' + (item.product_type || 'N/A') + '</td><td>' + (item.style || 'N/A') + '</td><td>' + (item.batch_number || 'N/A') + '</td><td>' + (item.quantity_kg || '0') + '</td><td>' + (item.location || 'N/A') + '</td><td><span class="badge ' + statusClass + '">' + (item.status || 'N/A') + '</span></td><td class="mac-table-actions-col">' + MacTableActions.render({
+                    items: [{ label: 'View', className: '', icon: 'fas fa-eye', attrs: { 'data-view-item': item.id || '' } }]
+                }) + '</td></tr>';
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('stockTable'));
         },
 
         viewItem: function (itemId) {
@@ -1555,17 +1577,22 @@ var _stockManagementGrid = function () {
                 return;
             }
             tbody.innerHTML = lots.map(function (l) {
-                return '<tr data-shell-id="' + escapeHtml(l.id || '') + '">' +
+                var shellId = l.id || '';
+                return '<tr data-shell-id="' + escapeHtml(shellId) + '">' +
                     '<td>' + escapeHtml(l.lot_number || '') + '</td>' +
                     '<td>' + escapeHtml(l.source_batch_number || '') + '</td>' +
                     '<td class="text-end">' + (l.quantity_kg != null ? Number(l.quantity_kg).toFixed(2) : '0') + '</td>' +
                     '<td>' + escapeHtml(l.status || '') + '</td>' +
-                    '<td class="text-nowrap">' +
-                    '<button type="button" class="btn btn-sm btn-outline-success js-dispatch-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage" title="Dispatch"><i class="fas fa-truck"></i></button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary js-edit-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage"><i class="fas fa-edit"></i></button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-danger js-delete-shell-lot" data-shell-id="' + escapeHtml(l.id || '') + '" data-action-perm="stock.shell.manage"><i class="fas fa-trash"></i></button>' +
-                    '</td></tr>';
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'shellActions' + shellId,
+                        items: [
+                            { label: 'Dispatch', className: 'js-dispatch-shell-lot', icon: 'fas fa-truck', dataAttrs: { 'shell-id': shellId, 'action-perm': 'stock.shell.manage' } },
+                            { label: 'Edit', className: 'js-edit-shell-lot', icon: 'fas fa-edit', dataAttrs: { 'shell-id': shellId, 'action-perm': 'stock.shell.manage' } },
+                            { label: 'Delete', className: 'js-delete-shell-lot', danger: true, icon: 'fas fa-trash', dataAttrs: { 'shell-id': shellId, 'action-perm': 'stock.shell.manage' } }
+                        ]
+                    }) + '</td></tr>';
             }).join('');
+            MacTableActions.init(document.getElementById('shellWasteStockCard'));
         },
 
         promptUpsertShellLot: function (existing) {
@@ -1577,10 +1604,39 @@ var _stockManagementGrid = function () {
             if (!dataFunctions || !dataFunctions.upsertShellStockLot) return;
             Swal.fire({
                 title: existing ? 'Edit shell lot' : 'Add shell lot',
-                html: '<input id="swalShellLotNumber" class="swal2-input" placeholder="Lot number (auto if blank)" value="' + escapeHtml(existing && existing.lot_number ? existing.lot_number : '') + '">' +
-                    '<input id="swalShellSourceBatch" class="swal2-input" placeholder="Source kernel batch" value="' + escapeHtml(existing && existing.source_batch_number ? existing.source_batch_number : '') + '">' +
-                    '<input id="swalShellQty" type="number" class="swal2-input" placeholder="Quantity kg" value="' + (existing && existing.quantity_kg != null ? existing.quantity_kg : '') + '">' +
-                    '<select id="swalShellStatus" class="swal2-input"><option value="in_stock">In stock</option><option value="dispatched">Dispatched</option><option value="written_off">Written off</option></select>',
+                width: 480,
+                html: [
+                    '<style>',
+                    '.mac-form{text-align:left;display:grid;gap:.85rem;margin:.35rem 0 0;}',
+                    '.mac-form .row2{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;}',
+                    '@media(max-width:420px){.mac-form .row2{grid-template-columns:1fr;}}',
+                    '.mac-form label{display:block;font-size:.78rem;font-weight:600;color:var(--mac-text);margin:0 0 .3rem;}',
+                    '.mac-form .mac-input,.mac-form .mac-select{width:100%;box-sizing:border-box;padding:.5rem .7rem;border:1px solid var(--mac-border);border-radius:var(--mac-radius-md,8px);font-size:.95rem;background:var(--mac-bg-secondary);color:var(--mac-text);}',
+                    '.mac-form .mac-input:focus,.mac-form .mac-select:focus{outline:none;border-color:var(--mac-green);box-shadow:0 0 0 3px var(--mac-green-light);}',
+                    '.mac-form .hint{font-size:.74rem;color:var(--mac-text-tertiary);margin:.28rem 0 0;}',
+                    '</style>',
+                    '<div class="mac-form">',
+                    '<div>',
+                    '<label for="swalShellLotNumber">Lot number</label>',
+                    '<input id="swalShellLotNumber" class="mac-input" placeholder="Leave blank to auto-generate" value="' + escapeHtml(existing && existing.lot_number ? existing.lot_number : '') + '">',
+                    '<div class="hint">A lot number is generated automatically if you leave this blank.</div>',
+                    '</div>',
+                    '<div>',
+                    '<label for="swalShellSourceBatch">Source kernel batch</label>',
+                    '<input id="swalShellSourceBatch" class="mac-input" placeholder="e.g. Bn 63 26 20" value="' + escapeHtml(existing && existing.source_batch_number ? existing.source_batch_number : '') + '">',
+                    '</div>',
+                    '<div class="row2">',
+                    '<div>',
+                    '<label for="swalShellQty">Quantity (kg)</label>',
+                    '<input id="swalShellQty" type="number" min="0" step="any" class="mac-input" placeholder="0" value="' + (existing && existing.quantity_kg != null ? existing.quantity_kg : '') + '">',
+                    '</div>',
+                    '<div>',
+                    '<label for="swalShellStatus">Status</label>',
+                    '<select id="swalShellStatus" class="mac-select"><option value="in_stock">In stock</option><option value="dispatched">Dispatched</option><option value="written_off">Written off</option></select>',
+                    '</div>',
+                    '</div>',
+                    '</div>'
+                ].join(''),
                 didOpen: function () {
                     if (existing && existing.status) {
                         var sel = document.getElementById('swalShellStatus');
@@ -1797,9 +1853,15 @@ var _stockManagementGrid = function () {
                     '<td>' + bbDisplay + '</td>' +
                     '<td class="text-end ' + daysClass + '">' + (days !== '' ? days : '') + '</td>' +
                     '<td>' + (l.status || '') + '</td>' +
-                    '<td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-info oil-batch-ingredients-btn" data-oil-batch-number="' + escapeHtml(String(l.batch_number || '')) + '" title="Ingredients used for this batch"><i class="fas fa-carrot"></i></button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary adjust-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Adjust stock on hand"><i class="fas fa-balance-scale"></i></button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary edit-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Edit lot details"><i class="fas fa-edit me-1"></i>Edit</button> <button type="button" class="btn btn-sm btn-outline-danger delete-oil-lot-btn" data-oil-lot-id="' + l.id + '" title="Delete batch (soft delete)"><i class="fas fa-trash me-1"></i>Delete</button></td>';
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({
+                        id: 'oilLotActions' + l.id,
+                        items: [
+                            { label: 'Ingredients', className: 'oil-batch-ingredients-btn', icon: 'fas fa-carrot', dataAttrs: { 'oil-batch-number': String(l.batch_number || '') } },
+                            { label: 'Adjust stock', className: 'adjust-oil-lot-btn', icon: 'fas fa-balance-scale', dataAttrs: { 'oil-lot-id': l.id } },
+                            { label: 'Edit', className: 'edit-oil-lot-btn', icon: 'fas fa-edit', dataAttrs: { 'oil-lot-id': l.id } },
+                            { label: 'Delete', className: 'delete-oil-lot-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'oil-lot-id': l.id } }
+                        ]
+                    }) + '</td>';
                 tbody.appendChild(tr);
             }
 
@@ -1810,6 +1872,8 @@ var _stockManagementGrid = function () {
             if (!protRows.length) {
                 bodyProt.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No protein powder stock lines match your search.</td></tr>';
             } else protRows.forEach(function (l) { renderRow(l, bodyProt); });
+            MacTableActions.init(document.getElementById('oilStockOilTable'));
+            MacTableActions.init(document.getElementById('oilStockProteinTable'));
         },
 
         daysRemainingFromBbDate: function (bbDate) {
@@ -1869,7 +1933,7 @@ var _stockManagementGrid = function () {
                         });
                     }
                     if (ings && Array.isArray(ings) && ings.length) {
-                        parts.push('<table class="table table-sm table-bordered mt-1 mb-0"><thead><tr><th>Item</th><th>Supplier</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>');
+                        parts.push('<table class="table align-middle table-bordered mt-1 mb-0"><thead><tr><th>Item</th><th>Supplier</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>');
                         ings.forEach(function (ing) {
                             var desc = ing.description || ing.batch_id || ing.product_type || '';
                             var qty = ing.qty_kg != null ? ing.qty_kg : (ing.quantity_kg != null ? ing.quantity_kg : '');
@@ -1884,7 +1948,7 @@ var _stockManagementGrid = function () {
             var audit = d.raw_ingredient_audit;
             if (audit && Array.isArray(audit) && audit.length) {
                 parts.push('<h6 class="mt-2 mb-1 text-start">Raw ingredient audit</h6>');
-                parts.push('<table class="table table-sm table-bordered text-start"><thead><tr><th>Batch</th><th>Supplier</th><th>Product / description</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>');
+                parts.push('<table class="table align-middle table-bordered text-start"><thead><tr><th>Batch</th><th>Supplier</th><th>Product / description</th><th class="text-end">Qty (kg)</th></tr></thead><tbody>');
                 audit.forEach(function (row) {
                     var bid = row.batch_id != null ? row.batch_id : '';
                     var pt = row.product_type || row.description || '';
@@ -2036,34 +2100,182 @@ var _stockManagementGrid = function () {
             });
         },
 
-        deleteKernelBatch: function (kernelId, batchLabel) {
+        archiveKernelBatch: function (kernelId, batchLabel) {
             var scope = _stockManagementGrid;
             if (!kernelId) return;
             if (typeof dataFunctions === 'undefined' || !dataFunctions.deactivateKernelBatch) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete is not available. Please refresh.', 'error');
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Archive is not available. Please refresh.', 'error');
                 return;
             }
             var label = (batchLabel && String(batchLabel).trim()) ? String(batchLabel).trim() : 'this batch';
             Swal.fire({
-                title: 'Delete kernel batch?',
-                html: 'Remove <strong>' + escapeHtml(label) + '</strong> from stock? It will be hidden from lists (soft delete).',
+                title: 'Archive kernel batch?',
+                html: 'Send <strong>' + escapeHtml(label) + '</strong> to the archive? It will be removed from active lists. You can restore it later from <strong>View archive</strong>.',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'Yes, delete',
+                confirmButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, archive',
                 cancelButtonText: 'Cancel'
             }).then(function (res) {
                 if (!res.isConfirmed) return;
                 dataFunctions.deactivateKernelBatch(kernelId).then(function (result) {
                     var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
-                    if (inner && inner.success === false) throw new Error(inner.error || 'Delete failed');
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Batch deleted', text: label + ' has been removed from stock.', timer: 2000, showConfirmButton: false });
+                    if (inner && inner.success === false) throw new Error(inner.error || 'Archive failed');
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Batch archived', text: label + ' has been sent to the archive.', timer: 2200, showConfirmButton: false });
                     scope.loadKernelBatches(true);
                 }).catch(function (e) {
-                    console.error('[Stock Management] deleteKernelBatch failed:', e);
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to delete batch', 'error');
+                    console.error('[Stock Management] archiveKernelBatch failed:', e);
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to archive batch', 'error');
                 });
             });
+        },
+
+        openKernelBatchArchiveModal: function () {
+            var scope = _stockManagementGrid;
+            if (typeof Swal === 'undefined') return;
+            var df = (typeof _dataFunctions !== 'undefined' && _dataFunctions) ? _dataFunctions : dataFunctions;
+            if (!df || !df.getKernelBatchArchive) {
+                Swal.fire('Error', 'View archive is not available. Apply migration kernel_batch_archive_restore_ui.', 'error');
+                return;
+            }
+            scope._kernelArchiveRows = [];
+            scope._kernelArchiveSearch = '';
+            Swal.fire({
+                title: 'Archived kernel batches',
+                width: '52rem',
+                html:
+                    '<p class="small text-muted text-start mb-2">Batches removed via <strong>Archive</strong> on stock, grower intake, or production. Restore brings them back; enter a new batch number if the original is already in use.</p>' +
+                    '<input type="search" id="swalKernelArchiveSearch" class="form-control form-control-sm mb-2" placeholder="Search batch, grower, or archived by…">' +
+                    '<div id="swalKernelArchiveList" class="text-start border rounded" style="max-height:22rem;overflow:auto;"><div class="p-3 text-muted small">Loading…</div></div>',
+                showConfirmButton: false,
+                showCloseButton: true,
+                didOpen: function () {
+                    var searchEl = document.getElementById('swalKernelArchiveSearch');
+                    var debounce = null;
+                    var load = function (q) {
+                        scope._kernelArchiveSearch = q || '';
+                        var listEl = document.getElementById('swalKernelArchiveList');
+                        if (listEl) listEl.innerHTML = '<div class="p-3 text-muted small">Loading…</div>';
+                        df.getKernelBatchArchive(q || null, null, { limit: 200 }).then(function (rows) {
+                            scope._kernelArchiveRows = Array.isArray(rows) ? rows : [];
+                            scope.renderKernelArchiveList();
+                        }).catch(function (e) {
+                            if (listEl) listEl.innerHTML = '<div class="p-3 text-danger small">' + escapeHtml(e.message || 'Failed to load archive') + '</div>';
+                        });
+                    };
+                    if (searchEl) {
+                        searchEl.addEventListener('input', function () {
+                            if (debounce) clearTimeout(debounce);
+                            debounce = setTimeout(function () { load((searchEl.value || '').trim()); }, 280);
+                        });
+                    }
+                    $(document).off('click.kernelArchiveRestore').on('click.kernelArchiveRestore', '.js-kernel-archive-restore', function (ev) {
+                        ev.preventDefault();
+                        var aid = $(this).data('archive-id');
+                        var bn = $(this).data('batch-number') || '';
+                        var inUse = $(this).data('number-in-use') === true || $(this).data('number-in-use') === 'true';
+                        if (aid) scope.restoreKernelBatchFromArchiveEntry(aid, bn, inUse);
+                    });
+                    load('');
+                },
+                willClose: function () {
+                    $(document).off('click.kernelArchiveRestore');
+                }
+            });
+        },
+
+        renderKernelArchiveList: function () {
+            var listEl = document.getElementById('swalKernelArchiveList');
+            if (!listEl) return;
+            var rows = (_stockManagementGrid._kernelArchiveRows || []);
+            if (!rows.length) {
+                listEl.innerHTML = '<div class="p-3 text-muted small">No archived batches match your search.</div>';
+                return;
+            }
+            var html = '<table class="table table-sm table-hover mb-0"><thead class="table-light sticky-top"><tr>' +
+                '<th>Batch</th><th>Grower</th><th>Archived</th><th>Archived by</th><th>Type</th><th></th></tr></thead><tbody>';
+            rows.forEach(function (r) {
+                var bn = r.batch_number != null ? String(r.batch_number) : '—';
+                var grower = r.grower_name != null ? String(r.grower_name) : '—';
+                var at = r.deactivated_at ? String(r.deactivated_at).slice(0, 16).replace('T', ' ') : '—';
+                var by = r.deactivated_by_name != null ? String(r.deactivated_by_name) : '—';
+                var dtype = r.deactivation_type === 'permanent_delete' ? 'Permanent' : 'Soft';
+                var canRestore = r.can_restore === true;
+                var inUse = r.number_in_use === true;
+                var action = '';
+                if (canRestore) {
+                    action = '<button type="button" class="btn btn-sm btn-outline-primary js-kernel-archive-restore" data-archive-id="' + escapeHtml(String(r.id)) + '" data-batch-number="' + escapeHtml(bn) + '" data-number-in-use="' + (inUse ? 'true' : 'false') + '">Restore</button>';
+                    if (inUse) action += ' <span class="badge bg-warning text-dark ms-1" title="Original number in use"># in use</span>';
+                } else {
+                    action = '<span class="text-muted small">Cannot restore</span>';
+                }
+                html += '<tr><td class="fw-semibold">' + escapeHtml(bn) + '</td><td>' + escapeHtml(grower) + '</td><td class="small text-muted">' + escapeHtml(at) + '</td><td class="small">' + escapeHtml(by) + '</td><td class="small">' + escapeHtml(dtype) + '</td><td>' + action + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            listEl.innerHTML = html;
+        },
+
+        restoreKernelBatchFromArchiveEntry: function (archiveId, originalBatchNumber, numberInUse) {
+            var scope = _stockManagementGrid;
+            var df = (typeof _dataFunctions !== 'undefined' && _dataFunctions) ? _dataFunctions : dataFunctions;
+            if (!df || !df.restoreKernelBatchFromArchive) return;
+
+            var attemptRestore = function (newNumber) {
+                return df.restoreKernelBatchFromArchive(archiveId, newNumber).then(function (result) {
+                    if (result && result.needs_new_number) {
+                        return scope.promptNewBatchNumberForRestore(originalBatchNumber).then(function (entered) {
+                            if (!entered) return null;
+                            return df.restoreKernelBatchFromArchive(archiveId, entered);
+                        });
+                    }
+                    return result;
+                });
+            };
+
+            var start = numberInUse
+                ? scope.promptNewBatchNumberForRestore(originalBatchNumber)
+                : Promise.resolve(null);
+
+            start.then(function (preEntered) {
+                if (numberInUse && !preEntered) return null;
+                return attemptRestore(preEntered || null);
+            }).then(function (result) {
+                if (!result) return;
+                if (result.success === false) throw new Error(result.error || 'Restore failed');
+                var bn = result.batch_number || originalBatchNumber || 'batch';
+                Swal.fire({ icon: 'success', title: 'Batch restored', text: bn + ' is active again.', timer: 2200, showConfirmButton: false });
+                scope.loadKernelBatches(true);
+                return df.getKernelBatchArchive(scope._kernelArchiveSearch || null, null, { limit: 200 });
+            }).then(function (rows) {
+                if (rows) {
+                    scope._kernelArchiveRows = rows;
+                    scope.renderKernelArchiveList();
+                }
+            }).catch(function (e) {
+                console.error('[Stock Management] restoreKernelBatchFromArchiveEntry failed:', e);
+                Swal.fire('Error', e.message || 'Failed to restore batch', 'error');
+            });
+        },
+
+        promptNewBatchNumberForRestore: function (originalBatchNumber) {
+            var orig = originalBatchNumber != null ? String(originalBatchNumber) : '';
+            return Swal.fire({
+                title: 'New batch number required',
+                html: 'Batch number <strong>' + escapeHtml(orig) + '</strong> is already in use by another active batch. Enter a new number for the restored batch.',
+                input: 'text',
+                inputPlaceholder: 'e.g. Bn 01 26 05',
+                showCancelButton: true,
+                confirmButtonText: 'Restore with new number',
+                inputValidator: function (value) {
+                    if (!value || !String(value).trim()) return 'Enter a batch number';
+                }
+            }).then(function (res) {
+                return (res.isConfirmed && res.value) ? String(res.value).trim() : null;
+            });
+        },
+
+        deleteKernelBatch: function (kernelId, batchLabel) {
+            return _stockManagementGrid.archiveKernelBatch(kernelId, batchLabel);
         },
 
         promptAdjustOilLot: function (lot) {

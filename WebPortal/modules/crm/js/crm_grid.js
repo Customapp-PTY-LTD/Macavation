@@ -20,6 +20,15 @@ var _crmGrid = function () {
         importData: null,
         importWorkbook: null,
 
+        contactActionsCell: (contactId) => {
+            return '<td class="mac-table-actions-col text-nowrap">' + MacTableActions.render({
+                items: [
+                    { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contactId } },
+                    { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contactId } }
+                ]
+            }) + '</td>';
+        },
+
         init: async () => {
             const scope = _crmGrid;
             console.log('[CRM] Initializing CRM Grid module...');
@@ -90,9 +99,6 @@ var _crmGrid = function () {
             $('#nisFilterProvince, #nisFilterStatus').on('change', function () {
                 scope.filterNISSuppliers();
             });
-            $('#nisApplyFiltersBtn').on('click', function () {
-                scope.filterNISSuppliers();
-            });
             $('#nisClearFiltersBtn').on('click', function () {
                 $('#nisSearchInput').val('');
                 $('#nisFilterProvince').val('');
@@ -108,9 +114,6 @@ var _crmGrid = function () {
                 }, 300);
             });
             $('#oilFilterProvince').on('change', function () {
-                scope.filterOilProcessors();
-            });
-            $('#oilApplyFiltersBtn').on('click', function () {
                 scope.filterOilProcessors();
             });
             $('#oilClearFiltersBtn').on('click', function () {
@@ -129,9 +132,6 @@ var _crmGrid = function () {
             $('#customerFilterProvince').on('change', function () {
                 scope.filterKernelCustomers();
             });
-            $('#customerApplyFiltersBtn').on('click', function () {
-                scope.filterKernelCustomers();
-            });
             $('#customerClearFiltersBtn').on('click', function () {
                 $('#customerSearchInput').val('');
                 $('#customerFilterProvince').val('');
@@ -143,7 +143,6 @@ var _crmGrid = function () {
                 scope.searchTimeout = setTimeout(() => { scope.filterOilIngredientSuppliers(); }, 300);
             });
             $('#oiFilterProvince, #oiFilterStatus').on('change', function () { scope.filterOilIngredientSuppliers(); });
-            $('#oiApplyFiltersBtn').on('click', function () { scope.filterOilIngredientSuppliers(); });
             $('#oiClearFiltersBtn').on('click', function () {
                 $('#oiSearchInput').val('');
                 $('#oiFilterProvince').val('');
@@ -156,7 +155,6 @@ var _crmGrid = function () {
                 scope.searchTimeout = setTimeout(() => { scope.filterOilProteinCustomers(); }, 300);
             });
             $('#opcFilterProvince').on('change', function () { scope.filterOilProteinCustomers(); });
-            $('#opcApplyFiltersBtn').on('click', function () { scope.filterOilProteinCustomers(); });
             $('#opcClearFiltersBtn').on('click', function () {
                 $('#opcSearchInput').val('');
                 $('#opcFilterProvince').val('');
@@ -402,20 +400,17 @@ var _crmGrid = function () {
                         <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${notesDisplay || 'N/A'}
                         </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
+                        <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
+                            items: [
+                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
+                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
+                            ]
+                        })}</td>
                     </tr>
                 `;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('nisSuppliersTable'));
         },
 
         renderOilProcessors: (processors = null) => {
@@ -456,20 +451,17 @@ var _crmGrid = function () {
                         <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${notesDisplay || 'N/A'}
                         </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
+                        <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
+                            items: [
+                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
+                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
+                            ]
+                        })}</td>
                     </tr>
                 `;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('oilProcessorsTable'));
         },
 
         renderOilIngredientSuppliers: (suppliers = null) => {
@@ -499,20 +491,17 @@ var _crmGrid = function () {
                         <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${notesDisplay || 'N/A'}
                         </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
+                        <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
+                            items: [
+                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
+                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
+                            ]
+                        })}</td>
                     </tr>
                 `;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('oilIngredientSuppliersTable'));
         },
 
         renderOilProteinCustomers: (customers = null) => {
@@ -540,20 +529,17 @@ var _crmGrid = function () {
                         <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${notesDisplay || 'N/A'}
                         </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
+                        <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
+                            items: [
+                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
+                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
+                            ]
+                        })}</td>
                     </tr>
                 `;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('oilProteinCustomersTable'));
         },
 
         escapeHtml: (text) => {
@@ -591,20 +577,17 @@ var _crmGrid = function () {
                         <td title="${notesText.replace(/"/g, '&quot;')}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${notesDisplay || 'N/A'}
                         </td>
-                        <td class="text-nowrap">
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Edit Contact">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Delete Contact">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
+                        <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
+                            items: [
+                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
+                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
+                            ]
+                        })}</td>
                     </tr>
                 `;
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('kernelCustomersTable'));
         },
 
         editContact: async (contactId) => {

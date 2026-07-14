@@ -120,7 +120,9 @@ var _usersGrid = function () {
         loadRolesForDropdown: async () => {
             const scope = _usersGrid;
             try {
-                const response = await dataFunctions.getRoles();
+                const response = await dataFunctions.getRolesForAssignment
+                    ? dataFunctions.getRolesForAssignment()
+                    : dataFunctions.getRoles();
                 var roles = response;
                 if (!roles || !Array.isArray(roles) || roles.length === 0) {
                     console.error('No valid roles data!');
@@ -146,7 +148,6 @@ var _usersGrid = function () {
 
             scope.filteredUsers = scope.users.filter(function (user) {
                 const matchesSearch = !searchTerm ||
-                    (user.username && user.username.toLowerCase().includes(searchTerm)) ||
                     (user.email && user.email.toLowerCase().includes(searchTerm)) ||
                     (user.first_name && user.first_name.toLowerCase().includes(searchTerm)) ||
                     (user.last_name && user.last_name.toLowerCase().includes(searchTerm));
@@ -175,26 +176,26 @@ var _usersGrid = function () {
                 usersHtml = usersToShow.map(function (user) {
                     const avatarHtml = scope.generateAvatar(user);
                     const rawName = (user.first_name || '') + ' ' + (user.last_name || '');
-                    const fullName = rawName.trim() || user.username || 'Unknown User';
+                    const fullName = rawName.trim() || 'Unknown User';
                     const userId = scope.escapeHtml(user.id);
-                    const actionsCell = '<td>' +
-                        '<div class="dropdown">' +
-                        '<button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">' +
-                        '<i class="fas fa-ellipsis"></i></button>' +
-                        '<ul class="dropdown-menu dropdown-menu-end">' +
-                        '<li><a class="dropdown-item js-user-edit" href="#" data-user-id="' + userId + '">Edit</a></li>' +
-                        '<li><a class="dropdown-item js-user-deactivate text-danger" href="#" data-user-id="' + userId + '">Deactivate</a></li>' +
-                        '</ul></div></td>';
+                    const actionsCell = MacTableActions.renderCell({
+                        wrapLi: true,
+                        items: [
+                            { label: 'Edit', className: 'js-user-edit', dataAttrs: { 'user-id': user.id } },
+                            { label: 'Deactivate', className: 'js-user-deactivate', danger: true, dataAttrs: { 'user-id': user.id } }
+                        ]
+                    });
                     return '<tr class="js-user-row" data-user-id="' + userId + '">' +
                         '<td><div class="d-flex align-items-center">' + avatarHtml +
                         '<span class="ms-2">' + scope.escapeHtml(fullName) + '</span></div></td>' +
                         '<td>' + scope.escapeHtml(user.email || '') + '</td>' +
-                        '<td>' + scope.escapeHtml(user.role_name || 'No Role') + '</td>' +
+                        '<td>' + scope.escapeHtml(window.formatRoleName(user.role_name) || 'No Role') + '</td>' +
                         actionsCell + '</tr>';
                 }).join('');
             }
 
             $('#usersTableBody').html(usersHtml);
+            MacTableActions.init(document.getElementById('usersTable'));
             scope.renderPagination();
         },
 
@@ -250,6 +251,10 @@ var _usersGrid = function () {
                 scope.showError('User not found');
                 return;
             }
+            if (typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageUser(user)) {
+                scope.showError('You do not have permission to manage this user.');
+                return;
+            }
             if (typeof _modal_user !== 'undefined' && _modal_user.show) _modal_user.show(user);
         },
 
@@ -257,6 +262,10 @@ var _usersGrid = function () {
             const scope = _usersGrid;
             const user = scope.users.find(function (u) { return u.id === userId; });
             if (!user) return;
+            if (typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageUser(user)) {
+                scope.showError('You do not have permission to manage this user.');
+                return;
+            }
 
             Swal.fire({
                 title: 'Are you sure?',
@@ -340,7 +349,8 @@ var _usersGrid = function () {
                 return;
             }
             const columns = [
-                { key: 'username', label: 'Username' },
+                { key: 'first_name', label: 'First Name' },
+                { key: 'last_name', label: 'Last Name' },
                 { key: 'email', label: 'Email' },
                 { key: 'role', label: 'Role' },
                 { key: 'is_active', label: 'Active' },

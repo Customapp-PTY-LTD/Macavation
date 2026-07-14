@@ -6,14 +6,22 @@
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <h1 class="h2 mb-0">Dashboard Overview</h1>
             <div class="btn-toolbar mb-2 mb-md-0">
-                <a href="help/index.html#dashboard-overview" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+                <a target="_blank" rel="noopener noreferrer" href="help/index.html#dashboard-overview" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             </div>
         </div>
         <p class="text-muted mb-4" id="dashboardDate">
             <span id="currentDate"></span>
         </p>
 
-        <div class="row g-3 mb-4" id="kernelStatsContainer">
+        <div class="card mb-4 mac-section-collapse-card">
+            <div class="card-header bg-light">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#dashSummaryCollapse" aria-expanded="false" aria-controls="dashSummaryCollapse">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-bar-chart me-2"></i>Production summary <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+            </div>
+            <div class="collapse" id="dashSummaryCollapse">
+                <div class="card-body pt-3">
+        <div class="row g-3 mb-0" id="kernelStatsContainer">
             <div class="col-6 col-md-4 col-lg">
                 <div class="card h-100 border-primary">
                     <div class="card-body text-center">
@@ -55,60 +63,81 @@
                 </div>
             </div>
         </div>
-
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header dashboard-exceptions-header">
-                        <h5 class="mb-0 fw-bold">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                            Exceptions Requiring Attention
-                        </h5>
-                    </div>
-                    <div class="card-body" id="exceptionsContainer">
-                        <div class="text-center text-muted py-4">
-                            <i class="bi bi-hourglass-split fs-3"></i>
-                            <p class="mb-0 mt-2">Loading exceptions...</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="card mb-3">
-            <div class="card-body">
-                <h4 class="fw-bold mb-3">Operational Metrics</h4>
-                <div id="metricsContainer"></div>
+        <div class="card mb-4 mac-section-collapse-card">
+            <div class="card-header dashboard-exceptions-header">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle text-dark" data-bs-toggle="collapse" data-bs-target="#dashExceptionsCollapse" aria-expanded="false" aria-controls="dashExceptionsCollapse">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-triangle-exclamation me-2"></i>
+                        Exceptions requiring attention <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i>
+                    </h5>
+                </button>
+            </div>
+            <div class="collapse" id="dashExceptionsCollapse">
+                    <div class="card-body" id="exceptionsContainer">
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-hourglass-half fs-3"></i>
+                            <p class="mb-0 mt-2">Loading exceptions...</p>
+                        </div>
+                    </div>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold">
-                    <i class="bi bi-lightning-fill me-2"></i>
-                    Quick Actions
-                </h5>
+        <div class="card mb-4 mac-section-collapse-card">
+            <div class="card-header bg-light">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#dashMetricsCollapse" aria-expanded="false" aria-controls="dashMetricsCollapse">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-speedometer2 me-2"></i>Operational metrics <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
             </div>
+            <div class="collapse" id="dashMetricsCollapse">
+            <div class="card-body">
+                <div id="metricsContainer"></div>
+            </div>
+            </div>
+        </div>
+
+        <div class="card mb-4 mac-section-collapse-card">
+            <div class="card-header bg-light">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#dashQuickActionsCollapse" aria-expanded="false" aria-controls="dashQuickActionsCollapse">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-bolt me-2"></i>
+                        Quick actions <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i>
+                    </h5>
+                </button>
+            </div>
+            <div class="collapse" id="dashQuickActionsCollapse">
             <div class="card-body">
                 <div class="row g-3" id="quickActionsContainer"></div>
+            </div>
             </div>
         </div>
 
         <div class="row mb-4" id="alertsContainer"></div>
         <div class="row g-3 mb-4" id="statsContainer" style="display: none;"></div>
 
-        <div class="row">
+        <div class="card mb-4 mac-section-collapse-card">
+            <div class="card-header bg-light">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#dashActivityCollapse" aria-expanded="false" aria-controls="dashActivityCollapse">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Activity &amp; tasks <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+            </div>
+            <div class="collapse" id="dashActivityCollapse">
+            <div class="card-body pt-3">
+        <div class="row mb-0">
             <div class="col-lg-8">
-                <div class="card mb-4">
+                <div class="card mb-4 mb-lg-0">
                     <div class="card-header bg-light">
                         <h5 class="mb-0 fw-bold">
-                            <i class="bi bi-clock-history me-2"></i>Recent Activity
+                            <i class="fas fa-clock-rotate-left me-2"></i>Recent Activity
                         </h5>
                     </div>
                     <div class="card-body">
                         <div class="list-group list-group-flush" id="recentActivityList">
                             <div class="text-center text-muted py-4">
-                                <i class="bi bi-hourglass-split fs-3"></i>
+                                <i class="fas fa-hourglass-half fs-3"></i>
                                 <p class="mb-0 mt-2">Loading recent activity...</p>
                             </div>
                         </div>
@@ -116,21 +145,24 @@
                 </div>
             </div>
             <div class="col-lg-4">
-                <div class="card mb-4">
+                <div class="card mb-0">
                     <div class="card-header bg-light">
                         <h5 class="mb-0 fw-bold">
-                            <i class="bi bi-calendar-event me-2"></i>Upcoming Tasks
+                            <i class="fas fa-calendar-day me-2"></i>Upcoming Tasks
                         </h5>
                     </div>
                     <div class="card-body">
                         <ul class="list-unstyled mb-0" id="upcomingTasksList">
                             <li class="text-center text-muted py-4">
-                                <i class="bi bi-hourglass-split fs-3"></i>
+                                <i class="fas fa-hourglass-half fs-3"></i>
                                 <p class="mb-0 mt-2">Loading tasks...</p>
                             </li>
                         </ul>
                     </div>
                 </div>
+            </div>
+        </div>
+            </div>
             </div>
         </div>
     </div>
@@ -140,7 +172,7 @@
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <h1 class="h2">Material Journey Dashboard</h1>
             <div class="btn-toolbar mb-2 mb-md-0">
-                <a href="help/index.html#material-journey-dashboard" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+                <a target="_blank" rel="noopener noreferrer" href="help/index.html#material-journey-dashboard" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
                 <button type="button" class="btn btn-secondary" id="refreshBtn">
                     <i class="fas fa-sync-alt me-1"></i>Refresh
                 </button>
@@ -168,7 +200,7 @@
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <h1 class="h2">Executive Dashboard &amp; Reporting</h1>
             <div class="btn-toolbar mb-2 mb-md-0">
-                <a href="help/index.html#executive-dashboard" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+                <a target="_blank" rel="noopener noreferrer" href="help/index.html#executive-dashboard" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
                 <button type="button" class="btn btn-outline-secondary me-2" id="customizeDashboardBtn" title="Choose which stats to show">
                     <i class="fas fa-sliders-h me-1"></i>Customize
                 </button>
@@ -181,10 +213,14 @@
             </div>
         </div>
 
-        <div class="mb-2">
-            <h5 class="fw-bold mb-0">Kernel Production</h5>
-        </div>
-
+        <div class="card mb-4 mac-section-collapse-card">
+            <div class="card-header bg-light">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#execKernelKpiCollapse" aria-expanded="false" aria-controls="execKernelKpiCollapse">
+                    <h5 class="mb-0 fw-bold">Kernel production KPIs <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+            </div>
+            <div class="collapse" id="execKernelKpiCollapse">
+            <div class="card-body pt-3">
         <div class="row mb-4" id="execDashboardKpiRow">
             <div class="col-md-3 mb-3" data-dashboard-widget="totalProduction">
                 <div class="card border-primary">
@@ -260,17 +296,21 @@
                 </div>
             </div>
         </div>
+            </div>
+            </div>
+        </div>
 
-        <div class="row mb-4" data-dashboard-widget="execDailyReportDelivery">
-            <div class="col-12">
-                <div class="card border-secondary">
-                    <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h5 class="mb-0"><i class="fas fa-paper-plane me-2"></i>Daily report delivery</h5>
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="execOpenScheduledReportsBtn">
-                            Manage subscriptions
-                        </button>
-                    </div>
-                    <div class="card-body">
+        <div class="card mb-4 mac-section-collapse-card" data-dashboard-widget="execDailyReportDelivery">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#execDailyReportCollapse" aria-expanded="false" aria-controls="execDailyReportCollapse">
+                    <h5 class="mb-0"><i class="fas fa-paper-plane me-2"></i>Daily report delivery <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="execOpenScheduledReportsBtn">
+                    Manage subscriptions
+                </button>
+            </div>
+            <div class="collapse" id="execDailyReportCollapse">
+            <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="d-flex align-items-start gap-2">
@@ -292,20 +332,29 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+            </div>
             </div>
         </div>
 
-        <div class="row mb-4" data-dashboard-widget="execStockAlerts">
-            <div class="col-12">
-                <div class="card border-warning">
-                    <div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="fas fa-flag me-2"></i>Active alerts</h5></div>
+        <div class="card mb-4 mac-section-collapse-card" data-dashboard-widget="execStockAlerts">
+            <div class="card-header bg-warning text-dark">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle text-dark" data-bs-toggle="collapse" data-bs-target="#execAlertsCollapse" aria-expanded="false" aria-controls="execAlertsCollapse">
+                    <h5 class="mb-0"><i class="fas fa-flag me-2"></i>Active alerts <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+            </div>
+            <div class="collapse" id="execAlertsCollapse">
                     <div class="card-body" id="execAlertsContainer"><p class="text-muted small mb-0">Loading alerts…</p></div>
-                </div>
             </div>
         </div>
 
+        <div class="card mb-4 mac-section-collapse-card">
+            <div class="card-header bg-light">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#execKernelOpsCollapse" aria-expanded="false" aria-controls="execKernelOpsCollapse">
+                    <h5 class="mb-0 fw-bold">Kernel operations <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+            </div>
+            <div class="collapse" id="execKernelOpsCollapse">
+            <div class="card-body pt-3">
         <div class="row g-3 mb-4">
             <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesInProduction">
                 <div class="card h-100 border-primary">
@@ -402,6 +451,9 @@
                 </div>
             </div>
         </div>
+            </div>
+            </div>
+        </div>
 
         <div class="modal fade" id="execDashboardCustomizeModal" tabindex="-1" aria-labelledby="execDashboardCustomizeModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-scrollable">
@@ -426,18 +478,26 @@
             </div>
         </div>
 
-        <div class="row mb-4">
+        <div class="card mb-4 mac-section-collapse-card">
+            <div class="card-header bg-light">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#execMinuteTestsCollapse" aria-expanded="false" aria-controls="execMinuteTestsCollapse">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock me-2"></i>Daily minute tests <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+            </div>
+            <div class="collapse" id="execMinuteTestsCollapse">
+            <div class="card-body pt-3">
+        <div class="row mb-0">
             <div class="col-12" data-dashboard-widget="execDailyMinuteTests">
-                <div class="card">
+                <div class="card mb-0">
                     <div class="card-header bg-light">
                         <h5 class="mb-0 fw-bold">
-                            <i class="bi bi-clock me-2"></i>Daily minute tests
+                            <i class="fas fa-clock me-2"></i>Daily minute tests
                         </h5>
                     </div>
                     <div class="card-body">
                         <p class="text-muted small mb-2">Minute tests entered in Production → Cracking (today).</p>
                         <div class="table-responsive" style="max-width: 520px;">
-                            <table class="table table-sm table-bordered mb-0 minute-tests-dashboard-table">
+                            <table class="table align-middle table-bordered mb-0 minute-tests-dashboard-table">
                                 <thead class="table-light">
                                     <tr>
                                         <th class="fw-bold text-body">TIME</th>
@@ -459,7 +519,18 @@
                 </div>
             </div>
         </div>
+            </div>
+            </div>
+        </div>
 
+        <div class="card mb-4 mac-section-collapse-card">
+            <div class="card-header bg-light">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#execChartsCollapse" aria-expanded="false" aria-controls="execChartsCollapse">
+                    <h5 class="mb-0 fw-bold">Trends &amp; forecasts <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+            </div>
+            <div class="collapse" id="execChartsCollapse">
+            <div class="card-body pt-3">
         <div class="row">
             <div class="col-md-6 mb-4" data-dashboard-widget="execProductionTrends">
                 <div class="card">
@@ -511,6 +582,39 @@
         </div>
 
         <div class="row">
+            <div class="col-12 mb-4" data-dashboard-widget="execStockHistory">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h5 class="mb-0">Stock on hand history</h5>
+                            <a href="help/index.html#stock-history" class="macavation-help-link small" target="_blank" rel="noopener" title="Help: stock on hand history"><i class="fas fa-question-circle"></i></a>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Product type">
+                                <button type="button" class="btn btn-primary stock-history-mode-btn" data-mode="kernel" id="stockHistoryModeKernel">Kernel</button>
+                                <button type="button" class="btn btn-outline-secondary stock-history-mode-btn" data-mode="oil" id="stockHistoryModeOil">Oil</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="small text-muted mb-2" id="stockHistoryRange"></div>
+                        <div class="position-relative" style="height: 420px;">
+                            <canvas id="stockHistoryChart" aria-label="Stock on hand history chart"></canvas>
+                        </div>
+                        <p class="text-muted small mb-2 mt-2 d-none" id="stockHistoryEmpty">No stock history available for this period.</p>
+                        <div class="d-flex flex-wrap gap-2 mt-2" id="stockHistoryRangeButtons" aria-label="Time range controls">
+                            <button type="button" class="btn btn-sm btn-outline-secondary stock-history-range-btn" data-range="1M">1M</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary stock-history-range-btn" data-range="3M">3M</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary stock-history-range-btn" data-range="6M">6M</button>
+                            <button type="button" class="btn btn-sm btn-primary stock-history-range-btn" data-range="1Y">1Y</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary stock-history-range-btn" data-range="ALL">All</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
             <div class="col-md-6 mb-4" data-dashboard-widget="execProcurementForecast">
                 <div class="card h-100">
                     <div class="card-header">
@@ -550,11 +654,19 @@
                 </div>
             </div>
         </div>
-
-        <div class="row g-3 mb-4">
-            <div class="col-12">
-                <h5 class="fw-bold mb-0 mt-1">Oil Production</h5>
             </div>
+            </div>
+        </div>
+
+        <div class="card mb-4 mac-section-collapse-card">
+            <div class="card-header bg-light">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#execOilStatsCollapse" aria-expanded="false" aria-controls="execOilStatsCollapse">
+                    <h5 class="mb-0 fw-bold">Oil production summary <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+            </div>
+            <div class="collapse" id="execOilStatsCollapse">
+            <div class="card-body pt-3">
+        <div class="row g-3 mb-0">
             <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatOilLitresToday">
                 <div class="card h-100 border-primary">
                     <div class="card-body text-center">
@@ -570,6 +682,9 @@
                         <h3 class="mb-0" id="execStatOilLitresWeek">—</h3>
                     </div>
                 </div>
+            </div>
+        </div>
+            </div>
             </div>
         </div>
     </div>

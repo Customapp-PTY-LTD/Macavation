@@ -3,10 +3,10 @@
 
 /* Status filter dropdown – green border */
 #filterBatchStatus.form-select {
-    border-color: var(--forest-deep, #008950);
+    border-color: var(--mac-green, var(--mac-green));
 }
 #filterBatchStatus.form-select:focus {
-    border-color: var(--forest-deep, #008950);
+    border-color: var(--mac-green, var(--mac-green));
     box-shadow: 0 0 0 0.2rem rgba(0, 137, 80, 0.25);
 }
 #batchesTable th { border-top: none; font-weight: 600; }
@@ -14,7 +14,7 @@
 
 /* Batch number looks clickable to emphasize row is clickable */
 #batchesTable .js-batch-row td:first-child {
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
     font-weight: 500;
 }
 
@@ -22,51 +22,7 @@
     text-decoration: underline;
 }
 
-/* Actions column: center-aligned, square three horizontal dots button */
-#batchesTable td:last-child {
-    text-align: center;
-}
-
-#batchesTable td:last-child .dropdown {
-    display: inline-block;
-}
-
-#batchesTable td:last-child .dropdown .btn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.25rem;
-    background-color: transparent;
-    border: 2px solid var(--forest-deep, #008950);
-    color: var(--forest-deep, #008950);
-}
-#batchesTable td:last-child .dropdown .btn:hover,
-#batchesTable td:last-child .dropdown .btn.show {
-    background-color: var(--forest-deep, #008950);
-    border-color: var(--forest-deep, #008950);
-    color: #fff;
-}
-#batchesTable td:last-child .dropdown .btn i {
-    color: inherit;
-}
-
-/* Prevent actions dropdown from being clipped by card border-radius (UI_DESIGN_INSTRUCTIONS / oil-production pattern) */
-.kernel-production-table-card .table-responsive {
-    overflow: visible;
-}
-.kernel-production-table-card .card-body {
-    overflow: visible;
-}
-.kernel-production-table-card #batchesTable {
-    overflow: visible !important;
-}
-.kernel-production-table-card #batchesTable tbody tr td {
-    overflow: visible;
-}
+/* Actions column styles: WebPortal/css/table-actions.css (.mac-table-actions-col) */
 
 /* Batch History Modal – vertical timeline */
 .batch-history-timeline {
@@ -102,7 +58,7 @@
     margin-left: 0;
     margin-top: 12px;
     border-radius: 0;
-    background: #dee2e6;
+    background: var(--mac-border);
     border: 2px solid #000;
     box-sizing: border-box;
 }
@@ -111,19 +67,19 @@
     min-width: 0;
     margin-left: 1rem;
     padding: 1rem 1.25rem;
-    background: #e9ecef;
+    background: var(--mac-border);
     border-radius: 0;
     min-height: 80px;
 }
 .batch-history-timeline__block-title {
     font-size: 1rem;
     font-weight: 700;
-    color: #212529;
+    color: var(--mac-text);
     margin: 0 0 0.5rem 0;
 }
 .batch-history-timeline__block-body {
     font-size: 0.875rem;
-    color: #495057;
+    color: var(--mac-text-secondary);
     line-height: 1.5;
 }
 .batch-history-timeline__block-body p:last-child {
@@ -132,10 +88,6 @@
 .batch-history-timeline__block-body .table {
     margin-top: 0.5rem;
     background: var(--mac-bg-secondary);
-}
-.batch-history-timeline__block-body .table th,
-.batch-history-timeline__block-body .table td {
-    padding: 0.35rem 0.5rem;
 }
 
 /* Silos grid at top: 2 rows x 6, red = occupied, white = empty */
@@ -147,15 +99,15 @@
 }
 .kp-silo-box {
     aspect-ratio: 1;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--mac-border);
     border-radius: 0.35rem;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
     font-size: 1rem;
-    background-color: #fff;
-    color: #212529;
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
 }
 .kp-silo-box {
     flex-direction: column;
@@ -174,50 +126,33 @@
     margin-top: 0.15rem;
 }
 .kp-silo-occupied {
-    background-color: #f8d7da;
-    border-color: #f5c2c7;
-    color: #842029;
+    background-color: var(--mac-danger-light);
+    border-color: rgba(var(--mac-danger-rgb), 0.35);
+    color: var(--mac-danger);
     cursor: pointer;
 }
 .kp-silo-occupied:hover {
-    background-color: #f1aeb5;
-    border-color: #ea868f;
+    background-color: var(--mac-danger-light);
+    border-color: rgba(var(--mac-danger-rgb), 0.5);
 }
 .kp-silo-empty {
-    background-color: #fff;
+    background-color: var(--mac-bg-secondary);
     cursor: pointer;
 }
 .kp-silo-empty:hover {
-    background-color: #f8f9fa;
-    border-color: #adb5bd;
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-text-tertiary);
 }
 .kp-silo-box.kp-silo-selected {
-    border-color: #212529;
+    border-color: var(--mac-text);
     border-width: 3px;
-    box-shadow: 0 0 0 1px #212529;
+    box-shadow: 0 0 0 1px var(--mac-text);
 }
 
 .kp-production-calendar-toolbar {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-}
-
-.kp-production-calendar-toggle {
-    color: inherit;
-}
-
-.kp-production-calendar-toggle:hover {
-    color: inherit;
-}
-
-.kp-production-calendar-toggle-icon {
-    font-size: 0.85rem;
-    transition: transform 0.15s ease;
-}
-
-.kp-production-calendar-toggle[aria-expanded="false"] .kp-production-calendar-toggle-icon {
-    transform: rotate(180deg);
 }
 
 .kp-production-calendar-month {
@@ -248,21 +183,21 @@
     text-align: center;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #6c757d;
+    color: var(--mac-text);
 }
 
 .kp-production-calendar-day {
     min-height: 84px;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 0.5rem;
-    background: #fff;
+    background: var(--mac-bg-secondary);
     padding: 0.5rem;
     text-align: left;
     transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 .kp-production-calendar-day:hover {
-    border-color: #9ec5fe;
+    border-color: var(--mac-green);
 }
 
 .kp-production-calendar-day.is-outside-month {
@@ -270,18 +205,18 @@
 }
 
 .kp-production-calendar-day.is-active {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+    border-color: var(--mac-green);
+    box-shadow: 0 0 0 2px rgba(var(--mac-green-rgb), 0.15);
 }
 
 .kp-production-calendar-day.has-production {
-    background: #e7f1ff;
-    border-color: #9ec5fe;
+    background: var(--mac-green-light);
+    border-color: var(--mac-green);
 }
 
 .kp-production-calendar-daynum {
     font-weight: 600;
-    color: #212529;
+    color: var(--mac-text);
 }
 
 .kp-production-calendar-count {
@@ -289,7 +224,7 @@
     margin-top: 0.4rem;
     padding: 0.1rem 0.45rem;
     border-radius: 999px;
-    background: #0d6efd;
+    background: var(--mac-green);
     color: #fff;
     font-size: 0.72rem;
     font-weight: 600;
@@ -299,16 +234,16 @@
     grid-column: 1 / -1;
     padding: 1rem;
     text-align: center;
-    color: #6c757d;
-    border: 1px dashed #dee2e6;
+    color: var(--mac-text);
+    border: 1px dashed var(--mac-border);
     border-radius: 0.5rem;
 }
 
 .kp-production-calendar-detail {
     min-height: 300px;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 0.75rem;
-    background: #fafbfc;
+    background: var(--mac-bg);
     padding: 1rem;
 }
 
@@ -319,14 +254,14 @@
 }
 
 .kp-production-calendar-detail-empty {
-    color: #6c757d;
+    color: var(--mac-text);
     font-size: 0.9rem;
 }
 
 .kp-production-calendar-entry {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--mac-border);
     border-radius: 0.6rem;
-    background: #fff;
+    background: var(--mac-bg-secondary);
     padding: 0.75rem;
     margin-bottom: 0.75rem;
 }
@@ -345,11 +280,11 @@
 
 .kp-production-calendar-entry-batch {
     font-weight: 700;
-    color: #212529;
+    color: var(--mac-text);
 }
 
 .kp-production-calendar-entry-grower {
-    color: #6c757d;
+    color: var(--mac-text);
     font-size: 0.85rem;
 }
 
@@ -364,8 +299,8 @@
     align-items: center;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
-    background: #dbeafe;
-    color: #0b5ed7;
+    background: var(--mac-green-light);
+    color: var(--mac-green);
     font-size: 0.75rem;
     font-weight: 600;
 }
@@ -375,4 +310,9 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* NOTE: toolbar-dropdown sizing (Silos horizontal scroll + compact calendar)
+   lives in a <style> block inside kernel_production_grid.html, not here —
+   appRouter loads this .css with a plain href (no cache-bust), so edits here can
+   lag behind the freshly-fetched module HTML. Keep that layout in the HTML. */
 

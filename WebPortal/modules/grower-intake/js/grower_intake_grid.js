@@ -50,6 +50,9 @@ var _growerIntakeGrid = function () {
             if (typeof BatchStatus !== 'undefined') BatchStatus.applyModuleSubtitle('grower-intake-grid');
             if (typeof HandoffDialog !== 'undefined') HandoffDialog.applyPendingSearchForRoute('grower-intake-grid');
             scope.bindEvents();
+            if (typeof initMacSectionCollapses === 'function') {
+                initMacSectionCollapses(document.querySelector('.module-content'));
+            }
             scope.loadIntakeBatches(true);
             scope.loadProcurements(true);
             const loadPromises = [];
@@ -64,6 +67,9 @@ var _growerIntakeGrid = function () {
                 if (typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.init) _modal_grower_receiving_checklist.init();
                 if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.init) _modal_grower_create_kernel_batch.init();
                 if (typeof _modal_grower_link_sample_to_batch !== 'undefined' && _modal_grower_link_sample_to_batch.init) _modal_grower_link_sample_to_batch.init();
+                if (typeof actionAccess !== 'undefined' && actionAccess.apply) {
+                    actionAccess.apply(document.querySelector('.module-content') || document.getElementById('content-area') || document);
+                }
             }).catch((err) => {
                 console.error('[Grower Intake] Error loading modals:', err);
                 if (typeof _modal_grower_receiving_checklist !== 'undefined' && _modal_grower_receiving_checklist.init) _modal_grower_receiving_checklist.init();
@@ -110,6 +116,10 @@ var _growerIntakeGrid = function () {
 
             $('#addSampleBtn').off('click').on('click', () => scope.showAddSampleModal());
             $('#createKernelBatchBtn').off('click').on('click', () => {
+                if (typeof actionAccess !== 'undefined' && actionAccess.denyUnless &&
+                    !actionAccess.denyUnless('grower.intake.create', 'You do not have permission to create kernel intake batches.')) {
+                    return;
+                }
                 if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.show) {
                     _modal_grower_create_kernel_batch.show();
                 } else if (typeof Swal !== 'undefined') {
@@ -204,7 +214,7 @@ var _growerIntakeGrid = function () {
                     Swal.fire('Error', 'Receiving checklist modal not loaded. Please refresh the page.', 'error');
                 }
             });
-            $(document).on('click', '#intakeBatchesTableBody .js-intake-delete-btn, #giKanbanBoard .js-intake-delete-btn', function (e) {
+            $(document).on('click', '#intakeBatchesTableBody .js-intake-archive-btn, #giKanbanBoard .js-intake-archive-btn', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const batchId = $(this).data('batch-id');
@@ -421,19 +431,18 @@ var _growerIntakeGrid = function () {
                 } else if (!sampleDone) {
                     stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="New batch sample"><i class="fas fa-vial me-1"></i><span class="intake-btn-text">New batch sample</span></button>';
                 } else {
-                    stage1Btn = '<button type="button" class="btn btn-sm btn-success intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="View batch sample"><i class="fas fa-check me-1"></i><span class="intake-btn-text">Batch sample</span></button>';
+                    stage1Btn = '<button type="button" class="btn btn-sm btn-primary intake-step-btn js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + batchNumEscaped + '" title="View batch sample"><i class="fas fa-check me-1"></i><span class="intake-btn-text">Batch sample</span></button>';
                 }
 
                 var releaseItem = canRelease
                     ? '<a class="dropdown-item js-intake-release-btn" href="#" data-batch-id="' + b.id + '"><i class="fas fa-arrow-right me-2"></i>Release to production</a>'
                     : '<span class="dropdown-item text-muted" role="button" tabindex="0">Release to production</span>';
                 var editItem = '<a class="dropdown-item js-intake-edit" href="#" data-batch-id="' + b.id + '"><i class="fas fa-pen me-2"></i>Edit</a>';
-                var deleteItem = '<a class="dropdown-item js-intake-delete-btn text-danger" href="#" data-batch-id="' + b.id + '"><i class="fas fa-trash me-2"></i>Delete batch</a>';
-                var actionsCell = '<div class="dropdown">' +
-                    '<button class="btn btn-sm btn-outline-secondary" type="button" id="intakeBatchActions' + b.id + '" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions"><i class="fas fa-ellipsis"></i></button>' +
-                    '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="intakeBatchActions' + b.id + '">' +
-                    releaseItem + editItem + deleteItem +
-                    '</ul></div>';
+                var deleteItem = '<a class="dropdown-item js-intake-archive-btn text-secondary" href="#" data-batch-id="' + b.id + '"><i class="fas fa-archive me-2"></i>Archive batch</a>';
+                var actionsCell = MacTableActions.render({
+                    id: 'intakeBatchActions' + b.id,
+                    items: [releaseItem, editItem, deleteItem]
+                });
 
                 const stage1Cell = '<div class="intake-stage1-buttons">' + stage1Btn + '</div>';
 
@@ -464,9 +473,10 @@ var _growerIntakeGrid = function () {
                     '<td class="intake-col-wet d-none d-sm-table-cell">' + wetCellContent + '</td>' +
                     '<td class="intake-col-stage1">' + stage1Cell + '</td>' +
                     '<td class="intake-col-status">' + (function() { var ik = getIntakeColumnKey(b); var sp = ik === 'receiving' ? 'first' : ik === 'quality_approved' ? 'last' : 'mid'; return KanbanHelper.statusBadge(b.status || '', sp); })() + '</td>' +
-                    '<td class="intake-col-actions">' + actionsCell + '</td></tr>';
+                    '<td class="intake-col-actions mac-table-actions-col">' + actionsCell + '</td></tr>';
                 tbody.append(row);
             });
+            MacTableActions.init(document.getElementById('intakeBatchesTable'));
         },
 
         toggleView: (view) => {
@@ -505,13 +515,13 @@ var _growerIntakeGrid = function () {
                 } else if (!sampleDone) {
                     stage1Html = '<button type="button" class="btn btn-sm btn-primary js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="New batch sample"><i class="fas fa-vial me-1"></i>Sample</button>';
                 } else {
-                    stage1Html = '<button type="button" class="btn btn-sm btn-success js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="View batch sample"><i class="fas fa-check me-1"></i>Sample</button>';
+                    stage1Html = '<button type="button" class="btn btn-sm btn-primary js-intake-sample-btn" data-batch-id="' + b.id + '" data-batch-number="' + esc(batchNum) + '" title="View batch sample"><i class="fas fa-check me-1"></i>Sample</button>';
                 }
 
                 var releaseHtml = canRelease
                     ? '<button type="button" class="btn btn-sm btn-outline-success js-intake-release-btn" data-batch-id="' + b.id + '" title="Release to production"><i class="fas fa-arrow-right me-1"></i>Release</button>'
                     : '';
-                var deleteHtml = '<button type="button" class="btn btn-sm btn-outline-danger js-intake-delete-btn" data-batch-id="' + b.id + '" title="Delete batch"><i class="fas fa-trash"></i></button>';
+                var deleteHtml = '<button type="button" class="btn btn-sm btn-outline-secondary js-intake-archive-btn" data-batch-id="' + b.id + '" title="Archive batch"><i class="fas fa-archive"></i></button>';
 
                 var weightLabel = b.wet_nis_received_kg != null ? b.wet_nis_received_kg + ' kg' : '';
 
@@ -680,35 +690,39 @@ var _growerIntakeGrid = function () {
             }
         },
 
-        deleteBatch: (batchId) => {
+        archiveBatch: (batchId) => {
             const scope = _growerIntakeGrid;
             if (!batchId) return;
             if (typeof dataFunctions === 'undefined' || !dataFunctions.deactivateKernelBatch) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete function not available. Please refresh.', 'error');
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Archive is not available. Please refresh.', 'error');
                 return;
             }
             const batch = scope.intakeBatches.find((b) => String(b.id) === String(batchId));
             const batchLabel = batch ? (batch.batch_number || 'this batch') : 'this batch';
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'Do you want to delete "' + batchLabel + '"? This will remove it from intake and production. This action cannot be undone.',
+                title: 'Archive kernel batch?',
+                html: 'Send <strong>' + batchLabel + '</strong> to the archive? It will be removed from intake and production lists. Restore later from Stock → <strong>View archive</strong>.',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete!'
+                confirmButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, archive',
+                cancelButtonText: 'Cancel'
             }).then((res) => {
                 if (!res.isConfirmed) return;
                 dataFunctions.deactivateKernelBatch(batchId).then((result) => {
                     var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
-                    if (inner && inner.success === false) throw new Error(inner.error || 'Delete failed');
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Batch deleted', text: batchLabel + ' has been removed.', timer: 2000, showConfirmButton: false });
+                    if (inner && inner.success === false) throw new Error(inner.error || 'Archive failed');
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Batch archived', text: batchLabel + ' has been sent to the archive.', timer: 2200, showConfirmButton: false });
                     scope.loadIntakeBatches(true);
                 }).catch((e) => {
                     console.error(e);
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to delete batch', 'error');
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to archive batch', 'error');
                 });
             });
+        },
+
+        deleteBatch: (batchId) => {
+            _growerIntakeGrid.archiveBatch(batchId);
         },
 
         showAddSampleModal: () => {
@@ -1198,6 +1212,11 @@ var _growerIntakeGrid = function () {
                     var procurement = null;
                     (scope.procurementItems || []).forEach(function (p) { if (p.id === procurementId) procurement = p; });
                     if (!procurement) return;
+
+                    if (typeof actionAccess !== 'undefined' && actionAccess.denyUnless &&
+                        !actionAccess.denyUnless('grower.intake.create', 'You do not have permission to create kernel intake batches from procurement.')) {
+                        return;
+                    }
 
                     // Open create-batch modal pre-filled
                     if (typeof _modal_grower_create_kernel_batch !== 'undefined' && _modal_grower_create_kernel_batch.showFromProcurement) {

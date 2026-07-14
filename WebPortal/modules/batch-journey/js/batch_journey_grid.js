@@ -70,6 +70,47 @@ var _batchJourneyGrid = (function () {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function normalizeOilBatchList(raw) {
+        if (Array.isArray(raw)) return raw;
+        if (raw && raw.get_oil_batches && Array.isArray(raw.get_oil_batches)) return raw.get_oil_batches;
+        if (raw && raw.data && Array.isArray(raw.data)) return raw.data;
+        return [];
+    }
+
+    /** Map get_oil_batches row to grid fields (batch_id → batch_number, intake_data → supplier/qty/date). */
+    function mapOilRowForJourney(o) {
+        if (!o || typeof o !== 'object') return o;
+        var intakeRaw = o.intake_data;
+        var intake = {};
+        if (intakeRaw != null) {
+            if (typeof intakeRaw === 'string') {
+                try { intake = JSON.parse(intakeRaw); } catch (e) { intake = {}; }
+            } else if (typeof intakeRaw === 'object') {
+                intake = intakeRaw;
+            }
+        }
+        var supplier = intake.supplier || intake.supplier_details || '';
+        var qty = intake.quantity_kg;
+        if (qty == null && intake.items && intake.items[0]) qty = intake.items[0].quantity_kg;
+        if (qty == null && o.total_oil_litre != null) qty = o.total_oil_litre;
+        var received = intake.date_received || o.production_date || o.created_at;
+        return {
+            id: o.id,
+            batch_number: o.batch_id || o.batch_number,
+            supplier_name: supplier,
+            supplier_details: supplier,
+            grower_name: supplier,
+            quantity_kg: qty,
+            date_received: received,
+            received_date: received,
+            status: o.status,
+            intake_data: o.intake_data,
+            production_data: o.production_data,
+            stock_data: o.stock_data,
+            dispatch_data: o.dispatch_data
+        };
+    }
+
     function statusBadgeHtml(d) {
         return typeof BatchStatus !== 'undefined' ? BatchStatus.statusBadgeHtml(d) : escapeHtml(d.label || '');
     }
@@ -181,15 +222,19 @@ var _batchJourneyGrid = (function () {
                 + '<td class="text-end">' + (moisture != null ? formatNumber(moisture, 1) + '%' : '-') + '</td>'
                 + '<td class="text-end">' + (totalYield > 0 ? formatNumber(totalYield) : '-') + '</td>'
                 + '<td class="text-end"><button type="button" class="btn btn-sm btn-primary js-bj-open-module" data-batch-id="' + kid + '" title="' + escapeHtml(routeInfo.label) + '">' + escapeHtml(routeInfo.label.replace(/^Open /, '')) + '</button></td>'
-                + '<td class="bj-actions-col text-end">'
-                + '<div class="dropdown">'
-                + '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="bjEdit' + ddSuffix + '" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Edit batch">Edit</button>'
-                + '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bjEdit' + ddSuffix + '">'
-                + '<li><a class="dropdown-item text-danger bj-delete-batch" href="#" data-kernel-id="' + kid + '"><i class="fas fa-trash-alt me-1"></i>Delete permanently</a></li>'
-                + '</ul></div></td>'
+                + '<td class="mac-table-actions-col">'
+                + MacTableActions.render({
+                    id: 'bjActions' + ddSuffix,
+                    wrapLi: true,
+                    items: [
+                        { label: 'Archive', className: 'bj-archive-batch', icon: 'fas fa-archive', dataAttrs: { 'kernel-id': b.id } }
+                    ]
+                })
+                + '</td>'
                 + '</tr>';
         }
         tbody.innerHTML = html;
+        MacTableActions.init(document.getElementById('bjTable'));
     }
 
     function renderOilTable() {
@@ -198,7 +243,7 @@ var _batchJourneyGrid = (function () {
         if (!tbody) return;
 
         if (!scope.filteredOilBatches.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No oil batches found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No oil batches found</td></tr>';
             if (countEl) countEl.textContent = '0 batches';
             return;
         }
@@ -215,16 +260,24 @@ var _batchJourneyGrid = (function () {
             var oid = escapeHtml(ob.id);
             var oilRoute = typeof BatchStatus !== 'undefined' ? BatchStatus.getOilRouteForStatus(od) : { label: 'Open' };
             html += '<tr class="js-bj-oil-row" data-oil-id="' + oid + '">'
-                + '<td>' + (ob.batch_number || '-') + '</td>'
-                + '<td>' + (ob.supplier_name || ob.grower_name || '-') + '</td>'
+                + '<td>' + escapeHtml(ob.batch_number || ob.batch_id || '-') + '</td>'
+                + '<td>' + escapeHtml(ob.supplier_name || ob.supplier_details || ob.grower_name || '-') + '</td>'
                 + '<td>' + statusBadgeHtml(od) + '</td>'
                 + '<td>' + received + '</td>'
                 + '<td class="text-end">' + formatNumber(ob.quantity_kg, 2) + '</td>'
-                + '<td class="text-end"><button type="button" class="btn btn-sm btn-primary js-bj-oil-open-module" data-oil-id="' + oid + '">' + escapeHtml(oilRoute.label.replace(/^Open /, '')) + '</button></td>'
-                + '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary js-bj-oil-history" data-oil-id="' + oid + '" title="Batch history"><i class="fas fa-history"></i></button></td>'
+                + '<td class="mac-table-actions-col">'
+                + MacTableActions.render({
+                    id: 'bjOilActions' + String(ob.id || '').replace(/-/g, ''),
+                    items: [
+                        { label: oilRoute.label.replace(/^Open /, ''), className: 'js-bj-oil-open-module', dataAttrs: { 'oil-id': ob.id } },
+                        { label: 'History', className: 'js-bj-oil-history', icon: 'fas fa-history', dataAttrs: { 'oil-id': ob.id } }
+                    ]
+                })
+                + '</td>'
                 + '</tr>';
         }
         tbody.innerHTML = html;
+        MacTableActions.init(document.getElementById('bjOilTable'));
     }
 
     function filterAndSort() {
@@ -263,7 +316,7 @@ var _batchJourneyGrid = (function () {
                 if (d.value !== statusFilter) return false;
             }
             if (search) {
-                var hay = ((b.batch_number || '') + ' ' + (b.supplier_name || b.grower_name || '')).toLowerCase();
+                var hay = ((b.batch_number || b.batch_id || '') + ' ' + (b.supplier_name || b.supplier_details || b.grower_name || '')).toLowerCase();
                 if (hay.indexOf(search) === -1) return false;
             }
             return true;
@@ -296,12 +349,27 @@ var _batchJourneyGrid = (function () {
         document.getElementById('bjStatusFilter').addEventListener('change', filterAndSort);
         document.getElementById('bjSortBy').addEventListener('change', filterAndSort);
 
+        var clearBtn = document.getElementById('bjClearBtn');
+        if (clearBtn) clearBtn.addEventListener('click', function () {
+            document.getElementById('bjSearchInput').value = '';
+            document.getElementById('bjStatusFilter').value = '';
+            document.getElementById('bjSortBy').value = 'newest';
+            filterAndSort();
+        });
+
         var oilSearch = document.getElementById('bjOilSearchInput');
         if (oilSearch) oilSearch.addEventListener('input', filterAndSortOil);
         var oilStatus = document.getElementById('bjOilStatusFilter');
         if (oilStatus) oilStatus.addEventListener('change', filterAndSortOil);
         var oilSort = document.getElementById('bjOilSortBy');
         if (oilSort) oilSort.addEventListener('change', filterAndSortOil);
+        var oilClearBtn = document.getElementById('bjOilClearBtn');
+        if (oilClearBtn) oilClearBtn.addEventListener('click', function () {
+            if (oilSearch) oilSearch.value = '';
+            if (oilStatus) oilStatus.value = '';
+            if (oilSort) oilSort.value = 'newest';
+            filterAndSortOil();
+        });
 
         document.querySelectorAll('#bjStreamTabs .nav-link').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
@@ -353,58 +421,63 @@ var _batchJourneyGrid = (function () {
             e.stopPropagation();
         });
 
-        $(document).on('click', '#bjTableBody .bj-delete-batch', function (e) {
+        $(document).on('click', '#bjTableBody .bj-archive-batch', function (e) {
             e.preventDefault();
             e.stopPropagation();
             var kernelId = $(this).data('kernel-id');
             if (!kernelId) return;
             var row = $(this).closest('tr.js-bj-row');
             var label = (row.find('td').first().text() || 'This batch').trim();
-            if (typeof Swal === 'undefined') {
-                if (!window.confirm('Permanently delete batch ' + label + '? This cannot be undone.')) return;
-                scope.runPermanentDelete(kernelId, label);
-                return;
-            }
-            Swal.fire({
-                title: 'Delete batch permanently?',
-                html: '<p class="mb-0">Batch <strong>' + escapeHtml(label) + '</strong> will be removed from the database (kernel record, batch header, silo assignment, and dispatch lines for this batch). This cannot be undone.</p>',
-                icon: 'warning',
-                showCancelButton: true,
-                focusCancel: true,
-                confirmButtonText: 'Yes, delete forever',
-                confirmButtonColor: '#dc3545',
-                cancelButtonText: 'Cancel'
-            }).then(function (res) {
-                if (res && res.isConfirmed) scope.runPermanentDelete(kernelId, label);
-            });
+            scope.archiveKernelBatch(kernelId, label);
         });
     }
 
-    scope.runPermanentDelete = function (kernelId, label) {
-        if (typeof _dataFunctions === 'undefined' || !_dataFunctions.deleteKernelBatchPermanent) {
-            if (typeof Swal !== 'undefined') Swal.fire('Error', 'Delete is not available. Refresh the page or apply the latest database migration.', 'error');
-            else window.alert('Delete is not available.');
+    scope.archiveKernelBatch = function (kernelId, label) {
+        var df = (typeof dataFunctions !== 'undefined') ? dataFunctions : (typeof _dataFunctions !== 'undefined' ? _dataFunctions : null);
+        if (!df || !df.deactivateKernelBatch) {
+            if (typeof Swal !== 'undefined') Swal.fire('Error', 'Archive is not available. Please refresh.', 'error');
+            else window.alert('Archive is not available.');
             return;
         }
-        _dataFunctions.deleteKernelBatchPermanent(kernelId).then(function (result) {
-            if (!result || result.success === false) {
-                throw new Error((result && result.error) || 'Delete failed');
-            }
-            if (typeof Swal !== 'undefined') {
+        var batchLabel = (label && String(label).trim()) ? String(label).trim() : 'this batch';
+        if (typeof Swal === 'undefined') {
+            if (!window.confirm('Archive batch ' + batchLabel + '?')) return;
+            df.deactivateKernelBatch(kernelId).then(function (result) {
+                var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
+                if (inner && inner.success === false) throw new Error(inner.error || 'Archive failed');
+                loadBatches();
+            }).catch(function (err) {
+                console.error('Batch Journey: archive failed', err);
+                window.alert((err && err.message) ? err.message : 'Archive failed');
+            });
+            return;
+        }
+        Swal.fire({
+            title: 'Archive kernel batch?',
+            html: 'Send <strong>' + escapeHtml(batchLabel) + '</strong> to the archive? It will be removed from active lists. Restore later from Stock → <strong>View archive</strong>.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, archive',
+            cancelButtonText: 'Cancel'
+        }).then(function (res) {
+            if (!res || !res.isConfirmed) return;
+            df.deactivateKernelBatch(kernelId).then(function (result) {
+                var inner = (result && result.deactivate_kernel_batch) ? result.deactivate_kernel_batch : result;
+                if (inner && inner.success === false) throw new Error(inner.error || 'Archive failed');
                 Swal.fire({
                     icon: 'success',
-                    title: 'Batch deleted',
-                    text: (label || 'Batch') + ' was permanently removed.',
+                    title: 'Batch archived',
+                    text: batchLabel + ' has been sent to the archive.',
                     timer: 2200,
                     showConfirmButton: false
                 });
-            }
-            loadBatches();
-        }).catch(function (err) {
-            console.error('Batch Journey: permanent delete failed', err);
-            var msg = (err && err.message) ? err.message : 'Delete failed';
-            if (typeof Swal !== 'undefined') Swal.fire('Error', msg, 'error');
-            else window.alert(msg);
+                loadBatches();
+            }).catch(function (err) {
+                console.error('Batch Journey: archive failed', err);
+                var msg = (err && err.message) ? err.message : 'Failed to archive batch';
+                Swal.fire('Error', msg, 'error');
+            });
         });
     };
 
@@ -425,18 +498,19 @@ var _batchJourneyGrid = (function () {
     }
 
     function loadOilBatches() {
-        if (typeof dataFunctions === 'undefined' || !dataFunctions.getOilBatches) {
+        var df = (typeof dataFunctions !== 'undefined') ? dataFunctions : (typeof _dataFunctions !== 'undefined' ? _dataFunctions : null);
+        if (!df || !df.getOilBatches) {
             var tbody = document.getElementById('bjOilTableBody');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Oil batch list is not available.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Oil batch list is not available.</td></tr>';
             return;
         }
-        dataFunctions.getOilBatches({ limit: 500 }, null, false).then(function (rows) {
-            scope.oilBatches = rows || [];
+        df.getOilBatches({ limit: 500 }, null, false).then(function (rows) {
+            scope.oilBatches = normalizeOilBatchList(rows).map(mapOilRowForJourney);
             filterAndSortOil();
         }).catch(function (err) {
             console.error('Batch Journey: failed to load oil batches', err);
             var tbody = document.getElementById('bjOilTableBody');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load oil batches</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load oil batches</td></tr>';
         });
     }
 

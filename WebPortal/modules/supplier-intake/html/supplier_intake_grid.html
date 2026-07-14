@@ -4,7 +4,7 @@
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
             <h1 class="h2 mb-0">Supplier Intake Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
-                <a href="help/index.html#supplier-intake-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+                <a target="_blank" rel="noopener noreferrer" href="help/index.html#supplier-intake-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
                 <button type="button" class="btn btn-outline-primary" id="supplierAdjustStockBtn" title="Add bags without the receiving checklist, or edit an existing batch">
                     <i class="fas fa-sliders me-1"></i>Quick stock entry
                 </button>
@@ -20,14 +20,14 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="card mb-3">
+    <div class="card mb-3 mac-module-filter-bar">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3 col-lg-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-sm-6 col-lg-4">
                     <label for="searchSupplierIntakeInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchSupplierIntakeInput" placeholder="Search by batch #, supplier, delivery note...">
                 </div>
-                <div class="col-md-3 col-lg-2">
+                <div class="col-6 col-lg-2">
                     <label for="filterSupplierIntakeStatus" class="form-label">Status</label>
                     <select class="form-select" id="filterSupplierIntakeStatus">
                         <option value="">All Statuses</option>
@@ -35,12 +35,12 @@
                         <option value="release_ready">Ready for Oil Production</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-6 col-lg-2">
                     <button type="button" class="btn btn-outline-secondary w-100" id="clearSupplierIntakeFiltersBtn">
                         <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
-                <div class="col-12 col-md-4 col-lg-4 mt-2 mt-md-0 d-flex justify-content-md-end align-items-end gap-2 flex-wrap">
+                <div class="col-12 col-lg-4 mac-filter-bar-trailing">
                     <div class="view-toggle">
                         <button class="view-toggle-btn active" data-view="kanban" id="siViewKanban">
                             <i class="fas fa-columns me-1"></i>Board
@@ -48,13 +48,6 @@
                         <button class="view-toggle-btn" data-view="table" id="siViewTable">
                             <i class="fas fa-list me-1"></i>Table
                         </button>
-                    </div>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="siMoreViewsBtn" data-bs-toggle="dropdown" aria-expanded="false">More views</button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="siMoreViewsBtn">
-                            <li><button type="button" class="dropdown-item js-si-more-view" data-view="weekly">Weekly</button></li>
-                            <li><button type="button" class="dropdown-item js-si-more-view" data-view="overview">Overview</button></li>
-                        </ul>
                     </div>
                 </div>
             </div>
@@ -65,10 +58,10 @@
     <div id="siKanbanBoard" class="kanban-board"></div>
 
     <!-- Table View (hidden by default) -->
-    <div class="card mb-4 supplier-intake-table-card" id="siTableCard" style="display:none">
+    <div class="card mb-4 supplier-intake-table-card mac-table-actions-card" id="siTableCard" style="display:none">
         <div class="card-body p-2 p-md-3">
             <div class="table-responsive supplier-intake-table-responsive">
-                <table class="table table-hover" id="supplierIntakeBatchesTable">
+                <table class="table align-middle table-hover" id="supplierIntakeBatchesTable">
                     <thead>
                         <tr>
                             <th class="supplier-intake-col-batch">Batch #</th>
@@ -91,58 +84,6 @@
         </div>
     </div>
 
-    <!-- Weekly View: stock in and stock out by week -->
-    <div class="card mb-4" id="siWeeklyCard" style="display:none">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-calendar-week me-2"></i>Weekly stock</h5>
-        </div>
-        <div class="card-body">
-            <p class="text-muted small mb-2" id="siWeeklyHelpText">Stock received by week and ingredient (date received).</p>
-            <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
-                <label for="siWeeklyViewMode" class="form-label small text-muted mb-0">View</label>
-                <select id="siWeeklyViewMode" class="form-select form-select-sm" style="max-width: 16rem;" title="Weekly in or weekly out">
-                    <option value="in">Weekly in</option>
-                    <option value="out">Weekly out</option>
-                </select>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover table-sm si-weekly-stock-table" id="siWeeklyTable">
-                    <thead id="siWeeklyTableHead" class="table-light">
-                        <tr>
-                            <th class="si-weekly-th-week">Week</th>
-                            <th class="text-end text-muted small" colspan="7">…</th>
-                        </tr>
-                    </thead>
-                    <tbody id="siWeeklyTableBody">
-                        <tr><td colspan="8" class="text-center text-muted py-4">Loading…</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Overview View: amount of ingredient -->
-    <div class="card mb-4" id="siOverviewCard" style="display:none">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Overview by ingredient</h5>
-        </div>
-        <div class="card-body">
-            <p class="text-muted small mb-3">Total quantity by product type (current batches in Supplier Intake).</p>
-            <div class="table-responsive">
-                <table class="table table-hover table-sm" id="siOverviewTable">
-                    <thead>
-                        <tr>
-                            <th>Ingredient</th>
-                            <th class="text-end">Amount (kg)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="siOverviewTableBody">
-                        <tr><td colspan="2" class="text-center text-muted py-4">Loading…</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Weight before production (required before Release to Oil Production) -->

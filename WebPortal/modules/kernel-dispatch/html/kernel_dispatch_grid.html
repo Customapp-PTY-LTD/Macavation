@@ -2,30 +2,40 @@
 <div class="module-content">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Kernel Dispatch</h1>
-        <div class="d-flex align-items-center gap-2">
-            <a href="help/index.html#kernel-dispatch-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
-            <div class="view-toggle">
-                <button class="view-toggle-btn active" data-view="kanban" id="kdViewKanban">
-                    <i class="fas fa-columns me-1"></i>Board
-                </button>
-                <button class="view-toggle-btn" data-view="table" id="kdViewTable">
-                    <i class="fas fa-list me-1"></i>Table
-                </button>
-            </div>
+        <div class="btn-toolbar align-items-center gap-2">
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#kernel-dispatch-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="kernelDispatchRefreshBtn"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
         </div>
     </div>
-    <div class="d-flex flex-wrap align-items-end gap-2 mb-3 kd-dispatch-filters-toolbar">
-        <span class="text-muted small align-self-center me-1">Find basket</span>
-        <div>
-            <label class="form-label small text-muted mb-0" for="kdFilterBatch">Search</label>
-            <input type="text" class="form-control form-control-sm" id="kdFilterBatch" placeholder="Buyer, grower, batch (typing filters)" autocomplete="off" style="min-width: 14rem;">
+    <!-- Search and Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3 col-lg-4">
+                    <label for="kdFilterBatch" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="kdFilterBatch" placeholder="Buyer, grower, batch (typing filters)" autocomplete="off">
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <label for="kdFilterSupplierDate" class="form-label">Supplier received</label>
+                    <input type="date" class="form-control" id="kdFilterSupplierDate" title="Kernel supplier received date (stock batch)">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary w-100" id="kdFilterClear" title="Clear search">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </button>
+                </div>
+                <div class="col-12 col-md-4 col-lg-4 mt-2 mt-md-0 d-flex justify-content-md-end align-items-end">
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" data-view="kanban" id="kdViewKanban">
+                            <i class="fas fa-columns me-1"></i>Board
+                        </button>
+                        <button class="view-toggle-btn" data-view="table" id="kdViewTable">
+                            <i class="fas fa-list me-1"></i>Table
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div>
-            <label class="form-label small text-muted mb-0" for="kdFilterSupplierDate">Supplier received</label>
-            <input type="date" class="form-control form-control-sm" id="kdFilterSupplierDate" title="Kernel supplier received date (stock batch)">
-        </div>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="kdFilterClear" title="Clear search">Clear</button>
     </div>
     <div id="kdFilterEmptyBanner" class="alert alert-info py-2 d-none mb-3" role="status"></div>
     <div class="card border-success mb-3">
@@ -39,14 +49,14 @@
 
     <!-- Table View (hidden by default) -->
     <div id="kdTableCards" style="display:none">
-    <div class="card mb-4">
+    <div class="card mb-4 mac-table-actions-card">
         <div class="card-header bg-light">
             <h5 class="mb-0">Dispatch orders (baskets)</h5>
         </div>
         <p class="card-text text-muted small px-3 pt-2 mb-0">Orders sent from Stock (Kernel) appear here. Use <strong>View basket</strong> to see styles and quantities, <strong>Edit</strong> to change buyer, dates, or carton quantities (until dispatched), or <strong>Dispatch</strong> to complete the inspection and dispatch form.</p>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover" id="kernelDispatchTable">
+                <table class="table align-middle table-hover" id="kernelDispatchTable">
                     <thead>
                         <tr>
                             <th>Buyer</th>
@@ -54,7 +64,7 @@
                             <th>Created</th>
                             <th class="text-end">Lines</th>
                             <th class="text-end">Total (kg)</th>
-                            <th>Action</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="kernelDispatchTableBody"></tbody>
@@ -62,14 +72,14 @@
             </div>
         </div>
     </div>
-    <div class="card mb-4">
+    <div class="card mb-4 mac-table-actions-card">
         <div class="card-header bg-secondary text-white">
             <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Baskets marked as dispatched</h5>
         </div>
         <p class="card-text text-muted small px-3 pt-2 mb-0">Orders that have had the inspection and dispatch form completed.</p>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover" id="kernelDispatchedTable">
+                <table class="table align-middle table-hover" id="kernelDispatchedTable">
                     <thead>
                         <tr>
                             <th>Buyer</th>
@@ -77,7 +87,7 @@
                             <th>Created</th>
                             <th class="text-end">Lines</th>
                             <th class="text-end">Total (kg)</th>
-                            <th>Action</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="kernelDispatchedTableBody"></tbody>

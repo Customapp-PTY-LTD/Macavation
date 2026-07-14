@@ -241,7 +241,7 @@ var _modal_stock_send_to_dispatch = (function () {
                             menuItems += '<li><a class="dropdown-item js-modal-dispatch-qty-pick" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-quantity="' + cartonsAvail + '">' + cartonsAvail + ' (max)</a></li>';
                         }
                         menuItems += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item js-modal-dispatch-qty-other" href="#" data-batch-id="' + (batchId.replace(/"/g, '&quot;')) + '" data-style="' + (k.replace(/"/g, '&quot;')) + '" data-max-qty="' + cartonsAvail + '">Other…</a></li>';
-                        var btnClass = selectedLine ? 'btn-success' : 'btn-outline-secondary';
+                        var btnClass = selectedLine ? 'btn-primary' : 'btn-outline-secondary';
                         var btnLabel = selectedLine ? ((selectedLine.cartons != null ? selectedLine.cartons : selectedLine.quantity_kg) + ' / ' + displayVal) : displayVal;
                         html += '<td class="text-end kernel-qty-cell"><div class="dropdown">' +
                             '<button class="btn btn-sm ' + btnClass + ' py-0 px-1" type="button" id="' + cellId + '" data-bs-toggle="dropdown" aria-expanded="false">' + btnLabel + '</button>' +

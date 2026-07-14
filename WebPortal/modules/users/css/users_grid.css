@@ -23,7 +23,7 @@
 }
 
 #usersTable .js-user-row td:first-child {
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
     font-weight: 500;
 }
 
@@ -31,29 +31,7 @@
     text-decoration: underline;
 }
 
-/* Actions column: centered, single dropdown with square ellipsis button */
-#usersTable td:last-child {
-    text-align: center;
-}
-
-#usersTable td:last-child .dropdown {
-    display: inline-block;
-}
-
-#usersTable td:last-child .dropdown .btn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0;
-}
-
-#usersTable td:last-child .dropdown .btn::after {
-    display: none;
-}
+/* Actions column: WebPortal/css/table-actions.css */
 
 /* Remove dropdown/select arrows in this module */
 .module-content #filterRole.form-select {
@@ -68,7 +46,7 @@
     height: 40px;
     object-fit: cover;
     border-radius: 50%;
-    border: 2px solid var(--phoenix-border-color);
+    border: 2px solid var(--mac-border);
 }
 
 .avatar.avatar-s {
@@ -87,19 +65,19 @@
 }
 
 .pagination .page-link {
-    color: var(--phoenix-primary);
-    border-color: var(--phoenix-border-color);
+    color: var(--mac-green);
+    border-color: var(--mac-border);
 }
 
 .pagination .page-item.active .page-link {
-    background-color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
+    border-color: var(--mac-green);
 }
 
 .pagination .page-link:hover {
-    color: var(--phoenix-primary);
-    background-color: var(--phoenix-light);
-    border-color: var(--phoenix-border-color);
+    color: var(--mac-green);
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
 }
 
 /* Checkbox (if reused elsewhere in module) */
@@ -109,27 +87,27 @@
 
 /* Card */
 .card {
-    border: 1px solid var(--phoenix-border-color);
-    box-shadow: var(--phoenix-box-shadow);
+    border: 1px solid var(--mac-border);
+    box-shadow: var(--mac-shadow-sm);
 }
 
 .card-header {
-    background-color: var(--phoenix-light);
-    border-bottom: 1px solid var(--phoenix-border-color);
+    background-color: var(--mac-bg-tertiary);
+    border-bottom: 1px solid var(--mac-border);
 }
 
 /* Form / validation – keep for modal form if needed */
 .required::after {
     content: " *";
-    color: var(--phoenix-danger);
+    color: var(--mac-danger);
 }
 
 .is-invalid {
-    border-color: var(--phoenix-danger);
+    border-color: var(--mac-danger);
 }
 
 .invalid-feedback {
-    color: var(--phoenix-danger);
+    color: var(--mac-danger);
     font-size: 0.875rem;
     margin-top: 0.25rem;
 }

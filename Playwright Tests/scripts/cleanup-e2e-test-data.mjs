@@ -80,11 +80,10 @@ async function callFn(token, name, params = {}) {
 
 function isE2eUser(u) {
   const email = (u.email || '').toLowerCase();
-  const username = (u.username || '').toLowerCase();
+  // username was removed (first_name/last_name now); match on email + name only.
   return (
     email.includes('@test.macavation.co.za') ||
     email.startsWith('e2e.') ||
-    username.startsWith('e2e_') ||
     (u.first_name === 'E2E' && (u.last_name || '').startsWith('Grower'))
   );
 }

@@ -305,24 +305,27 @@ var _signin = function () {
             const email = (emailRaw || '').trim().toLowerCase();
             if (!email) return;
 
-            if (!sbClient) {
-                scope.showError('Password reset is not available at this time.');
-                return;
-            }
-
+            // Ask the send-password-reset edge function to create a token and
+            // email the reset link. Best-effort + always show the same generic
+            // message, so we never reveal whether an account exists.
             try {
-                const { error } = await sbClient.auth.resetPasswordForEmail(email, {
-                    redirectTo: window.location.origin + '/reset-password.html'
-                });
-                if (error) throw error;
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Email Sent!',
-                    text: 'Password reset email sent! Check your inbox.'
+                await fetch(SUPABASE_URL + '/functions/v1/send-password-reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({ email: email, redirect_base: window.location.origin })
                 });
             } catch (error) {
-                scope.showError('Failed to send reset email: ' + error.message);
+                console.warn('[Sign-in] password reset request failed:', error);
             }
+            Swal.fire({
+                icon: 'success',
+                title: 'Check your email',
+                text: 'If an account exists for ' + email + ', a password reset link has been sent. The link expires in 1 hour.'
+            });
         },
 
         showSignUpModal: () => {
@@ -360,10 +363,11 @@ var _signin = function () {
 
             try {
                 // create_user_simple hashes the password in-database (bcrypt).
-                // It accepts p_email / p_username / p_role_id / p_password only.
+                // It accepts p_email / p_first_name / p_last_name / p_role_id / p_password.
                 const created = await supabaseRpc('create_user_simple', {
                     p_email: email,
-                    p_username: (fullName || (firstName + ' ' + lastName)).trim() || email,
+                    p_first_name: firstName || null,
+                    p_last_name: lastName || null,
                     p_password: password
                 });
 

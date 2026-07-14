@@ -30,7 +30,7 @@
 .toast,
 .popover,
 .tooltip-inner {
-    border-radius: var(--phoenix-border-radius) !important;
+    border-radius: var(--mac-radius-md) !important;
 }
 
 /* All cards and their parts – consistent radius */
@@ -45,17 +45,17 @@
 .module-card,
 .dashboard-container .card,
 [class*="-card"] {
-    border-radius: var(--phoenix-border-radius) !important;
+    border-radius: var(--mac-radius-md) !important;
 }
 .card .card-header:first-child,
 .card .card-img-top:first-child {
-    border-top-left-radius: var(--phoenix-border-radius) !important;
-    border-top-right-radius: var(--phoenix-border-radius) !important;
+    border-top-left-radius: var(--mac-radius-md) !important;
+    border-top-right-radius: var(--mac-radius-md) !important;
 }
 .card .card-footer:last-child,
 .card .card-img-bottom:last-child {
-    border-bottom-left-radius: var(--phoenix-border-radius) !important;
-    border-bottom-right-radius: var(--phoenix-border-radius) !important;
+    border-bottom-left-radius: var(--mac-radius-md) !important;
+    border-bottom-right-radius: var(--mac-radius-md) !important;
 }
 
 /* All input boxes – same radius as buttons for consistency */
@@ -71,7 +71,7 @@ select,
 .input-group-text,
 .form-floating > .form-control,
 .form-floating > .form-select {
-    border-radius: var(--phoenix-border-radius) !important;
+    border-radius: var(--mac-radius-md) !important;
 }
 
 /* All buttons – consistent radius (except .rounded-pill) */
@@ -80,7 +80,7 @@ button,
 .btn-sm:not(.rounded-pill),
 .btn-lg:not(.rounded-pill),
 .btn-group .btn {
-    border-radius: var(--phoenix-border-radius) !important;
+    border-radius: var(--mac-radius-md) !important;
 }
 
 /* All tables and table headers – sharp corners */
@@ -106,20 +106,20 @@ thead th,
 .dropdown-menu .dropdown-header,
 .dropdown-menu .dropdown-item:first-child,
 .dropdown-menu .dropdown-item:last-child {
-    border-radius: var(--phoenix-border-radius) !important;
+    border-radius: var(--mac-radius-md) !important;
 }
 
 /* All modals – same radius as buttons (header and content) */
 .modal-content {
-    border-radius: var(--phoenix-border-radius) !important;
+    border-radius: var(--mac-radius-md) !important;
 }
 .modal-content .modal-header:first-child {
-    border-top-left-radius: var(--phoenix-border-radius) !important;
-    border-top-right-radius: var(--phoenix-border-radius) !important;
+    border-top-left-radius: var(--mac-radius-md) !important;
+    border-top-right-radius: var(--mac-radius-md) !important;
 }
 .modal-content .modal-footer:last-child {
-    border-bottom-left-radius: var(--phoenix-border-radius) !important;
-    border-bottom-right-radius: var(--phoenix-border-radius) !important;
+    border-bottom-left-radius: var(--mac-radius-md) !important;
+    border-bottom-right-radius: var(--mac-radius-md) !important;
 }
 
 /* Universal modal header — frosted glass */
@@ -156,6 +156,44 @@ thead th,
 .modal-content .modal-header .btn-close:hover {
     opacity: 1;
 }
+
+/* ── Help control — a quiet "?" icon that sits right after its heading ──
+   Every help link carries .macavation-help-link; help-viewer.js relocates each
+   one to directly follow its section heading ("Heading ?"). This turns the old
+   "Help" text button into one consistent icon (text hidden, button chrome gone). */
+.macavation-help-link,
+.macavation-help-link.btn {
+    width: 1.4rem;
+    height: 1.4rem;
+    margin: 0 0 0 0.4rem;               /* space from the heading text */
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
+    color: var(--mac-text-tertiary);
+    font-size: 0;                       /* collapse the "Help" text node */
+    line-height: 1;
+    text-decoration: none;
+    flex-shrink: 0;
+    position: relative;
+    top: -0.06em;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+.macavation-help-link:hover,
+.macavation-help-link:focus-visible {
+    color: var(--mac-green);
+    background: var(--mac-green-light);
+}
+.macavation-help-link i {
+    font-size: 0.95rem;                 /* the ? glyph, restored after font-size:0 */
+    margin: 0 !important;
+}
+
 .modal-content .modal-body {
     background-color: var(--mac-bg) !important;
     color: var(--mac-text);
@@ -170,15 +208,18 @@ thead th,
     border-top: 1px solid var(--mac-glass-border);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
+/* Cancel/close (.btn-secondary) in modals is a quiet neutral action — never a
+   filled red button (red is reserved for destructive actions; a red Cancel
+   reads as more dangerous than Save). */
 .modal-content .modal-footer .btn-secondary {
-    background-color: #dc3545 !important;
-    border-color: #dc3545 !important;
-    color: #fff !important;
+    background-color: var(--mac-bg-secondary) !important;
+    border-color: var(--mac-border-strong) !important;
+    color: var(--mac-text-secondary) !important;
 }
 .modal-content .modal-footer .btn-secondary:hover {
-    background-color: #bb2d3b !important;
-    border-color: #b02a37 !important;
-    color: #fff !important;
+    background-color: var(--mac-bg-tertiary) !important;
+    border-color: var(--mac-border-strong) !important;
+    color: var(--mac-text) !important;
 }
 .modal-content .modal-footer .btn-primary,
 .modal-content .modal-footer .btn-primary:focus,
@@ -186,16 +227,16 @@ thead th,
     box-shadow: none !important;
 }
 
-/* Modal body actions (when footer is removed: buttons in body) – same red Cancel, no glow on primary */
+/* Modal body actions (when footer is removed: buttons in body) – same neutral Cancel, no glow on primary */
 .modal-content .modal-body .modal-body-actions .btn-secondary {
-    background-color: #dc3545 !important;
-    border-color: #dc3545 !important;
-    color: #fff !important;
+    background-color: var(--mac-bg-secondary) !important;
+    border-color: var(--mac-border-strong) !important;
+    color: var(--mac-text-secondary) !important;
 }
 .modal-content .modal-body .modal-body-actions .btn-secondary:hover {
-    background-color: #bb2d3b !important;
-    border-color: #b02a37 !important;
-    color: #fff !important;
+    background-color: var(--mac-bg-tertiary) !important;
+    border-color: var(--mac-border-strong) !important;
+    color: var(--mac-text) !important;
 }
 .modal-content .modal-body .modal-body-actions .btn-primary,
 .modal-content .modal-body .modal-body-actions .btn-primary:focus,
@@ -257,21 +298,21 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .navbar-brand:hover {
-    color: var(--phoenix-primary) !important;
+    color: var(--mac-green) !important;
 }
 
 .navbar-nav .nav-link {
     color: rgba(255, 255, 255, 0.85) !important;
     font-weight: 500;
-    transition: var(--phoenix-transition);
+    transition: var(--mac-transition);
 }
 
 .navbar-nav .nav-link:hover {
-    color: var(--phoenix-primary) !important;
+    color: var(--mac-green) !important;
 }
 
 .navbar-nav .nav-link.active {
-    color: var(--phoenix-primary) !important;
+    color: var(--mac-green) !important;
 }
 
 /* Sidebar */
@@ -612,18 +653,18 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link:hover {
-    background-color: rgba(var(--phoenix-primary-rgb), 0.25);
+    background-color: rgba(var(--mac-green-rgb), 0.25);
     color: #fff;
 }
 
 .sidebar .nav-item:has([data-bs-target="#userManagementCollapse"]) .nav-link[aria-expanded="true"] {
-    background-color: rgba(var(--phoenix-primary-rgb), 0.25);
+    background-color: rgba(var(--mac-green-rgb), 0.25);
     color: #fff;
 }
 
 /* Main Content Area */
 .main-content {
-    background-color: var(--phoenix-body-bg);
+    background-color: var(--mac-bg);
     min-height: 100vh;
     padding: 0.5rem 2rem 2rem;
     margin-left: 300px;
@@ -676,118 +717,174 @@ h1, h2, h3, h4, h5, h6,
 
 /* Cards - Phoenix Style */
 .card {
-    border: 1px solid var(--phoenix-border-color);
-    border-radius: var(--phoenix-border-radius);
-    box-shadow: var(--phoenix-box-shadow);
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
-    transition: var(--phoenix-transition);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    box-shadow: var(--mac-shadow-sm);
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
+    transition: var(--mac-transition);
 }
 
 .card:hover {
-    box-shadow: var(--phoenix-box-shadow-lg);
+    box-shadow: var(--mac-shadow-lg);
 }
 
+/* Card / accordion headers — one modern standard across every module: the
+   header blends with the card body (no grey fill), separated by a hairline, with
+   a confident title and roomy padding instead of the old cramped grey bar. */
 .card-header {
-    background-color: var(--phoenix-light);
-    border-bottom: 1px solid var(--phoenix-border-color);
+    background-color: var(--mac-bg-secondary);
+    border-bottom: 1px solid var(--mac-border);
+    padding: 0.85rem 1.25rem;
     font-weight: 600;
-    color: var(--phoenix-text-color);
+    font-size: 0.95rem;
+    color: var(--mac-text);
+}
+/* Neutralise Bootstrap's grey utility fills so headers stay clean everywhere. */
+.card > .card-header.bg-light,
+.card > .card-header.bg-secondary {
+    background-color: var(--mac-bg-secondary) !important;
+    color: var(--mac-text) !important;
+}
+/* Consistent header title sizing regardless of the h-tag a module used. */
+.card-header h5,
+.card-header h6,
+.card-header .card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 0;
+    color: var(--mac-text);
+}
+.card-header .text-muted.small,
+.card-header small {
+    font-weight: 400;
 }
 
 /* dark card-header removed */
 
+/* ── Module header — one standard across every module ──
+   Consistent page title + a right-aligned action toolbar, so the heading and
+   its buttons sit in the same place on every screen (they used to vary). */
+.module-content h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    color: var(--mac-text);
+}
+.module-content .btn-toolbar {
+    margin-left: auto;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+/* One consistent size for header action buttons (normalises btn vs btn-sm across
+   modules). The icon-only help link keeps its own styling. */
+.module-content .btn-toolbar .btn:not(.macavation-help-link) {
+    padding: 0.44rem 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: var(--mac-radius-md);
+}
+
 /* Buttons - Phoenix Style */
 .btn {
-    border-radius: var(--phoenix-border-radius);
+    border-radius: var(--mac-radius-md);
     font-weight: 500;
-    transition: var(--phoenix-transition);
+    transition: var(--mac-transition);
     border: 1px solid transparent;
 }
 
 .btn-primary {
-    background-color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
+    border-color: var(--mac-green);
     color: white;
 }
 
 .btn-primary:hover {
-    background-color: #0b5ed7;
-    border-color: #0a58ca;
+    /* Brand green hover — the old values here were Bootstrap blue, making
+       green buttons flash blue on hover. */
+    background-color: var(--mac-green-hover);
+    border-color: var(--mac-green-hover);
 }
 
+/* Neutral secondary button: quiet surface + readable text (the old
+   phoenix-secondary background is near-white, which made the white
+   text unreadable). */
 .btn-secondary {
-    background-color: var(--phoenix-secondary);
-    border-color: var(--phoenix-secondary);
-    color: white;
+    background-color: var(--mac-bg-secondary);
+    border-color: var(--mac-border-strong);
+    color: var(--mac-text-secondary);
 }
 
 .btn-secondary:hover {
-    background-color: #5c636a;
-    border-color: #565e64;
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border-strong);
+    color: var(--mac-text);
 }
 
 .btn-outline-primary {
-    color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
+    color: var(--mac-green);
+    border-color: var(--mac-green);
 }
 
 .btn-outline-primary:hover {
-    background-color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
+    border-color: var(--mac-green);
     color: white;
 }
 
 .btn-outline-secondary {
-    color: var(--phoenix-secondary);
-    border-color: var(--phoenix-secondary);
+    color: var(--mac-text);
+    border-color: var(--mac-border-strong);
 }
 
 .btn-outline-secondary:hover {
-    background-color: var(--phoenix-secondary);
-    border-color: var(--phoenix-secondary);
+    background-color: var(--mac-border);
+    border-color: var(--mac-border);
     color: white;
 }
 
 /* Tables - Phoenix Style */
 .table {
-    --bs-table-bg: var(--phoenix-card-bg);
-    --bs-table-color: var(--phoenix-text-color);
-    --bs-table-border-color: var(--phoenix-border-color);
-    --bs-table-hover-bg: rgba(var(--phoenix-primary-rgb), 0.05);
+    --bs-table-bg: var(--mac-bg-secondary);
+    --bs-table-color: var(--mac-text);
+    --bs-table-border-color: var(--mac-border);
+    --bs-table-hover-bg: rgba(var(--mac-green-rgb), 0.05);
 }
 
 .table thead {
-    background-color: var(--phoenix-light);
-    color: var(--phoenix-text-color);
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text);
 }
 
 /* dark table header removed */
 
 .table tbody tr:hover {
-    background-color: rgba(var(--phoenix-primary-rgb), 0.05);
+    background-color: rgba(var(--mac-green-rgb), 0.05);
 }
 
 /* Forms - Phoenix Style */
 .form-control,
 .form-select {
-    border: 1px solid var(--phoenix-border-color);
-    border-radius: var(--phoenix-border-radius);
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
-    transition: var(--phoenix-transition);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
+    transition: var(--mac-transition);
 }
 
 .form-control:focus,
 .form-select:focus {
-    border-color: var(--phoenix-primary);
-    box-shadow: 0 0 0 0.2rem rgba(var(--phoenix-primary-rgb), 0.25);
-    background-color: var(--phoenix-card-bg);
-    color: var(--phoenix-text-color);
+    border-color: var(--mac-green);
+    box-shadow: 0 0 0 0.2rem rgba(var(--mac-green-rgb), 0.25);
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
 }
 
 .form-label {
-    color: var(--phoenix-text-color);
+    color: var(--mac-text);
     font-weight: 500;
     margin-bottom: 0.5rem;
 }
@@ -796,56 +893,56 @@ h1, h2, h3, h4, h5, h6,
 .badge {
     font-size: 0.75rem;
     padding: 0.4em 0.6em;
-    border-radius: var(--phoenix-border-radius);
+    border-radius: var(--mac-radius-md);
     font-weight: 500;
 }
 
 .badge.bg-primary {
-    background-color: var(--phoenix-primary) !important;
+    background-color: var(--mac-green) !important;
 }
 
 .badge.bg-secondary {
-    background-color: var(--phoenix-secondary) !important;
-    color: var(--phoenix-dark) !important;
+    background-color: var(--mac-border) !important;
+    color: var(--mac-text) !important;
 }
 
 .badge.bg-success {
-    background-color: var(--phoenix-success) !important;
+    background-color: var(--mac-success) !important;
 }
 
 .badge.bg-info {
-    background-color: var(--phoenix-info) !important;
+    background-color: var(--mac-info) !important;
 }
 
 .badge.bg-warning {
-    background-color: var(--phoenix-warning) !important;
-    color: var(--phoenix-dark);
+    background-color: var(--mac-warning) !important;
+    color: var(--mac-text);
 }
 
 .badge.bg-danger {
-    background-color: var(--phoenix-danger) !important;
+    background-color: var(--mac-danger) !important;
 }
 
 /* Modals - Phoenix Style (sharp corners, primary header, primary font) */
 .modal-content {
-    background-color: var(--phoenix-card-bg);
-    border: 1px solid var(--phoenix-border-color);
+    background-color: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
     border-radius: 0 !important;
-    box-shadow: var(--phoenix-box-shadow-lg);
+    box-shadow: var(--mac-shadow-lg);
     overflow: hidden;
 }
 
 .modal-header {
-    background-color: var(--phoenix-primary) !important;
-    border-bottom: 1px solid var(--phoenix-border-color);
+    background-color: var(--mac-green) !important;
+    border-bottom: 1px solid var(--mac-border);
     border-radius: 0 !important;
-    color: #2d2d2d;
-    font-family: var(--phoenix-font-brand);
+    color: var(--mac-bg-secondary);
+    font-family: var(--mac-font);
 }
 
 .modal-header .modal-title {
-    color: #2d2d2d !important;
-    font-family: var(--phoenix-font-brand);
+    color: var(--mac-bg-secondary) !important;
+    font-family: var(--mac-font);
     font-weight: 600;
 }
 
@@ -863,52 +960,52 @@ h1, h2, h3, h4, h5, h6,
 /* Alerts - Phoenix Style */
 .alert {
     border: none;
-    border-radius: var(--phoenix-border-radius);
+    border-radius: var(--mac-radius-md);
     border-left: 4px solid;
 }
 
 .alert-warning {
-    background-color: rgba(var(--phoenix-warning-rgb), 0.1);
-    color: #856404;
-    border-left-color: var(--phoenix-warning);
+    background-color: rgba(var(--mac-warning-rgb), 0.1);
+    color: var(--mac-warning-text);
+    border-left-color: var(--mac-warning);
 }
 
 .alert-danger {
-    background-color: rgba(var(--phoenix-danger-rgb), 0.1);
-    color: #721c24;
-    border-left-color: var(--phoenix-danger);
+    background-color: rgba(var(--mac-danger-rgb), 0.1);
+    color: var(--mac-danger);
+    border-left-color: var(--mac-danger);
 }
 
 .alert-success {
-    background-color: rgba(var(--phoenix-success-rgb), 0.1);
-    color: #0f5132;
-    border-left-color: var(--phoenix-success);
+    background-color: rgba(var(--mac-success-rgb), 0.1);
+    color: var(--mac-success);
+    border-left-color: var(--mac-success);
 }
 
 .alert-info {
-    background-color: rgba(var(--phoenix-info-rgb), 0.1);
-    color: #055160;
-    border-left-color: var(--phoenix-info);
+    background-color: rgba(var(--mac-info-rgb), 0.1);
+    color: var(--mac-info);
+    border-left-color: var(--mac-info);
 }
 
 /* Pagination - Phoenix Style */
 .pagination .page-link {
-    color: var(--phoenix-primary);
-    border-color: var(--phoenix-border-color);
-    background-color: var(--phoenix-card-bg);
-    transition: var(--phoenix-transition);
+    color: var(--mac-green);
+    border-color: var(--mac-border);
+    background-color: var(--mac-bg-secondary);
+    transition: var(--mac-transition);
 }
 
 .pagination .page-item.active .page-link {
-    background-color: var(--phoenix-primary);
-    border-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
+    border-color: var(--mac-green);
     color: white;
 }
 
 .pagination .page-link:hover {
-    color: var(--phoenix-primary);
-    background-color: var(--phoenix-light);
-    border-color: var(--phoenix-border-color);
+    color: var(--mac-green);
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
 }
 
 /* Breadcrumbs - Phoenix Style */
@@ -919,7 +1016,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .breadcrumb-item a {
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
     text-decoration: none;
 }
 
@@ -928,12 +1025,12 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .breadcrumb-item.active {
-    color: var(--phoenix-secondary);
+    color: var(--mac-text);
 }
 
 /* Loading States */
 .spinner-border {
-    color: var(--phoenix-primary);
+    color: var(--mac-green);
 }
 
 /* Custom Scrollbar */
@@ -943,16 +1040,16 @@ h1, h2, h3, h4, h5, h6,
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--phoenix-body-bg);
+    background: var(--mac-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--phoenix-secondary);
+    background: var(--mac-border);
     border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--phoenix-primary);
+    background: var(--mac-green);
 }
 
 /* Sidebar Additional Enhancements */
@@ -963,7 +1060,7 @@ h1, h2, h3, h4, h5, h6,
     right: 0;
     width: 1px;
     height: 100%;
-    background: linear-gradient(to bottom, transparent, var(--mac-glass-border), transparent);
+    background: var(--mac-border);
     z-index: 1;
 }
 
@@ -1002,13 +1099,13 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-    background-color: var(--phoenix-secondary);
+    background-color: var(--mac-border);
     border-radius: 0;
     opacity: 0.5;
 }
 
 .sidebar::-webkit-scrollbar-thumb:hover {
-    background-color: var(--phoenix-primary);
+    background-color: var(--mac-green);
     opacity: 0.8;
 }
 
@@ -1108,7 +1205,7 @@ h1, h2, h3, h4, h5, h6,
 /* Enhanced Navbar Styling */
 .navbar-brand {
     font-size: 1.25rem;
-    transition: var(--phoenix-transition);
+    transition: var(--mac-transition);
 }
 
 .navbar-brand:hover {
@@ -1134,32 +1231,32 @@ h1, h2, h3, h4, h5, h6,
 /* Enhanced Dropdown Styling */
 .dropdown-header {
     padding: 0.75rem 1rem;
-    background-color: rgba(var(--phoenix-primary-rgb), 0.05);
-    border-bottom: 1px solid var(--phoenix-border-color);
+    background-color: rgba(var(--mac-green-rgb), 0.05);
+    border-bottom: 1px solid var(--mac-border);
 }
 
 .dropdown-item {
     padding: 0.5rem 1rem;
-    transition: var(--phoenix-transition);
+    transition: var(--mac-transition);
 }
 
 .dropdown-item:hover {
-    background-color: rgba(var(--phoenix-primary-rgb), 0.1);
+    background-color: rgba(var(--mac-green-rgb), 0.1);
     transform: translateX(2px);
 }
 
 .dropdown-item.text-danger:hover {
-    background-color: rgba(var(--phoenix-danger-rgb), 0.1);
-    color: var(--phoenix-danger) !important;
+    background-color: rgba(var(--mac-danger-rgb), 0.1);
+    color: var(--mac-danger) !important;
 }
 
 /* Page Header Enhancements */
 .page-header {
-    background: linear-gradient(135deg, rgba(var(--phoenix-primary-rgb), 0.1) 0%, rgba(var(--phoenix-secondary-rgb), 0.05) 100%);
-    border-radius: var(--phoenix-border-radius);
+    background: var(--mac-bg-secondary);
+    border-radius: var(--mac-radius-md);
     padding: 1.5rem;
     margin-bottom: 2rem;
-    border: 1px solid rgba(var(--phoenix-primary-rgb), 0.1);
+    border: 1px solid rgba(var(--mac-green-rgb), 0.1);
 }
 
 /* Button Group Enhancements */
@@ -1168,96 +1265,109 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .btn-group .btn:first-child {
-    border-top-left-radius: var(--phoenix-border-radius);
-    border-bottom-left-radius: var(--phoenix-border-radius);
+    border-top-left-radius: var(--mac-radius-md);
+    border-bottom-left-radius: var(--mac-radius-md);
 }
 
 .btn-group .btn:last-child {
-    border-top-right-radius: var(--phoenix-border-radius);
-    border-bottom-right-radius: var(--phoenix-border-radius);
+    border-top-right-radius: var(--mac-radius-md);
+    border-bottom-right-radius: var(--mac-radius-md);
 }
 
 /* Utility Classes */
 .text-primary {
-    color: var(--phoenix-primary) !important;
+    color: var(--mac-green) !important;
 }
 
 .text-secondary {
-    color: var(--phoenix-secondary) !important;
+    color: var(--mac-text-secondary) !important;
+}
+
+/* Light mode: muted/secondary labels use the secondary tone — readable (AA on
+   the warm background) but visibly quieter than primary text, preserving the
+   three-tier hierarchy. */
+:root:not([data-theme-mode="dark"]) .text-muted,
+:root:not([data-theme-mode="dark"]) .form-text,
+:root:not([data-theme-mode="dark"]) small.text-muted,
+:root:not([data-theme-mode="dark"]) .form-label.text-muted,
+:root:not([data-theme-mode="dark"]) .stat-label,
+:root:not([data-theme-mode="dark"]) .card-body .d-flex small,
+:root:not([data-theme-mode="dark"]) .breadcrumb-item.active {
+    color: var(--mac-text-secondary) !important;
 }
 
 .text-success {
-    color: var(--phoenix-success) !important;
+    color: var(--mac-success) !important;
 }
 
 .text-info {
-    color: var(--phoenix-info) !important;
+    color: var(--mac-info) !important;
 }
 
 .text-warning {
-    color: var(--phoenix-warning) !important;
+    color: var(--mac-warning) !important;
 }
 
 .text-danger {
-    color: var(--phoenix-danger) !important;
+    color: var(--mac-danger) !important;
 }
 
 .bg-primary {
-    background-color: var(--phoenix-primary) !important;
+    background-color: var(--mac-green) !important;
 }
 
 .bg-secondary {
-    background-color: var(--phoenix-secondary) !important;
+    background-color: var(--mac-border) !important;
 }
 
 .bg-success {
-    background-color: var(--phoenix-success) !important;
+    background-color: var(--mac-success) !important;
 }
 
 .bg-info {
-    background-color: var(--phoenix-info) !important;
+    background-color: var(--mac-info) !important;
 }
 
 .bg-warning {
-    background-color: var(--phoenix-warning) !important;
+    background-color: var(--mac-warning) !important;
 }
 
 .bg-danger {
-    background-color: var(--phoenix-danger) !important;
+    background-color: var(--mac-danger) !important;
 }
 
 /* Border Utilities */
 .border-primary {
-    border-color: var(--phoenix-primary) !important;
+    border-color: var(--mac-green) !important;
 }
 
 .border-secondary {
-    border-color: var(--phoenix-secondary) !important;
+    border-color: var(--mac-border) !important;
 }
 
 .border-success {
-    border-color: var(--phoenix-success) !important;
+    border-color: var(--mac-success) !important;
 }
 
 .border-info {
-    border-color: var(--phoenix-info) !important;
+    border-color: var(--mac-info) !important;
 }
 
 .border-warning {
-    border-color: var(--phoenix-warning) !important;
+    border-color: var(--mac-warning) !important;
 }
 
 .border-danger {
-    border-color: var(--phoenix-danger) !important;
+    border-color: var(--mac-danger) !important;
 }
 
 /* Shadow Utilities */
 .shadow {
-    box-shadow: var(--phoenix-box-shadow) !important;
+    box-shadow: var(--mac-shadow-sm) !important;
 }
 
 .shadow-lg {
-    box-shadow: var(--phoenix-box-shadow-lg) !important;
+    box-shadow: var(--mac-shadow-lg) !important;
 }
 
 /* Animation Classes */
@@ -1484,17 +1594,17 @@ h1, h2, h3, h4, h5, h6,
 
 [data-theme-mode="dark"] .alert-danger {
     background-color: rgba(var(--mac-danger-rgb), 0.15);
-    color: #f88;
+    color: var(--mac-danger);
 }
 
 [data-theme-mode="dark"] .alert-success {
     background-color: rgba(var(--mac-success-rgb), 0.15);
-    color: #6fd886;
+    color: var(--mac-success);
 }
 
 [data-theme-mode="dark"] .alert-info {
     background-color: rgba(var(--mac-info-rgb), 0.15);
-    color: #6db3f2;
+    color: var(--mac-info);
 }
 
 [data-theme-mode="dark"] .badge.bg-info {
@@ -1506,7 +1616,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 [data-theme-mode="dark"] .page-header {
-    background: linear-gradient(135deg, rgba(25, 135, 84, 0.1) 0%, rgba(58, 58, 58, 0.2) 100%);
+    background: var(--mac-bg-secondary);
     border-color: var(--mac-border);
 }
 
@@ -1555,32 +1665,7 @@ h1, h2, h3, h4, h5, h6,
     display: none;
 }
 
-/* SweetAlert2 dark overrides */
-[data-theme-mode="dark"] .swal2-popup {
-    background-color: var(--mac-bg-secondary);
-    color: var(--mac-text);
-}
-
-[data-theme-mode="dark"] .swal2-title {
-    color: var(--mac-text);
-}
-
-[data-theme-mode="dark"] .swal2-html-container {
-    color: var(--mac-text-secondary);
-}
-
-[data-theme-mode="dark"] .swal2-input,
-[data-theme-mode="dark"] .swal2-select,
-[data-theme-mode="dark"] .swal2-textarea {
-    background-color: var(--mac-bg-tertiary);
-    border-color: var(--mac-border);
-    color: var(--mac-text);
-}
-
-/* Create new buyer (Send to Dispatch): show above Bootstrap modal and avoid focus/aria-hidden issues */
-.swal-dispatch-buyer.swal2-container {
-    z-index: 1070 !important;
-}
+/* SweetAlert skin (light + dark + stacking) lives in css/swal-theme.css. */
 
 /* View toggle dark override */
 [data-theme-mode="dark"] .view-toggle {
@@ -1597,21 +1682,21 @@ h1, h2, h3, h4, h5, h6,
 
 /* ============================================
    BRAND COLOUR ACCENTS
-   Golden tan (#8d7434) + macadamia brown (#6d5822)
+   Golden tan (var(--mac-tan)) + macadamia brown (var(--mac-brown))
    ============================================ */
 
 /* Modal header — tan underline accent */
 .modal-content .modal-header {
-    border-bottom: 2px solid var(--mac-tan, #8d7434) !important;
+    border-bottom: 2px solid var(--mac-tan, var(--mac-tan)) !important;
 }
 
 /* Section labels inside modals — brown with tan left bar */
 label.form-label.fw-semibold {
-    color: var(--mac-brown, #6d5822) !important;
-    border-left: 3px solid var(--mac-tan, #8d7434);
+    color: var(--mac-brown, var(--mac-brown)) !important;
+    border-left: 3px solid var(--mac-tan, var(--mac-tan));
     padding-left: 8px;
 }
-[data-theme-mode="dark"] label.form-label.fw-semibold { color: #C9A962 !important; }
+[data-theme-mode="dark"] label.form-label.fw-semibold { color: var(--mac-warning) !important; }
 
 
 /* Scrollbar — macadamia brown (webkit) */
@@ -1626,12 +1711,12 @@ label.form-label.fw-semibold {
     gap: 8px;
     margin-top: 4px;
     padding: 6px 10px;
-    background: #fff;
-    border: 1px solid #dee2e6;
+    background: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
     border-radius: 6px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     font-size: 0.875rem;
-    color: #212529;
+    color: var(--mac-text);
     position: relative;
     max-width: 100%;
 }
@@ -1643,7 +1728,7 @@ label.form-label.fw-semibold {
     transform: translateX(-50%);
     border-left: 6px solid transparent;
     border-right: 6px solid transparent;
-    border-bottom: 6px solid #dee2e6;
+    border-bottom: 6px solid var(--mac-border);
 }
 #growerReceivingChecklistModal .validation-bubble::after {
     content: '';
@@ -1659,7 +1744,7 @@ label.form-label.fw-semibold {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
-    background: #fd7e14;
+    background: var(--mac-warning);
     color: #fff;
     border-radius: 2px;
     display: inline-flex;
@@ -1670,5 +1755,5 @@ label.form-label.fw-semibold {
 }
 #growerReceivingChecklistModal .validation-bubble-text {
     flex: 1;
-    color: #212529;
+    color: var(--mac-text);
 }

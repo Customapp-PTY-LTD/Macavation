@@ -56,7 +56,9 @@ var _roleActionsGrid = function () {
 
         loadRolesDropdown: async () => {
             try {
-                var roles = await dataFunctions.getRoles();
+                var roles = await (dataFunctions.getRolesForAssignment
+                    ? dataFunctions.getRolesForAssignment()
+                    : dataFunctions.getRoles());
                 if (!roles || !Array.isArray(roles) || roles.length === 0) return;
                 var select = document.getElementById('actionRoleSelect');
                 if (!select) return;
@@ -66,6 +68,7 @@ var _roleActionsGrid = function () {
                     html += '<option value="' + role.id + '">' + name + '</option>';
                 });
                 select.innerHTML = html;
+                _roleActionsGrid._roleOptions = roles;
             } catch (error) {
                 console.error('[Role Actions] Error loading roles:', error);
             }
@@ -74,6 +77,18 @@ var _roleActionsGrid = function () {
         loadActionsForRole: async (roleId) => {
             const scope = _roleActionsGrid;
             scope.selectedRoleId = roleId;
+            scope.selectedRoleRecord = null;
+            if (Array.isArray(scope._roleOptions)) {
+                scope.selectedRoleRecord = scope._roleOptions.find(function (r) {
+                    return String(r.id) === String(roleId);
+                }) || null;
+            }
+            if (!scope.selectedRoleRecord && typeof dataFunctions !== 'undefined' && dataFunctions.getRoles) {
+                var allRoles = await dataFunctions.getRoles();
+                scope.selectedRoleRecord = (Array.isArray(allRoles) ? allRoles : []).find(function (r) {
+                    return String(r.id) === String(roleId);
+                }) || null;
+            }
             scope.showLoading();
 
             try {
@@ -152,7 +167,14 @@ var _roleActionsGrid = function () {
         toggleAction: async (actionId, enabled, checkboxEl) => {
             const scope = _roleActionsGrid;
             if (!scope.selectedRoleId) return;
-
+            if (typeof superUserVisibility !== 'undefined') {
+                var selectedRole = scope.selectedRoleRecord;
+                if (selectedRole && !superUserVisibility.canManageRole(selectedRole)) {
+                    scope.showError('Only super users may change actions for the super_user role.');
+                    checkboxEl.prop('checked', !enabled);
+                    return;
+                }
+            }
             var actionKey = checkboxEl.data('action-key');
             checkboxEl.prop('disabled', true);
 

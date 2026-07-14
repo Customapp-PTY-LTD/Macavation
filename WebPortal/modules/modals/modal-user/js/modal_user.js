@@ -22,6 +22,10 @@ var _modal_user = (function () {
         },
 
         show: async function (user) {
+            if (user && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageUser(user)) {
+                api.showError('You do not have permission to manage this user.');
+                return;
+            }
             var title = document.getElementById('userModalLabel');
             if (title) title.textContent = user ? 'Edit User' : 'Add User';
             api.clearForm();
@@ -30,7 +34,6 @@ var _modal_user = (function () {
             if (user) {
                 if (form && user.id) form.setAttribute('data-editing-id', user.id);
                 if (typeof $ !== 'undefined') {
-                    $('#username').val(user.username || user.user_name || user.userName || '');
                     $('#email').val(((user.email || user.email_address || '') + '').trim().toLowerCase());
                     $('#firstName').val(user.first_name || user.firstName || user.firstname || '');
                     $('#lastName').val(user.last_name || user.lastName || user.lastname || '');
@@ -79,11 +82,13 @@ var _modal_user = (function () {
         loadRolesForDropdown: async function () {
             var select = document.getElementById('cboRole');
             if (!select || typeof dataFunctions === 'undefined' || !dataFunctions.getRoles) return;
-            var roles = await dataFunctions.getRoles();
+            var roles = await (dataFunctions.getRolesForAssignment
+                ? dataFunctions.getRolesForAssignment()
+                : dataFunctions.getRoles());
             var html = '<option value="">Select Role</option>';
             if (roles && Array.isArray(roles)) {
                 roles.forEach(function (role) {
-                    html += '<option value="' + escapeHtml(role.id) + '">' + escapeHtml(role.role_name || '') + '</option>';
+                    html += '<option value="' + escapeHtml(role.id) + '" data-role-name="' + escapeHtml(role.role_name || '') + '">' + escapeHtml(window.formatRoleName(role.role_name || '')) + '</option>';
                 });
             }
             select.innerHTML = html;
@@ -97,15 +102,14 @@ var _modal_user = (function () {
             var email = emailRaw.toLowerCase();
             $('#email').val(email);
             var formData = {
-                username: $('#username').val().trim(),
                 email: email,
                 first_name: $('#firstName').val().trim(),
                 last_name: $('#lastName').val().trim(),
                 role_id: $('#cboRole').val(),
                 is_active: $('#isActive').is(':checked')
             };
-            if (!formData.username) {
-                api.showError('Username is required');
+            if (!formData.first_name) {
+                api.showError('First name is required');
                 return;
             }
             if (!formData.email) {
@@ -162,7 +166,7 @@ var _modal_user = (function () {
                         if (currentUser) {
                             currentUser.role_id = formData.role_id;
                             var selectedOption = $('#cboRole option:selected');
-                            if (selectedOption.length) currentUser.role_name = selectedOption.text().trim() || currentUser.role_name;
+                            if (selectedOption.length) currentUser.role_name = (selectedOption.attr('data-role-name') || selectedOption.text()).trim() || currentUser.role_name;
                             if (typeof Session !== 'undefined' && Session.set) Session.set('user', currentUser);
                         }
                         if (typeof authService !== 'undefined' && authService.userInfo) {

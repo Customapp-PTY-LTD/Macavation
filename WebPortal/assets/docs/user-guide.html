@@ -58,6 +58,7 @@
     <section class="doc-section" id="navigation" aria-labelledby="navigation-heading">
       <h2 id="navigation-heading">Navigation overview</h2>
       <p>The portal uses a <strong>sidebar</strong> plus <strong>top bar</strong> layout.</p>
+      <p>In <strong>table</strong> views, row actions appear in the last column: click the green <strong>⋯</strong> button to open edit, view, delete, or other steps for that record.</p>
 
       <h3>Sidebar sections (typical)</h3>
       <ul>
@@ -81,6 +82,7 @@
         <li><strong>My Day</strong> — role-based tasks and shortcuts (dropdown and full page).</li>
         <li><strong>User menu</strong> and <strong>Sign out</strong>.</li>
         <li><strong>Dark mode</strong> and <strong>sidebar collapse</strong> (footer of the sidebar).</li>
+        <li>On dense screens (dashboard, oil production, kernel production, grower intake), major panels load <strong>collapsed</strong>—click the section heading chevron to expand.</li>
         <li><strong>Data Import (Excel)</strong> may appear as a quick action from the dashboard area when enabled.</li>
       </ul>
       <a class="back-to-top" href="#top">Back to top</a>
@@ -193,8 +195,8 @@
     <section class="doc-section" id="results" aria-labelledby="results-heading">
       <h2 id="results-heading">Dashboards, journey, and exports</h2>
       <ul>
-        <li><strong>Dashboard</strong> — snapshot cards and links; refresh the browser if numbers look stale.</li>
-        <li><strong>Material Journey / Executive</strong> — integrator or leadership views; use in-page refresh where provided. On the Executive dashboard, <strong>Production Trends</strong> includes a <strong>Hide weekends</strong> toggle (default on in daily view) to drop Saturday and Sunday from the chart axis.</li>
+        <li><strong>Dashboard</strong> — snapshot cards and links; sections load collapsed—expand panel headings as needed. Refresh the browser if numbers look stale.</li>
+        <li><strong>Material Journey / Executive</strong> — integrator or leadership views; use in-page refresh where provided. On the Executive dashboard, <strong>Production Trends</strong> includes a <strong>Hide weekends</strong> toggle (default on in daily view) to drop Saturday and Sunday from the chart axis. <strong>Stock on hand history</strong> charts kg on hand per style (kernel) or stream (oil) over time with a Kernel/Oil toggle.</li>
         <li><strong>Find a batch</strong> — cross-module batch search; use <strong>Open</strong> to jump to the owning module.</li>
         <li><strong>Exports</strong> — many grids offer <strong>Export</strong> for spreadsheets; Data Import runs the opposite direction with strict templates.</li>
         <li><strong>Process diagrams</strong> — <a href="../../help/index.html#supply-chain-flow">supply chain flow</a> (embedded in the in-app guide) and standalone SVGs: <a href="../../help/assets/process-overview.svg" target="_blank" rel="noopener">process overview</a>, <a href="../../help/assets/kernel-batch-lifecycle.svg" target="_blank" rel="noopener">kernel lifecycle</a>, <a href="../../help/assets/oil-batch-lifecycle.svg" target="_blank" rel="noopener">oil lifecycle</a>, <a href="../../help/assets/crm-contacts-map.svg" target="_blank" rel="noopener">CRM map</a>, <a href="../../help/assets/user-access-flow.svg" target="_blank" rel="noopener">user &amp; access</a>.</li>
@@ -221,6 +223,8 @@
         <li><strong>Actions disabled:</strong> Earlier steps may be incomplete (for example receiving checklist before tests), or the batch may be in a read-only state.</li>
         <li><strong>Wrong quantities on dispatch:</strong> Fix stock or the basket in <strong>Stock Management</strong>; do not force dispatch paperwork to match incorrect inventory.</li>
         <li><strong>Import failures:</strong> Correct column mapping and template headers; read the import log.</li>
+        <li><strong>Duplicate kernel batch number:</strong> An active batch already uses that number. Pick a different number, or archive the existing batch first (restore from <strong>View archive</strong> on Stock Kernel if needed).</li>
+        <li><strong>Restore archived batch:</strong> Stock (Kernel) → <strong>View archive</strong> → <strong>Restore</strong>. If the original number is taken, enter a new batch number when prompted.</li>
         <li><strong>Cannot access a section:</strong> Ask an administrator to verify role, role features, and database role permissions.</li>
         <li><strong>Login issues:</strong> Use your organisation’s password reset or contact support; ensure you use the correct client link if your site requires <code class="doc-kbd">cc</code>.</li>
       </ul>

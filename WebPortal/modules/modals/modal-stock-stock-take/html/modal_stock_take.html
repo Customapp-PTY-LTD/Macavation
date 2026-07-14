@@ -2,7 +2,7 @@
     <div class="modal-content">
         <div class="modal-header bg-primary text-white">
             <h5 class="modal-title" id="stockTakeModalLabel">Stock Take - Physical Count</h5>
-            <a href="help/index.html#modal-stock-take" class="btn btn-sm btn-outline-light ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#modal-stock-take" class="btn btn-sm btn-outline-light ms-auto me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn-close btn-close-white" id="stockTakeModalCloseBtn" aria-label="Close"></button>
         </div>
         <div class="modal-body" style="max-height: calc(100vh - 200px); overflow-y: auto;">
@@ -45,7 +45,7 @@
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-sm table-bordered" id="stockTakeTable">
+                            <table class="table align-middle table-bordered" id="stockTakeTable">
                                 <thead class="table-light">
                                     <tr>
                                         <th>Number</th>
@@ -103,7 +103,7 @@
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" id="stockTakeModalCancelBtn">Cancel</button>
-            <button type="button" class="btn btn-success" id="completeStockTakeBtn"><i class="fas fa-check me-1"></i>Complete Stock Take</button>
+            <button type="button" class="btn btn-primary" id="completeStockTakeBtn"><i class="fas fa-check me-1"></i>Complete Stock Take</button>
             <button type="button" class="btn btn-primary" id="saveStockTakeBtn"><i class="fas fa-save me-1"></i>Save Stock Take</button>
         </div>
     </div>

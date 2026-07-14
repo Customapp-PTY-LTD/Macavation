@@ -6,7 +6,7 @@
 }
 
 .batch-history-modal__tab-content {
-    border: 1px solid var(--bs-border-color, #dee2e6);
+    border: 1px solid var(--bs-border-color, var(--mac-border));
     border-top: 0;
     border-radius: 0 0 var(--bs-border-radius, 0.375rem) var(--bs-border-radius, 0.375rem);
     padding: 0.75rem 0.75rem 0.5rem;
@@ -34,7 +34,7 @@
     font-size: 0.875rem;
     font-weight: 500;
     padding: 0.35em 0.75em;
-    background-color: var(--phoenix-info, #0dcaf0);
+    background-color: var(--mac-info, var(--mac-info));
     color: #fff;
 }
 
@@ -45,7 +45,7 @@
 }
 
 .batch-history-dispatch-panel .card-header h6 {
-    color: var(--forest-deep, #2c5530);
+    color: var(--mac-green, var(--mac-green));
     font-size: 0.95rem;
 }
 

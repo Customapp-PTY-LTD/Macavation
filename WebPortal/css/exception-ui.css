@@ -19,18 +19,18 @@
 }
 
 .exception-card.exception-critical {
-    border-color: #dc3545;
-    background: #fff5f5;
+    border-color: var(--mac-danger);
+    background: var(--mac-danger-light);
 }
 
 .exception-card.exception-warning {
-    border-color: #ffc107;
-    background: #fffbf0;
+    border-color: var(--mac-warning);
+    background: var(--mac-warning-light);
 }
 
 .exception-card.exception-info {
-    border-color: #0dcaf0;
-    background: #f0f9ff;
+    border-color: var(--mac-info);
+    background: var(--mac-info-light);
 }
 
 /* Exception Header */
@@ -48,15 +48,15 @@
 }
 
 .exception-card.exception-critical .exception-icon {
-    color: #dc3545;
+    color: var(--mac-danger);
 }
 
 .exception-card.exception-warning .exception-icon {
-    color: #ffc107;
+    color: var(--mac-warning);
 }
 
 .exception-card.exception-info .exception-icon {
-    color: #0dcaf0;
+    color: var(--mac-info);
 }
 
 .exception-title {
@@ -81,7 +81,7 @@
 
 .exception-description {
     margin-bottom: 0.5rem;
-    color: #495057;
+    color: var(--mac-text-secondary);
 }
 
 .exception-impact {
@@ -108,7 +108,7 @@
 }
 
 .exception-metrics strong {
-    color: #6c757d;
+    color: var(--mac-text);
     font-size: 0.8rem;
     text-transform: uppercase;
 }

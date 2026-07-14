@@ -93,6 +93,10 @@ var _dashboard = function () {
                 }
             });
 
+            if (typeof initMacSectionCollapses === 'function') {
+                initMacSectionCollapses(document.querySelector('.dashboard-unified'));
+            }
+
             // Delegate to role-specific sub-init (it handles its own data loading)
             if (section === 'pallandium-integrator') {
                 if (typeof _amandaDashboard !== 'undefined' && _amandaDashboard.init) {
@@ -456,7 +460,7 @@ var _dashboard = function () {
         const alerts = await dataFunctions.getDashboardAlerts(null);
         
         if (alerts && alerts.length > 0) {
-            $container.html('<div class="col-12"><div class="card border-warning mb-0"><div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Stock &amp; operational alerts</h5></div><div class="card-body p-0">' +
+            $container.html('<div class="col-12"><div class="card border-warning mb-0"><div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="fas fa-triangle-exclamation me-2"></i>Stock &amp; operational alerts</h5></div><div class="card-body p-0">' +
             alerts.map(alert => {
                 const sev = (alert.severity || '').toLowerCase();
                 const alertClass = sev === 'critical' ? 'danger' :

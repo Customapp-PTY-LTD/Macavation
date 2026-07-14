@@ -3,7 +3,7 @@
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">Quality Assurance & Food Safety</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="help/index.html#quality-assurance-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#quality-assurance-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
             <button type="button" class="btn btn-primary" id="addTestBtn">
                 <i class="fas fa-plus me-1"></i>New Quality Test
             </button>
@@ -14,9 +14,9 @@
     </div>
     
     <!-- Search and Filters -->
-    <div class="card mb-3">
+    <div class="card mb-3 mac-module-filter-bar">
         <div class="card-body">
-            <div class="row g-3">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label for="searchTestsInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchTestsInput" placeholder="Search by test number, batch, or result...">
@@ -52,7 +52,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover" id="testsTable">
+                <table class="table align-middle table-hover" id="testsTable">
                     <thead>
                         <tr>
                             <th>Test Number</th>

@@ -22,15 +22,24 @@
     --mac-bg-tertiary: #F0F0EE;
     --mac-border: #E3E3E0;
     --mac-border-strong: #D3D3D0;
+    --mac-border-rgb: 227, 227, 224;
+    /* Three text tones = the hierarchy. All pass WCAG AA on --mac-bg (#F7F7F5):
+       #52524E ≈ 7.3:1, #6E6E68 ≈ 4.9:1. Do not collapse these to one value —
+       contrast fixes must adjust tones, not delete the triad. */
     --mac-text: #1F1F1F;
-    --mac-text-secondary: #6B6B6B;
-    --mac-text-tertiary: #9B9B9B;
+    --mac-text-secondary: #52524E;
+    --mac-text-tertiary: #6E6E68;
+
+    /* Bootstrap: readable secondary text on white/light backgrounds */
+    --bs-secondary-color: #52524E;
 
     /* --- Semantic --- */
     --mac-success: #2DA44E;
     --mac-success-rgb: 45, 164, 78;
     --mac-success-light: rgba(45, 164, 78, 0.08);
     --mac-warning: #D4A72C;
+    /* Darker warning tone for TEXT on the warning tint (AA-readable amber) */
+    --mac-warning-text: #8a6d14;
     --mac-warning-rgb: 212, 167, 44;
     --mac-warning-light: rgba(212, 167, 44, 0.08);
     --mac-danger: #CF222E;
@@ -44,6 +53,16 @@
     --mac-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --mac-font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
 
+    /* Type scale — the only font sizes the app uses (see docs/design/DESIGN_SYSTEM.md).
+       xs: table headers/badges · sm: microcopy/labels · base: body/tables ·
+       md: emphasized body · lg: card titles/section heads · xl: page titles/KPI numbers */
+    --mac-text-xs: 0.75rem;
+    --mac-text-sm: 0.8125rem;
+    --mac-text-base: 0.875rem;
+    --mac-text-md: 1rem;
+    --mac-text-lg: 1.25rem;
+    --mac-text-xl: 1.75rem;
+
     /* --- Spacing (8px base grid) --- */
     --mac-space-xs: 4px;
     --mac-space-sm: 8px;
@@ -51,6 +70,12 @@
     --mac-space-lg: 24px;
     --mac-space-xl: 32px;
     --mac-space-2xl: 48px;
+
+    /* --- Tables (single standard row height) --- */
+    --mac-table-cell-padding-y: 0.625rem;
+    --mac-table-cell-padding-x: 0.75rem;
+    --mac-table-font-size: 0.875rem;
+    --mac-table-header-font-size: 0.75rem;
 
     /* --- Radii (softened to match client site) --- */
     --mac-radius-sm: 8px;

@@ -1,11 +1,60 @@
 <!-- Grower Intake Grid Module -->
+<style>
+    /* Procurement calendar as a compact toolbar dropdown (kept inline; the module
+       .css is browser-cached, so this loads fresh with the module HTML). */
+    .gi-calendar-dropdown-menu { width: 780px; max-width: 94vw; }
+    .gi-calendar-dropdown-menu .gi-procurement-calendar-layout {
+        grid-template-columns: minmax(0, 1.6fr) minmax(190px, 1fr);
+        gap: 0.75rem;
+    }
+    .gi-calendar-dropdown-menu .gi-procurement-calendar-weekdays,
+    .gi-calendar-dropdown-menu .gi-procurement-calendar-grid { gap: 0.3rem; }
+    .gi-calendar-dropdown-menu .gi-procurement-calendar-day { min-height: 52px; padding: 0.3rem; border-radius: 0.4rem; }
+    .gi-calendar-dropdown-menu .gi-procurement-calendar-detail { min-height: 0; padding: 0.75rem; }
+    @media (max-width: 767.98px) {
+        .gi-calendar-dropdown-menu { width: 94vw; }
+        .gi-calendar-dropdown-menu .gi-procurement-calendar-layout { grid-template-columns: 1fr; }
+    }
+</style>
 <div class="module-content">
     <div class="pt-3 pb-2 mb-3 border-bottom">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
             <h1 class="h2 mb-0">Grower Intake Management</h1>
-            <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
-                <a href="help/index.html#grower-intake-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
-            <button type="button" class="btn btn-primary" id="createKernelBatchBtn" data-action-perm="grower.batch.create">
+            <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2 align-items-center">
+                <a target="_blank" rel="noopener noreferrer" href="help/index.html#grower-intake-grid" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+
+                <!-- Procurement calendar: compact icon dropdown (was a full-width accordion) -->
+                <div class="dropdown">
+                    <button type="button" class="btn btn-outline-secondary" id="giProcurementCalendarDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Procurement calendar" aria-label="Procurement calendar">
+                        <i class="fas fa-calendar-plus"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end p-3 gi-calendar-dropdown-menu" aria-labelledby="giProcurementCalendarDropdownBtn">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h6 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Procurement Calendar</h6>
+                            <div class="gi-procurement-calendar-toolbar">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="giProcurementCalendarPrevBtn" aria-label="Previous month"><i class="fas fa-chevron-left"></i></button>
+                                <div class="gi-procurement-calendar-month" id="giProcurementCalendarMonthLabel">Loading…</div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="giProcurementCalendarNextBtn" aria-label="Next month"><i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-3">Schedule expected grower deliveries. Click a day to add procurement entries. Drag a pill to another day to reschedule, or drag it into the <strong>Receiving</strong> lane to start the batch process.</p>
+                        <div class="gi-procurement-calendar-layout">
+                            <div>
+                                <div class="gi-procurement-calendar-weekdays">
+                                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                                </div>
+                                <div class="gi-procurement-calendar-grid" id="giProcurementCalendarGrid">
+                                    <div class="text-muted small">Loading…</div>
+                                </div>
+                            </div>
+                            <div class="gi-procurement-calendar-detail" id="giProcurementCalendarDetail">
+                                <div class="text-muted">Select a day to view or add procurement.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-primary" id="createKernelBatchBtn" data-action-perm="grower.intake.create">
                     <i class="fas fa-plus me-1"></i>Create kernel batch
                 </button>
                 <button type="button" class="btn btn-outline-secondary" id="exportIntakeBatchesBtn">
@@ -16,57 +65,15 @@
         <p class="text-muted mb-0 mt-2 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Stage 1: Complete Receiving checklist for each batch (box becomes a tick); then Batch test / Batch sample (enabled after checklist). Release to production is only enabled once both forms are completed.</p>
     </div>
 
-    <!-- Procurement Calendar -->
-    <div class="card mb-4" id="giProcurementCalendarCard">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <button type="button" class="btn btn-link text-decoration-none p-0 gi-procurement-calendar-toggle" id="giProcurementCalendarToggleBtn" data-bs-toggle="collapse" data-bs-target="#giProcurementCalendarCollapse" aria-expanded="true" aria-controls="giProcurementCalendarCollapse">
-                <h5 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Procurement Calendar <i class="fas fa-chevron-up ms-2 gi-procurement-calendar-toggle-icon"></i></h5>
-            </button>
-            <div class="gi-procurement-calendar-toolbar">
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="giProcurementCalendarPrevBtn" aria-label="Previous month">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="gi-procurement-calendar-month" id="giProcurementCalendarMonthLabel">Loading…</div>
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="giProcurementCalendarNextBtn" aria-label="Next month">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-        </div>
-        <div class="collapse show" id="giProcurementCalendarCollapse">
-            <div class="card-body">
-                <p class="text-muted small mb-3">Schedule expected grower deliveries. Click a day to add procurement entries. Drag a pill to another day to reschedule, or drag it into the <strong>Receiving</strong> lane below to start the batch process.</p>
-                <div class="gi-procurement-calendar-layout">
-                    <div>
-                        <div class="gi-procurement-calendar-weekdays">
-                            <div>Sun</div>
-                            <div>Mon</div>
-                            <div>Tue</div>
-                            <div>Wed</div>
-                            <div>Thu</div>
-                            <div>Fri</div>
-                            <div>Sat</div>
-                        </div>
-                        <div class="gi-procurement-calendar-grid" id="giProcurementCalendarGrid">
-                            <div class="text-muted small">Loading…</div>
-                        </div>
-                    </div>
-                    <div class="gi-procurement-calendar-detail" id="giProcurementCalendarDetail">
-                        <div class="text-muted">Select a day to view or add procurement.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Search and Filters -->
-    <div class="card mb-3">
+    <div class="card mb-3 mac-module-filter-bar">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-sm-6 col-lg-4">
                     <label for="searchIntakeBatchesInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchIntakeBatchesInput" placeholder="Search by batch number or grower...">
                 </div>
-                <div class="col-md-3">
+                <div class="col-6 col-lg-3">
                     <label for="filterIntakeBatchStatus" class="form-label">Status</label>
                     <select class="form-select" id="filterIntakeBatchStatus">
                         <option value="">All Statuses</option>
@@ -76,12 +83,12 @@
                         <option value="quality_approved">Quality approved</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-6 col-lg-2">
                     <button type="button" class="btn btn-outline-secondary w-100" id="clearIntakeBatchFiltersBtn">
                         <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
-                <div class="col-md-3 d-flex justify-content-end align-items-end">
+                <div class="col-12 col-lg-3 mac-filter-bar-view d-flex justify-content-lg-end">
                     <div class="view-toggle">
                         <button class="view-toggle-btn active" data-view="kanban" id="giViewKanban">
                             <i class="fas fa-columns me-1"></i>Board
@@ -99,10 +106,10 @@
     <div id="giKanbanBoard" class="kanban-board"></div>
 
     <!-- Table View (hidden by default) -->
-    <div class="card mb-4 grower-intake-table-card" id="giTableCard" style="display:none">
+    <div class="card mb-4 grower-intake-table-card mac-table-actions-card" id="giTableCard" style="display:none">
         <div class="card-body p-2 p-md-3">
             <div class="table-responsive intake-table-responsive">
-                <table class="table table-hover" id="intakeBatchesTable">
+                <table class="table align-middle table-hover" id="intakeBatchesTable">
                     <thead>
                         <tr>
                             <th class="intake-col-batch">Batch number</th>

@@ -89,7 +89,7 @@ var _connectedWorkflows = function () {
             const html = `
                 <div class="impact-panel">
                     <h6 class="mb-3">
-                        <i class="bi bi-diagram-3 me-2"></i>
+                        <i class="fas fa-diagram-project me-2"></i>
                         Downstream Impacts
                     </h6>
                     <div class="impact-list">
@@ -144,7 +144,7 @@ var _connectedWorkflows = function () {
             const html = `
                 <div class="linked-records-panel">
                     <h6 class="mb-3">
-                        <i class="bi bi-link-45deg me-2"></i>
+                        <i class="fas fa-link me-2"></i>
                         Linked Records
                     </h6>
                     <div class="linked-records-list">
@@ -188,7 +188,7 @@ var _connectedWorkflows = function () {
                 <div class="conflict-warnings">
                     <div class="alert alert-warning">
                         <h6 class="alert-heading">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <i class="fas fa-triangle-exclamation me-2"></i>
                             Conflicts Detected
                         </h6>
                         <ul class="mb-0">

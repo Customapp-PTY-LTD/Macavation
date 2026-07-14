@@ -86,8 +86,8 @@ var _modal_end_sample = (function () {
             npmSelect.appendChild(defaultNpm);
             if (users && users.length) {
                 users.forEach(function (user) {
-                    var displayName = user.email || user.username || 'Unknown';
-                    var value = user.email || user.username || '';
+                    var displayName = ((user.first_name || '') + ' ' + (user.last_name || '')).trim() || user.email || 'Unknown';
+                    var value = user.email || '';
                     var optSup = document.createElement('option');
                     optSup.value = value;
                     optSup.textContent = displayName;

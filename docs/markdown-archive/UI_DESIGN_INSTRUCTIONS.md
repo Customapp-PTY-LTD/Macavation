@@ -1,3 +1,9 @@
+> ⚠️ **DEPRECATED (2026-07-09).** Superseded by
+> [`docs/design/DESIGN_SYSTEM.md`](../design/DESIGN_SYSTEM.md), which matches the
+> live tokens and is enforced by `npm run ui:verify`. This file still carries
+> stale Gen-2 values (`#008950`, 5px radius, `far`-only icons, pink modal
+> titles) the design system has moved past. Kept for history only.
+
 # WebPortal UI Design Instructions
 
 Reference module: **kernel-production** (`modules/kernel-production`). Use these patterns for layout, spacing, tables, and clickable rows so modules look and behave consistently.
@@ -113,7 +119,7 @@ Example filter row:
 ## 4. Table structure
 
 - Wrap the table in **`table-responsive`** so it scrolls horizontally on small screens.
-- Use **`table table-hover`** on the `<table>` for default Bootstrap styling and row hover. Use **`table-sm`** only when you need a denser table (e.g. many columns or compact lists).
+- Use **`table table-hover align-middle mb-0`** on every data table. Row height is controlled globally by design tokens (`--mac-table-cell-padding-y` / `--mac-table-cell-padding-x` in `css/design-tokens.css`); **do not** add per-module `th`/`td` padding overrides or use `table-sm` (deprecated — it no longer produces a denser row).
 - **Header:** No top border and bold headers:
 
   ```css
@@ -121,6 +127,18 @@ Example filter row:
   ```
 
 - **Column order:** Put the main identifier (e.g. batch number, name) in the **first column**. That column is styled as the primary click target (see below). Put **Actions** in the **last column**.
+
+### Row height standard
+
+| Token / rule | Value |
+|--------------|-------|
+| `--mac-table-cell-padding-y` | `0.625rem` |
+| `--mac-table-cell-padding-x` | `0.75rem` |
+| Global selector | `.table > :not(caption) > * > *` in `css/index.css` |
+| Body font | `0.875rem` via `--mac-table-font-size` |
+| Header font | `0.75rem` uppercase via `--mac-table-header-font-size` |
+
+Add **`table-bordered`** only when cell borders are intentional (e.g. stock matrices). Never set inline `padding` on `<td>`/`<th>` for layout.
 
 ---
 
@@ -160,29 +178,30 @@ Result: the first column reads as the primary link, the whole row is clickable, 
 
 ## 6. Actions column
 
-- **Alignment:** Center the actions cell:
+Use the shared table-actions pattern in [`WebPortal/css/table-actions.css`](WebPortal/css/table-actions.css) and [`WebPortal/js/table-actions.js`](WebPortal/js/table-actions.js).
 
-  ```css
-  #yourTable td:last-child { text-align: center; }
-  ```
+- **Last column header:** `Actions`
+- **Cell class:** `mac-table-actions-col` on the `<td>`
+- **Dropdown:** `MacTableActions.render({ id, items })` inside the cell (or `MacTableActions.renderCell()` for a full `<td>`)
+- **After rendering rows:** `MacTableActions.init(tableElement)` so Bootstrap dropdowns use fixed positioning and menus are not clipped
+- **Clipping:** add `mac-table-actions-card` on the parent `.card` when the table sits inside a card with `overflow: hidden`
 
-- **Single actions control:** Prefer one **dropdown** per row with an ellipsis icon (`fa-ellipsis`) rather than multiple separate buttons.
-- **Dropdown button:** Small, square, icon-only:
+Example:
 
-  ```css
-  #yourTable td:last-child .dropdown .btn {
-      width: 2rem;
-      height: 2rem;
-      min-width: 2rem;
-      padding: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 0;
-  }
-  ```
+```javascript
+var actions = MacTableActions.render({
+    id: 'batchActions' + batch.id,
+    items: [
+        { label: 'Edit', className: 'js-edit-batch', dataAttrs: { 'batch-id': batch.id } },
+        { label: 'Delete', className: 'js-delete-batch', danger: true, dataAttrs: { 'batch-id': batch.id } }
+    ]
+});
+// … append '<td class="mac-table-actions-col">' + actions + '</td>' …
+MacTableActions.init(document.getElementById('batchesTable'));
+```
 
-- Use `btn btn-sm btn-outline-secondary` for the trigger; use `dropdown-menu dropdown-menu-end` for the menu. Menu items can be `<a class="dropdown-item" href="#" data-...>` or disabled `<span class="dropdown-item text-muted">...</span>`.
+- **Single actions control:** one green-bordered ellipsis (`fa-ellipsis`) per row — not multiple inline buttons
+- **Menu items:** preserve existing `js-*` handler classes and `data-*` attributes on dropdown items
 
 ---
 
@@ -214,10 +233,10 @@ Use `py-4` for vertical padding so the empty state is easy to see.
 | Layout            | `.module-content` → header row (`pt-3 pb-2 mb-3 border-bottom`) → cards (`mb-3` / `mb-4`) |
 | Buttons           | `btn-toolbar mb-2 mb-md-0 ms-auto`; icon + `me-1` + label; `btn-outline-secondary` / `btn-primary` |
 | Filters           | Card with `row g-3`; button column with `d-flex align-items-end` |
-| Table             | `table-responsive` → `table table-hover`; first column = identifier, last = Actions |
+| Table             | `table-responsive` → `table table-hover align-middle mb-0`; first column = identifier, last = Actions; row height from global tokens (no `table-sm`, no per-module cell padding) |
 | Clickable row     | Row class (e.g. `js-batch-row`), `cursor: pointer`, first cell styled with primary color + underline on hover |
 | Icons             | Use `far` (regular/lined) not `fas` (solid/filled) — e.g. `class="far fa-chart-bar"` |
-| Actions           | One dropdown per row, centered; square 2rem icon button with `fa-ellipsis` |
+| Actions           | One `MacTableActions` ellipsis dropdown per row (`mac-table-actions-col`); call `MacTableActions.init()` after render |
 | Empty state       | Full colspan row, `text-center text-muted py-4`, optional icon |
 
 When in doubt, match **kernel-production** HTML and CSS in `modules/kernel-production` (especially `html/kernel_production_grid.html` and `css/kernel_production_grid.css`).

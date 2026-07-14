@@ -30,7 +30,7 @@ var _modal_stock_raw_material_issued = (function () {
                         var opts = '<option value="">Select User</option>';
                         if (users && Array.isArray(users)) {
                             users.forEach(function (user) {
-                                var name = user.email || user.username || 'Unknown';
+                                var name = ((user.first_name || '') + ' ' + (user.last_name || '')).trim() || user.email || 'Unknown';
                                 opts += '<option value="' + user.id + '">' + name + '</option>';
                             });
                         }

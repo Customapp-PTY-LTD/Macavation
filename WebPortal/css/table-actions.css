@@ -1,0 +1,69 @@
+/* ============================================
+   MACAVATION — Standard table row actions
+   Green-bordered ellipsis dropdown (kernel-production pattern)
+   ============================================ */
+
+.mac-table-actions-col {
+    text-align: center;
+}
+
+.mac-table-actions-col .dropdown,
+.mac-table-actions {
+    display: inline-block;
+}
+
+.mac-table-actions .btn,
+.mac-table-actions-col .dropdown .btn {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    background-color: transparent;
+    border: 2px solid var(--mac-green, var(--mac-green));
+    color: var(--mac-green, var(--mac-green));
+}
+
+.mac-table-actions .btn:hover,
+.mac-table-actions .btn.show,
+.mac-table-actions-col .dropdown .btn:hover,
+.mac-table-actions-col .dropdown .btn.show {
+    background-color: var(--mac-green, var(--mac-green));
+    border-color: var(--mac-green, var(--mac-green));
+    color: #fff;
+}
+
+.mac-table-actions .btn i,
+.mac-table-actions-col .dropdown .btn i {
+    color: inherit;
+}
+
+.mac-table-actions .btn::after,
+.mac-table-actions-col .dropdown .btn::after {
+    display: none;
+}
+
+/* Prevent dropdown menus from being clipped by card border-radius */
+.mac-table-actions-card .table-responsive {
+    overflow: visible;
+}
+
+.mac-table-actions-card .card-body {
+    overflow: visible;
+}
+
+.mac-table-actions-card table {
+    overflow: visible !important;
+}
+
+.mac-table-actions-card table tbody tr td {
+    overflow: visible;
+}
+
+/* Menu moved to document.body by MacTableActions.init() */
+.mac-table-actions-menu {
+    z-index: 1060;
+}

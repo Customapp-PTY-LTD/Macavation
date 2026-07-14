@@ -1,23 +1,12 @@
 /* ============================================
    MACAVATION SIGN-IN — matches main app design system
-   Inter font · Neutral palette · Green/Tan/Brown accents
+   Tokens come from css/design-tokens.css (loaded first); never re-declare
+   them here — hand-copied values drift.
+   Signin-only extra:
    ============================================ */
 
 :root {
-    --mac-green: #198754;
-    --mac-pink: #FF005E;
-    --mac-tan: #8d7434;
-    --mac-brown: #6d5822;
-    --mac-brown-dark: #4A3728;
-    --mac-bg: #F7F7F5;
-    --mac-bg-secondary: #FFFFFF;
-    --mac-bg-tertiary: #F0F0EE;
-    --mac-border: #E3E3E0;
-    --mac-border-strong: #D3D3D0;
-    --mac-text: #1F1F1F;
-    --mac-text-secondary: #6B6B6B;
-    --mac-text-tertiary: #9B9B9B;
-    --mac-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --mac-brown-dark: var(--mac-brown);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,13 +20,50 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Remove old decorative overlays */
-body::before { display: none; }
-.pattern-overlay, .nut-decoration { display: none; }
+/* ── Decorative collage — detailed macadamia & oil line art (assets/decor/*.svg) ── */
+
+.auth-scatter {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.scatter-item {
+    position: absolute;
+    display: block;
+    height: auto;
+    transform: rotate(var(--rot, 0deg));
+    will-change: transform;
+}
+
+/* Faintness per motif (the figures carry their own baked brand colour) */
+.scatter-nut  { opacity: 0.20; }
+.scatter-oil  { opacity: 0.22; }
+.scatter-leaf { opacity: 0.18; }
+
+/* Gentle drift (respect reduced-motion) */
+@media (prefers-reduced-motion: no-preference) {
+    .scatter-item.float { animation: macDrift 15s ease-in-out infinite; }
+}
+
+@keyframes macDrift {
+    0%, 100% { transform: rotate(var(--rot, 0deg)) translateY(0); }
+    50%      { transform: rotate(var(--rot, 0deg)) translateY(-16px); }
+}
+
+/* Dark field: brighten the baked tones and lift opacity so they still read */
+[data-theme-mode="dark"] .scatter-item { filter: brightness(1.5); }
+[data-theme-mode="dark"] .scatter-nut  { opacity: 0.26; }
+[data-theme-mode="dark"] .scatter-oil  { opacity: 0.28; }
+[data-theme-mode="dark"] .scatter-leaf { opacity: 0.24; }
 
 /* ── Layout ── */
 
 .auth-container {
+    position: relative;
+    z-index: 1;
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -290,7 +316,7 @@ body::before { display: none; }
     padding: 0.75rem 1rem;
     background: var(--mac-green);
     border: none;
-    border-radius: 50px;
+    border-radius: var(--mac-radius-md);
     color: white;
     font-size: 0.875rem;
     font-weight: 600;
@@ -300,12 +326,12 @@ body::before { display: none; }
 }
 
 .btn-primary:hover {
-    background: #146c43;
+    background: var(--mac-green-hover);
     box-shadow: 0 2px 8px rgba(25, 135, 84, 0.25);
 }
 
 .btn-primary:active {
-    background: #0f5132;
+    background: var(--mac-success);
 }
 
 .btn-primary i {
@@ -383,7 +409,7 @@ body::before { display: none; }
 .btn-outline-secondary {
     border: 1px solid var(--mac-border-strong);
     color: var(--mac-text-secondary);
-    border-radius: 50px;
+    border-radius: var(--mac-radius-md);
     padding: 0.5rem 1.25rem;
     font-weight: 500;
     font-size: 0.875rem;
@@ -400,6 +426,14 @@ body::before { display: none; }
 /* ── Responsive ── */
 
 @media (max-width: 768px) {
+    /* Keep only the corner motifs; the center-column ones would sit behind the card */
+    .auth-scatter .s2,
+    .auth-scatter .s3,
+    .auth-scatter .s8,
+    .auth-scatter .s9,
+    .auth-scatter .s13 { display: none; }
+    .scatter-item { opacity: 0.65; }
+
     .auth-wrapper {
         flex-direction: column;
         margin: 1rem;
@@ -432,25 +466,4 @@ body::before { display: none; }
     }
 }
 
-/* ── SweetAlert ── */
-
-.swal2-popup {
-    border-radius: 10px !important;
-    font-family: var(--mac-font) !important;
-}
-
-.swal2-title {
-    font-family: var(--mac-font) !important;
-    color: var(--mac-brown) !important;
-}
-
-.swal2-confirm {
-    background: var(--mac-green) !important;
-    border-radius: 8px !important;
-}
-
-.swal2-cancel {
-    background: var(--mac-bg-tertiary) !important;
-    color: var(--mac-text) !important;
-    border-radius: 8px !important;
-}
+/* SweetAlert skin lives in css/swal-theme.css (shared with the app). */

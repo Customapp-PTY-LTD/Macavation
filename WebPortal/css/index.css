@@ -1,22 +1,10 @@
-/* Index page overrides – extracted from index.html */
-:root {
-    /* Macadamia-inspired color palette */
-    --macadamia-cream: #F5F0E8;
-    --macadamia-shell: #8B7355;
-    --macadamia-kernel: #E8DCC8;
-    --macadamia-dark: #4A3728;
-    --forest-deep: #198754;
-    --forest-light: #198754;
-    --forest-light-bg: rgba(25, 135, 84, 0.08);
-    --earth-rich: #6B4423;
-    --gold-accent: #C9A962;
-    --gold-light: #E8D4A8;
-    --shadow-warm: rgba(74, 55, 40, 0.15);
-}
+/* Index page overrides – extracted from index.html.
+   Legacy palette names (--macadamia-*, --forest-*, --gold-*) resolve via the
+   deprecated bridge in design-tokens.css — do not redefine them here. */
 
 body {
-    font-family: var(--phoenix-font-sans-serif);
-    background: #F5F5F5;
+    font-family: var(--mac-font);
+    background: var(--mac-bg);
 }
 
 /* Navbar Styling */
@@ -50,11 +38,11 @@ body {
 }
 
 .navbar .nav-link {
-    color: var(--macadamia-dark) !important;
+    color: var(--mac-text) !important;
 }
 
 .navbar .nav-link:hover {
-    color: var(--forest-deep) !important;
+    color: var(--mac-green) !important;
 }
 
 .navbar .dropdown-menu {
@@ -108,36 +96,34 @@ body {
     font-size: 0.8rem;
 }
 
-/* User dropdown card – bigger, consistent radius */
+/* Account menu — compact, sidebar-appropriate (avatar + name + email, then
+   change password / sign out). No repeated name/role blocks. */
 .user-dropdown-card {
-    min-width: 320px;
-    padding: 0;
-    border-radius: 5px !important;
+    min-width: 250px;
+    max-width: 268px;
+    padding: 0.35rem;
+    border-radius: var(--mac-radius-md) !important;
 }
 
-.user-dropdown-card .dropdown-header {
-    border-radius: 5px;
-}
-
-.user-dropdown-profile {
-    width: 100%;
+.user-dropdown-head {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.45rem 0.5rem 0.55rem;
 }
 
 .user-dropdown-avatar-wrap {
     cursor: pointer;
     position: relative;
-}
-
-.user-dropdown-avatar-wrap:hover .user-dropdown-change-pic {
-    opacity: 1;
+    flex-shrink: 0;
 }
 
 /* Single slot: image and placeholder stacked so only one circle shows */
 .user-dropdown-avatar-slot {
     position: relative;
-    width: 80px;
-    height: 80px;
-    margin: 0 auto;
+    width: 44px;
+    height: 44px;
+    margin: 0;
 }
 
 .user-dropdown-avatar-slot .user-dropdown-avatar,
@@ -156,33 +142,88 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1rem;
 }
 
+/* Change-picture: a small camera badge on the avatar, revealed on hover */
 .user-dropdown-change-pic {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--mac-green);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    border: 2px solid var(--mac-bg-secondary);
+}
+
+.user-dropdown-avatar-wrap:hover .user-dropdown-change-pic {
+    opacity: 1;
+}
+
+.user-dropdown-headtext {
+    min-width: 0;
+}
+
+.user-dropdown-headname {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--mac-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-dropdown-headtext small {
     display: block;
-    font-size: 0.75rem;
-    color: var(--mac-green);
-    margin-top: 4px;
-    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.user-dropdown-info {
-    background: var(--mac-bg-tertiary);
-    padding: 0.5rem 0.75rem;
+/* Account actions as clean menu rows (icon + label, hover highlight). */
+.user-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.5rem 0.55rem;
+    border: none;
+    background: transparent;
+    text-align: left;
     border-radius: var(--mac-radius-md);
+    font-size: 0.875rem;
+    color: var(--mac-text);
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
 }
 
-.user-dropdown-signout {
-    background: var(--mac-danger) !important;
-    border: none !important;
-    color: #fff !important;
-    border-radius: var(--mac-radius-md) !important;
-    font-weight: 500;
+.user-dropdown-item i {
+    width: 1.05rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--mac-text-tertiary);
+}
+
+.user-dropdown-item:hover {
+    background: var(--mac-bg-tertiary);
+}
+
+.user-dropdown-signout,
+.user-dropdown-signout i {
+    color: var(--mac-danger);
 }
 
 .user-dropdown-signout:hover {
-    background: #b01c26 !important;
-    color: #fff !important;
+    background: var(--mac-danger-light);
+    color: var(--mac-danger);
 }
 
 /* Sidebar Styling – floating card (collapse still works) */
@@ -312,7 +353,7 @@ body {
 }
 
 .sidebar .flex-grow-1:hover::-webkit-scrollbar-track {
-    background: var(--forest-light-bg);
+    background: var(--mac-green-light);
 }
 
 .sidebar .flex-grow-1::-webkit-scrollbar-thumb {
@@ -326,7 +367,7 @@ body {
 }
 
 .sidebar .flex-grow-1::-webkit-scrollbar-thumb:hover {
-    background: var(--forest-deep);
+    background: var(--mac-green);
 }
 
 /* Main content */
@@ -367,20 +408,20 @@ body {
     box-shadow: var(--mac-shadow-md);
 }
 
-.card.border-primary {
-    border-left-color: var(--mac-green) !important;
-}
-
-.card.border-success {
-    border-left-color: var(--mac-success) !important;
-}
-
-.card.border-info {
-    border-left-color: var(--mac-info) !important;
-}
-
-.card.border-warning {
-    border-left-color: var(--mac-warning) !important;
+/* Cards use ONE neutral border everywhere. A coloured border-* utility on a card
+   used to paint a green/amber outline (via the global .border-* remap), which
+   made some cards look outlined and others not. Neutralise it at the card level
+   so every card matches — the utility classes can stay in the markup harmlessly. */
+.card.border-primary,
+.card.border-success,
+.card.border-info,
+.card.border-warning,
+.card.border-danger,
+.card.border-primary-subtle,
+.card.border-success-subtle,
+.card.border-info-subtle,
+.card.border-warning-subtle {
+    border-color: var(--mac-border) !important;
 }
 
 .text-primary {
@@ -417,18 +458,19 @@ body {
     background: var(--mac-green-hover);
 }
 
-/* Outline buttons */
+/* Outline buttons — button grammar: outline-primary is the green secondary
+   action (visibly related to the primary), outline-secondary is neutral. */
 .btn-outline-primary {
-    border: 1px solid var(--mac-border-strong);
-    color: var(--mac-text);
+    border: 1px solid var(--mac-green);
+    color: var(--mac-green);
     border-radius: var(--mac-radius-md);
     background: transparent;
 }
 
 .btn-outline-primary:hover {
-    background: var(--mac-bg-tertiary);
-    border-color: var(--mac-border-strong);
-    color: var(--mac-text);
+    background: var(--mac-green-light);
+    border-color: var(--mac-green);
+    color: var(--mac-green);
 }
 
 .btn-outline-secondary {
@@ -457,21 +499,7 @@ body {
     padding: 1rem !important;
 }
 
-/* SweetAlert Customization */
-.swal2-popup {
-    border-radius: var(--mac-radius-lg) !important;
-    font-family: var(--mac-font) !important;
-}
-
-.swal2-title {
-    font-family: var(--mac-font) !important;
-    color: var(--mac-text) !important;
-}
-
-.swal2-confirm {
-    background: var(--mac-green) !important;
-    border-radius: var(--mac-radius-md) !important;
-}
+/* SweetAlert skin lives in css/swal-theme.css (shared with signin). */
 
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
@@ -492,12 +520,21 @@ body {
     background: var(--mac-text-tertiary);
 }
 
-/* Tables */
+/* Tables — single standard row height (overrides Bootstrap cell padding) */
 .table {
     background: transparent;
     border-radius: 0 !important;
     overflow: hidden;
-    font-size: 0.875rem;
+    font-size: var(--mac-table-font-size);
+}
+
+.table > :not(caption) > * > * {
+    padding: var(--mac-table-cell-padding-y) var(--mac-table-cell-padding-x);
+    vertical-align: middle;
+}
+
+.table.table-sm > :not(caption) > * > * {
+    padding: var(--mac-table-cell-padding-y) var(--mac-table-cell-padding-x);
 }
 
 .table thead th,
@@ -507,12 +544,11 @@ body {
     background: var(--mac-bg-tertiary);
     color: var(--mac-text-secondary);
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: var(--mac-table-header-font-size);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     border: none;
     border-bottom: 1px solid var(--mac-border);
-    padding: 0.625rem 0.75rem;
 }
 
 .table tbody tr {
@@ -521,11 +557,6 @@ body {
 
 .table tbody tr:hover {
     background: var(--mac-bg-tertiary);
-}
-
-.table td {
-    padding: 0.625rem 0.75rem;
-    vertical-align: middle;
 }
 
 /* Form Controls */
@@ -567,7 +598,7 @@ body {
 
 .badge.bg-warning {
     background: var(--mac-warning-light) !important;
-    color: #8a6d14 !important;
+    color: var(--mac-warning-text) !important;
 }
 
 .badge.bg-info {
@@ -578,6 +609,53 @@ body {
 .badge.bg-danger {
     background: var(--mac-danger-light) !important;
     color: var(--mac-danger) !important;
+}
+
+.badge.bg-secondary {
+    background: var(--mac-bg-tertiary) !important;
+    color: var(--mac-text-secondary) !important;
+    border: 1px solid var(--mac-border);
+}
+
+/* MacStatus pills — THE status language (js/mac-status.js). Same tint recipe
+   as the badges above; semantic tones only. */
+.mac-pill {
+    display: inline-block;
+    font-size: var(--mac-text-xs);
+    font-weight: 500;
+    padding: 0.2em 0.6em;
+    border-radius: var(--mac-radius-pill);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+.mac-pill-success { background: var(--mac-success-light); color: var(--mac-success); }
+.mac-pill-info    { background: var(--mac-info-light); color: var(--mac-info); }
+.mac-pill-warning { background: var(--mac-warning-light); color: var(--mac-warning-text); }
+.mac-pill-danger  { background: var(--mac-danger-light); color: var(--mac-danger); }
+.mac-pill-neutral { background: var(--mac-bg-tertiary); color: var(--mac-text-secondary); border: 1px solid var(--mac-border); }
+
+/* Shared loading / empty states (js/ui-states.js) */
+.mac-state-loading,
+.mac-state-empty {
+    color: var(--mac-text-tertiary);
+    font-size: var(--mac-text-base);
+}
+
+.mac-empty-state .mac-empty-icon {
+    font-size: 1.5rem;
+    color: var(--mac-text-tertiary);
+    display: block;
+}
+
+.mac-empty-state .mac-empty-title {
+    color: var(--mac-text-secondary);
+    font-weight: 500;
+}
+
+.mac-empty-state .mac-empty-hint {
+    color: var(--mac-text-tertiary);
+    font-size: var(--mac-text-sm);
 }
 
 /* Modal Styling */

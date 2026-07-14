@@ -1,37 +1,126 @@
 <!-- Kernel Production Grid Module -->
+<style>
+    /* Toolbar-dropdown sizing kept inline here (not in the module .css) so it
+       always loads fresh with the module HTML — appRouter loads the .css with a
+       plain, browser-cached href, so .css edits can lag. */
+
+    /* Silos: fit them all in a compact grid — no scrolling at all. 4 columns
+       (12 silos => a tidy 3×4 block); the grid just grows a row for any extras. */
+    .kp-silos-dropdown-menu { width: 340px; max-width: 92vw; }
+    .kp-silos-dropdown-menu .kp-silos-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+    }
+
+    /* Production Calendar: compact so the whole month fits with no scrolling. */
+    .kp-calendar-dropdown-menu { width: 720px; max-width: 94vw; }
+    .kp-calendar-dropdown-menu .kp-production-calendar-layout {
+        grid-template-columns: minmax(0, 1.6fr) minmax(190px, 1fr);
+        gap: 0.75rem;
+    }
+    .kp-calendar-dropdown-menu .kp-production-calendar-weekdays,
+    .kp-calendar-dropdown-menu .kp-production-calendar-grid { gap: 0.3rem; }
+    .kp-calendar-dropdown-menu .kp-production-calendar-day {
+        min-height: 44px;
+        padding: 0.3rem;
+        border-radius: 0.4rem;
+    }
+    /* Activity indicator: a small dot rather than a "N batches" badge.
+       (Restyles the existing .kp-production-calendar-count element — its text is
+       hidden with font-size:0 — so no JS change is needed.) */
+    .kp-calendar-dropdown-menu .kp-production-calendar-count {
+        display: block;
+        width: 7px;
+        height: 7px;
+        margin: 0.3rem auto 0;
+        padding: 0;
+        border-radius: 50%;
+        background: var(--mac-green);
+        font-size: 0;
+        line-height: 0;
+    }
+    .kp-calendar-dropdown-menu .kp-production-calendar-detail {
+        min-height: 0;
+        padding: 0.75rem;
+    }
+    @media (max-width: 767.98px) {
+        .kp-silos-dropdown-menu,
+        .kp-calendar-dropdown-menu { width: 92vw; }
+        .kp-calendar-dropdown-menu .kp-production-calendar-layout { grid-template-columns: 1fr; }
+    }
+</style>
 <div class="module-content">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <div>
             <h1 class="h2 mb-1">Kernel Production Workflow</h1>
             <p class="text-muted mb-0 small macavation-module-journey-subtitle" id="macavationModuleJourneySubtitle">Batches here: Awaiting production, In production, Awaiting test, Release ready</p>
         </div>
-        <div class="btn-toolbar mb-2 mb-md-0 ms-auto">
-            <a href="help/index.html#kernel-production-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+        <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2 align-items-center">
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#kernel-production-grid" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+
+            <!-- Silos: compact icon dropdown (was a full-width accordion) -->
+            <div class="dropdown">
+                <button type="button" class="btn btn-outline-secondary" id="kpSilosDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Silos" aria-label="Silos">
+                    <i class="fas fa-warehouse"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-3 kp-tool-dropdown-menu kp-silos-dropdown-menu" aria-labelledby="kpSilosDropdownBtn">
+                    <p class="text-muted small mb-3">Click an occupied silo (red) to mark it as empty. Click an empty silo (white) to mark it as full with a batch.</p>
+                    <div id="kpSilosGrid" class="kp-silos-grid">
+                        <p class="text-muted mb-0">Loading…</p>
+                    </div>
+                    <div id="kpSiloFillArea" class="mt-3 p-3 border rounded bg-light" style="display: none;">
+                        <span class="me-2">Silo <strong id="kpSiloFillSiloNum"></strong> selected.</span>
+                        <button type="button" class="btn btn-primary btn-sm" id="kpMarkFullBtn">Mark as full</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm ms-2" id="kpSiloFillCancel">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Production Calendar: compact icon dropdown (was a full-width accordion) -->
+            <div class="dropdown">
+                <button type="button" class="btn btn-outline-secondary" id="kpProductionCalendarDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Production Calendar" aria-label="Production Calendar">
+                    <i class="fas fa-calendar-alt"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-3 kp-tool-dropdown-menu kp-calendar-dropdown-menu" aria-labelledby="kpProductionCalendarDropdownBtn">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Production Calendar</h6>
+                        <div class="kp-production-calendar-toolbar">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="kpProductionCalendarPrevBtn" aria-label="Previous month">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <div class="kp-production-calendar-month" id="kpProductionCalendarMonthLabel">Loading…</div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="kpProductionCalendarNextBtn" aria-label="Next month">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3">Days highlighted in blue have saved production activity. Click a day to see which batches were processed and whether cracking, washing, sorting or packing was done.</p>
+                    <div class="kp-production-calendar-layout">
+                        <div>
+                            <div class="kp-production-calendar-weekdays">
+                                <div>Sun</div>
+                                <div>Mon</div>
+                                <div>Tue</div>
+                                <div>Wed</div>
+                                <div>Thu</div>
+                                <div>Fri</div>
+                                <div>Sat</div>
+                            </div>
+                            <div class="kp-production-calendar-grid" id="kpProductionCalendarGrid">
+                                <div class="text-muted small">Loading…</div>
+                            </div>
+                        </div>
+                        <div class="kp-production-calendar-detail" id="kpProductionCalendarDetail">
+                            <div class="text-muted">Select a day to view production activity.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <button type="button" class="btn btn-outline-secondary" id="exportBatchesBtn">
                 <i class="fas fa-download me-1"></i>Export
             </button>
-        </div>
-    </div>
-
-    <!-- Silos at top: red = occupied, white = empty; click occupied to mark as empty -->
-    <div class="card mb-4">
-        <div class="card-header bg-light">
-            <button type="button" class="btn btn-link text-decoration-none p-0 kp-production-calendar-toggle" id="kpSilosToggleBtn" data-bs-toggle="collapse" data-bs-target="#kpSilosCollapse" aria-expanded="true" aria-controls="kpSilosCollapse">
-                <h5 class="mb-0"><i class="fas fa-warehouse me-2"></i>Silos <i class="fas fa-chevron-up ms-2 kp-production-calendar-toggle-icon"></i></h5>
-            </button>
-        </div>
-        <div class="collapse show" id="kpSilosCollapse">
-            <div class="card-body">
-                <p class="text-muted small mb-3">Click an occupied silo (red) to mark it as empty. Click an empty silo (white) to mark it as full with a batch.</p>
-                <div id="kpSilosGrid" class="kp-silos-grid">
-                    <p class="text-muted mb-0">Loading…</p>
-                </div>
-                <div id="kpSiloFillArea" class="mt-3 p-3 border rounded bg-light" style="display: none;">
-                    <span class="me-2">Silo <strong id="kpSiloFillSiloNum"></strong> selected.</span>
-                    <button type="button" class="btn btn-primary btn-sm" id="kpMarkFullBtn">Mark as full</button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm ms-2" id="kpSiloFillCancel">Cancel</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -56,56 +145,15 @@
         </div>
     </div>
     
-    <div class="card mb-4" id="kpProductionCalendarCard">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <button type="button" class="btn btn-link text-decoration-none p-0 kp-production-calendar-toggle" id="kpProductionCalendarToggleBtn" data-bs-toggle="collapse" data-bs-target="#kpProductionCalendarCollapse" aria-expanded="true" aria-controls="kpProductionCalendarCollapse">
-                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Production Calendar <i class="fas fa-chevron-up ms-2 kp-production-calendar-toggle-icon"></i></h5>
-            </button>
-            <div class="kp-production-calendar-toolbar">
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="kpProductionCalendarPrevBtn" aria-label="Previous month">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="kp-production-calendar-month" id="kpProductionCalendarMonthLabel">Loading…</div>
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="kpProductionCalendarNextBtn" aria-label="Next month">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-        </div>
-        <div class="collapse show" id="kpProductionCalendarCollapse">
-            <div class="card-body">
-                <p class="text-muted small mb-3">Days highlighted in blue have saved production activity. Click a day to see which batches were processed and whether cracking, washing, sorting or packing was done.</p>
-                <div class="kp-production-calendar-layout">
-                    <div>
-                        <div class="kp-production-calendar-weekdays">
-                            <div>Sun</div>
-                            <div>Mon</div>
-                            <div>Tue</div>
-                            <div>Wed</div>
-                            <div>Thu</div>
-                            <div>Fri</div>
-                            <div>Sat</div>
-                        </div>
-                        <div class="kp-production-calendar-grid" id="kpProductionCalendarGrid">
-                            <div class="text-muted small">Loading…</div>
-                        </div>
-                    </div>
-                    <div class="kp-production-calendar-detail" id="kpProductionCalendarDetail">
-                        <div class="text-muted">Select a day to view production activity.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Search and Filters -->
-    <div class="card mb-3">
+    <div class="card mb-3 mac-module-filter-bar">
         <div class="card-body">
             <div class="row g-3 align-items-end">
-                <div class="col-md-4">
+                <div class="col-12 col-sm-6 col-lg-3">
                     <label for="searchBatchesInput" class="form-label">Search</label>
                     <input type="text" class="form-control" id="searchBatchesInput" placeholder="Search by batch number, grower, or status...">
                 </div>
-                <div class="col-md-3">
+                <div class="col-6 col-lg-2">
                     <label for="filterBatchStatus" class="form-label">Status</label>
                     <select class="form-select" id="filterBatchStatus">
                         <option value="">All Statuses</option>
@@ -115,18 +163,18 @@
                         <option value="release_ready">Release ready</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <div class="form-check mt-4 pt-1">
+                <div class="col-6 col-lg-3">
+                    <div class="form-check mac-filter-bar-checkbox">
                         <input class="form-check-input" type="checkbox" id="kpApprovedJobcardsFilter" title="Show only release-ready batches with approved job cards">
                         <label class="form-check-label" for="kpApprovedJobcardsFilter">Approved job cards only</label>
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-lg-2">
                     <button type="button" class="btn btn-outline-secondary w-100" id="clearBatchFiltersBtn">
                         <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
-                <div class="col-md-2 d-flex justify-content-end">
+                <div class="col-6 col-lg-2 mac-filter-bar-view d-flex justify-content-lg-end">
                     <div class="view-toggle">
                         <button class="view-toggle-btn active" data-view="kanban" id="kpViewKanban">
                             <i class="fas fa-columns me-1"></i>Board
@@ -144,10 +192,10 @@
     <div id="kpKanbanBoard" class="kanban-board"></div>
 
     <!-- Table View (hidden by default) -->
-    <div class="card mb-4 kernel-production-table-card" id="kpTableCard" style="display:none">
+    <div class="card mb-4 kernel-production-table-card mac-table-actions-card" id="kpTableCard" style="display:none">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover" id="batchesTable">
+                <table class="table align-middle table-hover" id="batchesTable">
                     <thead>
                         <tr>
                             <th>Batch Number</th>
