@@ -1966,6 +1966,30 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Daily stock-on-hand history per style/stream for dashboard line chart.
+         * @param {string} productType - 'kernel' or 'oil'
+         * @param {number} days - Number of days (7–1826)
+         * @returns {Promise<Array<{d:string,series:string,qty_kg:number}>>}
+         */
+        getStockSohHistory: async function (productType, days, token = null) {
+            var pType = String(productType || 'kernel').toLowerCase() === 'oil' ? 'oil' : 'kernel';
+            var pDays = Math.max(7, Math.min(1826, parseInt(days, 10) || 365));
+            try {
+                var raw = await this.callFunction('get_stock_soh_history', {
+                    p_product_type: pType,
+                    p_days: pDays
+                }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_stock_soh_history)) return raw.get_stock_soh_history;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_stock_soh_history failed. Apply migration 20260713160000_get_stock_soh_history.sql if needed.', e.message);
+                return [];
+            }
+        },
+
+        /**
          * Get daily minute tests for dashboard (07h00, 10h00, 13h00, Averages from cracking).
          * @param {string} [dateStr] - Optional date YYYY-MM-DD; omit for today (SA).
          * @returns {Promise<Array<{time_slot:string,wholes:string,uncracks:string,total:string}>>}

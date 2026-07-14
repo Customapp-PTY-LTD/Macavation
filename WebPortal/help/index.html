@@ -49,7 +49,7 @@
     <ol class="guide-page-steps">
       <li>Open from <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> → <strong>Add role</strong> (or equivalent).</li>
       <li>Enter a clear role name and description other admins will recognise.</li>
-      <li>Save, then use <strong>Customize</strong> on that role to set sidebar modules, button actions (for example <strong>Create intake batch</strong> on Grower Intake), and database permissions so menus and APIs match responsibility.</li>
+      <li>Save, then use <strong>Customize</strong> on that role to set sidebar modules and their database permissions so menus and APIs match responsibility.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/modal-admin-add-role.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -63,7 +63,7 @@
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open from <strong>User &amp; access</strong> → <strong>People</strong> → <strong>Add user</strong> (or equivalent).</li>
-      <li>Enter name, email, and temporary password policy per your organisation.</li>
+      <li>Enter name, email/username, and temporary password policy per your organisation.</li>
       <li>Assign the primary <strong>role</strong> before saving—this controls the menu tree on first login.</li>
       <li>Send the user your standard onboarding steps (password change, MFA if enabled).</li>
     </ol>
@@ -98,7 +98,6 @@
       <li>Read the <strong>Status</strong> column for Intake, Receiving, Production, QA, Dispatch, or Complete.</li>
       <li>Click the <strong>batch number</strong> link to open detail or the next workflow screen.</li>
       <li>Use row actions or links from detail to jump straight into intake, production, QA, or dispatch—complete the action there, then return to Batch journey if you need another batch.</li>
-      <li>Use <strong>Edit</strong> → <strong>Archive</strong> on a row to send a batch to the historical archive. Restore later from Stock → <strong>View archive</strong>.</li>
     </ol>
     <figure class="guide-shot">
       <img src="./assets/screenshots/batch-journey-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
@@ -1112,6 +1111,25 @@
     </figure>
   </section>
 
+  <section id="stock-history" class="guide-section" data-guide-id="stock-history">
+    <h2>Stock on hand history</h2>
+<p class="guide-lead">Multi-line chart on the Executive dashboard showing how finished stock levels changed over time, with one coloured line per kernel style or oil stream.</p>
+    <p class="guide-how">Use the <strong>Kernel</strong> / <strong>Oil</strong> toggle to switch product type. Each style or stream has its own colour (like a share-price chart). Range buttons (1M, 3M, 6M, 1Y, All) zoom the time window. Hover a date to see all series at that point; click legend items to hide or show individual lines.</p>
+
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Dashboard</strong> and expand <strong>Trends &amp; forecasts</strong>.</li>
+      <li>Find <strong>Stock on hand history</strong> below Production Trends.</li>
+      <li>Toggle <strong>Kernel</strong> to see kg on hand per kernel style (SP, 0, 1, 1S, 4L, 5, 6, 7/8, butter grades).</li>
+      <li>Toggle <strong>Oil</strong> to see kg on hand for food grade oil, cosmetic oil, and protein powder.</li>
+      <li>Use range buttons to focus on the last month, quarter, year, or full available history.</li>
+      <li>Click <strong>Customize</strong> on the dashboard if the chart is hidden—enable <strong>Stock on hand history</strong>.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/stock-history.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
   <section id="modal-stock-take" class="guide-section" data-guide-id="modal-stock-take">
     <h2>Stock Take (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
@@ -1343,13 +1361,13 @@
   <section id="admin-roles-management" class="guide-section" data-guide-id="admin-roles-management">
     <h2>User &amp; access — Roles &amp; modules</h2>
 <p class="guide-lead"><strong>Roles &amp; modules</strong> (User &amp; access) — full-width roles list; use <strong>Customize</strong> for both the sidebar modules and the database function permissions inside each module.</p>
-    <p class="guide-how">Each row has <strong>Edit role</strong> (name and description only) and <strong>Customize</strong>. In Customize, the <strong>On</strong> tick shows the module in the sidebar. Expanding a module reveals <strong>button actions</strong> (controls such as <em>Create intake batch</em>) and <strong>database functions</strong> with their own tick boxes. Click a row (outside the buttons) to highlight it.</p>
+    <p class="guide-how">Each row has <strong>Edit role</strong> (name and description only) and <strong>Customize</strong>. In Customize, the <strong>On</strong> tick shows the module in the sidebar, and expanding a module reveals its database permissions (Supabase functions) with their own tick boxes. Click a row (outside the buttons) to highlight it.</p>
 
     <h3 class="guide-subhead">How to use this screen</h3>
     <ol class="guide-page-steps">
       <li>Open <strong>User &amp; access</strong> → <strong>Roles &amp; modules</strong> tab.</li>
       <li>Use <strong>Customize</strong> on a role to open the dialog; the <strong>On</strong> tick controls sidebar visibility (this matches the former Role Features screen).</li>
-      <li>Expand a module (the actions &amp; permissions button on its row) to grant or revoke button actions and Supabase functions; toggle cautiously and follow least privilege. Button actions such as <strong>Create intake batch</strong> are enforced in the UI (toolbar, modal save, and procurement drag) — not only hidden. The <code>admin</code> and <code>super_user</code> roles always retain all button actions regardless of these ticks.</li>
+      <li>Expand a module (the database permissions button on its row) to grant or revoke the individual Supabase functions the role may run; toggle cautiously and follow least privilege.</li>
       <li>Permissions that are not tied to a single module appear under <strong>Other / shared</strong> at the bottom of the list.</li>
       <li>Use <strong>Edit role</strong> when you only need to change the role name or description.</li>
     </ol>

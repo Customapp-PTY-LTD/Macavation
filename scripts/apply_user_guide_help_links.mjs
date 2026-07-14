@@ -240,6 +240,8 @@ const SECTION_BLURBS = {
     "Tracks material movement and alerts for integrator-style roles. Use <strong>Refresh</strong> to reload cards.",
   "executive-dashboard":
     "KPIs and reporting for leadership. Use <strong>Customize</strong> to choose visible widgets and <strong>Generate Report</strong> for PDF output.",
+  "stock-history":
+    "Multi-line chart on the Executive dashboard showing how finished stock levels changed over time, with one coloured line per kernel style or oil stream.",
   "my-day":
     "Role-based landing view: your assigned workflows and shortcuts. Content loads after sign-in.",
   "crm-nis-suppliers":
@@ -310,6 +312,8 @@ const SECTION_HOW_IT_WORKS = {
     "Reload with Refresh, then open linked modules from each card to clear alerts or continue a batch. Suited to roles watching movement across sites or stages.",
   "executive-dashboard":
     "Choose widgets with Customize, export PDFs with Generate Report, and treat figures as summaries—drill into Kernel / Oil &amp; protein modules for detail.",
+  "stock-history":
+    "Use the <strong>Kernel</strong> / <strong>Oil</strong> toggle to switch product type. Each style or stream has its own colour (like a share-price chart). Range buttons (1M, 3M, 6M, 1Y, All) zoom the time window. Hover a date to see all series at that point; click legend items to hide or show individual lines.",
   "my-day":
     "Work the list top-down: each item should route you to the right module. Completing work there updates what others see on dashboards and queues.",
   "crm-nis-suppliers":
@@ -450,6 +454,14 @@ const PAGE_STEPS = {
     "Click <strong>Customize</strong> (or equivalent) to choose which KPI widgets and charts appear.",
     "Use <strong>Generate report</strong> or export controls when you need a PDF or file for meetings.",
     "Treat numbers as summaries—open Kernel or Oil &amp; protein modules for line-level detail when something needs investigation.",
+  ],
+  "stock-history": [
+    "Open <strong>Dashboard</strong> and expand <strong>Trends &amp; forecasts</strong>.",
+    "Find <strong>Stock on hand history</strong> below Production Trends.",
+    "Toggle <strong>Kernel</strong> to see kg on hand per kernel style (SP, 0, 1, 1S, 4L, 5, 6, 7/8, butter grades).",
+    "Toggle <strong>Oil</strong> to see kg on hand for food grade oil, cosmetic oil, and protein powder.",
+    "Use range buttons to focus on the last month, quarter, year, or full available history.",
+    "Click <strong>Customize</strong> on the dashboard if the chart is hidden—enable <strong>Stock on hand history</strong>.",
   ],
   "my-day": [
     "Open <strong>My Day</strong> after sign-in (or from the sidebar) to see tasks and shortcuts assigned to your role.",
@@ -928,6 +940,7 @@ function collectAnchors() {
   add("dashboard-overview", "Dashboard overview");
   add("material-journey-dashboard", "Material journey dashboard");
   add("executive-dashboard", "Executive dashboard &amp; reporting");
+  add("stock-history", "Stock on hand history");
   add("roles-grid", "Roles (module)");
   add("role-permissions-grid", "Role permissions (module)");
   add("role-features-grid", "Role features (module)");

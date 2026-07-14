@@ -31,6 +31,7 @@ var _executiveDashboard = function () {
         execStatDispatchPending: 'Dispatch pending',
         execDailyMinuteTests: 'Daily minute tests',
         execProductionTrends: 'Production Trends',
+        execStockHistory: 'Stock on hand history',
         execProcurementForecast: 'Procurement & forecast',
         execStockAlerts: 'Stock alerts',
         execRunway: 'Raw material runway',
@@ -52,6 +53,35 @@ var _executiveDashboard = function () {
         productionTrendsPageOffset: 0,
         productionTrendsRangeKey: '1Y',
         productionTrendsHideWeekends: true,
+        stockHistoryChart: null,
+        stockHistoryData: null,
+        stockHistoryMode: 'kernel',
+        stockHistoryRangeKey: '1Y',
+
+        KERNEL_STYLE_COLORS: {
+            'SP': '#2563eb',
+            '0': '#dc2626',
+            '1': '#16a34a',
+            '1S': '#ca8a04',
+            '4L': '#9333ea',
+            '5': '#0891b2',
+            '6': '#ea580c',
+            '7/8': '#4f46e5',
+            'Butter High Oil': '#be185d',
+            'Butter Low Oil': '#0d9488'
+        },
+        OIL_STREAM_COLORS: {
+            food_grade: '#198754',
+            cosmetic: '#6f42c1',
+            protein: '#fd7e14'
+        },
+        OIL_STREAM_LABELS: {
+            food_grade: 'Food grade oil',
+            cosmetic: 'Cosmetic oil',
+            protein: 'Protein powder'
+        },
+        KERNEL_STYLE_ORDER: ['SP', '0', '1', '1S', '4L', '5', '6', '7/8', 'Butter High Oil', 'Butter Low Oil'],
+        OIL_STREAM_ORDER: ['food_grade', 'cosmetic', 'protein'],
 
 
         init: async () => {
@@ -71,6 +101,7 @@ var _executiveDashboard = function () {
             await scope.loadProductionStats();
             await scope.loadDailyMinuteTests();
             await scope.loadProductionTrendsChart();
+            await scope.loadStockHistoryChart();
             await scope.loadProcurementForecastChart();
             await scope.loadExecutiveAlerts();
             await scope.loadRunwaySummary();
@@ -325,6 +356,21 @@ var _executiveDashboard = function () {
                 }
                 scope.updateProductionTrendsChart();
             });
+            $('.stock-history-mode-btn').off('click').on('click', function () {
+                var mode = $(this).data('mode');
+                if (!mode || mode === scope.stockHistoryMode) return;
+                scope.stockHistoryMode = String(mode);
+                $('.stock-history-mode-btn').removeClass('btn-primary').addClass('btn-outline-secondary');
+                $(this).removeClass('btn-outline-secondary').addClass('btn-primary');
+                scope.loadStockHistoryChart();
+            });
+            $('.stock-history-range-btn').off('click').on('click', function () {
+                var r = $(this).data('range');
+                scope.stockHistoryRangeKey = r ? String(r).toUpperCase() : '1Y';
+                $('.stock-history-range-btn').removeClass('btn-primary').addClass('btn-outline-secondary');
+                $(this).removeClass('btn-outline-secondary').addClass('btn-primary');
+                scope.loadStockHistoryChart();
+            });
         },
 
         loadProductionTrendsChart: async () => {
@@ -525,6 +571,160 @@ var _executiveDashboard = function () {
 
         updateProductionTrendsChart: () => {
             _executiveDashboard.renderProductionTrendsChart();
+        },
+
+        stockHistoryDaysForRange: function (rangeKey) {
+            var key = String(rangeKey || '1Y').toUpperCase();
+            if (key === '1M') return 31;
+            if (key === '3M') return 93;
+            if (key === '6M') return 186;
+            if (key === '1Y') return 366;
+            return 1826;
+        },
+
+        loadStockHistoryChart: async () => {
+            var scope = _executiveDashboard;
+            var canvas = document.getElementById('stockHistoryChart');
+            if (!canvas) return;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getStockSohHistory) return;
+            var days = scope.stockHistoryDaysForRange(scope.stockHistoryRangeKey);
+            try {
+                var raw = await dataFunctions.getStockSohHistory(scope.stockHistoryMode, days);
+                scope.stockHistoryData = Array.isArray(raw) ? raw : [];
+                scope.renderStockHistoryChart();
+            } catch (e) {
+                console.error('Error loading stock history:', e);
+                scope.stockHistoryData = [];
+                scope.renderStockHistoryChart();
+            }
+        },
+
+        renderStockHistoryChart: () => {
+            var scope = _executiveDashboard;
+            var data = scope.stockHistoryData || [];
+            var canvas = document.getElementById('stockHistoryChart');
+            var emptyEl = document.getElementById('stockHistoryEmpty');
+            if (!canvas) return;
+
+            var isOil = scope.stockHistoryMode === 'oil';
+            var seriesOrder = isOil ? scope.OIL_STREAM_ORDER.slice() : scope.KERNEL_STYLE_ORDER.slice();
+            var colorMap = isOil ? scope.OIL_STREAM_COLORS : scope.KERNEL_STYLE_COLORS;
+            var labelMap = isOil ? scope.OIL_STREAM_LABELS : null;
+
+            var byDate = {};
+            data.forEach(function (r) {
+                var d = r && r.d ? String(r.d).split('T')[0] : '';
+                var series = r && r.series ? String(r.series) : '';
+                if (!d || !series) return;
+                if (!byDate[d]) byDate[d] = {};
+                byDate[d][series] = Number(r.qty_kg) || 0;
+            });
+
+            var dates = Object.keys(byDate).sort();
+            if (!dates.length) {
+                if (scope.stockHistoryChart) {
+                    scope.stockHistoryChart.destroy();
+                    scope.stockHistoryChart = null;
+                }
+                if (emptyEl) emptyEl.classList.remove('d-none');
+                var rangeElEmpty = document.getElementById('stockHistoryRange');
+                if (rangeElEmpty) rangeElEmpty.textContent = '';
+                return;
+            }
+            if (emptyEl) emptyEl.classList.add('d-none');
+
+            var rangeKey = String(scope.stockHistoryRangeKey || '1Y').toUpperCase();
+            var dayWindow = scope.stockHistoryDaysForRange(rangeKey);
+            var slice = dates;
+            if (rangeKey !== 'ALL' && dates.length > dayWindow) {
+                slice = dates.slice(dates.length - dayWindow);
+            }
+
+            var labels = slice.map(function (d) {
+                var parts = d.split('-');
+                return parts.length === 3 ? (parts[2] + '/' + parts[1] + '/' + parts[0].slice(2)) : d;
+            });
+
+            var rangeEl = document.getElementById('stockHistoryRange');
+            if (rangeEl && slice.length) {
+                rangeEl.textContent = 'Showing ' + labels[0] + ' – ' + labels[labels.length - 1] +
+                    ' · ' + (isOil ? 'Oil (kg)' : 'Kernel (kg)');
+            }
+
+            var activeSeries = seriesOrder.filter(function (s) {
+                return slice.some(function (d) {
+                    return byDate[d] && (Number(byDate[d][s]) || 0) > 0;
+                });
+            });
+            if (!activeSeries.length) {
+                activeSeries = seriesOrder.slice();
+            }
+
+            var datasets = activeSeries.map(function (series) {
+                var color = colorMap[series] || '#6c757d';
+                var label = labelMap && labelMap[series] ? labelMap[series] : series;
+                return {
+                    label: label,
+                    data: slice.map(function (d) {
+                        return byDate[d] && byDate[d][series] != null ? Number(byDate[d][series]) : 0;
+                    }),
+                    borderColor: color,
+                    backgroundColor: color + '22',
+                    borderWidth: 1.5,
+                    fill: false,
+                    tension: 0.25,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointHitRadius: 8
+                };
+            });
+
+            if (scope.stockHistoryChart) {
+                scope.stockHistoryChart.destroy();
+                scope.stockHistoryChart = null;
+            }
+
+            if (typeof Chart === 'undefined') return;
+            scope.stockHistoryChart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, padding: 14, usePointStyle: true }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (item) {
+                                    var val = item.raw || 0;
+                                    return (item.dataset.label || '') + ': ' +
+                                        val.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { maxRotation: 45, minRotation: 0, maxTicksLimit: 12 },
+                            grid: { color: 'rgba(0,0,0,0.06)' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (v) {
+                                    return (v || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 });
+                                }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.06)' },
+                            title: { display: true, text: 'kg on hand' }
+                        }
+                    }
+                }
+            });
         },
 
         procurementForecastChart: null,
