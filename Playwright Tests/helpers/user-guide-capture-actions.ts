@@ -98,18 +98,6 @@ export const CAPTURE_OVERRIDES: Record<string, CaptureAction> = {
     openSelector: '#addPermissionBtn',
     modalSelector: '#permissionModal',
   },
-  'modal-test-data-set': {
-    route: 'test-data-grid',
-    kind: 'modal',
-    openSelector: '#addDataSetBtn',
-    modalSelector: '#dataSetModal',
-  },
-  'modal-test-scenario': {
-    route: 'test-scenarios-grid',
-    kind: 'modal',
-    openSelector: '#addScenarioBtn',
-    modalSelector: '#scenarioModal',
-  },
   'modal-supplier-receiver-checklist': {
     route: 'supplier-intake-grid',
     kind: 'modal',
@@ -237,13 +225,6 @@ export const CAPTURE_OVERRIDES: Record<string, CaptureAction> = {
     kind: 'modal',
     openSelector: '#rawMaterialIssuedBtn',
     modalSelector: '#rawMaterialIssuedModal',
-  },
-  'modal-test-data-record': {
-    route: 'test-data-grid',
-    kind: 'modal',
-    openSelector: '#addRecordBtn',
-    modalSelector: '#recordModal',
-    skip: 'Requires selected data set — enable Add record first',
   },
 };
 

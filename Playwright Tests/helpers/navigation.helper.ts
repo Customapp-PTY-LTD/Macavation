@@ -73,10 +73,6 @@ const NAVIGATION_MAP: Record<string, NavConfig> = {
     collapseIds: ['userManagementCollapse'],
     linkSelector: '#userManagementCollapse a[route="features-grid"]',
   },
-  'role-actions-grid': {
-    collapseIds: ['userManagementCollapse'],
-    linkSelector: 'a[route="role-actions-grid"]',
-  },
   'users-grid': {
     collapseIds: ['userManagementCollapse'],
     linkSelector: '#userManagementCollapse a[route="users-grid"], a[route="admin-grid"]',
@@ -92,14 +88,6 @@ const NAVIGATION_MAP: Record<string, NavConfig> = {
   'role-features-grid': {
     collapseIds: ['userManagementCollapse'],
     linkSelector: '#userManagementCollapse a[route="role-features-grid"]',
-  },
-  'test-data-grid': {
-    collapseIds: ['testManagementCollapse'],
-    linkSelector: 'a[route="test-data-grid"]',
-  },
-  'test-scenarios-grid': {
-    collapseIds: ['testManagementCollapse'],
-    linkSelector: 'a[route="test-scenarios-grid"]',
   },
   'data-import-grid': { collapseIds: ['dataImportCollapse'], linkSelector: 'a[route="data-import-grid"]' },
 };

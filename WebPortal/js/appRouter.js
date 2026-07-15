@@ -186,30 +186,6 @@ var _appRouter = function () {
                     }
                 }
 
-                // Check if this is a test management module (test scenarios and test data)
-                const testManagementModules = ['test-scenarios-grid', 'test-data-grid'];
-
-                if (testManagementModules.includes(routeName)) {
-                    if (!dataFunctions.canAccessTestManagement()) {
-                        console.log('Insufficient permissions for test management, redirecting to dashboard...');
-                        // Show permission error
-                        const contentArea = document.getElementById('content-area');
-                        if (contentArea) {
-                            contentArea.innerHTML = `
-                                <div class="alert alert-danger" role="alert">
-                                    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Access Denied</h4>
-                                    <p>You need Super Admin role to access test management modules.</p>
-                                    <hr>
-                                    <p class="mb-0">Redirecting to dashboard...</p>
-                                </div>
-                            `;
-                            setTimeout(() => {
-                                _appRouter.routeTo('dashboard');
-                            }, 3000);
-                        }
-                        return { success: false, errors: ['Insufficient permissions'] };
-                    }
-                }
             }
 
             //load content into elementSelector
@@ -321,25 +297,6 @@ var _appRouter = function () {
                     if (typeof _modal_role !== 'undefined' && _modal_role.init) {
                         _modal_role.init();
                     }
-                },
-                'test-scenarios-grid': () => {
-                    if (typeof testScenariosGrid !== 'undefined' && typeof testScenariosGrid.init === 'function') {
-                        testScenariosGrid.init();
-                    }
-                },
-                'test-scenario-modal': () => {
-                    if (typeof _modal_test_scenario !== 'undefined' && _modal_test_scenario.init) _modal_test_scenario.init();
-                },
-                'test-data-grid': () => {
-                    if (typeof testDataGrid !== 'undefined' && typeof testDataGrid.init === 'function') {
-                        testDataGrid.init();
-                    }
-                },
-                'test-data-set-modal': () => {
-                    if (typeof _modal_test_data_set !== 'undefined' && _modal_test_data_set.init) _modal_test_data_set.init();
-                },
-                'test-data-record-modal': () => {
-                    if (typeof _modal_test_data_record !== 'undefined' && _modal_test_data_record.init) _modal_test_data_record.init();
                 },
                 'role-permissions-grid': () => {
                     if (typeof initializeRolePermissionsGrid === 'function') {
@@ -507,11 +464,6 @@ var _appRouter = function () {
                 'palladium-integration-grid': () => {
                     if (typeof initializePalladiumIntegrationGrid === 'function') {
                         initializePalladiumIntegrationGrid();
-                    }
-                },
-                'test-scenarios-grid': () => {
-                    if (typeof initializeTestScenariosGrid === 'function') {
-                        initializeTestScenariosGrid();
                     }
                 },
                 'batch-journey': () => {

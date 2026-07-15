@@ -39,6 +39,8 @@ var _adminGrid = function () {
         adminRoleActionIdMap: {},
         adminExpandedFeatureKeys: {},
         adminCustomizePermSearch: '',
+        adminFeaturesLoadSeq: 0,
+        adminLoadedRoleId: null,
         _usersLoaded: false,
         _rolesLoaded: false,
         _modalsLoaded: false,
@@ -543,9 +545,35 @@ var _adminGrid = function () {
             });
         },
 
+        canApplyCustomizeLoad: (roleId, loadSeq) => {
+            const scope = _adminGrid;
+            return loadSeq === scope.adminFeaturesLoadSeq &&
+                String(roleId) === String(scope.selectedRoleId);
+        },
+
+        canSaveCustomizeForRole: () => {
+            const scope = _adminGrid;
+            return !!(scope.selectedRoleId && scope.adminLoadedRoleId &&
+                String(scope.selectedRoleId) === String(scope.adminLoadedRoleId));
+        },
+
+        refreshSessionFeatureKeysIfCurrentRole: (roleId) => {
+            var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
+            var currentRoleId = user && user.role_id ? user.role_id : null;
+            if (currentRoleId && String(currentRoleId) === String(roleId)) {
+                if (typeof Session !== 'undefined' && Session.remove) Session.remove('featureKeys');
+                if (typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
+                    authService.fetchAndCacheFeatures(currentRoleId);
+                } else if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
+                    menuFilter.refresh();
+                }
+            }
+        },
+
         clearRoleDetail: () => {
             const scope = _adminGrid;
             scope.selectedRoleId = null;
+            scope.adminLoadedRoleId = null;
             scope.adminAllFeatures = [];
             scope.adminRoleFeatureIdMap = {};
             scope.adminAllPermissions = [];
@@ -577,6 +605,10 @@ var _adminGrid = function () {
                 return;
             }
             scope.selectedRoleId = roleId;
+            scope.adminLoadedRoleId = null;
+            scope.adminRoleFeatureIdMap = {};
+            scope.adminRoleActionIdMap = {};
+            scope.adminAllPermissions = [];
             scope.highlightRoleRow(roleId);
             var sub = document.getElementById('adminCustomizeModalSubtitle');
             if (role && sub) {
@@ -594,6 +626,12 @@ var _adminGrid = function () {
             const scope = _adminGrid;
             const tbody = document.getElementById('adminFeaturesTableBody');
             if (!tbody || !dataFunctions.getFeatures || !dataFunctions.getRoleFeatures) return;
+            scope.adminFeaturesLoadSeq += 1;
+            var loadSeq = scope.adminFeaturesLoadSeq;
+            scope.adminLoadedRoleId = null;
+            scope.adminRoleFeatureIdMap = {};
+            scope.adminRoleActionIdMap = {};
+            scope.adminAllPermissions = [];
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading…</td></tr>';
             scope.adminExpandedFeatureKeys = {};
             try {
@@ -604,6 +642,7 @@ var _adminGrid = function () {
                     dataFunctions.getActions ? dataFunctions.getActions() : [],
                     dataFunctions.getRoleActions ? dataFunctions.getRoleActions() : []
                 ]);
+                if (!scope.canApplyCustomizeLoad(roleId, loadSeq)) return;
                 var featuresResponse = results[0];
                 var allRoleFeatures = results[1];
                 var permissions = results[2];
@@ -631,9 +670,11 @@ var _adminGrid = function () {
                         scope.adminRoleActionIdMap[String(ra.action_key)] = ra.id;
                     }
                 });
+                scope.adminLoadedRoleId = roleId;
                 scope.renderAdminFeatureRows();
                 scope.updateAdminFeatureSummary();
             } catch (error) {
+                if (!scope.canApplyCustomizeLoad(roleId, loadSeq)) return;
                 console.error('[Admin] Features load error:', error);
                 tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Could not load features.</td></tr>';
             }
@@ -886,6 +927,11 @@ var _adminGrid = function () {
         toggleAdminFeature: async (featureId, _featureKey, enabled, $checkbox) => {
             const scope = _adminGrid;
             if (!scope.selectedRoleId || !featureId) return;
+            if (!scope.canSaveCustomizeForRole()) {
+                scope.showNotification('Role data is still loading. Wait for Loading to finish, then try again.', 'warning');
+                $checkbox.prop('checked', !enabled);
+                return;
+            }
             var selectedRole = scope.data.roles.find(function (r) { return String(r.id) === String(scope.selectedRoleId); });
             if (selectedRole && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(selectedRole)) {
                 scope.showNotification('Only super users may change permissions for the super_user role.', 'warning');
@@ -926,17 +972,8 @@ var _adminGrid = function () {
                     dataFunctions.clearCachePattern('get_role_features');
                     dataFunctions.clearCachePattern('get_features_for_role');
                 }
-                if (typeof Session !== 'undefined' && Session.remove) Session.remove('featureKeys');
                 scope.updateAdminFeatureSummary();
-                var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
-                var currentRoleId = user && user.role_id ? user.role_id : null;
-                if (currentRoleId && String(currentRoleId) === String(scope.selectedRoleId)) {
-                    if (typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
-                        authService.fetchAndCacheFeatures(currentRoleId);
-                    } else if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
-                        menuFilter.refresh();
-                    }
-                }
+                scope.refreshSessionFeatureKeysIfCurrentRole(scope.selectedRoleId);
             } catch (error) {
                 console.error('[Admin] Feature toggle error:', error);
                 scope.showNotification('Error saving: ' + (error.message || ''), 'error');
@@ -949,6 +986,11 @@ var _adminGrid = function () {
         toggleAdminAction: async (actionId, actionKey, enabled, $checkbox) => {
             const scope = _adminGrid;
             if (!scope.selectedRoleId || !actionId) return;
+            if (!scope.canSaveCustomizeForRole()) {
+                scope.showNotification('Role data is still loading. Wait for Loading to finish, then try again.', 'warning');
+                $checkbox.prop('checked', !enabled);
+                return;
+            }
             var selectedRole = scope.data.roles.find(function (r) { return String(r.id) === String(scope.selectedRoleId); });
             if (selectedRole && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(selectedRole)) {
                 scope.showNotification('Only super users may change permissions for the super_user role.', 'warning');
@@ -990,13 +1032,7 @@ var _adminGrid = function () {
                 }
                 scope.updateAdminFeatureSummary();
                 scope.refreshAdminExpandBadges();
-                var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
-                var currentRoleId = user && user.role_id ? user.role_id : null;
-                if (currentRoleId && String(currentRoleId) === String(scope.selectedRoleId)) {
-                    if (typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
-                        authService.fetchAndCacheFeatures(currentRoleId);
-                    }
-                }
+                scope.refreshSessionFeatureKeysIfCurrentRole(scope.selectedRoleId);
             } catch (error) {
                 console.error('[Admin] Action toggle error:', error);
                 scope.showNotification('Error saving: ' + (error.message || ''), 'error');
@@ -1009,6 +1045,11 @@ var _adminGrid = function () {
         toggleAdminPermission: async (permissionId, enabled, $checkbox) => {
             const scope = _adminGrid;
             if (!scope.selectedRoleId || !permissionId) return;
+            if (!scope.canSaveCustomizeForRole()) {
+                scope.showNotification('Role data is still loading. Wait for Loading to finish, then try again.', 'warning');
+                $checkbox.prop('checked', !enabled);
+                return;
+            }
             var selectedRole = scope.data.roles.find(function (r) { return String(r.id) === String(scope.selectedRoleId); });
             if (selectedRole && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canManageRole(selectedRole)) {
                 scope.showNotification('Only super users may change permissions for the super_user role.', 'warning');
@@ -1017,6 +1058,11 @@ var _adminGrid = function () {
             }
             var perm = scope.adminAllPermissions.find(function (p) { return String(p.id) === String(permissionId); });
             if (!perm) return;
+            if (perm.role_id && String(perm.role_id) !== String(scope.adminLoadedRoleId)) {
+                scope.showNotification('Permission does not belong to the selected role. Close Customize and reopen it for this role.', 'warning');
+                $checkbox.prop('checked', !enabled);
+                return;
+            }
             $checkbox.prop('disabled', true);
             try {
                 await dataFunctions.updateRolePermission(perm.id, {

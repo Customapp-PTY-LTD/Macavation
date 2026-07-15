@@ -669,27 +669,3 @@ function signOut() {
         }
     });
 }
-
-function updateMenuVisibility() {
-    const testManagementMenuItem = document.getElementById('testScenariosMenuItem');
-    if (testManagementMenuItem && typeof dataFunctions !== 'undefined') {
-        testManagementMenuItem.style.display = dataFunctions.canAccessTestManagement() ? 'block' : 'none';
-    }
-}
-
-async function initMenuVisibilityWhenReady() {
-    try {
-        if (typeof waitForDataFunctions === 'function') {
-            await waitForDataFunctions();
-        }
-        if (typeof dataFunctions !== 'undefined' && dataFunctions.isAuthenticated()) {
-            updateMenuVisibility();
-        }
-    } catch (e) {
-        console.warn('[Menu visibility] init skipped:', e);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-    initMenuVisibilityWhenReady();
-});

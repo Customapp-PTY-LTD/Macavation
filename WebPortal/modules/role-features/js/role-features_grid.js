@@ -12,6 +12,33 @@ var _roleFeaturesGrid = function () {
         // Map of String(feature_id) -> role_feature_id (bigint from DB)
         roleFeatureIdMap: {},
         selectedRoleId: null,
+        featuresLoadSeq: 0,
+        loadedRoleId: null,
+
+        canApplyFeaturesLoad: (roleId, loadSeq) => {
+            const scope = _roleFeaturesGrid;
+            return loadSeq === scope.featuresLoadSeq &&
+                String(roleId) === String(scope.selectedRoleId);
+        },
+
+        canSaveFeaturesForRole: () => {
+            const scope = _roleFeaturesGrid;
+            return !!(scope.selectedRoleId && scope.loadedRoleId &&
+                String(scope.selectedRoleId) === String(scope.loadedRoleId));
+        },
+
+        refreshSessionFeatureKeysIfCurrentRole: (roleId) => {
+            var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
+            var currentRoleId = user && user.role_id ? user.role_id : null;
+            if (currentRoleId && String(currentRoleId) === String(roleId)) {
+                if (typeof Session !== 'undefined' && Session.remove) Session.remove('featureKeys');
+                if (typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
+                    authService.fetchAndCacheFeatures(currentRoleId);
+                } else if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
+                    menuFilter.refresh();
+                }
+            }
+        },
 
         init: async () => {
             const scope = _roleFeaturesGrid;
@@ -38,6 +65,7 @@ var _roleFeaturesGrid = function () {
                     scope.loadFeaturesForRole(roleId);
                 } else {
                     scope.selectedRoleId = null;
+                    scope.loadedRoleId = null;
                     scope.clearFeatures();
                 }
             });
@@ -77,6 +105,10 @@ var _roleFeaturesGrid = function () {
         loadFeaturesForRole: async (roleId) => {
             const scope = _roleFeaturesGrid;
             scope.selectedRoleId = roleId;
+            scope.loadedRoleId = null;
+            scope.roleFeatureIdMap = {};
+            scope.featuresLoadSeq += 1;
+            var loadSeq = scope.featuresLoadSeq;
             scope.selectedRoleRecord = null;
             if (typeof dataFunctions !== 'undefined' && dataFunctions.getRoles) {
                 var allRoles = await dataFunctions.getRoles();
@@ -91,6 +123,8 @@ var _roleFeaturesGrid = function () {
                     dataFunctions.getFeatures(),
                     dataFunctions.getRoleFeatures()
                 ]);
+
+                if (!scope.canApplyFeaturesLoad(roleId, loadSeq)) return;
 
                 var featuresResponse = results[0];
                 var allRoleFeatures = results[1];
@@ -113,9 +147,11 @@ var _roleFeaturesGrid = function () {
                     }
                 });
 
+                scope.loadedRoleId = roleId;
                 scope.renderFeatures();
                 scope.updateSummary();
             } catch (error) {
+                if (!scope.canApplyFeaturesLoad(roleId, loadSeq)) return;
                 console.error('[Role Features] Error loading features:', error);
                 scope.showError('Error loading features: ' + (error.message || ''));
             }
@@ -159,6 +195,11 @@ var _roleFeaturesGrid = function () {
         toggleFeature: async (featureId, _featureKey, enabled, checkboxEl) => {
             const scope = _roleFeaturesGrid;
             if (!scope.selectedRoleId) return;
+            if (!scope.canSaveFeaturesForRole()) {
+                scope.showError('Role data is still loading. Wait for Loading to finish, then try again.');
+                checkboxEl.prop('checked', !enabled);
+                return;
+            }
             if (typeof superUserVisibility !== 'undefined' && scope.selectedRoleRecord &&
                 !superUserVisibility.canManageRole(scope.selectedRoleRecord)) {
                 scope.showError('Only super users may change features for the super_user role.');
@@ -200,18 +241,8 @@ var _roleFeaturesGrid = function () {
                 // Invalidate caches so next load fetches fresh data from DB
                 dataFunctions.clearCachePattern('get_role_features');
                 dataFunctions.clearCachePattern('get_features_for_role');
-                Session.remove('featureKeys');
                 scope.updateSummary();
-                // If editing current user's role, refetch feature keys and refresh sidebar
-                var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
-                var currentRoleId = user && user.role_id ? user.role_id : null;
-                if (currentRoleId && String(currentRoleId) === String(scope.selectedRoleId)) {
-                    if (typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
-                        authService.fetchAndCacheFeatures(currentRoleId);
-                    } else if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
-                        menuFilter.refresh();
-                    }
-                }
+                scope.refreshSessionFeatureKeysIfCurrentRole(scope.selectedRoleId);
             } catch (error) {
                 console.error('[Role Features] Error toggling feature:', error);
                 scope.showError('Error saving: ' + (error.message || ''));
@@ -224,7 +255,7 @@ var _roleFeaturesGrid = function () {
 
         reloadRoleFeatureIds: async () => {
             const scope = _roleFeaturesGrid;
-            if (!scope.selectedRoleId) return;
+            if (!scope.selectedRoleId || !scope.canSaveFeaturesForRole()) return;
             try {
                 var allRoleFeatures = await dataFunctions.getRoleFeatures();
                 var assigned = Array.isArray(allRoleFeatures) ? allRoleFeatures : [];
@@ -254,6 +285,8 @@ var _roleFeaturesGrid = function () {
         },
 
         clearFeatures: () => {
+            _roleFeaturesGrid.loadedRoleId = null;
+            _roleFeaturesGrid.roleFeatureIdMap = {};
             var tbody = document.getElementById('featuresTableBody');
             if (tbody) {
                 tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-5">' +

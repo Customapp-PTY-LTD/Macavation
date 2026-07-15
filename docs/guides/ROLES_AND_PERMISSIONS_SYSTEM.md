@@ -403,13 +403,15 @@ actionAccess.apply(document);           // scan DOM and apply gates
 
 ## 6. Admin UIs
 
-Macavation exposes three admin screens (themselves gated as `features`):
+Macavation exposes legacy standalone admin screens (themselves gated as `features`), plus the unified **User & access** hub (`admin-grid`) that replaces them for daily work:
 
 | Admin screen | Feature key | Manages |
 |--------------|-------------|---------|
-| Role Features | `role-features-grid` | Which screens each role can access |
-| Role Permissions | `role-permissions-grid` | Which database functions/tables each role can call |
-| Role Actions | `role-actions-grid` | Which in-module buttons each role can use |
+| User & access | `admin-grid` | People, roles, sidebar modules, button actions, and database permissions (via **Roles & modules → Customize**) |
+| Role Features | `role-features-grid` | Which screens each role can access (legacy; use hub Customize **On** toggle) |
+| Role Permissions | `role-permissions-grid` | Which database functions/tables each role can call (legacy; use hub Customize expanded module) |
+
+**Button actions** (`actions` / `role_actions`) are edited only in **User & access → Roles & modules → Customize** — expand a module to see **Button actions** checkboxes. There is no separate Role Actions admin screen.
 
 **Relationship between layers:**
 

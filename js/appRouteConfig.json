@@ -532,55 +532,6 @@
             "css": [
                 "css/data_import_grid.css"
             ]
-        },
-        "test-scenarios-grid": {
-            "description": "Test Scenarios Management",
-            "path": "test-scenarios",
-            "html": "html/test_scenarios_grid.html",
-            "js": [
-                "js/test_scenarios_grid.js"
-            ],
-            "css": [
-                "css/test_scenarios_grid.css"
-            ]
-        },
-        "test-scenario-modal": {
-            "description": "Add/Edit Test Scenario Modal",
-            "path": "modal-test-scenario",
-            "html": "html/modal_test_scenario.html",
-            "js": [
-                "js/modal_test_scenario.js"
-            ],
-            "css": []
-        },
-        "test-data-grid": {
-            "description": "Test Data Management",
-            "path": "test-data",
-            "html": "html/test_data_grid.html",
-            "js": [
-                "js/test_data_grid.js"
-            ],
-            "css": [
-                "css/test_data_grid.css"
-            ]
-        },
-        "test-data-set-modal": {
-            "description": "Add/Edit Test Data Set Modal",
-            "path": "modal-test-data-set",
-            "html": "html/modal_test_data_set.html",
-            "js": [
-                "js/modal_test_data_set.js"
-            ],
-            "css": []
-        },
-        "test-data-record-modal": {
-            "description": "Add/Edit Test Data Record Modal",
-            "path": "modal-test-data-record",
-            "html": "html/modal_test_data_record.html",
-            "js": [
-                "js/modal_test_data_record.js"
-            ],
-            "css": []
         }
     }
 }

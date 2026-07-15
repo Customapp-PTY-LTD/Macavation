@@ -60,7 +60,6 @@ This guide is for **end users** going live. Technical setup and database notes l
 | **Palladium integration** | Connection to Palladium ERP (if your site uses it). |
 | **User management** | Users, roles, permissions (administrators only). |
 | **System administration** | Advanced system settings (restricted). |
-| **Test management** | Internal test tools (usually hidden for normal users). |
 
 ---
 

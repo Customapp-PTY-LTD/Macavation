@@ -132,8 +132,7 @@ var _menuFilter = function () {
                 'crmCollapse',
                 'qualityCollapse',
                 'businessCollapse',
-                'userManagementCollapse',
-                'testManagementCollapse'
+                'userManagementCollapse'
             ];
 
             collapseIds.forEach(function (id) {

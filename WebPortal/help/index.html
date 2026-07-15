@@ -911,23 +911,6 @@
     </figure>
   </section>
 
-  <section id="role-actions-grid" class="guide-section" data-guide-id="role-actions-grid">
-    <h2>Role Actions (module)</h2>
-<p class="guide-lead">Module <strong>Role Actions (module)</strong>. Available from the navigation menu when your role includes access. The screenshot below shows the live screen layout.</p>
-    <p class="guide-how">Typical use: open the screen from the menu when your role allows it, narrow the list with filters, then use toolbar buttons or row actions to add, edit, export, or move work forward. The screenshot shows the usual layout.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open this module from the sidebar when your role includes access.</li>
-      <li>Use search, filters, and <strong>Clear</strong> (if shown) to find the rows you need.</li>
-      <li>Use toolbar buttons (add, export, refresh) for actions that create new records or refresh the whole list.</li>
-      <li>Use row actions or links inside each row to open detail, edit, or the next step in the workflow.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/role-actions-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
-  </section>
-
   <section id="modal-role-feature" class="guide-section" data-guide-id="modal-role-feature">
     <h2>Role Feature (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
@@ -1229,100 +1212,6 @@
     </figure>
   </section>
 
-  <section id="test-data-sets" class="guide-section" data-guide-id="test-data-sets" data-exclude-from-full-guide="1">
-    <h2>Test data — Data sets</h2>
-<p class="guide-lead"><strong>Data sets</strong> — create and manage synthetic data sets for test scenarios. Use filters, search, and export.</p>
-    <p class="guide-how">Define a set per scenario or feature area, then seed records. Export sets to share fixtures across testers.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open <strong>Test data management</strong> (non-production / QA environments).</li>
-      <li>Select the <strong>Data sets</strong> tab; expand <strong>Filters</strong> (module, entity type, purpose) and click <strong>Apply filters</strong> / <strong>Clear</strong> as needed.</li>
-      <li>Click <strong>Add data set</strong>; name it for the scenario or feature you are testing.</li>
-      <li>Open a set from the grid to review or edit metadata; export sets to share fixtures with other testers.</li>
-      <li>Never use test data tools on production databases.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/test-data-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
-  </section>
-
-  <section id="test-data-records" class="guide-section" data-guide-id="test-data-records" data-exclude-from-full-guide="1">
-    <h2>Test data — Records</h2>
-<p class="guide-lead"><strong>Records</strong> — individual test data records within sets. Add records after selecting or creating a data set.</p>
-    <p class="guide-how">Add records after choosing a parent set; bulk tools (if shown) should stay within test data only.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open <strong>Test data management</strong> → <strong>Records</strong> tab.</li>
-      <li>Select or create a parent <strong>data set</strong> first—the add-record button is enabled in context.</li>
-      <li>Click <strong>Add record</strong> and fill entity fields that mirror production shape but with synthetic values.</li>
-      <li>Use filters to find records; bulk actions (if shown) must stay within test data tables only.</li>
-      <li>Export or duplicate sets when multiple testers need the same baseline.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/test-data-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
-  </section>
-
-  <section id="modal-test-data-record" class="guide-section" data-guide-id="modal-test-data-record" data-exclude-from-full-guide="1">
-    <h2>Test Data Record (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open to edit one synthetic record’s JSON/fields for a scenario.</li>
-      <li>Keep values obviously non-production.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/modal-test-data-record.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
-  </section>
-
-  <section id="modal-test-data-set" class="guide-section" data-guide-id="modal-test-data-set" data-exclude-from-full-guide="1">
-    <h2>Test Data Set (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open from test data to define or edit a synthetic data set name, module, and purpose.</li>
-      <li>Save before adding child records.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/modal-test-data-set.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
-  </section>
-
-  <section id="modal-test-scenario" class="guide-section" data-guide-id="modal-test-scenario" data-exclude-from-full-guide="1">
-    <h2>Test Scenario (dialog)</h2>
-<p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open to name and describe an automation scenario; link data sets if required.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/modal-test-scenario.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
-  </section>
-
-  <section id="test-scenarios-grid" class="guide-section" data-guide-id="test-scenarios-grid" data-exclude-from-full-guide="1">
-    <h2>Test Scenarios (module)</h2>
-<p class="guide-lead">QA automation scenarios (test environments).</p>
-    <p class="guide-how">For non-production environments: scenarios wrap automated tests—keep naming consistent with CI or Playwright jobs.</p>
-
-    <h3 class="guide-subhead">How to use this screen</h3>
-    <ol class="guide-page-steps">
-      <li>Open <strong>Test scenarios</strong> in QA environments.</li>
-      <li>Create or edit scenarios that wrap automated tests; keep names aligned with CI or Playwright job names.</li>
-      <li>Link scenarios to data sets where your workflow requires seeded data.</li>
-      <li>Run or trigger tests only through approved automation paths—do not run destructive scripts against shared environments without notice.</li>
-    </ol>
-    <figure class="guide-shot">
-      <img src="./assets/screenshots/test-scenarios-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
-    </figure>
-  </section>
-
   <section id="modal-user" class="guide-section" data-guide-id="modal-user" data-exclude-from-full-guide="1">
     <h2>User (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
@@ -1370,6 +1259,13 @@
       <li>Permissions that are not tied to a single module appear under <strong>Other / shared</strong> at the bottom of the list.</li>
       <li>Use <strong>Edit role</strong> when you only need to change the role name or description.</li>
     </ol>
+    <h3 class="guide-subhead">Troubleshooting</h3>
+    <ul class="guide-page-steps">
+      <li><strong>Each role is independent.</strong> Turning a module off for one role does not share or unlink grants across roles; each role has its own database rows.</li>
+      <li>Wait until Customize shows <strong>Loading…</strong> has finished before ticking modules — toggling while data is still loading can save against the wrong role.</li>
+      <li>If <strong>User &amp; access</strong> disappears from your sidebar after you edited a <em>different</em> role, sign out and back in (or refresh the page). Your role may still have the grant; only your browser menu cache was cleared.</li>
+      <li>If a role truly lost a module, reopen <strong>Customize</strong> for that role and turn the module <strong>On</strong> again, or ask a super user to restore it.</li>
+    </ul>
     <figure class="guide-shot">
       <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
