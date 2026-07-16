@@ -99,9 +99,6 @@ var _roleMenuConfig = function () {
             'General Manager': {
                 access: 'all'
             },
-            'Production Manager': {
-                access: 'all'
-            },
             'QA Supervisor': {
                 access: 'all'
             },
@@ -242,6 +239,12 @@ var _roleMenuConfig = function () {
                 label: 'My Day',
                 category: 'main'
             },
+            'batch-journey': {
+                route: 'batch-journey',
+                icon: 'fas fa-search',
+                label: 'Find a batch',
+                category: 'main'
+            },
             'amanda-dashboard': {
                 route: 'amanda-dashboard',
                 icon: 'fas fa-chart-line',
@@ -313,7 +316,7 @@ var _roleMenuConfig = function () {
             'kernel-production-forecast-grid': {
                 route: 'kernel-production-forecast-grid',
                 icon: 'fas fa-clipboard-list',
-                label: 'Production Forecast',
+                label: 'Kernel forecast',
                 category: 'kernel',
                 parent: 'kernelCollapse'
             },
@@ -334,7 +337,7 @@ var _roleMenuConfig = function () {
             'oil-production-forecast-grid': {
                 route: 'oil-production-forecast-grid',
                 icon: 'fas fa-clipboard-list',
-                label: 'Production Forecast',
+                label: 'Oil forecast',
                 category: 'oil',
                 parent: 'oilCollapse'
             },
@@ -398,7 +401,7 @@ var _roleMenuConfig = function () {
             'document-management-grid': {
                 route: 'document-management-grid',
                 icon: 'fas fa-file-alt',
-                label: 'Document Management',
+                label: 'Documents',
                 category: 'main'
             },
             'palladium-integration-grid': {
@@ -413,7 +416,160 @@ var _roleMenuConfig = function () {
                 label: 'User & access',
                 category: 'user-management',
                 parent: 'userManagementCollapse'
+            },
+            'dashboard-targets-grid': {
+                route: 'dashboard-targets-grid',
+                icon: 'fas fa-bullseye',
+                label: 'Dashboard Targets',
+                category: 'user-management',
+                parent: 'userManagementCollapse'
+            },
+            'stock-alert-rules-grid': {
+                route: 'stock-alert-rules-grid',
+                icon: 'fas fa-flag',
+                label: 'Stock Alert Rules',
+                category: 'user-management',
+                parent: 'userManagementCollapse'
+            },
+            'scheduled-reports-grid': {
+                route: 'scheduled-reports-grid',
+                icon: 'fas fa-paper-plane',
+                label: 'Scheduled Reports',
+                category: 'user-management',
+                parent: 'userManagementCollapse'
+            },
+            'messaging-compose-grid': {
+                route: 'messaging-compose-grid',
+                icon: 'fas fa-paper-plane',
+                label: 'Send Message',
+                category: 'user-management',
+                parent: 'userManagementCollapse'
             }
+        },
+
+        /**
+         * Human-readable module label as shown in the sidebar (Customize modules, etc.).
+         * Prefers live sidebar link text, then menuStructure.label, then fallbackName.
+         */
+        getPortalModuleLabel: function (featureKey, fallbackName) {
+            var key = featureKey != null ? String(featureKey) : '';
+            if (!key) {
+                return fallbackName != null ? String(fallbackName) : '';
+            }
+
+            try {
+                if (typeof document !== 'undefined') {
+                    var link = null;
+                    var sidebarLinks = document.querySelectorAll('#sidebarMenu a[route]');
+                    for (var li = 0; li < sidebarLinks.length; li++) {
+                        if (sidebarLinks[li].getAttribute('route') === key) {
+                            link = sidebarLinks[li];
+                            break;
+                        }
+                    }
+                    if (link) {
+                        var clone = link.cloneNode(true);
+                        var icons = clone.querySelectorAll('i');
+                        for (var i = 0; i < icons.length; i++) {
+                            icons[i].parentNode.removeChild(icons[i]);
+                        }
+                        var text = (clone.textContent || '').replace(/\s+/g, ' ').trim();
+                        if (text) return text;
+                    }
+                }
+            } catch (e) { /* ignore */ }
+
+            var entry = this.menuStructure[key];
+            if (entry && entry.label) {
+                return entry.label;
+            }
+
+            return fallbackName != null ? String(fallbackName) : key;
+        },
+
+        /**
+         * Sidebar route order (matches index.html). Used when DOM is unavailable.
+         */
+        portalModuleOrder: [
+            'dashboard',
+            'my-day',
+            'batch-journey',
+            'grower-intake-grid',
+            'kernel-production-grid',
+            'stock-management-kernel',
+            'kernel-dispatch-grid',
+            'supplier-intake-grid',
+            'oil-production-grid',
+            'stock-management-oil',
+            'oil-dispatch-grid',
+            'kernel-production-forecast-grid',
+            'oil-production-forecast-grid',
+            'crm-grid',
+            'quality-assurance-grid',
+            'document-management-grid',
+            'sales-forecasting-grid',
+            'financial-management-grid',
+            'palladium-integration-grid',
+            'admin-grid',
+            'features-grid',
+            'dashboard-targets-grid',
+            'stock-alert-rules-grid',
+            'scheduled-reports-grid',
+            'messaging-compose-grid',
+            'executive-dashboard',
+            'amanda-dashboard',
+            'users-grid',
+            'roles-grid',
+            'role-permissions-grid',
+            'role-features-grid',
+            'stock-management-grid'
+        ],
+
+        /** Route keys in sidebar DOM order (top to bottom). */
+        getPortalModuleOrder: function () {
+            var order = [];
+            var seen = {};
+            try {
+                if (typeof document !== 'undefined') {
+                    var items = document.querySelectorAll('#sidebarMenu [data-route]');
+                    for (var i = 0; i < items.length; i++) {
+                        var route = items[i].getAttribute('data-route');
+                        if (route && !seen[route]) {
+                            seen[route] = true;
+                            order.push(route);
+                        }
+                    }
+                    if (order.length) {
+                        return order;
+                    }
+                }
+            } catch (e) { /* ignore */ }
+            return this.portalModuleOrder.slice();
+        },
+
+        /** Sort feature rows for Customize / Role Features to match sidebar order. */
+        sortFeaturesByPortalOrder: function (features) {
+            if (!Array.isArray(features) || !features.length) {
+                return features || [];
+            }
+            var order = this.getPortalModuleOrder();
+            var indexMap = {};
+            for (var i = 0; i < order.length; i++) {
+                indexMap[order[i]] = i;
+            }
+            var unknownBase = order.length;
+            return features.slice().sort(function (a, b) {
+                var ak = a && a.key != null ? String(a.key) : '';
+                var bk = b && b.key != null ? String(b.key) : '';
+                var ai = Object.prototype.hasOwnProperty.call(indexMap, ak) ? indexMap[ak] : unknownBase;
+                var bi = Object.prototype.hasOwnProperty.call(indexMap, bk) ? indexMap[bk] : unknownBase;
+                if (ai !== bi) {
+                    return ai - bi;
+                }
+                var an = (a && a.name) ? String(a.name) : ak;
+                var bn = (b && b.name) ? String(b.name) : bk;
+                return an.localeCompare(bn);
+            });
         },
 
         /**
@@ -446,15 +602,19 @@ var _roleMenuConfig = function () {
         hasAccess: function (route) {
             if (!Session.get('user')) return false;
 
-            // Admin bypass
-            if (this.isAdminUser()) return true;
-
-            // 1. DB-cached features: allow if route is in keys
-            var keys = Session.get('featureKeys');
-            if (Array.isArray(keys) && keys.indexOf(route) !== -1) return true;
-
-            // 2. If we have keys but route not in keys, still allow if fallback config includes it (avoids deny when DB is out of sync)
             var roleName = this.getUserRole();
+            if (roleName) {
+                var normalizedRole = String(roleName).toLowerCase().replace(/\s+/g, '_');
+                if (normalizedRole === 'admin' || normalizedRole === 'super_user') return true;
+            }
+
+            // DB-cached features are authoritative once loaded (including an empty list).
+            var keys = Session.get('featureKeys');
+            if (Array.isArray(keys)) {
+                return keys.indexOf(route) !== -1;
+            }
+
+            // Fallback before feature keys are cached at login (role-menu-config only).
             if (roleName) {
                 var roleConfig = this._getRoleConfig(roleName);
                 if (roleConfig) {
@@ -476,9 +636,9 @@ var _roleMenuConfig = function () {
             // Admin bypass
             if (this.isAdminUser()) return Object.keys(this.menuStructure);
 
-            // 1. DB-cached features (preferred)
+            // 1. DB-cached features (preferred; empty array means nothing enabled)
             var keys = Session.get('featureKeys');
-            if (Array.isArray(keys) && keys.length > 0) return keys;
+            if (Array.isArray(keys)) return keys;
 
             // 2. Fallback to hardcoded config
             var roleName = this.getUserRole();
@@ -509,9 +669,8 @@ var _roleMenuConfig = function () {
         isAdminUser: function () {
             const roleName = this.getUserRole();
             if (!roleName) return false;
-
-            var roleConfig = this._getRoleConfig(roleName);
-            return roleConfig && roleConfig.access === 'all';
+            var normalized = String(roleName).toLowerCase();
+            return normalized === 'admin' || normalized === 'super_user';
         },
 
         /**

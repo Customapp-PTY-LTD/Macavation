@@ -300,6 +300,15 @@ var _dataFunctions = function () {
             return [];
         },
 
+        /** PostgREST TABLE RPCs return an array; callers need a single row. */
+        _normalizeUserRow: function (raw) {
+            if (!raw) return null;
+            if (Array.isArray(raw)) return raw.length ? raw[0] : null;
+            if (raw && Array.isArray(raw.data)) return raw.data.length ? raw.data[0] : null;
+            if (typeof raw === 'object') return raw;
+            return null;
+        },
+
         /**
          * Check if current user has admin privileges
          */
@@ -739,12 +748,13 @@ var _dataFunctions = function () {
          * Get user by ID (cached for 5 minutes)
          */
         getUserById: async function (userId, token = null, forceRefresh = false) {
-            var user = await this.callFunction('get_user_by_id', { p_id: userId }, token, {
+            var raw = await this.callFunction('get_user_by_id', { p_id: userId }, token, {
                 cacheKey: `user_${userId}`,
                 useCache: true,
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
+            var user = this._normalizeUserRow(raw);
             if (user && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canSeeUser(user)) {
                 return null;
             }
@@ -859,7 +869,12 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
-            return this._normalizeListResponse(raw, 'get_roles');
+            var roles = this._normalizeListResponse(raw, 'get_roles');
+            if (typeof superUserVisibility !== 'undefined' &&
+                superUserVisibility.rememberSuperUserRoleIdFromRoles) {
+                superUserVisibility.rememberSuperUserRoleIdFromRoles(roles);
+            }
+            return roles;
         },
 
         /**
@@ -1242,9 +1257,28 @@ var _dataFunctions = function () {
         /**
          * Get all role features
          */
-        getRoleFeatures: async function (token = null) {
-            var raw = await this.callFunction('get_role_features', {}, token);
+        getRoleFeatures: async function (token = null, forceRefresh = false) {
+            var raw = await this.callFunction('get_role_features', {}, token, {
+                cacheKey: 'get_role_features',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
             return this._applySuperUserVisibility('roleAssignments', this._normalizeListResponse(raw, 'get_role_features'));
+        },
+
+        /**
+         * Role-feature assignments for one role (server-filtered; preferred for Customize).
+         */
+        getRoleFeaturesForRole: async function (roleId, token = null, forceRefresh = false) {
+            if (!roleId) return [];
+            var raw = await this.callFunction('get_role_features_for_role', { p_role_id: roleId }, token, {
+                cacheKey: 'get_role_features_for_role_' + String(roleId),
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            return this._applySuperUserVisibility('roleAssignments', this._normalizeListResponse(raw, 'get_role_features_for_role'));
         },
 
         /**
@@ -1286,6 +1320,17 @@ var _dataFunctions = function () {
          */
         deleteRoleFeature: async function (featureId, token = null) {
             return await this.callFunction('delete_role_feature_simple', { role_feature_id: featureId }, token);
+        },
+
+        /**
+         * Delete role feature by role + feature (safe for Customize — no stale row PK).
+         */
+        deleteRoleFeatureForRole: async function (roleId, featureId, token = null) {
+            await this._assertCanManageRoleRecord(roleId, token);
+            return await this.callFunction('delete_role_feature_for_role', {
+                p_role_id: roleId,
+                p_feature_id: featureId
+            }, token, { useCache: false });
         },
 
         /**
@@ -1362,6 +1407,15 @@ var _dataFunctions = function () {
         /** Revoke a role/action assignment by its id. */
         deleteRoleAction: async function (roleActionId, token = null) {
             return await this.callFunction('delete_role_action_simple', { role_action_id: roleActionId }, token);
+        },
+
+        /** Revoke by role + action (safe for Customize — no stale row PK). */
+        deleteRoleActionForRole: async function (roleId, actionId, token = null) {
+            await this._assertCanManageRoleRecord(roleId, token);
+            return await this.callFunction('delete_role_action_for_role', {
+                p_role_id: roleId,
+                p_action_id: actionId
+            }, token, { useCache: false });
         },
 
         // ===== COMPANY MANAGEMENT FUNCTIONS =====

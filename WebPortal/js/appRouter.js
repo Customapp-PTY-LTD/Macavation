@@ -50,6 +50,14 @@ var _appRouter = function () {
             if (!activePage) {
                 activePage = _appRouter.defaultRoute;
             }
+
+            // Do not restore a route the signed-in user cannot access (e.g. prior user on same browser).
+            if (activePage && typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getUserRole()) {
+                if (!roleMenuConfig.hasAccess(activePage)) {
+                    console.warn('[App Router] Ignoring lastActivePage without permission:', activePage);
+                    activePage = _appRouter.defaultRoute;
+                }
+            }
             
             // Store in sessionStorage for current session
             if (activePage) {
@@ -127,20 +135,7 @@ var _appRouter = function () {
                 var isMainContent = !elementSelector || elementSelector === _appRouter.contentContainer ||
                     (elementSelector.indexOf('content-area') !== -1);
                 if (isMainContent && typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getUserRole()) {
-                    let hasAccess = roleMenuConfig.hasAccess(routeName);
-                    // If hasAccess says no, allow when: (1) sidebar link is visible, or (2) route is in getAccessibleMenus()
-                    if (!hasAccess) {
-                        const navItem = document.querySelector('#sidebarMenu .nav-item[data-route="' + routeName + '"]');
-                        const link = document.querySelector('#sidebarMenu a[route="' + routeName + '"]');
-                        const item = navItem || (link ? link.closest('.nav-item') : null);
-                        if (item && !item.classList.contains('d-none')) {
-                            hasAccess = true;
-                        }
-                        if (!hasAccess && roleMenuConfig.getAccessibleMenus && roleMenuConfig.getAccessibleMenus().indexOf(routeName) !== -1) {
-                            hasAccess = true;
-                        }
-                    }
-                    if (!hasAccess) {
+                    if (!roleMenuConfig.hasAccess(routeName)) {
                         console.log(`[App Router] Access denied for route: ${routeName}`);
                         const contentArea = document.getElementById('content-area');
                         if (contentArea) {
