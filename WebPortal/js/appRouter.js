@@ -50,6 +50,14 @@ var _appRouter = function () {
             if (!activePage) {
                 activePage = _appRouter.defaultRoute;
             }
+
+            // Do not restore a route the signed-in user cannot access (e.g. prior user on same browser).
+            if (activePage && typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getUserRole()) {
+                if (!roleMenuConfig.hasAccess(activePage)) {
+                    console.warn('[App Router] Ignoring lastActivePage without permission:', activePage);
+                    activePage = _appRouter.defaultRoute;
+                }
+            }
             
             // Store in sessionStorage for current session
             if (activePage) {
@@ -127,20 +135,7 @@ var _appRouter = function () {
                 var isMainContent = !elementSelector || elementSelector === _appRouter.contentContainer ||
                     (elementSelector.indexOf('content-area') !== -1);
                 if (isMainContent && typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getUserRole()) {
-                    let hasAccess = roleMenuConfig.hasAccess(routeName);
-                    // If hasAccess says no, allow when: (1) sidebar link is visible, or (2) route is in getAccessibleMenus()
-                    if (!hasAccess) {
-                        const navItem = document.querySelector('#sidebarMenu .nav-item[data-route="' + routeName + '"]');
-                        const link = document.querySelector('#sidebarMenu a[route="' + routeName + '"]');
-                        const item = navItem || (link ? link.closest('.nav-item') : null);
-                        if (item && !item.classList.contains('d-none')) {
-                            hasAccess = true;
-                        }
-                        if (!hasAccess && roleMenuConfig.getAccessibleMenus && roleMenuConfig.getAccessibleMenus().indexOf(routeName) !== -1) {
-                            hasAccess = true;
-                        }
-                    }
-                    if (!hasAccess) {
+                    if (!roleMenuConfig.hasAccess(routeName)) {
                         console.log(`[App Router] Access denied for route: ${routeName}`);
                         const contentArea = document.getElementById('content-area');
                         if (contentArea) {
@@ -186,30 +181,6 @@ var _appRouter = function () {
                     }
                 }
 
-                // Check if this is a test management module (test scenarios and test data)
-                const testManagementModules = ['test-scenarios-grid', 'test-data-grid'];
-
-                if (testManagementModules.includes(routeName)) {
-                    if (!dataFunctions.canAccessTestManagement()) {
-                        console.log('Insufficient permissions for test management, redirecting to dashboard...');
-                        // Show permission error
-                        const contentArea = document.getElementById('content-area');
-                        if (contentArea) {
-                            contentArea.innerHTML = `
-                                <div class="alert alert-danger" role="alert">
-                                    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Access Denied</h4>
-                                    <p>You need Super Admin role to access test management modules.</p>
-                                    <hr>
-                                    <p class="mb-0">Redirecting to dashboard...</p>
-                                </div>
-                            `;
-                            setTimeout(() => {
-                                _appRouter.routeTo('dashboard');
-                            }, 3000);
-                        }
-                        return { success: false, errors: ['Insufficient permissions'] };
-                    }
-                }
             }
 
             //load content into elementSelector
@@ -321,25 +292,6 @@ var _appRouter = function () {
                     if (typeof _modal_role !== 'undefined' && _modal_role.init) {
                         _modal_role.init();
                     }
-                },
-                'test-scenarios-grid': () => {
-                    if (typeof testScenariosGrid !== 'undefined' && typeof testScenariosGrid.init === 'function') {
-                        testScenariosGrid.init();
-                    }
-                },
-                'test-scenario-modal': () => {
-                    if (typeof _modal_test_scenario !== 'undefined' && _modal_test_scenario.init) _modal_test_scenario.init();
-                },
-                'test-data-grid': () => {
-                    if (typeof testDataGrid !== 'undefined' && typeof testDataGrid.init === 'function') {
-                        testDataGrid.init();
-                    }
-                },
-                'test-data-set-modal': () => {
-                    if (typeof _modal_test_data_set !== 'undefined' && _modal_test_data_set.init) _modal_test_data_set.init();
-                },
-                'test-data-record-modal': () => {
-                    if (typeof _modal_test_data_record !== 'undefined' && _modal_test_data_record.init) _modal_test_data_record.init();
                 },
                 'role-permissions-grid': () => {
                     if (typeof initializeRolePermissionsGrid === 'function') {
@@ -507,11 +459,6 @@ var _appRouter = function () {
                 'palladium-integration-grid': () => {
                     if (typeof initializePalladiumIntegrationGrid === 'function') {
                         initializePalladiumIntegrationGrid();
-                    }
-                },
-                'test-scenarios-grid': () => {
-                    if (typeof initializeTestScenariosGrid === 'function') {
-                        initializeTestScenariosGrid();
                     }
                 },
                 'batch-journey': () => {

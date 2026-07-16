@@ -12,6 +12,63 @@ var _roleFeaturesGrid = function () {
         // Map of String(feature_id) -> role_feature_id (bigint from DB)
         roleFeatureIdMap: {},
         selectedRoleId: null,
+        featuresLoadSeq: 0,
+        loadedRoleId: null,
+        featuresSaveSeq: 0,
+        pendingSaves: 0,
+
+        canApplyFeaturesLoad: (roleId, loadSeq) => {
+            const scope = _roleFeaturesGrid;
+            return loadSeq === scope.featuresLoadSeq &&
+                String(roleId) === String(scope.selectedRoleId);
+        },
+
+        canSaveFeaturesForRole: () => {
+            const scope = _roleFeaturesGrid;
+            return !!(scope.selectedRoleId && scope.loadedRoleId &&
+                String(scope.selectedRoleId) === String(scope.loadedRoleId));
+        },
+
+        canApplyFeaturesSave: (roleId, loadSeq, saveSeq) => {
+            const scope = _roleFeaturesGrid;
+            return saveSeq === scope.featuresSaveSeq &&
+                loadSeq === scope.featuresLoadSeq &&
+                String(roleId) === String(scope.selectedRoleId) &&
+                String(roleId) === String(scope.loadedRoleId);
+        },
+
+        setFeatureCheckboxesDisabled: (disabled) => {
+            document.querySelectorAll('.feature-checkbox').forEach(function (el) {
+                el.disabled = disabled;
+            });
+        },
+
+        beginFeatureSave: () => {
+            const scope = _roleFeaturesGrid;
+            scope.pendingSaves += 1;
+            scope.setFeatureCheckboxesDisabled(true);
+        },
+
+        endFeatureSave: () => {
+            const scope = _roleFeaturesGrid;
+            scope.pendingSaves = Math.max(0, scope.pendingSaves - 1);
+            if (scope.pendingSaves === 0 && scope.loadedRoleId) {
+                scope.setFeatureCheckboxesDisabled(false);
+            }
+        },
+
+        refreshSessionFeatureKeysIfCurrentRole: (roleId) => {
+            var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
+            var currentRoleId = user && user.role_id ? user.role_id : null;
+            if (currentRoleId && String(currentRoleId) === String(roleId)) {
+                if (typeof Session !== 'undefined' && Session.remove) Session.remove('featureKeys');
+                if (typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
+                    authService.fetchAndCacheFeatures(currentRoleId);
+                } else if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
+                    menuFilter.refresh();
+                }
+            }
+        },
 
         init: async () => {
             const scope = _roleFeaturesGrid;
@@ -34,10 +91,12 @@ var _roleFeaturesGrid = function () {
 
             $('#roleSelect').on('change', function () {
                 var roleId = $(this).val();
+                scope.featuresSaveSeq += 1;
                 if (roleId) {
                     scope.loadFeaturesForRole(roleId);
                 } else {
                     scope.selectedRoleId = null;
+                    scope.loadedRoleId = null;
                     scope.clearFeatures();
                 }
             });
@@ -77,6 +136,10 @@ var _roleFeaturesGrid = function () {
         loadFeaturesForRole: async (roleId) => {
             const scope = _roleFeaturesGrid;
             scope.selectedRoleId = roleId;
+            scope.loadedRoleId = null;
+            scope.roleFeatureIdMap = {};
+            scope.featuresLoadSeq += 1;
+            var loadSeq = scope.featuresLoadSeq;
             scope.selectedRoleRecord = null;
             if (typeof dataFunctions !== 'undefined' && dataFunctions.getRoles) {
                 var allRoles = await dataFunctions.getRoles();
@@ -87,10 +150,15 @@ var _roleFeaturesGrid = function () {
             scope.showLoading();
 
             try {
+                var roleFeaturesPromise = dataFunctions.getRoleFeaturesForRole
+                    ? dataFunctions.getRoleFeaturesForRole(roleId, null, true)
+                    : dataFunctions.getRoleFeatures(null, true);
                 var results = await Promise.all([
                     dataFunctions.getFeatures(),
-                    dataFunctions.getRoleFeatures()
+                    roleFeaturesPromise
                 ]);
+
+                if (!scope.canApplyFeaturesLoad(roleId, loadSeq)) return;
 
                 var featuresResponse = results[0];
                 var allRoleFeatures = results[1];
@@ -113,9 +181,11 @@ var _roleFeaturesGrid = function () {
                     }
                 });
 
+                scope.loadedRoleId = roleId;
                 scope.renderFeatures();
                 scope.updateSummary();
             } catch (error) {
+                if (!scope.canApplyFeaturesLoad(roleId, loadSeq)) return;
                 console.error('[Role Features] Error loading features:', error);
                 scope.showError('Error loading features: ' + (error.message || ''));
             }
@@ -132,11 +202,19 @@ var _roleFeaturesGrid = function () {
                 return;
             }
 
-            var html = scope.allFeatures.map(function (feature) {
+            var orderedFeatures = (typeof roleMenuConfig !== 'undefined' && roleMenuConfig.sortFeaturesByPortalOrder)
+                ? roleMenuConfig.sortFeaturesByPortalOrder(scope.allFeatures)
+                : scope.allFeatures;
+
+            var html = orderedFeatures.map(function (feature) {
                 var isEnabled = Object.prototype.hasOwnProperty.call(scope.roleFeatureIdMap, String(feature.id));
                 var checkedAttr = isEnabled ? ' checked' : '';
                 var featureKey = scope.escapeHtml(feature.key || '');
-                var featureName = scope.escapeHtml(feature.name || '');
+                var featureName = scope.escapeHtml(
+                    (typeof roleMenuConfig !== 'undefined' && roleMenuConfig.getPortalModuleLabel)
+                        ? roleMenuConfig.getPortalModuleLabel(feature.key, feature.name)
+                        : (feature.name || '')
+                );
                 var featureDesc = scope.escapeHtml(feature.description || '');
 
                 return '<tr class="feature-row">' +
@@ -159,6 +237,11 @@ var _roleFeaturesGrid = function () {
         toggleFeature: async (featureId, _featureKey, enabled, checkboxEl) => {
             const scope = _roleFeaturesGrid;
             if (!scope.selectedRoleId) return;
+            if (!scope.canSaveFeaturesForRole()) {
+                scope.showError('Role data is still loading. Wait for Loading to finish, then try again.');
+                checkboxEl.prop('checked', !enabled);
+                return;
+            }
             if (typeof superUserVisibility !== 'undefined' && scope.selectedRoleRecord &&
                 !superUserVisibility.canManageRole(scope.selectedRoleRecord)) {
                 scope.showError('Only super users may change features for the super_user role.');
@@ -166,16 +249,27 @@ var _roleFeaturesGrid = function () {
                 return;
             }
 
+            var saveRoleId = scope.loadedRoleId;
+            var loadSeq = scope.featuresLoadSeq;
+            var saveSeq = scope.featuresSaveSeq;
+            scope.beginFeatureSave();
             checkboxEl.prop('disabled', true);
 
             try {
+                if (!scope.canApplyFeaturesSave(saveRoleId, loadSeq, saveSeq)) {
+                    checkboxEl.prop('checked', !enabled);
+                    return;
+                }
                 if (enabled) {
                     var result = await dataFunctions.createRoleFeature({
-                        role_id: scope.selectedRoleId,
+                        role_id: saveRoleId,
                         feature_id: featureId,
                         value: 'true'
                     });
-                    // Extract the returned role_feature id so we can delete it later
+                    if (!scope.canApplyFeaturesSave(saveRoleId, loadSeq, saveSeq)) {
+                        checkboxEl.prop('checked', !enabled);
+                        return;
+                    }
                     var newId = null;
                     if (result) {
                         if (result.id) {
@@ -187,49 +281,56 @@ var _roleFeaturesGrid = function () {
                     if (newId) {
                         scope.roleFeatureIdMap[String(featureId)] = newId;
                     } else {
-                        // SP didn't return id — reload to get it
                         await scope.reloadRoleFeatureIds();
                     }
+                } else if (dataFunctions.deleteRoleFeatureForRole) {
+                    await dataFunctions.deleteRoleFeatureForRole(saveRoleId, featureId);
+                    if (!scope.canApplyFeaturesSave(saveRoleId, loadSeq, saveSeq)) {
+                        checkboxEl.prop('checked', !enabled);
+                        return;
+                    }
+                    delete scope.roleFeatureIdMap[String(featureId)];
                 } else {
                     var roleFeatureId = scope.roleFeatureIdMap[String(featureId)];
                     if (roleFeatureId) {
                         await dataFunctions.deleteRoleFeature(roleFeatureId);
+                        if (!scope.canApplyFeaturesSave(saveRoleId, loadSeq, saveSeq)) {
+                            checkboxEl.prop('checked', !enabled);
+                            return;
+                        }
                         delete scope.roleFeatureIdMap[String(featureId)];
                     }
                 }
-                // Invalidate caches so next load fetches fresh data from DB
                 dataFunctions.clearCachePattern('get_role_features');
+                dataFunctions.clearCachePattern('get_role_features_for_role');
                 dataFunctions.clearCachePattern('get_features_for_role');
-                Session.remove('featureKeys');
                 scope.updateSummary();
-                // If editing current user's role, refetch feature keys and refresh sidebar
-                var user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
-                var currentRoleId = user && user.role_id ? user.role_id : null;
-                if (currentRoleId && String(currentRoleId) === String(scope.selectedRoleId)) {
-                    if (typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
-                        authService.fetchAndCacheFeatures(currentRoleId);
-                    } else if (typeof menuFilter !== 'undefined' && menuFilter.refresh) {
-                        menuFilter.refresh();
-                    }
-                }
+                scope.refreshSessionFeatureKeysIfCurrentRole(saveRoleId);
             } catch (error) {
                 console.error('[Role Features] Error toggling feature:', error);
                 scope.showError('Error saving: ' + (error.message || ''));
-                // Revert checkbox
                 checkboxEl.prop('checked', !enabled);
             } finally {
-                checkboxEl.prop('disabled', false);
+                scope.endFeatureSave();
+                if (scope.pendingSaves === 0) {
+                    checkboxEl.prop('disabled', false);
+                }
             }
         },
 
         reloadRoleFeatureIds: async () => {
             const scope = _roleFeaturesGrid;
-            if (!scope.selectedRoleId) return;
+            if (!scope.selectedRoleId || !scope.canSaveFeaturesForRole()) return;
             try {
-                var allRoleFeatures = await dataFunctions.getRoleFeatures();
-                var assigned = Array.isArray(allRoleFeatures) ? allRoleFeatures : [];
+                var assigned = [];
+                if (dataFunctions.getRoleFeaturesForRole) {
+                    assigned = await dataFunctions.getRoleFeaturesForRole(scope.selectedRoleId, null, true);
+                } else {
+                    var allRoleFeatures = await dataFunctions.getRoleFeatures(null, true);
+                    assigned = Array.isArray(allRoleFeatures) ? allRoleFeatures : [];
+                }
                 scope.roleFeatureIdMap = {};
-                assigned.forEach(function (rf) {
+                (Array.isArray(assigned) ? assigned : []).forEach(function (rf) {
                     if (String(rf.role_id) === String(scope.selectedRoleId)) {
                         scope.roleFeatureIdMap[String(rf.feature_id)] = rf.id;
                     }
@@ -254,6 +355,8 @@ var _roleFeaturesGrid = function () {
         },
 
         clearFeatures: () => {
+            _roleFeaturesGrid.loadedRoleId = null;
+            _roleFeaturesGrid.roleFeatureIdMap = {};
             var tbody = document.getElementById('featuresTableBody');
             if (tbody) {
                 tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-5">' +

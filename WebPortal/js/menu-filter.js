@@ -15,12 +15,6 @@ var _menuFilter = function () {
             this.filterMenus();
 
             var self = this;
-            // Re-filter when Session changes (other tab)
-            window.addEventListener('storage', function (e) {
-                if (e.key === '_Session') {
-                    self.refresh();
-                }
-            });
             // Re-filter when feature keys are set in this tab (e.g. after fetchAndCacheFeatures)
             window.addEventListener('featureKeysUpdated', function () {
                 self.refresh();
@@ -47,6 +41,10 @@ var _menuFilter = function () {
          * No fallback to "admin sees all" — Role Features is the single source of truth.
          */
         filterMenus: function () {
+            if (typeof Session !== 'undefined' && Session.isAuthenticated && !Session.isAuthenticated()) {
+                return;
+            }
+
             var keys = Session.get('featureKeys');
             var accessibleMenus = Array.isArray(keys) ? keys : [];
             var usingFeatureKeys = Array.isArray(keys);
@@ -132,8 +130,7 @@ var _menuFilter = function () {
                 'crmCollapse',
                 'qualityCollapse',
                 'businessCollapse',
-                'userManagementCollapse',
-                'testManagementCollapse'
+                'userManagementCollapse'
             ];
 
             collapseIds.forEach(function (id) {

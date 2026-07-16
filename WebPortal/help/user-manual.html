@@ -67,7 +67,6 @@
       <ul>
         <li><a href="#admin">User &amp; access</a></li>
         <li><a href="#user-mgmt">Standalone user routes (bookmarks)</a></li>
-        <li><a href="#test-tools">Test tools (non-production)</a></li>
       </ul>
       <h2>Reference</h2>
       <ul>
@@ -461,12 +460,19 @@
           <li><strong>super_user</strong> accounts and <strong>@customapp.co.za</strong> staff logins are visible only to other <strong>super_user</strong> actors in the People list.</li>
           <li>After permission or feature changes, test with a non-admin login; users may need to sign out and back in to refresh menu visibility.</li>
         </ol>
+        <h3>Troubleshooting Customize</h3>
+        <ul>
+          <li>Module grants are <strong>per role</strong> — changing Production Manager does not automatically change Admin or other roles.</li>
+          <li>Wait for Customize to finish loading before toggling checkboxes.</li>
+          <li>In Customize, <strong>Module</strong> names match sidebar labels and appear in sidebar order; <strong>Key</strong> is the technical route id.</li>
+          <li>If your own sidebar loses <strong>User &amp; access</strong> while you edit another role, sign out and back in; your role’s grants may still be correct in the database.</li>
+        </ul>
         <p class="contextual-help"><a href="index.html#admin-users-permissions">People</a> · <a href="index.html#admin-roles-management">Roles &amp; modules</a> · <a href="index.html#admin-system-configuration">System</a> · <a href="index.html#modal-admin-add-user">Add user</a> · <a href="index.html#modal-admin-add-role">Add role</a></p>
       </article>
 
       <article id="user-mgmt" class="manual-chapter">
         <h2>Standalone user routes (bookmarks)</h2>
-        <p>The app still registers these routes for deep links and training materials. When your role includes the <code>admin-grid</code> feature, the sidebar normally hides duplicate entries for the four legacy keys and shows the hub instead.</p>
+        <p>The app still registers these routes for deep links and training materials. When your role includes the <code>admin-grid</code> feature, the sidebar normally hides duplicate entries for the four legacy keys and shows the hub instead. Button actions are configured only in the hub (<strong>Roles &amp; modules</strong> → <strong>Customize</strong> → expand module → <strong>Button actions</strong>).</p>
         <ul>
           <li><strong>Users</strong> (<span class="route-tag" style="margin:0">users-grid</span>) — standalone user grid (same edit patterns as <strong>People</strong> in the hub when both exist).</li>
           <li><strong>Roles</strong> (<span class="route-tag" style="margin:0">roles-grid</span>) — standalone roles grid.</li>
@@ -478,16 +484,6 @@
           <strong>After permission changes,</strong> test with a non-admin user. Features and permissions work together with menu visibility; fixing “cannot see menu X” often requires more than one control.
         </div>
         <p class="contextual-help"><a href="index.html#users-grid">Users</a> · <a href="index.html#roles-grid">Roles</a> · <a href="index.html#role-permissions-grid">Role permissions</a> · <a href="index.html#role-features-grid">Role features</a> · <a href="index.html#features-grid">Features</a></p>
-      </article>
-
-      <article id="test-tools" class="manual-chapter">
-        <h2>Test tools (non-production)</h2>
-        <p><strong>Test Scenarios</strong> and <strong>Test Data</strong> appear only in QA or non-production environments. They support automation and synthetic datasets—never use them against production databases.</p>
-        <ul>
-          <li><span class="route-tag">test-scenarios-grid</span> — define scenarios aligned with CI or Playwright jobs.</li>
-          <li><span class="route-tag">test-data-grid</span> — data sets and records for seeded tests.</li>
-        </ul>
-        <p class="contextual-help"><a href="index.html#test-scenarios-grid">Test scenarios</a> · <a href="index.html#test-data-sets">Test data sets</a></p>
       </article>
 
       <article id="appendix-routes" class="manual-chapter">
@@ -563,11 +559,6 @@
               <tr><td><code>document-management-grid</code></td><td>Route</td><td>Document Management</td></tr>
               <tr><td><code>palladium-integration-grid</code></td><td>Route</td><td>Palladium ERP Integration</td></tr>
               <tr><td><code>data-import-grid</code></td><td>Route</td><td>Data Import (Excel)</td></tr>
-              <tr><td><code>test-scenarios-grid</code></td><td>Route</td><td>Test Scenarios Management</td></tr>
-              <tr><td><code>test-scenario-modal</code></td><td>Overlay</td><td>Add/Edit Test Scenario Modal</td></tr>
-              <tr><td><code>test-data-grid</code></td><td>Route</td><td>Test Data Management</td></tr>
-              <tr><td><code>test-data-set-modal</code></td><td>Overlay</td><td>Add/Edit Test Data Set Modal</td></tr>
-              <tr><td><code>test-data-record-modal</code></td><td>Overlay</td><td>Add/Edit Test Data Record Modal</td></tr>
               <tr><td><code>batch-journey</code></td><td>Route</td><td>Batch Journey - All Batches Overview</td></tr>
             </tbody>
           </table>

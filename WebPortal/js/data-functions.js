@@ -300,6 +300,15 @@ var _dataFunctions = function () {
             return [];
         },
 
+        /** PostgREST TABLE RPCs return an array; callers need a single row. */
+        _normalizeUserRow: function (raw) {
+            if (!raw) return null;
+            if (Array.isArray(raw)) return raw.length ? raw[0] : null;
+            if (raw && Array.isArray(raw.data)) return raw.data.length ? raw.data[0] : null;
+            if (typeof raw === 'object') return raw;
+            return null;
+        },
+
         /**
          * Check if current user has admin privileges
          */
@@ -332,22 +341,6 @@ var _dataFunctions = function () {
             return roleName.includes('admin') ||
                 roleName.includes('super admin') ||
                 roleName.includes('manager');
-        },
-
-        /**
-         * Check if user can access test management (test scenarios and test data)
-         * Only Super Admin should have access
-         */
-        canAccessTestManagement: function () {
-            const user = Session.get('user');
-            if (!user) return false;
-
-            const roleName = user.role_name || user.role || '';
-
-            // Only Super Admin has access to test management
-            return roleName.toLowerCase() === 'super admin' ||
-                roleName.toLowerCase() === 'super_user' ||
-                roleName.toLowerCase().includes('super admin');
         },
 
         /**
@@ -755,12 +748,13 @@ var _dataFunctions = function () {
          * Get user by ID (cached for 5 minutes)
          */
         getUserById: async function (userId, token = null, forceRefresh = false) {
-            var user = await this.callFunction('get_user_by_id', { p_id: userId }, token, {
+            var raw = await this.callFunction('get_user_by_id', { p_id: userId }, token, {
                 cacheKey: `user_${userId}`,
                 useCache: true,
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
+            var user = this._normalizeUserRow(raw);
             if (user && typeof superUserVisibility !== 'undefined' && !superUserVisibility.canSeeUser(user)) {
                 return null;
             }
@@ -875,7 +869,12 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.static,
                 forceRefresh: forceRefresh
             });
-            return this._normalizeListResponse(raw, 'get_roles');
+            var roles = this._normalizeListResponse(raw, 'get_roles');
+            if (typeof superUserVisibility !== 'undefined' &&
+                superUserVisibility.rememberSuperUserRoleIdFromRoles) {
+                superUserVisibility.rememberSuperUserRoleIdFromRoles(roles);
+            }
+            return roles;
         },
 
         /**
@@ -1258,9 +1257,28 @@ var _dataFunctions = function () {
         /**
          * Get all role features
          */
-        getRoleFeatures: async function (token = null) {
-            var raw = await this.callFunction('get_role_features', {}, token);
+        getRoleFeatures: async function (token = null, forceRefresh = false) {
+            var raw = await this.callFunction('get_role_features', {}, token, {
+                cacheKey: 'get_role_features',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
             return this._applySuperUserVisibility('roleAssignments', this._normalizeListResponse(raw, 'get_role_features'));
+        },
+
+        /**
+         * Role-feature assignments for one role (server-filtered; preferred for Customize).
+         */
+        getRoleFeaturesForRole: async function (roleId, token = null, forceRefresh = false) {
+            if (!roleId) return [];
+            var raw = await this.callFunction('get_role_features_for_role', { p_role_id: roleId }, token, {
+                cacheKey: 'get_role_features_for_role_' + String(roleId),
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            return this._applySuperUserVisibility('roleAssignments', this._normalizeListResponse(raw, 'get_role_features_for_role'));
         },
 
         /**
@@ -1305,6 +1323,17 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Delete role feature by role + feature (safe for Customize — no stale row PK).
+         */
+        deleteRoleFeatureForRole: async function (roleId, featureId, token = null) {
+            await this._assertCanManageRoleRecord(roleId, token);
+            return await this.callFunction('delete_role_feature_for_role', {
+                p_role_id: roleId,
+                p_feature_id: featureId
+            }, token, { useCache: false });
+        },
+
+        /**
          * Get enabled feature keys for a specific role (used by menu filter).
          * No cache so Role Features changes are reflected after refresh.
          */
@@ -1329,7 +1358,7 @@ var _dataFunctions = function () {
 
         // ===== ACTION PERMISSIONS (buttons/actions inside modules) =====
 
-        /** List all active actions (for the Role Actions admin grid). */
+        /** List all active actions (for admin-grid Customize button actions). */
         getActions: async function (token = null) {
             var raw = await this.callFunction('get_actions', {}, token, { useCache: false });
             if (Array.isArray(raw)) return raw;
@@ -1378,6 +1407,15 @@ var _dataFunctions = function () {
         /** Revoke a role/action assignment by its id. */
         deleteRoleAction: async function (roleActionId, token = null) {
             return await this.callFunction('delete_role_action_simple', { role_action_id: roleActionId }, token);
+        },
+
+        /** Revoke by role + action (safe for Customize — no stale row PK). */
+        deleteRoleActionForRole: async function (roleId, actionId, token = null) {
+            await this._assertCanManageRoleRecord(roleId, token);
+            return await this.callFunction('delete_role_action_for_role', {
+                p_role_id: roleId,
+                p_action_id: actionId
+            }, token, { useCache: false });
         },
 
         // ===== COMPANY MANAGEMENT FUNCTIONS =====
@@ -5168,387 +5206,6 @@ var _dataFunctions = function () {
 
         syncPalladiumEntity: async function (entityType, token = null) {
             return await this.callFunction('sync_palladium_entity', { p_entity_type: entityType }, token).catch(() => ({ success: false }));
-        },
-
-        // ===== TEST SCENARIOS FUNCTIONS =====
-
-        /**
-         * Get all test scenarios (cached for 5 minutes)
-         */
-        getTestScenarios: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_test_scenarios', {}, token, {
-                cacheKey: 'test_scenarios_list',
-                useCache: true,
-                cacheTtl: this.cache.ttl.static,
-                forceRefresh: forceRefresh
-            });
-        },
-
-        /**
-         * Get test scenario by ID
-         */
-        getTestScenarioById: async function (scenarioId, token = null) {
-            return await this.callFunction('get_test_scenario_by_id', { p_id: scenarioId }, token);
-        },
-
-        /**
-         * Get test scenarios filtered by module, severity, etc.
-         */
-        getTestScenariosFiltered: async function (filters = {}, token = null) {
-            const params = {
-                p_module_name: filters.module_name || null,
-                p_severity_level: filters.severity_level || null,
-                p_test_type: filters.test_type || null,
-                p_is_automated: filters.is_automated !== undefined ? filters.is_automated : null,
-                p_search_term: filters.search_term || null
-            };
-            return await this.callFunction('get_test_scenarios_filtered', params, token);
-        },
-
-        // ===== TEST DATA SETS FUNCTIONS =====
-
-        /**
-         * Get all E2E test data sets (cached for 5 minutes)
-         */
-        getTestDataSets: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_e2e_test_data_sets', {}, token, {
-                cacheKey: 'test_data_sets_list',
-                useCache: true,
-                cacheTtl: this.cache.ttl.static,
-                forceRefresh: forceRefresh
-            });
-        },
-
-        /**
-         * Get all E2E test data records (cached for 5 minutes)
-         */
-        getTestDataRecords: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_e2e_test_data_records', {}, token, {
-                cacheKey: 'test_data_records_list',
-                useCache: true,
-                cacheTtl: this.cache.ttl.static,
-                forceRefresh: forceRefresh
-            });
-        },
-
-        /**
-         * Get test data records by set ID
-         */
-        getTestDataRecordsBySetId: async function (setId, token = null) {
-            return await this.callFunction('get_e2e_test_data_records_by_set', { p_set_id: setId }, token);
-        },
-
-        // ===== TEST INSTANCES AND RUN BATCHES FUNCTIONS =====
-
-        /**
-         * Get test run batches (cached for 1 minute - dynamic data)
-         */
-        getTestRunBatches: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_test_run_batches', {}, token, {
-                cacheKey: 'test_run_batches_list',
-                useCache: true,
-                cacheTtl: this.cache.ttl.dynamic,
-                forceRefresh: forceRefresh
-            });
-        },
-
-        /**
-         * Get test instances for a specific batch
-         */
-        getTestInstancesByBatchId: async function (batchId, token = null) {
-            return await this.callFunction('get_test_instances_by_batch', { p_batch_id: batchId }, token);
-        },
-
-        /**
-         * Get test instances for a specific scenario
-         */
-        getTestInstancesByScenarioId: async function (scenarioId, token = null) {
-            return await this.callFunction('get_test_instances_by_scenario', { p_scenario_id: scenarioId }, token);
-        },
-
-        // ===== TEST SCENARIOS FUNCTIONS =====
-
-        /**
-         * Get all test scenarios (cached for 5 minutes - static data)
-         */
-        getTestScenarios: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_test_scenarios', {}, token, {
-                cacheKey: 'test_scenarios_list',
-                useCache: true,
-                cacheTtl: this.cache.ttl.static,
-                forceRefresh: forceRefresh
-            });
-        },
-
-        /**
-         * Get test scenario by ID
-         */
-        getTestScenarioById: async function (scenarioId, token = null) {
-            return await this.callFunction('get_test_scenario_by_id', { p_id: scenarioId }, token);
-        },
-
-        /**
-         * Create test scenario
-         */
-        createTestScenario: async function (scenarioData, token = null) {
-            const params = {
-                p_scenario_code: scenarioData.scenario_code,
-                p_scenario_name: scenarioData.scenario_name,
-                p_module_name: scenarioData.module_name,
-                p_expected_result: scenarioData.expected_result,
-                p_description: scenarioData.description || null,
-                p_feature_name: scenarioData.feature_name || null,
-                p_test_type: scenarioData.test_type || 'functional',
-                p_role_id: scenarioData.role_id || null,
-                p_feature_id: scenarioData.feature_id || null,
-                p_preconditions: scenarioData.preconditions || null,
-                p_test_steps: scenarioData.test_steps ? (typeof scenarioData.test_steps === 'string' ? scenarioData.test_steps : JSON.stringify(scenarioData.test_steps)) : '[]',
-                p_test_data: scenarioData.test_data ? (typeof scenarioData.test_data === 'string' ? scenarioData.test_data : JSON.stringify(scenarioData.test_data)) : '{}',
-                p_test_data_description: scenarioData.test_data_description || null,
-                p_severity_level: scenarioData.severity_level || 'medium',
-                p_severity_description: scenarioData.severity_description || null,
-                p_tags: scenarioData.tags ? JSON.stringify(scenarioData.tags) : '[]',
-                p_depends_on: scenarioData.depends_on || null,
-                p_is_automated: scenarioData.is_automated !== undefined ? scenarioData.is_automated : false,
-                p_automation_script_path: scenarioData.automation_script_path || null,
-                p_created_by: scenarioData.created_by || null
-            };
-            const result = await this.callFunction('create_test_scenario_simple', params, token, { useCache: false });
-            this.clearCachePattern('test_scenarios');
-            return result;
-        },
-
-        /**
-         * Update test scenario
-         */
-        updateTestScenario: async function (scenarioId, scenarioData, token = null) {
-            const params = {
-                p_scenario_id: scenarioId,
-                p_scenario_code: scenarioData.scenario_code || null,
-                p_scenario_name: scenarioData.scenario_name || null,
-                p_description: scenarioData.description || null,
-                p_module_name: scenarioData.module_name || null,
-                p_feature_name: scenarioData.feature_name || null,
-                p_test_type: scenarioData.test_type || null,
-                p_role_id: scenarioData.role_id || null,
-                p_feature_id: scenarioData.feature_id || null,
-                p_preconditions: scenarioData.preconditions || null,
-                p_test_steps: scenarioData.test_steps ? (typeof scenarioData.test_steps === 'string' ? scenarioData.test_steps : JSON.stringify(scenarioData.test_steps)) : null,
-                p_expected_result: scenarioData.expected_result || null,
-                p_test_data: scenarioData.test_data ? (typeof scenarioData.test_data === 'string' ? scenarioData.test_data : JSON.stringify(scenarioData.test_data)) : null,
-                p_test_data_description: scenarioData.test_data_description || null,
-                p_severity_level: scenarioData.severity_level || null,
-                p_severity_description: scenarioData.severity_description || null,
-                p_tags: scenarioData.tags ? (typeof scenarioData.tags === 'string' ? scenarioData.tags : JSON.stringify(scenarioData.tags)) : null,
-                p_depends_on: scenarioData.depends_on || null,
-                p_is_automated: scenarioData.is_automated !== undefined ? scenarioData.is_automated : null,
-                p_automation_script_path: scenarioData.automation_script_path || null,
-                p_is_active: scenarioData.is_active !== undefined ? scenarioData.is_active : null,
-                p_is_deprecated: scenarioData.is_deprecated !== undefined ? scenarioData.is_deprecated : null,
-                p_deprecated_reason: scenarioData.deprecated_reason || null,
-                p_updated_by: scenarioData.updated_by || null
-            };
-            const result = await this.callFunction('update_test_scenario_simple', params, token, { useCache: false });
-            this.clearCachePattern('test_scenarios');
-            return result;
-        },
-
-        /**
-         * Delete test scenario (hard delete)
-         */
-        deleteTestScenario: async function (scenarioId, token = null) {
-            const result = await this.callFunction('delete_test_scenario_hard', { p_scenario_id: scenarioId }, token, { useCache: false });
-            this.clearCachePattern('test_scenarios');
-            return result;
-        },
-
-        /**
-         * Deactivate test scenario (soft delete)
-         */
-        deactivateTestScenario: async function (scenarioId, updatedBy = null, token = null) {
-            const result = await this.callFunction('deactivate_test_scenario', { 
-                p_scenario_id: scenarioId,
-                p_updated_by: updatedBy 
-            }, token, { useCache: false });
-            this.clearCachePattern('test_scenarios');
-            return result;
-        },
-
-        /**
-         * Search test scenarios with filters
-         */
-        searchTestScenarios: async function (filters = {}, token = null) {
-            const params = {
-                p_search_term: filters.searchTerm || null,
-                p_module_name: filters.module_name || null,
-                p_test_type: filters.test_type || null,
-                p_severity_level: filters.severity_level || null,
-                p_is_automated: filters.is_automated !== undefined ? filters.is_automated : null,
-                p_role_id: filters.role_id || null
-            };
-            return await this.callFunction('search_test_scenarios', params, token, {
-                cacheKey: `test_scenarios_search_${JSON.stringify(filters)}`,
-                useCache: true,
-                cacheTtl: this.cache.ttl.dynamic
-            });
-        },
-
-        // ===== TEST DATA SETS FUNCTIONS =====
-
-        /**
-         * Get all test data sets (cached for 5 minutes - static data)
-         */
-        getTestDataSets: async function (token = null, forceRefresh = false) {
-            return await this.callFunction('get_test_data_sets', {}, token, {
-                cacheKey: 'test_data_sets_list',
-                useCache: true,
-                cacheTtl: this.cache.ttl.static,
-                forceRefresh: forceRefresh
-            });
-        },
-
-        /**
-         * Get test data set by ID
-         */
-        getTestDataSetById: async function (setId, token = null) {
-            return await this.callFunction('get_test_data_set_by_id', { p_id: setId }, token);
-        },
-
-        /**
-         * Create test data set
-         */
-        createTestDataSet: async function (setData, token = null) {
-            const params = {
-                p_set_name: setData.set_name,
-                p_module: setData.module,
-                p_description: setData.description || null,
-                p_test_scenario_ids: setData.test_scenario_ids || null,
-                p_is_active: setData.is_active !== undefined ? setData.is_active : true
-            };
-            const result = await this.callFunction('create_test_data_set_simple', params, token, { useCache: false });
-            this.clearCachePattern('test_data_sets');
-            return result;
-        },
-
-        /**
-         * Update test data set
-         */
-        updateTestDataSet: async function (setId, setData, token = null) {
-            const params = {
-                p_set_id: setId,
-                p_set_name: setData.set_name || null,
-                p_module: setData.module || null,
-                p_description: setData.description || null,
-                p_test_scenario_ids: setData.test_scenario_ids || null,
-                p_is_active: setData.is_active !== undefined ? setData.is_active : null
-            };
-            const result = await this.callFunction('update_test_data_set_simple', params, token, { useCache: false });
-            this.clearCachePattern('test_data_sets');
-            return result;
-        },
-
-        /**
-         * Delete test data set (hard delete)
-         */
-        deleteTestDataSet: async function (setId, token = null) {
-            const result = await this.callFunction('delete_test_data_set_hard', { p_set_id: setId }, token, { useCache: false });
-            this.clearCachePattern('test_data_sets');
-            return result;
-        },
-
-        /**
-         * Search test data sets with filters
-         */
-        searchTestDataSets: async function (filters = {}, token = null) {
-            const params = {
-                p_search_term: filters.searchTerm || null,
-                p_module: filters.module || null,
-                p_scenario_id: filters.scenario_id || null
-            };
-            return await this.callFunction('search_test_data_sets', params, token, {
-                cacheKey: `test_data_sets_search_${JSON.stringify(filters)}`,
-                useCache: true,
-                cacheTtl: this.cache.ttl.dynamic
-            });
-        },
-
-        // ===== TEST DATA RECORDS FUNCTIONS =====
-
-        /**
-         * Get test data records by set ID
-         */
-        getTestDataRecordsBySet: async function (setId, token = null) {
-            return await this.callFunction('get_test_data_records_by_set', { p_set_id: setId }, token);
-        },
-
-        /**
-         * Get test data record by ID
-         */
-        getTestDataRecordById: async function (recordId, token = null) {
-            return await this.callFunction('get_test_data_record_by_id', { p_id: recordId }, token);
-        },
-
-        /**
-         * Create test data record
-         */
-        createTestDataRecord: async function (recordData, token = null) {
-            const params = {
-                p_data_set_id: recordData.data_set_id,
-                p_entity_type: recordData.entity_type,
-                p_data_key: recordData.data_key,
-                p_data_value: recordData.data_value ? (typeof recordData.data_value === 'string' ? recordData.data_value : JSON.stringify(recordData.data_value)) : '{}',
-                p_entity_id: recordData.entity_id || null,
-                p_purpose: recordData.purpose || null,
-                p_cleanup_required: recordData.cleanup_required !== undefined ? recordData.cleanup_required : true
-            };
-            const result = await this.callFunction('create_test_data_record_simple', params, token, { useCache: false });
-            this.clearCachePattern('test_data_records');
-            return result;
-        },
-
-        /**
-         * Update test data record
-         */
-        updateTestDataRecord: async function (recordId, recordData, token = null) {
-            const params = {
-                p_record_id: recordId,
-                p_data_set_id: recordData.data_set_id || null,
-                p_entity_type: recordData.entity_type || null,
-                p_entity_id: recordData.entity_id || null,
-                p_data_key: recordData.data_key || null,
-                p_data_value: recordData.data_value ? (typeof recordData.data_value === 'string' ? recordData.data_value : JSON.stringify(recordData.data_value)) : null,
-                p_purpose: recordData.purpose || null,
-                p_cleanup_required: recordData.cleanup_required !== undefined ? recordData.cleanup_required : null
-            };
-            const result = await this.callFunction('update_test_data_record_simple', params, token, { useCache: false });
-            this.clearCachePattern('test_data_records');
-            return result;
-        },
-
-        /**
-         * Delete test data record (hard delete)
-         */
-        deleteTestDataRecord: async function (recordId, token = null) {
-            const result = await this.callFunction('delete_test_data_record_hard', { p_record_id: recordId }, token, { useCache: false });
-            this.clearCachePattern('test_data_records');
-            return result;
-        },
-
-        /**
-         * Search test data records with filters
-         */
-        searchTestDataRecords: async function (filters = {}, token = null) {
-            const params = {
-                p_search_term: filters.searchTerm || null,
-                p_data_set_id: filters.data_set_id || null,
-                p_entity_type: filters.entity_type || null,
-                p_purpose: filters.purpose || null
-            };
-            return await this.callFunction('search_test_data_records', params, token, {
-                cacheKey: `test_data_records_search_${JSON.stringify(filters)}`,
-                useCache: true,
-                cacheTtl: this.cache.ttl.dynamic
-            });
         },
 
         // ===== PROJECT DOCUMENTATION FUNCTIONS =====
