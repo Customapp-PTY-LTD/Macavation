@@ -16,12 +16,12 @@ function resolveSupabaseAuthConfig() {
 class AuthService {
     constructor() {
         this.supabaseCfg = resolveSupabaseAuthConfig();
-        this.token = Session.get('token');
-        this.userInfo = this.getUserInfo();
+        this.syncUserFromSession();
         this._featuresFetchPromise = null;
 
-        // If we have user info but no role_name, fetch complete info
-        if (this.userInfo && !this.userInfo.role_name && this.userInfo.role_id) {
+        // If we have user info but no canonical role_name, fetch complete info
+        // (denormalized `role` text alone is not enough for super_user checks).
+        if (this.userInfo && !this.userInfo.role_name) {
             this.fetchCompleteUserInfo();
         }
 
@@ -30,6 +30,12 @@ class AuthService {
         if (roleId) {
             this.fetchAndCacheFeatures(roleId);
         }
+    }
+
+    /** Keep authService.userInfo aligned with Session (single source of truth on refresh). */
+    syncUserFromSession() {
+        this.token = Session.get('token');
+        this.userInfo = this.getUserInfo();
     }
 
     /**
@@ -168,8 +174,8 @@ class AuthService {
                 Session.set('token', result.token);
                 Session.set('user', result.user);
 
-                // If we don't have role_name, fetch complete user info
-                if (!this.userInfo.role_name && this.userInfo.role_id) {
+                // Canonical role_name is required for RBAC checks (e.g. super_user).
+                if (!this.userInfo.role_name) {
                     await this.fetchCompleteUserInfo();
                 }
 
@@ -190,19 +196,37 @@ class AuthService {
      */
     async fetchCompleteUserInfo() {
         try {
+            this.syncUserFromSession();
+            var expectedUserId = this.userInfo && (this.userInfo.user_id || this.userInfo.id);
+            if (!expectedUserId) return;
+
             const result = await this.callFunction('get_user_with_permissions', {
-                p_user_id: this.userInfo.user_id || this.userInfo.id
+                p_user_id: expectedUserId
             });
 
             if (result && result.length > 0) {
                 const userData = result[0];
+                var returnedUserId = userData && (userData.user_id || userData.id);
+                if (!returnedUserId || String(returnedUserId) !== String(expectedUserId)) {
+                    console.warn('[AuthService] Ignoring user enrichment for mismatched actor.');
+                    return;
+                }
                 this.userInfo = {
                     ...this.userInfo,
                     role_name: userData.role_name,
                     role_id: userData.role_id != null ? userData.role_id : this.userInfo.role_id,
                     permissions: userData.permissions
                 };
-                Session.set('user', this.userInfo);
+                if (typeof Session !== 'undefined' && Session.mergeUserIfSameActor) {
+                    Session.mergeUserIfSameActor({
+                        id: returnedUserId,
+                        role_name: this.userInfo.role_name,
+                        role_id: this.userInfo.role_id,
+                        permissions: this.userInfo.permissions
+                    });
+                } else {
+                    Session.set('user', this.userInfo);
+                }
                 if (this.userInfo.role_id && typeof this.fetchAndCacheFeatures === 'function') {
                     this.fetchAndCacheFeatures(this.userInfo.role_id);
                 }
@@ -297,16 +321,14 @@ class AuthService {
      * Sign out user
      */
     signOut() {
-        // Store last active page before logout
-        const lastActivePage = sessionStorage.getItem('lastActivePage') || 
-                             (typeof _appRouter !== 'undefined' && _appRouter.currentRoute) || 
-                             'dashboard';
-        // Get cc parameter before clearing session
         const ccParam = Session.get('clientGuid');
 
         Session.clear();
-        // Restore lastActivePage so appRouter can redirect back after next login
-        Session.set('lastActivePage', lastActivePage);
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.removeItem('lastActivePage');
+            }
+        } catch (e) { /* ignore */ }
         this.token = null;
         this.userInfo = null;
         

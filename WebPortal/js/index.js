@@ -68,6 +68,10 @@ document.addEventListener('DOMContentLoaded', function () {
         offlineSync.init();
     }
 
+    if (typeof Session !== 'undefined' && Session.initCrossTabSync) {
+        Session.initCrossTabSync();
+    }
+
     const isAuthenticated = (typeof dataFunctions !== 'undefined' && dataFunctions.isAuthenticated()) ||
         (typeof authService !== 'undefined' && authService.isAuthenticated());
 
@@ -81,6 +85,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     try {
+        if (typeof authService !== 'undefined' && authService.syncUserFromSession) {
+            authService.syncUserFromSession();
+        }
         initializeSidebarCollapse();
         initializeSidebarToggle();
         updateUserDisplay();
@@ -192,64 +199,71 @@ function updateUserDisplay() {
                 }
             }
 
-            if (roleName) {
-                updateRoleDisplay(roleName);
-            } else {
-                updateRoleDisplay('Loading...');
-                const userId = user.id || user.user_id;
-                if (typeof dataFunctions !== 'undefined' && userId) {
-                    (async function () {
-                        try {
-                            const userData = await dataFunctions.getUserById(userId);
-                            if (userData && userData.role_name) {
-                                user.role_name = userData.role_name;
-                                if (userData.role_id != null) user.role_id = userData.role_id;
-                                Session.set('user', user);
-                                updateRoleDisplay(userData.role_name);
-                                if (user.role_id && typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
-                                    await authService.fetchAndCacheFeatures(user.role_id);
-                                }
-                                return;
+            // Show Session value immediately, then re-sync role fields from DB for the
+            // same signed-in actor only (never replace identity with another user).
+            updateRoleDisplay(roleName || 'Loading...');
+            const sessionUserId = typeof Session.getUserId === 'function'
+                ? Session.getUserId()
+                : (user.id || user.user_id);
+            if (typeof dataFunctions !== 'undefined' && sessionUserId) {
+                (async function () {
+                    try {
+                        const userData = await dataFunctions.getUserById(sessionUserId, null, true);
+                        const rowId = userData && (userData.id || userData.user_id);
+                        if (!userData || !rowId || String(rowId) !== String(sessionUserId)) {
+                            if (!roleName) updateRoleDisplay('User');
+                            return;
+                        }
+                        if (userData.role_name) {
+                            var roleChanged = user.role_name !== userData.role_name ||
+                                String(user.role_id || '') !== String(userData.role_id || '');
+                            var patch = {
+                                id: rowId,
+                                role_name: userData.role_name,
+                                role_id: userData.role_id != null ? userData.role_id : user.role_id,
+                                role: userData.role_name
+                            };
+                            if (typeof Session.mergeUserIfSameActor === 'function') {
+                                Session.mergeUserIfSameActor(patch);
                             }
-                            if (user.role_id) {
-                                const roles = await dataFunctions.getRoles();
-                                if (roles && Array.isArray(roles)) {
-                                    const userRole = roles.find(r => r.id === user.role_id);
-                                    if (userRole && userRole.role_name) {
-                                        user.role_name = userRole.role_name;
-                                        Session.set('user', user);
-                                        updateRoleDisplay(userRole.role_name);
-                                        if (user.role_id && typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
-                                            await authService.fetchAndCacheFeatures(user.role_id);
-                                        }
-                                        return;
-                                    }
-                                }
+                            if (typeof authService !== 'undefined' && authService.syncUserFromSession) {
+                                authService.syncUserFromSession();
                             }
-                            const users = await dataFunctions.getUsers();
-                            if (users && Array.isArray(users)) {
-                                const currentUser = users.find(u => u.id === userId || u.email === user.email);
-                                if (currentUser && (currentUser.role_name || currentUser.role)) {
-                                    const foundRole = currentUser.role_name || currentUser.role;
-                                    user.role_name = foundRole;
-                                    if (currentUser.role_id != null) user.role_id = currentUser.role_id;
-                                    Session.set('user', user);
-                                    updateRoleDisplay(foundRole);
-                                    if (user.role_id && typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
-                                        await authService.fetchAndCacheFeatures(user.role_id);
+                            updateRoleDisplay(userData.role_name);
+                            if (roleChanged && patch.role_id &&
+                                typeof authService !== 'undefined' && authService.fetchAndCacheFeatures) {
+                                await authService.fetchAndCacheFeatures(patch.role_id);
+                            }
+                            return;
+                        }
+                        if (user.role_id) {
+                            const roles = await dataFunctions.getRoles();
+                            if (roles && Array.isArray(roles)) {
+                                const userRole = roles.find(r => String(r.id) === String(user.role_id));
+                                if (userRole && userRole.role_name) {
+                                    if (typeof Session.mergeUserIfSameActor === 'function') {
+                                        Session.mergeUserIfSameActor({
+                                            id: sessionUserId,
+                                            role_name: userRole.role_name,
+                                            role: userRole.role_name
+                                        });
                                     }
+                                    if (typeof authService !== 'undefined' && authService.syncUserFromSession) {
+                                        authService.syncUserFromSession();
+                                    }
+                                    updateRoleDisplay(userRole.role_name);
                                     return;
                                 }
                             }
-                            updateRoleDisplay('User');
-                        } catch (error) {
-                            console.warn('Could not fetch role name:', error);
-                            updateRoleDisplay('User');
                         }
-                    })();
-                } else {
-                    updateRoleDisplay('User');
-                }
+                        if (!roleName) updateRoleDisplay('User');
+                    } catch (error) {
+                        console.warn('Could not refresh role name:', error);
+                        if (!roleName) updateRoleDisplay('User');
+                    }
+                })();
+            } else if (!roleName) {
+                updateRoleDisplay('User');
             }
         }
     } catch (error) {
@@ -265,8 +279,13 @@ function updateUserNameDisplay(name) {
     if (dropdownNameDiv) dropdownNameDiv.textContent = name;
 }
 
+function profileImageStorageKey() {
+    var userId = (typeof Session !== 'undefined' && Session.getUserId) ? Session.getUserId() : null;
+    return userId ? ('user_profile_image_' + String(userId)) : 'user_profile_image';
+}
+
 function initProfilePicture() {
-    const dataUrl = localStorage.getItem('user_profile_image');
+    const dataUrl = localStorage.getItem(profileImageStorageKey());
     const img = document.getElementById('userProfileImage');
     const placeholder = document.getElementById('userProfilePlaceholder');
     if (!dataUrl) return;
@@ -302,7 +321,7 @@ function initProfilePictureInput() {
         const reader = new FileReader();
         reader.onload = function () {
             const dataUrl = reader.result;
-            localStorage.setItem('user_profile_image', dataUrl);
+            localStorage.setItem(profileImageStorageKey(), dataUrl);
             img.src = dataUrl;
             img.classList.remove('d-none');
             placeholder.classList.add('d-none');
@@ -653,43 +672,18 @@ function signOut() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            const lastActivePage = sessionStorage.getItem('lastActivePage') ||
-                (typeof _appRouter !== 'undefined' && _appRouter.currentRoute) ||
-                'dashboard';
             const ccParam = Session.get('clientGuid');
 
             if (typeof authService !== 'undefined' && typeof authService.signOut === 'function') {
                 authService.signOut();
             } else {
                 Session.clear();
-                Session.set('lastActivePage', lastActivePage);
+                try {
+                    sessionStorage.removeItem('lastActivePage');
+                } catch (e) { /* ignore */ }
                 const signinUrl = ccParam ? `signin.html?cc=${encodeURIComponent(ccParam)}` : 'signin.html';
                 window.location.href = signinUrl;
             }
         }
     });
 }
-
-function updateMenuVisibility() {
-    const testManagementMenuItem = document.getElementById('testScenariosMenuItem');
-    if (testManagementMenuItem && typeof dataFunctions !== 'undefined') {
-        testManagementMenuItem.style.display = dataFunctions.canAccessTestManagement() ? 'block' : 'none';
-    }
-}
-
-async function initMenuVisibilityWhenReady() {
-    try {
-        if (typeof waitForDataFunctions === 'function') {
-            await waitForDataFunctions();
-        }
-        if (typeof dataFunctions !== 'undefined' && dataFunctions.isAuthenticated()) {
-            updateMenuVisibility();
-        }
-    } catch (e) {
-        console.warn('[Menu visibility] init skipped:', e);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-    initMenuVisibilityWhenReady();
-});

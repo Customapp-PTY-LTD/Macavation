@@ -84,7 +84,7 @@ var _permissionModuleMap = (function () {
         'Quality Assurance': ['quality-assurance-grid'],
         'Dashboard': ['dashboard', 'executive-dashboard', 'amanda-dashboard', 'my-day'],
         'Reporting': ['scheduled-reports-grid'],
-        'Administration': ['admin-grid', 'users-grid', 'roles-grid', 'role-permissions-grid', 'role-features-grid', 'role-actions-grid'],
+        'Administration': ['admin-grid', 'users-grid', 'roles-grid', 'role-permissions-grid', 'role-features-grid'],
         'Messaging': ['messaging-compose-grid']
     };
 

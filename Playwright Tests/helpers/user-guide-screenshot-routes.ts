@@ -35,9 +35,6 @@ export const GUIDE_TO_APP_ROUTE: Record<string, string | null> = {
   'sales-forecasting-grid': 'sales-forecasting-grid',
   'stock-management-grid': 'stock-management-grid',
   'supplier-intake-grid': 'supplier-intake-grid',
-  'test-data-sets': 'test-data-grid',
-  'test-data-records': 'test-data-grid',
-  'test-scenarios-grid': 'test-scenarios-grid',
   'users-grid': 'users-grid',
 
   'modal-admin-add-role': 'admin-grid',
@@ -73,8 +70,5 @@ export const GUIDE_TO_APP_ROUTE: Record<string, string | null> = {
   'modal-stock-take': 'stock-management-kernel',
   'modal-supplier-oil-batch': 'supplier-intake-grid',
   'modal-supplier-receiver-checklist': 'supplier-intake-grid',
-  'modal-test-data-record': 'test-data-grid',
-  'modal-test-data-set': 'test-data-grid',
-  'modal-test-scenario': 'test-scenarios-grid',
   'modal-user': 'users-grid',
 };

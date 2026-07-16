@@ -292,11 +292,6 @@ const SECTION_BLURBS = {
   "admin-system-configuration":
     "<strong>System</strong> (User &amp; access) — reserved for environment and configuration when your deployment exposes it.",
   "data-import-grid": "Upload Excel templates into selected tables (contacts, stock, oil sheets, etc.).",
-  "test-scenarios-grid": "QA automation scenarios (test environments).",
-  "test-data-sets":
-    "<strong>Data sets</strong> — create and manage synthetic data sets for test scenarios. Use filters, search, and export.",
-  "test-data-records":
-    "<strong>Records</strong> — individual test data records within sets. Add records after selecting or creating a data set.",
   "supply-chain-flow":
     "Interactive overview of kernel and oil streams plus shared modules. Click any box in the diagram to open that help topic. Read-only — create and edit batches in the operational modules.",
 };
@@ -370,12 +365,6 @@ const SECTION_HOW_IT_WORKS = {
     "Record values before changing anything that affects integrations; involve vendor support for risky reversals.",
   "data-import-grid":
     "Download the right template, fill without altering column headers, upload, and read the import log. Fix the spreadsheet rather than re-importing the same errors.",
-  "test-scenarios-grid":
-    "For non-production environments: scenarios wrap automated tests—keep naming consistent with CI or Playwright jobs.",
-  "test-data-sets":
-    "Define a set per scenario or feature area, then seed records. Export sets to share fixtures across testers.",
-  "test-data-records":
-    "Add records after choosing a parent set; bulk tools (if shown) should stay within test data only.",
   "supply-chain-flow":
     "Use the diagram to orient new staff: kernel stream (left), oil stream (middle), and shared tools (bottom). Follow links into live modules for day-to-day work.",
 };
@@ -397,8 +386,6 @@ function blurbFor(id, title) {
 
 /** Tab-specific help topics may reuse the parent module screenshot file. */
 const HELP_SCREENSHOT_ALIAS = {
-  "test-data-sets": "test-data-grid",
-  "test-data-records": "test-data-grid",
   "admin-users-permissions": "admin-grid",
   "admin-roles-management": "admin-grid",
   "admin-system-configuration": "admin-grid",
@@ -656,26 +643,6 @@ const PAGE_STEPS = {
     "Document what each feature flag unlocks so support can answer “why don’t I see X?”.",
     "Remember: users must still have the underlying role assignment and menu access—features are not a substitute for permissions.",
   ],
-  "test-data-sets": [
-    "Open <strong>Test data management</strong> (non-production / QA environments).",
-    "Select the <strong>Data sets</strong> tab; expand <strong>Filters</strong> (module, entity type, purpose) and click <strong>Apply filters</strong> / <strong>Clear</strong> as needed.",
-    "Click <strong>Add data set</strong>; name it for the scenario or feature you are testing.",
-    "Open a set from the grid to review or edit metadata; export sets to share fixtures with other testers.",
-    "Never use test data tools on production databases.",
-  ],
-  "test-data-records": [
-    "Open <strong>Test data management</strong> → <strong>Records</strong> tab.",
-    "Select or create a parent <strong>data set</strong> first—the add-record button is enabled in context.",
-    "Click <strong>Add record</strong> and fill entity fields that mirror production shape but with synthetic values.",
-    "Use filters to find records; bulk actions (if shown) must stay within test data tables only.",
-    "Export or duplicate sets when multiple testers need the same baseline.",
-  ],
-  "test-scenarios-grid": [
-    "Open <strong>Test scenarios</strong> in QA environments.",
-    "Create or edit scenarios that wrap automated tests; keep names aligned with CI or Playwright job names.",
-    "Link scenarios to data sets where your workflow requires seeded data.",
-    "Run or trigger tests only through approved automation paths—do not run destructive scripts against shared environments without notice.",
-  ],
   "users-grid": [
     "Open the standalone <strong>Users</strong> route if your role still exposes it, or use <strong>User &amp; access</strong> → <strong>People</strong> for the same workflows in the hub.",
     "Search and filter the grid; click <strong>Add user</strong> (or equivalent) for a new login.",
@@ -847,17 +814,6 @@ const PAGE_STEPS = {
     "Open from <strong>Users</strong> when editing profile, role, or activation state.",
     "Avoid shared accounts; use reset-password instead of telling another person the password.",
   ],
-  "modal-test-data-set": [
-    "Open from test data to define or edit a synthetic data set name, module, and purpose.",
-    "Save before adding child records.",
-  ],
-  "modal-test-data-record": [
-    "Open to edit one synthetic record’s JSON/fields for a scenario.",
-    "Keep values obviously non-production.",
-  ],
-  "modal-test-scenario": [
-    "Open to name and describe an automation scenario; link data sets if required.",
-  ],
 };
 
 /** Fallback for dialogs: override per id in PAGE_STEPS when the flow is distinctive. */
@@ -893,12 +849,6 @@ ${lis}
 
 /** Shown only via Help deep-link (#id); hidden from ?full=1 TOC and scroll. */
 const EXCLUDE_FROM_FULL_GUIDE = new Set([
-  "test-data-sets",
-  "test-data-records",
-  "modal-test-data-record",
-  "modal-test-data-set",
-  "modal-test-scenario",
-  "test-scenarios-grid",
   "modal-user",
   "users-grid",
 ]);
@@ -917,7 +867,7 @@ function collectAnchors() {
     const base = path.basename(file);
     if (/_grid\.html$/.test(base) && file.includes(`${path.sep}html${path.sep}`)) {
       const stem = path.basename(file, ".html");
-      if (stem === "crm_grid" || stem === "test_data_grid" || stem === "admin_grid") continue;
+      if (stem === "crm_grid" || stem === "admin_grid") continue;
       const aid = gridAnchor(stem);
       add(aid, `${humanTitle(aid).replace(/ Grid$/, "")} (module)`);
     }
@@ -928,8 +878,6 @@ function collectAnchors() {
   add("crm-oil-ingredient-suppliers", "CRM — Oil ingredient suppliers");
   add("crm-oil-protein-customers", "CRM — Oil &amp; protein customers");
   add("crm-kernel-customers", "CRM — Kernel customers");
-  add("test-data-sets", "Test data — Data sets");
-  add("test-data-records", "Test data — Records");
   add("admin-users-permissions", "User &amp; access — People");
   add("admin-roles-management", "User &amp; access — Roles &amp; modules");
   add("admin-system-configuration", "User &amp; access — System");

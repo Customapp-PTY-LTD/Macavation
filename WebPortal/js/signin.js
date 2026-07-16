@@ -53,6 +53,18 @@ var _signin = function () {
         return ccParam || DEFAULT_CLIENT_GUID;
     };
 
+    /** Drop prior user's route/features cache when a new user signs in on this browser. */
+    const resetNavigationStateForNewLogin = () => {
+        if (typeof Session !== 'undefined') {
+            if (Session.acceptNewLogin) {
+                Session.acceptNewLogin();
+            }
+            if (Session.clearPriorLoginNavigationState) {
+                Session.clearPriorLoginNavigationState();
+            }
+        }
+    };
+
     /**
      * Fetch full user record from backend after login (Lambda returns minimal user).
      * Returns full user object for user_info, or null on failure (caller can fall back to minimal user).
@@ -175,16 +187,20 @@ var _signin = function () {
                 }
 
                 if (typeof localStorage !== 'undefined') {
+                    resetNavigationStateForNewLogin();
                     Session.set('token', authResult.token);
                     Session.set('user', authResult.user);
                     Session.set('clientGuid', clientGUID);
                 }
-                // Enrich user with role_name before redirect so dashboard shows correct view (executive vs default) on first load
+                // Enrich role_name when missing (even if denormalized `role` text is present).
                 const userId = authResult.user && (authResult.user.id || authResult.user.user_id);
-                if (userId && !(authResult.user.role_name || authResult.user.role)) {
+                if (userId && !authResult.user.role_name) {
                     const fullUser = await fetchFullUserData(authResult.token, userId);
                     if (fullUser && (fullUser.role_name || fullUser.role)) {
-                        Session.set('user', { ...authResult.user, ...fullUser });
+                        var mergedId = fullUser.id || fullUser.user_id || userId;
+                        if (String(mergedId) === String(userId)) {
+                            Session.set('user', { ...authResult.user, ...fullUser, id: mergedId });
+                        }
                     }
                 }
 
@@ -254,16 +270,20 @@ var _signin = function () {
                 }
 
                 if (typeof localStorage !== 'undefined') {
+                    resetNavigationStateForNewLogin();
                     Session.set('token', authResult.token);
                     Session.set('user', authResult.user);
                     Session.set('clientGuid', clientGUID);
                 }
-                // Enrich user with role_name before redirect so dashboard shows correct view on first load
+                // Enrich role_name when missing (even if denormalized `role` text is present).
                 const userId = authResult.user && (authResult.user.id || authResult.user.user_id);
-                if (userId && !(authResult.user.role_name || authResult.user.role)) {
+                if (userId && !authResult.user.role_name) {
                     const fullUser = await fetchFullUserData(authResult.token, userId);
                     if (fullUser && (fullUser.role_name || fullUser.role)) {
-                        Session.set('user', { ...authResult.user, ...fullUser });
+                        var mergedId = fullUser.id || fullUser.user_id || userId;
+                        if (String(mergedId) === String(userId)) {
+                            Session.set('user', { ...authResult.user, ...fullUser, id: mergedId });
+                        }
                     }
                 }
 
