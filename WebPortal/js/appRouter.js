@@ -550,6 +550,9 @@ var _appRouter = function () {
             sessionStorage.setItem('lastActivePage', routeName);
             Session.set('lastActivePage', routeName);
             _appRouter.currentRoute = routeName;
+            if (typeof MacAssistant !== 'undefined' && typeof MacAssistant.onContextChange === 'function') {
+                try { MacAssistant.onContextChange(); } catch (e) { /* ignore */ }
+            }
             
             _appRouter.loadContent({
                 routeName: routeName,

@@ -316,10 +316,11 @@ var _dataFunctions = function () {
             const user = Session.get('user');
             if (!user) return false;
 
-            const roleName = user.role_name || user.role || '';
+            const roleName = (user.role_name || user.role || '').toLowerCase();
 
-            return roleName.toLowerCase().includes('admin') ||
-                roleName.toLowerCase().includes('super admin');
+            return roleName.includes('admin') ||
+                roleName === 'super_user' ||
+                roleName.includes('super admin');
         },
 
         /**
@@ -5278,6 +5279,91 @@ var _dataFunctions = function () {
             const result = await this.callFunction('delete_project_documentation', { p_id: docId }, token, { useCache: false });
             this.clearCachePattern('project_documentation');
             return result;
+        },
+
+        // --- Feedback & Issues register (admin / super_user) ---
+
+        getIssues: async function (filters = {}, token = null) {
+            const params = {
+                p_type: filters.type || null,
+                p_severity: filters.severity || null,
+                p_status_group: filters.status_group || null
+            };
+            return await this.callFunction('get_issues', params, token, {
+                useCache: false,
+                cacheKey: 'issues_list'
+            });
+        },
+
+        getIssueById: async function (issueId, token = null) {
+            return await this.callFunction('get_issue_by_id', { p_id: issueId }, token, { useCache: false });
+        },
+
+        createIssue: async function (issueData, token = null) {
+            const params = {
+                p_title: issueData.title,
+                p_type: issueData.type,
+                p_severity: issueData.severity,
+                p_description: issueData.description || null,
+                p_area: issueData.area || null,
+                p_steps_to_reproduce: issueData.steps_to_reproduce || null,
+                p_business_benefit: issueData.business_benefit || null,
+                p_route: issueData.route || null,
+                p_reported_by: issueData.reported_by || null,
+                p_reported_by_name: issueData.reported_by_name || null
+            };
+            const result = await this.callFunction('create_issue_simple', params, token, { useCache: false });
+            this.clearCachePattern('issues');
+            return result;
+        },
+
+        updateIssue: async function (issueId, issueData, token = null) {
+            const params = {
+                p_issue_id: issueId,
+                p_title: issueData.title || null,
+                p_description: issueData.description !== undefined ? issueData.description : null,
+                p_type: issueData.type || null,
+                p_area: issueData.area || null,
+                p_severity: issueData.severity || null,
+                p_status: issueData.status || null,
+                p_steps_to_reproduce: issueData.steps_to_reproduce !== undefined ? issueData.steps_to_reproduce : null,
+                p_business_benefit: issueData.business_benefit !== undefined ? issueData.business_benefit : null
+            };
+            const result = await this.callFunction('update_issue_simple', params, token, { useCache: false });
+            this.clearCachePattern('issues');
+            return result;
+        },
+
+        resolveIssue: async function (issueId, resolutionNotes, token = null) {
+            const result = await this.callFunction('resolve_issue_simple', {
+                p_issue_id: issueId,
+                p_resolution_notes: resolutionNotes
+            }, token, { useCache: false });
+            this.clearCachePattern('issues');
+            return result;
+        },
+
+        deleteIssue: async function (issueId, token = null) {
+            const result = await this.callFunction('delete_issue_hard', { p_issue_id: issueId }, token, { useCache: false });
+            this.clearCachePattern('issues');
+            return result;
+        },
+
+        /**
+         * One-way ClickUp sync via sync_issue_to_clickup (backend only).
+         * Does not roll back the saved issue on failure; errors stay in console.
+         */
+        syncIssueToClickUp: async function (issueId, force = false, token = null) {
+            try {
+                const data = await this.callFunction('sync_issue_to_clickup', {
+                    p_issue_id: issueId,
+                    p_force: !!force
+                }, token, { useCache: false });
+                const result = Array.isArray(data) ? data[0] : data;
+                return result || { success: false, error: 'Empty sync response' };
+            } catch (e) {
+                return { success: false, error: e.message || String(e) };
+            }
         }
     }
 }();

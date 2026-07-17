@@ -1,0 +1,858 @@
+:root {
+  --mac-agent-accent: #4A7C59;
+  --mac-agent-navy: #2D4A3E;
+  --mac-agent-ink: #333333;
+  --mac-agent-rail-w: clamp(300px, 32vw, 380px);
+  --mac-agent-face-fab: 40px;
+  --mac-agent-face-head: 36px;
+  --mac-agent-face-msg: 30px;
+  --mac-agent-face-welcome: 52px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --mac-agent-face-fab: 36px;
+    --mac-agent-face-head: 32px;
+    --mac-agent-face-msg: 26px;
+    --mac-agent-face-welcome: 46px;
+  }
+}
+
+.mac-agent-fab {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 1060;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 0;
+  background: linear-gradient(135deg, var(--mac-agent-accent), #2D4A3E);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(45, 74, 62, 0.28);
+  transition: transform 0.15s, opacity 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.mac-agent-fab-face {
+  width: var(--mac-agent-face-fab);
+  height: var(--mac-agent-face-fab);
+  display: block;
+  pointer-events: none;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.35));
+}
+
+.mac-agent-face {
+  width: var(--mac-agent-face-msg);
+  height: var(--mac-agent-face-msg);
+  flex-shrink: 0;
+  display: block;
+  object-fit: contain;
+}
+
+.mac-agent-face-head {
+  width: var(--mac-agent-face-head);
+  height: var(--mac-agent-face-head);
+  object-fit: contain;
+}
+
+.mac-agent-fab:hover {
+  transform: scale(1.05);
+}
+
+.mac-agent-fab.mac-agent-fab-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.6);
+}
+
+.mac-agent-fab-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+}
+
+.mac-agent-answers-btn {
+  position: relative;
+  border: 1px solid rgba(45, 74, 62, 0.18);
+  background: #fff;
+  color: var(--mac-agent-navy);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 7px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mac-agent-answers-glyph {
+  display: none;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.mac-agent-answers-label {
+  display: inline;
+}
+
+.mac-agent-answers-btn:hover,
+.mac-agent-answers-btn.is-active {
+  background: rgba(45, 74, 62, 0.06);
+  border-color: rgba(45, 74, 62, 0.35);
+}
+
+.mac-agent-answers-badge {
+  display: inline-block;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.mac-agent-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.mac-agent-pane-answers {
+  background: #f7faf9;
+}
+
+.mac-agent-answers-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(45, 74, 62, 0.08);
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.mac-agent-back-chat {
+  border: 0;
+  background: transparent;
+  color: var(--mac-agent-navy);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}
+
+.mac-agent-back-chat:hover {
+  text-decoration: underline;
+}
+
+.mac-agent-answers-heading {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mac-agent-answers-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px 16px;
+}
+
+.mac-agent-answers-empty {
+  font-size: 0.85rem;
+  padding: 24px 8px;
+  text-align: center;
+}
+
+.mac-agent-inbox-card {
+  background: #fff;
+  border: 1px solid rgba(0, 166, 81, 0.28);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 2px rgba(45, 74, 62, 0.05);
+}
+
+.mac-agent-inbox-card.is-waiting {
+  border-color: rgba(252, 208, 61, 0.55);
+}
+
+.mac-agent-inbox-card.is-read {
+  border-color: rgba(45, 74, 62, 0.12);
+}
+
+.mac-agent-inbox-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mac-agent-inbox-status {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mac-agent-inbox-status.is-new { color: #4A7C59; }
+.mac-agent-inbox-status.is-waiting { color: #b8860b; }
+.mac-agent-inbox-status.is-read { color: #6c757d; }
+
+.mac-agent-inbox-when {
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.mac-agent-inbox-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6c757d;
+  margin-bottom: 2px;
+}
+
+.mac-agent-inbox-q,
+.mac-agent-inbox-a {
+  font-size: 0.85rem;
+  color: var(--mac-agent-ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 8px;
+}
+
+.mac-agent-inbox-a {
+  color: var(--mac-agent-navy);
+}
+
+.mac-agent-inbox-ack {
+  border: 1px solid rgba(0, 166, 81, 0.45);
+  background: #fff;
+  color: #4A7C59;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.mac-agent-inbox-ack:hover {
+  background: rgba(0, 166, 81, 0.08);
+}
+
+.mac-agent-inbox-ack:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mac-agent-rail {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1061;
+  width: var(--mac-agent-rail-w);
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-left: 1px solid rgba(45, 74, 62, 0.1);
+  box-shadow: -8px 0 32px rgba(45, 74, 62, 0.16);
+  transform: translateX(100%);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mac-agent-resize {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  margin-left: -3px;
+  cursor: col-resize;
+  z-index: 2;
+  touch-action: none;
+  background: transparent;
+}
+
+.mac-agent-resize::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 40px;
+  margin: -20px 0 0 -1.5px;
+  border-radius: 999px;
+  background: rgba(45, 74, 62, 0.18);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.mac-agent-resize:hover::after,
+.mac-agent-resize:focus-visible::after,
+body.mac-agent-resizing .mac-agent-resize::after {
+  opacity: 1;
+  background: var(--mac-agent-accent);
+}
+
+.mac-agent-resize:focus-visible {
+  outline: none;
+}
+
+body.mac-agent-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.mac-agent-resizing .mac-agent-rail {
+  transition: none;
+}
+
+.mac-agent-rail.mac-agent-open {
+  transform: translateX(0);
+}
+
+.mac-agent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid rgba(45, 74, 62, 0.08);
+  background: linear-gradient(180deg, #f8f9fc 0%, #fff 100%);
+  flex-shrink: 0;
+}
+
+.mac-agent-head-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mac-agent-msg-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+
+.mac-agent-msg-row .mac-agent-bubble {
+  flex: 1;
+  min-width: 0;
+}
+
+.mac-agent-welcome {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 2px 2px;
+}
+
+.mac-agent-welcome-face {
+  width: var(--mac-agent-face-welcome);
+  height: var(--mac-agent-face-welcome);
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.mac-agent-welcome-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--mac-agent-ink);
+}
+
+.mac-agent-example-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mac-agent-head-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mac-agent-head-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--mac-agent-navy);
+}
+
+.mac-agent-head-sub {
+  font-size: 0.72rem;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.mac-agent-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.mac-agent-spend-chip {
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(92, 189, 180, 0.15);
+  color: #2d6a64;
+}
+
+.mac-agent-icon-btn {
+  border: 0;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--mac-agent-ink);
+  font-size: 1rem;
+}
+
+.mac-agent-icon-btn:hover {
+  background: rgba(45, 74, 62, 0.06);
+}
+
+.mac-agent-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mac-agent-msg {
+  display: flex;
+  max-width: 100%;
+}
+
+.mac-agent-msg-user {
+  justify-content: flex-end;
+}
+
+.mac-agent-msg-assistant {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 0;
+}
+
+.mac-agent-bubble {
+  max-width: 92%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.mac-agent-msg-user .mac-agent-bubble {
+  background: var(--mac-agent-accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.mac-agent-msg-assistant .mac-agent-bubble {
+  max-width: 100%;
+  width: 100%;
+  background: #fff;
+  border: 1px solid rgba(45, 74, 62, 0.12);
+  color: var(--mac-agent-ink);
+  border-bottom-left-radius: 4px;
+  animation: libraAgentFadeIn 0.25s ease both;
+}
+
+/* Citation / nav / feedback sit under the answer text, not beside it */
+.mac-agent-msg-assistant .pa-msg-extras {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(45, 74, 62, 0.08);
+  width: 100%;
+}
+
+@keyframes libraAgentFadeIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+
+.mac-agent-tool {
+  align-self: stretch;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  border-left: 3px solid var(--mac-agent-accent);
+  background: rgba(92, 189, 180, 0.1);
+}
+
+.mac-agent-tool-running {
+  opacity: 0.85;
+}
+
+.mac-agent-tool-done {
+  border-left-color: #4A7C59;
+}
+
+.mac-agent-tool-error {
+  border-left-color: #dc3545;
+  background: rgba(220, 53, 69, 0.08);
+}
+
+.mac-agent-confirm {
+  align-self: stretch;
+  padding: 12px;
+  border-radius: 10px;
+  border-left: 3px solid #ffb44f;
+  background: rgba(255, 180, 79, 0.12);
+  font-size: 0.82rem;
+}
+
+.mac-agent-confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mac-agent-confirm-actions button {
+  font-size: 0.78rem;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(45, 74, 62, 0.15);
+  cursor: pointer;
+}
+
+.mac-agent-confirm-go {
+  background: var(--mac-agent-navy);
+  color: #fff;
+  border-color: var(--mac-agent-navy) !important;
+}
+
+.mac-agent-error {
+  align-self: stretch;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(220, 53, 69, 0.08);
+  border: 1px solid rgba(220, 53, 69, 0.25);
+  font-size: 0.82rem;
+  color: #842029;
+}
+
+.mac-agent-retry-btn {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #dc3545;
+  background: #fff;
+  color: #dc3545;
+  cursor: pointer;
+}
+
+.mac-agent-typing {
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.mac-agent-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mac-agent-accent);
+  animation: libraAgentDot 1.2s infinite ease-in-out;
+}
+
+.mac-agent-typing span:nth-child(2) { animation-delay: 0.15s; }
+.mac-agent-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes libraAgentDot {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.85); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+.mac-agent-status {
+  font-size: 0.78rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.mac-agent-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 14px 8px;
+  flex-shrink: 0;
+}
+
+.mac-agent-examples.d-none {
+  display: none !important;
+}
+
+.mac-agent-chip {
+  font-size: 0.72rem;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(92, 189, 180, 0.5);
+  background: rgba(92, 189, 180, 0.08);
+  color: #2d6a64;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mac-agent-chip:hover {
+  background: rgba(92, 189, 180, 0.2);
+}
+
+.mac-agent-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 14px 6px;
+  border-top: 1px solid rgba(45, 74, 62, 0.08);
+  flex-shrink: 0;
+}
+
+.mac-agent-input {
+  flex: 1;
+  resize: none;
+  border: 1px solid rgba(45, 74, 62, 0.15);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  max-height: 120px;
+  line-height: 1.4;
+}
+
+.mac-agent-input:focus {
+  outline: none;
+  border-color: var(--mac-agent-accent);
+  box-shadow: 0 0 0 2px rgba(92, 189, 180, 0.25);
+}
+
+.mac-agent-send {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--mac-agent-navy);
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.mac-agent-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mac-agent-foot {
+  padding: 0 14px 10px;
+  flex-shrink: 0;
+}
+
+.mac-agent-foot-hint {
+  font-size: 0.68rem;
+  color: #adb5bd;
+}
+
+.mac-agent-link-btn {
+  background: transparent;
+  border: 0;
+  color: #6c757d;
+  cursor: pointer;
+  font-size: 0.78rem;
+  text-decoration: underline;
+}
+
+.mac-agent-link-btn:hover {
+  color: var(--mac-agent-navy);
+}
+
+@media (max-width: 640px) {
+  .mac-agent-rail {
+    width: 100vw !important;
+  }
+
+  .mac-agent-resize {
+    display: none;
+  }
+
+  .mac-agent-answers-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .mac-agent-answers-glyph {
+    display: inline;
+  }
+
+  .mac-agent-answers-btn {
+    padding: 7px 9px;
+  }
+}
+
+/* ── Portal Assistant - citation buttons ─────────────────────────────────── */
+
+.pa-cites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 0;
+  width: 100%;
+}
+
+.pa-cite {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--mac-agent-accent);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--mac-agent-accent);
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  line-height: 1.6;
+}
+
+.pa-cite::before {
+  content: '\21D2\00A0';
+  opacity: 0.7;
+}
+
+.pa-cite:hover {
+  background: var(--mac-agent-accent);
+  color: #fff;
+}
+
+/* ── Nav action chips (inside assistant message) ─────────────────────────── */
+
+.pa-nav-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 0;
+  width: 100%;
+}
+
+.pa-nav-label {
+  font-size: 0.72rem;
+  color: #999;
+  margin-right: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pa-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  border: 1px solid #c5d0d8;
+  border-radius: 20px;
+  background: #f5f8fa;
+  color: var(--mac-agent-navy);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.pa-chip:hover {
+  background: #e4ecf3;
+  border-color: var(--mac-agent-accent);
+  color: var(--mac-agent-accent);
+}
+
+/* Escalate chip variant */
+.pa-escalate-chip {
+  border-color: #adb5bd;
+  color: #6c757d;
+}
+
+.pa-escalate-chip:hover {
+  background: #6c757d;
+  border-color: #6c757d;
+  color: #fff;
+}
+
+/* ── Feedback buttons ────────────────────────────────────────────────────── */
+
+.pa-feedback {
+  display: flex;
+  gap: 2px;
+  margin-top: 0;
+}
+
+.pa-fb-btn {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  cursor: pointer;
+  opacity: 0.45;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  transition: opacity 0.15s;
+}
+
+.pa-fb-btn:hover,
+.pa-fb-btn.pa-fb-active {
+  opacity: 1;
+}
+
+.pa-fb-btn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}

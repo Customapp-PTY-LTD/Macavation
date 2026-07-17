@@ -1,0 +1,479 @@
+/**
+ * Idle Mac — full-viewport, mostly click-through overlay.
+ * z-index 1055: below Portal Guide FAB (1060) and rail (1061).
+ */
+
+.macm-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  overflow: hidden;
+  pointer-events: none;
+  animation: macmLayerIn 0.35s ease-out;
+}
+
+.macm-layer--above-modal {
+  z-index: 1070;
+}
+
+.macm-layer * {
+  pointer-events: none;
+}
+
+.macm-dismiss {
+  pointer-events: auto;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  border: 1px solid rgba(25, 135, 84, 0.28);
+  background: rgba(255, 255, 255, 0.94);
+  color: #2D4A3E;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(45, 74, 62, 0.14);
+}
+
+.macm-dismiss:hover {
+  background: #fff;
+  border-color: rgba(25, 135, 84, 0.45);
+}
+
+.macm-layer--flip {
+  transform: scaleX(-1);
+}
+
+.macm-layer--flip .macm-dismiss {
+  right: auto;
+  left: 12px;
+  transform: scaleX(-1);
+}
+
+.macm-layer--rail-open .macm-dismiss {
+  right: auto;
+  left: 12px;
+}
+
+.macm-layer--flip.macm-layer--rail-open .macm-dismiss {
+  left: auto;
+  right: 12px;
+}
+
+.macm-layer--flee {
+  opacity: 0;
+  transition: opacity 0.24s ease-out;
+}
+
+@keyframes macmLayerIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.macm-mover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 96px;
+  height: 96px;
+  will-change: transform;
+}
+
+.macm-bob {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.macm-face {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(45, 74, 62, 0.22));
+}
+
+/* Glide — sorting-line tumble */
+.macm-mover--glide {
+  animation: macmGlide 7s cubic-bezier(0.37, 0, 0.63, 1) forwards;
+}
+
+.macm-mover--glide .macm-bob {
+  animation: macmGlideArc 1.75s ease-in-out infinite;
+}
+
+@keyframes macmGlide {
+  from { transform: translateX(-120px); }
+  to { transform: translateX(calc(100vw + 120px)); }
+}
+
+@keyframes macmGlideArc {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50% { transform: translateY(-22px) rotate(10deg); }
+}
+
+/* Peek — stock-bin peek */
+.macm-mover--peek {
+  top: auto;
+  bottom: -120px;
+  width: 96px;
+  height: 120px;
+  animation: macmPeek 5.6s ease-in-out forwards;
+}
+
+.macm-bob--peek {
+  transform-origin: 50% 92%;
+  animation: macmPeekLook 5.6s ease-in-out forwards;
+}
+
+.macm-bob--peek .macm-face {
+  position: relative;
+  z-index: 1;
+  width: 88%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.macm-bin-rim {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: 0;
+  height: 18px;
+  z-index: 2;
+  border-radius: 4px 4px 2px 2px;
+  background:
+    linear-gradient(180deg, #8d7434 0%, #6d5822 55%, #4a3c18 100%);
+  box-shadow:
+    0 -2px 0 rgba(245, 240, 232, 0.35),
+    0 4px 8px rgba(45, 74, 62, 0.2);
+}
+
+.macm-bin-rim::before {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 3px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(245, 240, 232, 0.25);
+}
+
+@keyframes macmPeek {
+  0% { transform: translateY(0); }
+  16% { transform: translateY(-126px); }
+  84% { transform: translateY(-126px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes macmPeekLook {
+  0%, 16% { transform: rotate(0deg); }
+  30% { transform: rotate(-6deg); }
+  46% { transform: rotate(5deg); }
+  62% { transform: rotate(-4deg); }
+  76%, 100% { transform: rotate(0deg); }
+}
+
+/* Drive — mini tractor */
+.macm-mover--drive {
+  top: auto;
+  bottom: 2px;
+  width: 156px;
+  height: 96px;
+  animation: macmDrive 6.5s cubic-bezier(0.37, 0, 0.63, 1) forwards;
+}
+
+.macm-bob--drive {
+  width: 100%;
+  height: 100%;
+}
+
+.macm-tractor {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 6px 10px rgba(45, 74, 62, 0.22));
+}
+
+.macm-face--driver {
+  position: absolute;
+  left: 28%;
+  top: 4%;
+  width: 38%;
+  height: 48%;
+  object-fit: contain;
+  object-position: center top;
+  z-index: 1;
+  filter: none;
+}
+
+.macm-tractor-chassis {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.macm-tractor-cabin {
+  position: absolute;
+  left: 26%;
+  top: 18%;
+  width: 42%;
+  height: 38%;
+  border-radius: 8px 12px 4px 4px;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.28), rgba(25, 135, 84, 0.12)),
+    rgba(247, 247, 245, 0.35);
+  border: 2px solid rgba(45, 74, 62, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.macm-tractor-hood {
+  position: absolute;
+  left: 58%;
+  top: 34%;
+  width: 30%;
+  height: 22%;
+  border-radius: 4px 10px 6px 4px;
+  background: linear-gradient(180deg, #4A7C59 0%, #198754 100%);
+  border: 2px solid rgba(45, 74, 62, 0.35);
+}
+
+.macm-tractor-body {
+  position: absolute;
+  left: 10%;
+  right: 8%;
+  bottom: 20%;
+  height: 34%;
+  border-radius: 12px 18px 8px 10px;
+  background: linear-gradient(180deg, #2D4A3E 0%, #1a3028 100%);
+  border: 2px solid rgba(20, 108, 67, 0.5);
+}
+
+.macm-tractor-light {
+  position: absolute;
+  right: 6%;
+  bottom: 38%;
+  width: 9%;
+  height: 12%;
+  border-radius: 3px;
+  background: #FF005E;
+  box-shadow: 0 0 6px rgba(255, 0, 94, 0.55);
+}
+
+.macm-tractor-wheel {
+  position: absolute;
+  bottom: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #C9A962 0 26%, #6d5822 27% 52%, #2D4A3E 53% 100%);
+  border: 2px solid #2D4A3E;
+  animation: macmWheelSpin 0.55s linear infinite;
+}
+
+.macm-tractor-wheel--rear {
+  left: 12%;
+  width: 28px;
+  height: 28px;
+}
+
+.macm-tractor-wheel--front {
+  right: 16%;
+  width: 20px;
+  height: 20px;
+  bottom: 2px;
+}
+
+@keyframes macmDrive {
+  from { transform: translateX(-180px); }
+  to { transform: translateX(calc(100vw + 180px)); }
+}
+
+@keyframes macmWheelSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Parachute — harvest leaf canopy */
+.macm-mover--parachute {
+  top: -160px;
+  width: 96px;
+  height: 140px;
+  animation: macmParachuteDescent 6.5s ease-in-out forwards;
+}
+
+.macm-bob--parachute {
+  width: 100%;
+  height: 100%;
+  animation: macmParachuteSway 2.4s ease-in-out infinite;
+}
+
+.macm-parachute-rig {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.macm-parachute-canopy {
+  position: relative;
+  width: 72px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.macm-leaf {
+  position: absolute;
+  width: 34px;
+  height: 22px;
+  border-radius: 2px 50% 2px 50%;
+  background: linear-gradient(145deg, #4A7C59 0%, #198754 55%, #146c43 100%);
+  border: 1px solid rgba(45, 74, 62, 0.35);
+  box-shadow: 0 3px 8px rgba(45, 74, 62, 0.18);
+}
+
+.macm-leaf--a {
+  left: 2px;
+  top: 8px;
+  transform: rotate(-28deg);
+}
+
+.macm-leaf--b {
+  left: 20px;
+  top: 0;
+  width: 36px;
+  height: 24px;
+  transform: rotate(0deg);
+  z-index: 1;
+}
+
+.macm-leaf--c {
+  right: 2px;
+  top: 8px;
+  transform: rotate(28deg);
+}
+
+.macm-parachute-strings {
+  position: relative;
+  width: 52px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.macm-parachute-string {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 22px;
+  background: linear-gradient(180deg, rgba(109, 88, 34, 0.65), rgba(25, 135, 84, 0.75));
+  border-radius: 999px;
+}
+
+.macm-parachute-string--left {
+  left: 14px;
+  transform: rotate(8deg);
+  transform-origin: top center;
+}
+
+.macm-parachute-string--right {
+  right: 14px;
+  transform: rotate(-8deg);
+  transform-origin: top center;
+}
+
+.macm-face--parachute {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  margin-top: 2px;
+  filter: drop-shadow(0 4px 8px rgba(45, 74, 62, 0.18));
+}
+
+@keyframes macmParachuteDescent {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  72% {
+    transform: translateY(calc(28vh + 160px));
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(28vh + 160px));
+    opacity: 0;
+  }
+}
+
+@keyframes macmParachuteSway {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(14px); }
+}
+
+/* Bubbles — cream / oil droplets */
+.macm-mover--bubbles {
+  top: auto;
+  bottom: -120px;
+  animation: macmBubbleRise var(--macm-dur, 6.5s) ease-out var(--macm-delay, 0s) forwards;
+}
+
+.macm-bob--bubble {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border-radius: 50% 50% 48% 52% / 42% 42% 58% 58%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 254, 248, 0.95), rgba(245, 240, 232, 0.55) 42%, rgba(201, 169, 98, 0.35) 68%, rgba(141, 116, 52, 0.22)),
+    rgba(245, 240, 232, 0.45);
+  border: 2px solid rgba(255, 254, 248, 0.85);
+  box-shadow:
+    inset 0 -6px 14px rgba(109, 88, 34, 0.1),
+    inset 0 0 18px rgba(255, 255, 255, 0.45),
+    0 6px 16px rgba(45, 74, 62, 0.16);
+  overflow: hidden;
+}
+
+.macm-bob--bubble .macm-face {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(45, 74, 62, 0.12));
+}
+
+@keyframes macmBubbleRise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.55);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translate3d(calc(var(--macm-sway, 28px) * 0.25), -12vh, 0) scale(1);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(var(--macm-sway, 28px), -58vh, 0) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(var(--macm-sway, 28px) * -0.35), calc(-100vh - 140px), 0) scale(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .macm-layer {
+    display: none !important;
+  }
+}
