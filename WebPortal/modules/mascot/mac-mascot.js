@@ -1,12 +1,13 @@
 /**
  * Idle Mac — orchard-themed ambient mascot overlay.
- * Styles: glide, peek, drive (tractor), parachute (leaf canopy), bubbles (oil/cream).
+ * Styles: glide, peek, drive (tractor + cart), parachute (leaf canopy), bubbles (oil/cream).
  * Prefs: mac_mascot_prefs — enabled defaults to false.
  */
 (function (global) {
   'use strict';
 
   var FACE = 'img/mac.svg';
+  var TRACTOR = 'img/tractor.png';
   var SVG = {
     glide: FACE,
     peek: FACE,
@@ -194,6 +195,8 @@
       var im = new Image();
       im.src = SVG[k];
     });
+    var tractorImg = new Image();
+    tractorImg.src = TRACTOR;
   }
 
   function createShellLayer(opts, flipOpts) {
@@ -260,28 +263,37 @@
     var bob = document.createElement('div');
     bob.className = 'macm-bob macm-bob--drive';
 
+    var convoy = document.createElement('div');
+    convoy.className = 'macm-convoy';
+
+    var cart = document.createElement('div');
+    cart.className = 'macm-cart';
+    cart.setAttribute('aria-hidden', 'true');
+    cart.innerHTML =
+      '<span class="macm-cart-bed"></span>' +
+      '<span class="macm-cart-rail macm-cart-rail--back"></span>' +
+      '<span class="macm-cart-rail macm-cart-rail--front"></span>' +
+      '<span class="macm-cart-hitch"></span>' +
+      '<span class="macm-cart-wheel"></span>';
+
+    var mac = document.createElement('img');
+    mac.className = 'macm-face macm-face--passenger';
+    mac.src = SVG.drive;
+    mac.alt = '';
+    cart.appendChild(mac);
+
     var tractor = document.createElement('div');
     tractor.className = 'macm-tractor';
 
-    var img = document.createElement('img');
-    img.className = 'macm-face macm-face--driver';
-    img.src = SVG.drive;
-    img.alt = '';
+    var tractorImg = document.createElement('img');
+    tractorImg.className = 'macm-tractor-sprite';
+    tractorImg.src = TRACTOR;
+    tractorImg.alt = '';
+    tractor.appendChild(tractorImg);
 
-    var chassis = document.createElement('div');
-    chassis.className = 'macm-tractor-chassis';
-    chassis.setAttribute('aria-hidden', 'true');
-    chassis.innerHTML =
-      '<span class="macm-tractor-cabin"></span>' +
-      '<span class="macm-tractor-hood"></span>' +
-      '<span class="macm-tractor-body"></span>' +
-      '<span class="macm-tractor-light"></span>' +
-      '<span class="macm-tractor-wheel macm-tractor-wheel--rear"></span>' +
-      '<span class="macm-tractor-wheel macm-tractor-wheel--front"></span>';
-
-    tractor.appendChild(img);
-    tractor.appendChild(chassis);
-    bob.appendChild(tractor);
+    convoy.appendChild(cart);
+    convoy.appendChild(tractor);
+    bob.appendChild(convoy);
     mover.appendChild(bob);
   }
 
@@ -328,12 +340,7 @@
     img.src = SVG.peek;
     img.alt = '';
 
-    var rim = document.createElement('div');
-    rim.className = 'macm-bin-rim';
-    rim.setAttribute('aria-hidden', 'true');
-
     bob.appendChild(img);
-    bob.appendChild(rim);
     mover.appendChild(bob);
   }
 
