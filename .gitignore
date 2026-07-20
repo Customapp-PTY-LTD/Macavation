@@ -38,6 +38,7 @@ Playwright Tests/.last-run.json
 # One-off MCP / batch execution artifacts (do not commit)
 agent-tools/
 scripts/_soh_batches/
+.tmp-issues-stash/
 
 nul
 
