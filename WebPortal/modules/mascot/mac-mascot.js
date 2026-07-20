@@ -229,6 +229,7 @@
   function appendBubbles(layer) {
     var span = BUBBLE_COUNT_MAX - BUBBLE_COUNT_MIN + 1;
     var count = BUBBLE_COUNT_MIN + Math.floor(Math.random() * span);
+    var macIndex = Math.floor(Math.random() * count);
     var movers = [];
     for (var i = 0; i < count; i++) {
       var size = 48 + Math.floor(Math.random() * 40);
@@ -247,11 +248,13 @@
 
       var bob = document.createElement('div');
       bob.className = 'macm-bob macm-bob--bubble';
-      var img = document.createElement('img');
-      img.className = 'macm-face';
-      img.src = SVG.bubbles;
-      img.alt = '';
-      bob.appendChild(img);
+      if (i === macIndex) {
+        var img = document.createElement('img');
+        img.className = 'macm-face';
+        img.src = SVG.bubbles;
+        img.alt = '';
+        bob.appendChild(img);
+      }
       mover.appendChild(bob);
       layer.appendChild(mover);
       movers.push(mover);

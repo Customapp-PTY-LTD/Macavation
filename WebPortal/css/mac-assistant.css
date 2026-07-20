@@ -3,7 +3,7 @@
   --mac-agent-navy: #2D4A3E;
   --mac-agent-ink: #333333;
   --mac-agent-rail-w: clamp(300px, 32vw, 380px);
-  --mac-agent-face-fab: 40px;
+  --mac-agent-face-fab: 56px;
   --mac-agent-face-head: 36px;
   --mac-agent-face-msg: 30px;
   --mac-agent-face-welcome: 52px;
@@ -11,7 +11,7 @@
 
 @media (max-width: 640px) {
   :root {
-    --mac-agent-face-fab: 36px;
+    --mac-agent-face-fab: 52px;
     --mac-agent-face-head: 32px;
     --mac-agent-face-msg: 26px;
     --mac-agent-face-welcome: 46px;
@@ -23,29 +23,29 @@
   right: 22px;
   bottom: 22px;
   z-index: 1060;
-  width: 56px;
-  height: 56px;
+  width: var(--mac-agent-face-fab);
+  height: var(--mac-agent-face-fab);
   border-radius: 50%;
   border: 0;
-  background: linear-gradient(135deg, var(--mac-agent-accent), #2D4A3E);
+  background: transparent;
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(45, 74, 62, 0.28);
+  box-shadow: 0 6px 18px rgba(45, 74, 62, 0.28);
   transition: transform 0.15s, opacity 0.15s;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   line-height: 1;
+  overflow: hidden;
 }
 
 .mac-agent-fab-face {
-  width: var(--mac-agent-face-fab);
-  height: var(--mac-agent-face-fab);
+  width: 100%;
+  height: 100%;
   display: block;
   pointer-events: none;
-  object-fit: contain;
-  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.35));
+  object-fit: cover;
 }
 
 .mac-agent-face {
