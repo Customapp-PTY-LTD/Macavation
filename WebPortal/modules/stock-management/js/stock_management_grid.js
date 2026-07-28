@@ -369,6 +369,65 @@ var _stockManagementGrid = function () {
                         dataFunctions.deleteShellStockLot(id).then(function () { scope.loadShellLots(); });
                     });
                 });
+                $(document).off('click', '.js-shell-lot-movements').on('click', '.js-shell-lot-movements', function () {
+                    var id = $(this).data('shell-id');
+                    var lot = (scope.shellLots || []).find(function (l) { return String(l.id) === String(id); });
+                    if (!lot || !dataFunctions.getShellStockMovements) return;
+
+                    dataFunctions.getShellStockMovements(lot.id).then(function (movements) {
+                        var lotNumber = escapeHtml(lot.lot_number || 'Unknown');
+                        var content;
+
+                        if (!movements || movements.length === 0) {
+                            content = '<p class="text-muted mb-0">No movements recorded for this lot yet.</p>';
+                        } else {
+                            var rows = movements.map(function (m) {
+                                var createdAt = m.created_at ? new Date(m.created_at) : null;
+                                var when = createdAt ?
+                                    createdAt.getFullYear() + '-' +
+                                    String(createdAt.getMonth() + 1).padStart(2, '0') + '-' +
+                                    String(createdAt.getDate()).padStart(2, '0') + ' ' +
+                                    String(createdAt.getHours()).padStart(2, '0') + ':' +
+                                    String(createdAt.getMinutes()).padStart(2, '0') :
+                                    '—';
+                                var type = m.movement_type ?
+                                    m.movement_type.charAt(0).toUpperCase() + m.movement_type.slice(1).replace(/_/g, ' ') :
+                                    '—';
+                                var qty = m.quantity_kg != null ? Number(m.quantity_kg).toFixed(2) : '0.00';
+                                var ref = m.reference ? escapeHtml(m.reference) : '—';
+                                var notes = m.notes ? escapeHtml(m.notes) : '—';
+
+                                return '<tr>' +
+                                    '<td>' + escapeHtml(when) + '</td>' +
+                                    '<td>' + escapeHtml(type) + '</td>' +
+                                    '<td class="text-end">' + escapeHtml(qty) + '</td>' +
+                                    '<td>' + ref + '</td>' +
+                                    '<td>' + notes + '</td>' +
+                                    '</tr>';
+                            }).join('');
+
+                            content = '<table class="table table-sm table-striped mb-0">' +
+                                '<thead><tr>' +
+                                '<th>When</th>' +
+                                '<th>Type</th>' +
+                                '<th class="text-end">Quantity (kg)</th>' +
+                                '<th>Reference</th>' +
+                                '<th>Notes</th>' +
+                                '</tr></thead>' +
+                                '<tbody>' + rows + '</tbody>' +
+                                '</table>';
+                        }
+
+                        Swal.fire({
+                            title: 'Movement history — ' + lotNumber,
+                            html: content,
+                            width: '800px',
+                            confirmButtonText: 'Close'
+                        });
+                    }).catch(function (e) {
+                        Swal.fire('Error', 'Could not load movement history. ' + (e.message || 'Unknown error'), 'error');
+                    });
+                });
                 $('#importHistoricalKernelRefreshBtn').off('click').on('click', function () {
                     scope.loadKernelBatches(true);
                     var modalEl = document.getElementById('importHistoricalKernelModal');
@@ -1586,6 +1645,7 @@ var _stockManagementGrid = function () {
                     '<td class="mac-table-actions-col">' + MacTableActions.render({
                         id: 'shellActions' + shellId,
                         items: [
+                            { label: 'Movement history', className: 'js-shell-lot-movements', icon: 'fas fa-clock-rotate-left', dataAttrs: { 'shell-id': shellId } },
                             { label: 'Dispatch', className: 'js-dispatch-shell-lot', icon: 'fas fa-truck', dataAttrs: { 'shell-id': shellId, 'action-perm': 'stock.shell.manage' } },
                             { label: 'Edit', className: 'js-edit-shell-lot', icon: 'fas fa-edit', dataAttrs: { 'shell-id': shellId, 'action-perm': 'stock.shell.manage' } },
                             { label: 'Delete', className: 'js-delete-shell-lot', danger: true, icon: 'fas fa-trash', dataAttrs: { 'shell-id': shellId, 'action-perm': 'stock.shell.manage' } }
