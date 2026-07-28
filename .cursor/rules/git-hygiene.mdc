@@ -1,0 +1,36 @@
+---
+description: Multi-actor git hygiene — firm rules for repos where fleet runs, Cursor, and Claude Code all land commits
+alwaysApply: true
+---
+
+# Multi-actor git hygiene (firm rules)
+
+Agent Fleet runs, Claude Code sessions, and other Cursor windows can all merge to `dev` while
+you work. A stale local `dev` has already caused a near-regression (2026-07-21). Follow these
+without exception:
+
+- **Always `git fetch` first and branch from `origin/dev`, never local `dev`.** Rebase onto
+  `origin/dev` immediately before opening a PR.
+- **One actor per working tree.** If another session/tool is working in this clone, take your
+  own git worktree first: `git worktree add ../<repo>-cursor dev` and work there.
+- **Never commit directly on `dev`** in a fleet-enabled repo (one with a `dev-agent` branch) —
+  branch + PR always; the fleet merges to `dev` underneath you.
+- **Never push to an existing remote branch name you didn't create in this session** — check
+  `git ls-remote origin <name>` when unsure.
+- `dev` may carry a ruleset (PR required, no force pushes; the fleet app bypasses it). If a
+  push is rejected, that is the guardrail working — open a PR instead of forcing.
+
+**If commits are stuck on local `dev`** (made before these rules, now rejected on push):
+`git branch rescue/dev-work` (saves them — nothing is lost), then `git fetch origin` and
+`git checkout dev && git reset --hard origin/dev`, then open a PR from `rescue/dev-work`.
+NOTE: `reset --hard` discards UNCOMMITTED changes — commit or stash first.
+
+## Wrong-identity guard (gh / git tokens)
+
+Before any repo-mutating `gh` or git operation, know WHO you are: `gh auth status` (or
+`gh api user --jq .login`). If a `GH_TOKEN`/`GITHUB_TOKEN` env var is set, it OVERRIDES
+keyring login - a limited machine token (e.g. a CI account) will 404 on repos a human can
+plainly see in the browser, producing misleading "not found"/"branch missing" errors.
+When that happens, do not chase the phantom error; retry as the human identity:
+`env -u GH_TOKEN -u GITHUB_TOKEN <command>`. Never push/commit as a machine identity when
+the work should be attributed to the developer (fleet notifications key off the author).
