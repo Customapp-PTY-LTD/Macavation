@@ -1,0 +1,59 @@
+---
+description: Where this repo's tests gate a fleet merge, and how to set/change the gate. Apply when the user asks how to make tests block a fleet merge, how to turn on or change the test gate, why a change merged without tests, or wants this repo's fleet runs verified before they land.
+alwaysApply: false
+---
+
+# Fleet test gate — where this repo's tests gate a merge
+
+Agent Fleet merges a plan's result **straight into this repo's base branch** (usually `dev`),
+which typically auto-deploys. The **test gate** is the only thing that blocks that merge on
+tests: after the engine pushes its working branch, the fleet runs a configured command and only
+merges if it passes.
+
+- **A command is set** → tests run on every change; a failure blocks the merge.
+- **No command is set** → the run is recorded `tests_status: none` and **merges anyway,
+  unverified**. Silence is not a gate.
+- **`require_tests: true`** → "no tests" becomes a block instead of allow-with-flag.
+
+## Where it is set — NOT in this repo
+
+The gate lives in the **`Customapp-PTY-LTD/agent-fleet`** repo's `config/repos.json`, changed by
+a **pull request to that repo** (the fleet runs the command unattended, so it is a reviewed
+security control — deliberately not read from this repo's `package.json`, and not editable from
+the portal). Add or edit this repo's block:
+
+```json
+{
+  "repo": "Customapp-PTY-LTD/THIS-REPO",
+  "base_branch": "dev",
+  "plan_ref": "dev-agent",
+  "enabled": true,
+  "test_command": "npm ci && npm run test:fleet",
+  "require_tests": true
+}
+```
+
+## How this repo helps: the `test:fleet` script convention
+
+Point the gate at a **`test:fleet` npm script** in this repo rather than naming a raw command in
+the central config. That gives the fleet a **stable target**: the command in `config/repos.json`
+never changes, while what this repo tests can evolve here without another central PR.
+
+Two rules for what `test:fleet` may do:
+
+- **Fast and self-contained** — no browser, login, or deployed environment. An end-to-end suite
+  that needs a running app will *error* (not fail) and block **every** merge. If you need browser
+  coverage, make it hermetic (mock mode, its own `webServer` on `127.0.0.1`, no auth).
+- **Run it in a fresh clone first**, exactly as the gate will: `npm ci && npm run test:fleet`.
+
+**Residual risk.** The central config can't be weakened without a PR to `agent-fleet`, but the
+`test:fleet` *script* lives in this repo, where a fleet run can edit it — a plan can't delete its
+gate, but it could **hollow it out** (`exit 0`, dropped assertions) and still "pass". Scrutinise
+every `package.json` script change in diff review. For a tamper-proof command, name it inline in
+`config/repos.json` instead of delegating to a repo script.
+
+## See the current state
+
+The portal's **Configuration** page shows every project's live gate state — Gated / Tests
+required / **None — merges unverified** / Blocks-all — and how to change it:
+`https://dev.d2zheavn62lwu9.amplifyapp.com/config.html`.
