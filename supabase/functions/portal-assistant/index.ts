@@ -13,6 +13,13 @@
  * tool-calling loop — the top-N KB search is prefetched once and injected
  * into the system prompt for a single Anthropic call per turn.
  *
+ * Zero-token KB fast path (Phase 1.5 cost pack, ported from Libra-Portal):
+ * when the prefetched KB hit is a clear, unambiguous winner (see
+ * isDominantKbHit), assistant_chat answers straight from the guide section
+ * body and skips key resolution, the budget check, and the Anthropic call
+ * entirely — no cost, near-instant reply. See ASSISTANT_FAST_PATH_DISABLED
+ * below to force every turn through the normal Anthropic-backed flow.
+ *
  * Actions (POST body { action: ... }):
  *   assistant_chat     - session required. Runs one chat turn.
  *   assistant_feedback - session required. Thumbs up/down on a message.
@@ -26,6 +33,9 @@
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY - service-role DB access.
  *   ASSISTANT_AI_API_KEY (or ANTHROPIC_API_KEY) - Anthropic API key.
  *   ASSISTANT_INGEST_SECRET - shared secret for assistant_kb_ingest.
+ *   ASSISTANT_FAST_PATH_DISABLED - set to "1" to disable the zero-token KB
+ *     fast path (kill switch independent of assistant_enabled) — every turn
+ *     then goes through the normal Anthropic-backed flow.
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -85,6 +95,39 @@ const KB_SEARCH_TOP_N = 3;
 const KB_SNIPPET_MAX = 400;
 const DEFAULT_MODEL = "claude-sonnet-4-6";
 const ESTIMATED_COST_CENTS = 2; // ~$0.02 rough pre-flight budget guard.
+
+// Zero-token KB fast path (Phase 1.5 cost pack) thresholds. A prefetch hit
+// must clear both bars to skip the Anthropic call entirely:
+//   - top score >= FAST_PATH_MIN_SCORE (a lone strong keyword/title match
+//     scores at least 3 per assistant_kb_search's scoring - see
+//     migrations/20260716160000_portal_assistant_chat.sql)
+//   - top score >= FAST_PATH_DOMINANCE_RATIO x the next hit's score (or
+//     there is no second hit), so an ambiguous top-2 does not get a free
+//     answer.
+// Deliberately conservative: a wrong free answer is worse than one extra
+// Anthropic call, so ties or close calls fall through to the normal flow.
+const FAST_PATH_MIN_SCORE = 3;
+const FAST_PATH_DOMINANCE_RATIO = 1.5;
+const FAST_PATH_CHUNK_ANSWER_MAX = 1200;
+const FAST_PATH_DISABLED = (Deno.env.get("ASSISTANT_FAST_PATH_DISABLED") || "").trim() === "1";
+
+// These guide sections are template boilerplate with no unique body content
+// (body literally re-states "Module <Title> (module). Available from the
+// navigation menu..."). That redundant self-referential text makes the
+// summary/body scoring tiers auto-match whatever term hit the title,
+// artificially inflating their score past genuinely detailed sections on the
+// same topic (e.g. "Kernel Production Forecast" out-scoring the real "Kernel
+// Production" module for a generic production question) - never let one of
+// these win the fast path; fall through to the LLM instead, which still sees
+// them via buildSystemPrompt(hits) and can cite whichever is actually right.
+const FAST_PATH_EXCLUDED_ANCHORS = new Set([
+  "dashboard-targets-grid",
+  "kernel-production-forecast-grid",
+  "messaging-compose-grid",
+  "oil-production-forecast-grid",
+  "scheduled-reports-grid",
+  "stock-alert-rules-grid",
+]);
 
 const ASSISTANT_ACTIONS = new Set([
   "assistant_chat",
@@ -421,6 +464,90 @@ async function insertMessage(
   return row?.message_id != null ? Number(row.message_id) : null;
 }
 
+// ── Zero-token KB fast path ────────────────────────────────────────────────
+
+/**
+ * True when the top prefetch hit from assistant_kb_search is clearly the
+ * dominant match - see FAST_PATH_MIN_SCORE / FAST_PATH_DOMINANCE_RATIO for
+ * the exact bars. Hits are expected pre-sorted by score (assistant_kb_search
+ * orders descending).
+ */
+function isDominantKbHit(hits: AnyRow[]): boolean {
+  if (!hits.length) return false;
+  const topScore = Number(hits[0].score) || 0;
+  if (topScore < FAST_PATH_MIN_SCORE) return false;
+  const second = hits[1];
+  if (second) {
+    const secondScore = Number(second.score) || 0;
+    if (secondScore > 0 && topScore < secondScore * FAST_PATH_DOMINANCE_RATIO) return false;
+  }
+  return true;
+}
+
+/** Fetch every sub-chunk for a guide section anchor (Macavation's kb_get_section equivalent). */
+async function runKbGetSection(
+  sb: SupabaseClient,
+  anchor: string,
+): Promise<{ found: boolean; sections: AnyRow[] }> {
+  const rows = await rpc(sb, "assistant_kb_chunk_get", { p_section_anchor: anchor.slice(0, 200) });
+  const sections = (rows || []).filter((r) => r && r.success === 1);
+  return { found: sections.length > 0, sections };
+}
+
+/**
+ * Shared tail-end for the zero-token KB fast path: persist the assistant
+ * message at zero cost, log zero-cost usage under the synthetic "kb-direct"
+ * model (for later hit-rate analysis in assistant_usage_log without
+ * touching the monthly budget), and build the normal chat response shape.
+ */
+async function finishKbFastPath(
+  sb: SupabaseClient,
+  params: {
+    resolvedClientGuid: string;
+    conversationGuid: string;
+    userMessage: string;
+    answerText: string;
+    anchor: string;
+    title: string;
+  },
+): Promise<Response> {
+  const { resolvedClientGuid, conversationGuid, userMessage, answerText, anchor, title } = params;
+  const citations = [{ title, anchor }];
+
+  let messageId: number | null = null;
+  try {
+    messageId = await insertMessage(sb, resolvedClientGuid, conversationGuid, "assistant", answerText, anchor, 0);
+  } catch (e) {
+    console.warn("[portal-assistant] fast-path message persist failed:", e);
+  }
+
+  try {
+    await rpc(sb, "assistant_record_usage", {
+      p_model: "kb-direct",
+      p_input_tokens: 0,
+      p_output_tokens: 0,
+      p_cost_cents: 0,
+      p_latency_ms: 0,
+      p_http_status: 200,
+      p_success: true,
+    });
+  } catch (e) {
+    console.warn("[portal-assistant] fast-path usage log failed:", e);
+  }
+
+  return jsonResponse({
+    success: true,
+    conversation_guid: conversationGuid,
+    message_id: messageId,
+    text: answerText,
+    citations,
+    nav_actions: resolveNavActions(citations, userMessage),
+    suggested_replies: DEFAULT_SUGGESTED_REPLIES,
+    can_escalate: false,
+    cost_usd: 0,
+  });
+}
+
 // ── assistant_chat ─────────────────────────────────────────────────────────
 
 async function handleChat(sb: SupabaseClient, body: AnyRow, session: SessionUser): Promise<Response> {
@@ -452,6 +579,79 @@ async function handleChat(sb: SupabaseClient, body: AnyRow, session: SessionUser
     return jsonResponse({ success: false, error: "message is required." }, 400);
   }
 
+  let conversationGuid: string;
+  try {
+    conversationGuid = await ensureConversation(
+      sb,
+      resolvedClientGuid,
+      body.conversation_guid ? String(body.conversation_guid) : null,
+      session.userId,
+    );
+    await insertMessage(sb, resolvedClientGuid, conversationGuid, "user", userMessage.slice(0, 4000));
+  } catch (e) {
+    console.error("[portal-assistant] conversation persist failed:", e);
+    return jsonResponse({ success: false, error: "Could not start conversation." }, 500);
+  }
+
+  let hits: AnyRow[] = [];
+  try {
+    const searchRows = await rpc(sb, "assistant_kb_search", {
+      p_query: userMessage.slice(0, 1000),
+      p_client_guid: resolvedClientGuid,
+      p_top_n: KB_SEARCH_TOP_N,
+    });
+    hits = (searchRows || []).filter((r) => r && r.success === 1);
+  } catch (e) {
+    console.warn("[portal-assistant] KB search failed:", e);
+  }
+
+  // Zero-token fast path: when the top prefetch hit is a clear, unambiguous
+  // winner, answer straight from the guide section body and skip key
+  // resolution, the budget check, and the Anthropic call entirely - there is
+  // no cost to attribute. Never returns an empty/broken answer; anything
+  // short of that falls through to the normal Anthropic-backed flow below.
+  // buildSystemPrompt(hits) below still uses the full, unfiltered hits -
+  // only the fast-path decision ignores known-boilerplate stub sections.
+  const fastPathHits = hits.filter((h) => !FAST_PATH_EXCLUDED_ANCHORS.has(String(h.section_anchor)));
+  if (!FAST_PATH_DISABLED && isDominantKbHit(fastPathHits)) {
+    const topHit = fastPathHits[0];
+    const anchor = String(topHit.section_anchor || "").trim();
+    let chunkAnswer: string | null = null;
+    let chunkTitle = String(topHit.title || anchor);
+    if (anchor) {
+      try {
+        const section = await runKbGetSection(sb, anchor);
+        if (section.found && section.sections.length) {
+          const bodies = section.sections
+            .map((s) => String(s.body || "").trim())
+            .filter(Boolean);
+          if (bodies.length) {
+            chunkTitle = String(section.sections[0]?.title || chunkTitle);
+            let combined = bodies.join("\n\n");
+            if (combined.length > FAST_PATH_CHUNK_ANSWER_MAX) {
+              combined = combined.slice(0, FAST_PATH_CHUNK_ANSWER_MAX).trim() +
+                "\n\n(See the linked guide section for the full detail.)";
+            }
+            chunkAnswer = combined;
+          }
+        }
+      } catch (e) {
+        console.warn("[portal-assistant] fast-path kb_get_section failed:", e);
+      }
+    }
+
+    if (chunkAnswer) {
+      return await finishKbFastPath(sb, {
+        resolvedClientGuid,
+        conversationGuid,
+        userMessage,
+        answerText: chunkAnswer,
+        anchor,
+        title: chunkTitle,
+      });
+    }
+  }
+
   const apiKey = (Deno.env.get("ASSISTANT_AI_API_KEY") || Deno.env.get("ANTHROPIC_API_KEY") || "").trim();
   if (!apiKey) {
     return jsonResponse({
@@ -480,32 +680,6 @@ async function handleChat(sb: SupabaseClient, body: AnyRow, session: SessionUser
       error: "budget_exceeded",
       message: "The assistant's monthly budget has been reached. Please try again next month or contact an administrator.",
     }, 402);
-  }
-
-  let conversationGuid: string;
-  try {
-    conversationGuid = await ensureConversation(
-      sb,
-      resolvedClientGuid,
-      body.conversation_guid ? String(body.conversation_guid) : null,
-      session.userId,
-    );
-    await insertMessage(sb, resolvedClientGuid, conversationGuid, "user", userMessage.slice(0, 4000));
-  } catch (e) {
-    console.error("[portal-assistant] conversation persist failed:", e);
-    return jsonResponse({ success: false, error: "Could not start conversation." }, 500);
-  }
-
-  let hits: AnyRow[] = [];
-  try {
-    const searchRows = await rpc(sb, "assistant_kb_search", {
-      p_query: userMessage.slice(0, 1000),
-      p_client_guid: resolvedClientGuid,
-      p_top_n: KB_SEARCH_TOP_N,
-    });
-    hits = (searchRows || []).filter((r) => r && r.success === 1);
-  } catch (e) {
-    console.warn("[portal-assistant] KB search failed:", e);
   }
 
   const system = buildSystemPrompt(hits);
