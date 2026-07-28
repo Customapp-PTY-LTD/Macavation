@@ -1393,7 +1393,6 @@ var _adminGrid = function () {
                 var user = (typeof Session !== 'undefined' && Session.get) ? Session.get('user') : null;
                 if (!user) return { id: null, name: null };
                 var name = [user.first_name, user.last_name].filter(Boolean).join(' ')
-                    || user.username
                     || user.email
                     || 'Unknown';
                 return { id: user.id || null, name: name };
