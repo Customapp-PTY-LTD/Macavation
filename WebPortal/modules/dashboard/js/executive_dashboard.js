@@ -111,6 +111,7 @@ var _executiveDashboard = function () {
             await scope.loadPhase2ExtendedKpis();
             await scope.loadConsolidatedSummary();
             await scope.loadOilForecastChart();
+            scope.initDataAuditPanel();
         },
 
         getDashboardVisibility: function () {
@@ -370,6 +371,10 @@ var _executiveDashboard = function () {
                 $('.stock-history-range-btn').removeClass('btn-primary').addClass('btn-outline-secondary');
                 $(this).removeClass('btn-outline-secondary').addClass('btn-primary');
                 scope.loadStockHistoryChart();
+            });
+            $('#execDataAuditRefresh').off('click').on('click', function (e) {
+                e.preventDefault();
+                scope.loadDataAudit();
             });
         },
 
@@ -1009,6 +1014,86 @@ var _executiveDashboard = function () {
             } catch (e) {
                 console.warn('[Executive Dashboard] oil forecast chart failed', e);
             }
+        },
+
+        dataAuditLoaded: false,
+
+        initDataAuditPanel: function () {
+            var scope = _executiveDashboard;
+            var collapseEl = document.getElementById('execDataAuditCollapse');
+            if (!collapseEl) return;
+            $(collapseEl).on('show.bs.collapse', function () {
+                if (!scope.dataAuditLoaded) {
+                    scope.loadDataAudit();
+                }
+            });
+        },
+
+        loadDataAudit: async function () {
+            var scope = _executiveDashboard;
+            var container = document.getElementById('execDataAuditContainer');
+            var refreshLink = document.getElementById('execDataAuditRefresh');
+            if (!container || typeof dataFunctions === 'undefined' || !dataFunctions.getDashboardDataAudit) return;
+            container.innerHTML = '<p class="text-muted small mb-0"><i class="fas fa-spinner fa-spin me-1"></i>Loading audit data…</p>';
+            try {
+                var rows = await dataFunctions.getDashboardDataAudit();
+                scope.dataAuditLoaded = true;
+                if (refreshLink) refreshLink.classList.remove('d-none');
+                if (!rows || rows.length === 0) {
+                    container.innerHTML = '<p class="text-muted small mb-0">No audit data returned. If this environment has not had migration 20260602090000 applied, that is the likely reason.</p>';
+                    return;
+                }
+                scope.renderDataAudit(rows);
+            } catch (e) {
+                console.error('[Executive Dashboard] data audit load failed', e);
+                container.innerHTML = '<p class="text-muted small mb-0">No audit data returned. If this environment has not had migration 20260602090000 applied, that is the likely reason.</p>';
+            }
+        },
+
+        renderDataAudit: function (rows) {
+            var container = document.getElementById('execDataAuditContainer');
+            if (!container) return;
+            var bySource = {};
+            rows.forEach(function (r) {
+                var src = String(r.source || 'unknown');
+                if (!bySource[src]) bySource[src] = [];
+                bySource[src].push(r);
+            });
+            var sources = Object.keys(bySource).sort();
+            var html = '<div class="data-audit-results">';
+            sources.forEach(function (src) {
+                var srcRows = bySource[src];
+                html += '<h6 class="text-uppercase small text-muted mb-2 mt-3 fw-bold">' + scope.escapeHtml(src) + '</h6>';
+                html += '<table class="table table-sm table-bordered mb-3" style="max-width: 800px;">';
+                html += '<thead class="table-light"><tr><th>Metric</th><th>Value</th></tr></thead>';
+                html += '<tbody>';
+                srcRows.forEach(function (r) {
+                    var metricRaw = String(r.metric || '');
+                    var metricLabel = scope.formatMetricLabel(metricRaw);
+                    var value = Number(r.value) || 0;
+                    html += '<tr>';
+                    html += '<td title="' + scope.escapeHtml(metricRaw) + '">' + scope.escapeHtml(metricLabel) + '</td>';
+                    html += '<td>' + value.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + '</td>';
+                    html += '</tr>';
+                    if (r.detail != null && typeof r.detail === 'object') {
+                        var detailJson = JSON.stringify(r.detail, null, 2);
+                        html += '<tr><td colspan="2" class="ps-4"><pre class="small text-muted mb-0" style="white-space: pre-wrap; word-wrap: break-word;">' + scope.escapeHtml(detailJson) + '</pre></td></tr>';
+                    }
+                });
+                html += '</tbody></table>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        },
+
+        formatMetricLabel: function (raw) {
+            return String(raw).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+        },
+
+        escapeHtml: function (str) {
+            var div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
         }
     };
 }();

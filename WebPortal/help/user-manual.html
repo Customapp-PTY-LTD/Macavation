@@ -182,6 +182,9 @@
           <li>Read summary cards for the day; drill into linked modules if a number needs investigation.</li>
           <li>If figures look wrong, refresh the browser once before assuming a data fault.</li>
         </ol>
+        <h3>Data audit panel (administrators)</h3>
+        <p>The <strong>Data audit</strong> panel appears on the executive dashboard for users with administrative permissions. It shows the raw source counts that sit behind dashboard numbers, grouped by their data source (kernel, oil, and similar). Use this panel to verify that dashboard figures reflect the underlying data correctly, particularly after importing historical records or when a displayed number appears incorrect.</p>
+        <p>The panel loads only when first expanded and includes a Refresh link to re-run the audit query. Each metric shows its human-readable label with the raw database key in a tooltip, so you can trace it back to the source function. If detailed breakdowns are available (for example, counts by status), they appear as formatted JSON beneath the metric.</p>
         <p class="contextual-help">Contextual help: <a href="index.html#dashboard-overview">Dashboard overview</a> · <a href="index.html#material-journey-dashboard">Material journey</a> · <a href="index.html#executive-dashboard">Executive dashboard</a></p>
       </article>
 

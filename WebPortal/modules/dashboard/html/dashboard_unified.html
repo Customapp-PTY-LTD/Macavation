@@ -687,5 +687,19 @@
             </div>
             </div>
         </div>
+
+        <div class="card mb-4 mac-section-collapse-card" data-action-perm="admin.users.manage">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#execDataAuditCollapse" aria-expanded="false" aria-controls="execDataAuditCollapse">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-database me-2"></i>Data audit <i class="fas fa-chevron-up ms-2 mac-section-collapse-icon"></i></h5>
+                </button>
+                <a href="#" class="small d-none" id="execDataAuditRefresh" title="Re-run the audit query">Refresh</a>
+            </div>
+            <div class="collapse" id="execDataAuditCollapse">
+                <div class="card-body" id="execDataAuditContainer">
+                    <p class="text-muted small mb-0">Expand to load audit data…</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
