@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Macavation Portal — Progress Update, 28 July 2026</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 14mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 10.4pt; line-height: 1.5; color: #1d2321; margin: 0;
+  }
+  h1 { font-size: 21pt; margin: 0 0 2mm; letter-spacing: -.4pt; }
+  h2 {
+    font-size: 13pt; margin: 8mm 0 3mm; padding-bottom: 1.5mm;
+    border-bottom: 1.5pt solid #2D4A3E; color: #2D4A3E;
+  }
+  h3 { font-size: 11pt; margin: 5mm 0 1.5mm; color: #1d2321; }
+  h3 .n { color: #4A7C59; }
+  p { margin: 0 0 2.5mm; }
+  ul { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin: 0 0 1.2mm; }
+  .sub { color: #5d6b66; font-size: 10pt; margin: 0 0 5mm; }
+  .rule { height: 3pt; background: #4A7C59; margin: 0 0 5mm; border-radius: 2pt; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 4mm; }
+  th, td { border: .6pt solid #c9d2ce; padding: 2mm 2.4mm; text-align: left; vertical-align: top; }
+  th { background: #eef2f0; font-weight: 600; font-size: 9.4pt; }
+  td { font-size: 9.6pt; }
+  .callout {
+    border-left: 3pt solid #4A7C59; background: #f4f8f6;
+    padding: 3mm 4mm; margin: 0 0 4mm; border-radius: 0 3pt 3pt 0;
+  }
+  .callout.warn { border-left-color: #b3261e; background: #fdf3f2; }
+  .callout p:last-child { margin-bottom: 0; }
+  .status {
+    display: inline-block; font-size: 8pt; font-weight: 700; letter-spacing: .3pt;
+    text-transform: uppercase; padding: .7mm 2mm; border-radius: 2pt;
+    background: #e0ebe4; color: #2D4A3E; vertical-align: 2px; margin-left: 2mm;
+  }
+  .status.review { background: #e6ecf2; color: #2b4256; }
+  .status.wait { background: #f6ecdc; color: #6b4d16; }
+  tr { page-break-inside: avoid; }
+  table, .callout { page-break-inside: avoid; }
+  .foot {
+    margin-top: 8mm; padding-top: 2.5mm; border-top: .6pt solid #c9d2ce;
+    font-size: 8.8pt; color: #5d6b66;
+  }
+</style>
+</head>
+<body>
+
+<h1>Macavation Portal</h1>
+<p class="sub">Progress update &middot; 28 July 2026 &middot; Prepared by CustomApp</p>
+<div class="rule"></div>
+
+<h2>Delivered</h2>
+
+<h3><span class="n">1.</span> Shell waste movement history <span class="status">Live on dev</span></h3>
+<p>Every shell waste lot now has a Movement history view showing its full trail &mdash; created,
+adjusted, dispatched or written off &mdash; with date, time, quantity, reference and notes. The
+system was already recording this activity behind the scenes, but there was no way to see it. It is
+now available on the development site.</p>
+
+<h3><span class="n">2.</span> Defect fixed &mdash; user names on the admin screen <span class="status">Live on dev</span></h3>
+<p>The admin screen was still referring to a user field that was removed from the system in July.
+This has been corrected, and an automated check now runs on every change so the same problem cannot
+return unnoticed.</p>
+
+<h2>Reviewed and corrected</h2>
+
+<h3><span class="n">3.</span> Phase 2 plan re-checked against the actual system <span class="status review">Estimate revised</span></h3>
+<p>We reviewed the Phase 2 implementation plan line by line against the system as it stands today.
+A substantial amount of work the plan lists as outstanding has, in fact, already been built and is
+in the system &mdash; including dashboard measures, stock alert handling, WhatsApp message sending,
+shell lot automation, mass balance and procurement variance.</p>
+
+<div class="callout">
+  <p><strong>The remaining development effort is materially smaller than the plan states:
+  roughly 10 to 15 days rather than 58 to 72.</strong> The plan document is being updated to match
+  reality, so that planning and costing from here are accurate.</p>
+</div>
+
+<h3><span class="n">4.</span> Permissions review, ahead of the workshop <span class="status review">Needs a decision</span></h3>
+<p>We examined how access control is actually working in the live UAT system, in preparation for the
+role permissions workshop.</p>
+
+<p>The portal controls access in two separate places: which buttons a person can see on screen, and
+what the system will actually carry out when asked. <strong>These two are currently out of step with
+each other.</strong></p>
+
+<table>
+  <tr>
+    <th style="width:30%">Layer</th>
+    <th>What it does</th>
+    <th style="width:30%">Today</th>
+  </tr>
+  <tr>
+    <td><strong>The buttons</strong></td>
+    <td>Decides which buttons a person can see.</td>
+    <td>Six of the eight roles see only <strong>2 of the 25</strong> controlled buttons.</td>
+  </tr>
+  <tr>
+    <td><strong>The engine</strong></td>
+    <td>Decides what the system carries out when asked.</td>
+    <td>Every role is permitted <strong>186 or more</strong> operations.</td>
+  </tr>
+</table>
+
+<p>Those permitted operations include adjusting stock on hand, approving job cards, completing
+batches and creating dispatch orders. Only user administration is correctly restricted today.</p>
+
+<div class="callout warn">
+  <p><strong>Hiding a button does not prevent the operation behind it.</strong> Closing this gap
+  requires one business decision &mdash; who should be able to do what &mdash; which is exactly what
+  the workshop is designed to produce. No development can begin on it until that decision exists.</p>
+</div>
+
+<h3><span class="n">5.</span> Workshop pack prepared <span class="status">Ready to circulate</span></h3>
+<p>A six-page guide for the permissions workshop is ready: what is being decided, what is true today,
+a 25-action decision grid to complete during the session, five questions needing answers, a
+90-minute agenda and a sign-off sheet. Every figure in it is read from the live system rather than
+estimated.</p>
+
+<h2>Awaiting Macavation</h2>
+
+<p>These three are now the main constraint on Phase 2. Each has a long lead time, so starting them
+early matters more than the order they are done in.</p>
+
+<table>
+  <tr>
+    <th style="width:30%">Item</th>
+    <th>Why it matters</th>
+    <th style="width:22%">Owner</th>
+  </tr>
+  <tr>
+    <td><strong>Pete's 24-month historical data</strong></td>
+    <td>Trend charts and stock accuracy cannot be validated without it.</td>
+    <td>Pete</td>
+  </tr>
+  <tr>
+    <td><strong>WhatsApp Business API approval</strong></td>
+    <td>The sending capability is built and waiting. Meta approval typically takes two to six weeks,
+    and Phase 2 cannot close without it.</td>
+    <td>Macavation IT</td>
+  </tr>
+  <tr>
+    <td><strong>Role permissions workshop</strong></td>
+    <td>Development on the permissions work cannot start until the decisions exist.</td>
+    <td>Josslyn, Mark, Paul</td>
+  </tr>
+</table>
+
+<h2>Next</h2>
+
+<ul>
+  <li>Continued delivery of the outstanding Phase 2 items.</li>
+  <li>Permissions rollout once the workshop decisions are signed off &mdash; applied to both layers
+  together, tested role by role on UAT, and only then moved to production.</li>
+  <li>The revised Phase 2 plan document, reflecting what is genuinely still to build.</li>
+</ul>
+
+<p class="foot">
+  Figures in this update were read from the live UAT system on 28 July 2026 and reflect it as it
+  stood that day.<br>
+  Macavation Portal &middot; Phase 2 &middot; CustomApp
+</p>
+
+</body>
+</html>

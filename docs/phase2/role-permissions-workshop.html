@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Macavation — Role Permissions Workshop</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 14mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 10.2pt; line-height: 1.45; color: #1d2321; margin: 0;
+  }
+  h1 { font-size: 21pt; margin: 0 0 2mm; letter-spacing: -.4pt; }
+  h2 {
+    font-size: 13pt; margin: 9mm 0 3mm; padding-bottom: 1.5mm;
+    border-bottom: 1.5pt solid #2D4A3E; color: #2D4A3E;
+  }
+  h3 { font-size: 10.8pt; margin: 5mm 0 1.5mm; color: #2D4A3E; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin: 0 0 1.2mm; }
+  .sub { color: #5d6b66; font-size: 10pt; margin: 0 0 5mm; }
+  .rule { height: 3pt; background: #4A7C59; margin: 0 0 5mm; border-radius: 2pt; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 4mm; }
+  th, td { border: .6pt solid #c9d2ce; padding: 1.6mm 2mm; text-align: left; vertical-align: top; }
+  th { background: #eef2f0; font-weight: 600; font-size: 9.2pt; }
+  td { font-size: 9.4pt; }
+  .num { text-align: right; }
+  .flag { background: #fdf3f2; }
+  .callout {
+    border-left: 3pt solid #4A7C59; background: #f4f8f6;
+    padding: 3mm 4mm; margin: 0 0 4mm; border-radius: 0 3pt 3pt 0;
+  }
+  .callout.warn { border-left-color: #b3261e; background: #fdf3f2; }
+  .callout p:last-child { margin-bottom: 0; }
+  .grid th, .grid td { padding: 1.3mm 1mm; font-size: 8.4pt; }
+  .grid .act { width: 40%; }
+  .grid .modcol { background: #e4ebe8; font-weight: 700; font-size: 8.6pt; }
+  .grid td.tick { text-align: center; width: 9.5%; }
+  .box {
+    display: inline-block; width: 3.4mm; height: 3.4mm;
+    border: .7pt solid #7d8b86; border-radius: .8pt;
+  }
+  .key { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 8pt; color: #5d6b66; }
+  .pagebreak { page-break-before: always; }
+  /* Never orphan a module heading from its rows, never split a row, and keep the
+     short tables whole. Print-only concerns; they do nothing on screen. */
+  tr { page-break-inside: avoid; }
+  .grid tr.modcol-row { page-break-after: avoid; }
+  .agenda, .sign, .qbox { page-break-inside: avoid; }
+  .foot { margin-top: 7mm; padding-top: 2.5mm; border-top: .6pt solid #c9d2ce; font-size: 8.6pt; color: #5d6b66; }
+  .sign { margin-top: 6mm; }
+  .sign td { height: 13mm; font-size: 8.6pt; color: #5d6b66; }
+  .lede { font-size: 11pt; }
+  .agenda td:first-child { width: 18mm; font-weight: 600; white-space: nowrap; }
+  .qbox { border: .6pt solid #c9d2ce; border-radius: 3pt; padding: 3mm 4mm; margin: 0 0 3mm; }
+  .qbox p { margin: 0 0 1.5mm; }
+  .qbox .ans { border-bottom: .5pt dotted #9aa8a3; height: 6mm; }
+</style>
+</head>
+<body>
+
+<h1>Role Permissions Workshop</h1>
+<p class="sub">Macavation Portal &middot; Phase 2, Epic 2 &middot; Prepared 28 July 2026</p>
+<div class="rule"></div>
+
+<p class="lede">The purpose of this session is to produce one signed decision: <strong>which of the eight
+roles may perform each of twenty-five sensitive actions.</strong> Development cannot proceed on this
+part of Phase 2 without it, because the answer is a business judgement, not a technical one.</p>
+
+<p>Please read sections 1 to 3 before the meeting. Section 4 is the decision grid we will fill in together.</p>
+
+<h2>1. What we are deciding, in plain terms</h2>
+
+<p>The portal controls access in two separate places, and they are currently out of step with each other.</p>
+
+<table>
+  <tr>
+    <th style="width:26%">Layer</th><th>What it does</th><th style="width:30%">Today</th>
+  </tr>
+  <tr>
+    <td><strong>The buttons</strong><br><span class="key">actions</span></td>
+    <td>Decides which buttons a person can see on screen.</td>
+    <td>Six of the eight roles can see only <strong>2 of the 25</strong> controlled buttons.</td>
+  </tr>
+  <tr class="flag">
+    <td><strong>The engine</strong><br><span class="key">role_permissions</span></td>
+    <td>Decides what the system will actually carry out when asked.</td>
+    <td>Every role, including Shareholder, is permitted <strong>186 or more</strong> operations.</td>
+  </tr>
+</table>
+
+<div class="callout warn">
+  <p><strong>This gap is the reason for the meeting.</strong> Hiding a button does not stop the
+  underlying operation. A person whose screen shows no "Adjust stock" button is still permitted to
+  adjust stock by the engine behind it. Access that exists only on screen is not access control.</p>
+</div>
+
+<p>So each decision we make has to be applied in both places. That is straightforward once the
+decision exists — but it has to exist first, and only Macavation can make it.</p>
+
+<h2>2. What is true today</h2>
+
+<p>Taken from the live UAT system on 28 July 2026.</p>
+
+<table>
+  <tr>
+    <th>Role</th>
+    <th class="num" style="width:20%">Buttons visible<br><span style="font-weight:400">of 25</span></th>
+    <th class="num" style="width:22%">Operations permitted<br><span style="font-weight:400">by the engine</span></th>
+    <th class="num" style="width:14%">People</th>
+  </tr>
+  <tr><td>super_user</td><td class="num">25</td><td class="num">340</td><td class="num">7</td></tr>
+  <tr><td>admin</td><td class="num">25</td><td class="num">340</td><td class="num">1</td></tr>
+  <tr class="flag"><td>Factory Manager</td><td class="num">2</td><td class="num">186</td><td class="num">1</td></tr>
+  <tr class="flag"><td>Production Manager</td><td class="num">2</td><td class="num">188</td><td class="num">1</td></tr>
+  <tr class="flag"><td>Palladium Manager</td><td class="num">2</td><td class="num">186</td><td class="num">1</td></tr>
+  <tr class="flag"><td>Quality Assurance</td><td class="num">2</td><td class="num">186</td><td class="num">1</td></tr>
+  <tr class="flag"><td>Sales Exec</td><td class="num">2</td><td class="num">186</td><td class="num">2</td></tr>
+  <tr class="flag"><td>Shareholder</td><td class="num">2</td><td class="num">186</td><td class="num">2</td></tr>
+</table>
+
+<p>Two things stand out and are worth confirming before we start.</p>
+
+<ul>
+  <li><strong>Seven people hold super_user.</strong> That is the most powerful role in the system
+  and currently the most widely held. Worth asking whether all seven still need it.</li>
+  <li><strong>Shareholder carries the same engine permissions as Factory Manager.</strong> A
+  shareholder account is permitted to approve job cards, adjust stock on hand, complete batches,
+  create dispatch orders and import historical data. These are almost certainly not intended.</li>
+</ul>
+
+<h3>Spot check — who the engine currently permits</h3>
+
+<table>
+  <tr><th style="width:46%">Operation</th><th>Roles the engine permits today</th></tr>
+  <tr class="flag"><td>Adjust stock on hand</td><td>All eight roles</td></tr>
+  <tr class="flag"><td>Approve a kernel job card</td><td>All eight roles</td></tr>
+  <tr class="flag"><td>Complete a kernel batch</td><td>All eight roles</td></tr>
+  <tr class="flag"><td>Create a dispatch order</td><td>All eight roles</td></tr>
+  <tr class="flag"><td>Import historical batch data</td><td>All eight roles</td></tr>
+  <tr><td>Add or change a user</td><td>admin, super_user only &mdash; correctly restricted</td></tr>
+</table>
+
+<h2>3. How to decide — three questions per action</h2>
+
+<ol>
+  <li><strong>Who does this as part of their job?</strong> Not who could be trusted with it — who
+  actually performs it in the normal running of the plant.</li>
+  <li><strong>What is the damage if it is done wrong?</strong> A mistyped stock adjustment quietly
+  corrupts every stock figure and every report that follows from it. A wrongly approved job card
+  affects one batch. These deserve different answers.</li>
+  <li><strong>Who covers when that person is away?</strong> The most common reason a permission
+  gets handed out permanently is a one-off absence. Decide the cover now instead.</li>
+</ol>
+
+<div class="callout">
+  <p><strong>When a role is genuinely borderline, leave it off.</strong> Granting access later takes
+  minutes and no one is harmed while they wait. Discovering months afterwards that the wrong person
+  has been adjusting stock cannot be undone, because the corrupted history is already in the
+  reports.</p>
+</div>
+
+<div class="pagebreak"></div>
+
+<h2>4. Decision grid</h2>
+
+<p>Tick every role that <strong>should</strong> be allowed to perform each action. A blank box means
+not allowed.</p>
+
+<p><strong>admin</strong> and <strong>super_user</strong> are not listed: they are permitted
+everything by design, and that is what we are asking you to confirm in question 1 on the last page.</p>
+
+<table class="grid">
+  <tr>
+    <th class="act">Action</th>
+    <th class="tick">Factory<br>Manager</th>
+    <th class="tick">Production<br>Manager</th>
+    <th class="tick">Palladium<br>Manager</th>
+    <th class="tick">Quality<br>Assurance</th>
+    <th class="tick">Sales<br>Exec</th>
+    <th class="tick">Share-<br>holder</th>
+  </tr>
+
+  <tr class="modcol-row"><td class="modcol" colspan="7">Stock</td></tr>
+  <tr><td class="act">Adjust stock on hand <span class="key">stock.adjust_soh</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Dispatch stock <span class="key">stock.dispatch</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Import or add a stock batch <span class="key">stock.import_batch</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Manage shell waste stock <span class="key">stock.shell.manage</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Manage stock alert rules <span class="key">stock.alert_rules.manage</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+
+  <tr class="modcol-row"><td class="modcol" colspan="7">Kernel Production</td></tr>
+  <tr><td class="act">Create a kernel batch <span class="key">kernel.batch.create</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Approve a job card <span class="key">kernel.job_card.approve</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Edit production stages <span class="key">kernel.production_stages.edit</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Release a batch to stock <span class="key">kernel.release_to_stock</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+
+  <tr class="modcol-row"><td class="modcol" colspan="7">Kernel Dispatch</td></tr>
+  <tr><td class="act">Create a dispatch order <span class="key">kernel.dispatch.create</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Edit a dispatch order <span class="key">kernel.dispatch.edit</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+
+  <tr class="modcol-row"><td class="modcol" colspan="7">Oil Production</td></tr>
+  <tr><td class="act">Create an oil batch <span class="key">oil.batch.create</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Edit the oil production sheet <span class="key">oil.production.edit</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Release an oil batch <span class="key">oil.production.release</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Manage consolidated batches <span class="key">oil.consolidated.manage</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+
+  <tr class="modcol-row"><td class="modcol" colspan="7">Quality Assurance</td></tr>
+  <tr><td class="act">Create a quality test <span class="key">qa.test.create</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Approve a quality test <span class="key">qa.test.approve</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+
+  <tr class="modcol-row"><td class="modcol" colspan="7">Grower Intake</td></tr>
+  <tr><td class="act">Create an intake batch <span class="key">grower.intake.create</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Manage the procurement calendar <span class="key">grower.procurement.manage</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+
+  <tr class="modcol-row"><td class="modcol" colspan="7">Dashboard &amp; Reporting</td></tr>
+  <tr><td class="act">Resolve alerts <span class="key">alerts.resolve</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Manage dashboard targets <span class="key">dashboard.targets.manage</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Manage scheduled reports <span class="key">reports.schedule.manage</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Manage report subscriptions <span class="key">reports.subscribe</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+
+  <tr class="modcol-row"><td class="modcol" colspan="7">Messaging &amp; Administration</td></tr>
+  <tr><td class="act">Send a broadcast message <span class="key">messaging.broadcast</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+  <tr><td class="act">Manage users and roles <span class="key">admin.users.manage</span></td>
+    <td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td><td class="tick"><span class="box"></span></td></tr>
+</table>
+
+<div class="pagebreak"></div>
+
+<h2>5. Questions to settle</h2>
+
+<div class="qbox">
+  <p><strong>1. Seven people hold super_user, which permits everything.</strong> Should all seven
+  keep it, and who is accountable for approving the list?</p>
+  <p class="ans"></p><p class="ans"></p>
+</div>
+
+<div class="qbox">
+  <p><strong>2. What should Shareholder actually be able to do?</strong> Our assumption is view and
+  report only, with no ability to change operational data. Please confirm or correct.</p>
+  <p class="ans"></p><p class="ans"></p>
+</div>
+
+<div class="qbox">
+  <p><strong>3. What is Palladium Manager?</strong> It currently mirrors Factory Manager exactly. If
+  the two roles do different jobs, we need to know where they differ.</p>
+  <p class="ans"></p><p class="ans"></p>
+</div>
+
+<div class="qbox">
+  <p><strong>4. Should stock adjustment require a second person's approval?</strong> It is the single
+  most damaging action in the system, because a wrong figure silently flows into every report
+  afterwards. Today it needs one person and no approval.</p>
+  <p class="ans"></p><p class="ans"></p>
+</div>
+
+<div class="qbox">
+  <p><strong>5. Who covers each role during leave?</strong> Name the cover per role now, so absence
+  does not become a reason to widen access permanently.</p>
+  <p class="ans"></p><p class="ans"></p>
+</div>
+
+<h2>6. Suggested agenda — 90 minutes</h2>
+
+<table class="agenda">
+  <tr><td>10 min</td><td>Walk through what is true today (section 2). Agree that the gap needs closing.</td></tr>
+  <tr><td>10 min</td><td>Settle questions 1 to 3 — the roles themselves, before the detail.</td></tr>
+  <tr><td>45 min</td><td>Work the decision grid module by module. Roughly two minutes per action.</td></tr>
+  <tr><td>15 min</td><td>Questions 4 and 5 — approval for stock adjustment, and leave cover.</td></tr>
+  <tr><td>10 min</td><td>Confirm the grid, sign, agree the date for the walkthrough.</td></tr>
+</table>
+
+<h2>7. What happens after the meeting</h2>
+
+<ol>
+  <li>The signed grid is turned into a database change that sets both layers together — the buttons
+  and the engine. Neither is done on its own.</li>
+  <li>It is applied to UAT first, never straight to production.</li>
+  <li>Each role is then tested by signing in as it and confirming that permitted actions work and
+  the rest are genuinely refused — not merely hidden.</li>
+  <li>Only then is it applied to production, and the user guide updated.</li>
+</ol>
+
+<div class="callout">
+  <p><strong>Expect some access to be removed on the day it goes live.</strong> Six roles currently
+  hold far more than they will keep. Tell the affected people beforehand, and make sure everyone
+  knows who to ask when something they used to be able to do stops working.</p>
+</div>
+
+<h2>8. Sign-off</h2>
+
+<p>The grid in section 4 is agreed as the intended access for the Macavation portal.</p>
+
+<table class="sign">
+  <tr><th style="width:34%">Name</th><th style="width:30%">Role</th><th>Signature</th><th style="width:20%">Date</th></tr>
+  <tr><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td></tr>
+  <tr><td></td><td></td><td></td><td></td></tr>
+</table>
+
+<p class="foot">
+  Figures in sections 2 and 3 were read from the live UAT database (<span class="key">nmdmddugxclpqrwylyfa</span>)
+  on 28 July 2026 and reflect the system as it stood that day. Action keys are listed in monospace so
+  each decision can be traced to the exact control it governs.<br>
+  Macavation Portal &middot; Phase 2, Epic 2 &middot; CustomApp
+</p>
+
+</body>
+</html>
