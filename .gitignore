@@ -44,3 +44,7 @@ nul
 
 # Supabase CLI machine-local state (link target, cached versions)
 supabase/.temp/
+
+# Agent Fleet: Cursor plan drafts are local scratch - keep them off dev so a plan
+# pushed to dev-agent is always a genuine new commit that runs. .cursor/rules/ stays tracked.
+.cursor/plans/
