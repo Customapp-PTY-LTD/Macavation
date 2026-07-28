@@ -1,0 +1,131 @@
+---
+description: How to run a plan with Agent Fleet - push it to dev-agent (create the branch if missing). Apply when the user wants to run/submit/hand off a plan to the fleet or dev agents, AND when the user asks for substantial work in this repo without saying how to deliver it (substantial work defaults to the fleet - see "Fleet or direct?").
+alwaysApply: false
+---
+
+# Submitting a plan to Agent Fleet
+
+When the user asks to **run, submit, or hand off a plan** (a markdown work order, e.g. one you
+wrote in plan mode under `.cursor/plans/`) to Agent Fleet / the dev agents, do this - do not just
+leave the plan file sitting locally. Also apply the "Fleet or direct?" section whenever the user
+asks for **substantial work without naming a delivery route**.
+
+The fleet runs a plan pushed to this repo's `dev-agent` branch: within ~5 minutes it runs the plan
+inside this repo's own guardrails and **merges the result straight into `dev`** (no PR, no
+approval). Whoever commits the plan is auto-emailed the outcome and cost.
+
+## Fleet or direct? - the routing decision for substantial work
+
+When the user describes a substantial feature/fix but does not say HOW to deliver it, decide
+deliberately rather than defaulting to hand-implementation:
+
+**Default to the fleet** when ALL of these hold:
+- The change is self-contained in THIS repo (the fleet engine cannot reach other repos, cloud
+  infrastructure, or secrets).
+- Success is specifiable in a written plan - a code reviewer could verify it from the diff and
+  tests without needing to see pixels or judge taste.
+- It is not time-critical (a fleet round is typically 15-60 minutes, plus possible remediation
+  rounds if a gate blocks).
+
+**Implement directly instead** when ANY of these hold:
+- Trivial or tiny - faster to do than to specify.
+- Design-heavy - success needs a human eye per iteration ("make it feel right", visual polish).
+  The fleet's diff reviewer verifies behaviour; it cannot see the page.
+- It touches secrets, CI/CD, infra, cross-repo assets, or a DB migration that must be sequenced
+  with human operations.
+- It is an urgent hotfix.
+
+**Hybrid is often the best split**: do the parts the fleet cannot (vendor assets from another
+repo, provision a secret, apply a migration) directly FIRST and commit them to `dev`, then
+submit a plan for the rest that references what is now in place.
+
+**Database migrations specifically**: the fleet engine has NO database credentials and no network
+path to any database - it only ever runs inside this repo's checkout. So a plan can *author* a
+migration FILE (commit `sql/…`), but it can NEVER apply one. Applying is always an out-of-band
+human step (Supabase Studio, or a DB tunnel, by someone who holds the credential). Structure work
+that way: a plan may write the migration file + the code that assumes it, but keep "apply the
+migration" as a human action you sequence yourself - and make any code that depends on the new
+schema **degrade gracefully until it is applied**, because the plan merges (and `dev` may deploy)
+the moment its gates pass, which is BEFORE a human runs the migration.
+
+**Splitting & sequencing**: large work splits along deliverable boundaries (see the size check
+below); sequence dependent sub-plans with `depends_on:` frontmatter instead of one mega-plan.
+
+**Ask once, then stop asking**: the first substantial task in a session, ask the user
+fleet-vs-direct (one short question). Once they have chosen, treat that as the session default
+and just say which route you are taking - do not re-litigate it per task.
+
+## Step 0 - ~60-minute size check (do this BEFORE you push)
+
+The engine (the part that does your plan's work) is capped at `timeout-minutes: 60`; past that it
+reports the run unfinished, nothing merges, and no half-finished branch is pushed. So the budget to
+size against is **~60 minutes of AGENT work**, not the 330-minute whole-job ceiling (that extra time
+is checkouts/reviews/tests/merge, and every step is now individually capped). Before pushing, judge
+whether the plan can realistically finish in one ~60-minute run. Advisory is cheap, so **err toward
+flagging.**
+
+**Strong signals - flag on ANY one:** open-ended / investigative scope ("find and fix whatever is
+wrong", "audit X"); a full or slow test-suite / E2E run is part of the work; a large data
+migration / backfill / bulk transform; multiple *dependent* build-then-verify cycles (A, then B
+needing A, then C needing B).
+
+**Scope-proxy signals - flag only when SEVERAL co-occur:** more than one distinct deliverable;
+touches many files across unrelated areas; bundles DB migration AND code AND tests AND docs;
+vague acceptance criteria.
+
+- **If it flags:** tell the user it looks large for one 330-minute job and **propose a split along
+  deliverable boundaries** (name the cut points), each sub-plan pushed in sequence. Do **not**
+  block - if they say push anyway, push it.
+- **If nothing flags:** proceed to the commands below. Do not over-warn a well-scoped plan.
+
+Full checklist and rationale: `plan-sizing-blueprint.md` (in the fleet's `templates/`).
+
+## Step 0.5 - set `preview_path` so the merged link deep-links the right page
+
+A merged run's "View it live" link points at the repo's deployed dev site (root by default). An
+optional `preview_path` in the plan's frontmatter deep-links it to the exact page this plan
+changes. **You** set this now, while the developer is here - the fleet run is autonomous, so no one
+can be asked at run time.
+
+- **Only if this repo has a `preview_url`** in the fleet's `config/repos.json`; otherwise skip it
+  (a `preview_path` alone is dead config).
+- **Use THIS repo's own URL convention** (inspect the repo - don't assume one):
+  - Flat multi-page site: `preview_path: "/reports.html"`.
+  - Hash-routed SPA: quote it - an unquoted `#` is a YAML comment and silently no-ops:
+    `preview_path: "/#users-grid"`.
+  - Query-param-routed (`?someRoute=...`): **skip for now** - it would clobber a multi-tenant
+    `?bg=` base query and break the link (until `composePreviewUrl` merges queries).
+- Multiple pages -> the one that best demonstrates the outcome. No user-visible page -> leave unset.
+- **Unsure? Ask the developer now** - a wrong-but-valid deep link is worse than the root.
+
+## The commands (run these to submit)
+
+```bash
+git fetch origin
+# Check out dev-agent, CREATING it off dev if it does not exist yet:
+git rev-parse --verify origin/dev-agent >/dev/null 2>&1 \
+  && git checkout dev-agent && git pull origin dev-agent \
+  || git checkout -b dev-agent origin/dev
+# Force-add: .cursor/plans/ is git-ignored on this repo (that is deliberate - it keeps plans off
+# dev so this push is always a real new commit that runs). -f overrides the ignore to submit it.
+git add -f <PLAN_FILE>
+git commit -m "Plan: <one line on what it does>"
+git push -u origin dev-agent
+```
+
+- **Create `dev-agent` if the push target does not exist** - the `|| git checkout -b dev-agent
+  origin/dev` above does this. Never fail just because the branch is missing.
+- **Commit as the user** (their `@customapp.co.za` git identity) so the auto-notification email
+  reaches them. To copy others in, add a `notify: name@customapp.co.za` line to the plan's
+  frontmatter (comma-separate for several; `@customapp.co.za` only).
+- After pushing, tell the user: it will run within ~5 minutes, they will get an email with a link,
+  and they can watch it at the fleet portal.
+
+## Do not
+
+- Do not commit the plan to `dev` and expect it to run - the trigger is a NEW commit on
+  `dev-agent`. A plan already on `dev` runs nothing (silently). If `git commit` says "nothing to
+  commit", the file is unchanged/already committed - make an edit and retry.
+- Do not edit the plan into "our" format or add frontmatter it does not need - a plan written by
+  plan mode runs as-is.
+- Do not open a pull request - there is no PR step; the fleet merges to `dev` itself.
