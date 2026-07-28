@@ -11,11 +11,23 @@
   var RAIL_MIN_W = 300;
   var RAIL_MAX_W = 560;
   var RAIL_STEP_W = 20;
+  // Phrased so each one lands a dominant, unambiguous hit in
+  // assistant_kb_search and answers for free via the portal-assistant
+  // zero-token fast path instead of paying for an Anthropic call - mirrors
+  // the same constraint Libra-Portal's assistant-shell.js documents for its
+  // own example chips. Verified against migrations/20260716160000 +
+  // 20260722130000's scoring/tokenizer and scripts/ingest-macavation-
+  // assistant-kb.mjs's SECTION_KEYWORDS. Two natural phrasings that read
+  // fine but tie against a sibling section and never trigger the free path:
+  // "How do I receive a grower intake batch?" (ties grower-intake-grid vs
+  // modal-grower-create-kernel-batch) and "How do I dispatch kernel to a
+  // customer?" (ties kernel-dispatch-grid vs its own basket dialog) - if you
+  // add new examples, re-check them the same way before shipping.
   var DEFAULT_EXAMPLES = [
-    'How do I receive a grower intake batch?',
+    'Where do I create a kernel batch from a grower delivery?',
     'How do I start kernel production?',
     'How do I check stock on hand?',
-    'How do I dispatch kernel to a customer?',
+    'How do I upload a document?',
     'How do I use My Day?',
     'How do I open Quality Assurance?'
   ];
