@@ -194,7 +194,7 @@ var _batchJourneyGrid = (function () {
         if (!tbody) return;
 
         if (!scope.filteredBatches.length) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No batches found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No batches found</td></tr>';
             if (countEl) countEl.textContent = '0 batches';
             return;
         }
@@ -221,6 +221,7 @@ var _batchJourneyGrid = (function () {
                 + '<td class="text-end">' + formatNumber(b.wet_nis_received_kg) + '</td>'
                 + '<td class="text-end">' + (moisture != null ? formatNumber(moisture, 1) + '%' : '-') + '</td>'
                 + '<td class="text-end">' + (totalYield > 0 ? formatNumber(totalYield) : '-') + '</td>'
+                + '<td class="text-end">' + (b.sound_kernel_recovery_pct != null ? formatNumber(b.sound_kernel_recovery_pct, 2) + '%' : '-') + '</td>'
                 + '<td class="text-end"><button type="button" class="btn btn-sm btn-primary js-bj-open-module" data-batch-id="' + kid + '" title="' + escapeHtml(routeInfo.label) + '">' + escapeHtml(routeInfo.label.replace(/^Open /, '')) + '</button></td>'
                 + '<td class="mac-table-actions-col">'
                 + MacTableActions.render({
@@ -493,7 +494,7 @@ var _batchJourneyGrid = (function () {
         }).catch(function (err) {
             console.error('Batch Journey: failed to load batches', err);
             document.getElementById('bjTableBody').innerHTML =
-                '<tr><td colspan="9" class="text-center text-danger py-4">Failed to load batches</td></tr>';
+                '<tr><td colspan="10" class="text-center text-danger py-4">Failed to load batches</td></tr>';
         });
     }
 
