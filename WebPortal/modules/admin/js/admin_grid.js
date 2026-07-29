@@ -1037,23 +1037,16 @@ var _adminGrid = function () {
                             }
                         });
                     }
-                } else if (dataFunctions.deleteRoleFeatureForRole) {
+                } else {
+                    if (!dataFunctions.deleteRoleFeatureForRole) {
+                        throw new Error('Role-scoped feature delete is unavailable. Apply migration 20260716100000_role_scoped_feature_action_delete.sql.');
+                    }
                     await dataFunctions.deleteRoleFeatureForRole(saveRoleId, featureId);
                     if (!scope.canApplyCustomizeSave(saveRoleId, loadSeq, saveSeq)) {
                         $checkbox.prop('checked', !enabled);
                         return;
                     }
                     delete scope.adminRoleFeatureIdMap[String(featureId)];
-                } else {
-                    var roleFeatureId = scope.adminRoleFeatureIdMap[String(featureId)];
-                    if (roleFeatureId) {
-                        await dataFunctions.deleteRoleFeature(roleFeatureId);
-                        if (!scope.canApplyCustomizeSave(saveRoleId, loadSeq, saveSeq)) {
-                            $checkbox.prop('checked', !enabled);
-                            return;
-                        }
-                        delete scope.adminRoleFeatureIdMap[String(featureId)];
-                    }
                 }
                 if (dataFunctions.clearCachePattern) {
                     dataFunctions.clearCachePattern('get_role_features');
@@ -1122,23 +1115,16 @@ var _adminGrid = function () {
                             }
                         });
                     }
-                } else if (dataFunctions.deleteRoleActionForRole) {
+                } else {
+                    if (!dataFunctions.deleteRoleActionForRole) {
+                        throw new Error('Role-scoped action delete is unavailable. Apply migration 20260716100000_role_scoped_feature_action_delete.sql.');
+                    }
                     await dataFunctions.deleteRoleActionForRole(saveRoleId, actionId);
                     if (!scope.canApplyCustomizeSave(saveRoleId, loadSeq, saveSeq)) {
                         $checkbox.prop('checked', !enabled);
                         return;
                     }
                     delete scope.adminRoleActionIdMap[String(actionKey)];
-                } else {
-                    var roleActionId = scope.adminRoleActionIdMap[String(actionKey)];
-                    if (roleActionId) {
-                        await dataFunctions.deleteRoleAction(roleActionId);
-                        if (!scope.canApplyCustomizeSave(saveRoleId, loadSeq, saveSeq)) {
-                            $checkbox.prop('checked', !enabled);
-                            return;
-                        }
-                        delete scope.adminRoleActionIdMap[String(actionKey)];
-                    }
                 }
                 if (dataFunctions.clearCachePattern) {
                     dataFunctions.clearCachePattern('get_role_actions');

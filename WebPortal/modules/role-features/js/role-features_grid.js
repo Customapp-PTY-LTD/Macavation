@@ -283,23 +283,16 @@ var _roleFeaturesGrid = function () {
                     } else {
                         await scope.reloadRoleFeatureIds();
                     }
-                } else if (dataFunctions.deleteRoleFeatureForRole) {
+                } else {
+                    if (!dataFunctions.deleteRoleFeatureForRole) {
+                        throw new Error('Role-scoped feature delete is unavailable. Apply migration 20260716100000_role_scoped_feature_action_delete.sql.');
+                    }
                     await dataFunctions.deleteRoleFeatureForRole(saveRoleId, featureId);
                     if (!scope.canApplyFeaturesSave(saveRoleId, loadSeq, saveSeq)) {
                         checkboxEl.prop('checked', !enabled);
                         return;
                     }
                     delete scope.roleFeatureIdMap[String(featureId)];
-                } else {
-                    var roleFeatureId = scope.roleFeatureIdMap[String(featureId)];
-                    if (roleFeatureId) {
-                        await dataFunctions.deleteRoleFeature(roleFeatureId);
-                        if (!scope.canApplyFeaturesSave(saveRoleId, loadSeq, saveSeq)) {
-                            checkboxEl.prop('checked', !enabled);
-                            return;
-                        }
-                        delete scope.roleFeatureIdMap[String(featureId)];
-                    }
                 }
                 dataFunctions.clearCachePattern('get_role_features');
                 dataFunctions.clearCachePattern('get_role_features_for_role');
