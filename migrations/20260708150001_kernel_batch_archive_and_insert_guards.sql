@@ -833,49 +833,15 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.get_kernel_batch_archive(
-    p_search varchar DEFAULT NULL,
-    p_limit integer DEFAULT 100,
-    p_offset integer DEFAULT 0
-)
-RETURNS TABLE (
-    id uuid,
-    batch_number varchar,
-    batch_uuid uuid,
-    kernel_id uuid,
-    status varchar,
-    grower_name varchar,
-    supplier_id uuid,
-    received_date date,
-    deactivation_type varchar,
-    deactivated_at timestamptz,
-    snapshot jsonb
-)
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-    SELECT
-        a.id,
-        a.batch_number,
-        a.batch_uuid,
-        a.kernel_id,
-        a.status,
-        a.grower_name,
-        a.supplier_id,
-        a.received_date,
-        a.deactivation_type,
-        a.deactivated_at,
-        a.snapshot
-    FROM public.kernel_batch_archive a
-    WHERE p_search IS NULL
-       OR a.batch_number ILIKE '%' || p_search || '%'
-       OR a.grower_name ILIKE '%' || p_search || '%'
-    ORDER BY a.deactivated_at DESC
-    LIMIT GREATEST(COALESCE(p_limit, 100), 1)
-    OFFSET GREATEST(COALESCE(p_offset, 0), 0);
-$$;
+-- get_kernel_batch_archive(varchar, integer, integer) is intentionally NOT (re)created here.
+-- This migration was never successfully applied to any environment (it kept failing on this
+-- exact statement: the function below is an older, narrower shape than what's actually live
+-- today). Migrations 20260708160000_kernel_batch_archive_restore_ui.sql and
+-- 20260709123000_fix_kernel_batch_archive_username.sql — both already applied — extended this
+-- function with deactivated_by, deactivated_by_name, can_restore, and number_in_use. Re-running
+-- the original (narrower) CREATE OR REPLACE from this file would have silently regressed those
+-- already-shipped columns and broken the archive/restore UI. Left as a no-op here on purpose;
+-- the function's current definition (from the two migrations above) is correct and unchanged.
 
 COMMENT ON FUNCTION public.get_kernel_batch_archive(varchar, integer, integer) IS
     'List archived (deleted) kernel batches newest first. Audit/support use.';
