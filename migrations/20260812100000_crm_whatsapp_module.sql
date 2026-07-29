@@ -186,7 +186,7 @@ BEGIN
     SELECT c.primary_contact_mobile, c.primary_contact_phone
     INTO v_mobile, v_phone_field
     FROM public.contacts c
-    WHERE c.id = p_contact_id AND c.deleted_at IS NULL;
+    WHERE c.id = p_contact_id;
 
     IF v_mobile IS NULL AND v_phone_field IS NULL THEN
         RETURN QUERY SELECT 0, 'Contact has no phone or mobile number on file.', NULL::uuid, false, NULL::text;
@@ -534,8 +534,7 @@ BEGIN
         c.primary_contact_phone,
         c.primary_contact_mobile
     FROM public.contacts c
-    WHERE c.deleted_at IS NULL
-      AND c.status IS DISTINCT FROM 'inactive'
+    WHERE c.status IS DISTINCT FROM 'inactive'
     ORDER BY c.company_name;
 END;
 $$;
@@ -545,59 +544,80 @@ $$;
 -- ============================================================================
 
 -- Features: crm-whatsapp-grid module (grant to roles that already see crm-grid)
-INSERT INTO public.features (id, feature_key, feature_name, feature_description, is_active, created_at, updated_at)
+-- Real schema: public.features(id BIGSERIAL, key, name, description, is_active, created_at, updated_at)
+-- — not feature_key/feature_name/feature_description (that shape does not exist on this table).
+INSERT INTO public.features (key, name, description)
 VALUES (
-    gen_random_uuid(),
     'crm-whatsapp-grid',
     'WhatsApp & Internal Chat',
-    'WhatsApp contact messaging and internal staff chat under CRM',
-    true,
-    now(),
-    now()
+    'WhatsApp contact messaging and internal staff chat under CRM'
 )
-ON CONFLICT (feature_key) DO UPDATE SET
-    feature_name = EXCLUDED.feature_name,
-    feature_description = EXCLUDED.feature_description,
+ON CONFLICT (key) DO UPDATE SET
+    name = EXCLUDED.name,
+    description = EXCLUDED.description,
     updated_at = now();
 
 -- Grant crm-whatsapp-grid to roles that already have crm-grid
-INSERT INTO public.role_features (role_id, feature_id)
-SELECT r.id, f.id
+INSERT INTO public.role_features (role_id, feature_id, value)
+SELECT r.id, f.id, 'true'
 FROM public.roles r
-CROSS JOIN (SELECT id FROM public.features WHERE feature_key = 'crm-whatsapp-grid') f
+CROSS JOIN (SELECT id FROM public.features WHERE key = 'crm-whatsapp-grid') f
 WHERE EXISTS (
     SELECT 1 FROM public.role_features rf
     JOIN public.features f2 ON f2.id = rf.feature_id
-    WHERE rf.role_id = r.id AND f2.feature_key = 'crm-grid'
+    WHERE rf.role_id = r.id AND f2.key = 'crm-grid'
 )
 ON CONFLICT (role_id, feature_id) DO NOTHING;
 
 -- Actions: messaging.chat.use (internal tab), messaging.whatsapp.contact.send (contact tab)
-INSERT INTO public.actions (action_key, action_name, action_description)
+-- Real schema: public.actions(id BIGSERIAL, key, module NOT NULL, label, description, is_active, ...)
+-- — not action_key/action_name/action_description, and `module` has no default (must be supplied).
+INSERT INTO public.actions (key, module, label, description)
 VALUES
-    ('messaging.chat.use', 'Use Internal Chat', 'Access the internal staff chat tab'),
-    ('messaging.whatsapp.contact.send', 'Send WhatsApp to Contacts', 'Send WhatsApp messages to CRM contacts')
-ON CONFLICT (action_key) DO NOTHING;
+    ('messaging.chat.use', 'Messaging', 'Use Internal Chat', 'Access the internal staff chat tab'),
+    ('messaging.whatsapp.contact.send', 'Messaging', 'Send WhatsApp to Contacts', 'Send WhatsApp messages to CRM contacts')
+ON CONFLICT (key) DO NOTHING;
 
 -- Grant messaging.chat.use to all 8 active roles (everyone can use internal chat)
-INSERT INTO public.role_actions (role_id, action_id)
-SELECT r.id, a.id
+INSERT INTO public.role_actions (role_id, action_id, value)
+SELECT r.id, a.id, 'true'
 FROM public.roles r
-CROSS JOIN (SELECT id FROM public.actions WHERE action_key = 'messaging.chat.use') a
+CROSS JOIN (SELECT id FROM public.actions WHERE key = 'messaging.chat.use') a
 WHERE r.role_name IN ('super_user', 'admin', 'Sales Exec', 'Factory Manager', 'Quality Assurance', 'Palladium Manager', 'Production Manager', 'Shareholder')
 ON CONFLICT (role_id, action_id) DO NOTHING;
 
 -- Grant messaging.whatsapp.contact.send to roles that already have crm-grid access
-INSERT INTO public.role_actions (role_id, action_id)
-SELECT r.id, a.id
+INSERT INTO public.role_actions (role_id, action_id, value)
+SELECT r.id, a.id, 'true'
 FROM public.roles r
-CROSS JOIN (SELECT id FROM public.actions WHERE action_key = 'messaging.whatsapp.contact.send') a
+CROSS JOIN (SELECT id FROM public.actions WHERE key = 'messaging.whatsapp.contact.send') a
 WHERE EXISTS (
     SELECT 1 FROM public.role_features rf
     JOIN public.features f ON f.id = rf.feature_id
-    WHERE rf.role_id = r.id AND f.feature_key = 'crm-grid'
+    WHERE rf.role_id = r.id AND f.key = 'crm-grid'
 )
 ON CONFLICT (role_id, action_id) DO NOTHING;
+
+-- role_permissions: this repo's second (largely vestigial, Lambda-proxy-era) RBAC layer.
+-- Every migration still seeds it for new functions, so this one does too.
+DO $$
+DECLARE
+    v_role_id uuid;
+    v_fn text;
+    v_fns text[] := ARRAY[
+        'chat_start_internal_conversation', 'chat_start_contact_conversation', 'chat_send_message',
+        'chat_update_message_send_result', 'chat_list_conversations', 'chat_list_messages',
+        'chat_mark_conversation_read', 'chat_get_unread_count', 'get_contacts_for_messaging'
+    ];
+BEGIN
+    FOR v_role_id IN SELECT id FROM public.roles LOOP
+        FOREACH v_fn IN ARRAY v_fns LOOP
+            INSERT INTO public.role_permissions (role_id, object_type, object_name, operation, allowed)
+            VALUES (v_role_id, 'function', v_fn, 'EXECUTE', true)
+            ON CONFLICT DO NOTHING;
+        END LOOP;
+    END LOOP;
+END $$;
 
 -- ============================================================================
 -- 5. GRANTS
