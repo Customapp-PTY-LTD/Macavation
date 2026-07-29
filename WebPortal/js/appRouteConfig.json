@@ -237,6 +237,19 @@
             ],
             "css": []
         },
+        "crm-whatsapp-grid": {
+            "description": "WhatsApp & Internal Chat (under CRM)",
+            "path": "crm-whatsapp",
+            "html": "html/crm_whatsapp_grid.html",
+            "js": [
+                "js/crm_whatsapp_grid.js",
+                "js/crm_whatsapp_contacts_tab.js",
+                "js/crm_whatsapp_internal_tab.js"
+            ],
+            "css": [
+                "css/crm_whatsapp_grid.css"
+            ]
+        },
         "grower-intake-grid": {
             "description": "Grower Intake Management",
             "path": "grower-intake",

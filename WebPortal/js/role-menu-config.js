@@ -170,6 +170,7 @@ var _roleMenuConfig = function () {
                     'dashboard',
                     'sales-forecasting-grid',
                     'crm-grid',
+                    'crm-whatsapp-grid',
                     'executive-dashboard',
                     'my-day'
                 ]
@@ -296,6 +297,13 @@ var _roleMenuConfig = function () {
                 route: 'crm-grid',
                 icon: 'fas fa-building',
                 label: 'Contacts',
+                category: 'crm',
+                parent: 'crmCollapse'
+            },
+            'crm-whatsapp-grid': {
+                route: 'crm-whatsapp-grid',
+                icon: 'fab fa-whatsapp',
+                label: 'WhatsApp & Chat',
                 category: 'crm',
                 parent: 'crmCollapse'
             },
@@ -505,6 +513,7 @@ var _roleMenuConfig = function () {
             'kernel-production-forecast-grid',
             'oil-production-forecast-grid',
             'crm-grid',
+            'crm-whatsapp-grid',
             'quality-assurance-grid',
             'document-management-grid',
             'sales-forecasting-grid',
