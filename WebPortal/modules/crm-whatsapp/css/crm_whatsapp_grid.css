@@ -1,0 +1,140 @@
+/* WhatsApp & Messaging Module Styles */
+
+.chat-list-item {
+    cursor: pointer;
+    padding: 12px;
+    border-bottom: 1px solid var(--mac-border);
+    transition: background-color 0.2s;
+}
+
+.chat-list-item:hover {
+    background-color: var(--mac-bg-secondary);
+}
+
+.chat-list-item.active {
+    background-color: var(--mac-primary-light);
+    border-left: 3px solid var(--mac-primary);
+}
+
+.chat-list-item .chat-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.chat-list-item .chat-preview {
+    font-size: 0.875rem;
+    color: var(--mac-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-list-item .chat-time {
+    font-size: 0.75rem;
+    color: var(--mac-text-secondary);
+}
+
+.chat-list-item .unread-badge {
+    background-color: var(--mac-primary);
+    color: white;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Message Bubbles */
+.message-bubble {
+    max-width: 70%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    word-wrap: break-word;
+}
+
+.message-bubble.outbound {
+    background-color: var(--mac-green-light);
+    border: 1px solid var(--mac-green);
+    margin-left: auto;
+    text-align: right;
+}
+
+.message-bubble.inbound {
+    background-color: var(--mac-bg-secondary);
+    border: 1px solid var(--mac-border);
+}
+
+.message-bubble .message-body {
+    margin-bottom: 4px;
+}
+
+.message-bubble .message-meta {
+    font-size: 0.75rem;
+    color: var(--mac-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.message-bubble.outbound .message-meta {
+    justify-content: flex-end;
+}
+
+.message-status-icon {
+    font-size: 0.875rem;
+}
+
+.message-status-icon.status-sent {
+    color: var(--mac-success);
+}
+
+.message-status-icon.status-queued {
+    color: var(--mac-text-secondary);
+}
+
+.message-status-icon.status-not-connected {
+    color: var(--mac-warning);
+}
+
+.message-status-icon.status-failed {
+    color: var(--mac-danger);
+}
+
+/* Thread Container */
+#contactsThreadContainer,
+#internalThreadContainer {
+    display: flex;
+    flex-direction: column;
+}
+
+/* New Chat Modal Styles */
+.contact-picker-item {
+    padding: 10px;
+    border-bottom: 1px solid var(--mac-border);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.contact-picker-item:hover:not(.disabled) {
+    background-color: var(--mac-bg-secondary);
+}
+
+.contact-picker-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.contact-picker-item .contact-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.contact-picker-item .contact-phone {
+    font-size: 0.875rem;
+    color: var(--mac-text-secondary);
+}
+
+.contact-picker-item .no-phone-warning {
+    font-size: 0.875rem;
+    color: var(--mac-danger);
+}

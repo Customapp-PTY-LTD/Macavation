@@ -27,6 +27,8 @@ var _roleMenuConfig = function () {
                     'kernel-production-forecast-grid',
                     'stock-management-kernel',
                     'kernel-dispatch-grid',
+                    'crm-grid',
+                    'crm-whatsapp-grid',
                     'document-management-grid',
                     'admin-grid'
                 ]
@@ -299,6 +301,13 @@ var _roleMenuConfig = function () {
                 category: 'crm',
                 parent: 'crmCollapse'
             },
+            'crm-whatsapp-grid': {
+                route: 'crm-whatsapp-grid',
+                icon: 'fab fa-whatsapp',
+                label: 'WhatsApp',
+                category: 'crm',
+                parent: 'crmCollapse'
+            },
             'grower-intake-grid': {
                 route: 'grower-intake-grid',
                 icon: 'fas fa-truck-loading',
@@ -505,6 +514,7 @@ var _roleMenuConfig = function () {
             'kernel-production-forecast-grid',
             'oil-production-forecast-grid',
             'crm-grid',
+            'crm-whatsapp-grid',
             'quality-assurance-grid',
             'document-management-grid',
             'sales-forecasting-grid',

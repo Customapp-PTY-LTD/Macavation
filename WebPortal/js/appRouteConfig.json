@@ -228,6 +228,19 @@
                 "css/crm_grid.css"
             ]
         },
+        "crm-whatsapp-grid": {
+            "description": "WhatsApp & Messaging",
+            "path": "crm-whatsapp",
+            "html": "html/crm_whatsapp_grid.html",
+            "js": [
+                "js/crm_whatsapp_grid.js",
+                "js/crm_whatsapp_contacts_tab.js",
+                "js/crm_whatsapp_internal_tab.js"
+            ],
+            "css": [
+                "css/crm_whatsapp_grid.css"
+            ]
+        },
         "crm-contact-modal": {
             "description": "CRM Add/Edit Contact Modal",
             "path": "modals/modal-crm-contact",

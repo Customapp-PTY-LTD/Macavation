@@ -5364,6 +5364,142 @@ var _dataFunctions = function () {
             } catch (e) {
                 return { success: false, error: e.message || String(e) };
             }
+        },
+
+        // ============================================================
+        // Chat / WhatsApp Functions
+        // ============================================================
+
+        chatStartInternalConversation: async function (userId, otherUserId, token = null) {
+            const params = {
+                p_user_id: userId,
+                p_other_user_id: otherUserId
+            };
+            const result = await this.callFunction('chat_start_internal_conversation', params, token, { useCache: false });
+            return this.unwrapChatResponse(result);
+        },
+
+        chatStartContactConversation: async function (contactId, createdBy, token = null) {
+            const params = {
+                p_contact_id: contactId,
+                p_created_by: createdBy
+            };
+            const result = await this.callFunction('chat_start_contact_conversation', params, token, { useCache: false });
+            return this.unwrapChatResponse(result);
+        },
+
+        chatSendMessage: async function (conversationId, senderUserId, body, token = null) {
+            const params = {
+                p_conversation_id: conversationId,
+                p_sender_user_id: senderUserId,
+                p_body: body
+            };
+            const result = await this.callFunction('chat_send_message', params, token, { useCache: false });
+            return this.unwrapChatResponse(result);
+        },
+
+        chatUpdateMessageSendResult: async function (messageId, userId, sendStatus, externalMessageId = null, sendError = null, token = null) {
+            const params = {
+                p_message_id: messageId,
+                p_user_id: userId,
+                p_send_status: sendStatus,
+                p_external_message_id: externalMessageId,
+                p_send_error: sendError
+            };
+            const result = await this.callFunction('chat_update_message_send_result', params, token, { useCache: false });
+            return this.unwrapChatResponse(result);
+        },
+
+        chatListConversations: async function (userId, conversationType = null, token = null) {
+            const params = {
+                p_user_id: userId,
+                p_conversation_type: conversationType
+            };
+            const result = await this.callFunction('chat_list_conversations', params, token, { useCache: false });
+            return Array.isArray(result) ? result : [];
+        },
+
+        chatListMessages: async function (conversationId, requestingUserId, limit = 200, token = null) {
+            const params = {
+                p_conversation_id: conversationId,
+                p_requesting_user_id: requestingUserId,
+                p_limit: limit
+            };
+            const result = await this.callFunction('chat_list_messages', params, token, { useCache: false });
+            return Array.isArray(result) ? result : [];
+        },
+
+        chatMarkConversationRead: async function (conversationId, userId, token = null) {
+            const params = {
+                p_conversation_id: conversationId,
+                p_user_id: userId
+            };
+            const result = await this.callFunction('chat_mark_conversation_read', params, token, { useCache: false });
+            return this.unwrapChatResponse(result);
+        },
+
+        chatGetUnreadCount: async function (userId, token = null) {
+            const result = await this.callFunction('chat_get_unread_count', { p_user_id: userId }, token, { useCache: false });
+            return typeof result === 'number' ? result : 0;
+        },
+
+        getContactsForMessaging: async function (token = null) {
+            const result = await this.callFunction('get_contacts_for_messaging', {}, token, { useCache: false });
+            return Array.isArray(result) ? result : [];
+        },
+
+        /**
+         * Send WhatsApp message via edge function.
+         * Returns { httpStatus, data } where data is the parsed JSON response.
+         */
+        sendWhatsappMessageNow: async function (to, body) {
+            try {
+                const url = this.supabaseUrl + '/functions/v1/send-whatsapp-message';
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + this.supabaseAnonKey,
+                    'apikey': this.supabaseAnonKey
+                };
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ to, body })
+                });
+
+                let data = null;
+                try {
+                    data = await res.json();
+                } catch (e) {
+                    data = { success: false, error: 'Invalid response from WhatsApp function' };
+                }
+
+                return {
+                    httpStatus: res.status,
+                    data: data
+                };
+            } catch (e) {
+                console.error('[WhatsApp] sendWhatsappMessageNow error:', e);
+                return {
+                    httpStatus: 0,
+                    data: { success: false, error: String(e) }
+                };
+            }
+        },
+
+        /**
+         * Unwrap single-row RETURNS TABLE responses that have success/error columns.
+         * If result is an array with one object having success/error keys, return that object.
+         * Otherwise return result as-is.
+         */
+        unwrapChatResponse: function (result) {
+            if (Array.isArray(result) && result.length === 1) {
+                const row = result[0];
+                if (typeof row === 'object' && ('success' in row || 'error' in row)) {
+                    return row;
+                }
+            }
+            return result;
         }
     }
 }();

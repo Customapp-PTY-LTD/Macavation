@@ -333,6 +333,11 @@ var _appRouter = function () {
                         initializeCrmGrid();
                     }
                 },
+                'crm-whatsapp-grid': () => {
+                    if (typeof _crmWhatsappGrid !== 'undefined' && _crmWhatsappGrid.init) {
+                        _crmWhatsappGrid.init();
+                    }
+                },
                 'crm-contact-modal': () => {
                     if (typeof _modal_crm_contact !== 'undefined' && _modal_crm_contact.init) {
                         _modal_crm_contact.init();

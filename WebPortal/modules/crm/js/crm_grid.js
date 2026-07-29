@@ -21,12 +21,27 @@ var _crmGrid = function () {
         importWorkbook: null,
 
         contactActionsCell: (contactId) => {
-            return '<td class="mac-table-actions-col text-nowrap">' + MacTableActions.render({
-                items: [
-                    { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contactId } },
-                    { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contactId } }
-                ]
-            }) + '</td>';
+            const items = [
+                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contactId } }
+            ];
+            // Add WhatsApp button if user has permission
+            if (typeof actionAccess !== 'undefined' && actionAccess.hasAction('messaging.whatsapp.contact.send')) {
+                items.push({ label: 'WhatsApp', className: 'whatsapp-contact-btn', icon: 'fab fa-whatsapp', dataAttrs: { 'contact-id': contactId } });
+            }
+            items.push({ label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contactId } });
+            return '<td class="mac-table-actions-col text-nowrap">' + MacTableActions.render({ items }) + '</td>';
+        },
+
+        getContactActionItems: (contactId) => {
+            const items = [
+                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contactId } }
+            ];
+            // Add WhatsApp button if user has permission
+            if (typeof actionAccess !== 'undefined' && actionAccess.hasAction('messaging.whatsapp.contact.send')) {
+                items.push({ label: 'WhatsApp', className: 'whatsapp-contact-btn', icon: 'fab fa-whatsapp', dataAttrs: { 'contact-id': contactId } });
+            }
+            items.push({ label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contactId } });
+            return items;
         },
 
         init: async () => {
@@ -170,6 +185,12 @@ var _crmGrid = function () {
             $(document).on('click', '.edit-contact-btn', function () {
                 const contactId = $(this).data('contact-id');
                 scope.editContact(contactId);
+            });
+
+            // WhatsApp contact shortcut
+            $(document).on('click', '.whatsapp-contact-btn', function () {
+                const contactId = $(this).data('contact-id');
+                scope.whatsappContact(contactId);
             });
 
             // Delete contact
@@ -401,10 +422,7 @@ var _crmGrid = function () {
                             ${notesDisplay || 'N/A'}
                         </td>
                         <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
-                            items: [
-                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
-                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
-                            ]
+                            items: scope.getContactActionItems(contact.id)
                         })}</td>
                     </tr>
                 `;
@@ -452,10 +470,7 @@ var _crmGrid = function () {
                             ${notesDisplay || 'N/A'}
                         </td>
                         <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
-                            items: [
-                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
-                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
-                            ]
+                            items: scope.getContactActionItems(contact.id)
                         })}</td>
                     </tr>
                 `;
@@ -492,10 +507,7 @@ var _crmGrid = function () {
                             ${notesDisplay || 'N/A'}
                         </td>
                         <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
-                            items: [
-                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
-                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
-                            ]
+                            items: scope.getContactActionItems(contact.id)
                         })}</td>
                     </tr>
                 `;
@@ -530,10 +542,7 @@ var _crmGrid = function () {
                             ${notesDisplay || 'N/A'}
                         </td>
                         <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
-                            items: [
-                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
-                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
-                            ]
+                            items: scope.getContactActionItems(contact.id)
                         })}</td>
                     </tr>
                 `;
@@ -578,10 +587,7 @@ var _crmGrid = function () {
                             ${notesDisplay || 'N/A'}
                         </td>
                         <td class="mac-table-actions-col text-nowrap">${MacTableActions.render({
-                            items: [
-                                { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contact.id } },
-                                { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contact.id } }
-                            ]
+                            items: scope.getContactActionItems(contact.id)
                         })}</td>
                     </tr>
                 `;
@@ -602,6 +608,58 @@ var _crmGrid = function () {
             } catch (error) {
                 console.error('Error loading contact:', error);
                 scope.showError('Error loading contact: ' + error.message);
+            }
+        },
+
+        whatsappContact: async (contactId) => {
+            const scope = _crmGrid;
+            try {
+                // Get current user ID
+                let currentUserId = null;
+                try {
+                    const userStr = Session.get('user');
+                    if (userStr) {
+                        const user = JSON.parse(userStr);
+                        currentUserId = user.id;
+                    }
+                } catch (e) {
+                    console.error('Failed to get current user:', e);
+                    Swal.fire('Error', 'Could not determine current user', 'error');
+                    return;
+                }
+
+                if (!currentUserId) {
+                    Swal.fire('Error', 'Please sign in to send WhatsApp messages', 'error');
+                    return;
+                }
+
+                // Start the conversation
+                const result = await dataFunctions.chatStartContactConversation(contactId, currentUserId);
+
+                if (result && result.success && result.conversation_id) {
+                    // Store handoff context
+                    sessionStorage.setItem('macavation_pending_route_context', JSON.stringify({
+                        route: 'crm-whatsapp-grid',
+                        openConversationId: result.conversation_id
+                    }));
+
+                    // Navigate to WhatsApp module
+                    if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
+                        _appRouter.routeTo('crm-whatsapp-grid');
+                    } else if (typeof _appRouter !== 'undefined' && _appRouter.loadContent) {
+                        _appRouter.loadContent({
+                            routeName: 'crm-whatsapp-grid',
+                            elementSelector: _appRouter.contentContainer || '#content-area'
+                        });
+                    }
+                } else if (result && result.error) {
+                    Swal.fire('Error', result.error, 'error');
+                } else {
+                    Swal.fire('Error', 'Failed to start conversation', 'error');
+                }
+            } catch (error) {
+                console.error('Error starting WhatsApp conversation:', error);
+                Swal.fire('Error', 'Failed to start WhatsApp conversation', 'error');
             }
         },
 
