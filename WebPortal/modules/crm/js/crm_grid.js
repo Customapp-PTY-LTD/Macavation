@@ -23,6 +23,7 @@ var _crmGrid = function () {
         contactActionsCell: (contactId) => {
             return '<td class="mac-table-actions-col text-nowrap">' + MacTableActions.render({
                 items: [
+                    { label: 'WhatsApp', className: 'whatsapp-contact-btn', icon: 'fab fa-whatsapp', dataAttrs: { 'contact-id': contactId } },
                     { label: 'Edit', className: 'edit-contact-btn', icon: 'fas fa-edit', dataAttrs: { 'contact-id': contactId } },
                     { label: 'Delete', className: 'delete-contact-btn', danger: true, icon: 'fas fa-trash', dataAttrs: { 'contact-id': contactId } }
                 ]
@@ -164,6 +165,12 @@ var _crmGrid = function () {
             // Add contact button
             $('#addContactBtn').on('click', function () {
                 if (typeof _modal_crm_contact !== 'undefined' && _modal_crm_contact.show) _modal_crm_contact.show(null, scope.currentContactType);
+            });
+
+            // WhatsApp contact
+            $(document).on('click', '.whatsapp-contact-btn', async function () {
+                const contactId = $(this).data('contact-id');
+                await scope.whatsappContact(contactId);
             });
 
             // Edit contact
@@ -629,6 +636,50 @@ var _crmGrid = function () {
                 } catch (error) {
                     console.error('Error deleting contact:', error);
                     if (typeof Swal !== 'undefined') Swal.fire('Error!', 'Failed to deactivate contact: ' + error.message, 'error');
+                }
+            }
+        },
+
+        whatsappContact: async (contactId) => {
+            const scope = _crmGrid;
+            try {
+                // Get current user
+                const user = typeof Session !== 'undefined' && Session.get ? Session.get('user') : null;
+                if (!user || !user.id) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'You must be logged in to use WhatsApp.', 'error');
+                    return;
+                }
+
+                // Start conversation
+                const result = await dataFunctions.chatStartContactConversation(contactId, user.id);
+
+                if (!result || !result.conversation_id) {
+                    const errorMsg = result?.error || 'Failed to start conversation';
+                    if (errorMsg.includes('no phone')) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('No Phone Number', 'This contact has no WhatsApp number on file.', 'warning');
+                        }
+                    } else {
+                        throw new Error(errorMsg);
+                    }
+                    return;
+                }
+
+                // Hand off to WhatsApp module using sessionStorage pattern
+                const handoffContext = {
+                    route: 'crm-whatsapp-grid',
+                    openConversationId: result.conversation_id
+                };
+                sessionStorage.setItem('macavation_pending_route_context', JSON.stringify(handoffContext));
+
+                // Navigate to WhatsApp module
+                if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
+                    _appRouter.routeTo('crm-whatsapp-grid');
+                }
+            } catch (error) {
+                console.error('Error opening WhatsApp conversation:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Failed to open WhatsApp conversation: ' + error.message, 'error');
                 }
             }
         },

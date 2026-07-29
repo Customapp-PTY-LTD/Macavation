@@ -5349,6 +5349,169 @@ var _dataFunctions = function () {
             return result;
         },
 
+        /** WhatsApp & Internal Chat functions */
+        chatStartInternalConversation: async function (userId, otherUserId, token = null) {
+            try {
+                const raw = await this.callFunction('chat_start_internal_conversation', {
+                    p_user_id: userId, p_other_user_id: otherUserId
+                }, token, { useCache: false });
+                const result = Array.isArray(raw) ? raw[0] : raw;
+                return result || { success: 0, error: 'Empty response' };
+            } catch (e) {
+                return { success: 0, error: e.message || String(e) };
+            }
+        },
+
+        chatStartContactConversation: async function (contactId, createdBy, token = null) {
+            try {
+                const raw = await this.callFunction('chat_start_contact_conversation', {
+                    p_contact_id: contactId, p_created_by: createdBy
+                }, token, { useCache: false });
+                const result = Array.isArray(raw) ? raw[0] : raw;
+                return result || { success: 0, error: 'Empty response' };
+            } catch (e) {
+                return { success: 0, error: e.message || String(e) };
+            }
+        },
+
+        chatSendMessage: async function (conversationId, senderUserId, body, direction = 'internal', sendStatus = 'sent', externalMessageId = null, sendError = null, token = null) {
+            try {
+                const raw = await this.callFunction('chat_send_message', {
+                    p_conversation_id: conversationId,
+                    p_sender_user_id: senderUserId,
+                    p_body: body,
+                    p_direction: direction,
+                    p_send_status: sendStatus,
+                    p_external_message_id: externalMessageId,
+                    p_send_error: sendError
+                }, token, { useCache: false });
+                const result = Array.isArray(raw) ? raw[0] : raw;
+                return result || { success: 0, error: 'Empty response' };
+            } catch (e) {
+                return { success: 0, error: e.message || String(e) };
+            }
+        },
+
+        chatUpdateMessageSendResult: async function (messageId, sendStatus, externalMessageId = null, sendError = null, token = null) {
+            try {
+                const raw = await this.callFunction('chat_update_message_send_result', {
+                    p_message_id: messageId,
+                    p_send_status: sendStatus,
+                    p_external_message_id: externalMessageId,
+                    p_send_error: sendError
+                }, token, { useCache: false });
+                const result = Array.isArray(raw) ? raw[0] : raw;
+                return result || { success: 0, error: 'Empty response' };
+            } catch (e) {
+                return { success: 0, error: e.message || String(e) };
+            }
+        },
+
+        chatListConversations: async function (userId, conversationType = null, token = null) {
+            try {
+                const raw = await this.callFunction('chat_list_conversations', {
+                    p_user_id: userId, p_conversation_type: conversationType
+                }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.chat_list_conversations)) return raw.chat_list_conversations;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Chat] chat_list_conversations failed:', e.message);
+                return [];
+            }
+        },
+
+        chatListMessages: async function (conversationId, requestingUserId, limit = 200, token = null) {
+            try {
+                const raw = await this.callFunction('chat_list_messages', {
+                    p_conversation_id: conversationId,
+                    p_requesting_user_id: requestingUserId,
+                    p_limit: parseInt(limit, 10) || 200
+                }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.chat_list_messages)) return raw.chat_list_messages;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Chat] chat_list_messages failed:', e.message);
+                return [];
+            }
+        },
+
+        chatMarkConversationRead: async function (conversationId, userId, token = null) {
+            try {
+                const raw = await this.callFunction('chat_mark_conversation_read', {
+                    p_conversation_id: conversationId, p_user_id: userId
+                }, token, { useCache: false });
+                const result = Array.isArray(raw) ? raw[0] : raw;
+                return result || { success: 0, error: 'Empty response' };
+            } catch (e) {
+                return { success: 0, error: e.message || String(e) };
+            }
+        },
+
+        chatGetUnreadCount: async function (userId, token = null) {
+            try {
+                const raw = await this.callFunction('chat_get_unread_count', {
+                    p_user_id: userId
+                }, token, { useCache: false });
+                // RPC returns integer directly
+                return typeof raw === 'number' ? raw : (parseInt(raw, 10) || 0);
+            } catch (e) {
+                console.warn('[Chat] chat_get_unread_count failed:', e.message);
+                return 0;
+            }
+        },
+
+        getContactsForMessaging: async function (token = null) {
+            try {
+                const raw = await this.callFunction('get_contacts_for_messaging', {}, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_contacts_for_messaging)) return raw.get_contacts_for_messaging;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Chat] get_contacts_for_messaging failed:', e.message);
+                return [];
+            }
+        },
+
+        /** Send WhatsApp message via edge function (not PostgREST RPC). */
+        sendWhatsappMessageNow: async function (to, body, token = null) {
+            try {
+                const supabaseConfig = window.MACAVATION_SUPABASE || {};
+                const url = (supabaseConfig.url || '').replace(/\/$/, '') + '/functions/v1/send-whatsapp-message';
+                const anonKey = supabaseConfig.anonKey || '';
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + anonKey,
+                        'apikey': anonKey
+                    },
+                    body: JSON.stringify({ to, body })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    return {
+                        success: false,
+                        error: data.error || 'HTTP ' + res.status
+                    };
+                }
+
+                return data;
+            } catch (e) {
+                return {
+                    success: false,
+                    error: e.message || String(e)
+                };
+            }
+        },
+
         /**
          * One-way ClickUp sync via sync_issue_to_clickup (backend only).
          * Does not roll back the saved issue on failure; errors stay in console.

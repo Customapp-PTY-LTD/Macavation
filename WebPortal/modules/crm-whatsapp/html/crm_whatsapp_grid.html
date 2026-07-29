@@ -1,0 +1,152 @@
+<!-- WhatsApp & Internal Chat Module (under CRM) -->
+<div class="module-content">
+    <!-- Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2"><i class="fab fa-whatsapp me-2"></i>WhatsApp & Internal Chat</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#crm-whatsapp" class="btn btn-sm btn-outline-secondary macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+        </div>
+    </div>
+
+    <!-- WhatsApp Business API Not Connected Banner -->
+    <div class="alert alert-warning mb-3" id="whatsappNotConnectedBanner" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>WhatsApp Business API not yet connected</strong> — Messages are saved but won't be delivered until connected.
+    </div>
+
+    <!-- Tab Strip -->
+    <ul class="nav nav-tabs mb-3" id="chatTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="contacts-tab" data-bs-toggle="tab" data-bs-target="#contactsTabPane" type="button" role="tab" aria-controls="contactsTabPane" aria-selected="true">
+                <i class="fas fa-address-book me-2"></i>Contacts
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="internal-tab" data-bs-toggle="tab" data-bs-target="#internalTabPane" type="button" role="tab" aria-controls="internalTabPane" aria-selected="false">
+                <i class="fas fa-comments me-2"></i>Internal
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="chatTabsContent">
+        <!-- Contacts Tab -->
+        <div class="tab-pane fade show active" id="contactsTabPane" role="tabpanel" aria-labelledby="contacts-tab">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="chat-container">
+                        <!-- Left Pane: Conversation List -->
+                        <div class="chat-list-pane">
+                            <div class="chat-list-header">
+                                <button type="button" class="btn btn-primary btn-sm w-100" id="newContactChatBtn">
+                                    <i class="fas fa-plus me-1"></i>New chat
+                                </button>
+                                <input type="text" class="form-control form-control-sm mt-2" id="contactsSearchInput" placeholder="Search contacts...">
+                            </div>
+                            <div class="chat-list-body" id="contactsConversationList">
+                                <div class="text-center text-muted py-5">
+                                    <i class="fas fa-comments fa-3x mb-3 opacity-25"></i>
+                                    <p>No conversations yet. Click "New chat" to start.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Pane: Thread + Composer -->
+                        <div class="chat-thread-pane" id="contactsThreadPane">
+                            <div class="chat-empty-state">
+                                <i class="fab fa-whatsapp fa-4x mb-3 opacity-25"></i>
+                                <p class="text-muted">Select a contact to view conversation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Internal Tab -->
+        <div class="tab-pane fade" id="internalTabPane" role="tabpanel" aria-labelledby="internal-tab">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="chat-container">
+                        <!-- Left Pane: Conversation List -->
+                        <div class="chat-list-pane">
+                            <div class="chat-list-header">
+                                <button type="button" class="btn btn-primary btn-sm w-100" id="newInternalChatBtn">
+                                    <i class="fas fa-plus me-1"></i>New chat
+                                </button>
+                                <input type="text" class="form-control form-control-sm mt-2" id="internalSearchInput" placeholder="Search colleagues...">
+                            </div>
+                            <div class="chat-list-body" id="internalConversationList">
+                                <div class="text-center text-muted py-5">
+                                    <i class="fas fa-comments fa-3x mb-3 opacity-25"></i>
+                                    <p>No conversations yet. Click "New chat" to start.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Pane: Thread + Composer -->
+                        <div class="chat-thread-pane" id="internalThreadPane">
+                            <div class="chat-empty-state">
+                                <i class="fas fa-comments fa-4x mb-3 opacity-25"></i>
+                                <p class="text-muted">Select a colleague to view conversation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Contact Chat Modal -->
+<div class="modal fade" id="newContactChatModal" tabindex="-1" aria-labelledby="newContactChatModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newContactChatModalLabel"><i class="fab fa-whatsapp me-2"></i>New WhatsApp Chat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="contactSelect" class="form-label">Select Contact</label>
+                    <select class="form-select" id="contactSelect">
+                        <option value="">Loading contacts...</option>
+                    </select>
+                    <div class="form-text" id="contactPhoneHint"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="startContactChatBtn" disabled>
+                    <i class="fas fa-comment me-1"></i>Start Chat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Internal Chat Modal -->
+<div class="modal fade" id="newInternalChatModal" tabindex="-1" aria-labelledby="newInternalChatModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newInternalChatModalLabel"><i class="fas fa-comments me-2"></i>New Internal Chat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="colleagueSelect" class="form-label">Select Colleague</label>
+                    <select class="form-select" id="colleagueSelect">
+                        <option value="">Loading colleagues...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="startInternalChatBtn" disabled>
+                    <i class="fas fa-comment me-1"></i>Start Chat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
