@@ -445,13 +445,6 @@ var _roleMenuConfig = function () {
                 label: 'Scheduled Reports',
                 category: 'user-management',
                 parent: 'userManagementCollapse'
-            },
-            'messaging-compose-grid': {
-                route: 'messaging-compose-grid',
-                icon: 'fas fa-paper-plane',
-                label: 'Send Message',
-                category: 'user-management',
-                parent: 'userManagementCollapse'
             }
         },
 
@@ -524,7 +517,6 @@ var _roleMenuConfig = function () {
             'dashboard-targets-grid',
             'stock-alert-rules-grid',
             'scheduled-reports-grid',
-            'messaging-compose-grid',
             'executive-dashboard',
             'amanda-dashboard',
             'users-grid',
