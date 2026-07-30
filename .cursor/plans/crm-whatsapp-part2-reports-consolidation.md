@@ -105,10 +105,30 @@ button in `crm_whatsapp_grid.html`/`.js` (same tab-registration pattern Part 1 a
 - "Send Now" → `chat_send_report` → loop `sendWhatsappMessageNow(phone, body)` per recipient (same
   client wrapper Part 1 already built) → `chat_update_report_recipient_send_result` per result →
   render a per-recipient status list (reusing the Contacts tab's status-cue styling).
-- Below the composer: the existing recurring-subscriber management UI, relocated verbatim from
+- Below the composer: the recurring-subscriber management UI, relocated from
   `WebPortal/modules/scheduled-reports/html/scheduled_reports_grid.html` (both the Email and WhatsApp
-  subscriber tables) — same markup, same `dataFunctions.getScheduledReports`/`upsertScheduledReport`
-  calls, just moved into this tab instead of its own screen.
+  subscriber tables), reusing the same `dataFunctions.getScheduledReports`/`upsertScheduledReport`
+  calls — **but fixed, not copied as-is**. The old screen has a known, already-diagnosed defect: the
+  WhatsApp tab shows a green **"Live"** badge (`scheduled_reports_grid.html` line 28) directly next to
+  a banner reading *"WhatsApp delivery is not live yet"* (line 69), and every WhatsApp-subscription
+  input on that tab (`#srWhatsAppPhone`, `#srWhatsAppName`, `#srWhatsAppActive`, `#srWhatsAppSaveBtn`)
+  is `disabled` and wired to nothing — `scheduled_reports_grid.js` has no click handler referencing
+  any of them at all. The **only** way to actually create a working WhatsApp subscription today is
+  through the Email tab's shared table, picking `channel = WhatsApp` from its row dropdown
+  (`saveRow()` in `scheduled_reports_grid.js`, lines 105-134, already handles this channel correctly).
+  When relocating this UI into the Reports tab:
+  - Drop the disabled, dead WhatsApp-only sub-form entirely (`#srWhatsAppPhone`/`#srWhatsAppName`/
+    `#srWhatsAppActive`/`#srWhatsAppSaveBtn` and their card) — it has never worked and duplicates the
+    one form that does.
+  - Keep **one** subscriber table (the current Email tab's shared grid), with its existing
+    channel-picker dropdown (Email/WhatsApp) per row — this is already the single real, functional
+    path for both channels; there is no need for two separate tables once this move happens.
+  - Remove the "Live" badge inconsistency and replace it with an honest status line reflecting
+    reality: WhatsApp subscriptions can be added and saved right now (functional), but delivery itself
+    is dormant until Meta credentials exist — word it like the Contacts tab's existing "not connected
+    yet" banner, not as a fake "Live" claim.
+  - Keep the digest preview button (`previewDigest()`/`renderWhatsAppSample()`) — it already works and
+    is genuinely useful for confirming what a subscriber will receive.
 
 ## Part 2b — "Announcements" tab: fold in the broadcast compose screen
 
@@ -146,12 +166,13 @@ No new schema or RPCs at all — `create_notification`/`notify_role` already exi
 | Task | Est. |
 |---|---|
 | Schema: `chat_report_recipients` + CHECK constraint alter + 4 RPCs (Reports tab) | 1.5 days |
-| Reports tab UI: digest preview/edit, contact multi-select, send-now loop, status list, relocated subscriber management | 2.5 days |
+| Reports tab UI: digest preview/edit, contact multi-select, send-now loop, status list | 2.5 days |
+| Relocate + fix subscriber management: drop the dead disabled WhatsApp sub-form, keep the one working channel-picker table, replace the stale "Live" badge with an honest status line | 1.5 days |
 | Announcements tab: relocate broadcast compose UI, wire into shell | 1 day |
 | Remove old nav items (index.html, role-menu-config.js) | 0.5 day |
 | Action-key seeding (`messaging.report.send`) | 0.25 day |
 | User guide + QA | 0.75 day |
-| **Total** | **~6.5 days** |
+| **Total** | **~8 days** |
 
 ## Open items to flag back to the client (not blocking the start of the build)
 
@@ -167,8 +188,10 @@ No new schema or RPCs at all — `create_notification`/`notify_role` already exi
 Open the Reports tab; confirm the digest preview text matches what the old Scheduled Reports preview
 showed; select two contacts with phone numbers and one without; send; confirm two
 `chat_report_recipients` rows are created (`queued`→`not_connected`, no live secrets) and the one
-without a phone number was silently skipped, not attempted. Confirm the existing recurring
-subscriber list (email + WhatsApp) still loads and can still be edited from inside this tab. Open the
-Announcements tab; send a broadcast to a role; confirm it still lands in the recipient's notification
-bell exactly as it did on the old Send Message screen. Confirm "Scheduled Reports" and "Send Message"
-no longer appear anywhere in the sidebar for any role.
+without a phone number was silently skipped, not attempted. Confirm the relocated subscriber table
+has exactly one working form (no disabled dead WhatsApp-only inputs left over), that a WhatsApp-channel
+row can actually be added and saved from it, and that the status line honestly says delivery is
+dormant rather than showing a "Live" badge. Open the Announcements tab; send a broadcast to a role;
+confirm it still lands in the recipient's notification bell exactly as it did on the old Send Message
+screen. Confirm "Scheduled Reports" and "Send Message" no longer appear anywhere in the sidebar for
+any role.
