@@ -91,8 +91,8 @@ supabase functions deploy evaluate-stock-alerts-cron --project-ref sofanhfpxifgd
 
 - `RESEND_API_KEY`
 - `DIGEST_FROM_EMAIL`
-- `WHATSAPP_ACCESS_TOKEN`
-- `WHATSAPP_PHONE_NUMBER_ID`
+- `CONTROL_ROOM_FORWARD_SECRET` (Control Room → Channels → your channel → Overview → Product destination → Generate)
+- `CONTROL_ROOM_CHANNEL_SLUG` (your channel's code in Control Room)
 
 **Cron (Africa/Johannesburg):**
 
