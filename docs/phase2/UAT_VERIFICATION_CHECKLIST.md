@@ -52,7 +52,7 @@ supabase functions deploy send-daily-digest-whatsapp --project-ref nmdmddugxclpq
 supabase functions deploy evaluate-stock-alerts-cron --project-ref nmdmddugxclpqrwylyfa
 ```
 
-**Secrets:** `RESEND_API_KEY`, `DIGEST_FROM_EMAIL`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`
+**Secrets:** `RESEND_API_KEY`, `DIGEST_FROM_EMAIL`, `CONTROL_ROOM_FORWARD_SECRET`, `CONTROL_ROOM_CHANNEL_SLUG`
 
 **Cron (Supabase Dashboard → Edge Functions):**
 
