@@ -23,8 +23,9 @@ architect - it is not shown to the user.
 
 ## Non-negotiables (this repo)
 
-- Follow `.claude/rules/` conventions - especially ASCII hyphens only
-  (`typography-hyphens.md`); run the dash grep on every file you touch.
+- Follow the conventions documented in this repo's `CLAUDE.md` and any files under
+  `.claude/rules/` - check what exists before reading; never assume a named rule file is
+  present.
 - Never commit, push, deploy, or apply migrations to any database unless the brief explicitly
   says to. File-writes to the working tree only.
 - Match the surrounding code's style, comment density, and idiom.

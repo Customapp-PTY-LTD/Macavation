@@ -17,10 +17,9 @@ references matter more than brevity, but evidence beats volume.
   scope table, produce a table.
 - Every claim carries a `file:line` reference. Quote only the key lines (a few lines each),
   never whole files.
-- Distinguish LIVE code from dead/legacy code when the repo has both (in this repo:
-  `modules/core/js/jp_app_core.js` and `jp_*` modules are live; `js/app.js`, `js/index.js`,
-  and the `client_details_page`-era modules are dead - verify against what `index.html`
-  actually loads before classifying).
+- Distinguish LIVE code from dead/legacy code when the repo has both - classify from evidence
+  (what `index.html` or the router actually loads, import graphs, git activity), never from
+  filename patterns.
 - Say what you did NOT find. An explicit "zero hits for X in Y" is load-bearing for the
   architect; silence is not.
 - Flag surprises that were not asked about but change the picture (a migration mid-flight, a
