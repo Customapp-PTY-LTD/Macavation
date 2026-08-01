@@ -7,7 +7,6 @@
 *~
 
 # Debug logs
-.cursor/
 debug.log
 
 # Node modules (if added later)
@@ -25,3 +24,9 @@ build/
 
 # Supabase CLI machine-local state (link target, cached versions)
 supabase/.temp/
+
+# Agent config: agents/ and rules/ are shared and MUST be tracked (the
+# model-delegation standard lives there). Only per-developer settings and
+# fleet plan scratch stay out of git.
+.claude/settings.local.json
+.cursor/plans/
