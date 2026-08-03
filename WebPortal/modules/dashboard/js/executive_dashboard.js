@@ -762,6 +762,7 @@ var _executiveDashboard = function () {
         runwayForecastChart: null,
         runwayForecastData: null,
         runwayForecastRangeKey: '3M',
+        RUNWAY_PX_PER_DAY: 12,
         runwayForecastSettings: null,
         runwayRatePreview: null,
 
@@ -960,8 +961,18 @@ var _executiveDashboard = function () {
             var rangeEl = document.getElementById('runwayForecastRange');
             if (rangeEl) {
                 rangeEl.textContent = 'Showing ' + labels[0] + ' – ' + labels[labels.length - 1] +
-                    ' · kg nut-in-shell not yet in production';
+                    ' · kg nut-in-shell not yet in production' +
+                    (labels.length > 120 ? ' · scroll sideways for the rest' : '');
             }
+
+            // Widen the canvas to a fixed px-per-day and let the wrapper scroll, rather than squeezing
+            // a year of daily points into the card width. Chart.js is responsive, so it sizes itself
+            // to this explicit width.
+            var scrollEl = document.getElementById('runwayForecastScroll');
+            var wrapEl = document.getElementById('runwayForecastChartWrap');
+            var viewW = scrollEl ? scrollEl.clientWidth : 0;
+            var chartW = Math.max(viewW, labels.length * scope.RUNWAY_PX_PER_DAY);
+            if (wrapEl) wrapEl.style.width = chartW + 'px';
 
             if (typeof Chart === 'undefined') return;
             scope.runwayForecastChart = new Chart(canvas.getContext('2d'), {
@@ -1004,7 +1015,13 @@ var _executiveDashboard = function () {
                     },
                     scales: {
                         x: {
-                            ticks: { maxRotation: 45, minRotation: 0, maxTicksLimit: 12 },
+                            // Scale tick count to the widened canvas: a fixed cap of 12 would leave a
+                            // 3000px chart almost unlabelled.
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 0,
+                                maxTicksLimit: Math.max(8, Math.floor(chartW / 85))
+                            },
                             grid: { color: 'rgba(0,0,0,0.06)' }
                         },
                         y: {
@@ -1017,6 +1034,13 @@ var _executiveDashboard = function () {
                 },
                 plugins: [scope.runwayMarkerPlugin]
             });
+
+            // Land the view on the forecast rather than the far-left history edge: the projection is
+            // the point of the card.
+            if (scrollEl && chartW > viewW && labels.length > 1) {
+                var todayX = (todayIndex / (labels.length - 1)) * chartW;
+                scrollEl.scrollLeft = Math.max(0, Math.round(todayX - viewW * 0.35));
+            }
 
             scope.renderRunwayVerdict({ points: points, todayIndex: todayIndex, runOutIndex: runOutIndex }, meta);
             scope.renderRunwayWarnings(meta);
@@ -1065,8 +1089,19 @@ var _executiveDashboard = function () {
                 var d = v.points[v.runOutIndex].d;
                 var days = v.runOutIndex - v.todayIndex;
                 var tone = days <= 14 ? 'critical' : (days <= 45 ? 'due' : 'ok');
+                var extra = '';
+                // run_out is when the plant first goes dry; final_depletion is when the last booked
+                // delivery has also been eaten. They differ whenever procurement lands after run-out,
+                // and the difference is the part people actually plan around.
+                if (meta.final_depletion_date && meta.final_depletion_date !== meta.run_out_date) {
+                    extra = ' · scheduled nut lasts to ' + scope.runwayLabel(meta.final_depletion_date);
+                    if ((Number(meta.idle_days_in_forecast) || 0) > 0) {
+                        extra += ' with ' + meta.idle_days_in_forecast + ' idle day(s)';
+                    }
+                }
                 vEl.innerHTML = pill(tone, 'Predicted run-out ' + scope.runwayLabel(d)) +
-                    ' <span class="ms-2">' + days + ' days · ' + scope.runwayKg(onHand) + ' kg on hand</span>';
+                    ' <span class="ms-2">' + days + ' days · ' + scope.runwayKg(onHand) + ' kg on hand' +
+                    extra + '</span>';
             } else if (meta.forecast_truncated) {
                 vEl.innerHTML = pill('ok', 'No run-out within the forecast horizon') +
                     ' <span class="ms-2">' + scope.runwayKg(onHand) + ' kg on hand</span>';
@@ -1113,6 +1148,9 @@ var _executiveDashboard = function () {
                 } else if (key === 'history_has_negative_days') {
                     msgs.push('History includes ' + (Number(meta.history_has_negative_days) || 0) +
                         ' day(s) that computed below zero, which points at a data-entry error.');
+                } else if (key === 'forecast_includes_idle_days') {
+                    msgs.push('The projection includes ' + (Number(meta.idle_days_in_forecast) || 0) +
+                        ' day(s) with no nut to crack, waiting on the next scheduled delivery.');
                 } else if (key === 'forecast_truncated_at_max_days') {
                     msgs.push('Scheduled intake covers consumption for the whole horizon, so no run-out date is reached.');
                 } else if (key === 'rate_source_rejected') {
