@@ -730,7 +730,24 @@ var _executiveDashboard = function () {
         procurementForecastChart: null,
         oilTrendsChart: null,
         stockAccuracyChart: null,
+        oilForecastChart: null,
         dashboardTargets: [],
+
+        /**
+         * Show/hide a chart's empty-state message and its canvas together.
+         * An all-zero or row-less chart renders as a blank grid with a phantom
+         * axis, which reads as "broken" rather than "nothing recorded yet" —
+         * so hide the canvas outright and say so in words.
+         * @param {string} chartId canvas element id (wrapper is `<chartId>Wrap`, message is `<chartId>Empty` minus the trailing 'Chart')
+         * @param {boolean} isEmpty
+         */
+        setChartEmptyState: function (chartId, isEmpty) {
+            var base = chartId.replace(/Chart$/, '');
+            var wrap = document.getElementById(chartId + 'Wrap');
+            var msg = document.getElementById(base + 'Empty');
+            if (wrap) wrap.classList.toggle('d-none', !!isEmpty);
+            if (msg) msg.classList.toggle('d-none', !isEmpty);
+        },
 
         loadProcurementForecastChart: async () => {
             const scope = _executiveDashboard;
@@ -757,12 +774,15 @@ var _executiveDashboard = function () {
                     .filter(function (v, i, a) { return a.indexOf(v) === i; })
                     .sort();
 
-                var emptyEl = document.getElementById('procurementForecastEmpty');
                 if (weeks.length === 0) {
-                    if (emptyEl) emptyEl.classList.remove('d-none');
+                    if (scope.procurementForecastChart) {
+                        scope.procurementForecastChart.destroy();
+                        scope.procurementForecastChart = null;
+                    }
+                    scope.setChartEmptyState('procurementForecastChart', true);
                     return;
                 }
-                if (emptyEl) emptyEl.classList.add('d-none');
+                scope.setChartEmptyState('procurementForecastChart', false);
 
                 var labels = weeks.map(function (w) { return String(w).slice(0, 10); });
                 var procData = weeks.map(function (w) { return procByWeek[w] || 0; });
@@ -811,6 +831,7 @@ var _executiveDashboard = function () {
                 });
             } catch (e) {
                 console.warn('[Executive Dashboard] Procurement/forecast chart failed.', e.message);
+                scope.setChartEmptyState('procurementForecastChart', true);
             }
         },
 
@@ -899,7 +920,14 @@ var _executiveDashboard = function () {
                 var rows = await dataFunctions.getOilProductionTrendsDaily(180);
                 var labels = (rows || []).map(function (r) { return String(r.trend_date || '').slice(0, 10); });
                 var litres = (rows || []).map(function (r) { return Number(r.oil_litres) || 0; });
-                if (scope.oilTrendsChart) scope.oilTrendsChart.destroy();
+                if (scope.oilTrendsChart) { scope.oilTrendsChart.destroy(); scope.oilTrendsChart = null; }
+                // The RPC back-fills every day in the window, so "no production"
+                // arrives as a full series of zeros, not an empty array.
+                if (!litres.length || !litres.some(function (v) { return v > 0; })) {
+                    scope.setChartEmptyState('oilTrendsChart', true);
+                    return;
+                }
+                scope.setChartEmptyState('oilTrendsChart', false);
                 scope.oilTrendsChart = new Chart(canvas.getContext('2d'), {
                     type: 'line',
                     data: { labels: labels, datasets: [{ label: 'Oil (L)', data: litres, borderColor: '#198754', backgroundColor: 'rgba(25,135,84,0.2)', fill: true, tension: 0.3 }] },
@@ -907,6 +935,7 @@ var _executiveDashboard = function () {
                 });
             } catch (e) {
                 console.warn('[Executive Dashboard] oil trends failed', e);
+                scope.setChartEmptyState('oilTrendsChart', true);
             }
         },
 
@@ -919,7 +948,12 @@ var _executiveDashboard = function () {
                 rows = (rows || []).slice().reverse();
                 var labels = rows.map(function (r) { return String(r.snapshot_month || '').slice(0, 7); });
                 var pct = rows.map(function (r) { return Number(r.pct_adjusted) || 0; });
-                if (scope.stockAccuracyChart) scope.stockAccuracyChart.destroy();
+                if (scope.stockAccuracyChart) { scope.stockAccuracyChart.destroy(); scope.stockAccuracyChart = null; }
+                if (!pct.length) {
+                    scope.setChartEmptyState('stockAccuracyChart', true);
+                    return;
+                }
+                scope.setChartEmptyState('stockAccuracyChart', false);
                 scope.stockAccuracyChart = new Chart(canvas.getContext('2d'), {
                     type: 'bar',
                     data: { labels: labels, datasets: [{ label: '% adjusted', data: pct, backgroundColor: 'rgba(255,193,7,0.7)' }] },
@@ -927,6 +961,7 @@ var _executiveDashboard = function () {
                 });
             } catch (e) {
                 console.warn('[Executive Dashboard] stock accuracy failed', e);
+                scope.setChartEmptyState('stockAccuracyChart', true);
             }
         },
 
@@ -1000,7 +1035,12 @@ var _executiveDashboard = function () {
                 });
                 var weeks = Object.keys(byWeek).sort();
                 var data = weeks.map(function (w) { return byWeek[w]; });
-                if (scope.oilForecastChart) scope.oilForecastChart.destroy();
+                if (scope.oilForecastChart) { scope.oilForecastChart.destroy(); scope.oilForecastChart = null; }
+                if (!weeks.length) {
+                    scope.setChartEmptyState('oilForecastChart', true);
+                    return;
+                }
+                scope.setChartEmptyState('oilForecastChart', false);
                 scope.oilForecastChart = new Chart(canvas.getContext('2d'), {
                     type: 'bar',
                     data: { labels: weeks, datasets: [{ label: 'Forecast kg', data: data, backgroundColor: 'rgba(13,110,253,0.6)' }] },
@@ -1008,6 +1048,7 @@ var _executiveDashboard = function () {
                 });
             } catch (e) {
                 console.warn('[Executive Dashboard] oil forecast chart failed', e);
+                scope.setChartEmptyState('oilForecastChart', true);
             }
         }
     };

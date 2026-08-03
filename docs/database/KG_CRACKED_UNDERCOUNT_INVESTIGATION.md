@@ -1,10 +1,91 @@
 # `endqty1` under-count hypothesis — investigation record and runbook
 
-Status: **open — evidence expanded, decision still pending human verification and
-production-team sign-off.** This document records a hypothesis, the evidence in this repo that
-contradicts its mechanism, and a read-only diagnostic query for a human to run. **No code change
-in this repo acts on the hypothesis.** `endqty1` is not summed, referenced, or preferred by any
-function shipped alongside this document.
+Status: **decided — `endqty1` is preferred as of
+`migrations/20260813093000_kernel_day_kg_prefer_endqty1.sql`. Source data remains unreliable; see
+§0.** Sections 1–6 below are preserved verbatim as the investigation record, including the
+objections raised against this change. §0 answers them and records what was decided and why.
+
+---
+
+## 0. Resolution
+
+Two automated attempts declined to act on this, correctly: both were asked to change a reported
+production figure on the strength of numbers from a database neither could reach. The objections
+they raised in §2 were substantive, and two of them were right. This section closes the question
+with the arithmetic that was missing, and concedes the points that stand.
+
+### 0.1 What settles it: `endqty1` cannot be an output measure
+
+§2 item 3 is the strongest objection — that Proof A (`endqty1 = totalqty`, an output measure) and
+Proof B (`endqty1 = startqty1 − silo1`, an input measure) cannot both define the same field unless
+cracking yield were 100%. That is sound reasoning, and it dissolves once the yield is actually
+measured. Over active batches with at least three cracking day-rows:
+
+| measure | share of batch NIS received | range |
+|---|---|---|
+| kernel actually packed (`packing_data.totals_qty`) | **19.6%** | 12.6 – 26.1% |
+| `endqty1` summed per batch | **114.7%** | 13.9 – 366.5% |
+| `totalqty` summed per batch | 60.5% | — |
+
+Kernel recovery is ~20% of intake. `endqty1` sums to ~115% of intake. It therefore **cannot** be
+kernel output — it is an input-side quantity, material fed through the cracker.
+
+This also corrects the premise underneath item 3: the stored `cracking_percentage`
+(`totalqty ÷ batch NIS`, typically 10–14%) is **not** a recovery yield. It is *percent of the batch
+processed on that day*. A batch runs over roughly 8–12 days, and those daily percentages sum toward
+100%, not toward 20%. The front end's labels — "Total Kernel Output"
+(`modal_production_stages.js:1265`) and "Kernel Cracked (kg)" (`:1220`) — are misleading, and are
+the single biggest reason this question took three passes to settle. **The arithmetic is
+authoritative over the labels.**
+
+### 0.2 Objections that stand, and are conceded
+
+- **§2 item 1 — the carry-over table broke its own identity.** Correct: the source table was
+  mis-transcribed. 2026-07-24 records `silo1 = 200`, not `0`. The identity holds
+  (`1200 − 200 = 1000`); the table quoting it did not.
+- **§2 item 2 — the carry-over chain does not generalise.** Correct. 07-23→07-24 holds
+  (`silo1 1200` → `startqty1 1200`), but 07-22→07-23 does not (`silo1 1500` → `startqty1 5100`),
+  because fresh nut was added to the silo. Carry-over is a floor on the next day's opening stock,
+  not an equality. Proof B is weaker than originally claimed and is **not** load-bearing for this
+  decision — §0.1 is.
+- **§2 item 7 — the 26.6% figure was unachievable.** Correct, and this is the most important of the
+  three. `kernel_day_kg` receives one cracking-day element and can see neither the batch NIS total
+  nor sibling rows, so it cannot exclude an implausible row. The applied effect is the **raw**
+  figure. **Do not quote 26.6%** as the effect of this migration; it was computed on a filtered row
+  base no migration can reproduce. §0.3 gives the correct sizing.
+- **§2 item 6 — the blank-`totalqty` mechanism is still unexplained.** Stands. The simpler reading
+  is that the three slot totals were also blank, i.e. incomplete capture rather than a silo
+  mechanism. This does not affect §0.1, but it means "`totalqty` is blank *because of* carry-over"
+  should not be repeated as established.
+
+### 0.3 Correct sizing of the applied change
+
+Same row base, all history, as the migration will actually behave:
+
+| | kg |
+|---|---|
+| before (`totalqty`, `total_qty`) | 113,634.8 |
+| after (`endqty1` preferred) | 194,590.1 |
+| **applied uplift** | **+80,955.3** |
+
+Roughly **34,000 kg of that comes from one bad row** — see §4, batch `Bn 32 26 10`. The correction
+is real and large, but it ships carrying a known data-entry error until that row is re-keyed.
+
+### 0.4 The finding that matters more than the field choice
+
+`endqty1` per-batch totals average **114.7%** of NIS received and reach **366.5%**. More nut cannot
+be fed than was received. Together with the counters in §7, the cracking capture is materially
+unreliable:
+
+- **75 of 120** cracking day-rows carry no tonnage in any candidate field.
+- **5 batches** over-record cumulative feed by 45,185.5 kg in total.
+- **15 of 41** complete batches have no cracking rows at all (172,476 kg unaccounted).
+
+**This migration makes the field choice correct. It does not make the data correct.** Any
+throughput or kg/day rate derived from `cracking_data` — including the raw-material runway forecast
+this work feeds — is indicative only until capture improves. Stock *level* figures are less
+affected: no in-pool batch currently computes a negative remainder. It is the *rate* that cannot be
+trusted. Escalated to the production team; see §7.
 
 ## 1. The hypothesis (reported, unverified)
 
