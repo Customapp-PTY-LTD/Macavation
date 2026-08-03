@@ -8,10 +8,13 @@
         </div>
     </div>
 
-    <!-- WhatsApp Business API Not Connected Banner -->
-    <div class="alert alert-warning mb-3" id="whatsappNotConnectedBanner" role="alert">
+    <!-- WhatsApp Business API Not Connected Banner.
+         Hidden by default: WhatsApp IS connected via Control Room. This is now driven by
+         real state — crm_whatsapp_contacts_tab.js reveals it only when a send actually
+         comes back 'not_connected', rather than warning unconditionally. -->
+    <div class="alert alert-warning mb-3 d-none" id="whatsappNotConnectedBanner" role="alert">
         <i class="fas fa-exclamation-triangle me-2"></i>
-        <strong>WhatsApp Business API not yet connected</strong> — Messages are saved but won't be delivered until connected.
+        <strong>WhatsApp Business API not reachable</strong> — Messages are saved but won't be delivered until the connection is restored.
     </div>
 
     <!-- Tab Strip -->
