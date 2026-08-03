@@ -29,7 +29,18 @@ var WhatsappUnreadBadge = (function () {
                 return;
             }
 
-            const count = await dataFunctions.chatGetUnreadCount(currentUserId);
+            // chat_get_unread_count only counts messages with a sender_user_id, so it
+            // misses every inbound WhatsApp message (those have sender_user_id NULL).
+            // Add the shared-inbox count on top. null means the RPC is absent (migration
+            // 20260813090000 not applied) — then the internal count alone is all there is.
+            let count = await dataFunctions.chatGetUnreadCount(currentUserId);
+
+            if (dataFunctions.chatGetWhatsappUnreadCount) {
+                const waCount = await dataFunctions.chatGetWhatsappUnreadCount(currentUserId);
+                if (typeof waCount === 'number') {
+                    count = (count || 0) + waCount;
+                }
+            }
 
             const badgeEl = document.getElementById('whatsappUnreadBadge');
             if (!badgeEl) return;
