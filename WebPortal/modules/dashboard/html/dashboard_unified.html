@@ -683,8 +683,12 @@
                         <div class="mb-2" id="runwayForecastVerdict"></div>
                         <div class="small text-muted mb-1" id="runwayForecastAssumptions"></div>
                         <div class="small text-muted mb-2" id="runwayForecastRange"></div>
-                        <div class="position-relative" style="height: 420px;" id="runwayForecastChartWrap">
-                            <canvas id="runwayForecastChart" aria-label="Raw material runway forecast: nut-in-shell kg not yet put into production, actual to today then projected to the predicted run-out date"></canvas>
+                        <!-- Scrolls sideways: the canvas is widened to a fixed px-per-day so a long
+                             series stays legible instead of being squeezed into the card. -->
+                        <div style="overflow-x: auto; overflow-y: hidden;" id="runwayForecastScroll" tabindex="0" aria-label="Scroll sideways to see the rest of the forecast">
+                            <div class="position-relative" style="height: 420px;" id="runwayForecastChartWrap">
+                                <canvas id="runwayForecastChart" aria-label="Raw material runway forecast: nut-in-shell kg not yet put into production, actual to today then projected until the last scheduled delivery is consumed"></canvas>
+                            </div>
                         </div>
                         <p class="text-muted small mb-2 mt-2 d-none" id="runwayForecastEmpty">No nut-in-shell intake or cracking has been recorded, so a runway cannot be shown.</p>
                         <div class="d-flex flex-wrap gap-2 mt-2" id="runwayForecastRangeButtons" aria-label="History range controls">
