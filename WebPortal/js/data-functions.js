@@ -5483,13 +5483,15 @@ var _dataFunctions = function () {
                 const supabaseConfig = window.MACAVATION_SUPABASE || {};
                 const url = (supabaseConfig.url || '').replace(/\/$/, '') + '/functions/v1/send-whatsapp-message';
                 const anonKey = supabaseConfig.anonKey || '';
+                const authToken = token || this.getToken();
 
                 const res = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + anonKey,
-                        'apikey': anonKey
+                        'apikey': anonKey,
+                        'X-Portal-Session': authToken || ''
                     },
                     body: JSON.stringify({ to, body })
                 });
