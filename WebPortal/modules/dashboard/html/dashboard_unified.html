@@ -478,6 +478,59 @@
             </div>
         </div>
 
+        <!-- Depletion rate assumptions. The rate is a human judgement about which month's cracking
+             capture is trustworthy, so the picker shows each month's capture rate alongside it. -->
+        <div class="modal fade" id="runwayRateModal" tabindex="-1" aria-labelledby="runwayRateModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="runwayRateModalLabel">Depletion rate</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small">
+                            The forecast consumes raw material at a fixed rate per calendar day. Base it on a month
+                            whose cracking figures you trust — the capture rate shows how much of each month was
+                            actually recorded, and a poorly captured month will understate consumption badly.
+                        </p>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col"></th>
+                                        <th scope="col">Month</th>
+                                        <th scope="col" class="text-end">Cracked</th>
+                                        <th scope="col" class="text-end">kg / day</th>
+                                        <th scope="col">Capture</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="runwayRateMonthRows"></tbody>
+                            </table>
+                        </div>
+                        <hr>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-sm-6">
+                                <label for="runwayRateManualInput" class="form-label small mb-1">Or set kg per calendar day directly</label>
+                                <input type="number" class="form-control form-control-sm" id="runwayRateManualInput" min="1" max="200000" step="1" placeholder="e.g. 2300">
+                                <div class="form-text">Overrides the chosen month. Use when you know the plant's real throughput.</div>
+                            </div>
+                            <div class="col-sm-6 text-sm-end">
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="runwayRateClearBtn">
+                                    <i class="fas fa-eraser me-1"></i>Clear rate
+                                </button>
+                            </div>
+                        </div>
+                        <div class="alert alert-warning py-2 px-3 small mt-3 mb-0 d-none" id="runwayRateNotice"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <span class="small text-muted me-auto" id="runwayRateProvenance"></span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-sm btn-primary" id="runwayRateSaveBtn">Save for everyone</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card mb-4 mac-section-collapse-card">
             <div class="card-header bg-light">
                 <button type="button" class="btn btn-link text-decoration-none p-0 mac-section-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#execMinuteTestsCollapse" aria-expanded="false" aria-controls="execMinuteTestsCollapse">
@@ -648,92 +701,6 @@
             </div>
         </div>
 
-        <!-- Depletion rate assumptions. The rate is a human judgement about which month's cracking
-             capture is trustworthy, so the picker shows each month's capture rate alongside it. -->
-        <div class="modal fade" id="runwayRateModal" tabindex="-1" aria-labelledby="runwayRateModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="runwayRateModalLabel">Depletion rate</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p class="text-muted small">
-                            The forecast consumes raw material at a fixed rate per calendar day. Base it on a month
-                            whose cracking figures you trust — the capture rate shows how much of each month was
-                            actually recorded, and a poorly captured month will understate consumption badly.
-                        </p>
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-0">
-                                <thead>
-                                    <tr>
-                                        <th scope="col"></th>
-                                        <th scope="col">Month</th>
-                                        <th scope="col" class="text-end">Cracked</th>
-                                        <th scope="col" class="text-end">kg / day</th>
-                                        <th scope="col">Capture</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="runwayRateMonthRows"></tbody>
-                            </table>
-                        </div>
-                        <hr>
-                        <div class="row g-2 align-items-end">
-                            <div class="col-sm-6">
-                                <label for="runwayRateManualInput" class="form-label small mb-1">Or set kg per calendar day directly</label>
-                                <input type="number" class="form-control form-control-sm" id="runwayRateManualInput" min="1" max="200000" step="1" placeholder="e.g. 2300">
-                                <div class="form-text">Overrides the chosen month. Use when you know the plant's real throughput.</div>
-                            </div>
-                            <div class="col-sm-6 text-sm-end">
-                                <button type="button" class="btn btn-sm btn-outline-danger" id="runwayRateClearBtn">
-                                    <i class="fas fa-eraser me-1"></i>Clear rate
-                                </button>
-                            </div>
-                        </div>
-                        <div class="alert alert-warning py-2 px-3 small mt-3 mb-0 d-none" id="runwayRateNotice"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <span class="small text-muted me-auto" id="runwayRateProvenance"></span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-sm btn-primary" id="runwayRateSaveBtn">Save for everyone</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-4" data-dashboard-widget="execOilTrends">
-                <div class="card h-100">
-                    <div class="card-header"><h5 class="mb-0">Oil production trends</h5></div>
-                    <div class="card-body">
-                        <div style="height:280px;" id="oilTrendsChartWrap"><canvas id="oilTrendsChart"></canvas></div>
-                        <p class="text-muted small mb-0 mt-2 d-none" id="oilTrendsEmpty">No oil production captured in the last 180 days.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-4" data-dashboard-widget="execStockAccuracy">
-                <div class="card h-100">
-                    <div class="card-header"><h5 class="mb-0">Stock accuracy</h5><small class="text-muted">Monthly % of SOH adjusted</small></div>
-                    <div class="card-body">
-                        <div style="height:280px;" id="stockAccuracyChartWrap"><canvas id="stockAccuracyChart"></canvas></div>
-                        <p class="text-muted small mb-0 mt-2 d-none" id="stockAccuracyEmpty">No monthly stock accuracy snapshots captured yet.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-md-6 mb-4" data-dashboard-widget="execOilForecast">
-                <div class="card h-100">
-                    <div class="card-header"><h5 class="mb-0">Oil production forecast (kg)</h5></div>
-                    <div class="card-body">
-                        <div style="height:280px;" id="oilForecastChartWrap"><canvas id="oilForecastChart"></canvas></div>
-                        <p class="text-muted small mb-0 mt-2 d-none" id="oilForecastEmpty">No open oil production forecast in the next 12 weeks.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-            </div>
             </div>
         </div>
 
@@ -768,3 +735,39 @@
         </div>
     </div>
 </div>
+
+
+
+        <div class="row">
+            <div class="col-md-6 mb-4" data-dashboard-widget="execOilTrends">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0">Oil production trends</h5></div>
+                    <div class="card-body">
+                        <div style="height:280px;" id="oilTrendsChartWrap"><canvas id="oilTrendsChart"></canvas></div>
+                        <p class="text-muted small mb-0 mt-2 d-none" id="oilTrendsEmpty">No oil production captured in the last 180 days.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4" data-dashboard-widget="execStockAccuracy">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0">Stock accuracy</h5><small class="text-muted">Monthly % of SOH adjusted</small></div>
+                    <div class="card-body">
+                        <div style="height:280px;" id="stockAccuracyChartWrap"><canvas id="stockAccuracyChart"></canvas></div>
+                        <p class="text-muted small mb-0 mt-2 d-none" id="stockAccuracyEmpty">No monthly stock accuracy snapshots captured yet.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6 mb-4" data-dashboard-widget="execOilForecast">
+                <div class="card h-100">
+                    <div class="card-header"><h5 class="mb-0">Oil production forecast (kg)</h5></div>
+                    <div class="card-body">
+                        <div style="height:280px;" id="oilForecastChartWrap"><canvas id="oilForecastChart"></canvas></div>
+                        <p class="text-muted small mb-0 mt-2 d-none" id="oilForecastEmpty">No open oil production forecast in the next 12 weeks.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
