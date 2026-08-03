@@ -654,9 +654,15 @@ var _dataFunctions = function () {
 
                     // Direct-only transport: every RPC goes straight to Supabase
                     // PostgREST with the anon key. The AWS Lambda proxy is retired.
+                    //
+                    // preserveNullParams matters for functions whose arguments have no DEFAULTs:
+                    // PostgREST resolves an overload from the exact set of parameter NAMES in the
+                    // body, so a stripped null makes it report "Could not find the function ... in
+                    // the schema cache" rather than passing NULL. Pass the option through for callers
+                    // that need it instead of stripping unconditionally.
                     const data = await scope.callSupabaseRpc(
                         functionName,
-                        scope.buildPostgrestRpcBody(params),
+                        scope.buildPostgrestRpcBody(params, { preserveNulls: options.preserveNullParams === true }),
                         authToken,
                         { useAnonAuth: true }
                     );
@@ -1570,6 +1576,12 @@ var _dataFunctions = function () {
 
         /** Create/update a dashboard target. */
         upsertDashboardTarget: async function (target, token = null) {
+            // preserveNullParams is required, not optional: upsert_dashboard_target declares seven
+            // arguments and NO defaults, and PostgREST picks an overload from the exact set of
+            // parameter names in the request body. Without it, a null p_id (every new target) or a
+            // null p_effective_from is stripped, the name set no longer matches any overload, and the
+            // call fails with "Could not find the function public.upsert_dashboard_target(...) in the
+            // schema cache" — which is why creating a target has never worked.
             var result = await this.callFunction('upsert_dashboard_target', {
                 p_id: target.id != null ? target.id : null,
                 p_metric_key: target.metric_key,
@@ -1578,7 +1590,7 @@ var _dataFunctions = function () {
                 p_division: target.division || 'all',
                 p_effective_from: target.effective_from || null,
                 p_notes: target.notes || null
-            }, token);
+            }, token, { preserveNullParams: true });
             this.clearCachePattern('dashboard_targets');
             return result;
         },
