@@ -62,11 +62,31 @@ production position, which your function must reproduce exactly:
 | `production` | 5 | 245,110.5 | 47,499.3 | 197,611.2 |
 | **pool total** | | | | **202,245.7** |
 
-Rate, over a trailing 90 days: 120,669.3 kg across **27 production days** = **4,469.2
-kg/production-day**, i.e. an observed cadence of **2.1 production days/week**. Cracking happens
-Mon–Fri only — zero weekend day-rows in all of history. These are the figures the function should
-reproduce once `20260813093000` is applied; they are a correctness check on the arithmetic, **not** a
-claim that the underlying capture is sound (see the warning above).
+### The depletion rate is chosen by a human, from a month they trust
+
+An automatic trailing average cannot work on this data, and the per-month figures show why. Rate
+here is **total kg cracked in a calendar month ÷ number of days in that month**:
+
+| month | day-rows with tonnage | total kg | kg/calendar-day | implied runway |
+|---|---|---|---|---|
+| 2026-02 | 0 of 3 | 0 | — | — |
+| 2026-03 | 0 of 6 | 0 | — | — |
+| 2026-04 | 6 of 23 | 62,164.8 | 2,072.2 | 98 days |
+| **2026-05** | **25 of 48** | **72,314.5** | **2,332.7** | **87 days** |
+| 2026-06 | 3 of 12 | 12,611.5 | 420.4 | 481 days |
+| 2026-07 | 11 of 28 | 47,499.3 | 1,532.2 | 132 days |
+
+A trailing-window average silently blends an 87-day answer with a 481-day one. But a human can see
+at a glance that May is the month to trust (25 of 48 day-rows captured, highest total), that June is
+badly under-captured, and that April is inflated by the known bad row. **The capture rate must
+therefore be returned alongside every month, or the choice cannot be made responsibly.**
+
+So the rate model is: **kg per calendar day, either taken from a chosen month or typed in directly.**
+Dividing by calendar days already absorbs idle days and weekends, which means there is **no
+production-days-per-week parameter** — the projection is a straight line and there is one fewer
+assumption to get wrong. If you have seen an earlier draft of this plan referring to
+`kg_per_production_day` and `production_days_per_week`, that model is **withdrawn**; do not implement
+it.
 
 `public.kernel_intake_procurement` is the procurement calendar: `scheduled_date`,
 `predicted_weight_kg`, `status` (CHECK: `scheduled`, `converted`, `cancelled`), `batch_id`. **It has
@@ -78,16 +98,20 @@ claim that the underlying capture is sound (see the warning above).
 
 ```sql
 CREATE OR REPLACE FUNCTION public.get_nis_runway_forecast(
-    p_history_days             integer DEFAULT 365,
-    p_rate_window_days         integer DEFAULT 90,
-    p_kg_per_production_day    numeric DEFAULT NULL,
-    p_production_days_per_week numeric DEFAULT NULL,
-    p_max_forecast_days        integer DEFAULT 730,
-    p_include_procurement      boolean DEFAULT true
+    p_history_days        integer DEFAULT 365,
+    p_kg_per_day          numeric DEFAULT NULL,  -- kg per CALENDAR day
+    p_rate_basis_month    integer DEFAULT NULL,  -- YYYYMM, e.g. 202605
+    p_max_forecast_days   integer DEFAULT 730,
+    p_include_procurement boolean DEFAULT true
 )
 RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
 ```
+
+`p_rate_basis_month` is a `YYYYMM` integer rather than a date because the override is persisted in
+`dashboard_targets.target_value`, which is `NUMERIC(18,4)` and cannot hold a date. `202605` is legible
+in both the column and the parameter. Validate it parses to a real month and reject anything outside
+`200001..299912` by falling through to the next rate source.
 
 `RETURNS jsonb`, **not `RETURNS TABLE`** — deliberate. The scalars (run-out date, effective rate,
 override provenance, warnings) must be computed from the same pool and rate as the series, in one
@@ -101,8 +125,7 @@ neither can happen.
 Timezone: `v_today date := (current_timestamp AT TIME ZONE 'Africa/Johannesburg')::date;` — the
 convention everywhere in this repo.
 
-Parameter clamps: `p_history_days` → `[7, 1826]`; `p_rate_window_days` → `[14, 730]`;
-`p_max_forecast_days` → `[7, 1826]`.
+Parameter clamps: `p_history_days` → `[7, 1826]`; `p_max_forecast_days` → `[7, 1826]`.
 
 #### Return shape
 
@@ -116,22 +139,26 @@ Parameter clamps: `p_history_days` → `[7, 1826]`; `p_rate_window_days` → `[1
     "pool_in_production_remaining_kg": 197611.20,
     "scheduled_procurement_future_kg": 0,
     "scheduled_procurement_overdue_kg": 0,
-    "rate_window_days": 90,
-    "production_days_in_window": 27,
-    "kg_cracked_in_window": 120669.30,
-    "kg_per_production_day": 4469.20,
-    "kg_per_production_day_calculated": 4469.20,
-    "kg_per_production_day_source": "calculated",   // parameter|override|calculated|none
-    "production_days_per_week": 2.1,
-    "production_days_per_week_observed": 2.1,
-    "production_days_per_week_source": "calculated", // parameter|override|calculated|default
-    "kg_per_week": 9385.32,
-    "run_out_date": "2027-01-04",
-    "days_to_run_out": 154,
-    "forecast_end": "2027-01-04",
+    "kg_per_day": 2332.70,
+    "kg_per_day_source": "basis_month",   // parameter|override|basis_month|none
+    "rate_basis_month": 202605,
+    "rate_basis_label": "May 2026",
+    "kg_per_week": 16328.90,
+
+    "months": [
+      { "yyyymm": 202605, "label": "May 2026",
+        "total_kg": 72314.50, "days_in_month": 31, "kg_per_day": 2332.70,
+        "day_rows": 48, "day_rows_with_kg": 25, "capture_pct": 52.1 }
+    ],
+
+    "run_out_date": "2026-10-29",
+    "days_to_run_out": 87,
+    "forecast_end": "2026-10-29",
     "forecast_truncated": false,
     "history_has_negative_days": 8,
-    "warnings": ["procurement_calendar_empty"]
+    "batches_over_cracked": 5,
+    "over_cracked_excess_kg": 45185.50,
+    "warnings": ["procurement_calendar_empty", "sparse_cracking_capture"]
   },
   "points": [
     { "d": "2026-08-03", "qty_kg": 202245.70, "is_forecast": false,
@@ -205,58 +232,78 @@ Two artefacts to surface rather than hide:
   `meta.history_has_negative_days`. Leave `intake_kg` / `cracked_kg` / `reconciled_kg` **unclamped**
   so the underlying day stays auditable.
 
+#### The `months` array — the picker's data source
+
+Return **one entry per calendar month that has any cracking day-row**, ascending, each carrying
+`total_kg`, `days_in_month`, the derived `kg_per_day`, and the capture counters `day_rows`,
+`day_rows_with_kg` and `capture_pct` (= `day_rows_with_kg / day_rows × 100`, rounded to 1dp).
+
+`capture_pct` is not decoration — it is the only thing that lets a human distinguish May (52%,
+trustworthy) from June (25%, produces a 481-day runway). Include months whose `total_kg` is 0
+(Feb/Mar 2026) with `kg_per_day: 0` rather than omitting them; a month that exists but captured
+nothing is information, and silently dropping it would suggest no production was attempted.
+
+Derive `total_kg` per month by grouping `public.kernel_day_kg(elem)` on
+`date_trunc('month', public.kernel_day_date(elem))`, over `is_active` batches only. `days_in_month`
+is the real calendar length — do **not** hardcode 30 or use the count of captured rows.
+
 #### Rate resolution
 
-Per field, first match wins; **an out-of-range value falls through to the next source** and appends
-`override_out_of_range:<field>` to `warnings` (do not silently clamp to a bound — a fat-fingered
-`50` days/week must be visible, not quietly become 7):
+First match wins. **An out-of-range or unusable value falls through to the next source** and appends
+`rate_source_rejected:<source>` to `warnings` — never silently clamp to a bound, and never silently
+substitute a different month:
 
 ```
-kg_per_production_day:        p_kg_per_production_day (>0, <=200000)
-                           -> dashboard_targets override (same bounds)
-                           -> calculated over the rate window
-                           -> 0, source 'none', warning 'no_cracking_history'
-
-production_days_per_week:     p_production_days_per_week (>0, <=7)
-                           -> dashboard_targets override (same bounds)
-                           -> observed cadence, i.e. round(7.0 * production_days_in_window
-                                                           / rate_window_days, 2)
-                           -> 5, source 'default'   [only when the window has no production days]
+kg_per_day:  p_kg_per_day             (>0, <= 200000)              -> source 'parameter'
+          -> p_rate_basis_month       (a month present in `months` with total_kg > 0)
+                                                                   -> source 'parameter'
+          -> dashboard_targets override `nis_crack_rate_kg_per_day` (>0, <= 200000)
+                                                                   -> source 'override'
+          -> dashboard_targets override `nis_rate_basis_month`      (valid YYYYMM, month has data)
+                                                                   -> source 'basis_month'
+          -> 0, source 'none', warning 'no_rate_configured'
 ```
 
-`production_days_per_week` **defaults to the observed cadence, not to 5.** Calibrating the kg/day
-factor from history while hardcoding the other factor of the same product at 2.4× its observed value
-would move the predicted run-out roughly 90 days earlier (2026-10-06 instead of 2027-01-04) in a
-chart whose entire purpose is to state that date. Report both the effective and observed values, and
-add warning `production_days_per_week_far_above_observed` when the effective value exceeds observed
-by more than 50%.
+**There is deliberately no automatic fallback to a trailing average.** With this data an automatic
+rate is a confidently wrong number, and the per-month table above is the evidence. When no rate is
+configured, return `kg_per_day: 0` and `source: 'none'` so the chart can show the stock level and
+ask the user to choose a basis month, rather than inventing a run-out date. This is the single most
+important behavioural decision in this plan — do not add a "sensible default".
+
+A **basis month recomputes live** rather than freezing a number: if cracking capture for that month
+improves, the forecast improves with it, and `rate_basis_label` keeps the provenance visible in the
+UI. A typed `kg_per_day` override, by contrast, is a fixed human assumption and wins over a basis
+month, so someone can always overrule the data outright.
 
 Read overrides with an **inlined `DISTINCT ON`** against `public.dashboard_targets` — mirror the
 effective-dated logic in `get_dashboard_targets()` (`WHERE effective_from <= current_date ORDER BY
 effective_from DESC`). Do **not** call `get_dashboard_targets()` itself; that would couple this
 function to every unrelated metric. Metric keys:
 
-| metric_key | period_type | division |
-|---|---|---|
-| `nis_crack_rate_kg_per_production_day` | `daily` | `kernel` |
-| `nis_production_days_per_week` | `weekly` | `kernel` |
+| metric_key | period_type | division | meaning |
+|---|---|---|---|
+| `nis_crack_rate_kg_per_day` | `daily` | `kernel` | kg per **calendar** day, typed by a human |
+| `nis_rate_basis_month` | `monthly` | `kernel` | `YYYYMM` of the month to derive the rate from |
 
-`dashboard_targets.target_value` is `NOT NULL DEFAULT 0`, so treat a missing row and `0`
-identically as "no override".
+Check both values against the table's existing `period_type` CHECK
+(`migrations/20260602110000_dashboard_targets.sql:11`) before relying on `monthly` — if it is not an
+allowed value, use `daily` for both and say so in the migration comment rather than altering the
+constraint.
+
+`dashboard_targets.target_value` is `NOT NULL DEFAULT 0`, so treat a missing row and `0` identically
+as "not set".
 
 #### Forecast
 
-Fractional production-days-per-week on an ISO Mon→Sun preference order (matches the observed
-Mon–Fri pattern):
+Consumption is `v_kg_per_day` on **every** calendar day — no weekday weighting, no
+production-day calendar, no public-holiday table. Idle days are already averaged into the rate by
+construction, since the divisor is calendar days in the basis month. Applying it forward to every day
+reproduces exactly the basis month's real weekly throughput (`v_kg_per_day × 7`), which is the
+property that makes this model defensible on data this sparse.
 
-```sql
-CASE WHEN extract(isodow FROM d) <= floor(v_dpw)                             THEN 1::numeric
-     WHEN v_dpw > floor(v_dpw) AND extract(isodow FROM d) = ceil(v_dpw)::int THEN v_dpw - floor(v_dpw)
-     ELSE 0 END AS prod_weight
-```
-
-Consumption on day `d` = `v_rate * prod_weight`, so weekly consumption is exactly `v_rate * v_dpw`
-for any `v_dpw` in `(0, 7]`. There is no public-holiday calendar in this schema — do not invent one.
+Consequence to accept, not work around: the projected line is **straight**, with no weekend steps.
+That is honest — a stepped line would imply knowledge of the production calendar that this data does
+not contain.
 
 Procurement uplifts (only when `p_include_procurement`):
 
@@ -284,7 +331,7 @@ zero crossing:
 ```sql
 v_pool_kg
   + sum(coalesce(uplift.kg, 0))     OVER (ORDER BY fd.d ROWS UNBOUNDED PRECEDING)
-  - sum(v_rate * fd.prod_weight)    OVER (ORDER BY fd.d ROWS UNBOUNDED PRECEDING) AS lvl
+  - sum(v_kg_per_day)               OVER (ORDER BY fd.d ROWS UNBOUNDED PRECEDING) AS lvl
 ```
 
 Emit points where `d <= coalesce(first_zero_date, v_today + v_max_forecast_days)`, with
@@ -303,7 +350,8 @@ in both places would double it and would make `pool_kg` disagree with the verifi
 
 | case | behaviour |
 |---|---|
-| rate × days/week `<= 0` | flat line for `least(v_max_forecast_days, 90)` days, `run_out_date = null`, warning `zero_crack_rate` |
+| **no rate configured** (`kg_per_day = 0`) | the expected first-run state. Emit history plus a flat line for `least(v_max_forecast_days, 90)` days, `run_out_date = null`, `kg_per_day_source: 'none'`, warning `no_rate_configured`. The chart shows the stock level and prompts for a basis month. Do **not** substitute a computed average |
+| `p_rate_basis_month` names a month with no data | fall through per the resolution order, warning `rate_source_rejected:parameter`. Never silently pick a neighbouring month |
 | no zero crossing in horizon | `run_out_date = null`, `forecast_truncated = true`, warning `forecast_truncated_at_max_days` |
 | `pool_kg <= 0` | `run_out_date = v_today`, `days_to_run_out = 0`, warning `pool_empty`, no forecast points |
 | procurement calendar empty (today's reality) | all-zero uplift, warning `procurement_calendar_empty` |
@@ -323,13 +371,14 @@ No DDL. Two things:
    `WebPortal/modules/dashboard-targets/js/dashboard-targets_grid.js:102` renders `metric_key` as a
    free-text input, so an admin can already edit these — the comment is what tells them what the
    keys mean.
-2. Seed **only** `nis_production_days_per_week = 5` (`period_type` `weekly`, `division` `kernel`),
-   `ON CONFLICT DO NOTHING`, as an editable starting assumption for anyone who wants to plan against
-   a 5-day week.
+2. **Seed nothing.** Neither `nis_crack_rate_kg_per_day` nor `nis_rate_basis_month` gets a row.
+   The rate is a judgement about which month's capture is trustworthy, and no migration can make
+   that judgement — May 2026 looks right today, but that is a fact about current data quality, not a
+   default worth freezing into the schema. The chart's first-run state is "pick a basis month",
+   which is the correct prompt.
 
-> **Do not seed `nis_crack_rate_kg_per_production_day`.** Leaving that row absent is exactly what
-> makes the chart self-calibrate from actual production history. Seeding it would freeze the rate at
-> whatever number is written today.
+> Leaving both rows absent is deliberate: it forces the rate to be an explicit, attributable human
+> choice rather than a number nobody remembers setting.
 
 Verify the values pass the table's existing CHECK constraints on `period_type` and `division`
 (`migrations/20260602110000_dashboard_targets.sql:11,13`) before writing the insert.
@@ -390,6 +439,6 @@ Confirmable from the diff alone:
 8. `points` is documented and implemented as gap-free daily rows covering history *and* forecast.
 9. Every edge case in the table above has a visible code path; `warnings` is always an array, never
    null.
-10. `20260813101000` seeds `nis_production_days_per_week` only, and **not** the crack-rate row.
+10. `20260813101000` seeds **no** `dashboard_targets` rows, and documents both `nis_*` metric keys.
 11. All three client-callable functions carry COMMENT + RBAC block + GRANT + `NOTIFY`.
 12. `npm run test:fleet` passes. No `.js` or `.html` file is touched.
