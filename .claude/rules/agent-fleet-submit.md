@@ -44,7 +44,8 @@ schema **degrade gracefully until it is applied**, because the plan merges (and 
 the moment its gates pass, which is BEFORE a human runs the migration.
 
 **Splitting & sequencing**: large work splits along deliverable boundaries (see the size check
-below); sequence dependent sub-plans with `depends_on:` frontmatter instead of one mega-plan.
+below); sequence dependent sub-plans with `depends_on:` frontmatter instead of one mega-plan
+(Step 0.6 has the exact syntax).
 
 **Ask once, then stop asking**: the first substantial task in a session, ask the user
 fleet-vs-direct (one short question). Once they have chosen, treat that as the session default
@@ -69,8 +70,8 @@ touches many files across unrelated areas; bundles DB migration AND code AND tes
 vague acceptance criteria.
 
 - **If it flags:** tell the user it looks large for one 330-minute job and **propose a split along
-  deliverable boundaries** (name the cut points), each sub-plan pushed in sequence. Do **not**
-  block - if they say push anyway, push it.
+  deliverable boundaries** (name the cut points), each sub-plan chained with `depends_on:`
+  (Step 0.6) and all pushed together. Do **not** block - if they say push anyway, push it.
 - **If nothing flags:** proceed to submission. Do not over-warn a well-scoped plan.
 
 Full checklist and rationale live in the fleet toolkit's `templates/plan-sizing-blueprint.md`.
@@ -99,6 +100,67 @@ is no one to ask at run time. Do it now, while the developer is here to confirm.
   has no user-visible page (pure lib/test/infra), leave it unset.
 - **Not sure which page or convention? Ask the developer now** - do not guess a path that would
   point somewhere the change didn't touch. A wrong-but-valid deep link is worse than the root.
+
+## Step 0.6 - chain dependent plans with `depends_on:`
+
+When work splits into plans where ORDER matters - the migration file first, then the screen that
+uses it - **push them all in one commit** and let the fleet order them. Do not push one, wait for
+the email, then push the next. `depends_on:` goes in the frontmatter of the plan that must WAIT:
+
+```markdown
+---
+depends_on: add-policy-status-column.md
+---
+# Show policy status on the Policies list
+...
+```
+
+- **Only the waiting plan carries the line.** The plan it waits for is an ordinary plan and needs
+  no frontmatter at all. Putting `depends_on:` on the prerequisite reverses the order, and nothing
+  warns you - so always ask "which plan must wait?" and put it on that one.
+- **The `---` block must be the FIRST thing in the file**, above the title. Below the title it is
+  not read at all: no error, no dependency, both plans simply run at once.
+- **A bare filename is the normal form** - it is resolved against the plans the fleet knows about
+  (this push plus anything already queued). Comma-separate to wait on more than one:
+  `depends_on: phase-1-database.md, phase-2-api.md`. Use a full repo-relative path
+  (`depends_on: plans/add-policy-status-column.md`) ONLY to break a filename collision - if two
+  queued plans share a basename the fleet blocks the dependent rather than guessing.
+- **Same repo only.** There is no cross-repo dependency; the fleet cannot order plans across repos.
+- **What actually happens**: prerequisite merged -> the dependent runs; queued/running/not-yet-pushed
+  -> it WAITS and releases on its own when the prerequisite merges; **failed, stopped, paused, or
+  blocked** with no live retry offer -> it is BLOCKED and never runs (a still-live "Approve &
+  resubmit" offer keeps it waiting instead, and a merged `*.retry-1.md` retry satisfies the
+  dependency). Note `paused` is terminal for a dependent: resume is unwired, so a paused
+  prerequisite never self-completes.
+- **A plan waiting on a prerequisite that is never pushed waits indefinitely** - there is no grace
+  timeout. Its `Waiting` row on the portal's queue page is the only signal. So never name a plan in
+  `depends_on:` that you are not actually going to submit, and do not typo the filename.
+- **Chains**: each plan names only the one before it (`phase-2-api.md` -> `phase-1-database.md`,
+  `phase-3-screen.md` -> `phase-2-api.md`), all pushed together. A plan with no `depends_on:` - the
+  normal case - is unaffected by any of this.
+
+## Step 0.7 - the plan-safety checklist (do this BEFORE you push)
+
+A plan can be detailed and well-researched and still get blocked, not because the work is wrong,
+but because it asks the agent to do something the review gates can't wave through unseen. Re-read
+the plan against these three before pushing:
+
+1. **External contracts are backed by a file:line citation, not memory.** If the plan states how
+   an external API/service/gateway behaves, name the file where that call is actually made in this
+   repo. If nothing in the checkout calls it yet, mark the contract unconfirmed rather than stating
+   it as fact.
+2. **No open-ended third-party dependency, no unexecutable verify step.** Name the exact package +
+   version + source for any new library, or defer it to a separate human-reviewed plan - never
+   "vendor a suitable X." Every "verify before finishing" step must be something the agent can run
+   itself (a script, a fixture assertion, a grep) - never a physical device or a human's eyes with
+   no automated fallback.
+3. **State this repo's security invariants explicitly**, next to the screen/function they apply to
+   (e.g. "render with `.text()`, never `.html()`/`innerHTML`," "re-check the session token,"
+   "validate the upload path before writing") - don't rely on the agent inferring them from
+   surrounding code.
+
+**Never block on this** - same as the size check, it's advisory. Full checklist and rationale live
+in the fleet toolkit's `templates/plan-safety-checklist.md`.
 
 ## Submit (the Claude Code path differs from Cursor)
 
@@ -140,3 +202,17 @@ git push -u origin dev-agent
   commit", the file is unchanged/already committed - make an edit and retry.
 - Do not reformat the plan or add frontmatter it does not need - a plan runs as-is.
 - Do not open a pull request - there is no PR step; the fleet merges to `dev` itself.
+
+## Further reading
+
+Read these (or point the developer at them) when a question goes beyond this rule - do not guess
+at fleet behaviour that is already written down:
+
+- **The developer guide - the only submitter-facing how-to, and the source of truth** for plan
+  format, frontmatter, dependencies, blocks and costs:
+  <https://github.com/Customapp-PTY-LTD/agent-fleet/blob/dev/docs/fleet-user-guide.md>
+  Dependencies, with a worked two-plan example and a diagram of the three outcomes:
+  <https://github.com/Customapp-PTY-LTD/agent-fleet/blob/dev/docs/fleet-user-guide.md#dependencies-between-plans>
+- **The queue page** - which plans are Waiting, Blocked or Running right now, and why:
+  <https://dev.d2zheavn62lwu9.amplifyapp.com/queue.html>. If two plans that should have been
+  ordered are both Running, the `---` block was not the first thing in the file.
