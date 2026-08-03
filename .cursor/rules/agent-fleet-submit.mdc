@@ -141,7 +141,7 @@ depends_on: add-policy-status-column.md
 
 A plan can be detailed and well-researched and still get blocked, not because the work is wrong,
 but because it asks the agent to do something the review gates can't wave through unseen. Re-read
-the plan against these three before pushing:
+the plan against these four before pushing:
 
 1. **External contracts are backed by a file:line citation, not memory.** If the plan states how
    an external API/service/gateway behaves, name the file where that call is actually made in this
@@ -156,6 +156,12 @@ the plan against these three before pushing:
    (e.g. "render with `.text()`, never `.html()`/`innerHTML`," "re-check the session token,"
    "validate the upload path before writing") - don't rely on the agent inferring them from
    surrounding code.
+4. **Don't assert a claim as settled fact in a permanent artifact if the agent can't verify it from
+   inside this repo.** No DB/network access means no way to check a production figure or a
+   "resolved" status against reality - if the plan bakes one into a doc or code comment anyway,
+   mark it unresolved/unverified instead. Also re-check any table or "proof" the plan itself
+   supplies: numbers that don't balance, or a term defined two different ways, mean the plan's
+   own premise needs fixing before an agent is asked to act on it.
 
 **Never block on this** - same as the size check, it's advisory. Full checklist and rationale:
 `plan-safety-checklist.md` (in the fleet's `templates/`).
