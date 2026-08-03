@@ -1,27 +1,85 @@
 /**
- * Supabase Edge Function: send a single WhatsApp message via Meta Cloud API.
+ * Supabase Edge Function: send a single WhatsApp message via Control Room's meta-proxy.
  * Deploy: supabase functions deploy send-whatsapp-message
  *
- * Stateless single-recipient send primitive, no DB access — the browser records
- * the result via chat_update_message_send_result after calling this.
+ * Stateless single-recipient send primitive, no DB access beyond validating the
+ * caller's session — the browser records the result via
+ * chat_update_message_send_result after calling this.
  *
- * Secrets: WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID
+ * Secrets: CONTROL_ROOM_FORWARD_SECRET, CONTROL_ROOM_CHANNEL_SLUG
+ * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (auto-provided by the runtime)
+ * Docs: https://control-room.customapp.co.za/docs/product-integration.md
  *
- * Security note: reachable with the public anon key today — harmless because it
- * always 503s with no secrets configured. Before real Meta credentials are ever
- * wired, this needs a shared-secret or session check added.
+ * Auth: X-Portal-Session header carries the same raw token minted at login
+ * (auth_login_email / auth-google), same convention as portal-assistant.
+ * Validated via the service-role RPC assistant_validate_session - fail closed
+ * (empty result = 401). Without this, anyone holding the public anon key
+ * (which ships in the browser) could send WhatsApp messages through this
+ * channel once the Control Room secrets were live.
  */
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const CONTROL_ROOM_BASE_URL = 'https://ejnncypummmvyojhovme.supabase.co/functions/v1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-portal-session, X-Portal-Session',
 };
+
+// deno-lint-ignore no-explicit-any
+type AnyRow = Record<string, any>;
+
+function makeServiceClient(): SupabaseClient {
+  const url = Deno.env.get('SUPABASE_URL')!;
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  return createClient(url, key);
+}
+
+async function rpc(sb: SupabaseClient, fn: string, params: Record<string, unknown> = {}): Promise<AnyRow[]> {
+  const { data, error } = await sb.rpc(fn, params);
+  if (error) throw new Error(`[rpc:${fn}] ${error.message}`);
+  if (Array.isArray(data)) return data as AnyRow[];
+  if (data && typeof data === 'object') return [data as AnyRow];
+  return [];
+}
+
+async function validateSession(sb: SupabaseClient, token: string): Promise<{ userId: string } | { error: string; status: number }> {
+  if (!token) return { error: 'Authentication required.', status: 401 };
+
+  let rows: AnyRow[];
+  try {
+    rows = await rpc(sb, 'assistant_validate_session', { p_token: token });
+  } catch (e) {
+    console.error('[send-whatsapp-message] session validation RPC failed:', e);
+    return { error: 'Authentication unavailable. Please try again.', status: 503 };
+  }
+
+  const row = rows?.[0] ?? null;
+  if (!row || !row.user_id) {
+    return { error: 'Invalid or expired session. Please sign in again.', status: 401 };
+  }
+
+  return { userId: String(row.user_id) };
+}
 
 function normalizePhone(phone: string): string {
   let p = phone.replace(/\D/g, '');
   if (p.startsWith('0')) p = '27' + p.slice(1);
   if (!p.startsWith('27') && p.length <= 11) p = '27' + p;
-  return p;
+  return `+${p}`;
+}
+
+async function signBody(secret: string, body: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
+  const hex = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return `sha256=${hex}`;
 }
 
 Deno.serve(async (req) => {
@@ -29,14 +87,24 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const token = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
-  const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
+  const sb = makeServiceClient();
+  const sessionToken = (req.headers.get('x-portal-session') || '').trim();
+  const sessionOrErr = await validateSession(sb, sessionToken);
+  if ('error' in sessionOrErr) {
+    return new Response(
+      JSON.stringify({ success: false, error: sessionOrErr.error }),
+      { status: sessionOrErr.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 
-  if (!token || !phoneNumberId) {
+  const forwardSecret = Deno.env.get('CONTROL_ROOM_FORWARD_SECRET');
+  const channelSlug = Deno.env.get('CONTROL_ROOM_CHANNEL_SLUG');
+
+  if (!forwardSecret || !channelSlug) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'WhatsApp Business API not yet connected — WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID required',
+        error: 'WhatsApp not yet connected — CONTROL_ROOM_FORWARD_SECRET and CONTROL_ROOM_CHANNEL_SLUG required',
       }),
       { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -52,35 +120,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    const normalizedTo = normalizePhone(to);
-
-    const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: normalizedTo,
-        type: 'text',
-        text: { body },
-      }),
+    const requestBody = JSON.stringify({
+      action: 'send_message',
+      channelSlug,
+      to: normalizePhone(to),
+      type: 'text',
+      content: { text: body },
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
+    const res = await fetch(`${CONTROL_ROOM_BASE_URL}/meta-proxy`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Control-Room-Signature': await signBody(forwardSecret, requestBody),
+      },
+      body: requestBody,
+    });
+
+    const result = await res.json();
+
+    if (!res.ok || !result.ok) {
       return new Response(
-        JSON.stringify({ success: false, error: `Meta API rejected message: ${errorText}` }),
+        JSON.stringify({ success: false, error: `Control Room rejected message: ${result.error || res.statusText}` }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const metaResponse = await res.json();
-    const externalMessageId = metaResponse?.messages?.[0]?.id || null;
-
     return new Response(
-      JSON.stringify({ success: true, external_message_id: externalMessageId }),
+      JSON.stringify({ success: true, external_message_id: result.wamid || null }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (e) {
