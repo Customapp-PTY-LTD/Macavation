@@ -660,11 +660,15 @@ var _dataFunctions = function () {
                     // body, so a stripped null makes it report "Could not find the function ... in
                     // the schema cache" rather than passing NULL. Pass the option through for callers
                     // that need it instead of stripping unconditionally.
+                    // Pass RAW params: callSupabaseRpc builds the body itself. Pre-building here as
+                    // well meant the body was processed twice, and the second pass used
+                    // callSupabaseRpc's own options — where preserveNullParams was absent — so
+                    // deliberately-preserved nulls were stripped straight back out.
                     const data = await scope.callSupabaseRpc(
                         functionName,
-                        scope.buildPostgrestRpcBody(params, { preserveNulls: options.preserveNullParams === true }),
+                        params,
                         authToken,
-                        { useAnonAuth: true }
+                        { useAnonAuth: true, preserveNullParams: options.preserveNullParams === true }
                     );
 
                     // Cache successful responses (do not cache empty array for get_kernel_batches so we retry next load)
