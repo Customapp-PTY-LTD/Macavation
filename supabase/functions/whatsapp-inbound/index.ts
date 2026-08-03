@@ -154,7 +154,21 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // No GET challenge reaches us — Control Room owns Meta's verification handshake.
+  // GET is a health check, not Meta's verification handshake — Control Room owns that
+  // handshake and no hub.challenge reaches us. Answer 200 so anything validating that
+  // this destination resolves (Control Room's own probe included) sees a live endpoint
+  // rather than a 405 it could reasonably treat as unhealthy. Deliberately reports only
+  // whether the forward secret is configured — never the secret, and no payload is
+  // accepted or processed on this path.
+  if (req.method === 'GET') {
+    return json({
+      success: true,
+      function: 'whatsapp-inbound',
+      ready: Boolean(Deno.env.get('CONTROL_ROOM_FORWARD_SECRET')),
+      note: 'Signed POST forwards only; GET is a health check.',
+    });
+  }
+
   if (req.method !== 'POST') {
     return json({ success: false, error: 'Method not allowed.' }, 405);
   }
