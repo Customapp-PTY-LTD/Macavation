@@ -2029,6 +2029,99 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Raw-material runway: daily kg of nut-in-shell not yet put into production, actual history
+         * plus a projection to the predicted run-out date.
+         *
+         * Depletion rate is kg per CALENDAR day, resolved server-side: explicit option here, then a
+         * dashboard_targets override, then a chosen basis month. There is no automatic average — when
+         * nothing is configured meta.kg_per_day is 0 and no forecast points are returned, which the
+         * chart renders as "pick a basis month" rather than a made-up run-out date.
+         *
+         * @param {{historyDays?:number, kgPerDay?:number, basisMonth?:number, maxForecastDays?:number,
+         *          includeProcurement?:boolean}} [opts] - basisMonth is YYYYMM, e.g. 202605.
+         * @returns {Promise<{meta:Object, points:Array<{d:string,qty_kg:number,is_forecast:boolean,
+         *          intake_kg:number,cracked_kg:number,reconciled_kg:number}>}>}
+         */
+        getNisRunwayForecast: async function (opts, token = null) {
+            var o = opts || {};
+            var params = {
+                p_history_days: Math.max(7, Math.min(1826, parseInt(o.historyDays, 10) || 365)),
+                p_kg_per_day: null,
+                p_rate_basis_month: null,
+                p_max_forecast_days: Math.max(7, Math.min(1826, parseInt(o.maxForecastDays, 10) || 730)),
+                p_include_procurement: o.includeProcurement !== false
+            };
+            // Only send a rate hint when one was actually asked for: null lets the DB resolve from
+            // the saved override, which is the normal path.
+            var kg = parseFloat(o.kgPerDay);
+            if (isFinite(kg) && kg > 0) params.p_kg_per_day = kg;
+            var bm = parseInt(o.basisMonth, 10);
+            if (isFinite(bm) && bm >= 200001 && bm <= 299912) params.p_rate_basis_month = bm;
+
+            try {
+                var raw = await this.callFunction('get_nis_runway_forecast', params, token, { useCache: false });
+                var payload = (raw && raw.get_nis_runway_forecast) ? raw.get_nis_runway_forecast
+                    : (raw && raw.data && raw.data.points) ? raw.data
+                        : raw;
+                if (payload && Array.isArray(payload.points)) {
+                    return { meta: payload.meta || {}, points: payload.points };
+                }
+                return { meta: {}, points: [] };
+            } catch (e) {
+                // Must never throw: the dashboard deploys before migrations are applied, so PGRST202
+                // ("Could not find function in schema cache") is an expected first-load state and has
+                // to degrade to the card's empty state, not an error cascade.
+                console.warn('[Dashboard] get_nis_runway_forecast failed. Apply migration 20260813100000_get_nis_runway_forecast.sql if needed.', e.message);
+                return { meta: {}, points: [] };
+            }
+        },
+
+        /**
+         * Read the two raw-material runway assumptions out of dashboard_targets.
+         * Reuses getDashboardTargets() rather than adding an RPC.
+         * @returns {Promise<{kgPerDay:number|null, basisMonth:number|null, rows:Array}>}
+         */
+        getNisRunwaySettings: async function (token = null) {
+            var out = { kgPerDay: null, basisMonth: null, rows: [] };
+            try {
+                var res = await this.getDashboardTargets(token);
+                var rows = (res && res.rows) || [];
+                out.rows = rows.filter(function (r) {
+                    return r.metric_key === 'nis_crack_rate_kg_per_day' || r.metric_key === 'nis_rate_basis_month';
+                });
+                out.rows.forEach(function (r) {
+                    var v = Number(r.target_value);
+                    if (!isFinite(v) || v <= 0) return;
+                    if (r.metric_key === 'nis_crack_rate_kg_per_day') out.kgPerDay = v;
+                    if (r.metric_key === 'nis_rate_basis_month') out.basisMonth = Math.round(v);
+                });
+            } catch (e) {
+                console.warn('[Dashboard] getNisRunwaySettings failed.', e.message);
+            }
+            return out;
+        },
+
+        /**
+         * Persist one runway assumption. Shared by all users.
+         * Writes via the existing upsert_dashboard_target RPC, whose RBAC already limits writes to
+         * super_user / admin / General Manager / Production Manager / Oil Plant Manager — which is why
+         * the button is not client-gated.
+         * @param {'nis_crack_rate_kg_per_day'|'nis_rate_basis_month'} metricKey
+         * @param {number} value - Pass 0 to clear the assumption.
+         * @param {string} [note]
+         */
+        saveNisRunwaySetting: async function (metricKey, value, note, token = null) {
+            var result = await this.upsertDashboardTarget({
+                metric_key: metricKey,
+                target_value: Number(value) || 0,
+                period_type: 'daily',
+                division: 'kernel',
+                notes: note || null
+            }, token);
+            return result;
+        },
+
+        /**
          * Get daily minute tests for dashboard (07h00, 10h00, 13h00, Averages from cracking).
          * @param {string} [dateStr] - Optional date YYYY-MM-DD; omit for today (SA).
          * @returns {Promise<Array<{time_slot:string,wholes:string,uncracks:string,total:string}>>}
@@ -5474,6 +5567,133 @@ var _dataFunctions = function () {
             } catch (e) {
                 console.warn('[Chat] get_contacts_for_messaging failed:', e.message);
                 return [];
+            }
+        },
+
+        /**
+         * Shared WhatsApp inbox (migration 20260813090000_whatsapp_inbound_shared_inbox).
+         *
+         * These back the WhatsApp tab instead of the participant-gated chat_list_*
+         * RPCs, because an inbound message from an unrecognised number has no
+         * chat_participants rows and must still be visible to the team.
+         *
+         * FEATURE-DETECTED. Return-value contract, which callers rely on:
+         *   null  -> the RPC does not exist on this database (migration not applied);
+         *            the caller must fall back to the old contact-only behaviour.
+         *   []    -> the RPC exists; no rows (or a transient failure already logged).
+         * Anything else is data. Do not collapse null and [] — they mean different
+         * things, and conflating them makes the tab silently show an empty inbox on a
+         * database that simply has not been migrated yet.
+         */
+        _whatsappInboxAvailable: null, // null = not probed yet, true/false once known
+
+        /** True when an RPC failure means "function not present" rather than "call failed". */
+        isMissingFunctionError: function (e) {
+            const msg = ((e && e.message) ? e.message : String(e || '')).toLowerCase();
+            return msg.includes('pgrst202') ||
+                   msg.includes('could not find the function') ||
+                   msg.includes('does not exist');
+        },
+
+        chatListWhatsappConversations: async function (userId, token = null) {
+            if (this._whatsappInboxAvailable === false) return null;
+            try {
+                const raw = await this.callFunction('chat_list_whatsapp_conversations', {
+                    p_user_id: userId
+                }, token, { useCache: false });
+                this._whatsappInboxAvailable = true;
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.chat_list_whatsapp_conversations)) return raw.chat_list_whatsapp_conversations;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                if (this.isMissingFunctionError(e)) {
+                    this._whatsappInboxAvailable = false;
+                    console.warn('[Chat] Shared WhatsApp inbox not available on this database — falling back to contact-only conversations.');
+                    return null;
+                }
+                console.warn('[Chat] chat_list_whatsapp_conversations failed:', e.message);
+                return [];
+            }
+        },
+
+        chatListWhatsappMessages: async function (conversationId, requestingUserId, limit = 200, token = null) {
+            if (this._whatsappInboxAvailable === false) return null;
+            try {
+                const raw = await this.callFunction('chat_list_whatsapp_messages', {
+                    p_conversation_id: conversationId,
+                    p_requesting_user_id: requestingUserId,
+                    p_limit: parseInt(limit, 10) || 200
+                }, token, { useCache: false });
+                this._whatsappInboxAvailable = true;
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.chat_list_whatsapp_messages)) return raw.chat_list_whatsapp_messages;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                if (this.isMissingFunctionError(e)) {
+                    this._whatsappInboxAvailable = false;
+                    return null;
+                }
+                console.warn('[Chat] chat_list_whatsapp_messages failed:', e.message);
+                return [];
+            }
+        },
+
+        chatMarkWhatsappRead: async function (conversationId, userId, token = null) {
+            if (this._whatsappInboxAvailable === false) return null;
+            try {
+                const raw = await this.callFunction('chat_mark_whatsapp_read', {
+                    p_conversation_id: conversationId, p_user_id: userId
+                }, token, { useCache: false });
+                const result = Array.isArray(raw) ? raw[0] : raw;
+                return result || { success: 0, error: 'Empty response' };
+            } catch (e) {
+                if (this.isMissingFunctionError(e)) {
+                    this._whatsappInboxAvailable = false;
+                    return null;
+                }
+                return { success: 0, error: e.message || String(e) };
+            }
+        },
+
+        /**
+         * Join a shared-inbox conversation as a participant. Needed before replying to a
+         * conversation created by an inbound message, because chat_send_message refuses
+         * non-participants and inbound-created conversations start with none.
+         */
+        chatJoinWhatsappConversation: async function (conversationId, userId, token = null) {
+            if (this._whatsappInboxAvailable === false) return null;
+            try {
+                const raw = await this.callFunction('chat_join_whatsapp_conversation', {
+                    p_conversation_id: conversationId, p_user_id: userId
+                }, token, { useCache: false });
+                const result = Array.isArray(raw) ? raw[0] : raw;
+                return result || { success: 0, error: 'Empty response' };
+            } catch (e) {
+                if (this.isMissingFunctionError(e)) {
+                    this._whatsappInboxAvailable = false;
+                    return null;
+                }
+                return { success: 0, error: e.message || String(e) };
+            }
+        },
+
+        chatGetWhatsappUnreadCount: async function (userId, token = null) {
+            if (this._whatsappInboxAvailable === false) return null;
+            try {
+                const raw = await this.callFunction('chat_get_whatsapp_unread_count', {
+                    p_user_id: userId
+                }, token, { useCache: false });
+                // RPC returns integer directly
+                return typeof raw === 'number' ? raw : (parseInt(raw, 10) || 0);
+            } catch (e) {
+                if (this.isMissingFunctionError(e)) {
+                    this._whatsappInboxAvailable = false;
+                    return null;
+                }
+                console.warn('[Chat] chat_get_whatsapp_unread_count failed:', e.message);
+                return null;
             }
         },
 
