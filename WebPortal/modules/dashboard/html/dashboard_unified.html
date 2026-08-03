@@ -622,7 +622,7 @@
                         <small class="text-muted">Scheduled grower intake (kg) vs open kernel demand (cartons) by week</small>
                     </div>
                     <div class="card-body">
-                        <div class="position-relative" style="height: 320px;">
+                        <div class="position-relative" style="height: 320px;" id="procurementForecastChartWrap">
                             <canvas id="procurementForecastChart" aria-label="Procurement and forecast chart"></canvas>
                         </div>
                         <p class="text-muted small mb-0 mt-2 d-none" id="procurementForecastEmpty">No scheduled procurement or open forecast in the next 12 weeks.</p>
@@ -635,13 +635,19 @@
             <div class="col-md-6 mb-4" data-dashboard-widget="execOilTrends">
                 <div class="card h-100">
                     <div class="card-header"><h5 class="mb-0">Oil production trends</h5></div>
-                    <div class="card-body"><div style="height:280px;"><canvas id="oilTrendsChart"></canvas></div></div>
+                    <div class="card-body">
+                        <div style="height:280px;" id="oilTrendsChartWrap"><canvas id="oilTrendsChart"></canvas></div>
+                        <p class="text-muted small mb-0 mt-2 d-none" id="oilTrendsEmpty">No oil production captured in the last 180 days.</p>
+                    </div>
                 </div>
             </div>
             <div class="col-md-6 mb-4" data-dashboard-widget="execStockAccuracy">
                 <div class="card h-100">
                     <div class="card-header"><h5 class="mb-0">Stock accuracy</h5><small class="text-muted">Monthly % of SOH adjusted</small></div>
-                    <div class="card-body"><div style="height:280px;"><canvas id="stockAccuracyChart"></canvas></div></div>
+                    <div class="card-body">
+                        <div style="height:280px;" id="stockAccuracyChartWrap"><canvas id="stockAccuracyChart"></canvas></div>
+                        <p class="text-muted small mb-0 mt-2 d-none" id="stockAccuracyEmpty">No monthly stock accuracy snapshots captured yet.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -650,7 +656,10 @@
             <div class="col-md-6 mb-4" data-dashboard-widget="execOilForecast">
                 <div class="card h-100">
                     <div class="card-header"><h5 class="mb-0">Oil production forecast (kg)</h5></div>
-                    <div class="card-body"><div style="height:280px;"><canvas id="oilForecastChart"></canvas></div></div>
+                    <div class="card-body">
+                        <div style="height:280px;" id="oilForecastChartWrap"><canvas id="oilForecastChart"></canvas></div>
+                        <p class="text-muted small mb-0 mt-2 d-none" id="oilForecastEmpty">No open oil production forecast in the next 12 weeks.</p>
+                    </div>
                 </div>
             </div>
         </div>
