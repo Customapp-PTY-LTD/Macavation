@@ -85,14 +85,30 @@ Deploy to **production** project:
 supabase functions deploy send-daily-digest --project-ref sofanhfpxifgdtooefzq
 supabase functions deploy send-daily-digest-whatsapp --project-ref sofanhfpxifgdtooefzq
 supabase functions deploy evaluate-stock-alerts-cron --project-ref sofanhfpxifgdtooefzq
+
+# WhatsApp inbound webhook — MUST use --no-verify-jwt. Control Room sends no Supabase
+# JWT; the X-Control-Room-Signature HMAC is the authentication. With verify_jwt on,
+# every forward is rejected at the gateway and no inbound message is ever received.
+supabase functions deploy whatsapp-inbound --project-ref sofanhfpxifgdtooefzq --no-verify-jwt
 ```
 
 **Secrets (Supabase Dashboard → Edge Functions → production):**
 
 - `RESEND_API_KEY`
 - `DIGEST_FROM_EMAIL`
-- `CONTROL_ROOM_FORWARD_SECRET` (Control Room → Channels → your channel → Overview → Product destination → Generate)
+- `CONTROL_ROOM_FORWARD_SECRET` (Control Room → Channels → your channel → Overview → Product destination → Generate). Signs **both** directions — outbound sends and the inbound webhook verify against this same secret.
 - `CONTROL_ROOM_CHANNEL_SLUG` (your channel's code in Control Room)
+
+**WhatsApp inbound registration (Control Room side — nothing arrives until this is done):**
+
+Control Room → Channels → your channel → Overview → Product destination: set the product
+Supabase project ref plus function name `whatsapp-inbound`, or the equivalent webhook URL
+override — `https://<project-ref>.supabase.co/functions/v1/whatsapp-inbound`. Until this
+is set, Control Room logs inbound events on its side and forwards nothing, so the CRM →
+WhatsApp inbox stays empty no matter how many customers message the number.
+
+Note: Meta does **not** replay history. Only messages received after registration appear;
+conversations that happened before it will not be backfilled.
 
 **Cron (Africa/Johannesburg):**
 
