@@ -43,9 +43,13 @@ nav link is `href="#"`. Links can only land on the app root. This is why the fle
 is deliberately unset.
 
 **`npm ci` fails here** — there is no `package-lock.json` and zero dependencies. Use `npm run <script>`
-directly. `ui:verify` scans `WebPortal/` only (paths it prints are relative to that), skips `help/`,
-and **fails on `dev` today** with 65 pre-existing violations, mostly raw hex and Bootstrap Icons in
-the Mac assistant/mascot CSS. Do not "fix" those as a side effect of unrelated work.
+directly. `ui:verify` scans `WebPortal/` only (paths it prints are relative to that) and skips
+`help/`. Its 65 pre-existing violations were cleared 2026-08-04 and it is now **part of
+`npm run test:fleet`**, so a new violation blocks a fleet merge. The assistant/mascot palette it used
+to flag now lives as `--mac-assistant-*`/`--mac-mascot-*` tokens in `WebPortal/css/design-tokens.css`
+— that file is the only place a raw hex is allowed. Note `BANNED_HEX` in
+`scripts/verify-ui-standard.mjs` is declared but never read; the real rule is simply "no hex outside
+`design-tokens.css`".
 
 **`docs/phase2/PHASE2_IMPLEMENTATION_PLAN.md` is stale below its status table.** The table at the top
 is accurate; the per-epic "Remaining work" tables describe the pre-2026-07-06 state and list work
@@ -54,7 +58,10 @@ that is already built. Do not cost or schedule from them.
 ## Agent Fleet
 
 To run, submit, or hand off a plan to the dev agents, follow the rule in
-`.claude/rules/agent-fleet-submit.md` - it covers the 330-minute plan-size check and the push-to-dev-agent flow.
+`.claude/rules/agent-fleet-submit.md` - it covers the plan-size check and the push-to-dev-agent flow.
+Size plans against **~60 minutes of agent work**: the engine is capped at `timeout-minutes: 60`, past
+which nothing merges. (The rule's own "If it flags" bullet still says 330 - that is the whole-job
+ceiling, not the budget to size against.)
 
 ## Git hygiene (multi-actor)
 
