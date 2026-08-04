@@ -793,6 +793,10 @@ var _executiveDashboard = function () {
          */
         runwayMarkerPlugin: {
             id: 'runwayMarkers',
+            // Keep the pinned axis in step with the plot: same hook, same lifecycle.
+            afterDraw: function (chart) {
+                _executiveDashboard.drawRunwayAxisGutter(chart);
+            },
             afterDatasetsDraw: function (chart, args, opts) {
                 var markers = (opts && opts.markers) || [];
                 if (!markers.length || !chart.scales || !chart.scales.x) return;
@@ -823,6 +827,73 @@ var _executiveDashboard = function () {
                     ctx.restore();
                 });
             }
+        },
+
+        RUNWAY_AXIS_W: 88,
+
+        /**
+         * Paint the y axis into its own pinned canvas beside the scrolling plot.
+         *
+         * Why not a second Chart.js instance: two charts means two y scales that must be kept
+         * identical, and the moment they drift the fixed axis silently mislabels the data. This reads
+         * tick pixel positions straight off the live scale (yScale.getPixelForTick), so the gutter is
+         * correct by construction. Both canvases share the same CSS height and are top-aligned, so
+         * those coordinates map 1:1.
+         *
+         * Called from the marker plugin's afterDraw, so it repaints whenever the chart does.
+         */
+        drawRunwayAxisGutter: function (chart) {
+            var scope = _executiveDashboard;
+            var canvas = document.getElementById('runwayForecastAxis');
+            if (!canvas || !chart || !chart.scales || !chart.scales.y || !chart.chartArea) return;
+            var yScale = chart.scales.y;
+            var w = scope.RUNWAY_AXIS_W;
+            var h = chart.height;
+            if (!h) return;
+
+            var dpr = window.devicePixelRatio || 1;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+
+            var ctx = canvas.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, w, h);
+
+            ctx.font = '12px system-ui, -apple-system, "Segoe UI", sans-serif';
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+
+            (yScale.ticks || []).forEach(function (t, i) {
+                var y = yScale.getPixelForTick(i);
+                if (!isFinite(y)) return;
+                ctx.fillText(scope.runwayKg(t.value), w - 8, y);
+            });
+
+            ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(w - 0.5, chart.chartArea.top);
+            ctx.lineTo(w - 0.5, chart.chartArea.bottom);
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(12, (chart.chartArea.top + chart.chartArea.bottom) / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#666';
+            ctx.font = '600 11px system-ui, -apple-system, "Segoe UI", sans-serif';
+            ctx.fillText('kg NIS not yet cracked', 0, 0);
+            ctx.restore();
+        },
+
+        clearRunwayAxisGutter: function () {
+            var canvas = document.getElementById('runwayForecastAxis');
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
         },
 
         /** History window per range key. Mirrors stockHistoryDaysForRange. */
@@ -894,6 +965,7 @@ var _executiveDashboard = function () {
 
             if (!points.length) {
                 scope.setChartEmptyState('runwayForecastChart', true);
+                scope.clearRunwayAxisGutter();
                 scope.renderRunwayVerdict(null, meta);
                 scope.renderRunwayWarnings(meta);
                 return;
@@ -1026,9 +1098,13 @@ var _executiveDashboard = function () {
                         },
                         y: {
                             beginAtZero: true,
-                            ticks: { callback: function (v) { return scope.runwayKg(v); } },
-                            grid: { color: 'rgba(0,0,0,0.06)' },
-                            title: { display: true, text: 'kg NIS not yet cracked' }
+                            // Gridlines stay; labels, title and border move to the pinned gutter canvas
+                            // so they cannot scroll out of view. The scale itself must stay enabled or
+                            // there are no ticks for the gutter to read.
+                            ticks: { display: false },
+                            title: { display: false },
+                            border: { display: false },
+                            grid: { color: 'rgba(0,0,0,0.06)' }
                         }
                     }
                 },

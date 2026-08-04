@@ -683,11 +683,20 @@
                         <div class="mb-2" id="runwayForecastVerdict"></div>
                         <div class="small text-muted mb-1" id="runwayForecastAssumptions"></div>
                         <div class="small text-muted mb-2" id="runwayForecastRange"></div>
-                        <!-- Scrolls sideways: the canvas is widened to a fixed px-per-day so a long
-                             series stays legible instead of being squeezed into the card. -->
-                        <div style="overflow-x: auto; overflow-y: hidden;" id="runwayForecastScroll" tabindex="0" aria-label="Scroll sideways to see the rest of the forecast">
-                            <div class="position-relative" style="height: 420px;" id="runwayForecastChartWrap">
-                                <canvas id="runwayForecastChart" aria-label="Raw material runway forecast: nut-in-shell kg not yet put into production, actual to today then projected until the last scheduled delivery is consumed"></canvas>
+                        <!-- The plot scrolls sideways; the y axis does not. The axis lives in its own
+                             canvas OUTSIDE the scroll container, so it stays put without ever
+                             covering the data (a pinned overlay inside the scroller would). Its tick
+                             positions are painted from the real chart scale, so they cannot drift out
+                             of alignment. align-items-start keeps both canvases top-aligned when the
+                             horizontal scrollbar appears. -->
+                        <div class="d-flex align-items-start">
+                            <!-- width matches RUNWAY_AXIS_W in executive_dashboard.js; set inline so the
+                                 layout is correct on first paint, before JS sizes the canvas. -->
+                            <canvas id="runwayForecastAxis" style="flex: 0 0 auto; width: 88px; height: 420px;" aria-hidden="true"></canvas>
+                            <div style="overflow-x: auto; overflow-y: hidden; flex: 1 1 auto; min-width: 0;" id="runwayForecastScroll" tabindex="0" aria-label="Scroll sideways to see the rest of the forecast">
+                                <div class="position-relative" style="height: 420px;" id="runwayForecastChartWrap">
+                                    <canvas id="runwayForecastChart" aria-label="Raw material runway forecast: nut-in-shell kg not yet put into production, actual to today then projected until the last scheduled delivery is consumed"></canvas>
+                                </div>
                             </div>
                         </div>
                         <p class="text-muted small mb-2 mt-2 d-none" id="runwayForecastEmpty">No nut-in-shell intake or cracking has been recorded, so a runway cannot be shown.</p>
