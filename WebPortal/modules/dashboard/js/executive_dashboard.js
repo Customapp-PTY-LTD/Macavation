@@ -34,7 +34,7 @@ var _executiveDashboard = function () {
         execStockHistory: 'Stock on hand history',
         execRunwayForecast: 'Raw material runway forecast (NIS)',
         execStockAlerts: 'Stock alerts',
-        execRunway: 'Raw material runway',
+        execRunway: 'Finished stock cover (vs open orders)',
         execOilTrends: 'Oil production trends',
         execStockAccuracy: 'Stock accuracy',
         execProducedVsTarget: 'Produced vs target',
