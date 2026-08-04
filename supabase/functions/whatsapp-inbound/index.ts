@@ -34,7 +34,12 @@
  *   whatsapp_command_log via whatsapp_log_command (service_role only).
  * - Any of the three new RPCs (whatsapp_resolve_staff_user, whatsapp_confirm_enrolment,
  *   whatsapp_log_command) being missing means "migration not applied yet": ingest continues
- *   normally, no reply is sent, and the function still returns 2xx.
+ *   normally, no reply is sent, and the function still returns 2xx. The same degradation applies
+ *   to the pending-command RPCs added alongside YES/NO below.
+ * - Commands that WRITE stage themselves (whatsapp_stage_pending_command) instead of applying
+ *   immediately, and are only applied once the sender replies YES (or Y / CONFIRM); NO (or N /
+ *   CANCEL) discards the staged command instead. See STAGED_COMMAND_HANDLERS below — empty until
+ *   a write command exists to register there.
  *
  * Control Room's contract:
  * - POSTs Meta's raw webhook envelope byte-for-byte: the whatsapp_business_account
@@ -274,11 +279,14 @@ async function logCommand(
 }
 
 // ============================================================================
-// Command dispatch — HELP only in this plan. The next plan adds a command by adding one
-// entry to COMMAND_HANDLERS, not by restructuring this.
+// Command dispatch — HELP plus the generic YES/NO confirm-cancel flow in this plan. No write
+// command exists yet: the next plan adds one by adding an entry to STAGED_COMMAND_HANDLERS below
+// (keyed on the pending command's `command` value) and, separately, a verb to COMMAND_HANDLERS
+// (keyed on what the user types) — not by restructuring this.
 // ============================================================================
 
 interface CommandContext {
+  sb: SupabaseClient;
   phone: string;
   wamid: string;
   rawBody: string;
@@ -294,7 +302,10 @@ interface CommandResult {
   detail?: string | null;
 }
 
-const HELP_COMMAND_LIST = 'HELP — show this message';
+const HELP_COMMAND_LIST =
+  'HELP — show this message\n' +
+  'YES (or Y, CONFIRM) — confirm a pending request\n' +
+  'NO (or N, CANCEL) — cancel a pending request';
 
 function helpReplyText(displayName: string): string {
   // Plain text, WhatsApp-friendly: short lines, no markdown table, no link — no screen in this
@@ -303,6 +314,8 @@ function helpReplyText(displayName: string): string {
   return (
     `Hi ${displayName}. Here is what I can do right now:\n\n` +
     `${HELP_COMMAND_LIST}\n\n` +
+    `Some requests write data — those ask you to confirm what was understood before anything is ` +
+    `saved. Reply YES to go ahead or NO to cancel.\n\n` +
     `More commands are coming. Text HELP any time to see the current list.`
   );
 }
@@ -311,8 +324,132 @@ async function commandHelp(ctx: CommandContext): Promise<CommandResult> {
   return { outcome: 'ok', reply: helpReplyText(ctx.displayName), command: 'HELP' };
 }
 
+// ============================================================================
+// Staged-command handlers — dispatched by YES on whatever was staged via
+// whatsapp_stage_pending_command, keyed on its `command` value. EMPTY in this plan: there is no
+// write command yet to stage one in the first place. The next plan registers a real handler here
+// (and, separately, the verb that stages it, in COMMAND_HANDLERS below) — this map is the only
+// thing it needs to touch to do so.
+// ============================================================================
+
+interface StagedCommand {
+  command: string;
+  payload: Any;
+  summary: string;
+}
+
+const STAGED_COMMAND_HANDLERS: Record<
+  string,
+  (ctx: CommandContext, staged: StagedCommand) => Promise<CommandResult>
+> = {};
+
+/**
+ * YES / Y / CONFIRM — takes (fetches-and-deletes) whatever is staged for this phone+user and
+ * applies it via STAGED_COMMAND_HANDLERS. With nothing pending, or an RPC failure, replies
+ * accordingly rather than throwing; a staged command with no registered handler (the only
+ * reachable case until the next plan) replies that the request has expired.
+ */
+async function commandYes(ctx: CommandContext): Promise<CommandResult> {
+  let data: Any;
+  let error: Any;
+  try {
+    const res = await ctx.sb.rpc('whatsapp_take_pending_command', {
+      p_phone: ctx.phone,
+      p_user_id: ctx.userId,
+    });
+    data = res.data;
+    error = res.error;
+  } catch (e) {
+    console.error('[whatsapp-inbound] whatsapp_take_pending_command threw:', e);
+    return { outcome: 'error', reply: null, command: 'YES', detail: String(e) };
+  }
+
+  if (error) {
+    if (isMissingRpc(error)) {
+      console.error(
+        '[whatsapp-inbound] whatsapp_take_pending_command is missing — migration 20260815130000 not applied.'
+      );
+      return { outcome: 'error', reply: null, command: 'YES', detail: 'rpc missing' };
+    }
+    console.error('[whatsapp-inbound] whatsapp_take_pending_command failed:', error.message);
+    return { outcome: 'error', reply: null, command: 'YES', detail: error.message };
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+
+  if (!row || row.success !== 1) {
+    return {
+      outcome: 'ok',
+      reply: `Hi ${ctx.displayName}, there is nothing waiting for confirmation.`,
+      command: 'YES',
+    };
+  }
+
+  const stagedCommand = String(row.command || '').toUpperCase();
+  const handler = STAGED_COMMAND_HANDLERS[stagedCommand];
+  if (!handler) {
+    return {
+      outcome: 'unknown_command',
+      reply:
+        `Sorry ${ctx.displayName}, that request has expired or is no longer supported — please ` +
+        `send it again.`,
+      command: 'YES',
+      detail: stagedCommand || null,
+    };
+  }
+
+  return handler(ctx, { command: stagedCommand, payload: row.payload, summary: String(row.summary || '') });
+}
+
+/**
+ * NO / N / CANCEL — clears whatever is staged for this phone+user, if anything is still live.
+ */
+async function commandNo(ctx: CommandContext): Promise<CommandResult> {
+  let data: Any;
+  let error: Any;
+  try {
+    const res = await ctx.sb.rpc('whatsapp_clear_pending_command', {
+      p_phone: ctx.phone,
+      p_user_id: ctx.userId,
+    });
+    data = res.data;
+    error = res.error;
+  } catch (e) {
+    console.error('[whatsapp-inbound] whatsapp_clear_pending_command threw:', e);
+    return { outcome: 'error', reply: null, command: 'NO', detail: String(e) };
+  }
+
+  if (error) {
+    if (isMissingRpc(error)) {
+      console.error(
+        '[whatsapp-inbound] whatsapp_clear_pending_command is missing — migration 20260815130000 not applied.'
+      );
+      return { outcome: 'error', reply: null, command: 'NO', detail: 'rpc missing' };
+    }
+    console.error('[whatsapp-inbound] whatsapp_clear_pending_command failed:', error.message);
+    return { outcome: 'error', reply: null, command: 'NO', detail: error.message };
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const cleared = Number(row?.cleared || 0) > 0;
+
+  return {
+    outcome: 'ok',
+    reply: cleared
+      ? `OK ${ctx.displayName}, cancelled — nothing was saved.`
+      : `Hi ${ctx.displayName}, there was nothing waiting for confirmation.`,
+    command: 'NO',
+  };
+}
+
 const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandResult>> = {
   HELP: commandHelp,
+  YES: commandYes,
+  Y: commandYes,
+  CONFIRM: commandYes,
+  NO: commandNo,
+  N: commandNo,
+  CANCEL: commandNo,
 };
 
 /** Parses the verb and dispatches. HELP (also empty body and "?") always short-circuits. */
@@ -479,6 +616,7 @@ async function processCommandForMessage(
     }
 
     const ctx: CommandContext = {
+      sb,
       phone: from,
       wamid,
       rawBody,
