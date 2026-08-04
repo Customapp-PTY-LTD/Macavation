@@ -2125,9 +2125,7 @@ var _oilProductionGrid = function () {
 
     function escapeHtml(text) {
         if (text == null || text === '') return '';
-        var div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return _common.escapeHtml(text);
     }
 }();
 

@@ -9,9 +9,7 @@ var _documentManagementGrid = (function () {
 
     function escapeHtml(str) {
         if (str == null || typeof str !== 'string') return '';
-        var div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
+        return _common.escapeHtml(str);
     }
 
     function getCurrentUserId() {

@@ -52,11 +52,7 @@ var _kernelProductionForecastGrid = function () {
 
     function escapeHtml(s) {
         if (s == null) return '';
-        return String(s)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
+        return _common.escapeHtml(s);
     }
 
     function statusBadgeClass(status) {

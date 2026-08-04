@@ -40,9 +40,7 @@ var _modal_admin_add_user = (function () {
 
         escapeHtml: (text) => {
             if (!text) return '';
-            var div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            return _common.escapeHtml(text);
         },
 
         submitUserForm: async () => {

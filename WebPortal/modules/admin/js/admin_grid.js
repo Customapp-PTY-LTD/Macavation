@@ -9,9 +9,7 @@ var _adminGrid = function () {
 
     function escapeHtml(text) {
         if (text == null || text === '') return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return _common.escapeHtml(text);
     }
 
     /** True when the actor may delete/deactivate a role from Roles & modules. */
