@@ -80,6 +80,12 @@ var _crmWhatsappContactsTab = function () {
         init: async () => {
             console.log('[WhatsApp Contacts] Initializing contacts tab...');
 
+            // Re-entry: the markup is fresh, so no thread is on screen. Drop any
+            // conversation left selected from the previous visit, otherwise the thread
+            // poll would keep refreshing a conversation the user can no longer see.
+            currentConversationId = null;
+            _crmWhatsappContactsTab.stopPolling();
+
             // Get current user
             try {
                 const token = typeof Session !== 'undefined' && Session.get ? Session.get('token') : null;
