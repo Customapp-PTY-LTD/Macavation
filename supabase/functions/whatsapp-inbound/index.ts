@@ -15,9 +15,26 @@
  * Until that is set, Control Room logs inbound events on its side and forwards nothing.
  *
  * Secrets: CONTROL_ROOM_FORWARD_SECRET (same secret that signs outbound sends — it
- * signs both directions)
+ * signs both directions), CONTROL_ROOM_CHANNEL_SLUG (required only to SEND a reply —
+ * see "Command dispatch" below; if unset, replies are skipped but messages still ingest).
  * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (auto-provided by the runtime)
  * Docs: https://control-room.customapp.co.za/docs/product-integration.md
+ *
+ * Command dispatch (added after the original store-only version of this function):
+ * - Every inbound TEXT message from a number resolved by whatsapp_resolve_staff_user to an
+ *   enrolled, active staff user is parsed as a command, dispatched, and replied to.
+ * - Unenrolled numbers are left exactly as before — untouched — with ONE exception: a body
+ *   that is exactly six digits is tried against whatsapp_confirm_enrolment, since that is the
+ *   only way a pending enrolment code ever gets consumed. Success or failure either way, no
+ *   other behaviour changes for an unenrolled number, and a failed attempt gets NO reply
+ *   (silence — see whatsapp-inbound's handleCommand comments for why).
+ * - value.statuses[] (delivery receipts for messages WE sent) NEVER dispatch a command — our
+ *   own replies generate statuses, and dispatching from a status would be an infinite loop.
+ * - Every dispatch attempt — success, refusal, or error — writes one row to
+ *   whatsapp_command_log via whatsapp_log_command (service_role only).
+ * - Any of the three new RPCs (whatsapp_resolve_staff_user, whatsapp_confirm_enrolment,
+ *   whatsapp_log_command) being missing means "migration not applied yet": ingest continues
+ *   normally, no reply is sent, and the function still returns 2xx.
  *
  * Control Room's contract:
  * - POSTs Meta's raw webhook envelope byte-for-byte: the whatsapp_business_account
@@ -147,6 +164,359 @@ function isMissingRpc(err: Any): boolean {
   const code = String(err?.code ?? '');
   const msg = String(err?.message ?? '');
   return code === 'PGRST202' || /could not find the function|does not exist/i.test(msg);
+}
+
+// ============================================================================
+// Outbound reply — a small, deliberately duplicated send path.
+//
+// supabase/functions/send-whatsapp-message/index.ts cannot be reused here: it requires an
+// X-Portal-Session header validated via assistant_validate_session and fails closed with no
+// bypass, because without that check anyone holding the public anon key (which ships in the
+// browser) could send WhatsApp messages through that channel. This webhook has no portal
+// session — it is a server-to-server call authenticated by the Control Room HMAC — so it posts
+// to Control Room's meta-proxy directly, signed the same way, TEXT ONLY. Do not add an
+// interactive/button send here (unconfirmed external contract) and do not add a service-role
+// bypass to send-whatsapp-message instead — this ~25-line duplication is the deliberate
+// trade-off. The two payload shapes must stay in step by hand.
+// ============================================================================
+
+const CONTROL_ROOM_BASE_URL = 'https://ejnncypummmvyojhovme.supabase.co/functions/v1';
+
+/**
+ * Sends a plain-text WhatsApp reply via Control Room's meta-proxy. Never throws — a failed
+ * reply must never turn an already-ingested message into a function error. Returns whether the
+ * send succeeded, purely for logging; callers must not retry.
+ */
+async function sendWhatsappText(toPhone: string, text: string): Promise<boolean> {
+  const forwardSecret = Deno.env.get('CONTROL_ROOM_FORWARD_SECRET');
+  const channelSlug = Deno.env.get('CONTROL_ROOM_CHANNEL_SLUG');
+
+  if (!forwardSecret || !channelSlug) {
+    console.error(
+      '[whatsapp-inbound] CONTROL_ROOM_CHANNEL_SLUG is not set — skipping reply (message is already ingested)'
+    );
+    return false;
+  }
+
+  const requestBody = JSON.stringify({
+    action: 'send_message',
+    channelSlug,
+    to: toPhone,
+    type: 'text',
+    content: { text },
+  });
+
+  try {
+    const res = await fetch(`${CONTROL_ROOM_BASE_URL}/meta-proxy`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Control-Room-Signature': `sha256=${await hmacHex(forwardSecret, requestBody)}`,
+      },
+      body: requestBody,
+    });
+
+    const result = await res.json().catch(() => ({} as Any));
+    if (!res.ok || !(result as Any)?.ok) {
+      console.error(
+        `[whatsapp-inbound] reply send rejected: ${(result as Any)?.error || res.statusText}`
+      );
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('[whatsapp-inbound] reply send threw:', e);
+    return false;
+  }
+}
+
+// ============================================================================
+// Audit log — one row per dispatch attempt, refusals included.
+// ============================================================================
+
+type CommandOutcome = 'ok' | 'unknown_command' | 'not_enrolled' | 'denied' | 'error';
+
+/** Swallows any error after logging — audit logging must never break message handling. */
+async function logCommand(
+  sb: SupabaseClient,
+  fields: {
+    phone: string;
+    userId: string | null;
+    wamid: string;
+    rawBody: string;
+    command: string | null;
+    outcome: CommandOutcome;
+    detail?: string | null;
+  }
+): Promise<void> {
+  try {
+    const { error } = await sb.rpc('whatsapp_log_command', {
+      p_phone: fields.phone,
+      p_user_id: fields.userId,
+      p_wamid: fields.wamid,
+      p_raw_body: fields.rawBody,
+      p_command: fields.command,
+      p_outcome: fields.outcome,
+      p_detail: fields.detail ?? null,
+    });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] whatsapp_log_command is missing — migration 20260815120000 not applied.'
+        );
+        return;
+      }
+      console.error('[whatsapp-inbound] audit log insert failed:', error.message);
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] audit log insert threw:', e);
+  }
+}
+
+// ============================================================================
+// Command dispatch — HELP only in this plan. The next plan adds a command by adding one
+// entry to COMMAND_HANDLERS, not by restructuring this.
+// ============================================================================
+
+interface CommandContext {
+  phone: string;
+  wamid: string;
+  rawBody: string;
+  userId: string;
+  roleId: string | null;
+  displayName: string;
+}
+
+interface CommandResult {
+  outcome: 'ok' | 'unknown_command' | 'denied' | 'error';
+  reply: string | null;
+  command: string | null;
+  detail?: string | null;
+}
+
+const HELP_COMMAND_LIST = 'HELP — show this message';
+
+function helpReplyText(displayName: string): string {
+  // Plain text, WhatsApp-friendly: short lines, no markdown table, no link — no screen in this
+  // portal is deep-linkable (the router never reads the URL), so a link could only ever land
+  // on the app root and would be worse than useless.
+  return (
+    `Hi ${displayName}. Here is what I can do right now:\n\n` +
+    `${HELP_COMMAND_LIST}\n\n` +
+    `More commands are coming. Text HELP any time to see the current list.`
+  );
+}
+
+async function commandHelp(ctx: CommandContext): Promise<CommandResult> {
+  return { outcome: 'ok', reply: helpReplyText(ctx.displayName), command: 'HELP' };
+}
+
+const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandResult>> = {
+  HELP: commandHelp,
+};
+
+/** Parses the verb and dispatches. HELP (also empty body and "?") always short-circuits. */
+async function handleCommand(ctx: CommandContext): Promise<CommandResult> {
+  const collapsed = ctx.rawBody.trim().replace(/\s+/g, ' ');
+  const verb = (collapsed.split(' ')[0] || '').toUpperCase();
+
+  if (!collapsed || collapsed === '?' || verb === 'HELP') {
+    return commandHelp(ctx);
+  }
+
+  const handler = COMMAND_HANDLERS[verb];
+  if (!handler) {
+    const reply =
+      `Sorry ${ctx.displayName}, I did not recognise "${verb}".\n\n` +
+      `Here is what I can do right now:\n\n${HELP_COMMAND_LIST}\n\n` +
+      `More commands are coming. Text HELP any time to see the current list.`;
+    return { outcome: 'unknown_command', reply, command: verb || null };
+  }
+
+  return handler(ctx);
+}
+
+/**
+ * The one thing an UNENROLLED number may do: consume a pending 6-digit enrolment code.
+ * Silent on any failure — no pending code, expired, wrong code, attempts exhausted — because
+ * replying "wrong code" to an arbitrary number that happens to have texted six digits both
+ * confirms this endpoint is live and leaks that an enrolment is in progress. The person
+ * enrolling is standing with the admin who issued the code and will simply not receive the
+ * success message.
+ */
+async function tryConfirmEnrolment(
+  sb: SupabaseClient,
+  from: string,
+  wamid: string,
+  rawBody: string,
+  code: string
+): Promise<void> {
+  let row: Any;
+  try {
+    const { data, error } = await sb.rpc('whatsapp_confirm_enrolment', { p_phone: from, p_code: code });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] whatsapp_confirm_enrolment is missing — migration 20260815100000 not applied.'
+        );
+        return;
+      }
+      throw error;
+    }
+    row = Array.isArray(data) ? data[0] : data;
+  } catch (e) {
+    console.error(`[whatsapp-inbound] enrolment confirmation threw wamid=${wamid}:`, e);
+    await logCommand(sb, {
+      phone: from,
+      userId: null,
+      wamid,
+      rawBody,
+      command: 'ENROL',
+      outcome: 'error',
+      detail: String(e),
+    });
+    return;
+  }
+
+  if (row && row.success === 1) {
+    const displayName = String(row.display_name || 'there');
+    await logCommand(sb, {
+      phone: from,
+      userId: row.user_id ?? null,
+      wamid,
+      rawBody,
+      command: 'ENROL',
+      outcome: 'ok',
+      detail: null,
+    });
+    const reply =
+      `Thanks ${displayName}, this number is now enrolled.\n\n` +
+      `Text HELP any time to see what I can do.`;
+    const sent = await sendWhatsappText(from, reply);
+    if (!sent) console.error(`[whatsapp-inbound] enrolment confirmation reply failed wamid=${wamid}`);
+    return;
+  }
+
+  // Failure — deliberately silent (see function comment).
+  await logCommand(sb, {
+    phone: from,
+    userId: null,
+    wamid,
+    rawBody,
+    command: 'ENROL',
+    outcome: 'not_enrolled',
+    detail: row?.error ?? 'confirmation failed',
+  });
+}
+
+/**
+ * Runs once per inbound TEXT message, after it is already persisted. Never throws — any
+ * unexpected error is caught, logged (console + audit row), and swallowed so the caller's 2xx
+ * response is unaffected.
+ */
+async function processCommandForMessage(
+  sb: SupabaseClient,
+  msg: Any,
+  from: string,
+  wamid: string
+): Promise<void> {
+  if (String(msg?.type ?? '') !== 'text') {
+    // Non-text messages already store a placeholder body; never try to command off one.
+    return;
+  }
+
+  const rawBody = String(msg?.text?.body ?? '');
+
+  try {
+    let resolved: Any;
+    try {
+      const { data, error } = await sb.rpc('whatsapp_resolve_staff_user', { p_phone: from });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] whatsapp_resolve_staff_user is missing — migration 20260815100000 not applied.'
+          );
+          return;
+        }
+        throw error;
+      }
+      resolved = Array.isArray(data) ? data[0] : data;
+    } catch (e) {
+      console.error(`[whatsapp-inbound] staff resolution failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: null,
+        outcome: 'error',
+        detail: String(e),
+      });
+      return;
+    }
+
+    if (!resolved || resolved.success !== 1) {
+      // Unenrolled. The ONLY exception is a body that is exactly six digits — try it as an
+      // enrolment code. Anything else is untouched: behaviour identical to before this plan.
+      const trimmedBody = rawBody.trim();
+      if (/^\d{6}$/.test(trimmedBody)) {
+        await tryConfirmEnrolment(sb, from, wamid, rawBody, trimmedBody);
+        return;
+      }
+
+      // The number may well be a customer — an unsolicited "you are not enrolled" would be
+      // worse than silence. Log only; send nothing.
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: null,
+        outcome: 'not_enrolled',
+        detail: resolved?.error ?? 'not resolved',
+      });
+      return;
+    }
+
+    const ctx: CommandContext = {
+      phone: from,
+      wamid,
+      rawBody,
+      userId: String(resolved.user_id),
+      roleId: resolved.role_id != null ? String(resolved.role_id) : null,
+      displayName: String(resolved.display_name || 'there'),
+    };
+
+    const result = await handleCommand(ctx);
+
+    await logCommand(sb, {
+      phone: from,
+      userId: ctx.userId,
+      wamid,
+      rawBody,
+      command: result.command,
+      outcome: result.outcome,
+      detail: result.detail ?? null,
+    });
+
+    if (result.reply) {
+      const sent = await sendWhatsappText(from, result.reply);
+      if (!sent) console.error(`[whatsapp-inbound] command reply send failed wamid=${wamid}`);
+    }
+  } catch (e) {
+    // Backstop for anything unexpected above (e.g. a bug in a future command handler).
+    // The function must still return 2xx — never let this escape to the caller.
+    console.error(`[whatsapp-inbound] command handling failed wamid=${wamid}:`, e);
+    await logCommand(sb, {
+      phone: from,
+      userId: null,
+      wamid,
+      rawBody,
+      command: null,
+      outcome: 'error',
+      detail: String(e),
+    });
+  }
 }
 
 Deno.serve(async (req) => {
@@ -283,8 +653,17 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        if (row.deduped) deduped++;
-        else ingested++;
+        if (row.deduped) {
+          deduped++;
+        } else {
+          ingested++;
+
+          // Command dispatch — only for a message actually ingested this call (a deduped
+          // redelivery of the same wamid must not re-run a command), only here inside the
+          // messages[] loop, and NEVER from the statuses[] loop below (our own replies
+          // generate statuses, which would be an infinite loop).
+          await processCommandForMessage(sb, msg, from, wamid);
+        }
       }
 
       if (schemaMissing) break;
