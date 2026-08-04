@@ -46,3 +46,6 @@ supabase/.temp/
 # Agent Fleet: Cursor plan drafts are local scratch - keep them off dev so a plan
 # pushed to dev-agent is always a genuine new commit that runs. .cursor/rules/ stays tracked.
 .cursor/plans/
+# Claude Code: per-developer settings. Never tracked - it accretes one-off Bash
+# allowlist entries that have previously embedded a live Supabase PAT.
+.claude/settings.local.json
