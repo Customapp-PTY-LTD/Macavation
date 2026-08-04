@@ -49,3 +49,6 @@ supabase/.temp/
 # Claude Code: per-developer settings. Never tracked - it accretes one-off Bash
 # allowlist entries that have previously embedded a live Supabase PAT.
 .claude/settings.local.json
+
+# Agent Fleet: the local pre-flight hook's cache file - never committed.
+.claude/hooks/.fleet-preflight-cache.json
