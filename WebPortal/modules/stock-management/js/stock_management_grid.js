@@ -62,8 +62,7 @@ var _stockManagementGrid = function () {
 
     function escapeHtml(s) {
         if (s == null) return '';
-        var str = String(s);
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        return _common.escapeHtml(s);
     }
 
     function parseNum(val) {

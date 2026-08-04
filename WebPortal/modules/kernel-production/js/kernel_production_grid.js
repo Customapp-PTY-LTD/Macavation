@@ -44,9 +44,7 @@ var _kernelProductionGrid = function () {
 
     const escapeHtml = (text) => {
         if (text == null || typeof text !== 'string') return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return _common.escapeHtml(text);
     };
 
     const isJobcardApproved = (batch) => {

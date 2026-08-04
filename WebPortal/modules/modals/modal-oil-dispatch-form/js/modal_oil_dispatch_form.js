@@ -38,11 +38,7 @@ var _modal_oil_dispatch_form = (function () {
 
     function escapeHtml(s) {
         if (s == null) return '';
-        return String(s)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
+        return _common.escapeHtml(s);
     }
 
     return {
