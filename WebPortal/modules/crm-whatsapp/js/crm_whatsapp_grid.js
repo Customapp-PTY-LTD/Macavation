@@ -10,7 +10,14 @@ var _crmWhatsappGrid = function () {
 
         init: async () => {
             const scope = _crmWhatsappGrid;
-            if (scope.initialized) return;
+
+            // The router re-injects this module's markup on every visit but does not
+            // re-execute its script, so `initialized` on its own would block every visit
+            // after the first and leave the freshly-injected placeholder on screen.
+            // Stamp the container instead: an unstamped container means new markup that
+            // still needs wiring up, which is exactly the re-entry case.
+            const container = document.getElementById('contactsConversationList');
+            if (scope.initialized && container && container.dataset.waInit === '1') return;
 
             console.log('[CRM WhatsApp] Initializing CRM WhatsApp Grid module...');
 
@@ -37,6 +44,9 @@ var _crmWhatsappGrid = function () {
 
             // Check for handoff context (shortcut from Contacts page)
             scope.applyHandoffContext();
+
+            const initialisedContainer = document.getElementById('contactsConversationList');
+            if (initialisedContainer) initialisedContainer.dataset.waInit = '1';
 
             scope.initialized = true;
             console.log('[CRM WhatsApp] CRM WhatsApp Grid module initialized');
