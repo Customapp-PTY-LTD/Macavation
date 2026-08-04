@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Sync WebPortal/js/appRouteConfig.json (and js/appRouteConfig.json) from supabase/projects.json.
+ * Sync WebPortal/js/appRouteConfig.json from supabase/projects.json.
  * Also regenerates WebPortal/js/macavation-supabase.js (sign-in bootstrap).
  *
  * There are exactly two database targets:
@@ -169,5 +169,4 @@ function writeMacavationSupabaseJs() {
 }
 
 patchRouteConfig('WebPortal/js/appRouteConfig.json');
-patchRouteConfig('js/appRouteConfig.json');
 writeMacavationSupabaseJs();
