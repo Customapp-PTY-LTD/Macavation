@@ -10,10 +10,8 @@ deployed site root IS `WebPortal/index.html`. `dev` **auto-deploys on merge** to
 `https://dev-macavation.customapp.co.za` (canonical; `dev-macavation.customapp.org` serves the same
 branch — same app, both live).
 
-**There is a second, parallel top-level tree** (`modules/`, `css/`, `js/`) holding 3 modules against
-`WebPortal/modules/`'s 31. It is **not deployed** by the app above and **not scanned** by
-`ui:verify`. Check which tree you are in before editing — a fix applied there never reaches the dev
-site.
+The duplicate, non-deployed top-level tree (`modules/`, `css/`, `js/`) that once sat beside
+`WebPortal/` was removed 2026-07-28. `WebPortal/` is now the only application tree.
 
 **Dashboard markup.** The live markup is `WebPortal/modules/dashboard/html/dashboard_unified.html`
 (~691 lines), which serves **three** dashboards partitioned by `data-access` wrappers (`default`,
