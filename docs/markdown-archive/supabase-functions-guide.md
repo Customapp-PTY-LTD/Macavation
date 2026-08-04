@@ -724,13 +724,23 @@ The MCP tool runs against the live project (`sofanhfpxifgdtooefzq`).
 
 ### Apply via Management API (if no MCP)
 
+Read the token from your environment — **never paste a `sbp_…` personal access token into a file in
+this repo.** Export it in your shell (or keep it in a gitignored `.env` you source), so it never
+reaches a commit:
+
 ```bash
+export SUPABASE_ACCESS_TOKEN=sbp_...   # your own PAT; do not commit it
+
 SQL=$(cat migrations/20260226000016_your_migration.sql)
 curl -s -X POST "https://api.supabase.com/v1/projects/sofanhfpxifgdtooefzq/database/query" \
-  -H "Authorization: Bearer sbp_79ffc6772a53eca0d9021d77da313bf85b5c507e" \
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}"
 ```
+
+> A real PAT was committed here previously and has been revoked. A token in a repo is compromised the
+> moment it lands, even if a later commit removes it — git keeps the old blob. Prefer
+> `npm run db:apply -- migrations/<file>.sql`, which reads credentials from your environment.
 
 A response of `[]` means success (DDL statements return empty result sets).
 
