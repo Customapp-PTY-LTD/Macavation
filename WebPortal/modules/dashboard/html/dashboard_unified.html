@@ -617,9 +617,10 @@
                     </div>
                     <div class="card-body">
                         <div class="small text-muted mb-2" id="productionTrendsRange"></div>
-                        <div class="position-relative" style="height: 420px;">
+                        <div class="position-relative" style="height: 420px;" id="productionTrendsChartWrap">
                             <canvas id="productionTrendsChart" aria-label="Production trends chart"></canvas>
                         </div>
+                        <p class="text-muted small mb-0 mt-2 d-none" id="productionTrendsEmpty">No data recorded for this metric in the selected period.</p>
                         <div class="d-flex flex-wrap gap-2 mt-3" id="productionTrendsRangeButtons" aria-label="Time range controls">
                             <button type="button" class="btn btn-sm btn-outline-secondary production-trends-range-btn" data-range="1M">1M</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary production-trends-range-btn" data-range="3M">3M</button>
