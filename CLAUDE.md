@@ -15,11 +15,13 @@ branch — same app, both live).
 `ui:verify`. Check which tree you are in before editing — a fix applied there never reaches the dev
 site.
 
-**Dashboard markup — the decoy.** `WebPortal/modules/dashboard/html/executive_dashboard.html` is a
-37-line dead stub still reading "Chart will be displayed here". **Nothing renders it.** The live
-markup is `dashboard_unified.html` (~691 lines), which serves **three** dashboards partitioned by
-`data-access` wrappers (`default`, `pallandium-integrator`, `executive`) that `dashboard.js` shows
-and hides by role. Markup placed in the wrong block appears on the wrong dashboard.
+**Dashboard markup.** The live markup is `WebPortal/modules/dashboard/html/dashboard_unified.html`
+(~691 lines), which serves **three** dashboards partitioned by `data-access` wrappers (`default`,
+`pallandium-integrator`, `executive`) that `dashboard.js` shows and hides by role. Markup placed in
+the wrong block appears on the wrong dashboard. Two dead stubs that used to sit beside it
+(`executive_dashboard.html`, a 37-line stub still reading "Chart will be displayed here") plus a
+stale 387-line `dashboard.html` generation of the same file — neither named by any route, nothing
+rendered either — were removed 2026-07-28.
 
 **`data-dashboard-widget` hides new elements permanently.** Anything carrying it is hidden unless
 its id is in the user's visible-widget list. New ids are in nobody's list, role defaults are
