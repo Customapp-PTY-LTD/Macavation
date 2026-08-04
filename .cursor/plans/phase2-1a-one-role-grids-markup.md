@@ -106,3 +106,6 @@ missing handler may be intentional (populated dynamically) and guessing would wi
 6. The run summary lists any id in the canonical markup with no handler in its route's JS.
 7. `npm run test:fleet` passes, including `ui:verify`.
 8. No `.sql` file added or changed; nothing under `supabase/`; no new npm dependency.
+
+<!-- Resubmitted 2026-08-04: the original push of this plan was never picked up by the fleet.
+     Content unchanged. The dead Add/Export buttons it removes are still live on the Roles screen. -->
