@@ -139,11 +139,26 @@ depends_on: add-policy-status-column.md
   `phase-3-screen.md` -> `phase-2-api.md`), all pushed together. A plan with no `depends_on:` - the
   normal case - is unaffected by any of this.
 
+**A second, distinct reason to chain: two sibling plans that touch the same shared file, even
+when order doesn't otherwise matter.** The fleet may run several plans for the same repo at once
+(up to `max_in_flight` concurrently, default 3) - each starts from its own snapshot of the repo and
+only merges into `dev` at the very end. If two of those plans both edit the same shared/coordination
+file - a seed/index file every phase appends rows to, a shared router (`js/app.js`, an
+edge-function's route table), a shared migration README index - whichever merges first wins, and
+the second gets a **real, human-must-resolve merge conflict** instead of a clean merge (this is not
+a bug: the fleet never auto-resolves a conflict). This happened for real: eDamagePortal's
+`07c-app-users-frontend-ui.md` conflicted on `js/app.js`, and its `08b-transactions-db-functions.md`
+sibling conflicted on a shared seed SQL file, a migration README, and a shared edge-function router
+- three separate plans in the same feature batch, none order-dependent on the others, all racing to
+land in the same shared files. If you know two plans in this batch will touch the same file, put
+`depends_on:` on the later one exactly as you would for an order dependency - even though nothing
+about the *data* requires it to wait.
+
 ## Step 0.7 - the plan-safety checklist (do this BEFORE you push)
 
 A plan can be detailed and well-researched and still get blocked, not because the work is wrong,
 but because it asks the agent to do something the review gates can't wave through unseen. Re-read
-the plan against these four before pushing:
+the plan against these seven before pushing:
 
 1. **External contracts are backed by a file:line citation, not memory.** If the plan states how
    an external API/service/gateway behaves, name the file where that call is actually made in this
@@ -164,9 +179,48 @@ the plan against these four before pushing:
    mark it unresolved/unverified instead. Also re-check any table or "proof" the plan itself
    supplies: numbers that don't balance, or a term defined two different ways, mean the plan's
    own premise needs fixing before an agent is asked to act on it.
+5. **Verify claims about THIS repo's own existing behavior against code, not memory** - the same
+   discipline as item 1, extended inward. Before stating how an existing flow, error path, or
+   shared function behaves, name the file and describe what the code does - don't assume a
+   generic error UI fires for a case you haven't traced. (This is what blocked four sibling plans
+   on one real repo: each claimed a failed submit already showed a normal error, and the actual
+   code swallowed it and showed a false success screen instead.) **This extends to any test
+   assertion or "verify before finishing" outcome the plan mandates** - a mandated assertion IS a
+   claim about the code's current behavior and needs the same file:line grounding. If you haven't
+   traced the exact path the assertion depends on, say so and mark it unconfirmed rather than
+   writing the expected outcome as given.
+6. **Before building something new, check whether this repo already has a near-duplicate to model
+   after or reuse.** A new module, screen, or flow that closely resembles something already in the
+   codebase should be built FROM that existing implementation, not from scratch - grep for the
+   obvious sibling first. (This is what blocked a HybridRisk plan's own auto-amended retry: the
+   amendment still didn't know about a near-identical claim form already in the repo it should
+   have been modeled on.) This also covers the narrower case of a UI input type (radio/checkbox/
+   multi-select) not already used elsewhere in this codebase: zero grepped results means the plan
+   must state explicitly how it'll be captured/serialized - don't assume a text/textarea-only
+   template already handles it.
+7. **Check the blast radius on EXISTING tests, not just the new one.** If "verify before
+   finishing" means the existing suite must pass, state whether the change could break an
+   assertion that already exists - name and update that test explicitly as an in-scope
+   deliverable, rather than leaving the agent to guess between three bad options.
 
 **Never block on this** - same as the size check, it's advisory. Full checklist and rationale live
 in the fleet toolkit's `templates/plan-safety-checklist.md`.
+
+## Step 0.8 - run the real gate locally before pushing (optional, but the cheapest check there is)
+
+If the fleet toolkit's own checkout is available on this machine, `scripts/preflight-review.sh`
+runs the EXACT same review the fleet's plan-review gate runs - same model, same prompt, same
+checks - against this repo's own checkout, in about 1-2 minutes, with zero fleet dispatch and
+zero blocked-run bookkeeping. It costs one real model call (needs an `ANTHROPIC_API_KEY` in this
+environment) but nothing else - no run is recorded, nothing is dispatched.
+
+```bash
+/path/to/agent-fleet/scripts/preflight-review.sh <plan-file> <this-repo-checkout-path>
+```
+
+If it reports BLOCK, fix what it found before pushing - that is exactly what the live gate would
+say, just without the round trip. If the fleet toolkit is not checked out locally, skip this step;
+it is a convenience, never a requirement, and the live gate still runs regardless.
 
 ## Submit (the Claude Code path differs from Cursor)
 
