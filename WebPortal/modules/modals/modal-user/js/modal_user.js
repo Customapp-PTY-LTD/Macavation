@@ -6,9 +6,7 @@ var _modal_user = (function () {
 
     function escapeHtml(text) {
         if (!text) return '';
-        var div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return _common.escapeHtml(text);
     }
 
     var api = {

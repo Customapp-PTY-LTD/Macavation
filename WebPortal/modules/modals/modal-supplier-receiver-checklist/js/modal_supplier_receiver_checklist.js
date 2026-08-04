@@ -65,9 +65,7 @@ var _modal_supplier_receiver_checklist = (function () {
 
     function escapeHtml(t) {
         if (t == null) return '';
-        var div = document.createElement('div');
-        div.textContent = String(t);
-        return div.innerHTML;
+        return _common.escapeHtml(t);
     }
 
     function initFlatpickrInModal() {

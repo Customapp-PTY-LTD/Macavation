@@ -27,9 +27,7 @@ var _crmWhatsappContactsTab = function () {
 
     const escapeHtml = (text) => {
         if (text == null || text === '') return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return _common.escapeHtml(text);
     };
 
     /** Display form for a canonical bare-digit number, e.g. '+27 71 463 9643'. */
