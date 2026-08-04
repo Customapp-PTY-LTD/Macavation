@@ -227,6 +227,8 @@
                     <div class="card-body">
                         <h6 class="text-muted">Total Production (kg)</h6>
                         <h3 id="totalProduction">0</h3>
+                        <div class="small text-muted">This month: <strong id="execProductionThisMonth">—</strong> kg</div>
+                        <small class="text-muted" id="execProductionDelta">—</small>
                     </div>
                 </div>
             </div>
@@ -264,7 +266,13 @@
                     <div class="card-body">
                         <h6 class="text-muted">Sound kernel recovery</h6>
                         <h3 id="execSoundRecoveryPct">—</h3>
-                        <small class="text-muted" id="execProductionDelta">—</small>
+                        <div id="execSoundRecoveryTargetBlock" class="d-none">
+                            <div class="small mb-1">Target: <strong id="execSoundRecoveryTarget">—</strong>%</div>
+                            <div class="progress mb-1" style="height: 6px;">
+                                <div class="progress-bar bg-success" id="execSoundRecoveryProgress" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted" id="execSoundRecoveryTargetPct">—</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -273,6 +281,13 @@
                     <div class="card-body">
                         <h6 class="text-muted">Oil yield</h6>
                         <h3 id="execOilYieldPct">—</h3>
+                        <div id="execOilYieldTargetBlock" class="d-none">
+                            <div class="small mb-1">Target: <strong id="execOilYieldTarget">—</strong>%</div>
+                            <div class="progress mb-1" style="height: 6px;">
+                                <div class="progress-bar bg-success" id="execOilYieldProgress" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted" id="execOilYieldTargetPct">—</small>
+                        </div>
                     </div>
                 </div>
             </div>

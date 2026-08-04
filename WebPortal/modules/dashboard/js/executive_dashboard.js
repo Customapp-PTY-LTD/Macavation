@@ -14,6 +14,64 @@ var _executiveDashboard = function () {
         var dow = new Date(+parts[0], +parts[1] - 1, +parts[2]).getDay();
         return dow === 0 || dow === 6;
     }
+
+    // dashboard_targets.metric_key is free-text VARCHAR(100) with no vocabulary table or FK
+    // (migrations/20260602110000_dashboard_targets.sql:8), so these two keys are a client-side
+    // convention only — the same convention the NIS runway feature already uses for
+    // nis_crack_rate_kg_per_day / nis_rate_basis_month (WebPortal/js/data-functions.js:2110-2117).
+    // Nothing seeds them: a human must type the exact string into the Dashboard Targets admin
+    // grid before a comparison appears here. Expected row shape is period_type 'monthly',
+    // division 'all' — but match on metric_key only, because get_dashboard_targets() already
+    // returns the latest effective row per metric_key/division/period_type and filtering further
+    // would silently drop a validly-entered target.
+    var TARGET_METRIC_KEYS = {
+        soundKernelRecovery: 'sound_kernel_recovery_pct',
+        oilYield: 'oil_yield_pct'
+    };
+
+    // Direction is per-metric, not a single global rule. Both metrics in this table are
+    // higher-is-better, so a plain actual/target ratio is correct for both. This dashboard also
+    // has a LOWER-is-better figure — the stock-accuracy "Monthly % of SOH adjusted"
+    // (dashboard_unified.html ~:768) — which must NOT inherit this rule; it deliberately has no
+    // target comparison implemented (out of scope, see plan notes).
+    var TARGET_METRIC_DIRECTION = {
+        sound_kernel_recovery_pct: 'higher-is-better',
+        oil_yield_pct: 'higher-is-better'
+    };
+
+    // Shared lookup so more than one card can resolve a target row by metric_key.
+    function findDashboardTarget(rows, metricKey) {
+        return (rows || []).find(function (t) { return t.metric_key === metricKey; });
+    }
+
+    // Renders (or hides) the target/progress/caption block for one metric-comparison card.
+    // No target row (or a non-positive/missing target) or no actual value => hide the block
+    // entirely rather than showing a 0% target or a zero-width bar presented as a judgement.
+    function renderMetricTargetComparison(rows, metricKey, actual, ids) {
+        var block = document.getElementById(ids.block);
+        if (!block) return;
+        var row = findDashboardTarget(rows, metricKey);
+        var target = row ? Number(row.target_value) : 0;
+        if (!(target > 0) || actual == null) {
+            block.classList.add('d-none');
+            return;
+        }
+        var direction = TARGET_METRIC_DIRECTION[metricKey];
+        // Only higher-is-better is implemented (both in-scope metrics use it); see comment above.
+        var pct = direction === 'higher-is-better'
+            ? Math.min(100, Math.round((actual / target) * 100))
+            : 0;
+        block.classList.remove('d-none');
+        $('#' + ids.targetEl).text(target.toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+        $('#' + ids.progressEl).css('width', pct + '%').attr('aria-valuenow', pct);
+        $('#' + ids.captionEl).text(pct + '% of target');
+    }
+
+    // Failure/empty state for a metric-comparison block: same as "no target row".
+    function clearMetricTargetComparison(ids) {
+        var block = document.getElementById(ids.block);
+        if (block) block.classList.add('d-none');
+    }
     var DASHBOARD_WIDGET_LABELS = {
         totalProduction: 'Total Production (kg)',
         execStatBatchesInProduction: 'Kernel batches in production',
@@ -1543,7 +1601,7 @@ var _executiveDashboard = function () {
             try {
                 var res = await dataFunctions.getDashboardTargets();
                 var rows = (res && res.rows) || [];
-                var prodTarget = rows.find(function (t) { return t.metric_key === 'total_production_kg'; });
+                var prodTarget = findDashboardTarget(rows, 'total_production_kg');
                 var actual = Number(_executiveDashboard.kpis.total_production_kg) || 0;
                 var target = prodTarget ? Number(prodTarget.target_value) : 0;
                 var pct = target > 0 ? Math.min(100, Math.round((actual / target) * 100)) : 0;
@@ -1567,6 +1625,18 @@ var _executiveDashboard = function () {
                 if (v == null || !isFinite(n) || n < 0 || n > 500) return null;
                 return n;
             };
+            var recoveryTargetIds = {
+                block: 'execSoundRecoveryTargetBlock',
+                targetEl: 'execSoundRecoveryTarget',
+                progressEl: 'execSoundRecoveryProgress',
+                captionEl: 'execSoundRecoveryTargetPct'
+            };
+            var oilYieldTargetIds = {
+                block: 'execOilYieldTargetBlock',
+                targetEl: 'execOilYieldTarget',
+                progressEl: 'execOilYieldProgress',
+                captionEl: 'execOilYieldTargetPct'
+            };
             try {
                 var k = await dataFunctions.getPhase2ExtendedKpis();
                 var rec = sanePct(k.sound_kernel_recovery_pct);
@@ -1576,10 +1646,30 @@ var _executiveDashboard = function () {
                 $('#execSohKernel').text(Number(k.kernel_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
                 $('#execSohOil').text(Number(k.oil_finished_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
                 $('#execSohRm').text(Number(k.oil_rm_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+
+                // #totalProduction is an ALL-TIME figure (get_executive_kpis().total_production_kg,
+                // no date filter — migrations/20260329000001_active_batches_intake_and_production_only.sql:27-43,
+                // 20260328000002_executive_kpis_total_production_kg.sql:1). production_delta_pct is
+                // this-calendar-month-vs-last-month, so it belongs beside production_kg_this_month,
+                // never beside the all-time total and never beside Sound kernel recovery (a ratio
+                // this delta does not describe) — migrations/20260708160000_fix_oil_recovery_kpi_calculations.sql:91-114.
+                var prodThisMonthNum = Number(k.production_kg_this_month);
+                var hasThisMonth = k.production_kg_this_month != null && isFinite(prodThisMonthNum);
+                $('#execProductionThisMonth').text(hasThisMonth ? prodThisMonthNum.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
                 var delta = k.production_delta_pct;
-                $('#execProductionDelta').text(delta != null ? (delta >= 0 ? '+' : '') + delta + '% vs last month' : '');
+                $('#execProductionDelta').text(hasThisMonth && delta != null ? (delta >= 0 ? '+' : '') + delta + '% vs last month' : '');
+
+                // Target comparisons for the two single-number cards that have one. The payload
+                // carries no recovery delta (get_phase2_extended_kpis does not return one), so no
+                // month-over-month figure is computed client-side for that card.
+                var targetsRes = await dataFunctions.getDashboardTargets();
+                var targetRows = (targetsRes && targetsRes.rows) || [];
+                renderMetricTargetComparison(targetRows, TARGET_METRIC_KEYS.soundKernelRecovery, rec, recoveryTargetIds);
+                renderMetricTargetComparison(targetRows, TARGET_METRIC_KEYS.oilYield, yieldPct, oilYieldTargetIds);
             } catch (e) {
-                $('#execSoundRecoveryPct, #execOilYieldPct, #execSohKernel, #execSohOil, #execSohRm, #execProductionDelta').text('—');
+                $('#execSoundRecoveryPct, #execOilYieldPct, #execSohKernel, #execSohOil, #execSohRm, #execProductionDelta, #execProductionThisMonth').text('—');
+                clearMetricTargetComparison(recoveryTargetIds);
+                clearMetricTargetComparison(oilYieldTargetIds);
             }
         },
 
