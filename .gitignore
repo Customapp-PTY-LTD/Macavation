@@ -52,3 +52,6 @@ supabase/.temp/
 
 # Agent Fleet: the local pre-flight hook's cache file - never committed.
 .claude/hooks/.fleet-preflight-cache.json
+
+# Agent Fleet: the local pre-flight hook's transient temp files - never committed.
+.claude/hooks/.preflight-input-*.md
