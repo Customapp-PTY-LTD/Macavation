@@ -2007,7 +2007,12 @@ var _dataFunctions = function () {
          * @returns {Promise<Array<{trend_date:string,kg_cracked:number,kg_packed:number,kg_dispatched:number}>>}
          */
         getProductionTrendsDaily: async function (days, token = null) {
-            var pDays = Math.max(7, Math.min(90, parseInt(days, 10) || 30));
+            // Clamp to 1826, not 90. The Production Trends card offers 1M/3M/6M/1Y/3Y/5Y/All and asks
+            // for 1825 days; a 90-day cap silently made every range above 3M a no-op — the chart
+            // always showed the same last 90 days whichever button was pressed. The RPC itself has no
+            // such limit (it back-fills whatever window it is given), and 1826 matches the bound used
+            // by get_stock_soh_history.
+            var pDays = Math.max(7, Math.min(1826, parseInt(days, 10) || 30));
             try {
                 var raw = await this.callFunction('get_production_trends_daily', { p_days: pDays }, token, { useCache: false });
                 if (Array.isArray(raw)) return raw;

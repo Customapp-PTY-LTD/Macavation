@@ -410,10 +410,11 @@ var _executiveDashboard = function () {
                 scope.productionTrendsData = Array.isArray(raw) ? raw : [];
                 scope.renderProductionTrendsChart();
             } catch (e) {
+                // Do NOT replace the wrapper's innerHTML here: that deletes the canvas, so every later
+                // render silently no-ops. Use the empty state instead.
                 console.error('Error loading production trends:', e);
-                if (canvas && canvas.parentNode) {
-                    canvas.parentNode.innerHTML = '<p class="text-muted small mb-0">Unable to load trends. Apply migration get_production_trends_daily if needed.</p>';
-                }
+                scope.productionTrendsData = [];
+                scope.setChartEmptyState('productionTrendsChart', true);
             }
         },
 
@@ -421,7 +422,12 @@ var _executiveDashboard = function () {
             const scope = _executiveDashboard;
             const data = scope.productionTrendsData || [];
             const canvas = document.getElementById('productionTrendsChart');
-            if (!canvas || !data.length) return;
+            if (!canvas) return;
+            if (!data.length) {
+                if (scope.productionTrendsChart) { scope.productionTrendsChart.destroy(); scope.productionTrendsChart = null; }
+                scope.setChartEmptyState('productionTrendsChart', true);
+                return;
+            }
             const metric = document.getElementById('productionTrendsMetric');
             const key = (metric && metric.value) ? metric.value : 'kg_cracked';
             const datasetLabel = metric && metric.options[metric.selectedIndex] ? metric.options[metric.selectedIndex].text : 'kg';
@@ -518,7 +524,26 @@ var _executiveDashboard = function () {
 
             const labels = prepared.map(function (p) { return p.label; });
             const values = prepared.map(function (p) { return p.value; });
-            if (!labels.length) return;
+            var hasAny = values.some(function (v) { return Number(v) > 0; });
+            if (!labels.length || !hasAny) {
+                if (scope.productionTrendsChart) { scope.productionTrendsChart.destroy(); scope.productionTrendsChart = null; }
+                var emptyMsg = document.getElementById('productionTrendsEmpty');
+                if (emptyMsg) {
+                    emptyMsg.textContent = labels.length
+                        ? 'No ' + String(datasetLabel).toLowerCase() + ' recorded between ' +
+                          labels[0] + ' and ' + labels[labels.length - 1] + '.'
+                        : 'No data recorded for this metric in the selected period.';
+                }
+                var rangeElEmpty = document.getElementById('productionTrendsRange');
+                if (rangeElEmpty) {
+                    rangeElEmpty.textContent = labels.length
+                        ? 'Showing ' + labels[0] + ' - ' + labels[labels.length - 1]
+                        : '';
+                }
+                scope.setChartEmptyState('productionTrendsChart', true);
+                return;
+            }
+            scope.setChartEmptyState('productionTrendsChart', false);
             var rangeEl = document.getElementById('productionTrendsRange');
             if (rangeEl) rangeEl.textContent = 'Showing ' + labels[0] + ' - ' + labels[labels.length - 1];
             var prevBtn = document.getElementById('productionTrendsPrev');
