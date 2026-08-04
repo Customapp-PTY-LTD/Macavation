@@ -21,7 +21,6 @@ node_modules/
 .env
 .env.local
 .env.e2e
-e2e/.env.e2e
 Playwright Tests/.env.e2e
 
 # Build artifacts
@@ -30,7 +29,6 @@ build/
 *.log
 
 # E2E test results (local artifacts only)
-e2e/test-results/
 Playwright Tests/test-results/
 Playwright Tests/playwright-report/
 Playwright Tests/.last-run.json
