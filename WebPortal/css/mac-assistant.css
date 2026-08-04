@@ -1,7 +1,7 @@
 :root {
-  --mac-agent-accent: #4A7C59;
-  --mac-agent-navy: #2D4A3E;
-  --mac-agent-ink: #333333;
+  --mac-agent-accent: var(--mac-assistant-green);
+  --mac-agent-navy: var(--mac-assistant-green-dark);
+  --mac-agent-ink: var(--mac-assistant-ink);
   --mac-agent-rail-w: clamp(300px, 32vw, 380px);
   --mac-agent-face-fab: 56px;
   --mac-agent-face-head: 36px;
@@ -80,7 +80,7 @@
   height: 20px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #dc3545;
+  background: var(--mac-danger);
   color: #fff;
   font-size: 0.7rem;
   font-weight: 700;
@@ -130,7 +130,7 @@
   margin-left: 4px;
   padding: 0 4px;
   border-radius: 999px;
-  background: #dc3545;
+  background: var(--mac-danger);
   color: #fff;
   font-size: 0.65rem;
   font-weight: 700;
@@ -147,7 +147,7 @@
 }
 
 .mac-agent-pane-answers {
-  background: #f7faf9;
+  background: var(--mac-assistant-surface);
 }
 
 .mac-agent-answers-toolbar {
@@ -177,7 +177,7 @@
 .mac-agent-answers-heading {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #6c757d;
+  color: var(--mac-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -225,13 +225,13 @@
   letter-spacing: 0.03em;
 }
 
-.mac-agent-inbox-status.is-new { color: #4A7C59; }
-.mac-agent-inbox-status.is-waiting { color: #b8860b; }
-.mac-agent-inbox-status.is-read { color: #6c757d; }
+.mac-agent-inbox-status.is-new { color: var(--mac-assistant-green); }
+.mac-agent-inbox-status.is-waiting { color: var(--mac-warning-text); }
+.mac-agent-inbox-status.is-read { color: var(--mac-text-tertiary); }
 
 .mac-agent-inbox-when {
   font-size: 0.7rem;
-  color: #6c757d;
+  color: var(--mac-text-tertiary);
 }
 
 .mac-agent-inbox-label {
@@ -239,7 +239,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #6c757d;
+  color: var(--mac-text-tertiary);
   margin-bottom: 2px;
 }
 
@@ -259,7 +259,7 @@
 .mac-agent-inbox-ack {
   border: 1px solid rgba(0, 166, 81, 0.45);
   background: #fff;
-  color: #4A7C59;
+  color: var(--mac-assistant-green);
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 600;
@@ -351,7 +351,7 @@ body.mac-agent-resizing .mac-agent-rail {
   gap: 8px;
   padding: 14px 14px 12px;
   border-bottom: 1px solid rgba(45, 74, 62, 0.08);
-  background: linear-gradient(180deg, #f8f9fc 0%, #fff 100%);
+  background: var(--mac-bg);
   flex-shrink: 0;
 }
 
@@ -415,7 +415,7 @@ body.mac-agent-resizing .mac-agent-rail {
 
 .mac-agent-head-sub {
   font-size: 0.72rem;
-  color: #6c757d;
+  color: var(--mac-text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -434,7 +434,7 @@ body.mac-agent-resizing .mac-agent-rail {
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(92, 189, 180, 0.15);
-  color: #2d6a64;
+  color: var(--mac-assistant-teal);
 }
 
 .mac-agent-icon-btn {
@@ -534,11 +534,11 @@ body.mac-agent-resizing .mac-agent-rail {
 }
 
 .mac-agent-tool-done {
-  border-left-color: #4A7C59;
+  border-left-color: var(--mac-assistant-green);
 }
 
 .mac-agent-tool-error {
-  border-left-color: #dc3545;
+  border-left-color: var(--mac-danger);
   background: rgba(220, 53, 69, 0.08);
 }
 
@@ -546,7 +546,7 @@ body.mac-agent-resizing .mac-agent-rail {
   align-self: stretch;
   padding: 12px;
   border-radius: 10px;
-  border-left: 3px solid #ffb44f;
+  border-left: 3px solid var(--mac-assistant-amber);
   background: rgba(255, 180, 79, 0.12);
   font-size: 0.82rem;
 }
@@ -578,7 +578,7 @@ body.mac-agent-resizing .mac-agent-rail {
   background: rgba(220, 53, 69, 0.08);
   border: 1px solid rgba(220, 53, 69, 0.25);
   font-size: 0.82rem;
-  color: #842029;
+  color: var(--mac-assistant-danger-dark);
 }
 
 .mac-agent-retry-btn {
@@ -586,9 +586,9 @@ body.mac-agent-resizing .mac-agent-rail {
   font-size: 0.78rem;
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid #dc3545;
+  border: 1px solid var(--mac-danger);
   background: #fff;
-  color: #dc3545;
+  color: var(--mac-danger);
   cursor: pointer;
 }
 
@@ -616,7 +616,7 @@ body.mac-agent-resizing .mac-agent-rail {
 
 .mac-agent-status {
   font-size: 0.78rem;
-  color: #6c757d;
+  color: var(--mac-text-tertiary);
   font-style: italic;
 }
 
@@ -638,7 +638,7 @@ body.mac-agent-resizing .mac-agent-rail {
   border-radius: 999px;
   border: 1px solid rgba(92, 189, 180, 0.5);
   background: rgba(92, 189, 180, 0.08);
-  color: #2d6a64;
+  color: var(--mac-assistant-teal);
   cursor: pointer;
   text-align: left;
 }
@@ -697,13 +697,13 @@ body.mac-agent-resizing .mac-agent-rail {
 
 .mac-agent-foot-hint {
   font-size: 0.68rem;
-  color: #adb5bd;
+  color: var(--mac-border-strong);
 }
 
 .mac-agent-link-btn {
   background: transparent;
   border: 0;
-  color: #6c757d;
+  color: var(--mac-text-tertiary);
   cursor: pointer;
   font-size: 0.78rem;
   text-decoration: underline;
@@ -791,7 +791,7 @@ body.mac-agent-resizing .mac-agent-rail {
 
 .pa-nav-label {
   font-size: 0.72rem;
-  color: #999;
+  color: var(--mac-assistant-muted);
   margin-right: 2px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -801,9 +801,9 @@ body.mac-agent-resizing .mac-agent-rail {
   display: inline-flex;
   align-items: center;
   padding: 3px 12px;
-  border: 1px solid #c5d0d8;
+  border: 1px solid var(--mac-assistant-border-cool);
   border-radius: 20px;
-  background: #f5f8fa;
+  background: var(--mac-assistant-surface-cool);
   color: var(--mac-agent-navy);
   font-size: 0.78rem;
   cursor: pointer;
@@ -811,20 +811,20 @@ body.mac-agent-resizing .mac-agent-rail {
 }
 
 .pa-chip:hover {
-  background: #e4ecf3;
+  background: var(--mac-assistant-surface-edge);
   border-color: var(--mac-agent-accent);
   color: var(--mac-agent-accent);
 }
 
 /* Escalate chip variant */
 .pa-escalate-chip {
-  border-color: #adb5bd;
-  color: #6c757d;
+  border-color: var(--mac-border-strong);
+  color: var(--mac-text-tertiary);
 }
 
 .pa-escalate-chip:hover {
-  background: #6c757d;
-  border-color: #6c757d;
+  background: var(--mac-text-tertiary);
+  border-color: var(--mac-text-tertiary);
   color: #fff;
 }
 

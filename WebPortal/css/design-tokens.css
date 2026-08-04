@@ -173,6 +173,26 @@
     --light-wedgewood: var(--mac-bg);
     --dark-wedgewood: var(--mac-text);
     --wedgewood-subtle: var(--mac-green-light);
+
+    /* --- Mac assistant / mascot palette ---
+       Bespoke character-artwork and assistant-widget colours, named here so
+       css/mac-assistant.css and css/mac-mascot.css never declare raw hex.
+       Values are exact copies of what those files already used — naming
+       them here changes nothing about how the assistant or mascot render. */
+    --mac-assistant-green: #4A7C59;
+    --mac-assistant-green-dark: #2D4A3E;
+    --mac-assistant-teal: #2d6a64;
+    --mac-assistant-ink: #333333;
+    --mac-assistant-surface: #f7faf9;
+    --mac-assistant-surface-alt: #f8f9fc;
+    --mac-assistant-surface-cool: #f5f8fa;
+    --mac-assistant-surface-edge: #e4ecf3;
+    --mac-assistant-border-cool: #c5d0d8;
+    --mac-assistant-amber: #ffb44f;
+    --mac-assistant-danger-dark: #842029;
+    --mac-assistant-muted: #999;
+    --mac-mascot-ink: #1a1a1a;
+    --mac-mascot-blush: #C4A8B0;
 }
 
 /* ============================================

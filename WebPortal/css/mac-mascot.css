@@ -28,7 +28,7 @@
   z-index: 1;
   border: 1px solid rgba(25, 135, 84, 0.28);
   background: rgba(255, 255, 255, 0.94);
-  color: #2D4A3E;
+  color: var(--mac-assistant-green-dark);
   font-size: 0.72rem;
   font-weight: 600;
   line-height: 1;
@@ -208,8 +208,8 @@
   bottom: 18px;
   height: 36px;
   border-radius: 6px 8px 4px 4px;
-  background: #2D4A3E;
-  border: 3px solid #1a1a1a;
+  background: var(--mac-assistant-green-dark);
+  border: 3px solid var(--mac-mascot-ink);
   box-sizing: border-box;
 }
 
@@ -219,7 +219,7 @@
   width: 4px;
   height: 22px;
   border-radius: 2px;
-  background: #1a1a1a;
+  background: var(--mac-mascot-ink);
 }
 
 .macm-cart-rail--back {
@@ -239,7 +239,7 @@
   width: 24px;
   height: 4px;
   border-radius: 2px;
-  background: #1a1a1a;
+  background: var(--mac-mascot-ink);
 }
 
 .macm-cart-hitch {
@@ -249,7 +249,7 @@
   width: 22px;
   height: 4px;
   border-radius: 2px;
-  background: #1a1a1a;
+  background: var(--mac-mascot-ink);
 }
 
 .macm-cart-wheel {
@@ -261,8 +261,8 @@
   border-radius: 50%;
   box-sizing: border-box;
   background:
-    radial-gradient(circle at 50% 50%, #1a1a1a 0 22%, #C4A8B0 23% 52%, #1a1a1a 53% 100%);
-  border: 3px solid #1a1a1a;
+    radial-gradient(circle at 50% 50%, var(--mac-mascot-ink) 0 22%, var(--mac-mascot-blush) 23% 52%, var(--mac-mascot-ink) 53% 100%);
+  border: 3px solid var(--mac-mascot-ink);
   animation: macmWheelSpin 0.55s linear infinite;
 }
 
@@ -339,7 +339,7 @@
   width: 34px;
   height: 22px;
   border-radius: 2px 50% 2px 50%;
-  background: linear-gradient(145deg, #4A7C59 0%, #198754 55%, #146c43 100%);
+  background: var(--mac-green);
   border: 1px solid rgba(45, 74, 62, 0.35);
   box-shadow: 0 3px 8px rgba(45, 74, 62, 0.18);
 }
@@ -377,7 +377,7 @@
   top: 0;
   width: 2px;
   height: 22px;
-  background: linear-gradient(180deg, rgba(109, 88, 34, 0.65), rgba(25, 135, 84, 0.75));
+  background: rgba(var(--mac-green-rgb), 0.75);
   border-radius: 999px;
 }
 
