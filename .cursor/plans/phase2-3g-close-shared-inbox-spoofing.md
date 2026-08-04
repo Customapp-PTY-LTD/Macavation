@@ -1,3 +1,7 @@
+---
+depends_on: phase2-3a-staff-whatsapp-phone-identity.md
+---
+
 # Close the shared-inbox spoofing hole: derive the user from the session, not the request
 
 ## Context
@@ -19,6 +23,10 @@ chooses.
 This is pre-existing and independent of the WhatsApp command work — the command router derives its user
 id server-side from a verified phone under `service_role`, so it is unaffected. This plan fixes the
 browser path.
+
+**`depends_on`:** ordered after the staff-identity plan purely to avoid a merge collision — both add a
+wrapper to `WebPortal/js/data-functions.js` and both bump the same `data-functions.js` cache-bust line in
+`WebPortal/index.html`. There is no logical dependency between them.
 
 ### Why this cannot be a one-step change
 
