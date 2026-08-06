@@ -1,7 +1,3 @@
----
-depends_on: oil-sheet-ai-02-edge-function.md
----
-
 # AI production-sheet ingestion — upload screen and extraction list
 
 ## Context
@@ -63,6 +59,7 @@ state or a plain error toast — never an unhandled exception, never a blank pan
 
 ```
 html/oil_sheet_ai_grid.html
+js/oil_sheet_ai_api.js      <- edge-function client (section 2)
 js/oil_sheet_ai_grid.js
 css/oil_sheet_ai_grid.css
 ```
@@ -85,10 +82,12 @@ copied from `WebPortal/modules/oil-production/html/oil_production_grid.html`:
 Client-side preprocessing before upload, in this order:
 
 1. Reject anything over 20 MB outright with a toast.
-2. **Images:** draw to a canvas and downscale so the longest edge is **2000px**, export as JPEG at
-   quality 0.85. Not 1568 — that figure comes from older vision models; `claude-opus-5` reads images
-   up to 2576px on the long edge, and the extra resolution is exactly what faint pencil digits need.
-   Skip the downscale if the image is already smaller.
+2. **Images:** draw to a canvas and downscale so the longest edge is **1568px**, export as JPEG at
+   quality 0.85. Skip the downscale if the image is already smaller. This is the value Libra Portal
+   uses in production for the same job (`Libra-Portal/src/utils/document-preprocessor.js:12-14`) —
+   a proven number rather than a guess about a particular model's resolution tier. An earlier
+   revision of this plan specified 2000px on the basis of a model capability that cannot be verified
+   from this checkout, and was blocked for it.
 3. **PDFs:** pass through unchanged, `media_type: "application/pdf"`. Do not attempt to rasterise —
    no PDF library is vendored in this repo and this plan does not add one.
 4. Keep the resulting JPEG data URL for `preview_image`, and the bare base64 (no `data:` prefix) for
@@ -102,20 +101,7 @@ Then:
   downscaled file, not the original** — the helper caps at 6 MB (`common.js:367`) and a phone photo
   of an A3 sheet will exceed it. Treat a failed archival upload as a warning, not a blocker: carry
   on with extraction and pass `s3_file_id: null`.
-- POST to the edge function. There is no `supabase.functions.invoke` anywhere in this repo — the
-  convention is a plain `fetch`, and the canonical header shape is
-  `WebPortal/modules/assistant/mac-assistant-api.js:59-71`:
-
-  ```js
-  var c = window.MACAVATION_SUPABASE;
-  var url = String(c.url || '').replace(/\/$/, '') + '/functions/v1/extract-oil-sheet';
-  var headers = {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + c.anonKey,
-      apikey: c.anonKey,
-      'X-Portal-Session': Session.get('token')
-  };
-  ```
+- Call `extractOilSheet(...)` from the module's API client (section 2).
 
   Extraction takes 15–60 seconds. Show a spinner and a "Reading the sheet…" message on the button
   (the pattern at `oil_production_grid.js:230-232`), disable the form, and set an explicit
@@ -126,23 +112,40 @@ Then:
 **`oil_sheet_ai_grid.css`** — `.osa-*` classes only, `--mac-*` tokens only. Model the dropzone on the
 existing `.op-ps-*` styling in `WebPortal/modules/oil-production/css/oil_production_grid.css`.
 
-### 2. Data access — `WebPortal/js/data-functions.js`
+### 2. Data access — a module-local API client, **not** `data-functions.js`
 
-Add four methods to the `dataFunctions` object, following the shape of `upsertOilBatch`
-(`data-functions.js:4438-4462`) — build a `p_`-prefixed params object, call `this.callFunction(...)`,
-then `clearCachePattern` on writes:
+**Do not add anything to `WebPortal/js/data-functions.js`, and do not call these RPCs through
+PostgREST.** Plan 01's RPCs are `service_role`-only (`REVOKE ALL … FROM PUBLIC, anon,
+authenticated`), so `dataFunctions.callFunction` — which authenticates as `anon`
+(`WebPortal/js/data-functions.js:499-518`) — will get a permission error, by design. The anon key is
+publicly committed (`WebPortal/js/macavation-supabase.js:16`), so anything reachable that way is
+reachable by anyone; these calls write the GMP production record, so they go through the
+session-validated edge function instead.
 
-- `getOilSheetExtractions(options, token, forceRefresh)` → `get_oil_sheet_extractions`,
-  `cacheKey: 'oil_sheet_extractions'`
-- `getOilSheetExtractionById(id, token)` → `get_oil_sheet_extraction_by_id`, `useCache: false`
-- `updateOilSheetExtractionReview(data, token)` → `update_oil_sheet_extraction_review`
-- `confirmOilSheetExtraction(data, token)` → `confirm_oil_sheet_extraction`
+Add `js/oil_sheet_ai_api.js` to the module — a thin client over the one edge-function endpoint, with
+one function per action: `extractOilSheet`, `listOilSheets`, `getOilSheet`, `saveOilSheetReview`,
+`confirmOilSheet`. `saveOilSheetReview` and `confirmOilSheet` are consumed by plan 04 but belong
+here, so the two plans do not both edit the same file.
 
-The last two are consumed by plan 04 but belong here, because both plans would otherwise edit
-`data-functions.js` and race to merge into it.
+Model the transport on `WebPortal/modules/assistant/mac-assistant-api.js:59-71`, the existing
+edge-function client in this repo — a plain `fetch`, since there is no `supabase.functions.invoke`
+call anywhere in the codebase:
 
-Every one of these must tolerate the RPC not existing yet: `callFunction` throws on a non-2xx, so
-wrap the call sites in `try/catch` and render an empty state rather than letting the rejection escape.
+```js
+var c = window.MACAVATION_SUPABASE;
+var url = String(c.url || '').replace(/\/$/, '') + '/functions/v1/extract-oil-sheet';
+var headers = {
+    'Content-Type': 'application/json',
+    Authorization: 'Bearer ' + c.anonKey,
+    apikey: c.anonKey,
+    'X-Portal-Session': Session.get('token')
+};
+```
+
+Every call must tolerate the function not being deployed yet and the migration not being applied:
+catch non-2xx and network failures, and let the caller render an empty state or a toast rather than
+letting a rejection escape. Map 402 (budget exceeded) and 403 (role not permitted) to their own
+messages — a generic "something went wrong" on those two is actively misleading.
 
 ### 3. Registration — four files, all four required
 
@@ -153,7 +156,7 @@ wrap the call sites in `try/catch` and render an empty state rather than letting
        "description": "AI Production Sheet Ingestion",
        "path": "oil-sheet-ai",
        "html": "html/oil_sheet_ai_grid.html",
-       "js": [ "js/oil_sheet_ai_grid.js" ],
+       "js": [ "js/oil_sheet_ai_api.js", "js/oil_sheet_ai_grid.js" ],
        "css": [ "css/oil_sheet_ai_grid.css" ]
    }
    ```

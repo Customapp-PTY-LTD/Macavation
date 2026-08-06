@@ -18,9 +18,11 @@ pretending they will not happen.
 The two forms in scope are **MP02-9 Rev3** (food grade) and **MP02-12 REV 04** (cosmetic oil).
 
 **This plan touches the module created by plan 03** (`WebPortal/modules/oil-sheet-ai/`) and adds a
-row action to its list. It also relies on `confirmOilSheetExtraction` and
-`updateOilSheetExtractionReview`, which plan 03 already added to `WebPortal/js/data-functions.js` —
-**do not add them again.**
+row action to its list. It also relies on `confirmOilSheet` and `saveOilSheetReview`, which plan 03 already added to the module's edge-function client
+`WebPortal/modules/oil-sheet-ai/js/oil_sheet_ai_api.js` — **do not add them again, and do not add
+anything to `WebPortal/js/data-functions.js`.** Plan 01's RPCs are `service_role`-only, so the
+browser's PostgREST path (which authenticates as `anon`) cannot reach them by design; every call
+goes through the session-validated `extract-oil-sheet` edge function.
 
 `dev` auto-deploys on merge (`CLAUDE.md:8-11`) and plan 01's migration is applied by a human out of
 band, so this screen must degrade gracefully if `confirm_oil_sheet_extraction` does not exist yet:
@@ -31,9 +33,12 @@ catch the error and show a toast, never an unhandled rejection.
 `confirm_oil_sheet_extraction` (authored in plan 01) appends the corrected object to
 `public.shift.shift_tracking → production_sheets[<sheet_type>][]`. That is where the portal already
 keeps production sheets — see `WebPortal/modules/oil-production/js/oil_production_grid.js:706-717`,
-which builds exactly that structure and saves it through `upsert_shift`. The RPC does the
-read-modify-write server-side so two managers confirming sheets for the same day cannot overwrite
-each other.
+which builds exactly that structure and saves it through `upsert_shift`. The RPC serialises
+concurrent confirms for the same day with a transaction advisory lock, resolves the shift row
+`FOR UPDATE`, and appends with a single self-referencing `UPDATE` — see plan 01's
+`confirm_oil_sheet_extraction` steps 3-5. Do not restate that guarantee anywhere in this plan's
+code or comments; it is plan 01's to make, and an earlier revision was blocked for claiming it
+while describing a read-then-write that would have lost updates under READ COMMITTED.
 
 The browser's job is only to produce a corrected object and hand it over. **Do not call
 `upsertShift` from this screen** — that would reintroduce the lost-update race the RPC exists to
@@ -121,12 +126,12 @@ Every field carries an amber tint when its path appears in `low_confidence_field
 
 **Actions:**
 
-- **Save draft** → `dataFunctions.updateOilSheetExtractionReview({ id, reviewed_data })`. Status
+- **Save draft** → `saveOilSheetReview({ id, reviewed_data })`. Status
   stays `extracted`. Also auto-save on a debounced 3-second idle (`_common.debounce`,
   `common.js:204`) with an unobtrusive "Saved" indicator, mirroring
   `modal_oil_production_sheet.js:210-223`.
 - **Confirm** → a `Swal.fire` confirmation naming the production date and sheet type, then
-  `dataFunctions.confirmOilSheetExtraction({ id, reviewed_data })`. On success: success toast, return
+  `confirmOilSheet({ id, reviewed_data })`. On success: success toast, return
   to the list, refresh. Disable the button while in flight so a double-click cannot fire twice; the
   RPC also rejects a second confirm, so both ends are covered.
 - **Re-extract** → confirm, then re-invoke the edge function with the stored `preview_image` and
@@ -140,7 +145,7 @@ when.
 
 Replace the placeholder Review row action that plan 03 left in
 `WebPortal/modules/oil-sheet-ai/js/oil_sheet_ai_grid.js` with a real call that loads
-`getOilSheetExtractionById(id)` and opens the review view. Show Review only for `extracted` and
+`getOilSheet(id)` and opens the review view. Show Review only for `extracted` and
 `confirmed`; for `failed`, offer Re-extract and show `error_message` in a `Swal`.
 
 ## Security invariants
@@ -162,8 +167,9 @@ Replace the placeholder Review row action that plan 03 left in
   `confirm_oil_sheet_extraction` only.
 - Grep for `oil_production_grid` in the new files — there must be no matches; the existing oil
   screens are out of scope.
-- Confirm `updateOilSheetExtractionReview` and `confirmOilSheetExtraction` are **used** here but
-  **not redefined** — plan 03 added them to `WebPortal/js/data-functions.js`.
+- Confirm `saveOilSheetReview` and `confirmOilSheet` are **used** here but **not redefined** — plan
+  03 added them to `js/oil_sheet_ai_api.js`. Grep for `data-functions` in the new files: there must
+  be no matches.
 
 You cannot log into the deployed site or run the Playwright suite from this environment (it targets
 the deployed demo site with real logins and is deliberately excluded from the fleet gate —

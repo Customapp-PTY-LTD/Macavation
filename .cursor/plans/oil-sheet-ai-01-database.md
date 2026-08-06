@@ -3,157 +3,206 @@
 ## Context
 
 Factory operators fill in paper GMP production sheets every shift. Two real forms are in use:
-**MP02-9 Rev3** (Macadamia Food Grade Production sheet, issued 03.10.2024) and **MP02-12 REV 04**
-(Macadamia Cosmetic Oil Production Sheet, issued 18/06/2025). The factory manager is going to
-photograph each sheet, upload it once, and have Claude read it — then review and correct the values
-before anything is committed.
+**MP02-9 Rev3** (Macadamia Food Grade Production sheet) and **MP02-12 REV 04** (Macadamia Cosmetic
+Oil Production Sheet). The factory manager will photograph each sheet, upload it once, have Claude
+read it, then review and correct the values before anything is committed.
 
-This plan authors **only the SQL**: the tables that hold an extraction job and its result, the
-admin-tunable AI config, the usage log, the RPCs the edge function and the UI will call, and the
-RBAC rows. Three follow-up plans build on it:
-
-- `oil-sheet-ai-02-edge-function.md` — the `extract-oil-sheet` edge function that calls Anthropic
-- `oil-sheet-ai-03-upload-and-list.md` — the upload screen and extraction list
-- `oil-sheet-ai-04-review-and-confirm.md` — the side-by-side review screen and the commit step
-
-Nothing in this plan is user-visible, so it lands safely on its own.
+This plan authors **only the SQL**: the tables holding an extraction job and its result, the
+tunable AI config, the usage log and spend cap, the RPCs, and the RBAC rows. Three sibling plans
+build the rest — `oil-sheet-ai-02-edge-function.md`, `oil-sheet-ai-03-upload-and-list.md`,
+`oil-sheet-ai-04-review-and-confirm.md`.
 
 **You cannot apply migrations.** No database credential and no network path to a database exists in
 this environment. Author the file only; a human applies it with
 `npm run db:apply -- migrations/<file>.sql`. Do not try to connect to Postgres, and do not treat
 "unapplied" as a failure.
 
+> **This is a revision of a plan the review gate blocked** (run `a017ba40`). Five findings, all
+> upheld. The corrections are folded in below and each is marked **[was blocked]** so you can see
+> why the constraint is there. Do not "simplify" any of them back out.
+
+## The security model — read this first
+
+**[was blocked — finding 1]** Postgres grants `EXECUTE` to `PUBLIC` by default on `CREATE FUNCTION`,
+and PostgREST exposes that to `anon`. The anon key in this app is a **shipped public credential**
+(`WebPortal/js/macavation-supabase.js:16` is the production project's anon JWT, committed to the
+repo). A `SECURITY DEFINER` function with no explicit `REVOKE` is therefore callable by anyone on
+the internet, and **RLS does not help** — it neither gates `EXECUTE` nor applies inside a definer's
+body. The first version of this plan relied on an RLS statement and would have shipped an
+unauthenticated write path into `public.shift.shift_tracking`, the GMP production record.
+
+So, for all nine functions:
+
+- **`service_role` only.** Follow `migrations/20260815130000_whatsapp_pending_commands.sql:236-253`
+  exactly — its own section header reads *"GRANTS — service_role only. Never anon, never
+  authenticated, never PUBLIC."* Per function, with the full argument-type signature:
+
+  ```sql
+  REVOKE ALL   ON FUNCTION public.<fn>(<argtypes>) FROM PUBLIC;
+  REVOKE ALL   ON FUNCTION public.<fn>(<argtypes>) FROM anon;
+  REVOKE ALL   ON FUNCTION public.<fn>(<argtypes>) FROM authenticated;
+  GRANT EXECUTE ON FUNCTION public.<fn>(<argtypes>) TO service_role;
+  ```
+
+  The same convention appears in `20260815120000`, `20260815110000` and `20260722130000`.
+
+- **The browser never calls these RPCs.** Every UI call goes through the `extract-oil-sheet` edge
+  function, which validates the portal session fail-closed and then talks to the database with the
+  service-role key. This is a deliberate departure from the usual browser→PostgREST path in
+  `WebPortal/js/data-functions.js:499-518`, which authenticates as `anon`. Plans 02 and 03 are
+  written to match.
+
+- **No `role_permissions` rows for these functions.** That table gates the PostgREST path, which is
+  now closed to them, so rows would be inert and misleading. Authorization happens in the edge
+  function against the `role_name` returned by `assistant_validate_session`. This deliberately
+  deviates from `docs/RBAC_NEW_FUNCTION_CHECKLIST.md`; the reason is the paragraph above. Say so in
+  a SQL comment so the next reader does not "fix" it.
+
 ## Verified facts this plan builds on
 
-Check each of these against the file named before relying on it.
+Check each against the file named before relying on it.
 
-- Migrations live in the repo-root **`migrations/`** directory, not `supabase/migrations/` (which is
-  empty). `supabase/config.toml:1-3` records the apply command.
+- Migrations live in repo-root **`migrations/`**, not `supabase/migrations/` (empty). Apply command
+  at `supabase/config.toml:3`.
 - Filenames must satisfy `npm run migrations:verify` (`scripts/verify-migration-prefixes.mjs:4-10`):
-  a 14-digit UTC timestamp prefix, then `_`, then a snake_case name, then `.sql`; unique prefix; no
-  subdirectories and no non-`.sql` files. This script is part of `npm run test:fleet`, so a bad
-  filename blocks the merge. **There is no baseline-update escape hatch** — the script says so at
-  lines 28-30.
-- Production sheets are stored today in `public.shift.shift_tracking` (jsonb), under
-  `production_sheets[<sheet_type>][]`. See `WebPortal/modules/oil-production/js/oil_production_grid.js:706-717`.
-  The table is defined at `migrations/20260226000006_replace_oil_with_new_schema.sql:29-48`.
-- The three sheet types the app already knows about are `food_grade_oil`, `protein_powder` and
-  `cosmetic_oil` — `WebPortal/modules/oil-production/js/oil_production_grid.js:468` and `:509-558`.
-- Batch numbers are **unvalidated free text**. `migrations/20260345000001_manual_oil_protein_batch_numbers.sql:1-2`
-  states "Numbers are user-supplied only (no auto sequence)"; the only check is non-empty plus a
-  unique constraint. Traceability reads join on exact string equality —
-  `migrations/20260339000001_get_oil_batch_ingredients_detail.sql` matches
-  `oil_bin_batch.batch_number` and `oil.batch_id` exactly.
-- RBAC is three layers and they must move together (`CLAUDE.md:34-39`): `role_features` gates the
-  route, `actions`/`role_actions` gates the buttons, `role_permissions` gates RPC EXECUTE.
-- The `public.actions` / `public.role_actions` catalogue is created by
-  `migrations/20260602100000_create_actions_tables.sql` (tables at `:11` and `:29`). The only oil
-  action key seeded there today is `oil.consolidated.manage` at `:59` — copy that INSERT's shape.
-- The `role_permissions` grant pattern to copy is the `DO $$ … INSERT INTO public.role_permissions …`
-  block at `migrations/20260324000001_unify_oil_batch_number_format.sql:169-179`.
+  14-digit UTC prefix, `_`, snake_case name, `.sql`; unique prefix; no subdirectories. Part of
+  `npm run test:fleet`, and there is no baseline escape hatch (`:27-30`). The highest existing prefix
+  is `20260815130000` — pick something later.
+- `public.shift` is defined at `migrations/20260226000006_replace_oil_with_new_schema.sql:29-48`.
+  `shift_date` is `NOT NULL`; the only index on it is the **non-unique** `idx_shift_date` (`:47`).
+  There is no unique constraint on `shift_date`, so duplicate rows for one day are possible.
+- Production sheets are appended to `shift_tracking → production_sheets[<sheet_type>][]` —
+  `WebPortal/modules/oil-production/js/oil_production_grid.js:706-717`. Sheet types at `:468` and
+  `:509-558`.
+- `public.actions` / `public.role_actions` at `migrations/20260602100000_create_actions_tables.sql:11`,
+  `:29`, with the oil exemplar INSERT at `:59`.
+- `public.features` at `migrations/20260302000001_create_features_tables.sql:6-14`; the
+  `role_features` seed pattern at `migrations/20260302000003_seed_features.sql:70-95`.
+- The `{success: true} / {success: false, error}` return convention: use a **live** exemplar such as
+  the functions in `migrations/20260815130000_whatsapp_pending_commands.sql`. **[was blocked —
+  smaller issue]** Do *not* cite `upsert_oil_production`; it is dropped at
+  `migrations/20260226000006_replace_oil_with_new_schema.sql:17`.
+- The existing AI plumbing to model on — see the next section.
+
+## The near-duplicate to model on
+
+**[was blocked — finding 5]** `migrations/20260716160000_portal_assistant_chat.sql` already contains
+this repo's AI plumbing. Build the new tables to mirror it rather than inventing a parallel shape:
+
+| Existing | Line | Mirror it with |
+|---|---|---|
+| `assistant_client.assistant_model text DEFAULT 'claude-sonnet-4-6'` | `:34` | `oil_sheet_ai_config.model` — same default |
+| `assistant_usage_log` (`model`, `input_tokens`, `output_tokens`, `cost_cents`, `latency_ms`, `http_status`, `success`, `error_message`) | `:169` | `oil_sheet_extraction_log` — same column names and types |
+| `assistant_record_usage` | `:884` | `log_oil_sheet_extraction` |
+| **`assistant_budget`** (`client_guid`, `period_start`, `budget_cents`, `spent_cents`, PK on the pair) | `:152` | `oil_sheet_ai_budget` — same shape, keyed on `period_start` alone (single tenant) |
+| **`assistant_check_budget`** | `:832` | `check_oil_sheet_ai_budget` |
+
+The budget gate is not optional. This feature sends a large image plus a large schema prompt on
+every upload; without a cap, a stuck retry loop or a bulk backfill can run up real spend unnoticed.
 
 ## Work
 
-Author exactly one file: `migrations/<YYYYMMDDHHMMSS>_oil_sheet_ai_extraction.sql`. Pick a timestamp
-later than every existing prefix in `migrations/`.
+Author exactly one file: `migrations/<YYYYMMDDHHMMSS>_oil_sheet_ai_extraction.sql`.
 
-### 1. `public.oil_sheet_extraction`
+### 1. `public.oil_sheet_ai_config`
 
-One row per uploaded sheet.
-
-| column | type | notes |
-|---|---|---|
-| `id` | `uuid PK DEFAULT gen_random_uuid()` | |
-| `sheet_type` | `varchar(40) NOT NULL` | `food_grade_oil` \| `protein_powder` \| `cosmetic_oil`. **No CHECK constraint** — the rest of the oil schema deliberately leaves status/type app-enforced (see `oil.status` at `20260226000006:106-146`), and a CHECK here would need a migration every time a form is added. |
-| `status` | `varchar(20) NOT NULL DEFAULT 'extracting'` | `extracting` \| `extracted` \| `failed` \| `confirmed` |
-| `production_date` | `date` | as read off the sheet; null until extracted |
-| `file_name` | `varchar(255)` | original filename |
-| `s3_file_id` | `varchar(255)` | pointer returned by the existing S3 upload helper |
-| `preview_image` | `text` | downscaled JPEG as a `data:` URL, for the review viewer |
-| `extracted_data` | `jsonb` | verbatim model output |
-| `reviewed_data` | `jsonb` | the manager's corrected version; null until reviewed |
-| `validation_flags` | `jsonb NOT NULL DEFAULT '[]'::jsonb` | deterministic checks, see plan 02 |
-| `confidence` | `numeric(3,2)` | model self-report, 0.00–1.00 |
-| `error_message` | `text` | populated when `status = 'failed'` |
-| `shift_id` | `uuid REFERENCES public.shift(id)` | set on confirm |
-| `uploaded_by` | `uuid` | |
-| `reviewed_by` | `uuid` | |
-| `reviewed_at` | `timestamptz` | |
-| `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
-| `updated_at` | `timestamptz NOT NULL DEFAULT now()` | |
-
-Indexes on `status`, `production_date`, and `created_at DESC`.
-
-`preview_image` holds a base64 data URL of a 2000px-long-edge JPEG — expect roughly 300 KB–1 MB of
-text per row. That is deliberate: this project has **no Supabase Storage buckets at all** (verified
-by grepping `storage.from(`, `/storage/v1/object`, `createSignedUrl` across the repo — zero hits),
-and portal login tokens are not Supabase Auth JWTs (`WebPortal/js/data-functions.js:496-497`), so
-the browser is `anon` to Supabase and a bucket would need an `anon`-insert policy. Storing the
-preview inline avoids introducing that. Do not add a bucket in this plan.
-
-### 2. `public.oil_sheet_ai_config`
-
-One row per sheet type. This is the table that lets prompts and models be tuned with SQL instead of
-a redeploy.
+Create this **first** — `oil_sheet_extraction.sheet_type` references it.
 
 | column | type | notes |
 |---|---|---|
-| `id` | `uuid PK DEFAULT gen_random_uuid()` | |
-| `sheet_type` | `varchar(40) NOT NULL UNIQUE` | |
-| `label` | `varchar(120) NOT NULL` | human-readable, e.g. `Food Grade (MP02-9)` |
-| `model` | `varchar(80) NOT NULL DEFAULT 'claude-opus-5'` | |
-| `single_pass` | `boolean NOT NULL DEFAULT true` | false = vision pass then structure pass |
-| `vision_prompt` | `text` | only read when `single_pass = false` |
-| `extraction_prompt` | `text NOT NULL` | the schema + rules; see below |
-| `max_tokens` | `integer NOT NULL DEFAULT 16000` | |
-| `effort` | `varchar(10) NOT NULL DEFAULT 'high'` | maps to `output_config.effort` |
+| `sheet_type` | `varchar(40) PRIMARY KEY` | |
+| `label` | `varchar(120) NOT NULL` | e.g. `Food Grade (MP02-9)` |
+| `model` | `varchar(80) NOT NULL DEFAULT 'claude-sonnet-4-6'` | |
+| `single_pass` | `boolean NOT NULL DEFAULT true` | |
+| `vision_prompt` | `text` | read only when `single_pass = false` |
+| `extraction_prompt` | `text NOT NULL` | |
+| `max_tokens` | `integer NOT NULL DEFAULT 8192` | |
 | `is_active` | `boolean NOT NULL DEFAULT true` | |
 | `updated_by` | `uuid` | |
 | `updated_at` | `timestamptz NOT NULL DEFAULT now()` | |
 
-The `model` default is `claude-opus-5` because these are handwritten, photocopied, non-aligned forms —
-the hardest extraction case there is, and worth starting at the top of the range before tuning down
-on measured accuracy. Whether this organisation's Anthropic key can reach that model **cannot be
-checked from this environment**; if it cannot, the fix is one `UPDATE oil_sheet_ai_config SET model =
-'claude-sonnet-4-6'`, which is exactly why the model is a config row rather than a constant. Note
-`claude-sonnet-4-6` is what `portal-assistant` already runs
-(`supabase/functions/portal-assistant/index.ts:96`), so it is the known-good fallback.
+**[was blocked — finding 4]** Three unverifiable claims about the Anthropic API were removed:
 
-> **There is deliberately no `temperature` column.** The model this is seeded with,
-> `claude-opus-5`, **rejects `temperature` with HTTP 400** — sampling parameters were removed on
-> that model family. A column here would invite the edge function to send one. If a future model
-> needs it, add the column then.
+- The seeded model is **`claude-sonnet-4-6`**, the only model ID this repo demonstrably uses
+  (`supabase/functions/portal-assistant/index.ts:96`). The previous draft seeded `claude-opus-5`,
+  which appears nowhere in this checkout and could not be verified from it — if wrong, the whole
+  feature would have failed on every call until a human ran a manual `UPDATE`. Upgrading later is
+  one `UPDATE oil_sheet_ai_config SET model = '<id>'`, which is why this is a config row.
+- **There is no `temperature` column and no assertion about temperature.** The earlier draft
+  claimed `claude-opus-5` rejects `temperature` with HTTP 400 and recorded that as the schema's
+  justification. It is unverifiable here, and the only working Anthropic call in this repo *does*
+  send `temperature: 0.2` (`portal-assistant/index.ts:692`). Plan 02 sends the same value; no column
+  is needed because nothing varies it per sheet type.
+- **There is no `effort` column.** The earlier draft said it "maps to `output_config.effort`". No
+  such field appears anywhere in this repo's Anthropic call. Omitted rather than guessed.
 
-### 3. `public.oil_sheet_extraction_log`
+### 2. `public.oil_sheet_extraction`
 
-Append-only audit, one row per Anthropic call.
+| column | type | notes |
+|---|---|---|
+| `id` | `uuid PK DEFAULT gen_random_uuid()` | |
+| `sheet_type` | `varchar(40) NOT NULL REFERENCES public.oil_sheet_ai_config(sheet_type)` | an FK, not a CHECK — it enforces validity *and* stays extensible by inserting a config row |
+| `status` | `varchar(20) NOT NULL DEFAULT 'extracting' CHECK (status IN ('extracting','extracted','failed','confirmed'))` | |
+| `production_date` | `date` | null until extracted |
+| `file_name` | `varchar(255)` | |
+| `s3_file_id` | `varchar(255)` | |
+| `preview_image` | `text` | downscaled JPEG as a `data:` URL |
+| `extracted_data` | `jsonb` | |
+| `reviewed_data` | `jsonb` | |
+| `validation_flags` | `jsonb NOT NULL DEFAULT '[]'::jsonb` | |
+| `confidence` | `numeric(3,2)` | |
+| `error_message` | `text` | |
+| `shift_id` | `uuid REFERENCES public.shift(id)` | set on confirm |
+| `uploaded_by`, `reviewed_by` | `uuid` | |
+| `reviewed_at` | `timestamptz` | |
+| `created_at`, `updated_at` | `timestamptz NOT NULL DEFAULT now()` | |
 
-`id`, `extraction_id uuid REFERENCES public.oil_sheet_extraction(id) ON DELETE CASCADE`,
-`sheet_type varchar(40)`, `model varchar(80)`, `input_tokens integer`, `output_tokens integer`,
-`estimated_cost_usd numeric(10,6)`, `duration_ms integer`,
-`status varchar(20) NOT NULL DEFAULT 'success'` (`success` | `error`), `error_message text`,
-`user_id uuid`, `created_at timestamptz NOT NULL DEFAULT now()`. Index on `created_at DESC`.
+Indexes on `status`, `production_date`, `created_at DESC`.
 
-### 4. Seed `oil_sheet_ai_config`
+`preview_image` holds ~300 KB–1 MB of base64 per row. That is a deliberate tradeoff against
+`BluePrint/supabase-database-rules.md`'s "large JSON updated frequently" guidance: this project has
+**no Supabase Storage buckets** (verified — zero hits for `storage.from(`, `/storage/v1/object`,
+`createSignedUrl`), and portal tokens are not Supabase Auth JWTs
+(`WebPortal/js/data-functions.js:496-497`), so a bucket would need an `anon`-insert policy. The
+column is written once and never updated. Do not add a bucket in this plan.
 
-Three rows. `protein_powder` is seeded with `is_active = false` and a one-line placeholder prompt —
-the app has a form for it but no sample sheet was supplied, so a real schema would be guesswork.
-Say exactly that in a SQL comment.
+### 3. `public.oil_sheet_extraction_log` and `public.oil_sheet_ai_budget`
 
-The two active prompts each end with the literal instruction **"Return ONLY the JSON object. No
-markdown, no code fences, no explanation."** and carry these rules:
+`oil_sheet_extraction_log` mirrors `assistant_usage_log` (`20260716160000:169`): `id`,
+`extraction_id uuid REFERENCES public.oil_sheet_extraction(id) ON DELETE CASCADE`, `sheet_type`,
+`model`, `input_tokens`, `output_tokens`, `cost_cents int`, `latency_ms int`, `http_status int`,
+`success boolean NOT NULL DEFAULT true`, `error_message text`, `user_id uuid`,
+`created_at timestamptz NOT NULL DEFAULT now()`. Index on `created_at DESC`.
 
-- Every number must be numeric — no units, no thousands separators.
-- `production_date` must be `YYYY-MM-DD`. The sheets are written `DD/MM/YYYY`.
-- Batch numbers exactly as written, preserving spaces, dots and case.
-- If a field is blank on the sheet, use `null` — never guess, never carry a value over from a
-  neighbouring row.
-- Where a cell holds an arithmetic expression (the food-grade sheet's weight column holds entries
-  like `7.20+7.01`), return both the literal text and the computed value.
-- Set `confidence` between 0 and 1, and list the field paths you were least sure of in
-  `low_confidence_fields`.
+`oil_sheet_ai_budget` mirrors `assistant_budget` (`:152`) minus the tenant column:
+`period_start date PRIMARY KEY`, `budget_cents int NOT NULL`, `spent_cents int NOT NULL DEFAULT 0`,
+`updated_at timestamptz NOT NULL DEFAULT now()`. Seed the current month with a conservative default
+(2000 cents) using the `date_trunc('month', now())::date` + `ON CONFLICT DO NOTHING` pattern at
+`:161-166`.
 
-**`food_grade_oil` — target schema** (MP02-9 Rev3):
+### 4. `updated_at` triggers
+
+**[was blocked — standards finding]** Both mutable tables declare `updated_at` with a default and
+nothing that advances it. Add one `BEFORE UPDATE` trigger function
+(`NEW.updated_at := now(); RETURN NEW;`) and attach it to `oil_sheet_extraction`,
+`oil_sheet_ai_config` and `oil_sheet_ai_budget`. Reuse an existing trigger function if one already
+exists in `migrations/` — grep for `set_updated_at` or `handle_updated_at` first and prefer it.
+
+### 5. Seed `oil_sheet_ai_config`
+
+Three rows; `protein_powder` with `is_active = false` and a placeholder prompt, because the app has
+a form for it but no sample sheet was supplied and a real schema would be guesswork. Say that in a
+SQL comment.
+
+Both active prompts end with **"Return ONLY the JSON object. No markdown, no code fences, no
+explanation."** and carry these rules: numbers numeric with no units or separators;
+`production_date` as `YYYY-MM-DD` (the sheets are written `DD/MM/YYYY`); batch numbers exactly as
+written including spaces, dots and case; blank cells become `null`, never a guess and never a value
+carried over from a neighbouring row; where a cell holds an arithmetic expression return both the
+literal text and the computed value; set `confidence` 0–1 and list the least-certain field paths in
+`low_confidence_fields`.
+
+**`food_grade_oil` (MP02-9 Rev3):**
 
 ```json
 {
@@ -177,12 +226,12 @@ markdown, no code fences, no explanation."** and carry these rules:
 }
 ```
 
-The prompt must state explicitly: **the four columns of the main table have different row counts and
-are not aligned row-for-row.** On a real sheet there may be 14 raw-material weights, 9 oil-out
-values and 1 cake-out value. Return each column as its own list of the length actually present. Do
-not pad, do not truncate, and do not invent a row just to make the lists the same length.
+The prompt must state: **the four columns of the main table have different row counts and are not
+aligned row-for-row** — 14 raw-material weights against 9 oil-out values and 1 cake-out value is a
+normal real sheet. Return each column at the length actually present; do not pad, truncate, or
+invent a row to make the lists match.
 
-**`cosmetic_oil` — target schema** (MP02-12 REV 04):
+**`cosmetic_oil` (MP02-12 REV 04):**
 
 ```json
 {
@@ -202,110 +251,121 @@ not pad, do not truncate, and do not invent a row just to make the lists the sam
 }
 ```
 
-The prompt must state: the mix grid is laid out as **three side-by-side column groups** covering
-mixes 1–25, 26–50 and 51–75. Read it column-group by column-group, not left-to-right across the
-page, and return only the mixes that actually carry data.
+The prompt must state: the mix grid is **three side-by-side column groups** covering mixes 1–25,
+26–50 and 51–75. Read it group by group, not left-to-right across the page, and return only mixes
+that carry data.
 
-> **Known limitation, record it as a SQL comment next to the seed.** The in-app cosmetic form
-> (`WebPortal/modules/oil-production/js/oil_production_grid.js:544-558`) models a *different*
-> revision — MP5.2.3 Rev 06, a 15-row time log with crude-kernel/kernel-dust/crush/cracker-dust/cake
-> columns. It cannot represent the REV 04 mix grid. The schema above follows the paper sheet that is
-> actually in use, and `shift_tracking` is free-form jsonb so it stores it fine; the consequence is
-> that the older in-app form will not render a REV 04 sheet back.
+> **Both forms are a revision ahead of the in-app forms — record this as a SQL comment.**
+> **[was blocked — smaller issue]** The in-app cosmetic form is MP5.2.3 Rev 06
+> (`oil_production_grid.js:557`) and the in-app food-grade form is MP5.2.3.1 Rev 04 (`:525`). Neither
+> matches the paper in use, and the cosmetic one cannot represent the REV 04 mix grid at all. The
+> schemas above follow the paper. `shift_tracking` is free-form jsonb so it stores them fine; the
+> consequence — for **both** sheet types, not just cosmetic — is that the older in-app forms will not
+> render these sheets back.
 
-### 5. RPCs
+### 6. RPCs
 
-All `SECURITY DEFINER`, `SET search_path = public`, returning `jsonb` in the
-`{ "success": true, ... }` / `{ "success": false, "error": "..." }` shape the rest of this codebase
-uses (see `upsert_oil_production` in `migrations/20260226000005_create_oil_batch_sps.sql:108`).
+All `SECURITY DEFINER`, `SET search_path = public`, returning `jsonb` in the `{success: …}` shape,
+and all `service_role`-only per the security model above.
 
-| function | called by | purpose |
-|---|---|---|
-| `create_oil_sheet_extraction(p_sheet_type, p_file_name, p_s3_file_id, p_preview_image, p_uploaded_by)` | edge fn | insert with `status='extracting'`, return the new id |
-| `save_oil_sheet_extraction_result(p_id, p_extracted_data, p_confidence, p_validation_flags, p_production_date)` | edge fn | set `status='extracted'` and the payload |
-| `fail_oil_sheet_extraction(p_id, p_error_message)` | edge fn | set `status='failed'` |
-| `log_oil_sheet_extraction(p_extraction_id, p_sheet_type, p_model, p_input_tokens, p_output_tokens, p_estimated_cost_usd, p_duration_ms, p_status, p_error_message, p_user_id)` | edge fn | append to the log |
-| `get_oil_sheet_ai_config(p_sheet_type)` | edge fn | one active config row |
-| `get_oil_sheet_extractions(p_status, p_sheet_type, p_limit, p_offset)` | UI | list. **Must not select `preview_image`** — it would blow the list payload up by megabytes. |
-| `get_oil_sheet_extraction_by_id(p_id)` | UI | full row including `preview_image` |
-| `update_oil_sheet_extraction_review(p_id, p_reviewed_data, p_reviewed_by)` | UI | save review edits without confirming |
-| `confirm_oil_sheet_extraction(p_id, p_reviewed_data, p_reviewed_by)` | UI | see below |
+| function | purpose |
+|---|---|
+| `create_oil_sheet_extraction(p_sheet_type, p_file_name, p_s3_file_id, p_preview_image, p_uploaded_by)` | insert with `status='extracting'`, return the id |
+| `save_oil_sheet_extraction_result(p_id, p_extracted_data, p_confidence, p_validation_flags, p_production_date)` | set `status='extracted'` |
+| `fail_oil_sheet_extraction(p_id, p_error_message)` | set `status='failed'` |
+| `log_oil_sheet_extraction(...)` | append to the log **and** add `cost_cents` to `oil_sheet_ai_budget.spent_cents` for the current period |
+| `check_oil_sheet_ai_budget(p_estimated_cost_cents)` | mirror `assistant_check_budget` (`20260716160000:832`) |
+| `get_oil_sheet_ai_config(p_sheet_type)` | one active config row |
+| `get_oil_sheet_extractions(p_status, p_sheet_type, p_limit, p_offset)` | list |
+| `get_oil_sheet_extraction_by_id(p_id)` | full row incl. `preview_image` |
+| `update_oil_sheet_extraction_review(p_id, p_reviewed_data, p_reviewed_by)` | save edits, status unchanged |
+| `confirm_oil_sheet_extraction(p_id, p_reviewed_data, p_reviewed_by)` | see below |
 
-`confirm_oil_sheet_extraction` is the only one with real logic:
+**[was blocked — standards finding]** `get_oil_sheet_extractions` must cap the page size —
+`LIMIT LEAST(COALESCE(p_limit, 50), 100)` — and must **not** select `preview_image`, which would add
+megabytes per row.
 
-1. Load the extraction; if `status = 'confirmed'` already, return
-   `{success:false, error:'Already confirmed'}` — this makes double-submit safe.
-2. Resolve the `shift` row for `production_date`: `SELECT … FROM public.shift WHERE shift_date = …`,
-   insert one if absent.
-3. Read its `shift_tracking`, defaulting to `'{}'::jsonb`. Ensure `production_sheets` is an object
-   and `production_sheets[sheet_type]` is an array, then **append** `p_reviewed_data` to that array.
-   Mirror `WebPortal/modules/oil-production/js/oil_production_grid.js:706-717` exactly — append,
-   never replace, because a shift can legitimately have more than one sheet of a type.
-4. Write `shift_tracking` back, set `shift_id`, `reviewed_by`, `reviewed_at = now()`,
-   `status = 'confirmed'`, `reviewed_data = p_reviewed_data`.
-5. Return `{success:true, shift_id, extraction_id}`.
+**[was blocked — finding 2] Every `UPDATE` and `DELETE` in this file must carry an explicit `WHERE`
+clause naming the primary key.** Write `UPDATE public.oil_sheet_extraction SET … WHERE id = p_id;`
+and `UPDATE public.shift SET … WHERE id = v_shift_id;`. An unqualified `UPDATE public.shift SET
+shift_tracking = …` rewrites every shift row in the factory's history. There is no reviewer between
+this plan and production, so state it rather than assume it.
 
-Do this in SQL rather than by calling `upsert_shift` from the browser: it keeps the read-modify-write
-of `shift_tracking` inside one statement, so two managers confirming sheets for the same day cannot
-lose each other's entry.
+#### `confirm_oil_sheet_extraction` — the one with real logic
 
-### 6. RBAC
+**[was blocked — finding 3]** The earlier draft claimed this design meant "two managers confirming
+sheets for the same day cannot lose each other's entry", then described a read followed by a
+separate write. Under `READ COMMITTED` that is precisely a lost update. It is also racy on the
+shift-row lookup, because `shift.shift_date` has no unique constraint (`20260226000006:47` is a
+plain index). The corrected sequence:
 
-Three layers, all three seeded here. `CLAUDE.md:34-39` warns they must move together; the plan fails
-its purpose if it seeds one and leaves the others.
+1. `SELECT … INTO v_ext FROM public.oil_sheet_extraction WHERE id = p_id FOR UPDATE;`
+   Not found → `{success:false, error:'Extraction not found'}`.
+   Already `confirmed` → `{success:false, error:'Already confirmed'}`. This makes double-submit safe.
+2. `v_date := COALESCE(p_production_date_override, v_ext.production_date);` If it is **null**, return
+   `{success:false, error:'Production date is required before confirming'}`. `shift.shift_date` is
+   `NOT NULL`, and `oil_sheet_extraction.production_date` is nullable — do not invent a date, and do
+   not default to `now()`.
+3. Serialise on the date before touching `shift`:
+   `PERFORM pg_advisory_xact_lock(hashtext('oil_sheet_confirm:' || v_date::text));`
+   This needs no schema change and no new unique index — which matters, because this environment
+   cannot check whether duplicate `shift_date` rows already exist in production.
+4. Resolve the shift row **deterministically**, since duplicates are possible:
+   `SELECT id INTO v_shift_id FROM public.shift WHERE shift_date = v_date ORDER BY created_at, id LIMIT 1 FOR UPDATE;`
+   If none, `INSERT INTO public.shift (shift_date, shift_supervisor) VALUES (v_date, …) RETURNING id INTO v_shift_id;`
+5. Append in a **single self-referencing UPDATE** — do not read into a variable and write it back:
+   ```sql
+   UPDATE public.shift
+      SET shift_tracking = jsonb_set(
+              COALESCE(shift_tracking, '{}'::jsonb),
+              ARRAY['production_sheets', v_ext.sheet_type],
+              COALESCE(shift_tracking -> 'production_sheets' -> v_ext.sheet_type, '[]'::jsonb)
+                  || jsonb_build_array(p_reviewed_data),
+              true)
+    WHERE id = v_shift_id;
+   ```
+   Append, never replace — a shift can legitimately carry more than one sheet of a type, which is
+   what `oil_production_grid.js:706-717` does.
+6. `UPDATE public.oil_sheet_extraction SET status='confirmed', reviewed_data=p_reviewed_data,
+   reviewed_by=p_reviewed_by, reviewed_at=now(), shift_id=v_shift_id WHERE id = p_id;`
+7. Return `{success:true, shift_id, extraction_id}`.
 
-**(a) Route visibility — `features` / `role_features`.** The sidebar and the router both gate on
-`Session.get('featureKeys')`, which is loaded from `public.role_features`
-(`WebPortal/js/role-menu-config.js:603-628`). Without a feature row the new screen is invisible to
-everyone except `super_user` and `admin`, who are hard-coded to bypass the check.
+### 7. RBAC — the two layers that still apply
 
-Insert one `public.features` row — key `oil-sheet-ai-grid`, name "AI Production Sheet Ingestion"
-(table at `migrations/20260302000001_create_features_tables.sql:6-14`) — then grant it to the roles
-listed below using the `DO $$ … FOREACH … ON CONFLICT DO NOTHING` pattern at
-`migrations/20260302000003_seed_features.sql:70-95`.
+The third layer, `role_permissions`, does not apply here; see the security model above.
 
-The route key `oil-sheet-ai-grid` is fixed by `oil-sheet-ai-03-upload-and-list.md`; it must match
-exactly or the screen will never appear.
+**(a) Route visibility — `features` / `role_features`.** Insert a `public.features` row with key
+`oil-sheet-ai-grid` (the route key fixed by plan 03 — it must match exactly), then grant it with the
+`DO $$ … FOREACH … ON CONFLICT DO NOTHING` pattern at `migrations/20260302000003_seed_features.sql:70-95`.
 
-**(b) Button gating — `actions` / `role_actions`.** Two action keys, seeded into `public.actions` and
-granted in `public.role_actions` following
-`migrations/20260602100000_create_actions_tables.sql:59`:
+**(b) Button gating — `actions` / `role_actions`.** Two keys following
+`migrations/20260602100000_create_actions_tables.sql:59`: `oil.sheet.ai_upload` and
+`oil.sheet.ai_review`.
 
-- `oil.sheet.ai_upload` — "Upload a production sheet for AI extraction"
-- `oil.sheet.ai_review` — "Review and confirm an extracted production sheet"
+**Grant both layers to:** `super_user`, `admin`, `General Manager`, `QA Supervisor`,
+`Oil Plant Manager`, `Office Administrator`. **[was blocked — smaller issue]** These are *not* the
+complete set of roles with oil access — `PWA Production` also holds `oil-production-grid`
+(`WebPortal/js/role-menu-config.js:130`) and is deliberately excluded here, because uploading and
+confirming GMP records is a manager action, not a line-operator one. `Factory Manager` is
+kernel-only (`:35-47`) and is also excluded. Do not widen this list; `CLAUDE.md:38-39` records that
+granting new functions to every role is how this repo's permission layers drifted apart.
 
-**(c) RPC execution — `role_permissions`.** EXECUTE grants for all nine RPCs, using the `DO $$` block
-pattern at `migrations/20260324000001_unify_oil_batch_number_format.sql:169-179`.
-
-**All three layers grant to these roles only:** `super_user`, `admin`, `General Manager`, `QA Supervisor`,
-`Oil Plant Manager`, `Office Administrator`. These are the roles that hold oil-module access today
-per `WebPortal/js/role-menu-config.js:99-110`. **Do not grant to every role.** `CLAUDE.md:38-39`
-records that the "grant a new function to every role" pattern in `docs/RBAC_GUIDE.md` is exactly how
-the permission layers drifted 186 grants out of step with 2 action keys. Note `Factory Manager` is
-kernel-only (`role-menu-config.js:35-47`) and must not be granted.
-
-Finish the migration with `NOTIFY pgrst, 'reload schema';`.
-
-## Security invariants
-
-- Every RPC is `SECURITY DEFINER` with `SET search_path = public` — no exceptions, and no
-  unqualified table references inside them.
-- No RPC may accept a role, permission or `is_active` flag as a parameter.
-- `get_oil_sheet_extractions` must not return `preview_image`.
-- Do not add RLS policies granting anything to `anon`. The two existing oil tables that enable RLS
-  (`20260226000006:154-167`) grant `ALL` to `service_role` and `SELECT` to `authenticated` only.
-  Follow that if you enable RLS at all; these tables are reached exclusively through
-  `SECURITY DEFINER` RPCs, which is how `oil_bin_batch` already works
-  (`migrations/20260322000001_oil_bin_batch_production.sql:27` enables RLS and creates no policies).
+Finish with `NOTIFY pgrst, 'reload schema';`.
 
 ## Verify before finishing
 
-- `npm run migrations:verify` passes — this proves the filename and the directory contents.
-- `npm run test:fleet` passes end to end.
-- Re-read the file and confirm: no `temperature` column anywhere; no `CREATE POLICY … TO anon`; every
-  function is `SECURITY DEFINER`; the file ends with `NOTIFY pgrst, 'reload schema';`.
-- Confirm the timestamp prefix you chose is greater than every existing prefix in `migrations/` and
-  collides with none — `ls migrations/ | sort | tail -3`.
+- `npm run migrations:verify` passes, and `npm run test:fleet` passes end to end.
+- `ls migrations/ | sort | tail -3` — confirm your prefix is later than `20260815130000` and unique.
+- Grep the finished file and confirm each of these:
+  - every `CREATE FUNCTION` has a matching `REVOKE ALL … FROM PUBLIC`, `FROM anon`,
+    `FROM authenticated` and `GRANT EXECUTE … TO service_role` — count them; nine functions means
+    nine of each;
+  - no `GRANT … TO anon` and no `GRANT … TO authenticated` anywhere;
+  - every `UPDATE` and `DELETE` has a `WHERE`;
+  - no `temperature`, `effort` or `output_config` column or comment;
+  - no occurrence of `claude-opus-5`;
+  - `LEAST(` appears in `get_oil_sheet_extractions`;
+  - the file ends with `NOTIFY pgrst, 'reload schema';`.
 
-You cannot execute the SQL, so do not attempt to verify behaviour against a database. Correctness of
-the DDL is established by reading it.
+You cannot execute the SQL, so do not claim behavioural verification. Correctness of the DDL is
+established by reading it.

@@ -1,54 +1,55 @@
----
-depends_on: oil-sheet-ai-01-database.md
----
-
 # AI production-sheet ingestion — the extraction edge function
 
 ## Context
 
-`oil-sheet-ai-01-database.md` created the tables and RPCs that hold an uploaded production sheet and
-its extracted contents. This plan authors the piece in the middle: a Deno edge function
-`extract-oil-sheet` that receives a base64 image of a handwritten GMP production sheet, sends it to
-Claude, validates what comes back, and writes the result through those RPCs.
+`oil-sheet-ai-01-database.md` creates the tables and RPCs that hold an uploaded GMP production sheet
+and its extracted contents. This plan authors the piece in the middle: a Deno edge function
+`extract-oil-sheet`.
 
 The two forms in scope are **MP02-9 Rev3** (food grade) and **MP02-12 REV 04** (cosmetic oil). Both
-are single-page, densely handwritten, and photocopied — this is a hard extraction problem, which is
-why the whole flow ends in a mandatory human review screen (`oil-sheet-ai-04-review-and-confirm.md`).
+are single-page, densely handwritten and photocopied, which is why the flow ends in a mandatory human
+review screen (`oil-sheet-ai-04-review-and-confirm.md`).
 
-**You cannot deploy edge functions.** No Supabase credential and no network path exists in this
-environment. Author the files only; a human deploys with
+**This function is the only way the browser reaches the new tables.** Plan 01's nine RPCs are
+`service_role`-only: `REVOKE ALL … FROM PUBLIC, anon, authenticated` + `GRANT EXECUTE … TO
+service_role`, modelled on `migrations/20260815130000_whatsapp_pending_commands.sql:236-253`. That is
+deliberate — the browser authenticates to PostgREST as `anon`
+(`WebPortal/js/data-functions.js:499-518`) using a **publicly committed** anon key
+(`WebPortal/js/macavation-supabase.js:16`), so an RPC reachable that way is reachable by anyone on
+the internet. Since these RPCs write the GMP production record, they get a session-validated gateway
+instead. **This function is that gateway**, which is why it carries read and write actions and not
+just extraction.
+
+**You cannot deploy edge functions.** No Supabase credential and no network path exists here. Author
+the files only; a human deploys with
 `supabase functions deploy extract-oil-sheet --project-ref nmdmddugxclpqrwylyfa --no-verify-jwt`.
 Do not attempt to deploy, and do not treat "not deployed" as a failure.
 
-**The RPCs this function calls do not exist in the database yet** when this plan merges — a human
-applies plan 01's migration out of band. That is fine: nothing invokes this function until plan 03
-ships a UI for it. Do not add a fallback that writes to some other table.
+**The RPCs do not exist in the database yet** when this merges — a human applies plan 01's migration
+out of band. That is fine; nothing invokes this function until plan 03 ships a UI. Do not add a
+fallback that writes somewhere else.
 
 ## The template to copy
 
 `supabase/functions/portal-assistant/index.ts` is the existing Anthropic integration in this repo and
-the model for everything below. Read it first. Reuse, do not reinvent:
+the model for everything below. Read it first, and reuse rather than reinvent:
 
-- **CORS block** — `portal-assistant/index.ts:45-50`. It already lists `x-portal-session` in
-  `Access-Control-Allow-Headers`, in both casings. Copy it verbatim.
-- **`jsonResponse` helper** — `:55-60`. Every response, including every error path, must go through
-  it so CORS headers are never dropped. A function that throws before setting CORS shows up in the
-  browser as an opaque "CORS policy" error that looks nothing like the real fault.
-- **Service client** — `makeServiceClient()` at `:62-66`, reading `SUPABASE_URL` and
-  `SUPABASE_SERVICE_ROLE_KEY` from the runtime.
-- **Session auth** — `validateSession()` at `:152-176`. It reads the `X-Portal-Session` header and
-  calls the `assistant_validate_session` RPC, returning `{userId, roleName, email}` or an error, and
-  **fails closed**: an empty result is a 401. Reuse this function as-is. Portal login tokens are not
-  Supabase Auth JWTs (`WebPortal/js/data-functions.js:496-497`), so this is the only session check
-  that works here. Do not invent a new one and do not rely on `verify_jwt`.
-- **Anthropic call** — `callAnthropic()` at `:195-234`: `fetch("https://api.anthropic.com/v1/messages")`
-  with `x-api-key` and `anthropic-version: 2023-06-01`, returning a discriminated
-  `{ok, body, statusCode, error}` rather than throwing.
-- **Cost estimation** — `MODEL_PRICING` / `modelTier` / `estimateCostCents` at `:238-257`.
-- **API key** — `Deno.env.get("ASSISTANT_AI_API_KEY") ?? Deno.env.get("ANTHROPIC_API_KEY")`, the same
-  order `portal-assistant` uses.
-- **`config.toml`** — `portal-assistant/config.toml:8-9` sets `verify_jwt = false` for its function.
-  Ship the equivalent for `extract-oil-sheet`; auth is the `X-Portal-Session` check, not the gateway.
+| Piece | Where | Note |
+|---|---|---|
+| CORS block | `:45-50` | already lists `x-portal-session` in both casings — copy verbatim |
+| `jsonResponse` | `:55-60` | every return goes through it, including errors |
+| Service client | `:62-66` | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` |
+| `rpc()` wrapper | `:68` | |
+| `validateSession()` | `:152-176` | reads `X-Portal-Session`, calls `assistant_validate_session`, returns `{userId, roleName, email}`, **fails closed** |
+| `callAnthropic()` | `:195-234` | returns `{ok, body, statusCode, error}` instead of throwing |
+| Cost estimation | `:238-257` | `MODEL_PRICING` / `modelTier` / `estimateCostCents` |
+| A real request body | `:689-695` | `{ model, max_tokens, temperature: 0.2, system, messages }` |
+| API key | `:655` | `ASSISTANT_AI_API_KEY` ?? `ANTHROPIC_API_KEY` |
+| `config.toml` | `portal-assistant/config.toml:8-9` | `verify_jwt = false` |
+
+Portal login tokens are **not** Supabase Auth JWTs (`WebPortal/js/data-functions.js:496-497`), so
+`validateSession()` is the only session check that works. Do not invent another, and do not rely on
+`verify_jwt`.
 
 ## Work
 
@@ -61,167 +62,163 @@ verify_jwt = false
 
 ### 2. `supabase/functions/extract-oil-sheet/index.ts`
 
-Open with a doc-comment header in the house style (see `portal-assistant/index.ts:1-39` and
+Doc-comment header in the house style (`portal-assistant/index.ts:1-39`,
 `send-password-reset/index.ts:1-8`) naming the deploy command, the actions, the auth mechanism and
 every environment variable read.
 
-#### Request contract
+`POST` only; `OPTIONS` short-circuits to the preflight response. Dispatch on `body.action`, the same
+shape `portal-assistant` uses (`:132-136`).
 
-`POST` only; `OPTIONS` short-circuits to the CORS preflight response.
+#### Authorization — applies to every action
 
-```jsonc
-{
-  "action": "extract_oil_sheet",
-  "sheet_type": "food_grade_oil",        // or "cosmetic_oil"
-  "base64": "<downscaled JPEG, no data: prefix>",
-  "media_type": "image/jpeg",            // or image/png, application/pdf
-  "file_name": "MP02-9-2025-08-04.jpg",
-  "s3_file_id": "…",                     // pointer from the browser's archival upload; may be null
-  "preview_image": "data:image/jpeg;base64,…"
-}
-```
+1. `validateSession()` → 401 on failure. Keep `userId` and `roleName`.
+2. **Role allow-list, enforced here.** `roleName` must be one of `super_user`, `admin`,
+   `General Manager`, `QA Supervisor`, `Oil Plant Manager`, `Office Administrator` — the same set
+   plan 01 grants the feature and action keys to. Anything else → 403. This is the real
+   authorization boundary; the browser-side `hasAction()` check in plans 03/04 is cosmetic and can
+   be bypassed by anyone who can call this endpoint. Define the list as one `const` and check it in
+   one place before the action switch.
 
-Reject with 400 if `sheet_type` or `base64` is missing. Reject with 413 if the decoded base64 exceeds
-8 MB.
+#### Actions
 
-#### Flow
+| action | body | does |
+|---|---|---|
+| `extract_oil_sheet` | `sheet_type`, `base64`, `media_type`, `file_name`, `s3_file_id`, `preview_image` | the extraction flow below |
+| `list_oil_sheets` | `status?`, `sheet_type?`, `limit?`, `offset?` | `get_oil_sheet_extractions` |
+| `get_oil_sheet` | `id` | `get_oil_sheet_extraction_by_id` |
+| `save_oil_sheet_review` | `id`, `reviewed_data` | `update_oil_sheet_extraction_review` |
+| `confirm_oil_sheet` | `id`, `reviewed_data` | `confirm_oil_sheet_extraction` |
 
-1. `validateSession()` → 401 on failure. Keep `userId` for the log row.
-2. `get_oil_sheet_ai_config(sheet_type)`. If there is no active row, return 400
-   `"No active AI config for sheet type: <x>"`.
-3. `create_oil_sheet_extraction(...)` → the extraction id. Return this id to the caller
-   **immediately in the final response**, not before — the browser waits for the whole call.
-4. Build the Anthropic request (below) and send it, with retry.
-5. Parse the response, validate it, and call either `save_oil_sheet_extraction_result` or
-   `fail_oil_sheet_extraction`.
-6. `log_oil_sheet_extraction(...)` on **both** paths — success and failure — with tokens, cost and
-   elapsed ms.
-7. Return `{ success, extraction_id, status, confidence, validation_flags, extracted_data }`.
+Pass `userId` from the validated session as `p_uploaded_by` / `p_reviewed_by`. **Never** take a user
+id from the request body — that would let any caller attribute an action to someone else.
 
-#### The Anthropic request body — read this carefully
+#### The extraction flow
+
+1. Reject with 400 if `sheet_type` or `base64` is missing; 413 if the decoded base64 exceeds 8 MB.
+2. `get_oil_sheet_ai_config(sheet_type)` → 400 if there is no active row.
+3. `check_oil_sheet_ai_budget(estimated_cents)` (plan 01, mirroring `assistant_check_budget` at
+   `migrations/20260716160000_portal_assistant_chat.sql:832`). If not allowed, return **402** with
+   the remaining budget and do **not** call Anthropic. Estimate conservatively before the call; the
+   real cost is recorded after.
+4. `create_oil_sheet_extraction(...)` → the extraction id.
+5. Build and send the Anthropic request, with retry.
+6. Parse and validate; call `save_oil_sheet_extraction_result` or `fail_oil_sheet_extraction`.
+7. `log_oil_sheet_extraction(...)` on **both** paths, with tokens, `cost_cents`, `latency_ms`,
+   `http_status` and `success` — the same columns `assistant_usage_log` uses. Plan 01 makes this call
+   also advance `oil_sheet_ai_budget.spent_cents`.
+8. Return `{ success, extraction_id, status, confidence, validation_flags, extracted_data }`.
+
+#### The Anthropic request body
+
+Mirror the only working call in this repo (`portal-assistant/index.ts:689-695`) and vary only what
+this feature needs:
 
 ```ts
 const body = {
-  model: config.model,                       // seeded as "claude-opus-5"
-  max_tokens: config.max_tokens,             // seeded 16000
-  output_config: { effort: config.effort },  // seeded "high"
+  model: config.model,          // seeded 'claude-sonnet-4-6' — same as portal-assistant:96
+  max_tokens: config.max_tokens,
+  temperature: 0.2,             // same literal as portal-assistant:692
   messages: [{
     role: "user",
     content: [
-      { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+      { type: contentType, source: { type: "base64", media_type: mediaType, data: base64 } },
       { type: "text", text: config.extraction_prompt },
     ],
   }],
 };
 ```
 
-> **External-API contract — not verifiable from inside this checkout.** The only Anthropic call in
-> this repo is `portal-assistant/index.ts:195-234`, and it runs `claude-sonnet-4-6` with no
-> `temperature`, no `output_config` and no `thinking` key. The four constraints below are properties
-> of `claude-opus-5` specifically, taken from Anthropic's model documentation — nothing in this
-> checkout exercises them, so treat them as **unconfirmed until a human deploys and runs one real
-> extraction**. They are cheap to get wrong safely: each one, if mistaken, surfaces as an HTTP 400
-> whose message names the offending field, and the fix is a one-line edit plus a redeploy. Write the
-> request builder so that adding or removing one of these keys is a single localised change, and make
-> sure the Anthropic error body reaches `oil_sheet_extraction_log.error_message` verbatim so the
-> first failure is self-diagnosing.
-
-Four things will break this if got wrong:
-
-- **Never send `temperature`, `top_p` or `top_k`.** `claude-opus-5` rejects sampling parameters with
-  HTTP 400. Plan 01 deliberately omits the column; do not add the field with a literal either.
-- **Never send `thinking: { type: "disabled" }`.** Thinking is on by default on this model, and
-  disabling it can leak `<thinking>` tags into the visible text. Omit the `thinking` key entirely.
-- **`type: "image"` for JPEG/PNG, `type: "document"` for `application/pdf`.** The content-block type
-  must match the media type; sending a PDF as an image is a 400.
-- `max_tokens` on this model caps thinking *plus* response text together. Do not lower the seeded
-  16000 to "save cost" — a truncated response fails JSON parsing and wastes the whole call.
+- `contentType` is `"image"` for JPEG/PNG and `"document"` for `application/pdf`. The block type must
+  match the media type.
+- **Send nothing else.** No `thinking`, no `output_config`, no `effort`, no `top_p`, no `top_k`. An
+  earlier revision of this plan specified those and was blocked: none of them appear anywhere in this
+  repo's Anthropic usage, so their behaviour cannot be verified from this checkout. If a future model
+  needs them, add them in a plan that can cite a working call.
+- `max_tokens` comes from config (seeded 8192). Do not lower it to save cost — a truncated response
+  fails JSON parsing and wastes the whole call.
 
 #### Retry
 
-Wrap the Anthropic call in up to 3 attempts with exponential backoff (roughly 1s, 2s, 4s, with a
-little jitter) on HTTP 429 and any 5xx, and on a network-level failure. Do not retry 400 or 401 —
-those are our bug or our key, and retrying just triples the latency before the same error. Cap total
-time at ~120s and return a clear timeout error beyond that.
+Up to 3 attempts with exponential backoff (~1s, 2s, 4s, with jitter) on HTTP 429, any 5xx, and
+network-level failures. **Do not retry 400 or 401** — those are our bug or our key, and retrying just
+triples the latency before the same error. Cap total wall time at ~120s.
 
 #### Parsing the response
 
-Claude sometimes wraps JSON in markdown fences or a sentence of prose. Port the robust parser from
-`Libra-Portal/supabase/functions/_shared/parse-anthropic-json.ts` into this function as a local
-helper — it is 25 lines and reproducing it avoids a shared-file dependency:
+Claude sometimes wraps JSON in markdown fences or a sentence of prose. Implement a local helper
+(about 25 lines — do not add a shared module, it would collide with sibling plans):
 
-1. Trim, strip a leading ` ```json ` / ` ``` ` and a trailing ` ``` `.
+1. Trim; strip a leading ` ```json ` / ` ``` ` and a trailing ` ``` `.
 2. Slice from the first `{` to the last `}`.
 3. `JSON.parse`.
 4. Assert the result is a non-null object and not an array.
 
-On failure: `fail_oil_sheet_extraction` with the parse error, log with `status='error'`, return 502.
-Include the first 500 characters of the raw text in the logged `error_message` so the failure is
-diagnosable without re-running the extraction.
+On failure: `fail_oil_sheet_extraction`, log with `success = false`, return 502. Put the first 500
+characters of the raw text into the logged `error_message` so the failure is diagnosable without
+re-running the extraction. Also surface the Anthropic error body verbatim when the call itself fails
+— the first real deployment is when any assumption about the API gets tested, and a self-diagnosing
+log entry is the difference between a one-line fix and a re-investigation.
 
-Also check `stop_reason`: `"max_tokens"` means the response was truncated — report that as its own
-error message ("Response truncated — raise max_tokens for this sheet type") rather than a generic
-JSON parse failure, because the fix is different.
+Check `stop_reason` separately: `"max_tokens"` means truncation, and the fix (raise `max_tokens` for
+that sheet type) differs from a parse failure. Report it with its own message.
 
 #### Deterministic validation → `validation_flags`
 
-The model's `confidence` is self-reported and uncalibrated. Two mechanical checks catch more real
-errors than it does. Both append objects of the shape
-`{ "field": "totals.raw_material_in_kg", "severity": "warning", "message": "…" }` to a
-`validation_flags` array. Neither ever rejects the extraction — they annotate it for the reviewer.
+`confidence` is self-reported and uncalibrated. Two mechanical checks catch more real errors. Both
+append `{ "field": "…", "severity": "warning", "message": "…" }` and **never reject** the extraction
+— they annotate it for the reviewer.
 
-**Arithmetic cross-check.** Both sheets carry handwritten column totals. Sum the extracted values
-and compare against the total the model read, flagging any difference greater than
-`max(0.05, 0.5% of the total)` — the tolerance absorbs the operator's own rounding without hiding a
-misread digit.
+**Arithmetic cross-check.** Both sheets carry handwritten column totals. Sum the extracted values and
+compare, flagging a difference greater than `max(0.05, 0.5% of the total)` — the tolerance absorbs
+the operator's own rounding without hiding a misread digit.
 
-- `food_grade_oil`: `Σ raw_material_in[].value_kg` vs `totals.raw_material_in_kg`; same for
-  `oil_out` and `cake_out`.
-- `cosmetic_oil`: `recipe` and `total_quantities` are independent figures, not a sum of `mixes` —
-  **do not cross-check them against each other.** What you can check is that
-  `oil_from_press.filter_kg + oil_from_press.hydraulic_kg` is consistent with the numbers parsed out
-  of `oil_from_press.raw_text`, and that every `mixes[].mix_number` is unique and within 1–75.
+- `food_grade_oil`: `Σ raw_material_in[].value_kg` vs `totals.raw_material_in_kg`; likewise `oil_out`
+  and `cake_out`.
+- `cosmetic_oil`: `recipe` and `total_quantities` are independent figures, **not** a sum of `mixes` —
+  do not cross-check them against each other. What you can check: that
+  `oil_from_press.filter_kg + oil_from_press.hydraulic_kg` agrees with the numbers parsed out of
+  `oil_from_press.raw_text`, and that every `mixes[].mix_number` is unique and within 1–75.
 
 **Batch-number plausibility.** Traceability joins on exact string equality —
 `migrations/20260339000001_get_oil_batch_ingredients_detail.sql` matches `oil_bin_batch.batch_number`
-and `oil.batch_id` with `=`, and batch numbers are unvalidated free text
-(`migrations/20260345000001_manual_oil_protein_batch_numbers.sql:1-2`). A `BFG60.25.07.08` misread as
+and `oil.batch_id` with `=` — and batch numbers are unvalidated free text
+(`migrations/20260345000001_manual_oil_protein_batch_numbers.sql:1-2`). `BFG60.25.07.08` misread as
 `BFG6O.25.07.08` therefore breaks the chain silently. For each batch number in the extraction
 (`start_oil_bn`, `ibc*_bn`, `raw_material_batches[]`, `raw_material_traceability[].batch_no`,
-`ibcs[].oil_bn`):
+`ibcs[].oil_bn`): exact match → no flag; no exact match but a case-insensitive or `O`↔`0` / `I`↔`1`
+substituted comparison matches → flag naming the near-match, **without auto-correcting**; nothing
+close → no flag, since a genuinely new batch number is normal.
 
-- If it matches an existing `oil.batch_id` or `oil_bin_batch.batch_number` exactly, no flag.
-- If it does not match exactly but a case-insensitive comparison, or one with `O`↔`0` and `I`↔`1`
-  substituted, does match — flag it as `severity: "warning"` naming the near-match. Do **not**
-  auto-correct; the reviewer decides.
-- If nothing is close, no flag. A genuinely new batch number is normal.
-
-Add a small `SECURITY DEFINER` helper RPC for the lookup if plan 01 did not provide one; otherwise
-do a single `select` of candidate batch numbers through the service client and match in TypeScript.
-Prefer the latter — it is one round trip and needs no new migration.
+Do the lookup with one `select` of candidate batch numbers through the service client and match in
+TypeScript — one round trip, no new migration.
 
 ## Security invariants
 
-- `validateSession()` fails closed. An empty RPC result is 401, an RPC error is 503. Never continue
-  on a session you could not validate.
-- The service-role key is used only inside this function. Never echo it, never return it, never log
-  it.
+- `validateSession()` fails closed: empty RPC result → 401, RPC error → 503. Never continue on a
+  session you could not validate.
+- The role allow-list is checked **before** the action switch, for every action including reads.
+- `p_uploaded_by` / `p_reviewed_by` come from the validated session, never from the request body.
+- The service-role key is used only inside this function — never echoed, returned or logged.
 - Never log the API key or the full base64 payload.
-- Do not trust `sheet_type` from the request as a table or column name — it is only ever an argument
-  to `get_oil_sheet_ai_config`.
-- Every `return` goes through `jsonResponse` so CORS headers survive the error paths.
+- `sheet_type` from the request is only ever an argument to an RPC, never interpolated into SQL or
+  used as a table or column name.
+- Every `return` goes through `jsonResponse`, including the top-level catch, so CORS headers survive
+  the error paths. A function that throws before setting them shows in the browser as an opaque
+  "CORS policy" error that looks nothing like the real fault.
 
 ## Verify before finishing
 
-- `deno check supabase/functions/extract-oil-sheet/index.ts` if Deno is available in this
-  environment; if it is not, say so rather than claiming it passed.
-- `npm run test:fleet` passes. (It is hermetic and does not touch `supabase/functions/`, so this only
-  proves nothing else broke.)
-- Re-read the file and confirm by grep: no `temperature`, no `top_p`, no `top_k`, no `"thinking"`
-  key anywhere; `jsonResponse` is used on every return path including the catch block; the retry
-  loop excludes 400 and 401.
-- Confirm the RPC names used here match plan 01's exactly — `create_oil_sheet_extraction`,
+- `deno check supabase/functions/extract-oil-sheet/index.ts` if Deno is available here; if it is
+  not, say so rather than claiming it passed.
+- `npm run test:fleet` passes (hermetic, does not touch `supabase/functions/`, so this only proves
+  nothing else broke).
+- Grep the finished file and confirm: no `output_config`, no `"thinking"`, no `top_p`, no `top_k`, no
+  `claude-opus-5`; `jsonResponse` on every return path including the catch; the retry loop excludes
+  400 and 401; the role allow-list is checked before the action switch.
+- Confirm every RPC name matches plan 01 exactly: `create_oil_sheet_extraction`,
   `save_oil_sheet_extraction_result`, `fail_oil_sheet_extraction`, `log_oil_sheet_extraction`,
-  `get_oil_sheet_ai_config`. A typo here is invisible until a human deploys and uploads a sheet.
+  `check_oil_sheet_ai_budget`, `get_oil_sheet_ai_config`, `get_oil_sheet_extractions`,
+  `get_oil_sheet_extraction_by_id`, `update_oil_sheet_extraction_review`,
+  `confirm_oil_sheet_extraction`. A typo is invisible until a human deploys and uploads a sheet.
 
-You cannot call Anthropic or Supabase from here, so do not attempt a live extraction test.
+You cannot call Anthropic or Supabase from here. Do not attempt a live extraction test.
