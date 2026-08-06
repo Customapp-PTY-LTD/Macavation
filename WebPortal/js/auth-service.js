@@ -323,6 +323,18 @@ class AuthService {
     signOut() {
         const ccParam = Session.get('clientGuid');
 
+        // Best-effort: revoke the assistant session tied to this token. Never
+        // block or delay sign-out on this — it's a courtesy cleanup, not a
+        // security boundary (the token also just stops being usable once
+        // Session.clear() below drops it from local storage).
+        this.revokeAssistantSessionBestEffort();
+
+        try {
+            if (typeof MacMascot !== 'undefined' && typeof MacMascot.stop === 'function') {
+                MacMascot.stop();
+            }
+        } catch (e) { /* ignore */ }
+
         Session.clear();
         try {
             if (typeof sessionStorage !== 'undefined') {
@@ -331,10 +343,36 @@ class AuthService {
         } catch (e) { /* ignore */ }
         this.token = null;
         this.userInfo = null;
-        
+
         // Preserve cc parameter in redirect
         const signinUrl = ccParam ? `signin.html?cc=${encodeURIComponent(ccParam)}` : 'signin.html';
         window.location.href = signinUrl;
+    }
+
+    /**
+     * Fire-and-forget call to auth_logout (revokes the matching
+     * assistant_sessions row). Never awaited by callers and never throws.
+     */
+    revokeAssistantSessionBestEffort() {
+        try {
+            const token = this.token || Session.get('token');
+            if (!token) return;
+            const url = `${this.supabaseCfg.url}/rest/v1/rpc/auth_logout`;
+            const payload = JSON.stringify({ p_token: token });
+            // keepalive lets this survive the page navigation triggered right after.
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.supabaseCfg.anonKey}`,
+                    'apikey': this.supabaseCfg.anonKey
+                },
+                body: payload,
+                keepalive: true
+            }).catch(function () { /* best-effort only */ });
+        } catch (e) {
+            // best-effort only — never block sign-out on this.
+        }
     }
 
     /**

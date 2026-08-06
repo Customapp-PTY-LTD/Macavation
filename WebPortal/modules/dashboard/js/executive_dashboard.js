@@ -14,6 +14,64 @@ var _executiveDashboard = function () {
         var dow = new Date(+parts[0], +parts[1] - 1, +parts[2]).getDay();
         return dow === 0 || dow === 6;
     }
+
+    // dashboard_targets.metric_key is free-text VARCHAR(100) with no vocabulary table or FK
+    // (migrations/20260602110000_dashboard_targets.sql:8), so these two keys are a client-side
+    // convention only — the same convention the NIS runway feature already uses for
+    // nis_crack_rate_kg_per_day / nis_rate_basis_month (WebPortal/js/data-functions.js:2110-2117).
+    // Nothing seeds them: a human must type the exact string into the Dashboard Targets admin
+    // grid before a comparison appears here. Expected row shape is period_type 'monthly',
+    // division 'all' — but match on metric_key only, because get_dashboard_targets() already
+    // returns the latest effective row per metric_key/division/period_type and filtering further
+    // would silently drop a validly-entered target.
+    var TARGET_METRIC_KEYS = {
+        soundKernelRecovery: 'sound_kernel_recovery_pct',
+        oilYield: 'oil_yield_pct'
+    };
+
+    // Direction is per-metric, not a single global rule. Both metrics in this table are
+    // higher-is-better, so a plain actual/target ratio is correct for both. This dashboard also
+    // has a LOWER-is-better figure — the stock-accuracy "Monthly % of SOH adjusted"
+    // (dashboard_unified.html ~:768) — which must NOT inherit this rule; it deliberately has no
+    // target comparison implemented (out of scope, see plan notes).
+    var TARGET_METRIC_DIRECTION = {
+        sound_kernel_recovery_pct: 'higher-is-better',
+        oil_yield_pct: 'higher-is-better'
+    };
+
+    // Shared lookup so more than one card can resolve a target row by metric_key.
+    function findDashboardTarget(rows, metricKey) {
+        return (rows || []).find(function (t) { return t.metric_key === metricKey; });
+    }
+
+    // Renders (or hides) the target/progress/caption block for one metric-comparison card.
+    // No target row (or a non-positive/missing target) or no actual value => hide the block
+    // entirely rather than showing a 0% target or a zero-width bar presented as a judgement.
+    function renderMetricTargetComparison(rows, metricKey, actual, ids) {
+        var block = document.getElementById(ids.block);
+        if (!block) return;
+        var row = findDashboardTarget(rows, metricKey);
+        var target = row ? Number(row.target_value) : 0;
+        if (!(target > 0) || actual == null) {
+            block.classList.add('d-none');
+            return;
+        }
+        var direction = TARGET_METRIC_DIRECTION[metricKey];
+        // Only higher-is-better is implemented (both in-scope metrics use it); see comment above.
+        var pct = direction === 'higher-is-better'
+            ? Math.min(100, Math.round((actual / target) * 100))
+            : 0;
+        block.classList.remove('d-none');
+        $('#' + ids.targetEl).text(target.toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+        $('#' + ids.progressEl).css('width', pct + '%').attr('aria-valuenow', pct);
+        $('#' + ids.captionEl).text(pct + '% of target');
+    }
+
+    // Failure/empty state for a metric-comparison block: same as "no target row".
+    function clearMetricTargetComparison(ids) {
+        var block = document.getElementById(ids.block);
+        if (block) block.classList.add('d-none');
+    }
     var DASHBOARD_WIDGET_LABELS = {
         totalProduction: 'Total Production (kg)',
         execStatBatchesInProduction: 'Kernel batches in production',
@@ -32,9 +90,9 @@ var _executiveDashboard = function () {
         execDailyMinuteTests: 'Daily minute tests',
         execProductionTrends: 'Production Trends',
         execStockHistory: 'Stock on hand history',
-        execProcurementForecast: 'Procurement & forecast',
+        execRunwayForecast: 'Raw material runway forecast (NIS)',
         execStockAlerts: 'Stock alerts',
-        execRunway: 'Raw material runway',
+        execRunway: 'Finished stock cover (vs open orders)',
         execOilTrends: 'Oil production trends',
         execStockAccuracy: 'Stock accuracy',
         execProducedVsTarget: 'Produced vs target',
@@ -102,7 +160,7 @@ var _executiveDashboard = function () {
             await scope.loadDailyMinuteTests();
             await scope.loadProductionTrendsChart();
             await scope.loadStockHistoryChart();
-            await scope.loadProcurementForecastChart();
+            await scope.loadRunwayForecastChart();
             await scope.loadExecutiveAlerts();
             await scope.loadRunwaySummary();
             await scope.loadOilTrendsChart();
@@ -118,7 +176,15 @@ var _executiveDashboard = function () {
                 var raw = localStorage.getItem(DASHBOARD_VISIBILITY_KEY);
                 if (raw === null) return null;
                 var arr = JSON.parse(raw);
-                return Array.isArray(arr) ? arr : null;
+                if (!Array.isArray(arr)) return null;
+                // Retired widget keys map forward to their replacements. Without this, every user who
+                // has ever saved a custom selection loses the replacement card permanently, because
+                // new keys are in nobody's stored list and applyDashboardVisibility hides anything
+                // that is not in it.
+                var renamed = { execProcurementForecast: 'execRunwayForecast' };
+                return arr.map(function (id) {
+                    return Object.prototype.hasOwnProperty.call(renamed, id) ? renamed[id] : id;
+                }).filter(function (id, i, a) { return a.indexOf(id) === i; });
             } catch (e) {
                 return null;
             }
@@ -152,10 +218,11 @@ var _executiveDashboard = function () {
 
             var production = ['totalProduction', 'execStatBatchesInProduction', 'execStatKgCrackedToday', 'execStatKgCrackedWeek',
                 'execStatKgPackedToday', 'execStatKgPackedWeek', 'execStatBatchesAwaitingTest', 'execStatBatchesReleaseReady',
-                'execStatBatchesCompletedWeek', 'execStatBatchesInIntake', 'execDailyMinuteTests', 'execProductionTrends'];
+                'execStatBatchesCompletedWeek', 'execStatBatchesInIntake', 'execDailyMinuteTests', 'execProductionTrends',
+                'execRunwayForecast'];
             var oil = ['execStatOilLitresToday', 'execStatOilLitresWeek', 'execProductionTrends', 'totalProduction'];
             var qa = ['execStatBatchesAwaitingTest', 'execStatBatchesReleaseReady', 'execDailyMinuteTests', 'totalProduction'];
-            var forecastSales = ['execProcurementForecast', 'totalProduction', 'execStatBatchesCompletedWeek', 'execProductionTrends'];
+            var forecastSales = ['execRunwayForecast', 'totalProduction', 'execStatBatchesCompletedWeek', 'execProductionTrends'];
 
             var map = {
                 'production manager': production,
@@ -364,6 +431,24 @@ var _executiveDashboard = function () {
                 $(this).removeClass('btn-outline-secondary').addClass('btn-primary');
                 scope.loadStockHistoryChart();
             });
+            $('.runway-forecast-range-btn').off('click').on('click', function () {
+                var r = $(this).data('range');
+                scope.runwayForecastRangeKey = r ? String(r).toUpperCase() : '3M';
+                $('.runway-forecast-range-btn').removeClass('btn-primary').addClass('btn-outline-secondary');
+                $(this).removeClass('btn-outline-secondary').addClass('btn-primary');
+                scope.loadRunwayForecastChart();
+            });
+
+            $('#runwayForecastSettingsBtn').off('click').on('click', function () {
+                scope.openRunwayRateModal();
+            });
+            $('#runwayRateSaveBtn').off('click').on('click', function () {
+                scope.saveRunwayRate();
+            });
+            $('#runwayRateClearBtn').off('click').on('click', function () {
+                scope.clearRunwayRate();
+            });
+
             $('.stock-history-range-btn').off('click').on('click', function () {
                 var r = $(this).data('range');
                 scope.stockHistoryRangeKey = r ? String(r).toUpperCase() : '1Y';
@@ -383,10 +468,11 @@ var _executiveDashboard = function () {
                 scope.productionTrendsData = Array.isArray(raw) ? raw : [];
                 scope.renderProductionTrendsChart();
             } catch (e) {
+                // Do NOT replace the wrapper's innerHTML here: that deletes the canvas, so every later
+                // render silently no-ops. Use the empty state instead.
                 console.error('Error loading production trends:', e);
-                if (canvas && canvas.parentNode) {
-                    canvas.parentNode.innerHTML = '<p class="text-muted small mb-0">Unable to load trends. Apply migration get_production_trends_daily if needed.</p>';
-                }
+                scope.productionTrendsData = [];
+                scope.setChartEmptyState('productionTrendsChart', true);
             }
         },
 
@@ -394,7 +480,12 @@ var _executiveDashboard = function () {
             const scope = _executiveDashboard;
             const data = scope.productionTrendsData || [];
             const canvas = document.getElementById('productionTrendsChart');
-            if (!canvas || !data.length) return;
+            if (!canvas) return;
+            if (!data.length) {
+                if (scope.productionTrendsChart) { scope.productionTrendsChart.destroy(); scope.productionTrendsChart = null; }
+                scope.setChartEmptyState('productionTrendsChart', true);
+                return;
+            }
             const metric = document.getElementById('productionTrendsMetric');
             const key = (metric && metric.value) ? metric.value : 'kg_cracked';
             const datasetLabel = metric && metric.options[metric.selectedIndex] ? metric.options[metric.selectedIndex].text : 'kg';
@@ -491,7 +582,26 @@ var _executiveDashboard = function () {
 
             const labels = prepared.map(function (p) { return p.label; });
             const values = prepared.map(function (p) { return p.value; });
-            if (!labels.length) return;
+            var hasAny = values.some(function (v) { return Number(v) > 0; });
+            if (!labels.length || !hasAny) {
+                if (scope.productionTrendsChart) { scope.productionTrendsChart.destroy(); scope.productionTrendsChart = null; }
+                var emptyMsg = document.getElementById('productionTrendsEmpty');
+                if (emptyMsg) {
+                    emptyMsg.textContent = labels.length
+                        ? 'No ' + String(datasetLabel).toLowerCase() + ' recorded between ' +
+                          labels[0] + ' and ' + labels[labels.length - 1] + '.'
+                        : 'No data recorded for this metric in the selected period.';
+                }
+                var rangeElEmpty = document.getElementById('productionTrendsRange');
+                if (rangeElEmpty) {
+                    rangeElEmpty.textContent = labels.length
+                        ? 'Showing ' + labels[0] + ' - ' + labels[labels.length - 1]
+                        : '';
+                }
+                scope.setChartEmptyState('productionTrendsChart', true);
+                return;
+            }
+            scope.setChartEmptyState('productionTrendsChart', false);
             var rangeEl = document.getElementById('productionTrendsRange');
             if (rangeEl) rangeEl.textContent = 'Showing ' + labels[0] + ' - ' + labels[labels.length - 1];
             var prevBtn = document.getElementById('productionTrendsPrev');
@@ -727,90 +837,632 @@ var _executiveDashboard = function () {
             });
         },
 
-        procurementForecastChart: null,
         oilTrendsChart: null,
         stockAccuracyChart: null,
+        oilForecastChart: null,
         dashboardTargets: [],
 
-        loadProcurementForecastChart: async () => {
-            const scope = _executiveDashboard;
-            var canvas = document.getElementById('procurementForecastChart');
-            if (!canvas || typeof Chart === 'undefined') return;
-            if (!dataFunctions.getProcurementForecastByWeek) return;
-            try {
-                var results = await Promise.all([
-                    dataFunctions.getProcurementForecastByWeek(12).catch(() => []),
-                    dataFunctions.getKernelForecastByWeek(12).catch(() => [])
-                ]);
-                var procurement = results[0] || [];
-                var forecastRows = results[1] || [];
+        runwayForecastChart: null,
+        runwayForecastData: null,
+        runwayForecastRangeKey: '3M',
+        RUNWAY_PX_PER_DAY: 12,
+        runwayForecastSettings: null,
+        runwayRatePreview: null,
 
-                // Build a union of week labels.
-                var procByWeek = {};
-                procurement.forEach(function (r) { procByWeek[String(r.week_start)] = Number(r.predicted_weight_kg) || 0; });
-                var demandByWeek = {};
-                forecastRows.forEach(function (r) {
-                    var k = String(r.week_start);
-                    demandByWeek[k] = (demandByWeek[k] || 0) + (Number(r.quantity_cartons) || 0);
+        /**
+         * Show/hide a chart's empty-state message and its canvas together.
+         * An all-zero or row-less chart renders as a blank grid with a phantom
+         * axis, which reads as "broken" rather than "nothing recorded yet" —
+         * so hide the canvas outright and say so in words.
+         * @param {string} chartId canvas element id (wrapper is `<chartId>Wrap`, message is `<chartId>Empty` minus the trailing 'Chart')
+         * @param {boolean} isEmpty
+         */
+        setChartEmptyState: function (chartId, isEmpty) {
+            var base = chartId.replace(/Chart$/, '');
+            var wrap = document.getElementById(chartId + 'Wrap');
+            var msg = document.getElementById(base + 'Empty');
+            if (wrap) wrap.classList.toggle('d-none', !!isEmpty);
+            if (msg) msg.classList.toggle('d-none', !isEmpty);
+        },
+
+
+        /**
+         * Vertical reference lines on a category axis (Today, Run-out).
+         *
+         * Registered INLINE on the chart config (config.plugins), never via Chart.register, so it
+         * cannot leak onto the dashboard's other charts. Do not reimplement with a scriptable
+         * scales.x.grid.color: grid lines are emitted per surviving tick, and with maxTicksLimit set
+         * over ~450 labels autoskip drops the today tick — the line would silently not draw.
+         */
+        runwayMarkerPlugin: {
+            id: 'runwayMarkers',
+            // Keep the pinned axis in step with the plot: same hook, same lifecycle.
+            afterDraw: function (chart) {
+                _executiveDashboard.drawRunwayAxisGutter(chart);
+            },
+            afterDatasetsDraw: function (chart, args, opts) {
+                var markers = (opts && opts.markers) || [];
+                if (!markers.length || !chart.scales || !chart.scales.x) return;
+                var scale = chart.scales.x;
+                var area = chart.chartArea;
+                var ctx = chart.ctx;
+                markers.forEach(function (m) {
+                    if (m.index == null || m.index < 0) return;
+                    var x = scale.getPixelForValue(m.index);
+                    if (!isFinite(x) || x < area.left || x > area.right) return;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.setLineDash(m.dash || [4, 3]);
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = m.color;
+                    ctx.moveTo(x, area.top);
+                    ctx.lineTo(x, area.bottom);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    if (m.label) {
+                        ctx.font = '600 11px system-ui, -apple-system, "Segoe UI", sans-serif';
+                        ctx.fillStyle = m.color;
+                        var right = x > (area.left + area.right) / 2;
+                        ctx.textAlign = right ? 'right' : 'left';
+                        ctx.textBaseline = 'top';
+                        ctx.fillText(m.label, x + (right ? -5 : 5), area.top + 2);
+                    }
+                    ctx.restore();
                 });
-                var weeks = Object.keys(procByWeek).concat(Object.keys(demandByWeek))
-                    .filter(function (v, i, a) { return a.indexOf(v) === i; })
-                    .sort();
+            }
+        },
 
-                var emptyEl = document.getElementById('procurementForecastEmpty');
-                if (weeks.length === 0) {
-                    if (emptyEl) emptyEl.classList.remove('d-none');
-                    return;
-                }
-                if (emptyEl) emptyEl.classList.add('d-none');
+        RUNWAY_AXIS_W: 88,
 
-                var labels = weeks.map(function (w) { return String(w).slice(0, 10); });
-                var procData = weeks.map(function (w) { return procByWeek[w] || 0; });
-                var demandData = weeks.map(function (w) { return demandByWeek[w] || 0; });
+        /**
+         * Paint the y axis into its own pinned canvas beside the scrolling plot.
+         *
+         * Why not a second Chart.js instance: two charts means two y scales that must be kept
+         * identical, and the moment they drift the fixed axis silently mislabels the data. This reads
+         * tick pixel positions straight off the live scale (yScale.getPixelForTick), so the gutter is
+         * correct by construction. Both canvases share the same CSS height and are top-aligned, so
+         * those coordinates map 1:1.
+         *
+         * Called from the marker plugin's afterDraw, so it repaints whenever the chart does.
+         */
+        drawRunwayAxisGutter: function (chart) {
+            var scope = _executiveDashboard;
+            var canvas = document.getElementById('runwayForecastAxis');
+            if (!canvas || !chart || !chart.scales || !chart.scales.y || !chart.chartArea) return;
+            var yScale = chart.scales.y;
+            var w = scope.RUNWAY_AXIS_W;
+            var h = chart.height;
+            if (!h) return;
 
-                if (scope.procurementForecastChart) {
-                    scope.procurementForecastChart.destroy();
-                    scope.procurementForecastChart = null;
-                }
-                var ctx = canvas.getContext('2d');
-                scope.procurementForecastChart = new Chart(ctx, {
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                type: 'bar',
-                                label: 'Scheduled intake (kg)',
-                                data: procData,
-                                backgroundColor: 'rgba(25, 135, 84, 0.6)',
-                                borderColor: 'rgba(25, 135, 84, 1)',
-                                borderWidth: 1,
-                                yAxisID: 'yKg'
+            var dpr = window.devicePixelRatio || 1;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+
+            var ctx = canvas.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, w, h);
+
+            ctx.font = '12px system-ui, -apple-system, "Segoe UI", sans-serif';
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+
+            (yScale.ticks || []).forEach(function (t, i) {
+                var y = yScale.getPixelForTick(i);
+                if (!isFinite(y)) return;
+                ctx.fillText(scope.runwayKg(t.value), w - 8, y);
+            });
+
+            ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(w - 0.5, chart.chartArea.top);
+            ctx.lineTo(w - 0.5, chart.chartArea.bottom);
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(12, (chart.chartArea.top + chart.chartArea.bottom) / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#666';
+            ctx.font = '600 11px system-ui, -apple-system, "Segoe UI", sans-serif';
+            ctx.fillText('kg NIS not yet cracked', 0, 0);
+            ctx.restore();
+        },
+
+        clearRunwayAxisGutter: function () {
+            var canvas = document.getElementById('runwayForecastAxis');
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        },
+
+        /** History window per range key. Mirrors stockHistoryDaysForRange. */
+        runwayDaysForRange: function (rangeKey) {
+            var key = String(rangeKey || '3M').toUpperCase();
+            if (key === '1M') return 31;
+            if (key === '3M') return 93;
+            if (key === '6M') return 186;
+            if (key === '1Y') return 366;
+            return 1826;
+        },
+
+        /** dd/mm/yy for the category axis. No Chart.js date adapter exists in this app. */
+        runwayLabel: function (iso) {
+            var parts = String(iso || '').split('T')[0].split('-');
+            return parts.length === 3 ? (parts[2] + '/' + parts[1] + '/' + parts[0].slice(2)) : String(iso || '');
+        },
+
+        runwayKg: function (n) {
+            return (Number(n) || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 });
+        },
+
+        loadRunwayForecastChart: async () => {
+            var scope = _executiveDashboard;
+            var canvas = document.getElementById('runwayForecastChart');
+            if (!canvas) return;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getNisRunwayForecast) return;
+
+            var opts = { historyDays: scope.runwayDaysForRange(scope.runwayForecastRangeKey) };
+            // A preview lets someone see a rate before committing it for everyone.
+            if (scope.runwayRatePreview) {
+                if (scope.runwayRatePreview.kgPerDay) opts.kgPerDay = scope.runwayRatePreview.kgPerDay;
+                if (scope.runwayRatePreview.basisMonth) opts.basisMonth = scope.runwayRatePreview.basisMonth;
+            }
+
+            try {
+                var res = await dataFunctions.getNisRunwayForecast(opts);
+                scope.runwayForecastData = res || { meta: {}, points: [] };
+            } catch (e) {
+                // The wrapper already swallows failures; this is belt and braces so a render bug
+                // upstream can never take the whole dashboard boot down.
+                console.warn('[Executive Dashboard] runway forecast failed', e);
+                scope.runwayForecastData = { meta: {}, points: [] };
+            }
+            scope.renderRunwayForecastChart();
+
+            // Open kernel demand is kept as a footer figure rather than a second Y axis — two units
+            // in one frame is what made the old card unreadable.
+            if (dataFunctions.getKernelForecastByWeek) {
+                try {
+                    var rows = await dataFunctions.getKernelForecastByWeek(12);
+                    scope.renderRunwayOpenDemand(rows);
+                } catch (e) { /* footer stat only, never blocks the chart */ }
+            }
+        },
+
+        renderRunwayForecastChart: function () {
+            var scope = _executiveDashboard;
+            var canvas = document.getElementById('runwayForecastChart');
+            if (!canvas) return;
+            var data = scope.runwayForecastData || { meta: {}, points: [] };
+            var points = Array.isArray(data.points) ? data.points : [];
+            var meta = data.meta || {};
+
+            if (scope.runwayForecastChart) {
+                scope.runwayForecastChart.destroy();
+                scope.runwayForecastChart = null;
+            }
+
+            if (!points.length) {
+                scope.setChartEmptyState('runwayForecastChart', true);
+                scope.clearRunwayAxisGutter();
+                scope.renderRunwayVerdict(null, meta);
+                scope.renderRunwayWarnings(meta);
+                return;
+            }
+            scope.setChartEmptyState('runwayForecastChart', false);
+
+            var labels = points.map(function (p) { return scope.runwayLabel(p.d); });
+            var todayIndex = -1;
+            for (var i = points.length - 1; i >= 0; i--) {
+                if (!points[i].is_forecast) { todayIndex = i; break; }
+            }
+            if (todayIndex < 0) todayIndex = 0;
+
+            // Two datasets over one labels array, null-padded. The boundary value is duplicated at
+            // todayIndex in BOTH so the solid and dashed lines join without a one-segment hole; the
+            // duplicate tooltip row is removed by the filter below.
+            var actual = points.map(function (p, idx) {
+                return idx <= todayIndex ? (Number(p.qty_kg) || 0) : null;
+            });
+            var forecast = points.map(function (p, idx) {
+                return idx >= todayIndex ? (Number(p.qty_kg) || 0) : null;
+            });
+            var hasForecast = points.some(function (p) { return p.is_forecast; });
+
+            var runOutIndex = -1;
+            for (var j = todayIndex; j < points.length; j++) {
+                if ((Number(points[j].qty_kg) || 0) <= 0) { runOutIndex = j; break; }
+            }
+
+            var markers = [{ index: todayIndex, color: '#6c757d', label: 'Today', dash: [4, 3] }];
+            if (runOutIndex >= 0) {
+                markers.push({ index: runOutIndex, color: '#dc3545', label: 'Run-out', dash: [4, 3] });
+            }
+
+            var datasets = [{
+                label: 'Uncracked NIS on hand',
+                data: actual,
+                borderColor: '#2563eb',
+                backgroundColor: '#2563eb22',
+                borderWidth: 1.8,
+                fill: false,
+                tension: 0,
+                spanGaps: false,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                pointHitRadius: 8
+            }];
+            if (hasForecast) {
+                datasets.push({
+                    label: 'Projected',
+                    data: forecast,
+                    borderColor: '#dc3545',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.8,
+                    borderDash: [6, 4],
+                    fill: false,
+                    tension: 0,
+                    spanGaps: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointHitRadius: 8
+                });
+            }
+
+            var rangeEl = document.getElementById('runwayForecastRange');
+            if (rangeEl) {
+                rangeEl.textContent = 'Showing ' + labels[0] + ' – ' + labels[labels.length - 1] +
+                    ' · kg nut-in-shell not yet in production' +
+                    (labels.length > 120 ? ' · scroll sideways for the rest' : '');
+            }
+
+            // Widen the canvas to a fixed px-per-day and let the wrapper scroll, rather than squeezing
+            // a year of daily points into the card width. Chart.js is responsive, so it sizes itself
+            // to this explicit width.
+            var scrollEl = document.getElementById('runwayForecastScroll');
+            var wrapEl = document.getElementById('runwayForecastChartWrap');
+            var viewW = scrollEl ? scrollEl.clientWidth : 0;
+            var chartW = Math.max(viewW, labels.length * scope.RUNWAY_PX_PER_DAY);
+            if (wrapEl) wrapEl.style.width = chartW + 'px';
+
+            if (typeof Chart === 'undefined') return;
+            scope.runwayForecastChart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14, usePointStyle: true } },
+                        runwayMarkers: { markers: markers },
+                        tooltip: {
+                            // The boundary value is duplicated at todayIndex so the solid and dashed
+                            // lines join; filter (not a null-returning label callback, which renders
+                            // literally) drops the duplicate row.
+                            filter: function (item) {
+                                return !(item.dataIndex === todayIndex && item.datasetIndex === 1);
                             },
-                            {
-                                type: 'line',
-                                label: 'Open demand (cartons)',
-                                data: demandData,
-                                borderColor: 'rgba(13, 110, 253, 1)',
-                                backgroundColor: 'rgba(13, 110, 253, 0.2)',
-                                tension: 0.35,
-                                pointRadius: 3,
-                                yAxisID: 'yCartons'
+                            callbacks: {
+                                label: function (item) {
+                                    return (item.dataset.label || '') + ': ' + scope.runwayKg(item.raw) + ' kg';
+                                },
+                                afterBody: function (items) {
+                                    if (!items || !items.length) return '';
+                                    var p = points[items[0].dataIndex];
+                                    if (!p) return '';
+                                    var extra = [];
+                                    if ((Number(p.intake_kg) || 0) > 0) extra.push('Intake +' + scope.runwayKg(p.intake_kg) + ' kg');
+                                    if ((Number(p.cracked_kg) || 0) > 0) extra.push('Cracked −' + scope.runwayKg(p.cracked_kg) + ' kg');
+                                    // Reconciliation cliffs are a real artefact of batches leaving the
+                                    // pool with unrecorded consumption — explain them rather than hide them.
+                                    if (Math.abs(Number(p.reconciled_kg) || 0) > 0.005) {
+                                        extra.push('Includes ' + scope.runwayKg(p.reconciled_kg) + ' kg reconciled at batch completion');
+                                    }
+                                    return extra;
+                                }
                             }
-                        ]
+                        }
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom' } },
-                        scales: {
-                            x: { ticks: { maxRotation: 45, minRotation: 0 } },
-                            yKg: { type: 'linear', position: 'left', beginAtZero: true, title: { display: true, text: 'kg' } },
-                            yCartons: { type: 'linear', position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'cartons' } }
+                    scales: {
+                        x: {
+                            // Scale tick count to the widened canvas: a fixed cap of 12 would leave a
+                            // 3000px chart almost unlabelled.
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 0,
+                                maxTicksLimit: Math.max(8, Math.floor(chartW / 85))
+                            },
+                            grid: { color: 'rgba(0,0,0,0.06)' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            // Gridlines stay; labels, title and border move to the pinned gutter canvas
+                            // so they cannot scroll out of view. The scale itself must stay enabled or
+                            // there are no ticks for the gutter to read.
+                            ticks: { display: false },
+                            title: { display: false },
+                            border: { display: false },
+                            grid: { color: 'rgba(0,0,0,0.06)' }
                         }
                     }
+                },
+                plugins: [scope.runwayMarkerPlugin]
+            });
+
+            // Land the view on the forecast rather than the far-left history edge: the projection is
+            // the point of the card.
+            if (scrollEl && chartW > viewW && labels.length > 1) {
+                var todayX = (todayIndex / (labels.length - 1)) * chartW;
+                scrollEl.scrollLeft = Math.max(0, Math.round(todayX - viewW * 0.35));
+            }
+
+            scope.renderRunwayVerdict({ points: points, todayIndex: todayIndex, runOutIndex: runOutIndex }, meta);
+            scope.renderRunwayWarnings(meta);
+        },
+
+        /**
+         * The run-out verdict is derived by walking the same points that draw the line, never read
+         * from meta.run_out_date, so the sentence cannot contradict the plot.
+         */
+        renderRunwayVerdict: function (v, meta) {
+            var scope = _executiveDashboard;
+            var vEl = document.getElementById('runwayForecastVerdict');
+            var aEl = document.getElementById('runwayForecastAssumptions');
+            if (!vEl) return;
+            meta = meta || {};
+
+            var pill = function (tone, text) {
+                if (typeof MacStatus !== 'undefined' && MacStatus.pill) return MacStatus.pill(tone, text);
+                return '<strong>' + text + '</strong>';
+            };
+
+            if (!v || !v.points || !v.points.length) {
+                vEl.innerHTML = pill('none', 'No runway data');
+                if (aEl) aEl.textContent = '';
+                return;
+            }
+
+            var onHand = Number(v.points[v.todayIndex] && v.points[v.todayIndex].qty_kg) || 0;
+            var rate = Number(meta.kg_per_day) || 0;
+            var source = String(meta.kg_per_day_source || 'none');
+
+            if (source === 'none' || rate <= 0) {
+                // Designed first-run state: show the stock, refuse to invent a run-out date.
+                vEl.innerHTML = pill('open', scope.runwayKg(onHand) + ' kg on hand') +
+                    ' <span class="ms-2">No depletion rate set, so no run-out is projected.</span>' +
+                    ' <button type="button" class="btn btn-sm btn-link p-0 align-baseline" id="runwayForecastPickRateBtn">Choose a month to base it on</button>';
+                if (aEl) aEl.textContent = '';
+                var pick = document.getElementById('runwayForecastPickRateBtn');
+                if (pick) pick.addEventListener('click', function () { scope.openRunwayRateModal(); });
+                return;
+            }
+
+            if (onHand <= 0) {
+                vEl.innerHTML = pill('critical', 'No raw material on hand');
+            } else if (v.runOutIndex >= 0) {
+                var d = v.points[v.runOutIndex].d;
+                var days = v.runOutIndex - v.todayIndex;
+                var tone = days <= 14 ? 'critical' : (days <= 45 ? 'due' : 'ok');
+                var extra = '';
+                // run_out is when the plant first goes dry; final_depletion is when the last booked
+                // delivery has also been eaten. They differ whenever procurement lands after run-out,
+                // and the difference is the part people actually plan around.
+                if (meta.final_depletion_date && meta.final_depletion_date !== meta.run_out_date) {
+                    extra = ' · scheduled nut lasts to ' + scope.runwayLabel(meta.final_depletion_date);
+                    if ((Number(meta.idle_days_in_forecast) || 0) > 0) {
+                        extra += ' with ' + meta.idle_days_in_forecast + ' idle day(s)';
+                    }
+                }
+                vEl.innerHTML = pill(tone, 'Predicted run-out ' + scope.runwayLabel(d)) +
+                    ' <span class="ms-2">' + days + ' days · ' + scope.runwayKg(onHand) + ' kg on hand' +
+                    extra + '</span>';
+            } else if (meta.forecast_truncated) {
+                vEl.innerHTML = pill('ok', 'No run-out within the forecast horizon') +
+                    ' <span class="ms-2">' + scope.runwayKg(onHand) + ' kg on hand</span>';
+            } else {
+                vEl.innerHTML = pill('open', scope.runwayKg(onHand) + ' kg on hand');
+            }
+
+            if (aEl) {
+                var basis = meta.rate_basis_label
+                    ? 'from ' + meta.rate_basis_label
+                    : (source === 'override' || source === 'parameter' ? 'entered manually' : '');
+                var bits = ['Consuming ' + scope.runwayKg(rate) + ' kg/day' + (basis ? ' (' + basis + ')' : '')];
+                if ((Number(meta.scheduled_procurement_future_kg) || 0) > 0) {
+                    bits.push(scope.runwayKg(meta.scheduled_procurement_future_kg) + ' kg scheduled intake included');
+                }
+                aEl.textContent = bits.join(' · ');
+            }
+        },
+
+        /**
+         * Data-quality and assumption warnings, as sentences. The cracking capture behind this
+         * forecast is known to be unreliable, so the card says so rather than implying precision.
+         */
+        renderRunwayWarnings: function (meta) {
+            var scope = _executiveDashboard;
+            var el = document.getElementById('runwayForecastWarnings');
+            if (!el) return;
+            var warns = (meta && Array.isArray(meta.warnings)) ? meta.warnings : [];
+            var msgs = [];
+
+            warns.forEach(function (w) {
+                var key = String(w).split(':')[0];
+                if (key === 'procurement_calendar_empty') {
+                    msgs.push('No scheduled grower intake is captured, so this runway assumes no further deliveries.');
+                } else if (key === 'procurement_overdue') {
+                    msgs.push('Some scheduled deliveries are past due and are excluded — they have not been rolled forward.');
+                } else if (key === 'sparse_cracking_capture') {
+                    var tot = Number(meta.cracking_rows_total) || 0;
+                    var wk = Number(meta.cracking_rows_with_kg) || 0;
+                    msgs.push('Only ' + wk + ' of ' + tot + ' recorded cracking days carry a tonnage, so the rate is indicative.');
+                } else if (key === 'recorded_feed_exceeds_intake') {
+                    msgs.push('On ' + (Number(meta.batches_over_cracked) || 0) + ' batches the recorded feed exceeds the nut received (' +
+                        scope.runwayKg(meta.over_cracked_excess_kg) + ' kg excess) — cracking capture needs review.');
+                } else if (key === 'history_has_negative_days') {
+                    msgs.push('History includes ' + (Number(meta.history_has_negative_days) || 0) +
+                        ' day(s) that computed below zero, which points at a data-entry error.');
+                } else if (key === 'forecast_includes_idle_days') {
+                    msgs.push('The projection includes ' + (Number(meta.idle_days_in_forecast) || 0) +
+                        ' day(s) with no nut to crack, waiting on the next scheduled delivery.');
+                } else if (key === 'forecast_truncated_at_max_days') {
+                    msgs.push('Scheduled intake covers consumption for the whole horizon, so no run-out date is reached.');
+                } else if (key === 'rate_source_rejected') {
+                    msgs.push('A saved depletion rate was unusable and was ignored — set it again.');
+                }
+            });
+
+            if (!msgs.length) { el.innerHTML = ''; return; }
+            el.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i>' +
+                msgs.map(function (m) { return '<span>' + m + '</span>'; }).join('<br>');
+        },
+
+        renderRunwayOpenDemand: function (rows) {
+            var scope = _executiveDashboard;
+            var el = document.getElementById('runwayForecastOpenDemand');
+            if (!el) return;
+            var cartons = (rows || []).reduce(function (a, r) { return a + (Number(r.quantity_cartons) || 0); }, 0);
+            el.textContent = cartons > 0
+                ? 'Open kernel demand behind this depletion: ' + scope.runwayKg(cartons) + ' cartons over the next 12 weeks.'
+                : 'No open kernel demand booked in the next 12 weeks.';
+        },
+
+        // ---------------------------------------------------------------- depletion rate modal
+
+        openRunwayRateModal: function () {
+            var scope = _executiveDashboard;
+            var meta = (scope.runwayForecastData && scope.runwayForecastData.meta) || {};
+            scope.renderRunwayRateMonths(meta);
+
+            var manual = document.getElementById('runwayRateManualInput');
+            if (manual) {
+                manual.value = (String(meta.kg_per_day_source) === 'override' && !meta.rate_basis_label)
+                    ? (Number(meta.kg_per_day) || '') : '';
+            }
+            var prov = document.getElementById('runwayRateProvenance');
+            if (prov) {
+                prov.textContent = meta.rate_basis_label
+                    ? 'Currently based on ' + meta.rate_basis_label
+                    : ((Number(meta.kg_per_day) || 0) > 0 ? 'Currently ' + scope.runwayKg(meta.kg_per_day) + ' kg/day, entered manually' : 'No rate set');
+            }
+            var notice = document.getElementById('runwayRateNotice');
+            if (notice) { notice.classList.add('d-none'); notice.textContent = ''; }
+
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('runwayRateModal')).show();
+            }
+        },
+
+        renderRunwayRateMonths: function (meta) {
+            var scope = _executiveDashboard;
+            var tbody = document.getElementById('runwayRateMonthRows');
+            if (!tbody) return;
+            var months = (meta && Array.isArray(meta.months)) ? meta.months.slice() : [];
+            months.reverse(); // newest first
+
+            if (!months.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-muted small">No cracking data recorded yet, so no month can be used as a basis.</td></tr>';
+                return;
+            }
+
+            var selected = Number(meta.rate_basis_month) || 0;
+            tbody.innerHTML = months.map(function (m) {
+                var usable = (Number(m.total_kg) || 0) > 0;
+                var pct = Number(m.capture_pct) || 0;
+                // Capture rate is the whole point of this table: it is the only thing that separates a
+                // trustworthy month from one that will badly understate consumption.
+                var tone = pct >= 50 ? 'text-success' : (pct >= 25 ? 'text-warning' : 'text-danger');
+                var radio = usable
+                    ? '<input class="form-check-input runway-rate-month" type="radio" name="runwayRateMonth" value="' + m.yyyymm + '"' +
+                      (selected === Number(m.yyyymm) ? ' checked' : '') + ' aria-label="Use ' + m.label + '">'
+                    : '';
+                return '<tr' + (usable ? '' : ' class="text-muted"') + '>' +
+                    '<td>' + radio + '</td>' +
+                    '<td>' + m.label + '</td>' +
+                    '<td class="text-end">' + (usable ? scope.runwayKg(m.total_kg) + ' kg' : '—') + '</td>' +
+                    '<td class="text-end">' + (usable ? '<strong>' + scope.runwayKg(m.kg_per_day) + '</strong>' : '—') + '</td>' +
+                    '<td class="' + (usable ? tone : '') + ' small">' +
+                        (usable ? (m.day_rows_with_kg + ' of ' + m.day_rows + ' days (' + pct + '%)')
+                                : 'no tonnage captured') +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+
+            tbody.querySelectorAll('.runway-rate-month').forEach(function (el) {
+                el.addEventListener('change', function () {
+                    var manual = document.getElementById('runwayRateManualInput');
+                    if (manual) manual.value = '';
                 });
+            });
+        },
+
+        saveRunwayRate: async function () {
+            var scope = _executiveDashboard;
+            var notice = document.getElementById('runwayRateNotice');
+            var showNotice = function (msg) {
+                if (!notice) return;
+                notice.textContent = msg;
+                notice.classList.remove('d-none');
+            };
+            if (!dataFunctions.saveNisRunwaySetting) return;
+
+            var manualEl = document.getElementById('runwayRateManualInput');
+            var manual = manualEl ? parseFloat(manualEl.value) : NaN;
+            var checked = document.querySelector('.runway-rate-month:checked');
+            var month = checked ? parseInt(checked.value, 10) : 0;
+
+            if (manualEl && String(manualEl.value).trim() !== '') {
+                if (!isFinite(manual) || manual <= 0 || manual > 200000) {
+                    showNotice('Enter a kg-per-day figure between 1 and 200,000, or pick a month instead.');
+                    return;
+                }
+            } else if (!month) {
+                showNotice('Pick a month to base the rate on, or enter a kg-per-day figure.');
+                return;
+            }
+
+            try {
+                if (isFinite(manual) && manual > 0) {
+                    await dataFunctions.saveNisRunwaySetting('nis_crack_rate_kg_per_day', manual, 'Entered manually from the runway forecast card');
+                    await dataFunctions.saveNisRunwaySetting('nis_rate_basis_month', 0, 'Cleared: a manual kg/day rate was set');
+                } else {
+                    await dataFunctions.saveNisRunwaySetting('nis_rate_basis_month', month, 'Depletion rate based on this month, chosen from the runway forecast card');
+                    await dataFunctions.saveNisRunwaySetting('nis_crack_rate_kg_per_day', 0, 'Cleared: rate now derives from a basis month');
+                }
+                scope.runwayRatePreview = null;
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('runwayRateModal')).hide();
+                }
+                await scope.loadRunwayForecastChart();
             } catch (e) {
-                console.warn('[Executive Dashboard] Procurement/forecast chart failed.', e.message);
+                // Writes are RBAC-gated server-side by upsert_dashboard_target, which is why the
+                // button is not client-gated — surface the refusal instead of hiding the control.
+                showNotice('Could not save: ' + (e && e.message ? e.message : 'permission denied.'));
+            }
+        },
+
+        clearRunwayRate: async function () {
+            var scope = _executiveDashboard;
+            if (!dataFunctions.saveNisRunwaySetting) return;
+            try {
+                await dataFunctions.saveNisRunwaySetting('nis_crack_rate_kg_per_day', 0, 'Rate cleared from the runway forecast card');
+                await dataFunctions.saveNisRunwaySetting('nis_rate_basis_month', 0, 'Rate cleared from the runway forecast card');
+                scope.runwayRatePreview = null;
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('runwayRateModal')).hide();
+                }
+                await scope.loadRunwayForecastChart();
+            } catch (e) {
+                var notice = document.getElementById('runwayRateNotice');
+                if (notice) {
+                    notice.textContent = 'Could not clear: ' + (e && e.message ? e.message : 'permission denied.');
+                    notice.classList.remove('d-none');
+                }
             }
         },
 
@@ -899,7 +1551,14 @@ var _executiveDashboard = function () {
                 var rows = await dataFunctions.getOilProductionTrendsDaily(180);
                 var labels = (rows || []).map(function (r) { return String(r.trend_date || '').slice(0, 10); });
                 var litres = (rows || []).map(function (r) { return Number(r.oil_litres) || 0; });
-                if (scope.oilTrendsChart) scope.oilTrendsChart.destroy();
+                if (scope.oilTrendsChart) { scope.oilTrendsChart.destroy(); scope.oilTrendsChart = null; }
+                // The RPC back-fills every day in the window, so "no production"
+                // arrives as a full series of zeros, not an empty array.
+                if (!litres.length || !litres.some(function (v) { return v > 0; })) {
+                    scope.setChartEmptyState('oilTrendsChart', true);
+                    return;
+                }
+                scope.setChartEmptyState('oilTrendsChart', false);
                 scope.oilTrendsChart = new Chart(canvas.getContext('2d'), {
                     type: 'line',
                     data: { labels: labels, datasets: [{ label: 'Oil (L)', data: litres, borderColor: '#198754', backgroundColor: 'rgba(25,135,84,0.2)', fill: true, tension: 0.3 }] },
@@ -907,6 +1566,7 @@ var _executiveDashboard = function () {
                 });
             } catch (e) {
                 console.warn('[Executive Dashboard] oil trends failed', e);
+                scope.setChartEmptyState('oilTrendsChart', true);
             }
         },
 
@@ -919,7 +1579,12 @@ var _executiveDashboard = function () {
                 rows = (rows || []).slice().reverse();
                 var labels = rows.map(function (r) { return String(r.snapshot_month || '').slice(0, 7); });
                 var pct = rows.map(function (r) { return Number(r.pct_adjusted) || 0; });
-                if (scope.stockAccuracyChart) scope.stockAccuracyChart.destroy();
+                if (scope.stockAccuracyChart) { scope.stockAccuracyChart.destroy(); scope.stockAccuracyChart = null; }
+                if (!pct.length) {
+                    scope.setChartEmptyState('stockAccuracyChart', true);
+                    return;
+                }
+                scope.setChartEmptyState('stockAccuracyChart', false);
                 scope.stockAccuracyChart = new Chart(canvas.getContext('2d'), {
                     type: 'bar',
                     data: { labels: labels, datasets: [{ label: '% adjusted', data: pct, backgroundColor: 'rgba(255,193,7,0.7)' }] },
@@ -927,6 +1592,7 @@ var _executiveDashboard = function () {
                 });
             } catch (e) {
                 console.warn('[Executive Dashboard] stock accuracy failed', e);
+                scope.setChartEmptyState('stockAccuracyChart', true);
             }
         },
 
@@ -935,7 +1601,7 @@ var _executiveDashboard = function () {
             try {
                 var res = await dataFunctions.getDashboardTargets();
                 var rows = (res && res.rows) || [];
-                var prodTarget = rows.find(function (t) { return t.metric_key === 'total_production_kg'; });
+                var prodTarget = findDashboardTarget(rows, 'total_production_kg');
                 var actual = Number(_executiveDashboard.kpis.total_production_kg) || 0;
                 var target = prodTarget ? Number(prodTarget.target_value) : 0;
                 var pct = target > 0 ? Math.min(100, Math.round((actual / target) * 100)) : 0;
@@ -959,6 +1625,18 @@ var _executiveDashboard = function () {
                 if (v == null || !isFinite(n) || n < 0 || n > 500) return null;
                 return n;
             };
+            var recoveryTargetIds = {
+                block: 'execSoundRecoveryTargetBlock',
+                targetEl: 'execSoundRecoveryTarget',
+                progressEl: 'execSoundRecoveryProgress',
+                captionEl: 'execSoundRecoveryTargetPct'
+            };
+            var oilYieldTargetIds = {
+                block: 'execOilYieldTargetBlock',
+                targetEl: 'execOilYieldTarget',
+                progressEl: 'execOilYieldProgress',
+                captionEl: 'execOilYieldTargetPct'
+            };
             try {
                 var k = await dataFunctions.getPhase2ExtendedKpis();
                 var rec = sanePct(k.sound_kernel_recovery_pct);
@@ -968,10 +1646,30 @@ var _executiveDashboard = function () {
                 $('#execSohKernel').text(Number(k.kernel_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
                 $('#execSohOil').text(Number(k.oil_finished_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
                 $('#execSohRm').text(Number(k.oil_rm_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
+
+                // #totalProduction is an ALL-TIME figure (get_executive_kpis().total_production_kg,
+                // no date filter — migrations/20260329000001_active_batches_intake_and_production_only.sql:27-43,
+                // 20260328000002_executive_kpis_total_production_kg.sql:1). production_delta_pct is
+                // this-calendar-month-vs-last-month, so it belongs beside production_kg_this_month,
+                // never beside the all-time total and never beside Sound kernel recovery (a ratio
+                // this delta does not describe) — migrations/20260708160000_fix_oil_recovery_kpi_calculations.sql:91-114.
+                var prodThisMonthNum = Number(k.production_kg_this_month);
+                var hasThisMonth = k.production_kg_this_month != null && isFinite(prodThisMonthNum);
+                $('#execProductionThisMonth').text(hasThisMonth ? prodThisMonthNum.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
                 var delta = k.production_delta_pct;
-                $('#execProductionDelta').text(delta != null ? (delta >= 0 ? '+' : '') + delta + '% vs last month' : '');
+                $('#execProductionDelta').text(hasThisMonth && delta != null ? (delta >= 0 ? '+' : '') + delta + '% vs last month' : '');
+
+                // Target comparisons for the two single-number cards that have one. The payload
+                // carries no recovery delta (get_phase2_extended_kpis does not return one), so no
+                // month-over-month figure is computed client-side for that card.
+                var targetsRes = await dataFunctions.getDashboardTargets();
+                var targetRows = (targetsRes && targetsRes.rows) || [];
+                renderMetricTargetComparison(targetRows, TARGET_METRIC_KEYS.soundKernelRecovery, rec, recoveryTargetIds);
+                renderMetricTargetComparison(targetRows, TARGET_METRIC_KEYS.oilYield, yieldPct, oilYieldTargetIds);
             } catch (e) {
-                $('#execSoundRecoveryPct, #execOilYieldPct, #execSohKernel, #execSohOil, #execSohRm, #execProductionDelta').text('—');
+                $('#execSoundRecoveryPct, #execOilYieldPct, #execSohKernel, #execSohOil, #execSohRm, #execProductionDelta, #execProductionThisMonth').text('—');
+                clearMetricTargetComparison(recoveryTargetIds);
+                clearMetricTargetComparison(oilYieldTargetIds);
             }
         },
 
@@ -1000,7 +1698,12 @@ var _executiveDashboard = function () {
                 });
                 var weeks = Object.keys(byWeek).sort();
                 var data = weeks.map(function (w) { return byWeek[w]; });
-                if (scope.oilForecastChart) scope.oilForecastChart.destroy();
+                if (scope.oilForecastChart) { scope.oilForecastChart.destroy(); scope.oilForecastChart = null; }
+                if (!weeks.length) {
+                    scope.setChartEmptyState('oilForecastChart', true);
+                    return;
+                }
+                scope.setChartEmptyState('oilForecastChart', false);
                 scope.oilForecastChart = new Chart(canvas.getContext('2d'), {
                     type: 'bar',
                     data: { labels: weeks, datasets: [{ label: 'Forecast kg', data: data, backgroundColor: 'rgba(13,110,253,0.6)' }] },
@@ -1008,6 +1711,7 @@ var _executiveDashboard = function () {
                 });
             } catch (e) {
                 console.warn('[Executive Dashboard] oil forecast chart failed', e);
+                scope.setChartEmptyState('oilForecastChart', true);
             }
         }
     };

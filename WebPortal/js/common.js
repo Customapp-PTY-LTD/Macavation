@@ -247,6 +247,20 @@ var _common = {
         return temp.innerHTML;
     },
 
+    // Strict HTML escape for interpolation into markup, including attribute values.
+    // Escapes all five characters: & < > " '. Prefer this over sanitizeHtml, which
+    // uses textContent/innerHTML and therefore does NOT escape quotes — unsafe when
+    // the result lands inside an attribute. Ampersand must be replaced first.
+    escapeHtml: function (value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    },
+
     // Copy to clipboard
     copyToClipboard: function (text) {
         if (navigator.clipboard) {

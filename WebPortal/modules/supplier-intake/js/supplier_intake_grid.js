@@ -87,8 +87,7 @@ var _supplierIntakeGrid = function () {
 
     function escapeHtml(s) {
         if (s == null) return '';
-        var str = String(s);
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        return _common.escapeHtml(s);
     }
 
     /** True after the one-time supplier-intake sample FFA has been saved (official value on the bag). */

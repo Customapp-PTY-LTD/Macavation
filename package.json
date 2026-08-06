@@ -19,6 +19,11 @@
     "db:apply-prod": "node scripts/apply-migration-prod.mjs",
     "ui:verify": "node scripts/verify-ui-standard.mjs",
     "routing:verify": "node scripts/verify-routing-guarantee.cjs .",
-    "username:verify": "node scripts/verify-no-username.mjs"
+    "username:verify": "node scripts/verify-no-username.mjs",
+    "migrations:verify": "node scripts/verify-migration-prefixes.mjs",
+    "registry:verify": "node scripts/verify-registry-paths.mjs",
+
+    "//test:fleet": "Gate for Agent Fleet merges (agent-fleet config/repos.json points here). Must stay FAST and HERMETIC: pure Node stdlib, no browser, no login, no network, no deployed app. Do NOT add rbac:verify or audit:verify (both call Supabase with a service-role key) or the Playwright suite (it targets the deployed demo site with real logins) - either would ERROR and block every merge. ui:verify is included: it is pure fs reads, no network, no browser, runs in seconds.",
+    "test:fleet": "npm run routing:verify && npm run username:verify && node scripts/verify-phase2-migrations.mjs && npm run ui:verify && npm run migrations:verify && npm run registry:verify"
   }
 }

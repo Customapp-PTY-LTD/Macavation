@@ -75,6 +75,10 @@
     <link href="css/index.css" rel="stylesheet">
     <!-- App shell (unified sidebar) — loaded last so it supersedes legacy nav/sidebar layout -->
     <link href="css/shell.css" rel="stylesheet">
+    <!-- Portal Guide (Mac) chatbot rail -->
+    <link href="css/mac-assistant.css?v=20260716a" rel="stylesheet">
+    <!-- Idle Mac orchard mascot -->
+    <link href="css/mac-mascot.css?v=20260716a" rel="stylesheet">
 </head>
 
 <body>
@@ -227,6 +231,12 @@
                                                             <i class="fas fa-building me-2"></i>Contacts
                                                         </a>
                                                     </li>
+                                                    <li class="nav-item d-none" data-route="crm-whatsapp-grid">
+                                                        <a class="nav-link" href="#" route="crm-whatsapp-grid" title="WhatsApp & Internal Chat">
+                                                            <i class="fab fa-whatsapp me-2"></i>WhatsApp & Chat
+                                                            <span class="badge rounded-pill bg-danger ms-2" id="whatsappUnreadBadge" style="display: none;">0</span>
+                                                        </a>
+                                                    </li>
                                                 </ul>
                                             </div>
                                         </li>
@@ -315,11 +325,6 @@
                                         <li class="nav-item d-none" data-route="scheduled-reports-grid">
                                             <a class="nav-link" href="#" route="scheduled-reports-grid" title="Daily digest — email and WhatsApp subscriptions">
                                                 <i class="fas fa-paper-plane me-2"></i>Scheduled Reports
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="messaging-compose-grid">
-                                            <a class="nav-link" href="#" route="messaging-compose-grid" title="Send in-app messages">
-                                                <i class="fas fa-paper-plane me-2"></i>Send Message
                                             </a>
                                         </li>
                                     </ul>
@@ -412,6 +417,11 @@
                                     </button>
                                 </li>
                                 <li>
+                                    <button type="button" class="user-dropdown-item" id="userDropdownIdleMac">
+                                        <i class="fas fa-leaf"></i><span>Idle Mac</span>
+                                    </button>
+                                </li>
+                                <li>
                                     <button type="button" class="user-dropdown-item user-dropdown-signout" onclick="signOut()">
                                         <i class="fas fa-arrow-right-from-bracket"></i><span>Sign out</span>
                                     </button>
@@ -443,6 +453,91 @@
         </div>
     </div>
 
+    <!-- Portal Guide (Mac) — chat rail + FAB -->
+    <aside class="mac-agent-rail" id="macAgentRail" aria-label="Portal Guide" aria-hidden="true">
+        <div class="mac-agent-resize" id="macAgentResize" role="separator" aria-orientation="vertical" aria-label="Resize Portal Guide" tabindex="0"></div>
+        <header class="mac-agent-head">
+            <div class="mac-agent-head-title">
+                <img class="mac-agent-face mac-agent-face-head" src="img/mac.svg" alt="" decoding="async" aria-hidden="true">
+                <span class="mac-agent-head-text">
+                    <span class="mac-agent-head-name">Portal Guide</span>
+                    <span class="mac-agent-head-sub" id="macAgentContextLabel">How-to help for the portal</span>
+                </span>
+            </div>
+            <div class="mac-agent-head-actions">
+                <span class="mac-agent-spend-chip" id="macAgentSpend" title="Estimated AI spend this conversation" hidden></span>
+                <button type="button" class="mac-agent-icon-btn" id="macAgentCloseBtn" aria-label="Close Portal Guide">&#10005;</button>
+            </div>
+        </header>
+        <div class="mac-agent-pane mac-agent-pane-chat" id="macAgentChatPane">
+            <div class="mac-agent-thread" id="macAgentThread" role="log" aria-live="polite" aria-relevant="additions text"></div>
+            <div class="mac-agent-examples" id="macAgentExamples"></div>
+            <form class="mac-agent-composer" id="macAgentComposer" autocomplete="off">
+                <textarea class="mac-agent-input" id="macAgentInput" rows="1" placeholder="Ask Mac how to use the portal..." aria-label="Message the portal guide"></textarea>
+                <button type="submit" class="mac-agent-send" id="macAgentSend" aria-label="Send message" disabled>&#8593;</button>
+            </form>
+            <div class="mac-agent-foot">
+                <span class="mac-agent-foot-hint">Enter to send · Shift+Enter for new line · Drag left edge to resize · Esc to close</span>
+            </div>
+        </div>
+    </aside>
+    <button type="button" class="mac-agent-fab" id="macAgentFab" aria-label="Open Portal Guide">
+        <img class="mac-agent-fab-face" src="img/mac.svg" alt="" decoding="async" aria-hidden="true">
+    </button>
+
+    <!-- Idle Mac settings (opened from profile menu) -->
+    <div class="modal fade" id="idle-mac-settings-modal" tabindex="-1" aria-labelledby="idle-mac-settings-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="idle-mac-settings-title">Idle Mac</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        Optional orchard mascot after you pause. Mac can glide, peek up, drive a tractor with cart,
+                        drop under a leaf canopy, or rise in cream/oil droplets. Click-through so you can keep working;
+                        pauses while Portal Guide is open. Off by default.
+                    </p>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="macm-settings-enabled">
+                        <label class="form-check-label" for="macm-settings-enabled">Show when idle</label>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small mb-1" for="macm-settings-idle">Idle seconds</label>
+                            <input type="number" class="form-control form-control-sm" id="macm-settings-idle" min="30" max="600" step="5" value="90">
+                            <div class="form-text">Pause before Mac appears (30–600).</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small mb-1" for="macm-settings-interval">Interval seconds</label>
+                            <input type="number" class="form-control form-control-sm" id="macm-settings-interval" min="30" max="600" step="5" value="60">
+                            <div class="form-text">Minimum gap between appearances (30–600).</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small mb-1" for="macm-settings-style">Animation</label>
+                        <select class="form-select form-select-sm" id="macm-settings-style">
+                            <option value="random">Random</option>
+                            <option value="glide">Glide (sorting line)</option>
+                            <option value="peek">Peek</option>
+                            <option value="drive">Drive (tractor + cart)</option>
+                            <option value="parachute">Parachute (harvest drop)</option>
+                            <option value="bubbles">Bubbles (oil &amp; cream)</option>
+                        </select>
+                        <div class="form-text">Which animation plays when idle (and for Preview).</div>
+                    </div>
+                    <p class="small text-muted mb-0" id="macm-settings-status" aria-live="polite"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="macm-settings-preview">Preview</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="macm-settings-save">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -466,9 +561,9 @@
     <script src="js/session.js?v=20260716d"></script>
     <script src="js/themes.js"></script>
     <script src="js/super-user-visibility.js?v=20260715a"></script>
-    <script src="js/data-functions.js?v=20260716a"></script>
+    <script src="js/data-functions.js?v=20260814a"></script>
     <script src="js/auth-service.js?v=20260716c"></script>
-    <script src="js/common.js?v=20260610a"></script>
+    <script src="js/common.js?v=20260728a"></script>
     <script src="js/export-utils.js"></script>
     <!-- Display-only role label formatter: super_user -> "Super User" (never renames the key) -->
     <script src="js/role-label.js?v=20260708a"></script>
@@ -484,6 +579,7 @@
     <script src="js/menu-filter.js?v=20260716d"></script>
     <script src="js/action-access.js?v=20260602a"></script>
     <script src="js/notifications.js?v=20260602a"></script>
+    <script src="js/whatsapp-unread-badge.js"></script>
     <script src="js/stock-alerts-shared.js?v=20260629a"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
@@ -496,6 +592,9 @@
     <script src="js/app.js"></script>
     <script src="js/index.js?v=20260716d"></script>
     <script src="js/shell.js"></script>
+    <script src="modules/assistant/mac-assistant-api.js?v=20260716a"></script>
+    <script src="modules/assistant/mac-assistant-shell.js?v=20260716a"></script>
+    <script src="modules/mascot/mac-mascot.js?v=20260716a"></script>
 </body>
 
 </html>

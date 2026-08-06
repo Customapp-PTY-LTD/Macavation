@@ -94,6 +94,25 @@ document.addEventListener('DOMContentLoaded', function () {
         initProfilePicture();
         initProfilePictureInput();
 
+        if (typeof MacAssistant !== 'undefined' && typeof MacAssistant.init === 'function') {
+            try {
+                MacAssistant.init();
+            } catch (macErr) {
+                console.warn('[Index] Portal Guide init failed:', macErr);
+            }
+        }
+
+        if (typeof MacMascot !== 'undefined' && typeof MacMascot.start === 'function') {
+            try {
+                MacMascot.start();
+                if (typeof MacMascot.initSettingsUI === 'function') {
+                    MacMascot.initSettingsUI();
+                }
+            } catch (mascotErr) {
+                console.warn('[Index] Idle Mac start failed:', mascotErr);
+            }
+        }
+
         if (typeof menuFilter !== 'undefined') {
             setTimeout(function () {
                 menuFilter.init();

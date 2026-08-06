@@ -1,0 +1,76 @@
+# Customapp-PTY-LTD/Macavation
+
+## Architecture map — read before editing the portal
+
+Recorded 2026-07-28 after each of these cost real discovery time. A plan that named the wrong
+dashboard file would have merged and auto-deployed a change that renders nowhere.
+
+**The app is `WebPortal/`.** Amplify app `d18pzj0vk19ewp` builds with `appRoot: WebPortal`, so the
+deployed site root IS `WebPortal/index.html`. `dev` **auto-deploys on merge** to
+`https://dev-macavation.customapp.co.za` (canonical; `dev-macavation.customapp.org` serves the same
+branch — same app, both live).
+
+The duplicate, non-deployed top-level tree (`modules/`, `css/`, `js/`) that once sat beside
+`WebPortal/` was removed 2026-07-28. `WebPortal/` is now the only application tree.
+
+**Dashboard markup.** The live markup is `WebPortal/modules/dashboard/html/dashboard_unified.html`
+(~691 lines), which serves **three** dashboards partitioned by `data-access` wrappers (`default`,
+`pallandium-integrator`, `executive`) that `dashboard.js` shows and hides by role. Markup placed in
+the wrong block appears on the wrong dashboard. Two dead stubs that used to sit beside it
+(`executive_dashboard.html`, a 37-line stub still reading "Chart will be displayed here") plus a
+stale 387-line `dashboard.html` generation of the same file — neither named by any route, nothing
+rendered either — were removed 2026-07-28.
+
+**`data-dashboard-widget` hides new elements permanently.** Anything carrying it is hidden unless
+its id is in the user's visible-widget list. New ids are in nobody's list, role defaults are
+hardcoded, and the Customize modal only offers ids present in `DASHBOARD_WIDGET_LABELS`. Do not put
+it on anything new unless you also add it to all three.
+
+**`data-action-perm` is swept once, over static markup only.** The router runs `actionAccess.apply`
+a single time shortly after module load, over `#content-area`. Markup injected later is never
+swept, so the attribute is **inert** on dynamically rendered rows. For dynamic content, call
+`hasAction()` inline at render time — that is what the existing dashboard code does.
+
+**Permissions are two layers that must move together.** `actions`/`role_actions` gate the *buttons*
+(default-**deny** in `WebPortal/js/action-access.js`; `super_user` and `admin` are always allowed in
+code). `role_permissions` gates what the *API* will execute. They are badly out of step as of
+2026-07-28: 6 of 8 roles hold 2 of 25 action keys but 186+ API grants each, so hidden buttons do not
+prevent the operation. See `docs/phase2/role-permissions-workshop.pdf`. Note the pattern in
+`docs/RBAC_GUIDE.md` grants a new function to **every** role — that is how this drifted.
+
+**No screen is deep-linkable.** The router never reads the URL — no hash route, no query route, every
+nav link is `href="#"`. Links can only land on the app root. This is why the fleet's `preview_path`
+is deliberately unset.
+
+**`npm ci` fails here** — there is no `package-lock.json` and zero dependencies. Use `npm run <script>`
+directly. `ui:verify` scans `WebPortal/` only (paths it prints are relative to that) and skips
+`help/`. Its 65 pre-existing violations were cleared 2026-08-04 and it is now **part of
+`npm run test:fleet`**, so a new violation blocks a fleet merge. The assistant/mascot palette it used
+to flag now lives as `--mac-assistant-*`/`--mac-mascot-*` tokens in `WebPortal/css/design-tokens.css`
+— that file is the only place a raw hex is allowed. Note `BANNED_HEX` in
+`scripts/verify-ui-standard.mjs` is declared but never read; the real rule is simply "no hex outside
+`design-tokens.css`".
+
+**`docs/phase2/PHASE2_IMPLEMENTATION_PLAN.md` is stale below its status table.** The table at the top
+is accurate; the per-epic "Remaining work" tables describe the pre-2026-07-06 state and list work
+that is already built. Do not cost or schedule from them.
+
+## Agent Fleet
+
+To run, submit, or hand off a plan to the dev agents, follow the rule in
+`.claude/rules/agent-fleet-submit.md` - it covers the plan-size check and the push-to-dev-agent flow.
+Size plans against **~60 minutes of agent work**: the engine is capped at `timeout-minutes: 60`, past
+which nothing merges. (The rule's own "If it flags" bullet still says 330 - that is the whole-job
+ceiling, not the budget to size against.)
+
+## Git hygiene (multi-actor)
+
+Fleet runs, Cursor, and Claude Code sessions all land commits on this repo. Before ANY git
+operation here, follow `.claude/rules/git-hygiene.md` - fetch-first branching, one actor per
+worktree, no direct commits on the base branch, and the stuck-local-dev rescue.
+
+## Fleet test gate
+
+How this repo's tests gate a fleet merge - and where the gate is set (a PR to the
+`agent-fleet` repo's `config/repos.json`, not here) - is in `.claude/rules/fleet-test-gate.md`. Follow it when
+asked to gate tests, turn the gate on/off, or explain why a change merged untested.

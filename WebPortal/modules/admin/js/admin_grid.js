@@ -9,9 +9,7 @@ var _adminGrid = function () {
 
     function escapeHtml(text) {
         if (text == null || text === '') return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return _common.escapeHtml(text);
     }
 
     /** True when the actor may delete/deactivate a role from Roles & modules. */
@@ -29,7 +27,9 @@ var _adminGrid = function () {
         data: {
             users: [],
             roles: [],
-            permissions: []
+            permissions: [],
+            issues: [],
+            issueTypeFilter: null
         },
         selectedRoleId: null,
         adminAllFeatures: [],
@@ -45,9 +45,16 @@ var _adminGrid = function () {
         adminPendingSaves: 0,
         _usersLoaded: false,
         _rolesLoaded: false,
+        _issuesLoaded: false,
         _modalsLoaded: false,
         _modalsLoading: null,
         _initToken: 0,
+        ISSUE_TYPE_LABELS: {
+            defect: 'Defect',
+            enhancement: 'Enhancement',
+            new_feature: 'New feature',
+            other: 'Other'
+        },
 
         waitForDataFunctionsReady: async () => {
             if (typeof dataFunctions !== 'undefined' && typeof dataFunctions.getUsers === 'function') {
@@ -68,8 +75,11 @@ var _adminGrid = function () {
             const scope = _adminGrid;
             scope._usersLoaded = false;
             scope._rolesLoaded = false;
+            scope._issuesLoaded = false;
             scope.data.users = [];
             scope.data.roles = [];
+            scope.data.issues = [];
+            scope.data.issueTypeFilter = null;
         },
 
         init: async () => {
@@ -95,6 +105,7 @@ var _adminGrid = function () {
 
                 scope.setupFormHandlersOnce();
                 scope.setupRoleDetailUiOnce();
+                scope.setupIssueHandlersOnce();
                 scope.setupAddUserButtons();
 
                 try {
@@ -244,6 +255,9 @@ var _adminGrid = function () {
                     } else {
                         scope.loadRoles();
                     }
+                    break;
+                case '#issues':
+                    scope.loadIssuesRegister();
                     break;
                 default:
                     break;
@@ -1260,6 +1274,30 @@ var _adminGrid = function () {
                     scope.deactivateRole(deactivateRoleBtn.getAttribute('data-role-id'));
                     return;
                 }
+                var viewIssue = e.target.closest('[data-admin-view-issue]');
+                if (viewIssue) {
+                    e.preventDefault();
+                    scope.viewIssue(viewIssue.getAttribute('data-admin-view-issue'));
+                    return;
+                }
+                var editIssue = e.target.closest('[data-admin-edit-issue]');
+                if (editIssue) {
+                    e.preventDefault();
+                    scope.editIssue(editIssue.getAttribute('data-admin-edit-issue'));
+                    return;
+                }
+                var resolveIssue = e.target.closest('[data-admin-resolve-issue]');
+                if (resolveIssue) {
+                    e.preventDefault();
+                    scope.openResolveIssue(resolveIssue.getAttribute('data-admin-resolve-issue'));
+                    return;
+                }
+                var deleteIssue = e.target.closest('[data-admin-delete-issue]');
+                if (deleteIssue) {
+                    e.preventDefault();
+                    scope.deleteIssueConfirm(deleteIssue.getAttribute('data-admin-delete-issue'));
+                    return;
+                }
                 var userRow = e.target.closest('tr.js-admin-user-row');
                 if (userRow) {
                     if (e.target.closest('.dropdown') || e.target.closest('button') || e.target.closest('.btn')) return;
@@ -1274,6 +1312,409 @@ var _adminGrid = function () {
                     if (rid) scope.setSelectedRoleRow(rid);
                 }
             });
+        },
+
+        setupIssueHandlersOnce: () => {
+            if (window.__adminGridIssuesBound) return;
+            window.__adminGridIssuesBound = true;
+            const scope = _adminGrid;
+
+            const newBtn = document.getElementById('btnNewIssue');
+            if (newBtn) {
+                newBtn.addEventListener('click', function () {
+                    scope.openIssueFormModal();
+                });
+            }
+
+            document.querySelectorAll('.issue-type-filter').forEach(function (card) {
+                var activate = function () {
+                    var type = card.getAttribute('data-type');
+                    scope.data.issueTypeFilter = scope.data.issueTypeFilter === type ? null : type;
+                    document.querySelectorAll('.issue-type-filter').forEach(function (c) {
+                        c.classList.remove('active');
+                    });
+                    if (scope.data.issueTypeFilter) {
+                        card.classList.add('active');
+                    }
+                    scope.loadIssuesRegister();
+                };
+                card.addEventListener('click', activate);
+                card.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        activate();
+                    }
+                });
+            });
+
+            var sev = document.getElementById('issueSeverityFilter');
+            var st = document.getElementById('issueStatusFilter');
+            if (sev) sev.addEventListener('change', function () { scope.loadIssuesRegister(); });
+            if (st) st.addEventListener('change', function () { scope.loadIssuesRegister(); });
+
+            var typeSelect = document.getElementById('issueType');
+            if (typeSelect) {
+                typeSelect.addEventListener('change', function () { scope.updateIssueConditionalFields(); });
+            }
+
+            var submitBtn = document.getElementById('issueFormSubmitBtn');
+            if (submitBtn) {
+                submitBtn.addEventListener('click', function () { scope.submitIssueForm(); });
+            }
+
+            var resolveBtn = document.getElementById('issueResolveSubmitBtn');
+            if (resolveBtn) {
+                resolveBtn.addEventListener('click', function () { scope.submitResolveIssue(); });
+            }
+        },
+
+        updateIssueConditionalFields: () => {
+            var type = document.getElementById('issueType') ? document.getElementById('issueType').value : '';
+            var stepsGroup = document.getElementById('issueStepsGroup');
+            var benefitGroup = document.getElementById('issueBenefitGroup');
+            if (!stepsGroup || !benefitGroup) return;
+
+            if (type === 'defect') {
+                stepsGroup.classList.remove('d-none');
+                benefitGroup.classList.add('d-none');
+            } else if (type === 'enhancement' || type === 'new_feature') {
+                stepsGroup.classList.add('d-none');
+                benefitGroup.classList.remove('d-none');
+            } else {
+                stepsGroup.classList.add('d-none');
+                benefitGroup.classList.add('d-none');
+            }
+        },
+
+        getCurrentReporter: () => {
+            try {
+                var user = (typeof Session !== 'undefined' && Session.get) ? Session.get('user') : null;
+                if (!user) return { id: null, name: null };
+                var name = [user.first_name, user.last_name].filter(Boolean).join(' ')
+                    || user.email
+                    || 'Unknown';
+                return { id: user.id || null, name: name };
+            } catch (e) {
+                return { id: null, name: null };
+            }
+        },
+
+        loadIssuesRegister: async () => {
+            const scope = _adminGrid;
+            const tbody = document.getElementById('issuesTableBody');
+            if (!tbody || typeof dataFunctions === 'undefined') return;
+
+            try {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Loading…</td></tr>';
+                var filters = {
+                    type: scope.data.issueTypeFilter || null,
+                    severity: (document.getElementById('issueSeverityFilter') || {}).value || null,
+                    status_group: (document.getElementById('issueStatusFilter') || {}).value || null
+                };
+
+                var issues = await dataFunctions.getIssues(filters);
+
+                scope.data.issues = Array.isArray(issues) ? issues : (issues && Array.isArray(issues.data) ? issues.data : []);
+                scope.renderIssuesTable(scope.data.issues);
+                scope._issuesLoaded = true;
+
+                try {
+                    var allIssues = await dataFunctions.getIssues({});
+                    var list = Array.isArray(allIssues) ? allIssues : [];
+                    var counts = { defect: 0, enhancement: 0, new_feature: 0, other: 0 };
+                    list.forEach(function (i) {
+                        if (counts[i.type] !== undefined) counts[i.type]++;
+                    });
+                    scope.setIssueTypeCount('issueCountDefect', counts.defect);
+                    scope.setIssueTypeCount('issueCountEnhancement', counts.enhancement);
+                    scope.setIssueTypeCount('issueCountNewFeature', counts.new_feature);
+                    scope.setIssueTypeCount('issueCountOther', counts.other);
+                } catch (countErr) {
+                    scope.updateIssueTypeCountsFromCurrent();
+                }
+            } catch (error) {
+                console.error('Error loading issues:', error);
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load issues.</td></tr>';
+                scope.showNotification(error.message || 'Failed to load issues', 'error');
+            }
+        },
+
+        setIssueTypeCount: (id, n) => {
+            var el = document.getElementById(id);
+            if (el) el.textContent = String(n);
+        },
+
+        updateIssueTypeCountsFromCurrent: () => {
+            const scope = _adminGrid;
+            var counts = { defect: 0, enhancement: 0, new_feature: 0, other: 0 };
+            (scope.data.issues || []).forEach(function (i) {
+                if (counts[i.type] !== undefined) counts[i.type]++;
+            });
+            scope.setIssueTypeCount('issueCountDefect', counts.defect);
+            scope.setIssueTypeCount('issueCountEnhancement', counts.enhancement);
+            scope.setIssueTypeCount('issueCountNewFeature', counts.new_feature);
+            scope.setIssueTypeCount('issueCountOther', counts.other);
+        },
+
+        severityBadge: (severity) => {
+            var map = {
+                CRITICAL: 'bg-danger',
+                HIGH: 'bg-warning text-dark',
+                MEDIUM: 'bg-info text-dark',
+                LOW: 'bg-secondary'
+            };
+            return '<span class="badge ' + (map[severity] || 'bg-secondary') + '">' + escapeHtml(severity || '-') + '</span>';
+        },
+
+        statusLabel: (status) => {
+            if (status === 'resolved' || status === 'closed') return 'Resolved';
+            return 'Open';
+        },
+
+        formatIssueDate: (iso) => {
+            if (!iso) return '-';
+            try {
+                return new Date(iso).toLocaleDateString('en-GB');
+            } catch (e) {
+                return iso;
+            }
+        },
+
+        renderIssuesTable: (issues) => {
+            const scope = _adminGrid;
+            const tbody = document.getElementById('issuesTableBody');
+            if (!tbody) return;
+
+            if (!issues || issues.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No issues found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = issues.map(function (issue) {
+                var isOpen = issue.status === 'open' || issue.status === 'in_progress';
+                var items = [
+                    { label: 'View', icon: 'fas fa-eye me-1', attrs: { 'data-admin-view-issue': String(issue.id) } },
+                    { label: 'Edit', icon: 'fas fa-pen me-1', attrs: { 'data-admin-edit-issue': String(issue.id) } }
+                ];
+                if (isOpen) {
+                    items.push({ label: 'Resolve', icon: 'fas fa-check me-1', attrs: { 'data-admin-resolve-issue': String(issue.id) } });
+                }
+                items.push({ html: '<hr class="dropdown-divider">' });
+                items.push({
+                    label: 'Delete',
+                    icon: 'fas fa-trash me-1',
+                    danger: true,
+                    attrs: { 'data-admin-delete-issue': String(issue.id) }
+                });
+
+                return '<tr>' +
+                    '<td>' + escapeHtml(issue.title || '') + '</td>' +
+                    '<td>' + escapeHtml(scope.ISSUE_TYPE_LABELS[issue.type] || issue.type || '') + '</td>' +
+                    '<td>' + scope.severityBadge(issue.severity) + '</td>' +
+                    '<td>' + escapeHtml(issue.area || '-') + '</td>' +
+                    '<td>' + scope.statusLabel(issue.status) + '</td>' +
+                    '<td>' + escapeHtml(issue.reported_by_name || '-') + '</td>' +
+                    '<td>' + scope.formatIssueDate(issue.created_at) + '</td>' +
+                    '<td class="mac-table-actions-col">' + MacTableActions.render({ wrapLi: true, items: items }) + '</td>' +
+                    '</tr>';
+            }).join('');
+            MacTableActions.init(document.getElementById('adminIssuesTable'));
+        },
+
+        openIssueFormModal: (issue) => {
+            const scope = _adminGrid;
+            document.getElementById('issueEditId').value = (issue && issue.id) || '';
+            document.getElementById('issueFormModalTitle').textContent = issue ? 'Edit feedback' : 'New feedback';
+            document.getElementById('issueTitle').value = (issue && issue.title) || '';
+            document.getElementById('issueType').value = (issue && issue.type) || 'defect';
+            document.getElementById('issueSeverity').value = (issue && issue.severity) || 'MEDIUM';
+            document.getElementById('issueArea').value = (issue && issue.area) || 'general';
+            document.getElementById('issueDescription').value = (issue && issue.description) || '';
+            document.getElementById('issueSteps').value = (issue && issue.steps_to_reproduce) || '';
+            document.getElementById('issueBenefit').value = (issue && issue.business_benefit) || '';
+            scope.updateIssueConditionalFields();
+            new bootstrap.Modal(document.getElementById('issueFormModal')).show();
+        },
+
+        submitIssueForm: async () => {
+            const scope = _adminGrid;
+            var editId = document.getElementById('issueEditId').value;
+            var title = document.getElementById('issueTitle').value.trim();
+            var type = document.getElementById('issueType').value;
+            var severity = document.getElementById('issueSeverity').value;
+            var area = document.getElementById('issueArea').value;
+            var description = document.getElementById('issueDescription').value.trim();
+            var steps = document.getElementById('issueSteps').value.trim();
+            var benefit = document.getElementById('issueBenefit').value.trim();
+
+            if (!title) {
+                scope.showNotification('Title is required', 'warning');
+                return;
+            }
+
+            var btn = document.getElementById('issueFormSubmitBtn');
+            if (btn) btn.disabled = true;
+
+            try {
+                if (editId) {
+                    var updateResult = await dataFunctions.updateIssue(editId, {
+                        title: title,
+                        type: type,
+                        severity: severity,
+                        area: area,
+                        description: description,
+                        steps_to_reproduce: type === 'defect' ? steps : null,
+                        business_benefit: (type === 'enhancement' || type === 'new_feature') ? benefit : null
+                    });
+                    if (updateResult && updateResult.success === false) {
+                        throw new Error(updateResult.message || 'Update failed');
+                    }
+                    scope.showNotification('Issue updated', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('issueFormModal')).hide();
+                    await scope.loadIssuesRegister();
+                } else {
+                    var reporter = scope.getCurrentReporter();
+                    var route = (typeof location !== 'undefined')
+                        ? (location.hash || location.pathname || 'admin-grid')
+                        : 'admin-grid';
+
+                    var createResult = await dataFunctions.createIssue({
+                        title: title,
+                        type: type,
+                        severity: severity,
+                        area: area,
+                        description: description || null,
+                        steps_to_reproduce: type === 'defect' ? (steps || null) : null,
+                        business_benefit: (type === 'enhancement' || type === 'new_feature') ? (benefit || null) : null,
+                        route: route,
+                        reported_by: reporter.id,
+                        reported_by_name: reporter.name
+                    });
+
+                    var created = Array.isArray(createResult) ? createResult[0] : createResult;
+                    if (!created || created.success === false) {
+                        throw new Error((created && created.message) || 'Create failed');
+                    }
+
+                    scope.showNotification('Issue saved', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('issueFormModal')).hide();
+                    await scope.loadIssuesRegister();
+
+                    var newId = created.id;
+                    if (newId && dataFunctions.syncIssueToClickUp) {
+                        try {
+                            await dataFunctions.syncIssueToClickUp(newId);
+                        } catch (syncErr) {
+                            console.warn('Background issue sync failed:', syncErr);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('submitIssueForm:', error);
+                scope.showNotification(error.message || 'Failed to save issue', 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        },
+
+        viewIssue: async (issueId) => {
+            const scope = _adminGrid;
+            try {
+                var issue = (scope.data.issues || []).find(function (i) { return String(i.id) === String(issueId); });
+                if (!issue) {
+                    var rows = await dataFunctions.getIssueById(issueId);
+                    issue = Array.isArray(rows) ? rows[0] : rows;
+                }
+                if (!issue) {
+                    scope.showNotification('Issue not found', 'warning');
+                    return;
+                }
+
+                var body = document.getElementById('issueViewBody');
+                body.innerHTML =
+                    '<dl class="row mb-0">' +
+                    '<dt class="col-sm-3">Title</dt><dd class="col-sm-9">' + escapeHtml(issue.title || '') + '</dd>' +
+                    '<dt class="col-sm-3">Type</dt><dd class="col-sm-9">' + escapeHtml(scope.ISSUE_TYPE_LABELS[issue.type] || issue.type || '') + '</dd>' +
+                    '<dt class="col-sm-3">Severity</dt><dd class="col-sm-9">' + scope.severityBadge(issue.severity) + '</dd>' +
+                    '<dt class="col-sm-3">Area</dt><dd class="col-sm-9">' + escapeHtml(issue.area || '-') + '</dd>' +
+                    '<dt class="col-sm-3">Status</dt><dd class="col-sm-9">' + scope.statusLabel(issue.status) + '</dd>' +
+                    '<dt class="col-sm-3">Reporter</dt><dd class="col-sm-9">' + escapeHtml(issue.reported_by_name || '-') + '</dd>' +
+                    '<dt class="col-sm-3">Route</dt><dd class="col-sm-9"><code>' + escapeHtml(issue.route || '-') + '</code></dd>' +
+                    '<dt class="col-sm-3">Description</dt><dd class="col-sm-9">' + escapeHtml(issue.description || '-') + '</dd>' +
+                    (issue.steps_to_reproduce ? '<dt class="col-sm-3">Steps</dt><dd class="col-sm-9">' + escapeHtml(issue.steps_to_reproduce) + '</dd>' : '') +
+                    (issue.business_benefit ? '<dt class="col-sm-3">Benefit</dt><dd class="col-sm-9">' + escapeHtml(issue.business_benefit) + '</dd>' : '') +
+                    (issue.resolution_notes ? '<dt class="col-sm-3">Resolution</dt><dd class="col-sm-9">' + escapeHtml(issue.resolution_notes) + '</dd>' : '') +
+                    '</dl>';
+                new bootstrap.Modal(document.getElementById('issueViewModal')).show();
+            } catch (error) {
+                scope.showNotification(error.message || 'Failed to load issue', 'error');
+            }
+        },
+
+        editIssue: (issueId) => {
+            const scope = _adminGrid;
+            var issue = (scope.data.issues || []).find(function (i) { return String(i.id) === String(issueId); });
+            if (!issue) {
+                scope.showNotification('Issue not found in the current list. Refresh and try again.', 'warning');
+                return;
+            }
+            scope.openIssueFormModal(issue);
+        },
+
+        openResolveIssue: (issueId) => {
+            document.getElementById('issueResolveId').value = issueId;
+            document.getElementById('issueResolveNotes').value = '';
+            new bootstrap.Modal(document.getElementById('issueResolveModal')).show();
+        },
+
+        submitResolveIssue: async () => {
+            const scope = _adminGrid;
+            var id = document.getElementById('issueResolveId').value;
+            var notes = document.getElementById('issueResolveNotes').value.trim();
+            if (!notes) {
+                scope.showNotification('Resolution notes are required', 'warning');
+                return;
+            }
+            try {
+                var result = await dataFunctions.resolveIssue(id, notes);
+                if (result && result.success === false) {
+                    throw new Error(result.message || 'Resolve failed');
+                }
+                scope.showNotification('Issue resolved', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('issueResolveModal')).hide();
+                await scope.loadIssuesRegister();
+            } catch (error) {
+                scope.showNotification(error.message || 'Failed to resolve issue', 'error');
+            }
+        },
+
+        deleteIssueConfirm: async (issueId) => {
+            const scope = _adminGrid;
+            var confirmed;
+            if (typeof Swal !== 'undefined') {
+                var swalResult = await Swal.fire({
+                    title: 'Delete issue?',
+                    text: 'This permanently deletes the feedback item.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Delete'
+                });
+                confirmed = swalResult.isConfirmed;
+            } else {
+                confirmed = window.confirm('Delete this issue permanently?');
+            }
+            if (!confirmed) return;
+
+            try {
+                var result = await dataFunctions.deleteIssue(issueId);
+                if (result && result.success === false) {
+                    throw new Error(result.message || 'Delete failed');
+                }
+                scope.showNotification('Issue deleted', 'success');
+                await scope.loadIssuesRegister();
+            } catch (error) {
+                scope.showNotification(error.message || 'Failed to delete issue', 'error');
+            }
         },
 
         editUser: async (userId) => {
