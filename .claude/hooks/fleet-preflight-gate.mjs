@@ -260,6 +260,31 @@ function scanForNewestPlan(plansDir) {
   }
 }
 
+/**
+ * Writes a hard-to-miss, bordered, multi-line warning to stderr for every fail-open branch in this
+ * file - still exactly ONE console.error call per call site (same as before), so nothing about the
+ * FAIL OPEN, VISIBLY contract (see the file header) changes; only the LOUDNESS of the existing
+ * warning does. A quiet one-line stderr warning is exactly what let a developer believe this hook
+ * was protecting them when AGENT_FLEET_TOOLKIT_PATH was never actually set on their machine (see
+ * the investigation this change comes from) - every caller below still returns `undefined` right
+ * after calling this, and main()'s handling of that `undefined` (fail open, allow the exit) is
+ * unchanged.
+ */
+function warnLoud(bodyLines) {
+  const border = "=".repeat(78);
+  console.error(
+    [
+      "",
+      border,
+      "  FLEET PRE-FLIGHT GATE IS NOT PROTECTING YOU RIGHT NOW",
+      border,
+      ...bodyLines.map((line) => (line ? `  ${line}` : "")),
+      border,
+      "",
+    ].join("\n"),
+  );
+}
+
 /** Invokes the real check via argv array (never a shell string). Returns undefined on ANY failure
  * (missing toolkit, missing credential, crash, non-JSON output) - the caller fails open on that.
  *
@@ -280,18 +305,20 @@ async function runPreflightCheck(planContent, repoRoot) {
   }
   const toolkitPath = process.env[TOOLKIT_ENV];
   if (!toolkitPath) {
-    console.error(
-      `fleet-preflight-gate: ${TOOLKIT_ENV} is not set - skipping the local pre-flight check ` +
-        `(the real gate still runs when you push). Set it to your agent-fleet checkout to enable this.`,
-    );
+    warnLoud([
+      `${TOOLKIT_ENV} is not set - skipping the local pre-flight check.`,
+      "The real gate still runs when you push, but only after a slower, real-dollar-cost round trip.",
+      "",
+      `FIX: Set ${TOOLKIT_ENV} to your agent-fleet checkout to enable this.`,
+    ]);
     return undefined;
   }
   const scriptPath = resolve(toolkitPath, "scripts", "preflight-review.sh");
   if (!existsSync(scriptPath)) {
-    console.error(
-      `fleet-preflight-gate: ${scriptPath} does not exist - skipping the local pre-flight check. ` +
-        `Check ${TOOLKIT_ENV} points at a checkout of agent-fleet.`,
-    );
+    warnLoud([
+      `${scriptPath} does not exist - skipping the local pre-flight check.`,
+      `Check ${TOOLKIT_ENV} points at a checkout of agent-fleet.`,
+    ]);
     return undefined;
   }
 
@@ -307,7 +334,7 @@ async function runPreflightCheck(planContent, repoRoot) {
       timeout: 300_000,
     });
     if (stdout === undefined) {
-      console.error("fleet-preflight-gate: the local pre-flight check did not complete - skipping (fail open).");
+      warnLoud(["the local pre-flight check did not complete (timed out or produced no output) - skipping."]);
       return undefined;
     }
     const lastLine = stdout.trim().split("\n").pop() || "";
@@ -315,7 +342,7 @@ async function runPreflightCheck(planContent, repoRoot) {
     if (parsed.verdict !== "pass" && parsed.verdict !== "block") return undefined;
     return { verdict: parsed.verdict, findings: parsed.findings || "" };
   } catch (err) {
-    console.error(`fleet-preflight-gate: local pre-flight check crashed (${err.message}) - skipping (fail open).`);
+    warnLoud([`local pre-flight check crashed (${err.message}) - skipping.`]);
     return undefined;
   } finally {
     try {
