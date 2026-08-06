@@ -28,14 +28,10 @@ const SCAN_DIRS = [
   'scripts',
   'migrations',
   '.cursor',
-  'js',
   'supabase',
 ];
 
-const SCAN_FILES = [
-  'qa-data-seeder.html',
-  'test-scenarios-viewer.html',
-];
+const SCAN_FILES = [];
 
 const SKIP_DIR_NAMES = new Set([
   'node_modules',
@@ -56,7 +52,6 @@ const SKIP_FILE_PATTERNS = [
 const REQUIRED_FILES = [
   'WebPortal/js/appRouteConfig.json',
   'WebPortal/js/macavation-supabase.js',
-  'js/appRouteConfig.json',
   '.cursor/mcp.json',
   'supabase/remote.toml',
   'supabase/projects.json',
@@ -159,7 +154,7 @@ function verifyAppRouteConfigUrls() {
   // Every environment except prod must use the dev database. ('uat' kept in
   // case an old config still carries the key.)
   const devEnvs = new Set(['default', 'dev', 'demo', 'uat']);
-  for (const rel of ['WebPortal/js/appRouteConfig.json', 'js/appRouteConfig.json']) {
+  for (const rel of ['WebPortal/js/appRouteConfig.json']) {
     const abs = path.join(root, rel);
     if (!fs.existsSync(abs)) continue;
     const json = JSON.parse(fs.readFileSync(abs, 'utf8'));

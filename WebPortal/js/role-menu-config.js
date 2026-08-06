@@ -170,6 +170,7 @@ var _roleMenuConfig = function () {
                     'dashboard',
                     'sales-forecasting-grid',
                     'crm-grid',
+                    'crm-whatsapp-grid',
                     'executive-dashboard',
                     'my-day'
                 ]
@@ -296,6 +297,13 @@ var _roleMenuConfig = function () {
                 route: 'crm-grid',
                 icon: 'fas fa-building',
                 label: 'Contacts',
+                category: 'crm',
+                parent: 'crmCollapse'
+            },
+            'crm-whatsapp-grid': {
+                route: 'crm-whatsapp-grid',
+                icon: 'fab fa-whatsapp',
+                label: 'WhatsApp & Chat',
                 category: 'crm',
                 parent: 'crmCollapse'
             },
@@ -437,13 +445,6 @@ var _roleMenuConfig = function () {
                 label: 'Scheduled Reports',
                 category: 'user-management',
                 parent: 'userManagementCollapse'
-            },
-            'messaging-compose-grid': {
-                route: 'messaging-compose-grid',
-                icon: 'fas fa-paper-plane',
-                label: 'Send Message',
-                category: 'user-management',
-                parent: 'userManagementCollapse'
             }
         },
 
@@ -505,6 +506,7 @@ var _roleMenuConfig = function () {
             'kernel-production-forecast-grid',
             'oil-production-forecast-grid',
             'crm-grid',
+            'crm-whatsapp-grid',
             'quality-assurance-grid',
             'document-management-grid',
             'sales-forecasting-grid',
@@ -515,7 +517,6 @@ var _roleMenuConfig = function () {
             'dashboard-targets-grid',
             'stock-alert-rules-grid',
             'scheduled-reports-grid',
-            'messaging-compose-grid',
             'executive-dashboard',
             'amanda-dashboard',
             'users-grid',

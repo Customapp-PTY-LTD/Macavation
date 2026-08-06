@@ -1,0 +1,157 @@
+/* WhatsApp & Internal Chat Module Styles */
+
+.chat-container {
+    display: flex;
+    height: 600px;
+    border: 1px solid var(--mac-border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* Left Pane: Conversation List */
+.chat-list-pane {
+    width: 350px;
+    border-right: 1px solid var(--mac-border);
+    display: flex;
+    flex-direction: column;
+    background-color: var(--mac-bg);
+}
+
+.chat-list-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--mac-border);
+    background-color: var(--mac-bg);
+}
+
+.chat-list-body {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.chat-list-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--mac-border);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.chat-list-item:hover {
+    background-color: var(--mac-bg-secondary);
+}
+
+.chat-list-item.active {
+    background-color: var(--mac-green-light);
+    border-left: 3px solid var(--mac-green);
+}
+
+.chat-avatar {
+    flex-shrink: 0;
+}
+
+.chat-name {
+    font-size: 0.95rem;
+}
+
+.chat-preview {
+    display: block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Right Pane: Thread */
+.chat-thread-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--mac-bg);
+}
+
+.chat-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--mac-text-muted);
+}
+
+.chat-thread-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--mac-border);
+    background-color: var(--mac-bg);
+}
+
+.chat-thread-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: var(--mac-bg-secondary);
+}
+
+.chat-message {
+    margin-bottom: 0.75rem;
+    display: flex;
+}
+
+.chat-message-outbound {
+    justify-content: flex-end;
+}
+
+.chat-message-inbound {
+    justify-content: flex-start;
+}
+
+.chat-bubble {
+    max-width: 70%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+    word-wrap: break-word;
+}
+
+.chat-bubble-outbound {
+    background-color: var(--mac-green-light);
+    border: 1px solid var(--mac-green);
+    color: var(--mac-text);
+}
+
+.chat-bubble-inbound {
+    background-color: var(--mac-bg);
+    border: 1px solid var(--mac-border);
+    color: var(--mac-text);
+}
+
+.chat-message-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.chat-thread-composer {
+    padding: 1rem;
+    border-top: 1px solid var(--mac-border);
+    background-color: var(--mac-bg);
+}
+
+/* Responsive: Mobile */
+@media (max-width: 768px) {
+    .chat-container {
+        flex-direction: column;
+        height: auto;
+        min-height: 400px;
+    }
+
+    .chat-list-pane {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--mac-border);
+        max-height: 300px;
+    }
+
+    .chat-thread-pane {
+        min-height: 400px;
+    }
+}

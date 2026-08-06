@@ -1,11 +1,14 @@
 /**
- * Supabase Edge Function: send daily digest via WhatsApp Cloud API.
+ * Supabase Edge Function: send daily digest via WhatsApp, through Control Room's meta-proxy.
  * Deploy: supabase functions deploy send-daily-digest-whatsapp
  * Cron: 5 6 * * * — 06:05 SAST daily (after email digest)
  *
- * Secrets: SUPABASE_SERVICE_ROLE_KEY, WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID
+ * Secrets: SUPABASE_SERVICE_ROLE_KEY, CONTROL_ROOM_FORWARD_SECRET, CONTROL_ROOM_CHANNEL_SLUG
+ * Docs: https://control-room.customapp.co.za/docs/product-integration.md
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+
+const CONTROL_ROOM_BASE_URL = 'https://ejnncypummmvyojhovme.supabase.co/functions/v1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,7 +43,20 @@ function normalizePhone(phone: string): string {
   let p = phone.replace(/\D/g, '');
   if (p.startsWith('0')) p = '27' + p.slice(1);
   if (!p.startsWith('27') && p.length <= 11) p = '27' + p;
-  return p;
+  return `+${p}`;
+}
+
+async function signBody(secret: string, body: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
+  const hex = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return `sha256=${hex}`;
 }
 
 Deno.serve(async (req) => {
@@ -48,12 +64,12 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const token = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
-  const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-  if (!token || !phoneNumberId) {
+  const forwardSecret = Deno.env.get('CONTROL_ROOM_FORWARD_SECRET');
+  const channelSlug = Deno.env.get('CONTROL_ROOM_CHANNEL_SLUG');
+  if (!forwardSecret || !channelSlug) {
     return new Response(JSON.stringify({
       success: false,
-      error: 'WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID required',
+      error: 'CONTROL_ROOM_FORWARD_SECRET and CONTROL_ROOM_CHANNEL_SLUG required',
     }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
@@ -81,22 +97,31 @@ Deno.serve(async (req) => {
       if (!raw) continue;
       const to = normalizePhone(raw);
 
-      const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+      const requestBody = JSON.stringify({
+        action: 'send_message',
+        channelSlug,
+        to,
+        type: 'text',
+        content: { text },
+      });
+
+      const res = await fetch(`${CONTROL_ROOM_BASE_URL}/meta-proxy`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'X-Control-Room-Signature': await signBody(forwardSecret, requestBody),
         },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to,
-          type: 'text',
-          text: { body: text },
-        }),
+        body: requestBody,
       });
 
       if (!res.ok) {
         console.error('WhatsApp failed for', to, await res.text());
+        continue;
+      }
+
+      const result = await res.json();
+      if (!result.ok) {
+        console.error('WhatsApp failed for', to, result.error);
         continue;
       }
 

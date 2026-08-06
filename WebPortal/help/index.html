@@ -1086,6 +1086,7 @@
       <li>For the main stock table: use <strong>Search</strong>, <strong>Status</strong>, <strong>Product type</strong>, and <strong>Location</strong> (warehouse section); click <strong>Clear</strong> to reset.</li>
       <li>On <strong>Kernel batch journey</strong>: use <strong>By style</strong> / <strong>Weekly</strong> / <strong>Overview</strong>; in <strong>Adjust Stock</strong> you can enter cartons or kg and the system calculates boxes before saving. Use <strong>Send to Dispatch</strong> only when physical stock matches the system.</li>
       <li>For oil: add or import oil lots (e.g. from Excel) and monitor days-remaining from best-before where shown; use export when you need a file copy.</li>
+      <li>For shell waste lots: use <strong>Movement history</strong> from the row menu to see all movements (created, adjusted, dispatched, written off) for a lot, with timestamps, quantities, and references.</li>
       <li>Use <strong>Import historical</strong> only for the controlled kernel historical load your admin approved—never as a substitute for normal intake and production postings.</li>
     </ol>
     <figure class="guide-shot">
@@ -1110,6 +1111,29 @@
     <figure class="guide-shot">
       <img src="./assets/screenshots/stock-history.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
+  </section>
+
+  <section id="raw-material-runway" class="guide-section" data-guide-id="raw-material-runway">
+    <h2>Raw material runway forecast</h2>
+<p class="guide-lead">Chart on the Executive dashboard answering one question: when is the plant predicted to run out of nut-in-shell to crack? The solid line is what actually happened up to today; the dashed line is the projection ahead.</p>
+    <p class="guide-how">The vertical axis is kilograms of nut-in-shell that have <strong>not yet been put into production</strong>. That is everything awaiting production, plus the portion of batches currently in production that has not been cracked yet. Scheduled grower intake is not counted in today's figure&mdash;it appears as an upward step on the day it is due, so you can see deliveries arriving. Dashed markers show <strong>Today</strong> and the predicted <strong>Run-out</strong>.</p>
+
+    <h3 class="guide-subhead">Setting the depletion rate</h3>
+    <p class="guide-how">The forecast needs to know how fast raw material is consumed, and that is a judgement call rather than something the system can safely guess. Press <strong>Depletion rate</strong> and pick a month whose cracking figures you trust. The rate becomes that month's total kilograms cracked divided by the number of days in the month, and it updates automatically if that month's records are later completed.</p>
+    <p class="guide-how">The <strong>Capture</strong> column shows how many of the month's recorded cracking days actually have a tonnage against them. This matters more than any other number in the dialog: a month where only a quarter of days were captured will understate consumption badly and make the runway look far longer than it is. Prefer a month with high capture. You can also enter kilograms per day directly, which overrides the chosen month&mdash;use that when you know the plant's real throughput.</p>
+    <p class="guide-how">Until a rate is set the chart deliberately shows stock on hand but no projection, rather than inventing a run-out date. The rate is shared: whoever sets it, everyone sees it.</p>
+
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Dashboard</strong> and expand <strong>Trends &amp; forecasts</strong>.</li>
+      <li>Find <strong>Raw material runway forecast</strong>.</li>
+      <li>Press <strong>Depletion rate</strong> and choose a month with a high capture percentage, or type a kilograms-per-day figure.</li>
+      <li>Read the headline: predicted run-out date, days remaining, and kilograms on hand.</li>
+      <li>Use the range buttons (1M, 3M, 6M, 1Y, All) to change how much history is shown. The projection always runs to run-out.</li>
+      <li>Hover any day to see intake and cracked kilograms for that day.</li>
+      <li>Check any warnings under the chart&mdash;they flag missing scheduled intake and gaps in cracking capture that make the projection less reliable.</li>
+      <li>Click <strong>Customize</strong> on the dashboard if the chart is hidden&mdash;enable <strong>Raw material runway forecast (NIS)</strong>.</li>
+    </ol>
   </section>
 
   <section id="modal-stock-take" class="guide-section" data-guide-id="modal-stock-take">
@@ -1288,6 +1312,23 @@
     </figure>
   </section>
 
+  <section id="admin-feedback-issues" class="guide-section" data-guide-id="admin-feedback-issues">
+    <h2>User &amp; access — Feedback &amp; Issues</h2>
+<p class="guide-lead"><strong>Feedback &amp; Issues</strong> (User &amp; access) — admin register for defects, enhancements, new features, and other feedback.</p>
+    <p class="guide-how">Use type cards and filters to find items; create feedback with <strong>New feedback</strong>; resolve or delete from the row actions menu.</p>
+
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>User &amp; access</strong> → <strong>Feedback &amp; Issues</strong>.</li>
+      <li>Optionally click a type card (Defects, Enhancements, New Features, Other) to filter the register.</li>
+      <li>Use severity and status filters, then <strong>New feedback</strong> to file an item.</li>
+      <li>From Actions: <strong>View</strong>, <strong>Edit</strong>, <strong>Resolve</strong> (open items), or <strong>Delete</strong>.</li>
+    </ol>
+    <figure class="guide-shot">
+      <img src="./assets/screenshots/admin-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
+    </figure>
+  </section>
+
   <section id="users-grid" class="guide-section" data-guide-id="users-grid" data-exclude-from-full-guide="1">
     <h2>Users (module)</h2>
 <p class="guide-lead">Create and maintain portal users, passwords, and assignments.</p>
@@ -1306,6 +1347,31 @@
     <figure class="guide-shot">
       <img src="./assets/screenshots/users-grid.png" width="1200" height="675" alt="Screen capture of this module" loading="lazy" />
     </figure>
+  </section>
+
+  <section id="portal-guide" class="guide-section" data-guide-id="portal-guide">
+    <h2>Portal Guide (Mac) and Idle Mac</h2>
+    <p class="guide-lead">Mac is the Macavation guide character — a friendly macadamia kernel who helps you find how-to answers in this user guide, and can optionally appear as a light ambient animation when you are idle.</p>
+    <p class="guide-how"><strong>Portal Guide</strong> (chat) is the how-to assistant. <strong>Idle Mac</strong> is a separate, optional decoration and stays off unless you turn it on.</p>
+
+    <h3 class="guide-subhead">Portal Guide chat</h3>
+    <ol class="guide-page-steps">
+      <li>Click the circular <strong>Mac</strong> face button at the bottom-right of the Web Portal.</li>
+      <li>Ask how-to questions about the portal (for example how to receive grower intake or dispatch kernel).</li>
+      <li>Use citation buttons in Mac’s replies to jump to the matching section of this guide.</li>
+      <li>Use nav chips (when shown) to open the related module. Press <strong>Esc</strong> or the close control to dismiss the rail.</li>
+    </ol>
+
+    <h3 class="guide-subhead">Idle Mac (optional)</h3>
+    <ol class="guide-page-steps">
+      <li>Idle Mac is <strong>off by default</strong> so it never interrupts demos or focused work.</li>
+      <li>Open your profile menu → <strong>Idle Mac</strong> to turn it on, set idle/interval seconds, and choose which animation plays (or Random).</li>
+      <li>When enabled, Mac may briefly glide, peek up from the bottom, ride in a cart pulled by a tractor, drop under a leaf canopy, or rise in cream/oil droplets after you have been inactive.</li>
+      <li>Any mouse, keyboard, or scroll activity makes Mac leave immediately.</li>
+      <li>Opening Portal Guide pauses Idle Mac; closing the rail allows it again.</li>
+      <li>Click <strong>Turn off</strong> on the overlay to disable Idle Mac and keep it off (stored in your browser).</li>
+      <li>Idle Mac respects <strong>prefers-reduced-motion</strong> and will not play ambient animations when that setting is on.</li>
+    </ol>
   </section>
 
   <script src="help-shell.js" defer></script>

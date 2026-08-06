@@ -142,9 +142,7 @@ var _dashboardTargetsGrid = function () {
 
         escapeHtml: (text) => {
             if (text == null) return '';
-            var div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            return _common.escapeHtml(text);
         }
     };
 }();

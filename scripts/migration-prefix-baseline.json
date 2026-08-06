@@ -1,0 +1,165 @@
+{
+  "generatedFrom": "migrations/",
+  "sqlFileCount": 292,
+  "duplicatePrefixes": {
+    "20260218000001": [
+      "20260218000001_grant_all_data_functions_to_all_roles.sql",
+      "20260218000001_oil_bin_batch_oil_stream.sql"
+    ],
+    "20260220110000": [
+      "20260220110000_add_lab_test_pdf_to_kernel_packing_sample.sql",
+      "20260220110000_supplier_intake_batch_functions.sql"
+    ],
+    "20260220120000": [
+      "20260220120000_fix_production_batches_status_check_supplier_intake.sql",
+      "20260220120000_get_kernel_dispatch_orders_and_order_with_lines.sql"
+    ],
+    "20260220140000": [
+      "20260220140000_add_supplied_wet_to_get_production_batches.sql",
+      "20260220140000_grower_intake_actual_weight_and_difference.sql"
+    ],
+    "20260220150000": [
+      "20260220150000_derive_grower_name_from_contact_in_get_production_batches.sql",
+      "20260220150000_grant_update_production_batch_actual_weight_rbac.sql"
+    ],
+    "20260302000001": [
+      "20260302000001_create_features_tables.sql",
+      "20260302000001_initialize_kernel_update_existing_intake_fields.sql"
+    ],
+    "20260302000002": [
+      "20260302000002_create_features_rpc_functions.sql",
+      "20260302000002_deactivate_kernel_batch.sql"
+    ],
+    "20260303000001": [
+      "20260303000001_fix_get_role_features_add_feature_id.sql",
+      "20260303000001_upsert_kernel_checklist_removed_pre_sizer.sql"
+    ],
+    "20260314000002": [
+      "20260314000002_consolidate_release_kernel_to_production.sql",
+      "20260314000002_get_silos_with_grower_name.sql"
+    ],
+    "20260316000001": [
+      "20260316000001_add_batch_journey_feature.sql",
+      "20260316000001_oil_dispatch_orders_and_functions.sql",
+      "20260316000001_seed_nis_suppliers_contacts.sql"
+    ],
+    "20260316000002": [
+      "20260316000002_consolidate_upsert_oil_batch.sql",
+      "20260316000002_fix_contact_type_and_seed_nis_suppliers.sql"
+    ],
+    "20260318000001": [
+      "20260318000001_cleanup_e2e_fixture_users.sql",
+      "20260318000001_create_kernel_batch_initial_status.sql"
+    ],
+    "20260318000002": [
+      "20260318000002_create_kernel_dispatch_orders_if_missing.sql",
+      "20260318000002_remove_seed_users_mar_2026_playwright.sql"
+    ],
+    "20260323000001": [
+      "20260323000001_dashboard_kernel_batches_count_matches_grid.sql",
+      "20260323000001_get_oil_batch_by_id.sql"
+    ],
+    "20260345000001": [
+      "20260345000001_backfill_oil_intake_operational_quantity.sql",
+      "20260345000001_manual_oil_protein_batch_numbers.sql"
+    ],
+    "20260514120000": [
+      "20260514120000_cleanup_e2e_playwright_fixture_users.sql",
+      "20260514120000_revert_kernel_dispatch_order.sql"
+    ],
+    "20260707150000": [
+      "20260707150000_auth_login_email_direct.sql",
+      "20260707150000_fix_kernel_soh_remaining_by_style.sql"
+    ],
+    "20260708150000": [
+      "20260708150000_kernel_batch_archive_and_insert_guards.sql",
+      "20260708150000_password_management.sql"
+    ],
+    "20260708160000": [
+      "20260708160000_fix_oil_recovery_kpi_calculations.sql",
+      "20260708160000_kernel_batch_archive_restore_ui.sql"
+    ],
+    "20260813090000": [
+      "20260813090000_fix_get_daily_digest_dashboard_targets.sql",
+      "20260813090000_whatsapp_inbound_shared_inbox.sql"
+    ]
+  },
+  "invalidDatePrefixes": {
+    "20260332000001": [
+      "20260332000001_update_oil_bin_batch_raw_ingredient_audit.sql"
+    ],
+    "20260332000002": [
+      "20260332000002_set_oil_bin_batch_raw_ingredient_links.sql"
+    ],
+    "20260332000003": [
+      "20260332000003_grant_set_oil_bin_ingredient_links_from_update_oil_bin.sql"
+    ],
+    "20260333000001": [
+      "20260333000001_protein_bin_batch.sql"
+    ],
+    "20260334000001": [
+      "20260334000001_oil_stock_release_to_production.sql"
+    ],
+    "20260335000001": [
+      "20260335000001_create_oil_dispatch_order_deduct_stock.sql"
+    ],
+    "20260336000001": [
+      "20260336000001_oil_stock_lots_grade_from_oil_stream.sql"
+    ],
+    "20260337000001": [
+      "20260337000001_get_oil_stock_lots_coalesce_grade.sql"
+    ],
+    "20260338000001": [
+      "20260338000001_add_oil_bin_batch_shift_segments_if_missing.sql"
+    ],
+    "20260339000001": [
+      "20260339000001_get_oil_batch_ingredients_detail.sql"
+    ],
+    "20260340000001": [
+      "20260340000001_raw_ingredient_supplier_snapshot_and_enrich.sql"
+    ],
+    "20260341000001": [
+      "20260341000001_kernel_nis_supplier_official_spellings.sql"
+    ],
+    "20260341000002": [
+      "20260341000002_rename_big_five_mac_to_big_5_mac.sql"
+    ],
+    "20260341000003": [
+      "20260341000003_kernel_two_rivers_trust_official_name.sql"
+    ],
+    "20260341000004": [
+      "20260341000004_merge_raw_ingredient_audit_on_duty_sync.sql"
+    ],
+    "20260341000005": [
+      "20260341000005_supplier_intake_official_ffa.sql"
+    ],
+    "20260341000006": [
+      "20260341000006_oil_stock_ffa_from_supplier_intake_audit.sql"
+    ],
+    "20260342000001": [
+      "20260342000001_contacts_oil_ingredient_oil_protein_customer_types.sql"
+    ],
+    "20260343000001": [
+      "20260343000001_dashboard_kernel_batches_status_production_only.sql"
+    ],
+    "20260344000001": [
+      "20260344000001_get_kernel_batches_jobcard_approved_flag.sql"
+    ],
+    "20260345000001": [
+      "20260345000001_backfill_oil_intake_operational_quantity.sql",
+      "20260345000001_manual_oil_protein_batch_numbers.sql"
+    ],
+    "20260346000001": [
+      "20260346000001_dashboard_oil_bins_sent_to_stock_counts.sql"
+    ],
+    "20260347000001": [
+      "20260347000001_clear_oil_protein_module_data.sql"
+    ],
+    "20260348000001": [
+      "20260348000001_delete_oil_bin_batch.sql"
+    ],
+    "20260348000002": [
+      "20260348000002_get_next_batch_number_yearly_kernel_count.sql"
+    ]
+  }
+}

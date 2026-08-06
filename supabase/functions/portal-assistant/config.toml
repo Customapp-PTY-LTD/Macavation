@@ -1,0 +1,10 @@
+# Per-function config for portal-assistant.
+#
+# This function implements its own auth (X-Portal-Session validated via the
+# assistant_validate_session RPC for chat/feedback; X-Service-Key /
+# Authorization matched against ASSISTANT_INGEST_SECRET for ingest) rather
+# than relying on Supabase's platform JWT verification, so verify_jwt is
+# disabled here — same reasoning as auth-google needing to run before a
+# portal session exists.
+[functions.portal-assistant]
+verify_jwt = false

@@ -26,6 +26,15 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+// Matches the Postgres side: encode(sha256(convert_to(token, 'UTF8')), 'hex').
+async function sha256Hex(input: string): Promise<string> {
+  const bytes = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
@@ -79,6 +88,32 @@ Deno.serve(async (req) => {
     // anon key, same as email sign-in (see auth_login_email).
     const token =
       crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+
+    // Best-effort assistant session mint, mirroring auth_login_email's
+    // assistant_session_upsert call. Never block sign-in on this — the
+    // portal assistant is optional. Hashed here (Web Crypto) rather than via
+    // RPC so the service-role table write happens directly, same pattern as
+    // the user lookup above.
+    try {
+      const tokenHash = await sha256Hex(token);
+      const nowIso = new Date().toISOString();
+      const expiresAtIso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const { error: sessionError } = await admin
+        .from("assistant_sessions")
+        .upsert(
+          {
+            user_id: u.id,
+            token_hash: tokenHash,
+            last_seen_at: nowIso,
+            expires_at: expiresAtIso,
+            revoked_at: null,
+          },
+          { onConflict: "token_hash" },
+        );
+      if (sessionError) console.warn("assistant session upsert failed:", sessionError.message);
+    } catch (e) {
+      console.warn("assistant session mint failed during auth-google:", e);
+    }
 
     return json({
       success: true,
