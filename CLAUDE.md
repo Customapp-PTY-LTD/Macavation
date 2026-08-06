@@ -74,3 +74,9 @@ worktree, no direct commits on the base branch, and the stuck-local-dev rescue.
 How this repo's tests gate a fleet merge - and where the gate is set (a PR to the
 `agent-fleet` repo's `config/repos.json`, not here) - is in `.claude/rules/fleet-test-gate.md`. Follow it when
 asked to gate tests, turn the gate on/off, or explain why a change merged untested.
+
+## Database and code conventions
+
+Before drafting or reviewing any plan that touches the database (new tables, functions,
+RLS, migrations), read `BluePrint/supabase-database-rules.md` in full - and check
+`BluePrint/` generally for this repo's other conventions before writing JS/UI code.
