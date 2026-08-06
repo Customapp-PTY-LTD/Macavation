@@ -21,7 +21,6 @@ node_modules/
 .env
 .env.local
 .env.e2e
-e2e/.env.e2e
 Playwright Tests/.env.e2e
 
 # Build artifacts
@@ -30,7 +29,6 @@ build/
 *.log
 
 # E2E test results (local artifacts only)
-e2e/test-results/
 Playwright Tests/test-results/
 Playwright Tests/playwright-report/
 Playwright Tests/.last-run.json
@@ -48,3 +46,12 @@ supabase/.temp/
 # Agent Fleet: Cursor plan drafts are local scratch - keep them off dev so a plan
 # pushed to dev-agent is always a genuine new commit that runs. .cursor/rules/ stays tracked.
 .cursor/plans/
+# Claude Code: per-developer settings. Never tracked - it accretes one-off Bash
+# allowlist entries that have previously embedded a live Supabase PAT.
+.claude/settings.local.json
+
+# Agent Fleet: the local pre-flight hook's cache file - never committed.
+.claude/hooks/.fleet-preflight-cache.json
+
+# Agent Fleet: the local pre-flight hook's transient temp files - never committed.
+.claude/hooks/.preflight-input-*.md

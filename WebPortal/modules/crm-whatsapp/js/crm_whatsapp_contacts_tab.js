@@ -1,5 +1,11 @@
 /**
- * CRM WhatsApp Contacts Tab — WhatsApp contact conversations with send status and polling.
+ * CRM WhatsApp Contacts Tab — shared team inbox for the WhatsApp line, with send
+ * status and polling.
+ *
+ * Reads the shared inbox (chat_list_whatsapp_conversations) so a message from a number
+ * nobody has saved as a CRM contact still appears. On a database that predates
+ * migration 20260813090000 those RPCs are absent, the dataFunctions helpers return
+ * null, and this falls back to the old contact-only view unchanged.
  */
 var _crmWhatsappContactsTab = function () {
     'use strict';
@@ -9,13 +15,44 @@ var _crmWhatsappContactsTab = function () {
     let conversations = [];
     let contacts = [];
     let pollInterval = null;
-    const POLL_MS = 5000; // Poll every 5 seconds when a conversation is open
+    let listPollInterval = null;
+    let sharedInbox = false; // true once the shared-inbox RPCs answer
+
+    // Poll cadence follows the 60s precedent in notifications.js. The open thread polls
+    // faster because it is a single-conversation read and this is a live chat surface;
+    // the conversation list stays at 60s. Both skip work while the tab is hidden, so an
+    // idle background tab costs nothing.
+    const POLL_MS = 15000;
+    const LIST_POLL_MS = 60000;
 
     const escapeHtml = (text) => {
         if (text == null || text === '') return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return _common.escapeHtml(text);
+    };
+
+    /** Display form for a canonical bare-digit number, e.g. '+27 71 463 9643'. */
+    const formatPhone = (phone) => {
+        const digits = String(phone || '').replace(/\D/g, '');
+        if (!digits) return '';
+        if (/^27\d{9}$/.test(digits)) {
+            return '+27 ' + digits.substr(2, 2) + ' ' + digits.substr(4, 3) + ' ' + digits.substr(7, 4);
+        }
+        return '+' + digits;
+    };
+
+    /**
+     * Label for a conversation: contact name -> WhatsApp profile name -> phone number.
+     * Never blank and never a bare "Contact" — an unknown number must still be
+     * identifiable. The shared-inbox RPC already applies this fallback, so this mainly
+     * covers the pre-migration fallback path.
+     */
+    const conversationLabel = (conv) => {
+        if (!conv) return 'Unknown number';
+        const name = (conv.other_party_name || '').trim();
+        if (name && name !== 'Contact') return name;
+        const profile = (conv.profile_name || '').trim();
+        if (profile) return profile;
+        return formatPhone(conv.external_phone) || 'Unknown number';
     };
 
     const formatTime = (timestamp) => {
@@ -40,6 +77,12 @@ var _crmWhatsappContactsTab = function () {
     return {
         init: async () => {
             console.log('[WhatsApp Contacts] Initializing contacts tab...');
+
+            // Re-entry: the markup is fresh, so no thread is on screen. Drop any
+            // conversation left selected from the previous visit, otherwise the thread
+            // poll would keep refreshing a conversation the user can no longer see.
+            currentConversationId = null;
+            _crmWhatsappContactsTab.stopPolling();
 
             // Get current user
             try {
@@ -70,7 +113,10 @@ var _crmWhatsappContactsTab = function () {
             // Load conversations
             await _crmWhatsappContactsTab.loadConversations();
 
-            console.log('[WhatsApp Contacts] Contacts tab initialized');
+            // Keep the list live so inbound messages surface without a manual refresh
+            _crmWhatsappContactsTab.startListPolling();
+
+            console.log('[WhatsApp Contacts] Contacts tab initialized' + (sharedInbox ? ' (shared inbox)' : ' (contact-only)'));
         },
 
         setupEventListeners: () => {
@@ -163,7 +209,20 @@ var _crmWhatsappContactsTab = function () {
 
         loadConversations: async () => {
             try {
-                const result = await dataFunctions.chatListConversations(currentUserId, 'whatsapp_contact');
+                // Shared inbox first: includes conversations nobody started from a CRM
+                // contact. null means the RPC is absent (migration not applied) — fall
+                // back to the participant-gated view so the tab behaves as it used to.
+                let result = null;
+                if (dataFunctions.chatListWhatsappConversations) {
+                    result = await dataFunctions.chatListWhatsappConversations(currentUserId);
+                }
+
+                if (result === null || typeof result === 'undefined') {
+                    sharedInbox = false;
+                    result = await dataFunctions.chatListConversations(currentUserId, 'whatsapp_contact');
+                } else {
+                    sharedInbox = true;
+                }
 
                 if (!result || typeof result.success === 'undefined') {
                     conversations = result || [];
@@ -202,8 +261,19 @@ var _crmWhatsappContactsTab = function () {
             let html = '';
             conversations.forEach(conv => {
                 const unreadBadge = conv.unread_count > 0 ? `<span class="badge rounded-pill bg-danger">${conv.unread_count}</span>` : '';
-                const preview = conv.last_message_body ? escapeHtml(conv.last_message_body).substring(0, 60) + (conv.last_message_body.length > 60 ? '...' : '') : 'No messages yet';
+                const rawPreview = conv.last_message_body || '';
+                const preview = rawPreview
+                    ? escapeHtml(rawPreview.substring(0, 60)) + (rawPreview.length > 60 ? '...' : '')
+                    : 'No messages yet';
                 const activeClass = conv.conversation_id === currentConversationId ? 'active' : '';
+                // A number with no CRM contact behind it is worth flagging: it is a lead
+                // nobody has captured yet.
+                const unknownIcon = (sharedInbox && !conv.contact_id)
+                    ? '<i class="fas fa-circle-question text-muted ms-1" title="Not a saved CRM contact"></i>'
+                    : '';
+                const inboundPrefix = conv.last_message_direction === 'outbound_whatsapp'
+                    ? '<i class="fas fa-reply fa-xs text-muted me-1" title="Last message was ours"></i>'
+                    : '';
 
                 html += `
                     <div class="chat-list-item ${activeClass}" data-conversation-id="${escapeHtml(conv.conversation_id)}">
@@ -213,11 +283,11 @@ var _crmWhatsappContactsTab = function () {
                             </div>
                             <div class="flex-grow-1 ms-2">
                                 <div class="d-flex justify-content-between align-items-start">
-                                    <strong class="chat-name">${escapeHtml(conv.other_party_name || 'Contact')}</strong>
+                                    <strong class="chat-name">${escapeHtml(conversationLabel(conv))}${unknownIcon}</strong>
                                     <small class="text-muted">${formatTime(conv.last_message_at)}</small>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-muted chat-preview">${preview}</small>
+                                    <small class="text-muted chat-preview">${inboundPrefix}${preview}</small>
                                     ${unreadBadge}
                                 </div>
                             </div>
@@ -260,12 +330,30 @@ var _crmWhatsappContactsTab = function () {
             $('.chat-list-item').removeClass('active');
             $(`.chat-list-item[data-conversation-id="${conversationId}"]`).addClass('active');
 
+            // Join as a participant. Conversations created by an inbound message have no
+            // participant rows, and chat_send_message refuses non-participants — so
+            // without this, opening an unknown number's thread would show messages that
+            // could never be replied to.
+            if (sharedInbox && dataFunctions.chatJoinWhatsappConversation) {
+                try {
+                    await dataFunctions.chatJoinWhatsappConversation(conversationId, currentUserId);
+                } catch (e) {
+                    console.warn('[WhatsApp Contacts] Failed to join conversation:', e);
+                }
+            }
+
             // Load messages
             await _crmWhatsappContactsTab.loadMessages(conversationId);
 
             // Mark conversation as read
             try {
-                await dataFunctions.chatMarkConversationRead(conversationId, currentUserId);
+                let marked = null;
+                if (sharedInbox && dataFunctions.chatMarkWhatsappRead) {
+                    marked = await dataFunctions.chatMarkWhatsappRead(conversationId, currentUserId);
+                }
+                if (marked === null || typeof marked === 'undefined') {
+                    await dataFunctions.chatMarkConversationRead(conversationId, currentUserId);
+                }
                 // Reload conversations to update unread count
                 await _crmWhatsappContactsTab.loadConversations();
             } catch (e) {
@@ -283,7 +371,13 @@ var _crmWhatsappContactsTab = function () {
 
         loadMessages: async (conversationId) => {
             try {
-                const messages = await dataFunctions.chatListMessages(conversationId, currentUserId);
+                let messages = null;
+                if (sharedInbox && dataFunctions.chatListWhatsappMessages) {
+                    messages = await dataFunctions.chatListWhatsappMessages(conversationId, currentUserId);
+                }
+                if (messages === null || typeof messages === 'undefined') {
+                    messages = await dataFunctions.chatListMessages(conversationId, currentUserId);
+                }
 
                 if (!messages) {
                     throw new Error('Failed to load messages');
@@ -306,12 +400,24 @@ var _crmWhatsappContactsTab = function () {
             if (!conv) return;
 
             const pane = $('#contactsThreadPane');
+            const phoneLabel = formatPhone(conv.external_phone);
+            const label = conversationLabel(conv);
+            // Only show the phone as a subtitle when it is not already the label.
+            const phoneSubtitle = (phoneLabel && phoneLabel !== label)
+                ? `<small class="text-muted d-block">${escapeHtml(phoneLabel)}</small>`
+                : '';
+            const unknownBadge = (sharedInbox && !conv.contact_id)
+                ? '<span class="badge bg-secondary ms-2" title="This number is not a saved CRM contact">Not a CRM contact</span>'
+                : '';
 
             let html = `
                 <div class="chat-thread-header">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-user-circle fa-2x text-muted me-2"></i>
-                        <strong>${escapeHtml(conv.other_party_name || 'Contact')}</strong>
+                        <div>
+                            <strong>${escapeHtml(label)}</strong>${unknownBadge}
+                            ${phoneSubtitle}
+                        </div>
                     </div>
                 </div>
                 <div class="chat-thread-messages" id="contactsThreadMessages">
@@ -321,7 +427,9 @@ var _crmWhatsappContactsTab = function () {
                 html += `<div class="text-center text-muted py-4"><p>No messages yet. Start the conversation below.</p></div>`;
             } else {
                 messages.forEach(msg => {
-                    const isOutbound = msg.direction === 'outbound_whatsapp';
+                    // Inbound is anything the contact sent us; everything else is ours.
+                    const isInbound = msg.direction === 'inbound_whatsapp';
+                    const isOutbound = !isInbound;
                     const bubbleClass = isOutbound ? 'chat-bubble-outbound' : 'chat-bubble-inbound';
 
                     let statusIcon = '';
@@ -331,17 +439,28 @@ var _crmWhatsappContactsTab = function () {
                         } else if (msg.send_status === 'not_connected') {
                             statusIcon = '<i class="fas fa-exclamation-circle text-warning ms-2" title="Not connected"></i>';
                         } else if (msg.send_status === 'failed') {
-                            statusIcon = '<i class="fas fa-times-circle text-danger ms-2" title="Failed"></i>';
+                            const failTitle = msg.send_error ? 'Failed: ' + msg.send_error : 'Failed';
+                            statusIcon = `<i class="fas fa-times-circle text-danger ms-2" title="${escapeHtml(failTitle)}"></i>`;
                         } else if (msg.send_status === 'sent') {
                             statusIcon = '<i class="fas fa-check text-success ms-2" title="Sent"></i>';
+                        } else if (msg.send_status === 'delivered') {
+                            statusIcon = '<i class="fas fa-check-double text-success ms-2" title="Delivered"></i>';
+                        } else if (msg.send_status === 'read') {
+                            statusIcon = '<i class="fas fa-check-double text-primary ms-2" title="Read"></i>';
                         }
                     }
+
+                    // Shared inbox: say which colleague replied, so the team can tell.
+                    const senderTag = (isOutbound && msg.sender_name)
+                        ? `<small class="text-muted me-2">${escapeHtml(msg.sender_name)}</small>`
+                        : '';
 
                     html += `
                         <div class="chat-message ${isOutbound ? 'chat-message-outbound' : 'chat-message-inbound'}">
                             <div class="chat-bubble ${bubbleClass}">
                                 ${escapeHtml(msg.body)}
                                 <div class="chat-message-meta">
+                                    ${senderTag}
                                     <small class="text-muted">${formatTime(msg.created_at)}</small>
                                     ${statusIcon}
                                 </div>
@@ -396,7 +515,7 @@ var _crmWhatsappContactsTab = function () {
 
             try {
                 // Insert message with 'queued' status
-                const result = await dataFunctions.chatSendMessage(
+                let result = await dataFunctions.chatSendMessage(
                     conversationId,
                     currentUserId,
                     body,
@@ -405,6 +524,19 @@ var _crmWhatsappContactsTab = function () {
                     null,
                     null
                 );
+
+                // chat_send_message gates on participant membership. A conversation
+                // created by an inbound message has none until someone joins, so join
+                // and retry once rather than failing the reply.
+                if (result && !result.message_id && /not a participant/i.test(result.error || '') &&
+                    dataFunctions.chatJoinWhatsappConversation) {
+                    const joined = await dataFunctions.chatJoinWhatsappConversation(conversationId, currentUserId);
+                    if (joined && joined.success === 1) {
+                        result = await dataFunctions.chatSendMessage(
+                            conversationId, currentUserId, body, 'outbound_whatsapp', 'queued', null, null
+                        );
+                    }
+                }
 
                 if (!result || !result.message_id) {
                     throw new Error(result?.error || 'Failed to send message');
@@ -438,6 +570,7 @@ var _crmWhatsappContactsTab = function () {
                             sendResult.external_message_id || null,
                             null
                         );
+                        $('#whatsappNotConnectedBanner').addClass('d-none');
                     } else {
                         // Update message status to 'not_connected' or 'failed'
                         const status = sendResult.error && sendResult.error.includes('not yet connected') ? 'not_connected' : 'failed';
@@ -447,6 +580,11 @@ var _crmWhatsappContactsTab = function () {
                             null,
                             sendResult.error || 'Unknown error'
                         );
+                        // Surface the connection banner only on real evidence the channel
+                        // is down, not as a permanent warning.
+                        if (status === 'not_connected') {
+                            $('#whatsappNotConnectedBanner').removeClass('d-none');
+                        }
                     }
                 } catch (sendError) {
                     // Update message status to 'failed'
@@ -474,24 +612,58 @@ var _crmWhatsappContactsTab = function () {
             }
         },
 
+        /**
+         * True once this module's markup has been swapped out of the DOM — the portal is
+         * a single page and routes away without notifying modules, and nothing calls
+         * stopPolling(). Both polls check this and clear themselves, so navigating away
+         * does not leave timers hitting the database forever.
+         */
+        isDetached: () => !document.getElementById('contactsConversationList'),
+
         startPolling: () => {
             // Clear existing poll
             if (pollInterval) {
                 clearInterval(pollInterval);
             }
 
-            // Poll for new messages every 5 seconds
+            // Poll the open thread for new messages
             pollInterval = setInterval(async () => {
-                if (currentConversationId) {
+                if (_crmWhatsappContactsTab.isDetached()) {
+                    _crmWhatsappContactsTab.stopPolling();
+                    return;
+                }
+                if (currentConversationId && !document.hidden) {
                     await _crmWhatsappContactsTab.loadMessages(currentConversationId);
                 }
             }, POLL_MS);
+        },
+
+        /**
+         * Poll the conversation list. Separate from the thread poll and slower: this is
+         * what makes an inbound message from a number nobody has messaged before appear
+         * on its own, with no user action.
+         */
+        startListPolling: () => {
+            if (listPollInterval) return;
+
+            listPollInterval = setInterval(async () => {
+                if (_crmWhatsappContactsTab.isDetached()) {
+                    _crmWhatsappContactsTab.stopPolling();
+                    return;
+                }
+                if (document.hidden) return;
+                await _crmWhatsappContactsTab.loadConversations();
+            }, LIST_POLL_MS);
         },
 
         stopPolling: () => {
             if (pollInterval) {
                 clearInterval(pollInterval);
                 pollInterval = null;
+            }
+            if (listPollInterval) {
+                clearInterval(listPollInterval);
+                listPollInterval = null;
             }
         }
     };

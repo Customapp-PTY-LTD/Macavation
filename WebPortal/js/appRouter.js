@@ -338,6 +338,14 @@ var _appRouter = function () {
                         _modal_crm_contact.init();
                     }
                 },
+                // Without this entry the module rendered on the FIRST visit only: its
+                // script self-inits at the bottom of the file, but loadJSCode skips
+                // scripts it has already added, so on every later visit the markup was
+                // re-injected and nothing re-ran init — leaving the "No conversations
+                // yet" placeholder on screen even when the inbox had messages.
+                'crm-whatsapp-grid': () => {
+                    if (typeof _crmWhatsappGrid !== 'undefined' && _crmWhatsappGrid.init) _crmWhatsappGrid.init();
+                },
                 'grower-intake-grid': () => {
                     if (typeof _growerIntakeGrid !== 'undefined' && _growerIntakeGrid.init) _growerIntakeGrid.init();
                 },

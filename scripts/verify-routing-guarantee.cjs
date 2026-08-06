@@ -32,7 +32,7 @@ function extractGetEnv(file) {
 }
 
 let checked = 0;
-for (const rel of ['js/appRouter.js', 'WebPortal/js/appRouter.js']) {
+for (const rel of ['WebPortal/js/appRouter.js']) {
   const file = path.join(ROOT, rel);
   if (!fs.existsSync(file)) continue;
   const cfgFile = path.join(path.dirname(file), 'appRouteConfig.json');

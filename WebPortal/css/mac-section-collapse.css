@@ -18,5 +18,5 @@
 }
 
 .mac-section-collapse-card > .card-header {
-    background-color: var(--phoenix-light, #f8f9fa);
+    background-color: var(--mac-bg-tertiary);
 }

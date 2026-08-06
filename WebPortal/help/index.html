@@ -1113,6 +1113,29 @@
     </figure>
   </section>
 
+  <section id="raw-material-runway" class="guide-section" data-guide-id="raw-material-runway">
+    <h2>Raw material runway forecast</h2>
+<p class="guide-lead">Chart on the Executive dashboard answering one question: when is the plant predicted to run out of nut-in-shell to crack? The solid line is what actually happened up to today; the dashed line is the projection ahead.</p>
+    <p class="guide-how">The vertical axis is kilograms of nut-in-shell that have <strong>not yet been put into production</strong>. That is everything awaiting production, plus the portion of batches currently in production that has not been cracked yet. Scheduled grower intake is not counted in today's figure&mdash;it appears as an upward step on the day it is due, so you can see deliveries arriving. Dashed markers show <strong>Today</strong> and the predicted <strong>Run-out</strong>.</p>
+
+    <h3 class="guide-subhead">Setting the depletion rate</h3>
+    <p class="guide-how">The forecast needs to know how fast raw material is consumed, and that is a judgement call rather than something the system can safely guess. Press <strong>Depletion rate</strong> and pick a month whose cracking figures you trust. The rate becomes that month's total kilograms cracked divided by the number of days in the month, and it updates automatically if that month's records are later completed.</p>
+    <p class="guide-how">The <strong>Capture</strong> column shows how many of the month's recorded cracking days actually have a tonnage against them. This matters more than any other number in the dialog: a month where only a quarter of days were captured will understate consumption badly and make the runway look far longer than it is. Prefer a month with high capture. You can also enter kilograms per day directly, which overrides the chosen month&mdash;use that when you know the plant's real throughput.</p>
+    <p class="guide-how">Until a rate is set the chart deliberately shows stock on hand but no projection, rather than inventing a run-out date. The rate is shared: whoever sets it, everyone sees it.</p>
+
+    <h3 class="guide-subhead">How to use this screen</h3>
+    <ol class="guide-page-steps">
+      <li>Open <strong>Dashboard</strong> and expand <strong>Trends &amp; forecasts</strong>.</li>
+      <li>Find <strong>Raw material runway forecast</strong>.</li>
+      <li>Press <strong>Depletion rate</strong> and choose a month with a high capture percentage, or type a kilograms-per-day figure.</li>
+      <li>Read the headline: predicted run-out date, days remaining, and kilograms on hand.</li>
+      <li>Use the range buttons (1M, 3M, 6M, 1Y, All) to change how much history is shown. The projection always runs to run-out.</li>
+      <li>Hover any day to see intake and cracked kilograms for that day.</li>
+      <li>Check any warnings under the chart&mdash;they flag missing scheduled intake and gaps in cracking capture that make the projection less reliable.</li>
+      <li>Click <strong>Customize</strong> on the dashboard if the chart is hidden&mdash;enable <strong>Raw material runway forecast (NIS)</strong>.</li>
+    </ol>
+  </section>
+
   <section id="modal-stock-take" class="guide-section" data-guide-id="modal-stock-take">
     <h2>Stock Take (dialog)</h2>
 <p class="guide-lead">Dialog opened from the related module. Complete required fields (marked), then save. Use <strong>Cancel</strong> or the close button to dismiss without saving.</p>
