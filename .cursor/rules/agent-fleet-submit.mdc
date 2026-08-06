@@ -156,7 +156,7 @@ about the *data* requires it to wait.
 
 A plan can be detailed and well-researched and still get blocked, not because the work is wrong,
 but because it asks the agent to do something the review gates can't wave through unseen. Re-read
-the plan against these seven before pushing:
+the plan against these eight before pushing:
 
 1. **External contracts are backed by a file:line citation, not memory.** If the plan states how
    an external API/service/gateway behaves, name the file where that call is actually made in this
@@ -176,7 +176,13 @@ the plan against these seven before pushing:
    "resolved" status against reality - if the plan bakes one into a doc or code comment anyway,
    mark it unresolved/unverified instead. Also re-check any table or "proof" the plan itself
    supplies: numbers that don't balance, or a term defined two different ways, mean the plan's
-   own premise needs fixing before an agent is asked to act on it.
+   own premise needs fixing before an agent is asked to act on it. **Noticing the inconsistency
+   yourself and writing "treat this as unexplained, proceed anyway" does not satisfy this check -
+   it is the exact failure this check exists to catch, just caught by the author instead of the
+   gate.** (This is what blocked `uat-recommended-products-capture.md` on `Ingeni-Portal`,
+   2026-08-05: the plan's own Context stated 18 boolean questions while the repo's own
+   already-verified evidence said 28 - the plan noticed the gap and told the agent to proceed
+   past it rather than resolving which number was actually true.)
 5. **Verify claims about THIS repo's own existing behavior against code, not memory** - the same
    discipline as item 1, extended inward. Before stating how an existing flow, error path, or
    shared function behaves, name the file and describe what the code does - don't assume a
@@ -200,6 +206,13 @@ the plan against these seven before pushing:
    finishing" means the existing suite must pass, state whether the change could break an
    assertion that already exists - name and update that test explicitly as an in-scope
    deliverable, rather than leaving the agent to guess between three bad options.
+
+8. **Don't let a contract you declared "fixed" survive contact with a wrong premise.** If a
+reviewer (or your own re-reading) shows a stated interface/behavior contract is factually wrong,
+don't work around it by re-wording the mechanism - revise or drop the contract itself. A contract
+that's wrong AND forbids the only fix that would work will keep producing the same class of
+block under a new disguise. (This is exactly what blocked `jacana-wf-align-resubmission-sync`
+twice in a row on `jacana-portal`, 2026-08-04.)
 
 **Never block on this** - same as the size check, it's advisory. Full checklist and rationale:
 `plan-safety-checklist.md` (in the fleet's `templates/`).
