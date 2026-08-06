@@ -9,6 +9,21 @@ The fleet runs a plan pushed to this repo's `dev-agent` branch: within ~5 minute
 plan (Fable gate), runs it inside this repo's own guardrails, and **merges the result straight
 into `dev`** (no PR, no approval). Whoever commits the plan is auto-emailed the outcome and cost.
 
+## Before you draft - read this repo's own standards and the plan-safety checklist first
+
+Two things are cheaper to build in from the start than to catch afterward:
+
+- **This repo's own `BluePrint/` folder, if it has one.** The review gates already read it
+  adversarially against your plan/diff (advisory-only - it can add a reason to BLOCK, never a
+  reason to PASS). Reading it yourself before drafting means the plan already fits this repo's
+  own conventions instead of getting flagged for one later.
+- **The plan-safety checklist** (`plan-safety-checklist.md`, in the fleet's `templates/`,
+  summarized again in Step 0.7 below as a final re-check) - skim it now, while you're still
+  shaping the plan, not only once it's already written.
+
+Step 0.7 further down is still worth doing right before you push - this section is about not
+writing the problem in the first place.
+
 ## Fleet or direct? - the routing decision for substantial work
 
 When the user describes a substantial feature/fix but does not say HOW to deliver it, decide
@@ -157,8 +172,9 @@ about the *data* requires it to wait.
 ## Step 0.7 - the plan-safety checklist (do this BEFORE you push)
 
 A plan can be detailed and well-researched and still get blocked, not because the work is wrong,
-but because it asks the agent to do something the review gates can't wave through unseen. Re-read
-the plan against these eight before pushing:
+but because it asks the agent to do something the review gates can't wave through unseen. You
+should already have skimmed this once while drafting (see "Before you draft" above) - this is the
+final re-read, against all ten, right before you push:
 
 1. **External contracts are backed by a file:line citation, not memory.** If the plan states how
    an external API/service/gateway behaves, name the file where that call is actually made in this
@@ -216,6 +232,25 @@ that's wrong AND forbids the only fix that would work will keep producing the sa
 block under a new disguise. (This is exactly what blocked `jacana-wf-align-resubmission-sync`
 twice in a row on `jacana-portal`, 2026-08-04.)
 
+9. **A copied/modeled reference file's own environment-specific state must be explicitly
+overridden, not silently duplicated.** If the plan says "copy/model this file exactly" on a
+reference that itself carries environment-specific state (a `USE <database>` line, a connection
+string, a region, a tenant ID, a hardcoded URL, a feature flag), say explicitly what changes in
+the new copy - duplicating a reference exactly also duplicates whatever environment it was
+originally scoped to. (This is one of two defects that blocked `1951cd9c` on
+`BrokerPortal-standard`'s C360 logout plan: the plan said "copy this SQL file exactly," and the
+file's own `USE CustomappServices_Smartlink;` header - a UAT/prod database - went along for the
+ride, silently contradicting the plan's own "DEV only" instruction.)
+
+10. **A plan's own code sketch must actually produce what a later section of the same plan assumes
+it does.** If the plan includes its own literal code sketch and later depends on that sketch's
+return value or side effect (await it, race it, branch on its result), check that the sketch as
+written actually produces that - not a bare callback-style call with no `return`. A plan can be
+internally inconsistent between two of its own sections, not just wrong about the existing repo.
+(The other defect that blocked `1951cd9c`: the plan's own sketch called
+`_OASIS.callService(...)` with no return, then a later section said to `await`/`Promise.race`
+that call's result.)
+
 **Never block on this** - same as the size check, it's advisory. Full checklist and rationale live
 in the fleet toolkit's `templates/plan-safety-checklist.md`.
 
@@ -225,7 +260,10 @@ If the fleet toolkit's own checkout is available on this machine, `scripts/prefl
 runs the EXACT same review the fleet's plan-review gate runs - same model, same prompt, same
 checks - against this repo's own checkout, in about 1-2 minutes, with zero fleet dispatch and
 zero blocked-run bookkeeping. It costs one real model call (needs an `ANTHROPIC_API_KEY` in this
-environment) but nothing else - no run is recorded, nothing is dispatched.
+environment) but nothing else - no run is recorded, nothing is dispatched. **Especially worth
+running** when the plan says "copy/model X exactly" on another file, or embeds a literal code
+sketch - those are the two riskiest shapes (items 9 and 10 above), and this routes them at the
+real semantic check pre-push instead of hoping the re-read caught it.
 
 ```bash
 /path/to/agent-fleet/scripts/preflight-review.sh <plan-file> <this-repo-checkout-path>
