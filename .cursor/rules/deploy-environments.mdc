@@ -1,0 +1,33 @@
+---
+description: Deployed environment URLs (dev, demo) and AWS Amplify hosting for this project.
+alwaysApply: true
+---
+
+# Deploy environments
+
+<!--
+TEMPLATE - fill in this project's actual values.
+Look them up (do not guess): ~/.claude/scripts/deploy-urls.sh <project-name>
+All Customapp solutions are hosted on AWS Amplify (profile `customapp`, region eu-west-1).
+Amplify Hosting is NOT available in af-south-1.
+-->
+
+Hosted on **AWS Amplify** (AWS profile `customapp`, region **eu-west-1**), app `<APP_NAME>`, app id `<APP_ID>`, connected to GitHub repo `<ORG/REPO>`. Each git branch with auto-build deploys on push.
+
+## Test-user URLs
+
+<!-- Multi-tenant portals: append the tenant param, e.g. ?bg=<tenant-guid> -->
+
+| Env | URL | Git branch |
+|-----|-----|-----------|
+| dev | `https://<DEV_HOST>/` | `dev` |
+| demo | `https://<DEMO_HOST>/` | `demo` |
+
+- Prefer the custom-domain URLs over the raw `*.<APP_ID>.amplifyapp.com` Amplify URLs.
+- Static files are served from the repo root and are **case-sensitive**.
+
+## Notes
+
+- Promotion flow: `dev` -> `demo` -> `uat` -> `prod` (uat/prod may not be wired in Amplify).
+- When adding a new subdomain/environment, add `<env>-<slug>.<domain>` to the allowed OAuth redirect/callback URLs (Azure/Google) and Supabase allowed URLs, or logins will fail.
+- Hosting is wired at the AWS-account level via the Amplify GitHub App - there is no hosting config file in the repo (no netlify/vercel/workflows). Do not conclude "no deployment exists" from a repo search.

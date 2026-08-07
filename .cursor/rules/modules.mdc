@@ -1,0 +1,11 @@
+---
+description: Module conventions pointer - canonical file is BluePrint/modules.mdc
+globs:
+alwaysApply: true
+---
+
+# Module conventions
+
+Canonical file: `BluePrint/modules.mdc` — structure, naming, UX patterns, and the data-layer
+binding (OASIS, Supabase, or direct Lambda) for this project. This file exists only so Cursor's
+`alwaysApply` actually picks it up; edit the BluePrint copy, not this one.

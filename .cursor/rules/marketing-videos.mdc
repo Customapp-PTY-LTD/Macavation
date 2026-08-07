@@ -1,0 +1,41 @@
+---
+description: Produce a short-form marketing video campaign from this portal — mine features, capture real screens, render on-brand videos (9:16 + 16:9 + WhatsApp/Reply CTAs) with ElevenLabs voice + music, host via CloudFront over private S3, and build a catalog page + outreach drip. Apply when asked to create/make/produce marketing/promo/demo/explainer videos, a video campaign, or social clips.
+globs:
+alwaysApply: false
+---
+
+# Marketing Videos (Cursor rule — parity with the Claude Code `/marketing-videos` skill)
+
+Cursor can't invoke Claude Code skills, but it can run the same toolkit. When the user asks for
+marketing/promo/demo videos or a video campaign, follow the playbook and drive the kit yourself.
+
+- **Playbook (authoritative):** `~/Documents/GitHub/Libra Portal/docs/MARKETING_VIDEO_PLAYBOOK.md`
+- **Toolkit:** `~/Documents/GitHub/Libra Portal/tools/marketing-video-kit/`
+  (`render.py`, `capture.mjs`, `record-walkthroughs.mjs`, `host.sh`, `campaign.example.json`, `templates/`, `fonts/`)
+
+## Ask up front
+ElevenLabs key (TTS-enabled) · the demo CTA (URL/email/"reply") + a WhatsApp number · voice choice
+(offer a short audition) · which features to lead with (confirm they exist). (Music = shared library, synced.)
+
+## Flow (detail in the playbook)
+0. **Preflight** — run `bash <toolkit>/preflight.sh` and report missing prereqs before starting.
+1. **Strategy** — grep `CLAUDE.md`, `docs/` (one-pagers/pitch), module names, `appRouteConfig.json`
+   for honest, sellable features + metrics. Propose one-feature-per-video series + send sequence;
+   confirm. Write beats into `campaign.json` (`videos{}`): card→problem→product→reveal(chip)→count→end.
+2. **Assets** — `capture.mjs` against **uat/dev** (the local static server can't auth). **Verify every
+   frame is the right screen, not the home page.** WhatsApp products: generate a chat mock
+   (`node whatsapp-mock.mjs chat.json out.png`) instead of live-recording WhatsApp; use the PNG as a beat `src`.
+3. **Render** — `python3 render.py campaign.json` (9:16); `VW=1920 VH=1080 …` (16:9);
+   `CTA_TEXT="Chat on WhatsApp  →" CTA_SUB="<num>" CTA_SUFFIX="-wa" …`; `CTA_TEXT="Reply to see it  →" CTA_SUFFIX="-reply" …`.
+4. **Voice + music** — one brand voice (cached per `voice.tag`); music from the shared library
+   (`./sync-music.sh` → `~/.mvk-music`, pick by mood from `music-library.json`), −18 dB.
+5. **Host** — `host.sh setup` = CloudFront over a PRIVATE S3 bucket (account-level Block Public Access
+   forbids public buckets — never disable it). Paste printed `MEDIA_BASE` into `library.html`; `host.sh publish` to update.
+6. **Pages + copy** — fill `templates/library.html` + `drip-tracker.html`; email+WhatsApp copy per touch; posters.
+7. **Ship** — commit pages/posters/docs to `dev` (NOT the ~120 MB of videos). Give the CloudFront
+   `library.html` link. Rotate any shared key.
+
+## Guardrails
+Capture on deployed envs only; verify frames; ffmpeg here has no `drawtext` (render.py uses Pillow);
+never disable account S3 Block Public Access; keep videos out of git; single-line shell commands
+(multi-line paste collapses); confirm before commits/pushes and public/outward actions.

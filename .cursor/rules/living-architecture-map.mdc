@@ -1,0 +1,21 @@
+---
+description: Living architecture map - keep this repo's CLAUDE.md a concise, current map of how the system works, so agents/teammates don't re-spend tokens rediscovering it
+globs:
+alwaysApply: true
+---
+
+# Living architecture map
+
+Keep this repo's `CLAUDE.md` a **living architecture map** — the standing defense against
+re-spending tokens rediscovering how the system works. After any task that required non-trivial
+discovery of HOW the system works (which secret / table / Lambda / queue, the deploy path, the auth
+model, a load-bearing gotcha that cost time), record the salient map in `CLAUDE.md`'s
+*Architecture & operations* section (create it if missing), and put step-by-step procedures in a
+`docs/` runbook linked from it.
+
+**Keep it CONCISE — this is the whole point.** `CLAUDE.md` is auto-loaded into every session, so a
+bloated map wastes the exact tokens it is meant to save. A tight component map + the gotchas that
+cost time, not prose; link to `docs/*` for depth; prune stale/wrong entries when you notice them.
+The test for an entry: **would it have saved *this* task's discovery?** If not, leave it out.
+
+Claude Code twin: the global `~/.claude/CLAUDE.md` "Living architecture map (ALL repos)" section.

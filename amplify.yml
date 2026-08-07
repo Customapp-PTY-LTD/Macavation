@@ -1,0 +1,14 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands: []
+    build:
+      # Static vanilla-JS portal - no build step, the repo is served as-is.
+      commands: []
+  artifacts:
+    baseDirectory: /
+    files:
+      - '**/*'
+  cache:
+    paths: []

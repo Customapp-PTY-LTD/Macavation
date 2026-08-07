@@ -1,0 +1,149 @@
+---
+description: Universal module conventions for every Customapp portal project (structure, naming, UX patterns) plus per-stack data-layer bindings
+globs:
+alwaysApply: true
+---
+
+# Module Conventions
+
+One feature = one module folder, self-contained, one nav item. This file is the baseline every
+Customapp portal follows regardless of its data layer (OASIS/SQL Server, Supabase, or a direct
+Lambda API) — see "Data-layer bindings" at the bottom for the parts that differ by stack.
+
+## Project Structure
+
+- Modules live at `modules/{module_name}/` (repo root, siblings of `js/`, `css/`, not nested under
+  an app-specific tree).
+- Each module has `html/`, `js/`, and (optional) `css/` subdirectories.
+- Naming convention: `{module_name}_{type}.{ext}` (e.g. `employees_grid.html`, `employees_grid.js`).
+- Prefer separate grid and form files/routes over one combined view.
+
+```
+modules/{name}/html/{name}_grid.html
+modules/{name}/js/{name}_grid.js
+modules/{name}/css/{name}_grid.css   (optional)
+```
+
+## Module Types
+
+- Grid view: `{module}_grid.html`, `{module}_grid.js`, `{module}_grid.css`
+- Form view: `{module}_form.html`, `{module}_form.js`, `{module}_form.css`
+
+## JavaScript Patterns
+
+- Routed module object (IIFE): `var _{module}Grid = function () { return { init, initHandlers,
+  loadGrid, ... } }();` — invoked by the app router when its route loads.
+- Standalone module (object literal, self-loaded HTML): `var {module}Grid = { init: async
+  function() { ... } };` initialized with `$(document).ready(function() { {module}Grid.init(); });`
+- Use event delegation with `.off('.namespace').on('.namespace', ...)` so re-initialization never
+  double-binds handlers.
+- Must include `_{module}Grid.init();` / `_{module}Form.init();` (or the standalone equivalent) at
+  the bottom of the JS file.
+- Always include breadcrumb / page-context navigation appropriate to the shell in use.
+
+## Edit Mode Detection Pattern
+
+- Store the record GUID on module scope at init (e.g. `scope.current{Module}GUID`); do not rely
+  only on route params for reliability across reloads.
+- Edit detection: `const isEdit = scope.current{Module}GUID && scope.current{Module}GUID !== '';`
+- Click-to-read: persist the selected row (stored GUID / `window._selected{Module}Data`) then
+  navigate to the form route; show a loading state during the fetch.
+
+## Delete Functionality
+
+- Confirm destructive actions with a modal/dialog before calling delete (SweetAlert2 where the
+  stack already uses it: `Swal.fire({ title, text, icon: 'warning', showCancelButton: true, ... })`).
+- Show a success/error toast and refresh the grid after a successful delete.
+
+## Error Handling & Loading States
+
+- Every async operation shows a loading state and handles both success and failure.
+- Surface failures to the user via toast/notification, not just a console log.
+- A "no confident match" fallback (search, lookup, classifier) must never silently pick a value
+  for a required field — leave it blank so the user makes an explicit choice. A silent wrong guess
+  is worse than a visibly empty field.
+- Never fire one backend call per grid/list row on load — it's invisible with a handful of dev
+  rows but fans out to hundreds of concurrent calls against real data and can saturate a shared
+  connection pool for other users. Load per-row state via one batch call keyed by row ids, and
+  **fail open** (don't block the feature) if the batch check itself errors.
+- When a default/lookup value is duplicated in both a client-side constant and a server-side seed,
+  update both together and backfill existing records — otherwise one falls silently out of sync.
+
+## Validation Patterns
+
+- Required fields: visual indicator (e.g. `*`) plus validation styling (e.g. `.is-invalid`).
+- Validate on the client for UX; the authoritative validation is always server-side.
+- South African field rules (where applicable to the client base):
+  - ID number: 13 digits; gender digit 7–10 ≥ 5000 = Male, < 5000 = Female; century from the YY
+    prefix (> 50 → 1900s, ≤ 50 → 2000s).
+  - Mobile number: `^(\+27|0)[0-9]{9}$`
+  - Email: use the shared validator already in the project rather than re-implementing regex.
+
+## Security
+
+- Escape/sanitize any untrusted content before rendering it — use text-insertion APIs (`.text()`,
+  `textContent`) for user-supplied strings; never `.html()`/`innerHTML`/`document.write()` with
+  untrusted input. See `javascript-jquery-rules.md` for the full security ruleset.
+
+## Navigation Integration
+
+- Add the nav item in the shell (root HTML / nav partial) and gate its visibility from the shell's
+  nav script based on the user's role/permissions — the exact function name is app-specific, but
+  every module must be reachable only through a gated nav entry, never hardcoded visible-by-default.
+- Register the module's routes wherever this project's router config lives (see the data-layer
+  binding for your stack below for the concrete file).
+
+## When Creating a Module
+
+1. Generate the grid/form files following the naming convention above.
+2. Implement full CRUD with field names matching the actual schema (not assumed defaults).
+3. Wire routing and gated navigation.
+4. Implement error handling, loading states, and required-field validation.
+5. Apply South African field rules where the module collects ID/mobile/email data.
+6. Use stored-GUID edit-mode detection and click-to-read.
+7. Confirm deletes before executing them.
+8. Follow the data-layer binding for this project's stack (below) for the actual service-call shape.
+
+---
+
+## Data-layer bindings
+
+Every project uses exactly one of these — the rest of this file is stack-neutral, but the actual
+service call has to match whichever backend this project runs.
+
+### (a) OASIS + SQL Server stored procedures (Broker Portal family)
+
+- Routes live in `js/appRouteConfig.json` (`basePath: "modules"`), modules and config are siblings
+  at repo root.
+- Service calls: `_OASIS.callService({ ServiceCall: 'sp_or_ServiceName', InputParams: {...}, async:
+  true, callback })`. Copy `InputParams` names from an existing call to the same stored procedure —
+  naming is mixed (`prm*` vs. clean names) per procedure, do not assume one convention. Single-record
+  read/update/delete calls commonly key off a `UniqueGUID` parameter.
+- Registered C360 services go through `js/dataFunctions.js` (capital F) using
+  `ApiRegisterServiceKey` + `webserviceURL: _OASIS.customAppServicesURL`, and validate the session
+  first with `_c360Api.validateTokenExpires()`.
+- Reference-data dropdowns: `ServiceCall: 'ReferenceData_search'` with `prmContext` /
+  `prmDescription` parameters.
+- Toasts via `_common.showToastMessage()`; confirms/blocking errors via SweetAlert2; selects via
+  Choices.js; icons via Feather (`data-feather`, call `feather.replace()` after DOM changes).
+- Full canonical examples and the DOM/fan-out gotchas live in
+  `BrokerPortal-standard/.cursor/rules/portal-frontend-patterns.mdc` — read that file when working
+  in a BrokerPortal-family repo; do not edit it.
+
+### (b) Supabase / PostgreSQL behind a server-side broker
+
+- Client calls Postgres functions via `supabase.rpc('function_name', params)` — see
+  `CRUD_FUNCTIONS_GUIDE.md` for the create/read/update/delete function shape and
+  `supabase-database-rules.md` for schema conventions.
+- **Never ship a `service_role` key to browser JS.** Use the publishable/anon key client-side and
+  enforce access with RLS (`RBAC_GUIDE.md`) or a scoped server-side broker for anything sensitive.
+- Toasts/confirms/selects/icons: use whatever this project's shared UI helpers are (Bootstrap
+  Phoenix theme components); do not assume OASIS-specific helper names exist.
+
+### (c) Direct AWS Lambda Function URL
+
+- Client calls the Lambda Function URL directly via `fetch`, matching the request/response
+  contract that Lambda defines — check the Lambda's own README/handler for the contract before
+  assuming a shape.
+- Do not embed AWS credentials or long-lived secrets in client JS; auth is via whatever the
+  Lambda's own gate requires (Cognito token, shared secret header issued server-side, etc.).
