@@ -1,0 +1,59 @@
+---
+description: Model delegation protocol - Opus 5 architects, Sonnet 5 implements from self-contained briefs, Fable only by named exception; tune effort before switching tiers; protect the prompt cache
+globs:
+alwaysApply: false
+---
+
+# Model delegation - ring-fencing top-tier tokens
+
+Claude Code twin: `.claude/rules/model-delegation.md` (canonical - includes the proven token
+ratio and the full skeleton brief). Claude Code sessions have `builder` and `recon` subagents
+pinned to Sonnet in `.claude/agents/`.
+
+## The split (applies to Cursor model choice too)
+
+- **Opus 5 - the default top tier**: architecture decisions, writing briefs/specs, seam +
+  security review, debugging weird failures, deploy go/no-go. Not typing implementations.
+- **Fable 5 - named exception only**: genuinely frontier reasoning, or debugging that already
+  defeated Opus 5. It is ~2x Opus 5's price ($10/$50 per MTok vs $5/$25), so reach for it by
+  naming the reason, never by habit. If the reason is "this is hard", try higher effort on
+  Opus 5 first.
+- **Sonnet 5 - mid tier**: implementation from a self-contained brief, fan-out recon,
+  docs from a spec. Runs its own verification before reporting done.
+- **Small models**: mechanical transforms only - below the bar for this repo's conventions.
+
+## Effort before tier
+
+Raise or lower the effort setting before switching models - it is cheaper than a tier switch and
+does not throw away the prompt cache. Low for recon and mechanical work, high/xhigh for coding and
+agentic work, max only when correctness beats cost. Effort cannot fix a price tier.
+
+## Protect the prompt cache
+
+Cache reads cost ~0.1x base input; cache writes cost 1.25x-2x. Continue sessions rather than
+restarting them, do not switch models mid-session (caches are model-scoped), and keep the early
+part of the prompt frozen - editing a rules file mid-session invalidates everything after it.
+On a top-tier model, wasted cache writes are routinely the largest line on the bill.
+
+Default working sessions to a Sonnet-class model; escalate deliberately for design, security,
+cross-component work, and stuck debugging.
+
+## Brief anatomy (all six, every delegation - human or agent)
+
+1. Context (3-5 sentences, incl. parallel workstreams)
+2. Read-first list - exact files AND line ranges, nothing open-ended
+3. FIXED contracts between workstreams, marked "do not renegotiate"
+4. Deliverables with acceptance criteria
+5. Verify-before-finishing commands (tests, type-check, ASCII-dash grep)
+6. Report cap + explicit don'ts (no commit/deploy/DB writes unless stated)
+
+## Review discipline
+
+Review seams, not surfaces: grep the contract joints (header names, param shapes, grants)
+instead of re-reading whole files. Read deviation notes first - they carry the real-world facts
+the brief got wrong. Keep parallel workstreams in disjoint directories.
+
+## Never economize on
+
+Security-adjacent changes, anything crossing more than two components, deploy decisions, and
+debugging where the symptom lies.

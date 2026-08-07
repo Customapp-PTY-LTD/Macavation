@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Model Delegation Standard - Customapp</title>
+<style>
+  /* Design tokens - navy + teal, print-first */
+  :root {
+    --navy: #1a2b4a;
+    --navy-2: #24365c;
+    --teal: #0f6674;
+    --teal-2: #128194;
+    --teal-tint: #eaf4f5;
+    --navy-tint: #eef1f6;
+    --ink: #202632;
+    --muted: #5c6675;
+    --line: #dbe1e8;
+    --code-bg: #f5f7f9;
+    --code-line: #dde3ea;
+    --paper: #ffffff;
+    --canvas: #eef1f5;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.55;
+  }
+
+  .page {
+    max-width: 850px;
+    margin: 28px auto 60px;
+    background: var(--paper);
+    padding: 48px 60px 56px;
+    box-shadow: 0 1px 2px rgba(15,20,30,.06), 0 18px 40px rgba(15,20,30,.08);
+    border-radius: 0;
+  }
+
+  .accent-bar {
+    height: 5px;
+    width: 100%;
+    background: linear-gradient(90deg, var(--navy), var(--teal));
+    border-radius: 2px;
+    margin: 0 0 26px;
+  }
+
+  /* Brand block - CSS-drawn logo, no image assets */
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+  .brand-mark {
+    width: 42px; height: 42px; flex: none;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--navy), var(--teal-2));
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-mark span { color: #fff; font-weight: 700; font-size: 19px; font-family: Arial, Helvetica, sans-serif; }
+  .brand-mark::after {
+    content: "";
+    position: absolute; right: -4px; bottom: -4px;
+    width: 14px; height: 14px;
+    background: var(--teal);
+    border: 2px solid var(--paper);
+    border-radius: 4px;
+  }
+  .brand-label { font-size: 13px; color: var(--navy); font-weight: 500; letter-spacing: .2px; }
+  .brand-label b { font-weight: 700; }
+
+  h1 { color: var(--navy); font-size: 25pt; margin: 4px 0 6px; letter-spacing: .1px; }
+  .subtitle { color: var(--teal-2); font-size: 12.5pt; margin: 0 0 14px; font-weight: 600; }
+  .meta-line { color: var(--muted); font-size: 9.5pt; margin: 0; }
+  hr.cover-rule { border: 0; border-top: 1px solid var(--line); margin: 22px 0 4px; }
+
+  h2 {
+    color: var(--navy);
+    font-size: 15pt;
+    margin: 30px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--teal);
+  }
+  h3 { color: var(--teal-2); font-size: 11.5pt; margin: 18px 0 6px; }
+
+  p { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 0 0 6px; }
+  .case-label {
+    color: var(--teal-2); text-transform: uppercase; letter-spacing: 1px;
+    font-size: 8.5pt; font-weight: 700; margin: -6px 0 12px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 18px;
+    font-size: 9.8pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; vertical-align: top; text-align: left; }
+  thead th { background: var(--navy); color: #fff; font-weight: 600; }
+  tbody tr:nth-child(even) td { background: var(--teal-tint); }
+  td ul { margin: 0; padding-left: 16px; }
+  td ul li { margin: 0 0 3px; }
+  table.split-table td:first-child, table.split-table th:first-child { width: 17%; }
+  table.timeline-table td:first-child, table.timeline-table th:first-child { width: 14%; white-space: nowrap; }
+  table.timeline-table td:nth-child(2), table.timeline-table th:nth-child(2) { width: 24%; }
+
+  code, pre, .mono {
+    font-family: "SFMono-Regular", Consolas, Menlo, "Courier New", monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--code-line);
+    border-left: 3px solid var(--teal);
+    padding: 14px 16px;
+    border-radius: 3px;
+    font-size: 9.2pt;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  code.inline {
+    background: var(--code-bg);
+    border: 1px solid var(--code-line);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 92%;
+  }
+
+  a { color: var(--teal-2); }
+  a:visited { color: var(--teal-2); }
+
+  .code-label {
+    color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+    font-size: 8.5pt; font-weight: 700; margin: 10px 0 4px;
+  }
+  .code-label + pre { margin-top: 2px; }
+
+  .callout {
+    background: var(--teal-tint);
+    border-left: 3px solid var(--teal);
+    padding: 10px 14px;
+    margin: 10px 0 18px;
+    font-size: 10.3pt;
+    border-radius: 0 3px 3px 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .callout p { margin: 0; }
+  .callout strong { color: var(--navy); }
+
+  .faq-item { margin: 0 0 14px; page-break-inside: avoid; break-inside: avoid; }
+  .faq-q { font-weight: 600; color: var(--navy); margin: 0 0 4px; }
+  .faq-a { margin: 0; }
+
+  footer.doc-footer {
+    margin-top: 34px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-size: 8.5pt;
+    color: var(--muted);
+  }
+
+  /* Print setup - A4, 16mm margins, forced breaks on the sections that need a clean start */
+  .section-break { page-break-before: always; break-before: page; }
+
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .page { box-shadow: none; margin: 0; padding: 0; max-width: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="accent-bar" aria-hidden="true"></div>
+
+  <div class="brand" aria-hidden="true">
+    <div class="brand-mark"><span>C</span></div>
+    <div class="brand-label"><b>Customapp</b> - Engineering Standards</div>
+  </div>
+
+  <h1>AI Model Delegation Standard</h1>
+  <p class="subtitle">Ring-fencing top-tier tokens - Customapp engineering</p>
+  <p class="meta-line">Version 1.1&nbsp;&nbsp;|&nbsp;&nbsp;12 July 2026</p>
+  <hr class="cover-rule">
+
+  <h2>1. Why this standard</h2>
+  <p>Top-tier models such as Fable and Opus are priced at a multiple of Sonnet-class models, token for token. That fact is easy to state and easy to forget mid-build, when the fastest thing to do is keep typing in whichever session happens to be open.</p>
+  <p>The AI Model Delegation Standard turns that instinct into a rule: the expensive model is an architect, not a typist. It writes briefs, reviews seams, and makes the calls that need judgement; the legwork - the file-by-file implementation, the reconnaissance, the documentation - runs on Sonnet, dispatched through the <code class="inline">builder</code> and <code class="inline">recon</code> subagents. The target is for top-tier usage to settle at ten to fifteen percent of a developer's total AI tokens in a given week: not zero, because architecture and security review are exactly where the expensive model earns its keep, but not the default either.</p>
+  <div class="callout">
+    <p><strong>The case study proves the split, not just the theory.</strong> On the claim-report pipeline build (12 July 2026), four Sonnet builder agents did the implementation legwork - roughly 810,000 tokens across the queue migration, the worker, the render Lambda, and the documentation. The Fable session that specified, spot-checked, and verified that work spent roughly a tenth of that figure on the parts only a top-tier model should do: writing the fixed contracts, reviewing the seams where the parallel agents' work joined, fixing the one real security defect, and signing off. Worked through, that split lands under ten percent of total tokens on the top tier - comfortably inside the target, on a real change that landed about 3,400 lines in a single session.</p>
+  </div>
+
+  <h2>2. The split</h2>
+  <p>Every delegation decision comes down to matching the task to the cheapest tier that can do it without a quality loss. Three tiers, the same in every repo:</p>
+  <table class="split-table">
+    <thead><tr><th>Tier</th><th>Does</th><th>Does not</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Opus 5</strong><br>(architect - the default top tier; Fable 5 only by named exception, at ~2x the price)</td>
+        <td>
+          <ul>
+            <li>Exploration synthesis</li>
+            <li>Architecture decisions</li>
+            <li>Writing briefs</li>
+            <li>Seam and security review</li>
+            <li>Debugging weird failures</li>
+            <li>Deploy go/no-go</li>
+            <li>User-facing narrative</li>
+          </ul>
+        </td>
+        <td>
+          <ul>
+            <li>Type implementations</li>
+            <li>Re-read agent output wholesale</li>
+            <li>Mechanical edits</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Sonnet 5</strong><br>(<code class="inline">builder</code>, <code class="inline">recon</code> in <code class="inline">.claude/agents/</code>)</td>
+        <td>
+          <ul>
+            <li>Implementation from a brief</li>
+            <li>Fan-out recon</li>
+            <li>Docs from a spec</li>
+            <li>Self-verification</li>
+          </ul>
+        </td>
+        <td>
+          <ul>
+            <li>Renegotiate contracts</li>
+            <li>Explore beyond the read-first list</li>
+            <li>Commit or deploy</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Haiku</strong></td>
+        <td>Genuinely mechanical transforms only</td>
+        <td>Anything touching a repo's conventions</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Default every session to Sonnet; escalate to Fable or Opus deliberately. The <code class="inline">builder</code> and <code class="inline">recon</code> subagents are pinned to Sonnet in <code class="inline">.claude/agents/</code> in every repo, so dispatching to them from a Fable session cannot leak top-tier tokens into legwork - including exploration, which otherwise inherits the session's model and burns top-tier tokens just reading files.</p>
+
+  <h2>3. How it works day to day</h2>
+  <ol>
+    <li><strong>Sessions default to Sonnet.</strong> That is the repo-level model pin, not something to remember - open a repo and you are already on the cheap tier.</li>
+    <li><strong>Escalate deliberately with <code class="inline">/model</code></strong> up to Fable or Opus, and only for: architecture decisions, security-adjacent changes, cross-component design, and debugging once you are genuinely stuck - not from the first error.</li>
+    <li><strong>On a top-tier session, you write briefs and review seams.</strong> You do not type implementations. If the next step is "now go build it", that is a brief for the <code class="inline">builder</code> subagent, not a task for the session you are sitting in.</li>
+    <li><strong>The subagents are already there.</strong> <code class="inline">builder</code> (implementation from a brief) and <code class="inline">recon</code> (read-only fan-out exploration - file:line evidence, explicit notes on what it did not find, never a file dump) live in every repo's <code class="inline">.claude/agents/</code>, pinned to Sonnet - dispatching to them cannot accidentally burn top-tier tokens on reading files or typing code.</li>
+    <li><strong>Drop back down once the judgement call is made.</strong> Brief written, seams reviewed, security call made - return to Sonnet for the next normal task rather than staying on the expensive model out of momentum.</li>
+  </ol>
+
+  <h2 class="section-break">4. Anatomy of a brief</h2>
+  <p>A brief is the unit of delegation. Every one - written by a human or by an architect session - carries all six elements below. Skipping one is the most common way a delegation goes sideways: a vague read-first list costs far more than it saves, and a missing verification step means a failure can get reported as done.</p>
+  <ol>
+    <li><strong>Context</strong> - what and why in three to five sentences, including what other agents are building in parallel.</li>
+    <li><strong>Read-first list</strong> - exact files and line ranges (for example, <code class="inline">index.ts lines 120-260</code>), nothing open-ended. This is the single biggest token lever: a vague brief makes the cheap model re-derive context, badly.</li>
+    <li><strong>FIXED contracts</strong> - the interfaces between parallel agents, marked "do not renegotiate": request and response shapes, header names, column lists, status values.</li>
+    <li><strong>Deliverables with acceptance criteria</strong> - enumerated files, each with what "done" means.</li>
+    <li><strong>Verify before finishing</strong> - the exact commands the agent must run and pass before reporting: tests, type-check, the dash lint.</li>
+    <li><strong>Report cap and explicit don'ts</strong> - "under 30 lines, deviations with reasons"; no commit, no deploy, no database writes unless the brief says so.</li>
+  </ol>
+  <p>When a brief is silent on something small, the builder makes the smallest reasonable assumption and notes it. When it is silent on something load-bearing, the builder stops that part and reports the gap rather than guessing.</p>
+  <p>The skeleton below is the literal template. Copy it, fill in the angle brackets, delete nothing.</p>
+  <pre><code>You are implementing &lt;X&gt; in repo &lt;path&gt; (branch &lt;b&gt; checked out - work in place, do NOT commit).
+
+## Context
+&lt;3-5 sentences. What, why, what the parallel agents build, whose contracts are fixed.&gt;
+
+## Read first (these exact files/ranges, nothing more)
+- &lt;file&gt; lines &lt;a-b&gt;  (&lt;why&gt;)
+
+## FIXED contracts (do not renegotiate)
+- &lt;interface&gt;: &lt;exact shape&gt;
+
+## Deliverables
+1. &lt;file&gt; - &lt;what it must do; acceptance criteria&gt;
+
+## Verify before finishing
+- &lt;command&gt; passes
+- unicode-dash scan on every touched file comes back clean (ASCII hyphens rule - use the
+  same grep as `npm run lint:dashes`; do not write the two dash characters into this brief)
+
+Return: files created, verification output, key decisions, deviations with reasons. Under 30 lines.</code></pre>
+
+  <h2 class="section-break">5. Worked example</h2>
+  <p class="case-label">The claim-report pipeline build - 12 July 2026</p>
+  <p>The team replaced a third-party MSSQL-based PDF and email report engine with an in-house pipeline: a render Lambda, a queue worker, the supporting migrations, and documentation. About 3,400 lines landed in a single session.</p>
+
+  <h3>Three briefs, one contract each</h3>
+  <p>The architect wrote fixed contracts before any code existed, then split the build three ways into disjoint directories: the queue migration, the worker, and the render Lambda. The worker agent coded against the migration's RPC before that migration file had actually landed, because the contract was the fixed point, not the file. All three composed cleanly. A fourth Sonnet agent handled the documentation.</p>
+
+  <p><strong>Excerpt - one of the three parallel briefs (render Lambda):</strong></p>
+  <pre><code>You are implementing the claim-report render Lambda in jacana-portal (branch checked out -
+work in place, do NOT commit).
+
+## Context
+This replaces a third-party report engine with an in-house PDF pipeline. Two other agents
+build the queue migration and the worker in parallel, in disjoint directories. This agent
+owns lambda/claim-report-render/ only.
+
+## FIXED contracts (do not renegotiate)
+- POST Function URL, header X-Render-Key: &lt;RENDER_SHARED_KEY&gt;
+- Body { html, file_name?, options? }; success 200 { success:true, pdf_base64, byte_length }
+- Failure { success:false, error } - 400 bad html, 401 bad key, 503 key unset
+
+## Deliverables
+1. lambda/claim-report-render/index.mjs - handler + renderHtmlToPdf()
+
+## Verify before finishing
+- local render test passes; unicode-dash scan clean
+
+Return: files created, verification output, deviations with reasons. Under 30 lines.</code></pre>
+
+  <h3>What came back</h3>
+  <p>All three builders finished inside their briefs, but real-world facts intruded on each of them, and each one said so in its deviations section instead of silently working around it:</p>
+  <ul>
+    <li>AWS had started blocking new Node 20 Lambda creations; the agent shipped Node 22 instead, and flagged it.</li>
+    <li>A PDF-rendering dependency had quietly raised its own minimum Node version within a patch release; the agent pinned the exact working version rather than guessing.</li>
+    <li>A migration number the brief specified was already taken by other work landed in the meantime; the agent renumbered and flagged it rather than overwrite.</li>
+  </ul>
+  <p>None of these were guesses. They were facts the brief could not have had, surfaced exactly where the standard says to look: the deviations section.</p>
+
+  <h3>The seam review catch</h3>
+  <p>The one genuine security defect in the whole build was in the architect's own brief: a grant that would have let anyone holding the public anon key redirect where claim-report emails get sent. The builder implemented it exactly as specified - and flagged the smell in its report rather than silently rewriting someone else's contract. Seam review caught it before deploy. The lesson generalises: review the seams, and review your own specs as if someone else had written them.</p>
+
+  <h3>What stayed on top tier</h3>
+  <p>A PDF that "looked corrupted" turned out to be a one-line driver difference: Puppeteer 22 and later returns a <code class="inline">Uint8Array</code> from its PDF call where Playwright returns a <code class="inline">Buffer</code>, so a plain <code class="inline">.toString('base64')</code> silently produced garbage instead of failing loudly. Nothing local caught it; it surfaced in deploy review. That kind of debugging - where the symptom lies about its own cause - is exactly what stays on the top tier.</p>
+
+  <h3>Timeline</h3>
+  <table class="timeline-table">
+    <thead><tr><th>Step</th><th>Who</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr><td>1. Specs</td><td>Fable</td><td>Fixed contracts for the queue migration, worker, and render Lambda; briefs for all four builder agents</td></tr>
+      <tr><td>2. Parallel build</td><td>3 Sonnet builders, disjoint directories</td><td>Queue migration, worker, render Lambda - coded to the contracts, not to each other's files</td></tr>
+      <tr><td>3. Documentation</td><td>1 Sonnet builder</td><td>Deploy checklist and decision log</td></tr>
+      <tr><td>4. Seam review</td><td>Fable</td><td>Contract spot-checks; caught the anon-grant defect in its own brief</td></tr>
+      <tr><td>5. Security fix</td><td>Fable</td><td>Removed the anon and authenticated grant; service role only</td></tr>
+      <tr><td>6. Deploy review</td><td>Fable</td><td>Caught the Puppeteer Uint8Array vs Buffer bug before ship</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. Review discipline</h2>
+  <ul>
+    <li><strong>Review seams, not surfaces.</strong> Grep the contract joints - header names, param shapes, grants - instead of re-reading whole files top to bottom. The defects live where work joins.</li>
+    <li><strong>Read deviations first.</strong> They carry the real-world facts the brief got wrong: a deprecated runtime, a version pin, a name collision. They are the escalation channel, not an apology.</li>
+    <li><strong>Keep parallel agents in disjoint directories.</strong> Sequence anything that shares a file; never let two agents write the same file in the same window.</li>
+    <li><strong>The brief goes in the PR description for agent-built work.</strong> A reviewer who was not part of the delegation needs the same context the builder had - the contracts, the read-first list, what "done" meant - to review the diff on its own terms.</li>
+    <li><strong>Review your own specs too.</strong> The one real security defect in the claim-report build was in the architect's brief, not the builder's code. Seam review is not just "did the builder follow instructions" - it is "were the instructions right".</li>
+  </ul>
+
+  <h2 class="section-break">7. Setup - what each dev does</h2>
+  <p>Five steps. (a) and (b) are once per machine; (c) is a one-time account link; (d) installs a background job; (e) is once per new project.</p>
+  <ol type="a">
+    <li><strong>Pull any active repo.</strong> The standard ships in-repo - <code class="inline">.claude/agents/</code>, the rules, and the Sonnet session pin are already there. Nothing separate to install for Claude Code.</li>
+    <li><strong>Cursor users:</strong> the twin rule is <code class="inline">.cursor/rules/model-delegation.mdc</code>. It applies automatically - no action needed.</li>
+    <li><strong>Usage dashboard:</strong> sign in at <a href="https://dev-reports.customapp.co.za">https://dev-reports.customapp.co.za</a> with your <code class="inline">@customapp.co.za</code> Google account. Your dev row is created automatically on first sign-in.</li>
+    <li><strong>Install the two usage extractors</strong> (metadata only - the Claude one is POPIA-safe, no prompt text ever leaves your machine). Copy and paste into a terminal:
+      <p class="code-label">macOS / Linux</p>
+      <pre><code>git clone https://github.com/Customapp-PTY-LTD/CustomappReports.git ~/Documents/GitHub/CustomappReports 2>/dev/null || git -C ~/Documents/GitHub/CustomappReports pull --ff-only
+bash ~/Documents/GitHub/CustomappReports/scripts/install-usage-extractors.sh</code></pre>
+      <p class="code-label">Windows (PowerShell)</p>
+      <pre><code>git clone https://github.com/Customapp-PTY-LTD/CustomappReports.git "$HOME\Documents\GitHub\CustomappReports"; if ($LASTEXITCODE -ne 0) { git -C "$HOME\Documents\GitHub\CustomappReports" pull --ff-only }
+powershell -ExecutionPolicy Bypass -File "$HOME\Documents\GitHub\CustomappReports\scripts\install-usage-extractors.ps1"</code></pre>
+      <p>Script source on GitHub: <a href="https://github.com/Customapp-PTY-LTD/CustomappReports/blob/dev/scripts/install-usage-extractors.sh">install-usage-extractors.sh</a>, <a href="https://github.com/Customapp-PTY-LTD/CustomappReports/blob/dev/scripts/install-usage-extractors.ps1">install-usage-extractors.ps1</a>, <a href="https://github.com/Customapp-PTY-LTD/CustomappReports/blob/dev/scripts/cursor-prompt-export.py">cursor-prompt-export.py</a>, <a href="https://github.com/Customapp-PTY-LTD/CustomappReports/blob/dev/scripts/claude-usage-export.py">claude-usage-export.py</a>.</p>
+      <p>Browsers cannot safely auto-run local scripts from a click, so the copy-paste commands above are the seamless path - add <code class="inline">--dev &lt;yourname&gt;</code> (<code class="inline">-Dev &lt;yourname&gt;</code> on the PowerShell installer) to the installer call only if your dashboard username differs from your machine username.</p>
+    </li>
+    <li><strong>New projects:</strong> copy <code class="inline">BluePrint/model-delegation/</code> per its README.</li>
+  </ol>
+
+  <h2>8. What we measure</h2>
+  <p>The dashboard plots each developer's top-tier share of total tokens, per week, against a fifteen percent target line. It is metadata only - model name, token counts, timestamps - never prompt text, for the Claude Code extractor. Cursor prompt-text collection is a separate, existing pipeline with its own notice; it is not part of this standard.</p>
+  <div class="callout">
+    <p><strong>A team norm made visible, not surveillance.</strong> A week over the line is a prompt to ask why - a big architecture piece, a hard debugging session - not an automatic flag. Read it the way you would read a burn-down chart: a trend to notice, not a score to defend.</p>
+  </div>
+
+  <h2 class="section-break">9. FAQ</h2>
+
+  <div class="faq-item">
+    <p class="faq-q">When is Fable actually worth it?</p>
+    <p class="faq-a">Architecture decisions, anything security-adjacent, work crossing more than two components, and debugging once you are genuinely stuck - not from the first error. These are cheap in tokens and expensive in consequences if you get them wrong: the claim-report build's one real security defect (an over-broad grant) and its nastiest bug (a silent Puppeteer API difference producing corrupt PDFs) were both exactly this category.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">The builder went off-spec. Now what?</p>
+    <p class="faq-a">Read the deviations section before anything else - it is the escalation channel, not a complaint log. A builder only deviates with a reason (a deprecated runtime, a version conflict, a name collision). Fold that fact into the next brief rather than re-running the same one and hoping.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Can I still just code on Fable?</p>
+    <p class="faq-a">Yes, for genuinely small things. The standard targets legwork - multi-file implementation, fan-out recon, docs from a spec - not every keystroke. A one-line fix does not need a brief.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Does this slow me down?</p>
+    <p class="faq-a">No - if anything the opposite. Agents run in parallel against fixed contracts instead of one session working serially through a task list. The claim-report pipeline - render Lambda, worker, migrations, and docs - landed about 3,400 lines in a single session this way.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">What about Haiku?</p>
+    <p class="faq-a">Genuinely mechanical transforms only - changes with no judgement calls left in them. Anything touching a repo's conventions is above Haiku's bar; use Sonnet instead.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Who reviews agent code?</p>
+    <p class="faq-a">The same PR review as always. The only change is that the brief goes in the PR description, so a reviewer who was not part of the delegation can see the contracts and acceptance criteria the builder worked to, not just the diff.</p>
+  </div>
+
+  <footer class="doc-footer">Customapp (Pty) Ltd - Engineering Standards - AI Model Delegation Standard, version 1.1 - 12 July 2026.</footer>
+
+</div>
+</body>
+</html>

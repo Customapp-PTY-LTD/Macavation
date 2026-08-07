@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Model Delegation - The Short Version - Customapp</title>
+<style>
+  /* Design tokens - navy + teal, print-first (matches TEAM_GUIDE.html) */
+  :root {
+    --navy: #1a2b4a;
+    --navy-2: #24365c;
+    --teal: #0f6674;
+    --teal-2: #128194;
+    --teal-tint: #eaf4f5;
+    --navy-tint: #eef1f6;
+    --ink: #202632;
+    --muted: #5c6675;
+    --line: #dbe1e8;
+    --code-bg: #f5f7f9;
+    --code-line: #dde3ea;
+    --paper: #ffffff;
+    --canvas: #eef1f5;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.55;
+  }
+
+  .page {
+    max-width: 850px;
+    margin: 28px auto 60px;
+    background: var(--paper);
+    padding: 48px 60px 56px;
+    box-shadow: 0 1px 2px rgba(15,20,30,.06), 0 18px 40px rgba(15,20,30,.08);
+    border-radius: 0;
+  }
+
+  .accent-bar {
+    height: 5px;
+    width: 100%;
+    background: linear-gradient(90deg, var(--navy), var(--teal));
+    border-radius: 2px;
+    margin: 0 0 26px;
+  }
+
+  /* Brand block - CSS-drawn logo, no image assets */
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+  .brand-mark {
+    width: 42px; height: 42px; flex: none;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--navy), var(--teal-2));
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-mark span { color: #fff; font-weight: 700; font-size: 19px; font-family: Arial, Helvetica, sans-serif; }
+  .brand-mark::after {
+    content: "";
+    position: absolute; right: -4px; bottom: -4px;
+    width: 14px; height: 14px;
+    background: var(--teal);
+    border: 2px solid var(--paper);
+    border-radius: 4px;
+  }
+  .brand-label { font-size: 13px; color: var(--navy); font-weight: 500; letter-spacing: .2px; }
+  .brand-label b { font-weight: 700; }
+
+  h1 { color: var(--navy); font-size: 25pt; margin: 4px 0 6px; letter-spacing: .1px; }
+  .subtitle { color: var(--teal-2); font-size: 12.5pt; margin: 0 0 14px; font-weight: 600; }
+  .meta-line { color: var(--muted); font-size: 9.5pt; margin: 0; }
+  hr.cover-rule { border: 0; border-top: 1px solid var(--line); margin: 22px 0 4px; }
+
+  h2 {
+    color: var(--navy);
+    font-size: 15pt;
+    margin: 30px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--teal);
+  }
+  h3 { color: var(--teal-2); font-size: 11.5pt; margin: 18px 0 6px; }
+
+  p { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 0 0 6px; }
+
+  a { color: var(--teal-2); }
+  a:visited { color: var(--teal-2); }
+
+  .callout {
+    background: var(--teal-tint);
+    border-left: 3px solid var(--teal);
+    padding: 10px 14px;
+    margin: 10px 0 18px;
+    font-size: 10.3pt;
+    border-radius: 0 3px 3px 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .callout p { margin: 0; }
+  .callout strong { color: var(--navy); }
+
+  .faq-item { margin: 0 0 14px; page-break-inside: avoid; break-inside: avoid; }
+  .faq-q { font-weight: 600; color: var(--navy); margin: 0 0 4px; }
+  .faq-a { margin: 0; }
+
+  footer.doc-footer {
+    margin-top: 34px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-size: 8.5pt;
+    color: var(--muted);
+  }
+
+  /* Print setup - A4, 16mm margins */
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .page { box-shadow: none; margin: 0; padding: 0; max-width: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="accent-bar" aria-hidden="true"></div>
+
+  <div class="brand" aria-hidden="true">
+    <div class="brand-mark"><span>C</span></div>
+    <div class="brand-label"><b>Customapp</b> - Engineering Standards</div>
+  </div>
+
+  <h1>AI Model Delegation - The Short Version</h1>
+  <p class="subtitle">What it is and why it matters - for everyone</p>
+  <p class="meta-line">Version 1.0&nbsp;&nbsp;|&nbsp;&nbsp;12 July 2026</p>
+  <hr class="cover-rule">
+
+  <h2>1. The short version</h2>
+  <p>Customapp's engineering team uses several different AI models to help build and support our software. The most capable model available is also, word for word, the most expensive - by a wide margin over the next tier down.</p>
+  <p>We now use that top-tier model the way a building project uses an architect: it plans the work, makes the judgement calls, and checks the finished result. The more affordable models do the actual building, working from that plan. Quality does not drop. Cost does.</p>
+
+  <h2>2. A real example: the claim-report project</h2>
+  <p>The clearest illustration is a project the team completed in a single working day: replacing part of our claims-reporting system with an in-house version. By the end of that one day, the team had delivered and checked about 3,400 lines of new software.</p>
+  <p>The expensive model spent roughly a tenth of the total effort on the project. Its time went on setting the plan, deciding how the different pieces should fit together, and checking the finished work where those pieces joined up. The more affordable models did the actual building, working from that plan.</p>
+  <p>That checking earned its keep. The expensive model caught two genuine mistakes, precisely because its job was to check the joins between the pieces - including one mistake in its own original instructions. A process that catches mistakes in its own author's work, including the top model's, is a good sign that the review step is real rather than a formality.</p>
+  <div class="callout">
+    <p><strong>The headline:</strong> about 3,400 lines of new software in one working day, with the expensive model responsible for roughly a tenth of the total effort - directing and checking, not typing.</p>
+  </div>
+
+  <h2>3. What changes for the team</h2>
+  <p>Day to day, developers now start their AI working sessions on the more affordable model by default. They switch up to the expensive model deliberately, and only for the moments that call for it: deciding how something should be designed, anything touching security, and genuinely tricky problems that need careful judgement.</p>
+  <p>A dashboard shows each person's mix of expensive versus affordable model use. The target is for the expensive model to make up roughly 10-15% of anyone's total usage - a meaningful share, because it still has an important job to do, but not the majority and not the default.</p>
+
+  <h2>4. What this is not</h2>
+  <p>This is not surveillance. For the dashboard that tracks Claude usage, only counts and totals are collected - the number of tokens used and which model produced them. The content of anyone's prompts or work is never collected.</p>
+  <p>Nor is this a ban on using the best model. It is aimed precisely at the moments where the expensive model earns its keep - design, security, and hard problems - and steered away from the moments where a more affordable model does an equally good job for a fraction of the cost.</p>
+
+  <h2>5. What you might notice</h2>
+  <p>Over the coming months, you may notice AI costs levelling off while the team's output holds steady or improves. Project write-ups may start to mention "briefs" and "agents" - these simply mean the plan the expensive model writes, and the more affordable models that are dispatched to carry it out.</p>
+  <p>Anyone who wants to see the trend for themselves can find it on the dashboard at <a href="https://dev-reports.customapp.co.za">dev-reports.customapp.co.za</a>.</p>
+
+  <h2>6. A few common questions</h2>
+
+  <div class="faq-item">
+    <p class="faq-q">Does cheaper mean worse?</p>
+    <p class="faq-a">No. The expensive model still reviews everything important before it ships.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Why 10-15%?</p>
+    <p class="faq-a">That is what planning and checking actually cost on real projects - enough to do the job properly, without paying premium prices for routine building work.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Who do I ask?</p>
+    <p class="faq-a">Cedric, or any of the engineering leads.</p>
+  </div>
+
+  <footer class="doc-footer">Customapp (Pty) Ltd - AI Model Delegation, the short version - version 1.0 - 12 July 2026.</footer>
+
+</div>
+</body>
+</html>
