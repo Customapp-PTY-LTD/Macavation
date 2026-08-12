@@ -11,15 +11,27 @@ into `dev`** (no PR, no approval). Whoever commits the plan is auto-emailed the 
 
 ## Before you draft - read this repo's own standards and the plan-safety checklist first
 
-Two things are cheaper to build in from the start than to catch afterward:
+A few things are cheaper to build in from the start than to catch afterward:
 
 - **This repo's own `BluePrint/` folder, if it has one.** The review gates already read it
   adversarially against your plan/diff (advisory-only - it can add a reason to BLOCK, never a
   reason to PASS). Reading it yourself before drafting means the plan already fits this repo's
   own conventions instead of getting flagged for one later.
+- **`BluePrint/FLEET_LESSONS.md`, if this repo has one.** Read it - each entry is a fact a
+  PREVIOUS run already learned the hard way about this exact repo. If it doesn't exist yet,
+  that's not "nothing to read" - it means no past block has ever been recorded here, which is
+  itself worth being deliberate about, not just skipping past. Either way: **if this plan (or an
+  earlier version of it) was already blocked once before**, look up what it was blocked for - the
+  block email, the portal's run record, or a `FLEET_LESSONS.md` entry if one was approved - and
+  apply that finding, rather than re-deriving it from scratch.
 - **The plan-safety checklist** (`plan-safety-checklist.md`, in the fleet's `templates/`,
   summarized again in Step 0.7 below as a final re-check) - skim it now, while you're still
   shaping the plan, not only once it's already written.
+- **Whether the local pre-flight check can actually protect you.** It only works if
+  `AGENT_FLEET_TOOLKIT_PATH` is set, or a fleet toolkit checkout exists at the documented default
+  `~/agent-fleet` - check for one of those now, before drafting, not after pushing. If neither
+  resolves, say so out loud to the developer: the free local safety net (Step 0.8) is off for this
+  session, and only the slower server-side gate will catch a problem.
 
 Step 0.7 further down is still worth doing right before you push - this section is about not
 writing the problem in the first place.
@@ -153,6 +165,11 @@ depends_on: add-policy-status-column.md
 - **Chains**: each plan names only the one before it (`phase-2-api.md` -> `phase-1-database.md`,
   `phase-3-screen.md` -> `phase-2-api.md`), all pushed together. A plan with no `depends_on:` - the
   normal case - is unaffected by any of this.
+- **When phase 1 rests on a genuinely new or unverified premise, consider pushing it alone
+  first.** A wrong premise in phase 1 blocks every dependent phase with **zero independent
+  review** - they never even reach the gate - so a mistake there is multiplied by the length of
+  the chain instead of caught once. If you're not confident phase 1's own facts are solid, push it
+  by itself, confirm it clears review, then push the rest.
 
 **A second, distinct reason to chain: two sibling plans that touch the same shared file, even
 when order doesn't otherwise matter.** The fleet may run several plans for the same repo at once
@@ -210,7 +227,11 @@ final re-read, against all ten, right before you push:
    assertion or "verify before finishing" outcome the plan mandates** - a mandated assertion IS a
    claim about the code's current behavior and needs the same file:line grounding. If you haven't
    traced the exact path the assertion depends on, say so and mark it unconfirmed rather than
-   writing the expected outcome as given.
+   writing the expected outcome as given. **This also extends outward to any FIX you propose, not
+   just the bug you're diagnosing**: a correct root-cause diagnosis can still ship a regression if
+   you haven't checked what else reads, renders, or reacts to the same element, DOM node, or shared
+   state/function - a new guard or condition can fire in a case the plan never considered if
+   something else in the repo already touches that same surface for an unrelated reason.
 6. **Before building something new, check whether this repo already has a near-duplicate to model
    after or reuse.** A new module, screen, or flow that closely resembles something already in the
    codebase should be built FROM that existing implementation, not from scratch - grep for the
@@ -219,7 +240,12 @@ final re-read, against all ten, right before you push:
    have been modeled on.) This also covers the narrower case of a UI input type (radio/checkbox/
    multi-select) not already used elsewhere in this codebase: zero grepped results means the plan
    must state explicitly how it'll be captured/serialized - don't assume a text/textarea-only
-   template already handles it.
+   template already handles it. **A near-duplicate's own comments can also tell you NOT to copy
+   it as-is** - a documented behavior or an unstated precondition (a timing assumption, an
+   environment assumption) may be exactly what your plan needs to change, so read what the
+   reference file says about itself before copying it wholesale. This applies to copying a *test
+   or verify technique* too, not just production code: confirm its precondition still holds at the
+   new call site.
 7. **Check the blast radius on EXISTING tests, not just the new one.** If "verify before
    finishing" means the existing suite must pass, state whether the change could break an
    assertion that already exists - name and update that test explicitly as an in-scope
@@ -273,10 +299,12 @@ If it reports BLOCK, fix what it found before pushing - that is exactly what the
 say, just without the round trip. If the fleet toolkit is not checked out locally, skip this step;
 it is a convenience, never a requirement, and the live gate still runs regardless.
 
-**First time on this machine?** Without `AGENT_FLEET_TOOLKIT_PATH` set, the *local hook version* of
-this same check silently allows every plan through with only a stderr warning - see the fleet user
-guide's ["One-time setup: enable your local pre-flight check"](https://github.com/Customapp-PTY-LTD/agent-fleet/blob/dev/docs/fleet-user-guide.md#one-time-setup-enable-your-local-pre-flight-check)
-for how to set it.
+**First time on this machine?** The *local hook version* of this same check resolves a toolkit
+checkout from `AGENT_FLEET_TOOLKIT_PATH`, or - if that's unset - the documented default location
+`~/agent-fleet`. Only if **neither** resolves does it silently allow every plan through with just
+a stderr warning. See the fleet user guide's
+["One-time setup: enable your local pre-flight check"](https://github.com/Customapp-PTY-LTD/agent-fleet/blob/dev/docs/fleet-user-guide.md#one-time-setup-enable-your-local-pre-flight-check)
+for how to set it up (you already checked this above, under "Before you draft").
 
 ## Submit (the Claude Code path differs from Cursor)
 
