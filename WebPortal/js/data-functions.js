@@ -3309,6 +3309,30 @@ var _dataFunctions = function () {
         },
 
         /**
+         * updateOilBatchHeader — edit an oil batch's header details from Find a batch.
+         * Oil counterpart to updateKernelStockBatchInfo. Header fields only: batch number,
+         * production date, total oil litres. NULL means leave unchanged (20260816100000).
+         */
+        updateOilBatchHeader: async function (oilId, payload, token = null) {
+            const params = {
+                p_oil_id: oilId,
+                p_batch_id: payload && payload.batch_id != null ? String(payload.batch_id).trim() : null,
+                p_production_date: payload && payload.production_date ? payload.production_date : null,
+                p_total_oil_litre: payload && payload.total_oil_litre != null && payload.total_oil_litre !== ''
+                    ? Number(payload.total_oil_litre)
+                    : null
+            };
+            const raw = await this.callFunction('update_oil_batch_header', params, token, { useCache: false });
+            this.clearCachePattern('oil_batches');
+            let r = raw;
+            if (r && typeof r === 'object' && r.update_oil_batch_header !== undefined) r = r.update_oil_batch_header;
+            if (typeof r === 'string') {
+                try { r = JSON.parse(r); } catch (e) { /* keep */ }
+            }
+            return r;
+        },
+
+        /**
          * completeKernelBatch — set kernel status to 'complete' (release to stock).
          * Used by: kernel_production_batch_actions.releaseBatchToStock
          */
@@ -3386,6 +3410,9 @@ var _dataFunctions = function () {
                     : null,
                 p_best_before_date: payload && payload.best_before_date ? payload.best_before_date : null,
                 p_ffa: payload && payload.ffa != null && payload.ffa !== '' ? Number(payload.ffa) : null,
+                // NULL means LEAVE UNCHANGED (20260815140000) — this path cannot clear a supplier.
+                // Sent unconditionally: the dialog's "Keep current supplier" option yields null,
+                // which is exactly the leave-unchanged signal the RPC expects.
                 p_supplier_id: payload && payload.supplier_id ? payload.supplier_id : null
             };
             let result = await this.callFunction('update_kernel_stock_batch_info', params, token, { useCache: false });
