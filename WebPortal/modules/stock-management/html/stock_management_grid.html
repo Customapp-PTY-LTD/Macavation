@@ -10,6 +10,9 @@
             <h1 class="h2 mb-0" id="stockManagementTitle">Stock Management</h1>
             <div class="btn-toolbar mb-2 mb-md-0">
             <a target="_blank" rel="noopener noreferrer" href="help/index.html#stock-management-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <button type="button" class="btn btn-outline-secondary me-2" id="stockHistoryBtn" title="Who changed stock on hand, and when">
+                <i class="fas fa-clock-rotate-left me-1"></i>History
+            </button>
             <button type="button" class="btn btn-outline-secondary" id="exportStockBtn">
                 <i class="fas fa-download me-1"></i>Export
             </button>
@@ -239,6 +242,87 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-primary" id="importHistoricalKernelRefreshBtn"><i class="fas fa-sync-alt me-1"></i>Refresh kernel data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock on hand history — who changed stock, when, and by how much.
+         Inline (not a route-name modal) so it needs no appRouteConfig entry, matching
+         importHistoricalKernelModal below. Populated by _stockManagementGrid.loadStockHistory. -->
+    <div class="modal fade" id="stockHistoryModal" tabindex="-1" aria-labelledby="stockHistoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="stockHistoryModalLabel"><i class="fas fa-clock-rotate-left me-2"></i>Stock on hand history</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Every change to stock on hand — stock in, dispatches out and adjustments — with who made it and when. Quantities are the change to on-hand: negative means stock left.</p>
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-3">
+                            <label for="stockHistorySearch" class="form-label small mb-1">Search</label>
+                            <input type="text" class="form-control form-control-sm" id="stockHistorySearch" placeholder="Batch, style, person, reason…">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="stockHistoryStream" class="form-label small mb-1">Stock type</label>
+                            <select class="form-select form-select-sm" id="stockHistoryStream">
+                                <option value="">All</option>
+                                <option value="kernel">Kernel</option>
+                                <option value="oil">Oil &amp; protein</option>
+                                <option value="shell">Shell waste</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="stockHistoryEventType" class="form-label small mb-1">Change</label>
+                            <select class="form-select form-select-sm" id="stockHistoryEventType">
+                                <option value="">All</option>
+                                <option value="stock_in">Stock in</option>
+                                <option value="dispatch_out">Dispatched out</option>
+                                <option value="adjustment">Adjusted</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="stockHistoryDateFrom" class="form-label small mb-1">From</label>
+                            <input type="date" class="form-control form-control-sm" id="stockHistoryDateFrom">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="stockHistoryDateTo" class="form-label small mb-1">To</label>
+                            <input type="date" class="form-control form-control-sm" id="stockHistoryDateTo">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="stockHistoryClearBtn" title="Clear filters">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle table-hover" id="stockHistoryTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>When</th>
+                                    <th>Who</th>
+                                    <th>Change</th>
+                                    <th>Stock</th>
+                                    <th>Batch / lot</th>
+                                    <th>Style / grade</th>
+                                    <th class="text-end">Cartons</th>
+                                    <th class="text-end">Kg</th>
+                                    <th>Reason / detail</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stockHistoryTableBody">
+                                <tr><td colspan="9" class="text-center text-muted py-4">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between flex-wrap gap-2">
+                    <span class="text-muted small" id="stockHistoryCount"></span>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="stockHistoryPrevBtn"><i class="fas fa-chevron-left me-1"></i>Previous</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="stockHistoryNextBtn">Next<i class="fas fa-chevron-right ms-1"></i></button>
+                    </div>
                 </div>
             </div>
         </div>
