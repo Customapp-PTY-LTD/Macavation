@@ -202,9 +202,46 @@
                     <p class="text-muted small mb-2">Suggested batch number: Bn [supplier #] [2-digit year] [seq], where seq is the next number for that calendar year (all kernel batches). Leave blank to auto-assign on save, or edit as needed.</p>
                     <div class="mb-3">
                         <label for="batchSupplier" class="form-label">Supplier <span class="text-danger">*</span></label>
-                        <select class="form-select" id="batchSupplier" required>
-                            <option value="">Select Supplier</option>
-                        </select>
+                        <div class="d-flex gap-2">
+                            <select class="form-select flex-grow-1" id="batchSupplier" required>
+                                <option value="">Select Supplier</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="prodAddSupplierBtn" title="Add new supplier"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <!-- Inline Add new supplier form (no SweetAlert – avoids focus/aria-hidden issues) -->
+                        <div id="prodNewSupplierForm" class="mt-3 p-3 border rounded bg-light" style="display: none;">
+                            <h6 class="mb-2">Add new supplier</h6>
+                            <div class="mb-2">
+                                <label for="prodNewSupplierName" class="form-label small">Company name <span class="text-danger">*</span></label>
+                                <input type="text" id="prodNewSupplierName" class="form-control form-control-sm" placeholder="e.g. Farm Name (Pty) Ltd" autocomplete="off">
+                            </div>
+                            <div class="mb-2">
+                                <label for="prodNewSupplierCode" class="form-label small">Supplier code <span class="text-danger">*</span></label>
+                                <input type="number" id="prodNewSupplierCode" class="form-control form-control-sm" min="0" max="99" placeholder="e.g. 1 (used in batch number)" autocomplete="off">
+                            </div>
+                            <small class="text-muted d-block mb-2">This number appears in the batch name (Bn [code] [year] [seq]). Use a unique number per supplier.</small>
+                            <div class="mb-2">
+                                <label for="prodNewSupplierProvince" class="form-label small">Province</label>
+                                <input type="text" id="prodNewSupplierProvince" class="form-control form-control-sm" placeholder="e.g. Limpopo" autocomplete="off">
+                            </div>
+                            <div class="mb-2">
+                                <label for="prodNewSupplierArea" class="form-label small">Area / City</label>
+                                <input type="text" id="prodNewSupplierArea" class="form-control form-control-sm" placeholder="e.g. Tzaneen" autocomplete="off">
+                            </div>
+                            <div class="mb-2">
+                                <label for="prodNewSupplierContact" class="form-label small">Contact name</label>
+                                <input type="text" id="prodNewSupplierContact" class="form-control form-control-sm" placeholder="Contact person" autocomplete="off">
+                            </div>
+                            <div class="mb-2">
+                                <label for="prodNewSupplierNotes" class="form-label small">Notes</label>
+                                <input type="text" id="prodNewSupplierNotes" class="form-control form-control-sm" placeholder="Optional" autocomplete="off">
+                            </div>
+                            <div id="prodNewSupplierError" class="text-danger small mb-2" style="display: none;"></div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-primary" id="prodNewSupplierSubmitBtn">Add supplier</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="prodNewSupplierCancelBtn">Cancel</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="batchNumber" class="form-label">Batch number</label>

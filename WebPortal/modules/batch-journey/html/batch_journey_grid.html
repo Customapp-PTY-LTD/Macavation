@@ -139,11 +139,17 @@
                 <table class="table align-middle table-hover mb-0" id="bjOilTable">
                     <thead>
                         <tr>
+                            <!-- These are oil PRODUCTION batches (get_oil_batches). Two headers here
+                                 used to misdescribe what mapOilRowForJourney actually puts in the
+                                 cell: "Received" falls back to production_date, and "Qty (kg)"
+                                 falls back to total_oil_litre — i.e. it labelled LITRES as kg on
+                                 the ~96% of batches with no intake_data. Both now say what they
+                                 show. Supplier stays: sparse (intake_data only), but real when set. -->
                             <th>Batch #</th>
                             <th>Supplier</th>
                             <th>Status</th>
-                            <th>Received</th>
-                            <th class="text-end">Qty (kg)</th>
+                            <th>Production date</th>
+                            <th class="text-end">Total oil (L)</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>

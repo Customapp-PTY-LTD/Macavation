@@ -104,6 +104,10 @@ var _batchJourneyGrid = (function () {
             date_received: received,
             received_date: received,
             status: o.status,
+            // Carried through unmapped so the grid can show what these batches actually record,
+            // and so OilBatchEdit can prefill from the row without a second fetch.
+            production_date: o.production_date,
+            total_oil_litre: o.total_oil_litre,
             intake_data: o.intake_data,
             production_data: o.production_data,
             stock_data: o.stock_data,
@@ -227,6 +231,7 @@ var _batchJourneyGrid = (function () {
                     id: 'bjActions' + ddSuffix,
                     wrapLi: true,
                     items: [
+                        { label: 'Edit batch details', className: 'js-bj-edit-batch', icon: 'fas fa-pen', dataAttrs: { 'batch-id': b.id } },
                         { label: 'Archive', className: 'bj-archive-batch', icon: 'fas fa-archive', dataAttrs: { 'kernel-id': b.id } }
                     ]
                 })
@@ -254,8 +259,8 @@ var _batchJourneyGrid = (function () {
         for (var j = 0; j < scope.filteredOilBatches.length; j++) {
             var ob = scope.filteredOilBatches[j];
             var od = getOilDisplayStatus(ob);
-            var received = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
-                ? (_common.formatDateDDMMYYYY(ob.date_received || ob.received_date) || '-')
+            var productionDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
+                ? (_common.formatDateDDMMYYYY(ob.production_date) || '-')
                 : '-';
             var oid = escapeHtml(ob.id);
             var oilRoute = typeof BatchStatus !== 'undefined' ? BatchStatus.getOilRouteForStatus(od) : { label: 'Open' };
@@ -263,13 +268,14 @@ var _batchJourneyGrid = (function () {
                 + '<td>' + escapeHtml(ob.batch_number || ob.batch_id || '-') + '</td>'
                 + '<td>' + escapeHtml(ob.supplier_name || ob.supplier_details || ob.grower_name || '-') + '</td>'
                 + '<td>' + statusBadgeHtml(od) + '</td>'
-                + '<td>' + received + '</td>'
-                + '<td class="text-end">' + formatNumber(ob.quantity_kg, 2) + '</td>'
+                + '<td>' + productionDate + '</td>'
+                + '<td class="text-end">' + (ob.total_oil_litre != null && ob.total_oil_litre !== '' ? formatNumber(ob.total_oil_litre, 2) : '-') + '</td>'
                 + '<td class="mac-table-actions-col">'
                 + MacTableActions.render({
                     id: 'bjOilActions' + String(ob.id || '').replace(/-/g, ''),
                     items: [
                         { label: oilRoute.label.replace(/^Open /, ''), className: 'js-bj-oil-open-module', dataAttrs: { 'oil-id': ob.id } },
+                        { label: 'Edit batch details', className: 'js-bj-oil-edit-batch', icon: 'fas fa-pen', dataAttrs: { 'oil-id': ob.id } },
                         { label: 'History', className: 'js-bj-oil-history', icon: 'fas fa-history', dataAttrs: { 'oil-id': ob.id } }
                     ]
                 })
@@ -394,11 +400,47 @@ var _batchJourneyGrid = (function () {
             if (batch) openActionForKernelBatch(batch);
         });
 
+        // Edit batch details — kernel. Reuses the shared dialog that Kernel Production uses, so the
+        // rules live in one place. Rows here come from get_kernel_batches, the exact shape the
+        // dialog expects, so no extra fetch is needed.
+        $(document).on('click', '#bjTableBody .js-bj-edit-batch', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof KernelBatchEdit === 'undefined' || !KernelBatchEdit.prompt) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Edit is not available. Please refresh.', 'error');
+                return;
+            }
+            var batchId = $(this).data('batch-id');
+            var batch = scope.filteredBatches.find(function (b) { return String(b.id) === String(batchId); });
+            if (!batch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
+                return;
+            }
+            KernelBatchEdit.prompt(batch, { onSaved: function () { loadBatches(); } });
+        });
+
         $(document).on('click', '#bjOilTableBody .js-bj-oil-open-module', function (e) {
             e.preventDefault();
             var oilId = $(this).data('oil-id');
             var batch = scope.filteredOilBatches.find(function (b) { return String(b.id) === String(oilId); });
             if (batch) openActionForOilBatch(batch);
+        });
+
+        // Edit batch details — oil. Header fields only, mirroring the kernel dialog's scope.
+        $(document).on('click', '#bjOilTableBody .js-bj-oil-edit-batch', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof OilBatchEdit === 'undefined' || !OilBatchEdit.prompt) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Edit is not available. Please refresh.', 'error');
+                return;
+            }
+            var oilId = $(this).data('oil-id');
+            var batch = scope.filteredOilBatches.find(function (b) { return String(b.id) === String(oilId); });
+            if (!batch) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
+                return;
+            }
+            OilBatchEdit.prompt(batch, { onSaved: function () { loadOilBatches(); } });
         });
 
         $(document).on('click', '#bjOilTableBody .js-bj-oil-history', function (e) {
