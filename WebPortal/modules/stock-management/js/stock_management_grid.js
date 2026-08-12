@@ -71,15 +71,6 @@ var _stockManagementGrid = function () {
         return isNaN(n) ? 0 : n;
     }
 
-    /** Normalize API date to yyyy-mm-dd for date inputs. */
-    function isoDateOnlyForInput(v) {
-        if (v == null || v === '') return '';
-        var s = String(v).trim();
-        if (s.indexOf('T') !== -1) return s.split('T')[0];
-        if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-        return s;
-    }
-
     /** Style maps from API may be plain objects or JSON strings (proxy); normalize for sums and display. */
     function kernelStyleMapFromBatch(batch, prop) {
         var v = batch && batch[prop];
@@ -205,6 +196,10 @@ var _stockManagementGrid = function () {
         shellLots: [],
         oilSearchTimeout: null,
         searchTimeout: null,
+        stockHistoryPage: 0,
+        stockHistoryTotal: 0,
+        stockHistoryOpened: false,
+        stockHistorySearchTimeout: null,
 
         init: function () {
             var scope = _stockManagementGrid;
@@ -322,6 +317,39 @@ var _stockManagementGrid = function () {
                         var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                         modal.show();
                     } else if (modalEl) modalEl.classList.add('show');
+                });
+                $('#stockHistoryBtn').off('click').on('click', function () {
+                    scope.openStockHistoryModal();
+                });
+                $('#stockHistoryStream, #stockHistoryEventType, #stockHistoryDateFrom, #stockHistoryDateTo')
+                    .off('change').on('change', function () {
+                        scope.stockHistoryPage = 0;
+                        scope.loadStockHistory();
+                    });
+                $('#stockHistorySearch').off('input').on('input', function () {
+                    clearTimeout(scope.stockHistorySearchTimeout);
+                    scope.stockHistorySearchTimeout = setTimeout(function () {
+                        scope.stockHistoryPage = 0;
+                        scope.loadStockHistory();
+                    }, 300);
+                });
+                $('#stockHistoryClearBtn').off('click').on('click', function () {
+                    ['stockHistorySearch', 'stockHistoryStream', 'stockHistoryEventType',
+                     'stockHistoryDateFrom', 'stockHistoryDateTo'].forEach(function (id) {
+                        var el = document.getElementById(id);
+                        if (el) el.value = '';
+                    });
+                    scope.stockHistoryPage = 0;
+                    scope.loadStockHistory();
+                });
+                $('#stockHistoryPrevBtn').off('click').on('click', function () {
+                    if ((scope.stockHistoryPage || 0) <= 0) return;
+                    scope.stockHistoryPage = (scope.stockHistoryPage || 0) - 1;
+                    scope.loadStockHistory();
+                });
+                $('#stockHistoryNextBtn').off('click').on('click', function () {
+                    scope.stockHistoryPage = (scope.stockHistoryPage || 0) + 1;
+                    scope.loadStockHistory();
                 });
                 $('#refreshKernelStockBtn').off('click').on('click', function () {
                     scope.loadKernelBatches(true);
@@ -741,6 +769,172 @@ var _stockManagementGrid = function () {
             if (hint) hint.style.display = scope.kernelAdjustMode ? '' : 'none';
             if (addBatchRow) addBatchRow.style.display = scope.kernelAdjustMode ? '' : 'none';
             if (scope.kernelCurrentView === 'bystyle') scope.renderKernelStockByStyle();
+        },
+
+        // ── Stock on hand history ────────────────────────────────────────────────
+        // Reads stock_soh_history through get_stock_edit_history (migration 20260816090000).
+
+        STOCK_HISTORY_PAGE_SIZE: 50,
+
+        openStockHistoryModal: function () {
+            var scope = _stockManagementGrid;
+            var modalEl = document.getElementById('stockHistoryModal');
+            if (!modalEl) return;
+            // Default the Stock type filter to whichever stream the user is looking at.
+            var streamSel = document.getElementById('filterStockStream');
+            var histStream = document.getElementById('stockHistoryStream');
+            if (histStream && streamSel && !scope.stockHistoryOpened) {
+                histStream.value = streamSel.value === 'oil' ? 'oil' : (streamSel.value === 'kernel' ? 'kernel' : '');
+            }
+            scope.stockHistoryOpened = true;
+            scope.stockHistoryPage = 0;
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else {
+                modalEl.classList.add('show');
+            }
+            scope.loadStockHistory();
+        },
+
+        loadStockHistory: async function () {
+            var scope = _stockManagementGrid;
+            var body = document.getElementById('stockHistoryTableBody');
+            if (!body) return;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getStockEditHistory) {
+                body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Stock history is not available in this build.</td></tr>';
+                return;
+            }
+            var page = scope.stockHistoryPage || 0;
+            body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Loading…</td></tr>';
+
+            var valueOf = function (id) {
+                var el = document.getElementById(id);
+                return el && el.value ? el.value.trim() : '';
+            };
+
+            try {
+                var result = await dataFunctions.getStockEditHistory({
+                    search: valueOf('stockHistorySearch') || null,
+                    stream: valueOf('stockHistoryStream') || null,
+                    eventType: valueOf('stockHistoryEventType') || null,
+                    dateFrom: valueOf('stockHistoryDateFrom') || null,
+                    dateTo: valueOf('stockHistoryDateTo') || null,
+                    limit: scope.STOCK_HISTORY_PAGE_SIZE,
+                    offset: page * scope.STOCK_HISTORY_PAGE_SIZE
+                });
+                scope.stockHistoryTotal = result.total || 0;
+                scope.renderStockHistory(result.rows || []);
+            } catch (err) {
+                console.error('[Stock Management] Stock history load failed:', err);
+                // The RPC is new: an older database that has not had the migration applied yet
+                // answers 404/PGRST202 rather than returning rows. Say so plainly.
+                var msg = (err && err.message ? String(err.message) : '');
+                var notDeployed = /PGRST202|404|schema cache|does not exist/i.test(msg);
+                body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">' +
+                    (notDeployed
+                        ? 'Stock history is not set up on this environment yet (migration 20260816090000 has not been applied).'
+                        : 'Could not load stock history. ' + escapeHtml(msg)) +
+                    '</td></tr>';
+                scope.updateStockHistoryPager(0);
+            }
+        },
+
+        renderStockHistory: function (rows) {
+            var scope = _stockManagementGrid;
+            var body = document.getElementById('stockHistoryTableBody');
+            if (!body) return;
+
+            if (!rows.length) {
+                body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No stock changes match these filters.</td></tr>';
+                scope.updateStockHistoryPager(0);
+                return;
+            }
+
+            var EVENT_LABEL = {
+                stock_in: { text: 'Stock in', cls: 'bg-success-subtle text-success-emphasis' },
+                dispatch_out: { text: 'Dispatched out', cls: 'bg-primary-subtle text-primary-emphasis' },
+                adjustment: { text: 'Adjusted', cls: 'bg-warning-subtle text-warning-emphasis' }
+            };
+            var STREAM_LABEL = { kernel: 'Kernel', oil: 'Oil & protein', shell: 'Shell waste' };
+            // action is a stable machine key; these are the human readings shown under Reason.
+            var ACTION_LABEL = {
+                released_to_stock: 'Batch released to stock',
+                packing_recorded: 'Packing recorded',
+                manual_adjustment: 'Manual correction',
+                dispatch_order_created: 'Dispatch order created',
+                dispatch_order_lines_changed: 'Dispatch order changed',
+                dispatch_completed: 'Marked dispatched',
+                lot_added: 'Lot added',
+                lot_reactivated: 'Lot reactivated',
+                lot_deactivated: 'Lot removed',
+                lot_quantity_changed: 'Lot quantity changed',
+                lot_dispatched: 'Lot dispatched',
+                lot_deleted: 'Lot deleted'
+            };
+
+            var fmtQty = function (v) {
+                if (v == null || v === '') return '<span class="text-muted">—</span>';
+                var n = parseNum(v);
+                if (!n) return '<span class="text-muted">—</span>';
+                var txt = (n > 0 ? '+' : '') + (Math.round(n * 100) / 100).toLocaleString();
+                return '<span class="' + (n < 0 ? 'text-danger' : 'text-success') + '">' + escapeHtml(txt) + '</span>';
+            };
+            var fmtWhen = function (iso) {
+                if (!iso) return '';
+                var d = new Date(iso);
+                if (isNaN(d.getTime())) return escapeHtml(String(iso));
+                return escapeHtml(d.toLocaleString('en-ZA', {
+                    year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'
+                }));
+            };
+
+            var html = '';
+            rows.forEach(function (r) {
+                var ev = EVENT_LABEL[r.event_type] || { text: r.event_type || '', cls: 'bg-secondary-subtle text-secondary-emphasis' };
+                var detail = r.detail || {};
+                var who = r.user_name
+                    ? escapeHtml(r.user_name)
+                    : '<span class="text-muted fst-italic">' + (r.backfilled ? 'Unknown (before audit trail)' : 'Unknown') + '</span>';
+                var notes = [];
+                if (r.reason) notes.push(escapeHtml(r.reason));
+                if (ACTION_LABEL[r.action]) notes.push('<span class="text-muted">' + escapeHtml(ACTION_LABEL[r.action]) + '</span>');
+                if (detail.buyer_name) notes.push('<span class="text-muted">Buyer: ' + escapeHtml(String(detail.buyer_name)) + '</span>');
+
+                html += '<tr>' +
+                    '<td class="text-nowrap small">' + fmtWhen(r.occurred_at) +
+                        (r.backfilled ? ' <i class="fas fa-circle-info text-muted" title="Reconstructed from existing records when the audit trail was added — the time is approximate and the person is not recorded."></i>' : '') +
+                    '</td>' +
+                    '<td class="small">' + who + '</td>' +
+                    '<td><span class="badge rounded-pill ' + ev.cls + '">' + escapeHtml(ev.text) + '</span></td>' +
+                    '<td class="small">' + escapeHtml(STREAM_LABEL[r.stream] || r.stream || '') + '</td>' +
+                    '<td class="small">' + escapeHtml(r.batch_number || '—') + '</td>' +
+                    '<td class="small">' + escapeHtml(r.style || '—') + '</td>' +
+                    '<td class="text-end small">' + fmtQty(r.cartons) + '</td>' +
+                    '<td class="text-end small">' + fmtQty(r.qty_kg) + '</td>' +
+                    '<td class="small">' + (notes.length ? notes.join('<br>') : '<span class="text-muted">—</span>') + '</td>' +
+                    '</tr>';
+            });
+            body.innerHTML = html;
+            scope.updateStockHistoryPager(rows.length);
+        },
+
+        updateStockHistoryPager: function (shown) {
+            var scope = _stockManagementGrid;
+            var size = scope.STOCK_HISTORY_PAGE_SIZE;
+            var page = scope.stockHistoryPage || 0;
+            var total = scope.stockHistoryTotal || 0;
+            var first = total === 0 ? 0 : (page * size) + 1;
+            var last = (page * size) + shown;
+            var countEl = document.getElementById('stockHistoryCount');
+            if (countEl) {
+                countEl.textContent = total === 0
+                    ? 'No changes'
+                    : ('Showing ' + first + '–' + last + ' of ' + total + ' change' + (total === 1 ? '' : 's'));
+            }
+            var prev = document.getElementById('stockHistoryPrevBtn');
+            var next = document.getElementById('stockHistoryNextBtn');
+            if (prev) prev.disabled = page <= 0;
+            if (next) next.disabled = last >= total;
         },
 
         promptCreateKernelBatchFromStock: async function () {
@@ -2072,6 +2266,7 @@ var _stockManagementGrid = function () {
             });
         },
 
+        /** Delegates to the shared dialog (WebPortal/js/kernel-batch-edit.js), shared with Kernel Production. */
         promptEditKernelBatch: function (kernelId) {
             var scope = _stockManagementGrid;
             if (!kernelId || typeof Swal === 'undefined') return;
@@ -2080,82 +2275,12 @@ var _stockManagementGrid = function () {
                 Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
                 return;
             }
-            var bn = (b.batch_number || '').toString();
-            var gn = (b.grower_name || '').toString();
-            var rd = isoDateOnlyForInput(b.received_date);
-            var wetStr = (b.wet_nis_received_kg != null && b.wet_nis_received_kg !== '')
-                ? String(typeof b.wet_nis_received_kg === 'number' ? b.wet_nis_received_kg : parseFloat(b.wet_nis_received_kg))
-                : '';
-            if (wetStr && isNaN(parseFloat(wetStr))) wetStr = '';
-            var ffaStr = (b.ffa != null && b.ffa !== '') ? String(typeof b.ffa === 'number' ? b.ffa : parseFloat(b.ffa)) : '';
-            if (ffaStr && isNaN(parseFloat(ffaStr))) ffaStr = '';
-            var bb = isoDateOnlyForInput(b.best_before_date);
-            Swal.fire({
-                title: 'Edit batch',
-                width: 520,
-                showCancelButton: true,
-                confirmButtonText: 'Save',
-                focusConfirm: false,
-                html:
-                    '<div class="text-start">' +
-                    '<label class="form-label">Batch number <span class="text-danger">*</span></label>' +
-                    '<input id="swalKStockBn" class="form-control mb-2" value="' + escapeHtml(bn) + '" autocomplete="off">' +
-                    '<label class="form-label">Grower / supplier name</label>' +
-                    '<input id="swalKStockGrower" class="form-control mb-2" value="' + escapeHtml(gn) + '">' +
-                    '<label class="form-label">Received date</label>' +
-                    '<input id="swalKStockRd" type="date" class="form-control mb-2" value="' + escapeHtml(rd) + '">' +
-                    '<label class="form-label">Wet NIS received (kg)</label>' +
-                    '<input id="swalKStockWet" type="number" step="0.01" min="0" class="form-control mb-2" value="' + escapeHtml(wetStr) + '">' +
-                    '<label class="form-label">FFA (QA)</label>' +
-                    '<input id="swalKStockFfa" type="number" step="0.01" min="0" class="form-control mb-2" value="' + escapeHtml(ffaStr) + '" placeholder="Optional">' +
-                    '<label class="form-label">Best before date</label>' +
-                    '<input id="swalKStockBb" type="date" class="form-control" value="' + escapeHtml(bb) + '">' +
-                    '<p class="small text-muted mt-2 mb-0">Leave FFA or best before empty to leave them unchanged. Clearing Wet NIS or received date removes the stored value.</p>' +
-                    '</div>',
-                preConfirm: function () {
-                    var bnV = ((document.getElementById('swalKStockBn') || {}).value || '').trim();
-                    if (!bnV) {
-                        Swal.showValidationMessage('Batch number is required');
-                        return false;
-                    }
-                    var rdV = (document.getElementById('swalKStockRd') || {}).value || '';
-                    var wetRaw = ((document.getElementById('swalKStockWet') || {}).value || '').trim();
-                    var wet = wetRaw === '' ? null : parseFloat(wetRaw);
-                    if (wetRaw !== '' && (!isFinite(wet) || wet < 0)) {
-                        Swal.showValidationMessage('Wet NIS must be a valid non-negative number');
-                        return false;
-                    }
-                    var ffaRaw = ((document.getElementById('swalKStockFfa') || {}).value || '').trim();
-                    var ffa = ffaRaw === '' ? null : parseFloat(ffaRaw);
-                    if (ffaRaw !== '' && (!isFinite(ffa) || ffa < 0)) {
-                        Swal.showValidationMessage('FFA must be a valid non-negative number');
-                        return false;
-                    }
-                    var bbV = ((document.getElementById('swalKStockBb') || {}).value || '').trim();
-                    return {
-                        batch_number: bnV,
-                        grower_name: (document.getElementById('swalKStockGrower') || {}).value || '',
-                        received_date: rdV.trim() === '' ? null : rdV.trim(),
-                        wet_nis_received_kg: wet,
-                        ffa: ffa,
-                        best_before_date: bbV === '' ? null : bbV
-                    };
-                }
-            }).then(function (res) {
-                if (!res || !res.isConfirmed || !res.value) return;
-                var df = (typeof dataFunctions !== 'undefined' && dataFunctions) ? dataFunctions : null;
-                if (!df || !df.updateKernelStockBatchInfo) {
-                    Swal.fire('Error', 'Save is not available. Apply the latest database migration and refresh.', 'error');
-                    return;
-                }
-                df.updateKernelStockBatchInfo(kernelId, res.value).then(function (result) {
-                    if (result && result.success === false) throw new Error(result.error || 'Save failed');
-                    Swal.fire({ icon: 'success', title: 'Saved', timer: 1600, showConfirmButton: false });
-                    scope.loadKernelBatches(true);
-                }).catch(function (e) {
-                    console.error('[Stock Management] promptEditKernelBatch failed:', e);
-                    Swal.fire('Error', e.message || 'Failed to save', 'error');
-                });
+            if (typeof KernelBatchEdit === 'undefined' || !KernelBatchEdit.prompt) {
+                Swal.fire('Error', 'Edit is not available. Please refresh.', 'error');
+                return;
+            }
+            KernelBatchEdit.prompt(b, {
+                onSaved: function () { scope.loadKernelBatches(true); }
             });
         },
 

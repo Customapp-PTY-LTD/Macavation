@@ -55,7 +55,11 @@ DECLARE
         'get_test_data_sets', 'get_test_data_set_by_id', 'create_test_data_set_simple', 'update_test_data_set_simple', 'delete_test_data_set_hard', 'search_test_data_sets',
         'get_test_data_records_by_set', 'get_test_data_record_by_id', 'create_test_data_record_simple', 'update_test_data_record_simple', 'delete_test_data_record_hard', 'search_test_data_records',
         'get_project_documentation', 'get_project_documentation_by_id', 'create_project_documentation', 'update_project_documentation', 'delete_project_documentation',
-        'get_table_columns', 'import_table_rows'
+        'get_table_columns', 'import_table_rows',
+        -- Stock on hand edit history (20260816090000). Read-only. The writer
+        -- (stock_soh_history_log) and the trigger functions are deliberately absent: they are
+        -- unreachable from the portal and must not be grantable to a role.
+        'get_stock_edit_history'
     ];
 BEGIN
     FOR v_role_id IN SELECT id FROM public.roles
