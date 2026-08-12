@@ -58,7 +58,8 @@ that is already built. Do not cost or schedule from them.
 ## Agent Fleet
 
 To run, submit, or hand off a plan to the dev agents, follow the rule in
-`.claude/rules/agent-fleet-submit.md` - it covers the plan-size check and the push-to-dev-agent flow.
+`.claude/rules/agent-fleet-submit.md` - it covers the plan-size check, the push-to-dev-agent flow,
+and an eleven-item safety checklist that predicts most of what gets your plan blocked.
 Size plans against **~60 minutes of agent work**: the engine is capped at `timeout-minutes: 60`, past
 which nothing merges. (The rule's own "If it flags" bullet still says 330 - that is the whole-job
 ceiling, not the budget to size against.)
