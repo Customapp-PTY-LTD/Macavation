@@ -317,6 +317,20 @@ var _kernelProductionGrid = function () {
                     _kernelProductionBatchActions.archiveBatch(batchId);
                 }
             });
+            $(document).on('click', '.js-edit-batch', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const scope = _kernelProductionGrid;
+                const batchId = $(this).data('batch-id');
+                if (!batchId) return;
+                if (typeof KernelBatchEdit === 'undefined' || !KernelBatchEdit.prompt) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Edit is not available. Please refresh.', 'error');
+                    return;
+                }
+                KernelBatchEdit.prompt(scope.getBatch(batchId), {
+                    onSaved: function () { scope.loadBatches(true); }
+                });
+            });
             $(document).on('click', '.js-release-to-stock-disabled', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -439,7 +453,8 @@ var _kernelProductionGrid = function () {
                         '<li><a class="dropdown-item js-production-batch" href="#" data-batch-id="' + batch.id + '">Production stages</a></li>',
                         '<li><a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '">Job card</a></li>',
                         '<li><a class="dropdown-item js-end-sample-batch" href="#" data-batch-id="' + batch.id + '">End sample</a></li>',
-                        '<li><a class="dropdown-item js-batch-summary" href="#" data-batch-id="' + batch.id + '">Batch summary</a></li>'
+                        '<li><a class="dropdown-item js-batch-summary" href="#" data-batch-id="' + batch.id + '">Batch summary</a></li>',
+                        '<li><a class="dropdown-item js-edit-batch" href="#" data-batch-id="' + batch.id + '">Edit batch details</a></li>'
                     ];
                     if (displayStatus.filterValue === 'release_ready' && canReleaseToStock) {
                         moreItems.unshift('<li><a class="dropdown-item js-release-to-stock" href="#" data-batch-id="' + batch.id + '">Release to stock</a></li>');
@@ -690,6 +705,7 @@ var _kernelProductionGrid = function () {
                 } else {
                     menuItems.push('<span class="dropdown-item text-muted js-release-to-stock-disabled" role="button" tabindex="0">Release to stock</span>');
                 }
+                menuItems.push('<a class="dropdown-item js-edit-batch" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-pen me-1"></i>Edit batch details</a>');
                 menuItems.push('<a class="dropdown-item js-archive-batch text-secondary" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-archive me-1"></i>Archive batch</a>');
                 // TEMPORARY: KP Data Admin sees only Production button. Remove when replacing with real auth.
                 const isKpDataAdmin = typeof ROLE_FEATURE !== 'undefined' && ROLE_FEATURE.isKpDataAdmin && ROLE_FEATURE.isKpDataAdmin();
