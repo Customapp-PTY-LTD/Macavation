@@ -40,7 +40,9 @@ var _dataFunctions = function () {
             'get_unread_notification_count',
             'get_my_notifications',
             'mark_notification_read',
-            'mark_all_notifications_read'
+            'mark_all_notifications_read',
+            // Stock on hand edit history — read-only; DB grants apply
+            'get_stock_edit_history'
         ]),
 
         /** Prefer PostgREST (anon) first — Lambda RBAC often denies these before DB grants apply. */
@@ -58,7 +60,9 @@ var _dataFunctions = function () {
             'get_document_by_id',
             // Notifications reads
             'get_unread_notification_count',
-            'get_my_notifications'
+            'get_my_notifications',
+            // Stock on hand edit history
+            'get_stock_edit_history'
         ]),
 
         // Cache configuration
@@ -247,6 +251,76 @@ var _dataFunctions = function () {
                 if (!user) return null;
                 return user.id != null ? user.id : (user.user_id != null ? user.user_id : null);
             } catch (e) { return null; }
+        },
+
+        /** Functions whose actor-carrying overload is known to be absent on this database. */
+        _actorOverloadMissing: {},
+
+        /**
+         * Call a stock-mutating RPC, stamping the signed-in user so stock_soh_history records WHO
+         * made the change (migrations 20260816090000 / 20260816090100).
+         *
+         * Sending p_actor_user_id selects the actor-carrying overload, because PostgREST picks
+         * between the original RPC and the overload by argument NAME and the overload's
+         * p_actor_user_id has no default. Omitting the key routes to the original untouched.
+         *
+         * WHY THE FALLBACK: the portal auto-deploys on merge but migrations are applied by hand,
+         * so there is always a window where this JS is live against a database that has no
+         * overload yet. There, PostgREST answers PGRST202 "Could not find the function ... in the
+         * schema cache" and the user's dispatch or adjustment fails outright — losing the actual
+         * stock operation to a logging feature. So a PGRST202 is treated as "not migrated yet":
+         * retry once without the actor, and remember per function so later calls skip straight to
+         * the original. The change still succeeds; only its attribution is lost until the
+         * migrations are applied. Any other error propagates untouched.
+         *
+         * Retrying a MUTATION is safe here specifically because PGRST202 is raised during function
+         * resolution, before PostgREST executes anything — there is no partial write to duplicate.
+         * That is why the retry is gated on this one error code and nothing broader: a timeout or
+         * a 5xx could mean the write landed, so those must never be retried.
+         */
+        _callWithActor: async function (fnName, params, token = null, options = undefined) {
+            var actorId = this.getCurrentUserId();
+            if (!actorId || this._actorOverloadMissing[fnName]) {
+                return await this.callFunction(fnName, params, token, options);
+            }
+            try {
+                return await this.callFunction(
+                    fnName, Object.assign({}, params, { p_actor_user_id: actorId }), token, options);
+            } catch (err) {
+                var msg = err && err.message ? String(err.message) : '';
+                if (!/PGRST202|schema cache|Could not find the function/i.test(msg)) throw err;
+                this._actorOverloadMissing[fnName] = true;
+                console.warn('[Stock history] ' + fnName + ' has no actor overload on this database — '
+                    + 'the change will be recorded without a user. Apply migration '
+                    + '20260816090100_stock_soh_history_actor_wrappers.sql to attribute it.');
+                return await this.callFunction(fnName, params, token, options);
+            }
+        },
+
+        /**
+         * getStockEditHistory — who changed stock on hand, when, and by how much.
+         * Covers stock in, dispatches out and adjustments across kernel, oil & protein and shell.
+         * Returns { rows: [...], total: <n> }; every row repeats total_count, so one call pages.
+         */
+        getStockEditHistory: async function (filters, token = null) {
+            var f = filters || {};
+            var params = {
+                p_stream: f.stream || null,
+                p_event_type: f.eventType || null,
+                p_search: f.search || null,
+                p_date_from: f.dateFrom || null,
+                p_date_to: f.dateTo || null,
+                p_user_id: f.userId || null,
+                p_limit: parseInt(f.limit, 10) || 50,
+                p_offset: parseInt(f.offset, 10) || 0
+            };
+            var raw = await this.callFunction('get_stock_edit_history', params, token, { useCache: false });
+            var rows = raw;
+            if (rows && !Array.isArray(rows) && Array.isArray(rows.get_stock_edit_history)) rows = rows.get_stock_edit_history;
+            if (rows && !Array.isArray(rows) && Array.isArray(rows.data)) rows = rows.data;
+            if (!Array.isArray(rows)) rows = [];
+            var total = rows.length > 0 && rows[0].total_count != null ? Number(rows[0].total_count) : rows.length;
+            return { rows: rows, total: isFinite(total) ? total : rows.length };
         },
 
         _applySuperUserVisibility: function (type, data) {
@@ -1765,7 +1839,7 @@ var _dataFunctions = function () {
 
         /** Create/update a shell stock lot. */
         upsertShellStockLot: async function (lot, token = null) {
-            return await this.callFunction('upsert_shell_stock_lot', {
+            return await this._callWithActor('upsert_shell_stock_lot', {
                 p_id: lot.id || null,
                 p_lot_number: lot.lot_number || '',
                 p_source_batch_number: lot.source_batch_number || null,
@@ -1777,7 +1851,7 @@ var _dataFunctions = function () {
 
         /** Delete a shell stock lot. */
         deleteShellStockLot: async function (id, token = null) {
-            return await this.callFunction('delete_shell_stock_lot', { p_id: id }, token);
+            return await this._callWithActor('delete_shell_stock_lot', { p_id: id }, token);
         },
 
         /** Kernel mass-balance report (cracked vs packed, balance %). */
@@ -1921,7 +1995,7 @@ var _dataFunctions = function () {
         },
 
         dispatchShellStockLot: async function (lotId, customerRef, notes, token = null) {
-            return await this.callFunction('dispatch_shell_stock_lot', {
+            return await this._callWithActor('dispatch_shell_stock_lot', {
                 p_lot_id: lotId,
                 p_customer_ref: customerRef || null,
                 p_notes: notes || null
@@ -3239,7 +3313,7 @@ var _dataFunctions = function () {
          * Used by: kernel_production_batch_actions.releaseBatchToStock
          */
         completeKernelBatch: async function (kernelId, token = null) {
-            const raw = await this.callFunction('complete_kernel_batch', { p_kernel_id: kernelId }, token, { useCache: false });
+            const raw = await this._callWithActor('complete_kernel_batch', { p_kernel_id: kernelId }, token, { useCache: false });
             this.clearCachePattern('kernel_batch_detail_' + kernelId);
             this.clearCachePattern('kernel_batches');
             return this.unwrapKernelRpcJson(raw, 'complete_kernel_batch') || raw;
@@ -3263,7 +3337,7 @@ var _dataFunctions = function () {
                 p_cartons_delta: cartonsDelta,
                 p_reason: adjustment && adjustment.reason != null ? adjustment.reason : null
             };
-            let result = await this.callFunction('adjust_kernel_stock_on_hand', params, token, { useCache: false });
+            let result = await this._callWithActor('adjust_kernel_stock_on_hand', params, token, { useCache: false });
             if (result && result.offline && result.queued) {
                 throw new Error('Cannot apply stock change while offline. Connect and try again.');
             }
@@ -3295,9 +3369,11 @@ var _dataFunctions = function () {
         },
 
         /**
-         * updateKernelStockBatchInfo — edit batch number, grower, received date, wet NIS, FFA, best before (stock management).
+         * updateKernelStockBatchInfo — edit batch number, supplier, grower, received date, wet NIS, FFA, best before.
+         * Used by the shared batch edit dialog (KernelBatchEdit) from both Kernel Production and Stock Management.
          * @param {string} kernelId
-         * @param {object} payload - { batch_number, grower_name, received_date, wet_nis_received_kg, ffa?, best_before_date? }
+         * @param {object} payload - { batch_number, supplier_id?, grower_name, received_date, wet_nis_received_kg, ffa?, best_before_date? }
+         *   supplier_id omitted/null leaves the batch's supplier unchanged.
          */
         updateKernelStockBatchInfo: async function (kernelId, payload, token = null) {
             const params = {
@@ -3309,7 +3385,8 @@ var _dataFunctions = function () {
                     ? Number(payload.wet_nis_received_kg)
                     : null,
                 p_best_before_date: payload && payload.best_before_date ? payload.best_before_date : null,
-                p_ffa: payload && payload.ffa != null && payload.ffa !== '' ? Number(payload.ffa) : null
+                p_ffa: payload && payload.ffa != null && payload.ffa !== '' ? Number(payload.ffa) : null,
+                p_supplier_id: payload && payload.supplier_id ? payload.supplier_id : null
             };
             let result = await this.callFunction('update_kernel_stock_batch_info', params, token, { useCache: false });
             if (result && result.offline && result.queued) {
@@ -3449,7 +3526,7 @@ var _dataFunctions = function () {
                 p_best_before_date: data.best_before_date || null,
                 p_ffa: data.ffa != null ? data.ffa : null
             };
-            let result = await this.callFunction('import_historical_kernel_batch', params, token, { useCache: false });
+            let result = await this._callWithActor('import_historical_kernel_batch', params, token, { useCache: false });
             result = this.unwrapKernelRpcJson(result, 'import_historical_kernel_batch') || result;
             if (result && typeof result === 'object') {
                 if (result.success === undefined && result.Success !== undefined) result.success = result.Success;
@@ -4037,7 +4114,7 @@ var _dataFunctions = function () {
         },
 
         createOilStockLot: async function (lotData, token = null) {
-            const result = await this.callFunction('create_oil_stock_lot_simple', lotData, token, { useCache: false });
+            const result = await this._callWithActor('create_oil_stock_lot_simple', lotData, token, { useCache: false });
             this.clearCachePattern('oil_stock_lots');
             this.clearCachePattern('oil_stock_summary');
             return result;
@@ -4045,14 +4122,14 @@ var _dataFunctions = function () {
 
         updateOilStockLot: async function (lotId, lotData, token = null) {
             const params = { p_id: lotId, ...lotData };
-            const result = await this.callFunction('update_oil_stock_lot_simple', params, token, { useCache: false });
+            const result = await this._callWithActor('update_oil_stock_lot_simple', params, token, { useCache: false });
             this.clearCachePattern('oil_stock_lots');
             this.clearCachePattern('oil_stock_summary');
             return result;
         },
 
         deactivateOilStockLot: async function (lotId, token = null) {
-            const result = await this.callFunction('deactivate_oil_stock_lot', { p_id: lotId }, token, { useCache: false });
+            const result = await this._callWithActor('deactivate_oil_stock_lot', { p_id: lotId }, token, { useCache: false });
             this.clearCachePattern('oil_stock_lots');
             this.clearCachePattern('oil_stock_summary');
             return result;
@@ -4974,7 +5051,7 @@ var _dataFunctions = function () {
                 p_buyer_contact_id: payload.buyer_contact_id || null,
                 p_lines: Array.isArray(payload.lines) ? payload.lines : []
             };
-            const result = await this.callFunction('create_kernel_dispatch_order', params, token, { useCache: false });
+            const result = await this._callWithActor('create_kernel_dispatch_order', params, token, { useCache: false });
             this.clearCachePattern('kernel_dispatch_orders_list');
             return result;
         },
@@ -5098,7 +5175,7 @@ var _dataFunctions = function () {
                 p_buyer_contact_id: payload.buyer_contact_id || null,
                 p_lines: Array.isArray(payload.lines) ? payload.lines : []
             };
-            const result = await this.callFunction('create_oil_dispatch_order', params, token, { useCache: false });
+            const result = await this._callWithActor('create_oil_dispatch_order', params, token, { useCache: false });
             this.clearCachePattern('oil_dispatch_orders_list');
             this.clearCachePattern('oil_stock_lots');
             this.clearCachePattern('oil_stock_summary');

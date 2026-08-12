@@ -14,6 +14,28 @@ The fleet runs a plan pushed to this repo's `dev-agent` branch: within ~5 minute
 inside this repo's own guardrails and **merges the result straight into `dev`** (no PR, no
 approval). Whoever commits the plan is auto-emailed the outcome and cost.
 
+## Before you draft - read this repo's own standards and the plan-safety checklist first
+
+A few things are cheaper to build in from the start than to catch afterward:
+
+- **This repo's own `BluePrint/` folder, if it has one.** The review gates already read it
+  adversarially against your plan/diff (advisory-only - it can add a reason to BLOCK, never a
+  reason to PASS). Reading it yourself before drafting means the plan already fits this repo's
+  own conventions instead of getting flagged for one later.
+- **`BluePrint/FLEET_LESSONS.md`, if this repo has one.** Read it - each entry is a fact a
+  PREVIOUS run already learned the hard way about this exact repo. If it doesn't exist yet,
+  that's not "nothing to read" - it means no past block has ever been recorded here, which is
+  itself worth being deliberate about, not just skipping past. Either way: **if this plan (or an
+  earlier version of it) was already blocked once before**, look up what it was blocked for - the
+  block email, the portal's run record, or a `FLEET_LESSONS.md` entry if one was approved - and
+  apply that finding, rather than re-deriving it from scratch.
+- **The plan-safety checklist** (`plan-safety-checklist.md`, in the fleet's `templates/`,
+  summarized again in Step 0.7 below as a final re-check) - skim it now, while you're still
+  shaping the plan, not only once it's already written.
+
+Step 0.7 further down is still worth doing right before you push - this section is about not
+writing the problem in the first place.
+
 ## Fleet or direct? - the routing decision for substantial work
 
 When the user describes a substantial feature/fix but does not say HOW to deliver it, decide
@@ -136,6 +158,11 @@ depends_on: add-policy-status-column.md
 - **Chains**: each plan names only the one before it (`phase-2-api.md` -> `phase-1-database.md`,
   `phase-3-screen.md` -> `phase-2-api.md`), all pushed together. A plan with no `depends_on:` - the
   normal case - is unaffected.
+- **When phase 1 rests on a genuinely new or unverified premise, consider pushing it alone
+  first.** A wrong premise in phase 1 blocks every dependent phase with **zero independent
+  review** - they never even reach the gate - so a mistake there is multiplied by the length of
+  the chain instead of caught once. If you're not confident phase 1's own facts are solid, push it
+  by itself, confirm it clears review, then push the rest.
 
 **A second, distinct reason to chain: two sibling plans that touch the same shared file, even
 when order doesn't otherwise matter.** The fleet may run several plans for the same repo at once
@@ -155,8 +182,9 @@ about the *data* requires it to wait.
 ## Step 0.7 - the plan-safety checklist (do this BEFORE you push)
 
 A plan can be detailed and well-researched and still get blocked, not because the work is wrong,
-but because it asks the agent to do something the review gates can't wave through unseen. Re-read
-the plan against these seven before pushing:
+but because it asks the agent to do something the review gates can't wave through unseen. You
+should already have skimmed this once while drafting (see "Before you draft" above) - this is the
+final re-read, against all ten, right before you push:
 
 1. **External contracts are backed by a file:line citation, not memory.** If the plan states how
    an external API/service/gateway behaves, name the file where that call is actually made in this
@@ -176,7 +204,13 @@ the plan against these seven before pushing:
    "resolved" status against reality - if the plan bakes one into a doc or code comment anyway,
    mark it unresolved/unverified instead. Also re-check any table or "proof" the plan itself
    supplies: numbers that don't balance, or a term defined two different ways, mean the plan's
-   own premise needs fixing before an agent is asked to act on it.
+   own premise needs fixing before an agent is asked to act on it. **Noticing the inconsistency
+   yourself and writing "treat this as unexplained, proceed anyway" does not satisfy this check -
+   it is the exact failure this check exists to catch, just caught by the author instead of the
+   gate.** (This is what blocked `uat-recommended-products-capture.md` on `Ingeni-Portal`,
+   2026-08-05: the plan's own Context stated 18 boolean questions while the repo's own
+   already-verified evidence said 28 - the plan noticed the gap and told the agent to proceed
+   past it rather than resolving which number was actually true.)
 5. **Verify claims about THIS repo's own existing behavior against code, not memory** - the same
    discipline as item 1, extended inward. Before stating how an existing flow, error path, or
    shared function behaves, name the file and describe what the code does - don't assume a
@@ -186,7 +220,11 @@ the plan against these seven before pushing:
    assertion or "verify before finishing" outcome the plan mandates** - a mandated assertion IS a
    claim about the code's current behavior and needs the same file:line grounding. If you haven't
    traced the exact path the assertion depends on, say so and mark it unconfirmed rather than
-   writing the expected outcome as given.
+   writing the expected outcome as given. **This also extends outward to any FIX you propose, not
+   just the bug you're diagnosing**: a correct root-cause diagnosis can still ship a regression if
+   you haven't checked what else reads, renders, or reacts to the same element, DOM node, or shared
+   state/function - a new guard or condition can fire in a case the plan never considered if
+   something else in the repo already touches that same surface for an unrelated reason.
 6. **Before building something new, check whether this repo already has a near-duplicate to model
    after or reuse.** A new module, screen, or flow that closely resembles something already in the
    codebase should be built FROM that existing implementation, not from scratch - grep for the
@@ -195,22 +233,62 @@ the plan against these seven before pushing:
    have been modeled on.) This also covers the narrower case of a UI input type (radio/checkbox/
    multi-select) not already used elsewhere in this codebase: zero grepped results means the plan
    must state explicitly how it'll be captured/serialized - don't assume a text/textarea-only
-   template already handles it.
+   template already handles it. **A near-duplicate's own comments can also tell you NOT to copy
+   it as-is** - a documented behavior or an unstated precondition (a timing assumption, an
+   environment assumption) may be exactly what your plan needs to change, so read what the
+   reference file says about itself before copying it wholesale. This applies to copying a *test
+   or verify technique* too, not just production code: confirm its precondition still holds at the
+   new call site.
 7. **Check the blast radius on EXISTING tests, not just the new one.** If "verify before
    finishing" means the existing suite must pass, state whether the change could break an
    assertion that already exists - name and update that test explicitly as an in-scope
    deliverable, rather than leaving the agent to guess between three bad options.
 
+8. **Don't let a contract you declared "fixed" survive contact with a wrong premise.** If a
+reviewer (or your own re-reading) shows a stated interface/behavior contract is factually wrong,
+don't work around it by re-wording the mechanism - revise or drop the contract itself. A contract
+that's wrong AND forbids the only fix that would work will keep producing the same class of
+block under a new disguise. (This is exactly what blocked `jacana-wf-align-resubmission-sync`
+twice in a row on `jacana-portal`, 2026-08-04.)
+
+9. **A copied/modeled reference file's own environment-specific state must be explicitly
+overridden, not silently duplicated.** If the plan says "copy/model this file exactly" on a
+reference that itself carries environment-specific state (a `USE <database>` line, a connection
+string, a region, a tenant ID, a hardcoded URL, a feature flag), say explicitly what changes in
+the new copy - duplicating a reference exactly also duplicates whatever environment it was
+originally scoped to. (This is one of two defects that blocked `1951cd9c` on
+`BrokerPortal-standard`'s C360 logout plan: the plan said "copy this SQL file exactly," and the
+file's own `USE CustomappServices_Smartlink;` header - a UAT/prod database - went along for the
+ride, silently contradicting the plan's own "DEV only" instruction.)
+
+10. **A plan's own code sketch must actually produce what a later section of the same plan assumes
+it does.** If the plan includes its own literal code sketch and later depends on that sketch's
+return value or side effect (await it, race it, branch on its result), check that the sketch as
+written actually produces that - not a bare callback-style call with no `return`. A plan can be
+internally inconsistent between two of its own sections, not just wrong about the existing repo.
+(The other defect that blocked `1951cd9c`: the plan's own sketch called
+`_OASIS.callService(...)` with no return, then a later section said to `await`/`Promise.race`
+that call's result.)
+
 **Never block on this** - same as the size check, it's advisory. Full checklist and rationale:
 `plan-safety-checklist.md` (in the fleet's `templates/`).
 
-## Step 0.8 - run the real gate locally before pushing (optional, but the cheapest check there is)
+## Step 0.8 - run the real gate locally before pushing (the cheapest check there is)
+
+Cursor has no automatic local hook equivalent to the Claude Code one - this manual script is the
+only local safety net available here, so treat it as effectively required (not merely optional)
+**whenever you're pushing more than one similar plan in a sitting, or re-pushing a plan that was
+blocked before**: those are exactly the situations where a shared bad premise is most likely to
+repeat itself across pushes before the server-side gate ever gets a chance to say so.
 
 If the fleet toolkit's own checkout is available on this machine, `scripts/preflight-review.sh`
 runs the EXACT same review the fleet's plan-review gate runs - same model, same prompt, same
 checks - against this repo's own checkout, in about 1-2 minutes, with zero fleet dispatch and
 zero blocked-run bookkeeping. It costs one real model call (needs an `ANTHROPIC_API_KEY` in this
-environment) but nothing else - no run is recorded, nothing is dispatched.
+environment) but nothing else - no run is recorded, nothing is dispatched. **Especially worth
+running** when the plan says "copy/model X exactly" on another file, or embeds a literal code
+sketch - those are the two riskiest shapes (items 9 and 10 above), and this routes them at the
+real semantic check pre-push instead of hoping the re-read caught it.
 
 ```bash
 /path/to/agent-fleet/scripts/preflight-review.sh <plan-file> <this-repo-checkout-path>
