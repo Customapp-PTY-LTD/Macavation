@@ -31,10 +31,15 @@
 //     (isPathUnderPlansDir) - untrusted input is data, never a trusted location.
 //
 // FAIL OPEN, VISIBLY. Anything that goes wrong that ISN'T a real BLOCK verdict from the gate - no
-// AGENT_FLEET_TOOLKIT_PATH configured, no ANTHROPIC_API_KEY, a network blip, the script missing -
-// allows the exit, but ALWAYS writes a warning to stderr (which Claude Code surfaces to the
-// developer), never just a swallowed log line. Silent zero enforcement - a developer believing
-// this is protecting them when it quietly never runs - would be a worse failure than a loud one.
+// AGENT_FLEET_TOOLKIT_PATH configured (and no checkout found at the documented default location
+// either), no ANTHROPIC_API_KEY, a network blip, the script missing - allows the exit, and always
+// writes a warning to stderr. stderr is NOT a reliable channel, though - Claude Code does not
+// guarantee a hook's stderr reaches the developer, and this already caused at least one real
+// missed block (see docs/fleet-user-guide.md's "One-time setup" section). So the SAME short
+// reason is now ALSO embedded directly in this hook's JSON response (permissionDecisionReason) -
+// the one channel Claude Code's own hook protocol does guarantee carries through - never just
+// "see stderr". Silent zero enforcement - a developer believing this is protecting them when it
+// quietly never runs - would be a worse failure than a loud one.
 //
 // CACHE CORRECTNESS - replays a VERDICT, never silently skips past a BLOCK. A cache hit on a prior
 // BLOCK re-denies with the cached findings at zero cost; only a hit on a prior PASS allows the
@@ -51,6 +56,7 @@ import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { resolve, dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { homedir } from "node:os";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // This hook lives at <target-repo>/.claude/hooks/fleet-preflight-gate.mjs.
@@ -260,8 +266,38 @@ function scanForNewestPlan(plansDir) {
   }
 }
 
-/** Invokes the real check via argv array (never a shell string). Returns undefined on ANY failure
- * (missing toolkit, missing credential, crash, non-JSON output) - the caller fails open on that.
+/**
+ * Writes a hard-to-miss, bordered, multi-line warning to stderr for every fail-open branch in this
+ * file - still exactly ONE console.error call per call site (same as before), so nothing about the
+ * FAIL OPEN, VISIBLY contract (see the file header) changes; only the LOUDNESS of the existing
+ * warning does. A quiet one-line stderr warning is exactly what let a developer believe this hook
+ * was protecting them when AGENT_FLEET_TOOLKIT_PATH was never actually set on their machine (see
+ * the investigation this change comes from) - every caller below still returns `undefined` right
+ * after calling this, and main()'s handling of that `undefined` (fail open, allow the exit) is
+ * unchanged.
+ */
+function warnLoud(bodyLines) {
+  const border = "=".repeat(78);
+  console.error(
+    [
+      "",
+      border,
+      "  FLEET PRE-FLIGHT GATE IS NOT PROTECTING YOU RIGHT NOW",
+      border,
+      ...bodyLines.map((line) => (line ? `  ${line}` : "")),
+      border,
+      "",
+    ].join("\n"),
+  );
+}
+
+/** Invokes the real check via argv array (never a shell string). Returns `{ result, reason }`:
+ * `result` is `{ verdict, findings }` on a genuine check, `undefined` on ANY failure (missing
+ * toolkit, missing credential, crash, non-JSON output, an unexpected verdict) - the caller fails
+ * open on an undefined `result`. `reason` is a short, human-readable sentence naming what actually
+ * went wrong, set on every `undefined`-result path - the caller embeds it directly in the JSON
+ * response it hands back to Claude Code, not just in the stderr warning (see the file header's
+ * FAIL OPEN, VISIBLY section for why stderr alone is not good enough).
  *
  * TEST SEAM: FLEET_PREFLIGHT_TEST_STUB, when set, short-circuits to a canned verdict instead of
  * invoking the real script - the ONLY way the automated test harness exercises the full hook
@@ -273,26 +309,43 @@ function scanForNewestPlan(plansDir) {
 async function runPreflightCheck(planContent, repoRoot) {
   if (process.env.FLEET_PREFLIGHT_TEST_STUB) {
     try {
-      return JSON.parse(process.env.FLEET_PREFLIGHT_TEST_STUB);
+      return { result: JSON.parse(process.env.FLEET_PREFLIGHT_TEST_STUB) };
     } catch {
-      return undefined;
+      return { result: undefined, reason: "FLEET_PREFLIGHT_TEST_STUB was malformed (test-only path)" };
     }
   }
-  const toolkitPath = process.env[TOOLKIT_ENV];
+  let toolkitPath = process.env[TOOLKIT_ENV];
   if (!toolkitPath) {
-    console.error(
-      `fleet-preflight-gate: ${TOOLKIT_ENV} is not set - skipping the local pre-flight check ` +
-        `(the real gate still runs when you push). Set it to your agent-fleet checkout to enable this.`,
-    );
-    return undefined;
+    // Narrow, EXACT-path fallback only - never a directory search. This path gets EXECUTED
+    // (bash ${scriptPath} ...) a few lines down, so quietly running whatever a broad search
+    // happened to find would trade a missing check for an unreviewed one - the opposite of safer.
+    // Matches the ONE documented default checkout location (docs/fleet-user-guide.md's
+    // "git clone ... ~/agent-fleet").
+    const defaultToolkitPath = resolve(homedir(), "agent-fleet");
+    const defaultScriptPath = resolve(defaultToolkitPath, "scripts", "preflight-review.sh");
+    if (existsSync(defaultScriptPath)) {
+      // The check can actually run from here - no warning, because nothing is actually
+      // unprotected right now.
+      toolkitPath = defaultToolkitPath;
+    } else {
+      const reason = `${TOOLKIT_ENV} is not set and no checkout was found at the default location (${defaultToolkitPath})`;
+      warnLoud([
+        `${TOOLKIT_ENV} is not set - skipping the local pre-flight check.`,
+        "The real gate still runs when you push, but only after a slower, real-dollar-cost round trip.",
+        "",
+        `FIX: Set ${TOOLKIT_ENV} to your agent-fleet checkout to enable this.`,
+      ]);
+      return { result: undefined, reason };
+    }
   }
   const scriptPath = resolve(toolkitPath, "scripts", "preflight-review.sh");
   if (!existsSync(scriptPath)) {
-    console.error(
-      `fleet-preflight-gate: ${scriptPath} does not exist - skipping the local pre-flight check. ` +
-        `Check ${TOOLKIT_ENV} points at a checkout of agent-fleet.`,
-    );
-    return undefined;
+    const reason = `${scriptPath} does not exist - check ${TOOLKIT_ENV}`;
+    warnLoud([
+      `${scriptPath} does not exist - skipping the local pre-flight check.`,
+      `Check ${TOOLKIT_ENV} points at a checkout of agent-fleet.`,
+    ]);
+    return { result: undefined, reason };
   }
 
   const tmpPlanFile = resolve(dirname(CACHE_FILE), `.preflight-input-${process.pid}.md`);
@@ -307,16 +360,20 @@ async function runPreflightCheck(planContent, repoRoot) {
       timeout: 300_000,
     });
     if (stdout === undefined) {
-      console.error("fleet-preflight-gate: the local pre-flight check did not complete - skipping (fail open).");
-      return undefined;
+      const reason = "the local pre-flight check did not complete (timed out or produced no output)";
+      warnLoud([`${reason} - skipping.`]);
+      return { result: undefined, reason };
     }
     const lastLine = stdout.trim().split("\n").pop() || "";
     const parsed = JSON.parse(lastLine);
-    if (parsed.verdict !== "pass" && parsed.verdict !== "block") return undefined;
-    return { verdict: parsed.verdict, findings: parsed.findings || "" };
+    if (parsed.verdict !== "pass" && parsed.verdict !== "block") {
+      return { result: undefined, reason: "the local pre-flight check returned an unexpected verdict" };
+    }
+    return { result: { verdict: parsed.verdict, findings: parsed.findings || "" } };
   } catch (err) {
-    console.error(`fleet-preflight-gate: local pre-flight check crashed (${err.message}) - skipping (fail open).`);
-    return undefined;
+    const reason = `local pre-flight check crashed (${err.message})`;
+    warnLoud([`${reason} - skipping.`]);
+    return { result: undefined, reason };
   } finally {
     try {
       if (existsSync(tmpPlanFile)) unlinkSync(tmpPlanFile);
@@ -381,13 +438,26 @@ async function main() {
       : buildHookResponse("allow", "fleet-preflight-gate: cached PASS for this plan/repo state");
   }
 
-  const result = await runPreflightCheck(planContent, REPO_ROOT);
+  const { result, reason } = await runPreflightCheck(planContent, REPO_ROOT);
   if (!result) {
-    // Genuinely unable to run the check - fail open. The stderr warnings above already fired.
-    return buildHookResponse("allow", "fleet-preflight-gate: local check unavailable this time (see stderr) - the real gate still runs on push");
+    // Genuinely unable to run the check - fail open. The stderr warnings above already fired;
+    // this puts the SAME reason into the one channel Claude Code's own hook protocol guarantees
+    // to carry (the JSON response itself), since stderr alone is not a reliable way to reach the
+    // developer - see the file header's FAIL OPEN, VISIBLY section.
+    return buildHookResponse(
+      "allow",
+      `fleet-preflight-gate: local check unavailable this time (${reason ?? "see stderr"}) - the real gate still runs on push`,
+    );
   }
 
-  cache[key] = { verdict: result.verdict, findings: result.findings, at: new Date().toISOString() };
+  // planBodyHash (sql/042): a hash of the plan text this hook actually checked, recorded on the
+  // cache entry as the effectiveness marker's local half - see sql/042_preflight_hook_marker.sql
+  // and runner/preflight-hook-verdict.ts for the server side that later verifies against it.
+  // Deliberately a PLAIN hash of the plan content alone, not combined with repo state like
+  // computeCacheKey's key above - this one has a different job (identifying the plan body that
+  // was checked), not identifying a cache slot.
+  const planBodyHash = createHash("sha256").update(planContent).digest("hex");
+  cache[key] = { verdict: result.verdict, findings: result.findings, planBodyHash, at: new Date().toISOString() };
   writeCache(cache);
 
   return result.verdict === "block"
