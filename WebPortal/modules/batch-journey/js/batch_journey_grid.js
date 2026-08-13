@@ -119,6 +119,50 @@ var _batchJourneyGrid = (function () {
         return typeof BatchStatus !== 'undefined' ? BatchStatus.statusBadgeHtml(d) : escapeHtml(d.label || '');
     }
 
+    /**
+     * Run `run` once the named edit-dialog global exists, fetching its script if the page never
+     * loaded it.
+     *
+     * WHY THIS EXISTS: the dialogs are plain <script> tags in index.html, but this is a single-page
+     * app. A tab opened BEFORE a deploy keeps that old index.html forever — the router only ever
+     * swaps module JS underneath it. So this file can arrive fresh, complete with an Edit button,
+     * inside a page whose script tags predate the dialog: the button renders, the global is
+     * undefined, and the user is told to refresh. Loading it on demand heals that in place.
+     *
+     * The guard is kept, not removed — if the fetch genuinely fails (offline, asset missing) the
+     * user still gets a clear message instead of a silent no-op.
+     */
+    function withEditDialog(globalName, src, run) {
+        function ready() {
+            return typeof window[globalName] !== 'undefined' && window[globalName] && window[globalName].prompt;
+        }
+        function fail() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Error', 'Edit is not available. Please refresh the page and try again.', 'error');
+            }
+        }
+        if (ready()) { run(); return; }
+
+        var selector = 'script[data-mac-dialog="' + globalName + '"]';
+        var existing = document.querySelector(selector);
+        if (existing) {
+            // A click landed while an earlier one was still fetching — wait on the same request.
+            existing.addEventListener('load', function () { if (ready()) run(); else fail(); });
+            existing.addEventListener('error', fail);
+            return;
+        }
+        var el = document.createElement('script');
+        el.src = src;
+        el.setAttribute('data-mac-dialog', globalName);
+        el.onload = function () { if (ready()) run(); else fail(); };
+        el.onerror = function () {
+            // Leaving the failed tag in place would make every later click wait on a dead request.
+            if (el.parentNode) el.parentNode.removeChild(el);
+            fail();
+        };
+        document.head.appendChild(el);
+    }
+
     function sortBatches(batches, sortBy) {
         var sorted = batches.slice();
         var statusOrder = typeof BatchStatus !== 'undefined' ? BatchStatus.STATUS_ORDER : [];
@@ -406,17 +450,15 @@ var _batchJourneyGrid = (function () {
         $(document).on('click', '#bjTableBody .js-bj-edit-batch', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            if (typeof KernelBatchEdit === 'undefined' || !KernelBatchEdit.prompt) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Edit is not available. Please refresh.', 'error');
-                return;
-            }
             var batchId = $(this).data('batch-id');
-            var batch = scope.filteredBatches.find(function (b) { return String(b.id) === String(batchId); });
-            if (!batch) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
-                return;
-            }
-            KernelBatchEdit.prompt(batch, { onSaved: function () { loadBatches(); } });
+            withEditDialog('KernelBatchEdit', 'js/kernel-batch-edit.js', function () {
+                var batch = scope.filteredBatches.find(function (b) { return String(b.id) === String(batchId); });
+                if (!batch) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
+                    return;
+                }
+                KernelBatchEdit.prompt(batch, { onSaved: function () { loadBatches(); } });
+            });
         });
 
         $(document).on('click', '#bjOilTableBody .js-bj-oil-open-module', function (e) {
@@ -430,17 +472,15 @@ var _batchJourneyGrid = (function () {
         $(document).on('click', '#bjOilTableBody .js-bj-oil-edit-batch', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            if (typeof OilBatchEdit === 'undefined' || !OilBatchEdit.prompt) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Edit is not available. Please refresh.', 'error');
-                return;
-            }
             var oilId = $(this).data('oil-id');
-            var batch = scope.filteredOilBatches.find(function (b) { return String(b.id) === String(oilId); });
-            if (!batch) {
-                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
-                return;
-            }
-            OilBatchEdit.prompt(batch, { onSaved: function () { loadOilBatches(); } });
+            withEditDialog('OilBatchEdit', 'js/oil-batch-edit.js', function () {
+                var batch = scope.filteredOilBatches.find(function (b) { return String(b.id) === String(oilId); });
+                if (!batch) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
+                    return;
+                }
+                OilBatchEdit.prompt(batch, { onSaved: function () { loadOilBatches(); } });
+            });
         });
 
         $(document).on('click', '#bjOilTableBody .js-bj-oil-history', function (e) {
