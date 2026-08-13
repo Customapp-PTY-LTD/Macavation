@@ -3,6 +3,38 @@
  * Loads batch table and wires on-screen buttons. Action buttons trigger their own JS modules.
  * Pattern: same as hatchability.js (return object, arrow functions, const scope = _module).
  */
+/**
+ * Run `run` once KernelBatchEdit exists, fetching js/kernel-batch-edit.js if this page never
+ * loaded it. See the call site for why that happens (stale index.html in a long-lived SPA tab).
+ */
+function withKernelBatchEditDialog(run) {
+    function ready() {
+        return typeof KernelBatchEdit !== 'undefined' && KernelBatchEdit && KernelBatchEdit.prompt;
+    }
+    function fail() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire('Error', 'Edit is not available. Please refresh the page and try again.', 'error');
+        }
+    }
+    if (ready()) { run(); return; }
+
+    var existing = document.querySelector('script[data-mac-dialog="KernelBatchEdit"]');
+    if (existing) {
+        existing.addEventListener('load', function () { if (ready()) run(); else fail(); });
+        existing.addEventListener('error', fail);
+        return;
+    }
+    var el = document.createElement('script');
+    el.src = 'js/kernel-batch-edit.js';
+    el.setAttribute('data-mac-dialog', 'KernelBatchEdit');
+    el.onload = function () { if (ready()) run(); else fail(); };
+    el.onerror = function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+        fail();
+    };
+    document.head.appendChild(el);
+}
+
 var _kernelProductionGrid = function () {
     'use strict';
 
@@ -323,12 +355,15 @@ var _kernelProductionGrid = function () {
                 const scope = _kernelProductionGrid;
                 const batchId = $(this).data('batch-id');
                 if (!batchId) return;
-                if (typeof KernelBatchEdit === 'undefined' || !KernelBatchEdit.prompt) {
-                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Edit is not available. Please refresh.', 'error');
-                    return;
-                }
-                KernelBatchEdit.prompt(scope.getBatch(batchId), {
-                    onSaved: function () { scope.loadBatches(true); }
+                // Fetch the dialog if this page predates it. A tab opened before a deploy keeps the
+                // old index.html — and therefore the old <script> tags — while the router swaps in
+                // fresh module JS like this file, so the Edit button can exist while its global does
+                // not. Deliberately duplicated from batch_journey_grid.js rather than shared: any
+                // shared home would itself be an index.html script tag, i.e. equally stale.
+                withKernelBatchEditDialog(function () {
+                    KernelBatchEdit.prompt(scope.getBatch(batchId), {
+                        onSaved: function () { scope.loadBatches(true); }
+                    });
                 });
             });
             $(document).on('click', '.js-release-to-stock-disabled', function (e) {
