@@ -1,7 +1,3 @@
----
-depends_on: report-builder-01c-report-list.md
----
-
 # Report builder — the report editor and the override flow
 
 ## Context
@@ -10,9 +6,19 @@ Last of four small plans replacing `report-builder-01-list-and-editor.md`, which
 for being too large. This one builds the editor screen the report list opens into: section toggles,
 commentary, the executive summary, and the metric rows where Pete enters figures.
 
-It waits on `report-builder-01c-report-list.md` because it registers its route alongside that plan's
-entries in `WebPortal/js/appRouteConfig.json` and `WebPortal/js/appRouter.js` (a real conflict
-otherwise), and because it enables that plan's "Open" navigation.
+**This plan carries no `depends_on`: everything it builds on is already merged into `dev`.** The
+report list module, the eleven RPC wrappers and the repointed `sales-forecasting-grid` route are all
+in the base branch. Confirm before starting — `WebPortal/modules/sales-reports/js/report_list_grid.js`
+and `WebPortal/modules/sales-reports/html/report_list.html` exist, and
+`WebPortal/js/data-functions.js` defines `getReportInstance`. If any is missing, stop and report
+rather than creating it here.
+
+**The single most important thing this plan fixes is that the editor route does not exist yet.**
+`sales-report-editor` appears in neither `WebPortal/js/appRouteConfig.json` nor the
+`initializeModule()` switch in `WebPortal/js/appRouter.js`, so `report_list_grid.js`'s
+`reportEditorRouteExists()` guard (`:80-83`) returns false and every attempt to open a report — for
+**every** role, super_user included — shows an informational dialog. Registering the route is what
+makes the feature reachable at all.
 
 The RPCs are defined in `migrations/20260817090000_report_builder_foundations.sql` and
 `migrations/20260817100000_report_instances_and_targets.sql`, both in this checkout. **Whether those
@@ -195,11 +201,34 @@ A "Refresh figures" action calls `refreshReportInstance`, which is draft-only an
 overrides and their reasons while re-reading system values and targets. Report the returned
 `metrics_refreshed` count in the success toast.
 
-### 4. Enable navigation from the list
+### 4. Enable navigation from the list, and split its misleading message
 
-The previous plan left its "Open" action behind a guard because this route did not exist yet. Now
-that it does, confirm that guard resolves correctly and that both call sites — the row action and the
-post-create path — route here. Change no more of `report_list_grid.js` than that.
+`WebPortal/modules/sales-reports/js/report_list_grid.js` currently funnels both failure modes into
+one dialog (`openReportEditor`, `:86-90`):
+
+```js
+if (!canOpenReportEditor() || !reportEditorRouteExists()) {
+    Swal.fire({ icon: 'info', title: 'Report editing not enabled',
+        text: 'Report editing has not been enabled for your role yet. An administrator must apply the report-builder permissions migration, then sign out and back in.' });
+```
+
+Those are two unrelated causes and the text only describes one. A super_user hitting the
+route-missing branch is told to apply a permissions migration that would change nothing for them —
+this has already caused a real misdiagnosis. **Split them**, keeping the same fail-closed order:
+
+- `!reportEditorRouteExists()` → title "Report editor not available", text "The report editor has
+  not been deployed to this environment yet." No mention of roles or migrations.
+- `!canOpenReportEditor()` → keep the existing permissions wording.
+
+Registering the route in deliverable 1 makes the first branch unreachable in a correctly deployed
+environment, but keep the branch and its distinct message: it is the honest thing to show if the
+route registration is ever rolled back or the module is loaded from a stale cache. The module
+already sets this precedent — its invalid-uuid path carries its own message with a comment saying it
+"must not be reported as" a permissions state (`:92-96`).
+
+Then confirm both call sites — the row "Open" action and the post-create path — route here.
+**Change no more of `report_list_grid.js` than the message split and whatever those two call sites
+require.**
 
 ### 5. Missing RPCs must not white-screen the module
 
