@@ -4,12 +4,26 @@
  */
 var _kernelProductionBatchActions = function () {
     'use strict';
+    /** Contact types that may own a batch. Matches modal_grower_create_kernel_batch.js. */
+    var SUPPLIER_TYPES = ['nis_supplier', 'supplier', 'both'];
     return {
         init: () => {
             const scope = _kernelProductionBatchActions;
             $(document).off('click.kernelNewBatch', '#saveNewBatchBtn').on('click.kernelNewBatch', '#saveNewBatchBtn', (e) => {
                 e.preventDefault();
                 scope.saveNewBatch();
+            });
+            $(document).off('click.kernelAddSupplier', '#prodAddSupplierBtn').on('click.kernelAddSupplier', '#prodAddSupplierBtn', (e) => {
+                e.preventDefault();
+                scope.showAddSupplierForm();
+            });
+            $(document).off('click.kernelAddSupplier', '#prodNewSupplierSubmitBtn').on('click.kernelAddSupplier', '#prodNewSupplierSubmitBtn', (e) => {
+                e.preventDefault();
+                scope.submitNewSupplierForm();
+            });
+            $(document).off('click.kernelAddSupplier', '#prodNewSupplierCancelBtn').on('click.kernelAddSupplier', '#prodNewSupplierCancelBtn', (e) => {
+                e.preventDefault();
+                scope.hideAddSupplierForm();
             });
         },
 
@@ -168,6 +182,96 @@ var _kernelProductionBatchActions = function () {
                 .catch(function () { $('#batchNumber').val('').attr('placeholder', 'Will assign on save'); });
         },
 
+        /**
+         * Fill the supplier dropdown. Only contacts that can own a batch are listed, and each label
+         * carries the supplier code because that code is the SS segment of every batch number.
+         */
+        populateSupplierDropdown: (preselectSupplierId) => {
+            var p = (dataFunctions.getContacts && dataFunctions.getContacts(null, true)) || Promise.resolve([]);
+            return p.then((raw) => {
+                var contacts = Array.isArray(raw)
+                    ? raw
+                    : (raw && raw.get_contacts ? raw.get_contacts : (raw && raw.data ? raw.data : []));
+                var html = '<option value="">Select Supplier</option>';
+                if (Array.isArray(contacts)) {
+                    contacts
+                        .filter((c) => SUPPLIER_TYPES.indexOf((c.contact_type || '').trim()) >= 0)
+                        .forEach((contact) => {
+                            var name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
+                            var code = contact.supplier_number != null ? ' (' + contact.supplier_number + ')' : '';
+                            html += '<option value="' + contact.id + '">' + name + code + '</option>';
+                        });
+                }
+                $('#batchSupplier').html(html);
+                if (preselectSupplierId) $('#batchSupplier').val(preselectSupplierId);
+            }).catch((e) => {
+                console.error('[Kernel Production] Failed to load suppliers:', e);
+            });
+        },
+
+        showAddSupplierForm: () => {
+            ['prodNewSupplierName', 'prodNewSupplierCode', 'prodNewSupplierProvince', 'prodNewSupplierArea', 'prodNewSupplierContact', 'prodNewSupplierNotes']
+                .forEach((id) => { var el = document.getElementById(id); if (el) el.value = ''; });
+            $('#prodNewSupplierError').hide().text('');
+            $('#prodNewSupplierForm').show();
+            setTimeout(() => { var el = document.getElementById('prodNewSupplierName'); if (el) el.focus(); }, 50);
+        },
+
+        hideAddSupplierForm: () => {
+            $('#prodNewSupplierForm').hide();
+            $('#prodNewSupplierError').hide().text('');
+        },
+
+        submitNewSupplierForm: () => {
+            const scope = _kernelProductionBatchActions;
+            var nameEl = document.getElementById('prodNewSupplierName');
+            var codeEl = document.getElementById('prodNewSupplierCode');
+            var companyName = nameEl && nameEl.value ? nameEl.value.trim() : '';
+            var codeVal = codeEl && codeEl.value !== '' ? parseInt(codeEl.value, 10) : NaN;
+            var showErr = (msg, focusEl) => {
+                $('#prodNewSupplierError').text(msg).show();
+                if (focusEl) focusEl.focus();
+            };
+            if (!companyName) return showErr('Company name is required.', nameEl);
+            if (isNaN(codeVal) || codeVal < 0 || codeVal > 99) {
+                return showErr('Supplier code must be a number (0–99) used for batch naming.', codeEl);
+            }
+            $('#prodNewSupplierError').hide().text('');
+            var trimmed = (id) => {
+                var el = document.getElementById(id);
+                return el && el.value ? el.value.trim() : null;
+            };
+            scope.doCreateSupplier({
+                contact_type: 'nis_supplier',
+                company_name: companyName,
+                supplier_number: codeVal,
+                physical_province: trimmed('prodNewSupplierProvince'),
+                physical_city: trimmed('prodNewSupplierArea'),
+                primary_contact_name: trimmed('prodNewSupplierContact'),
+                notes: trimmed('prodNewSupplierNotes'),
+                status: 'active'
+            });
+        },
+
+        doCreateSupplier: (payload) => {
+            const scope = _kernelProductionBatchActions;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.createContact) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Create contact not available.', 'error');
+                return;
+            }
+            dataFunctions.createContact(payload).then((res) => {
+                var id = (res && res.id) || (res && res.data && res.data.id);
+                if (!id) throw new Error((res && res.error) || 'Failed to add supplier');
+                scope.hideAddSupplierForm();
+                return scope.populateSupplierDropdown(id).then(() => {
+                    scope.refreshSuggestedBatchNumber();
+                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Supplier added', timer: 1500, showConfirmButton: false });
+                });
+            }).catch((e) => {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', e.message || 'Failed to add supplier', 'error');
+            });
+        },
+
         showNewBatchModal: () => {
             const scope = _kernelProductionBatchActions;
             $('#newBatchModalLabel').text('New Production Batch');
@@ -181,17 +285,7 @@ var _kernelProductionBatchActions = function () {
             $('#batchReceivedDate').off('change.kernelNextBatchDate').on('change.kernelNextBatchDate', function () {
                 scope.refreshSuggestedBatchNumber();
             });
-            var p = dataFunctions.getContacts && dataFunctions.getContacts();
-            (p || Promise.resolve([])).then((contacts) => {
-                var html = '<option value="">Select Supplier</option>';
-                if (contacts && Array.isArray(contacts)) {
-                    contacts.forEach((contact) => {
-                        var name = contact.company_name || contact.trading_name || contact.primary_contact_name || 'Unknown';
-                        html += '<option value="' + contact.id + '">' + name + '</option>';
-                    });
-                }
-                $('#batchSupplier').html(html);
-            }).then(() => {
+            scope.populateSupplierDropdown().then(() => {
                 var modalEl = document.getElementById('newBatchModal');
                 if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) bootstrap.Modal.getOrCreateInstance(modalEl).show();
                 else $('#newBatchModal').modal('show');
@@ -199,9 +293,11 @@ var _kernelProductionBatchActions = function () {
         },
 
         clearNewBatchForm: () => {
+            const scope = _kernelProductionBatchActions;
             var form = document.getElementById('newBatchForm');
             if (form) form.reset();
             $('#batchId').val('');
+            scope.hideAddSupplierForm();
         },
 
         saveNewBatch: () => {

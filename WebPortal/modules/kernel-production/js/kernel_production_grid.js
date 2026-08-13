@@ -3,6 +3,38 @@
  * Loads batch table and wires on-screen buttons. Action buttons trigger their own JS modules.
  * Pattern: same as hatchability.js (return object, arrow functions, const scope = _module).
  */
+/**
+ * Run `run` once KernelBatchEdit exists, fetching js/kernel-batch-edit.js if this page never
+ * loaded it. See the call site for why that happens (stale index.html in a long-lived SPA tab).
+ */
+function withKernelBatchEditDialog(run) {
+    function ready() {
+        return typeof KernelBatchEdit !== 'undefined' && KernelBatchEdit && KernelBatchEdit.prompt;
+    }
+    function fail() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire('Error', 'Edit is not available. Please refresh the page and try again.', 'error');
+        }
+    }
+    if (ready()) { run(); return; }
+
+    var existing = document.querySelector('script[data-mac-dialog="KernelBatchEdit"]');
+    if (existing) {
+        existing.addEventListener('load', function () { if (ready()) run(); else fail(); });
+        existing.addEventListener('error', fail);
+        return;
+    }
+    var el = document.createElement('script');
+    el.src = 'js/kernel-batch-edit.js';
+    el.setAttribute('data-mac-dialog', 'KernelBatchEdit');
+    el.onload = function () { if (ready()) run(); else fail(); };
+    el.onerror = function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+        fail();
+    };
+    document.head.appendChild(el);
+}
+
 var _kernelProductionGrid = function () {
     'use strict';
 
@@ -317,6 +349,23 @@ var _kernelProductionGrid = function () {
                     _kernelProductionBatchActions.archiveBatch(batchId);
                 }
             });
+            $(document).on('click', '.js-edit-batch', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const scope = _kernelProductionGrid;
+                const batchId = $(this).data('batch-id');
+                if (!batchId) return;
+                // Fetch the dialog if this page predates it. A tab opened before a deploy keeps the
+                // old index.html — and therefore the old <script> tags — while the router swaps in
+                // fresh module JS like this file, so the Edit button can exist while its global does
+                // not. Deliberately duplicated from batch_journey_grid.js rather than shared: any
+                // shared home would itself be an index.html script tag, i.e. equally stale.
+                withKernelBatchEditDialog(function () {
+                    KernelBatchEdit.prompt(scope.getBatch(batchId), {
+                        onSaved: function () { scope.loadBatches(true); }
+                    });
+                });
+            });
             $(document).on('click', '.js-release-to-stock-disabled', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -439,7 +488,8 @@ var _kernelProductionGrid = function () {
                         '<li><a class="dropdown-item js-production-batch" href="#" data-batch-id="' + batch.id + '">Production stages</a></li>',
                         '<li><a class="dropdown-item js-job-card-batch" href="#" data-batch-id="' + batch.id + '">Job card</a></li>',
                         '<li><a class="dropdown-item js-end-sample-batch" href="#" data-batch-id="' + batch.id + '">End sample</a></li>',
-                        '<li><a class="dropdown-item js-batch-summary" href="#" data-batch-id="' + batch.id + '">Batch summary</a></li>'
+                        '<li><a class="dropdown-item js-batch-summary" href="#" data-batch-id="' + batch.id + '">Batch summary</a></li>',
+                        '<li><a class="dropdown-item js-edit-batch" href="#" data-batch-id="' + batch.id + '">Edit batch details</a></li>'
                     ];
                     if (displayStatus.filterValue === 'release_ready' && canReleaseToStock) {
                         moreItems.unshift('<li><a class="dropdown-item js-release-to-stock" href="#" data-batch-id="' + batch.id + '">Release to stock</a></li>');
@@ -690,6 +740,7 @@ var _kernelProductionGrid = function () {
                 } else {
                     menuItems.push('<span class="dropdown-item text-muted js-release-to-stock-disabled" role="button" tabindex="0">Release to stock</span>');
                 }
+                menuItems.push('<a class="dropdown-item js-edit-batch" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-pen me-1"></i>Edit batch details</a>');
                 menuItems.push('<a class="dropdown-item js-archive-batch text-secondary" href="#" data-batch-id="' + batch.id + '"><i class="fas fa-archive me-1"></i>Archive batch</a>');
                 // TEMPORARY: KP Data Admin sees only Production button. Remove when replacing with real auth.
                 const isKpDataAdmin = typeof ROLE_FEATURE !== 'undefined' && ROLE_FEATURE.isKpDataAdmin && ROLE_FEATURE.isKpDataAdmin();
