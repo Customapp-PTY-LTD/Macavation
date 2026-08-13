@@ -120,6 +120,33 @@ var _batchJourneyGrid = (function () {
     }
 
     /**
+     * Supplier cell for an oil batch.
+     *
+     * An oil batch has no single supplier contact — its "suppliers" are the raw material batches
+     * consumed to make it, each with its own supplier, quantity and FFA. So the cell is a button
+     * onto that list, and a plain "—" when the batch records no ingredients.
+     *
+     * The has/hasn't decision is read from production_data, which already travels with the row.
+     * Asking the detail RPC per row would be one request per visible batch (the grid loads up to
+     * 500). OilBatchIngredients may not be loaded yet on a pre-deploy page, so fall back to the
+     * old text rendering rather than showing nothing — the button appears once it is available.
+     */
+    function oilSupplierCellHtml(ob) {
+        var plain = escapeHtml(ob.supplier_name || ob.supplier_details || ob.grower_name || '-');
+        if (typeof OilBatchIngredients === 'undefined' || !OilBatchIngredients.hasIngredients) return plain;
+        if (!OilBatchIngredients.hasIngredients(ob)) return plain;
+
+        var names = OilBatchIngredients.supplierNames(ob);
+        var label = names.length === 1
+            ? names[0]
+            : (names.length > 1 ? names.length + ' suppliers' : 'View ingredients');
+        return '<button type="button" class="btn btn-link btn-sm p-0 text-start js-bj-oil-ingredients" '
+            + 'data-batch-number="' + escapeHtml(ob.batch_number || ob.batch_id || '') + '" '
+            + 'title="Show the raw material batches that went into this oil batch">'
+            + '<i class="fas fa-flask me-1"></i>' + escapeHtml(label) + '</button>';
+    }
+
+    /**
      * Run `run` once the named edit-dialog global exists, fetching its script if the page never
      * loaded it.
      *
@@ -132,11 +159,14 @@ var _batchJourneyGrid = (function () {
      * The guard is kept, not removed — if the fetch genuinely fails (offline, asset missing) the
      * user still gets a clear message instead of a silent no-op.
      */
-    function withEditDialog(globalName, src, run) {
+    function withEditDialog(globalName, src, run, onFail) {
         function ready() {
-            return typeof window[globalName] !== 'undefined' && window[globalName] && window[globalName].prompt;
+            return typeof window[globalName] !== 'undefined' && !!window[globalName];
         }
+        // onFail lets a caller carry on without the module — the Supplier column preloads this way,
+        // so a failed fetch degrades to plain text instead of an error popup on page load.
         function fail() {
+            if (typeof onFail === 'function') { onFail(); return; }
             if (typeof Swal !== 'undefined') {
                 Swal.fire('Error', 'Edit is not available. Please refresh the page and try again.', 'error');
             }
@@ -310,7 +340,7 @@ var _batchJourneyGrid = (function () {
             var oilRoute = typeof BatchStatus !== 'undefined' ? BatchStatus.getOilRouteForStatus(od) : { label: 'Open' };
             html += '<tr class="js-bj-oil-row" data-oil-id="' + oid + '">'
                 + '<td>' + escapeHtml(ob.batch_number || ob.batch_id || '-') + '</td>'
-                + '<td>' + escapeHtml(ob.supplier_name || ob.supplier_details || ob.grower_name || '-') + '</td>'
+                + '<td>' + oilSupplierCellHtml(ob) + '</td>'
                 + '<td>' + statusBadgeHtml(od) + '</td>'
                 + '<td>' + productionDate + '</td>'
                 + '<td class="text-end">' + (ob.total_oil_litre != null && ob.total_oil_litre !== '' ? formatNumber(ob.total_oil_litre, 2) : '-') + '</td>'
@@ -468,6 +498,16 @@ var _batchJourneyGrid = (function () {
             if (batch) openActionForOilBatch(batch);
         });
 
+        // Raw ingredients that went into an oil batch — the oil equivalent of "supplier".
+        $(document).on('click', '#bjOilTableBody .js-bj-oil-ingredients', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var batchNumber = $(this).data('batch-number');
+            withEditDialog('OilBatchIngredients', 'js/oil-batch-ingredients.js', function () {
+                OilBatchIngredients.show(batchNumber);
+            });
+        });
+
         // Edit batch details — oil. Header fields only, mirroring the kernel dialog's scope.
         $(document).on('click', '#bjOilTableBody .js-bj-oil-edit-batch', function (e) {
             e.preventDefault();
@@ -588,7 +628,10 @@ var _batchJourneyGrid = (function () {
         }
         df.getOilBatches({ limit: 500 }, null, false).then(function (rows) {
             scope.oilBatches = normalizeOilBatchList(rows).map(mapOilRowForJourney);
-            filterAndSortOil();
+            // Make sure the ingredients module is present BEFORE the first render: the Supplier
+            // cell needs it to decide button-vs-"—", and on a pre-deploy page it would otherwise
+            // render plain text on load and only gain buttons after some later refresh.
+            withEditDialog('OilBatchIngredients', 'js/oil-batch-ingredients.js', filterAndSortOil, filterAndSortOil);
         }).catch(function (err) {
             console.error('Batch Journey: failed to load oil batches', err);
             var tbody = document.getElementById('bjOilTableBody');
