@@ -27,11 +27,16 @@ A few things are cheaper to build in from the start than to catch afterward:
 - **The plan-safety checklist** (`plan-safety-checklist.md`, in the fleet's `templates/`,
   summarized again in Step 0.7 below as a final re-check) - skim it now, while you're still
   shaping the plan, not only once it's already written.
-- **Whether the local pre-flight check can actually protect you.** It only works if
-  `AGENT_FLEET_TOOLKIT_PATH` is set, or a fleet toolkit checkout exists at the documented default
-  `~/agent-fleet` - check for one of those now, before drafting, not after pushing. If neither
-  resolves, say so out loud to the developer: the free local safety net (Step 0.8) is off for this
-  session, and only the slower server-side gate will catch a problem.
+- **The automatic local pre-flight check needs nothing from you.** Since 2026-08-13 it runs as a
+  `PreToolUse`/`ExitPlanMode` hook wired straight into this repo's own `.claude/settings.json` -
+  it uses your own already-authenticated Claude Code session, with real read access to this
+  checkout, no separate `ANTHROPIC_API_KEY` and no toolkit clone required. It fires the moment you
+  call `ExitPlanMode` on a fleet-bound plan, before you ever get to push.
+- **Step 0.8's manual, deeper check is a separate, optional extra**, not the same thing. It needs
+  a clone of this `agent-fleet` toolkit repo SOMEWHERE on your machine (any path - you pass it
+  directly on the command line each time, no environment variable involved) plus an
+  `ANTHROPIC_API_KEY` in your shell - check you have those now if you want the extra pass, not
+  after pushing.
 
 Step 0.7 further down is still worth doing right before you push - this section is about not
 writing the problem in the first place.
@@ -343,9 +348,11 @@ the amendment can introduce fresh defects the original draft didn't have (this i
 JWT-refresh retry above ended up blocked a second time), and Step 0.8 is the same tool that would
 catch that before a second paid run does.
 
-## Step 0.8 - run the real gate locally before pushing (optional, but the cheapest check there is)
+## Step 0.8 - the manual, deeper local check (optional - the automatic hook above already ran)
 
-If the fleet toolkit's own checkout is available on this machine, `scripts/preflight-review.sh`
+The automatic `ExitPlanMode` hook from "Before you draft" already ran, with zero setup, the
+moment you tried to leave plan mode. This step is a SEPARATE, optional, deeper pass: if the fleet
+toolkit's own checkout is available on this machine, `scripts/preflight-review.sh`
 runs the EXACT same review the fleet's plan-review gate runs - same model, same prompt, same
 checks - against this repo's own checkout, in about 1-2 minutes, with zero fleet dispatch and
 zero blocked-run bookkeeping. It costs one real model call (needs an `ANTHROPIC_API_KEY` in this
@@ -370,12 +377,14 @@ matches. The hash12 must come from the LAST run against the FINAL content you ac
 you edit the plan after checking it, the marker silently stops verifying (recorded as absent, never
 as a false pass) and you've wasted the check.
 
-**First time on this machine?** The *local hook version* of this same check resolves a toolkit
-checkout from `AGENT_FLEET_TOOLKIT_PATH`, or - if that's unset - the documented default location
-`~/agent-fleet`. Only if **neither** resolves does it silently allow every plan through with just
-a stderr warning. See the fleet user guide's
-["One-time setup: enable your local pre-flight check"](https://github.com/Customapp-PTY-LTD/agent-fleet/blob/dev/docs/fleet-user-guide.md#one-time-setup-enable-your-local-pre-flight-check)
-for how to set it up (you already checked this above, under "Before you draft").
+**Want this script's own deeper check too, not just the automatic hook?** Unlike the automatic
+hook, it does not auto-discover anything - clone `agent-fleet` anywhere on your machine and pass
+that path as this command's second argument every time. It errors out plainly (a usage message,
+non-zero exit) if you give it fewer than two arguments, and it needs an `ANTHROPIC_API_KEY` set to
+make its one real model call. See the fleet user guide's
+["Optional: the manual deeper local check"](https://github.com/Customapp-PTY-LTD/agent-fleet/blob/dev/docs/fleet-user-guide.md#optional-the-manual-deeper-local-check)
+for the one-time clone-and-remember-the-path setup (you already checked this above, under "Before
+you draft").
 
 ## Submit (the Claude Code path differs from Cursor)
 
