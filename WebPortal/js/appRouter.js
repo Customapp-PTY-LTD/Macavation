@@ -431,8 +431,8 @@ var _appRouter = function () {
                     if (typeof _modal_stock_send_to_dispatch_oil !== 'undefined' && _modal_stock_send_to_dispatch_oil.init) _modal_stock_send_to_dispatch_oil.init();
                 },
                 'sales-forecasting-grid': () => {
-                    if (typeof initializeSalesForecastingGrid === 'function') {
-                        initializeSalesForecastingGrid();
+                    if (typeof initializeReportListGrid === 'function') {
+                        initializeReportListGrid();
                     }
                 },
                 'oil-production-grid': () => {

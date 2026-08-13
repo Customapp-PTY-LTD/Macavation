@@ -1,0 +1,42 @@
+/* Sales & Production Reports — follows docs/design/DESIGN_SYSTEM.md and the users-grid reference */
+
+.module-content {
+    min-height: 400px;
+}
+
+#reportListTable {
+    margin-bottom: 0;
+}
+
+/* Actions column: WebPortal/css/table-actions.css */
+
+.pagination {
+    margin-bottom: 0;
+}
+
+.pagination .page-link {
+    color: var(--mac-green);
+    border-color: var(--mac-border);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--mac-green);
+    border-color: var(--mac-green);
+}
+
+.pagination .page-link:hover {
+    color: var(--mac-green);
+    background-color: var(--mac-bg-tertiary);
+    border-color: var(--mac-border);
+}
+
+.card {
+    border: 1px solid var(--mac-border);
+    box-shadow: var(--mac-shadow-sm);
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
