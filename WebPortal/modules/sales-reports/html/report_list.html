@@ -1,0 +1,107 @@
+<!-- Sales & Production Reports — report list (route key kept as sales-forecasting-grid; see
+     CLAUDE.md / Playwright Tests/helpers/navigation.helper.ts for why the key cannot change). -->
+<div class="module-content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="h2 mb-1">Sales &amp; Production Reports</h1>
+            <p class="text-muted small mb-0">Weekly and monthly director reports</p>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a target="_blank" rel="noopener noreferrer" href="help/index.html#sales-forecasting-grid" class="btn btn-sm btn-outline-secondary me-2 macavation-help-link" title="User guide"><i class="fas fa-circle-question me-1"></i>Help</a>
+            <button type="button" class="btn btn-outline-secondary me-2" id="srlRefreshBtn">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+            <button type="button" class="btn btn-primary" id="srlNewReportBtn" data-action-perm="reports.report.create" data-bs-toggle="modal" data-bs-target="#srlNewReportModal">
+                <i class="fas fa-plus me-1"></i>New Report
+            </button>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-0" for="srlFilterPeriodType">Type</label>
+                    <select class="form-select form-select-sm" id="srlFilterPeriodType">
+                        <option value="">All</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-0" for="srlFilterStatus">Status</label>
+                    <select class="form-select form-select-sm" id="srlFilterStatus">
+                        <option value="">All</option>
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle table-hover mb-0" id="srlTable">
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th>Type</th>
+                            <th>Date range</th>
+                            <th>Status</th>
+                            <th>Completeness</th>
+                            <th>Last generated</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="srlTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="srlPagination"></div>
+</div>
+
+<!-- New Report modal -->
+<div class="modal fade" id="srlNewReportModal" tabindex="-1" aria-labelledby="srlNewReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="srlNewReportModalLabel">New Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="srlNewReportForm">
+                    <div class="mb-3">
+                        <label class="form-label required">Report type</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="srlPeriodType" id="srlPeriodTypeWeekly" value="weekly" checked>
+                            <label class="form-check-label" for="srlPeriodTypeWeekly">Weekly</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="srlPeriodType" id="srlPeriodTypeMonthly" value="monthly">
+                            <label class="form-check-label" for="srlPeriodTypeMonthly">Monthly</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label required" for="srlPeriodDate">Any date in the period</label>
+                        <input type="text" class="form-control" id="srlPeriodDate" placeholder="dd/mm/yyyy" autocomplete="off">
+                        <small class="form-text text-muted">The date is snapped to the period's Monday (weekly) or 1st (monthly) automatically.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="srlTemplateSelect">Template</label>
+                        <select class="form-select" id="srlTemplateSelect"></select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="srlCreateReportBtn">
+                    <i class="fas fa-plus me-1"></i>Create
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

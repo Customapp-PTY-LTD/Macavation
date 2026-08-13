@@ -494,14 +494,22 @@ var _dataFunctions = function () {
                 msg.indexOf('PGRST301') >= 0;
         },
 
+        // preserveEmptyStrings: '' is otherwise stripped, which makes it impossible to clear a
+        // text column through an RPC that COALESCEs NULL onto the old value (see
+        // setReportSectionState). Default behaviour (both flags falsy) is unchanged from before.
         buildPostgrestRpcBody: function (params, options) {
             const out = {};
             if (!params || typeof params !== 'object') return out;
             const preserveNulls = !!(options && options.preserveNulls);
+            const preserveEmptyStrings = !!(options && options.preserveEmptyStrings);
             Object.keys(params).forEach(function (key) {
                 const val = params[key];
                 if (preserveNulls && val === null) {
                     out[key] = null;
+                    return;
+                }
+                if (preserveEmptyStrings && val === '') {
+                    out[key] = '';
                     return;
                 }
                 if (val !== null && val !== undefined && val !== '') {
@@ -599,7 +607,10 @@ var _dataFunctions = function () {
             const response = await fetch(cfg.url + '/rest/v1/rpc/' + encodeURIComponent(functionName), {
                 method: 'POST',
                 headers: rpcHeaders,
-                body: JSON.stringify(scope.buildPostgrestRpcBody(params, { preserveNulls: options.preserveNullParams === true }))
+                body: JSON.stringify(scope.buildPostgrestRpcBody(params, {
+                    preserveNulls: options.preserveNullParams === true,
+                    preserveEmptyStrings: options.preserveEmptyParams === true
+                }))
             });
             const responseText = await response.text();
             if (!response.ok) {
@@ -742,7 +753,11 @@ var _dataFunctions = function () {
                         functionName,
                         params,
                         authToken,
-                        { useAnonAuth: true, preserveNullParams: options.preserveNullParams === true }
+                        {
+                            useAnonAuth: true,
+                            preserveNullParams: options.preserveNullParams === true,
+                            preserveEmptyParams: options.preserveEmptyParams === true
+                        }
                     );
 
                     // Cache successful responses (do not cache empty array for get_kernel_batches so we retry next load)
@@ -4311,10 +4326,166 @@ var _dataFunctions = function () {
             };
         },
 
-        // Sales Forecasting Functions (placeholder — get_sales_forecasts does not
-        // exist in any database yet; skip the call until the feature is built)
-        getSalesForecasts: async function (token = null) {
-            return [];
+        // ====================================================================
+        // Report Builder — director weekly/monthly reports.
+        // RPCs defined in migrations/20260817090000_report_builder_foundations.sql and
+        // migrations/20260817100000_report_instances_and_targets.sql. Every RPC below returns
+        // { success, error } (or success=0 with a human-readable error) rather than throwing for
+        // an expected failure — callers should show `error` to the user rather than inventing
+        // their own message. See WebPortal/modules/sales-reports/ for the screens that call these.
+        // ====================================================================
+
+        getReportTemplates: async function (periodType = null, token = null, forceRefresh = false) {
+            return await this.callFunction('get_report_templates', {
+                p_period_type: periodType || null
+            }, token, {
+                cacheKey: 'report_templates_' + (periodType || 'all'),
+                cacheTtl: this.cache.ttl.static,
+                forceRefresh: forceRefresh
+            });
+        },
+
+        /**
+         * p_period_type has NO DEFAULT — caller must always supply 'weekly' or 'monthly'.
+         * RETURNS TABLE with exactly one row — PostgREST returns that as a 1-element array;
+         * unwrap to a plain object here (same idiom as chatStartInternalConversation).
+         */
+        getReportCurrentPeriod: async function (periodType, token = null, forceRefresh = false) {
+            var raw = await this.callFunction('get_report_current_period', {
+                p_period_type: periodType
+            }, token, {
+                cacheKey: 'report_current_period_' + periodType,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+            return Array.isArray(raw) ? raw[0] : raw;
+        },
+
+        /** Metadata + counts only — no metric figures. Drive pagination from total_count. */
+        listReportInstances: async function (periodType, status, limit, offset, token = null, forceRefresh = false) {
+            var params = {
+                p_period_type: periodType || null,
+                p_status: status || null,
+                p_limit: limit != null ? limit : 50,
+                p_offset: offset != null ? offset : 0
+            };
+            return await this.callFunction('list_report_instances', params, token, {
+                cacheKey: 'report_list_' + JSON.stringify(params),
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+        },
+
+        /**
+         * p_period_date must already be an ISO 'YYYY-MM-DD' string — this wrapper does no date
+         * parsing of its own (that belongs to the caller, converting a dd/mm/yyyy picker value).
+         * Deliberately does NOT set preserveNullParams: a preserved null p_period_date would reach
+         * the function and raise (it has no DEFAULT) instead of being caught client-side first.
+         */
+        createReportInstance: async function (templateId, periodDateIso, token = null) {
+            var raw = await this.callFunction('create_report_instance', {
+                p_template_id: templateId,
+                p_period_date: periodDateIso,
+                p_actor_user_id: this.getCurrentUserId()
+            }, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return Array.isArray(raw) ? raw[0] : raw;
+        },
+
+        /** Full report document (sections + metrics). Pass forceRefresh=true after any write. */
+        getReportInstance: async function (reportInstanceId, forceRefresh = false, token = null) {
+            return await this.callFunction('get_report_instance', {
+                p_report_instance_id: reportInstanceId
+            }, token, {
+                cacheKey: 'report_instance_' + reportInstanceId,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: forceRefresh
+            });
+        },
+
+        /**
+         * preserveNullParams is required: p_entered_value and p_reason have no DEFAULT, so if a
+         * caller ever passed null/undefined for either the stripped body would resolve to no
+         * matching overload ("Could not find the function ... in the schema cache") instead of
+         * the friendly success=0 path. Client-side validation (report-metric-line.js) is the real
+         * control — this is a backstop only.
+         */
+        overrideReportMetricValue: async function (reportInstanceId, metricKey, enteredValue, reason, actorUserId, token = null) {
+            var raw = await this.callFunction('override_report_metric_value', {
+                p_report_instance_id: reportInstanceId,
+                p_metric_key: metricKey,
+                p_entered_value: enteredValue,
+                p_reason: reason,
+                p_actor_user_id: actorUserId != null ? actorUserId : null
+            }, token, { useCache: false, preserveNullParams: true });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return Array.isArray(raw) ? raw[0] : raw;
+        },
+
+        clearReportMetricOverride: async function (reportInstanceId, metricKey, token = null) {
+            var raw = await this.callFunction('clear_report_metric_override', {
+                p_report_instance_id: reportInstanceId,
+                p_metric_key: metricKey
+            }, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return Array.isArray(raw) ? raw[0] : raw;
+        },
+
+        /**
+         * isEnabled/commentary: pass `undefined` (simply omit the argument) to leave that field
+         * unchanged — undefined is always stripped from the RPC body, whatever the flags. Pass ''
+         * for commentary to CLEAR it: preserveEmptyParams keeps that '' in the body so the
+         * server's COALESCE(p_commentary, commentary) sees an actual empty string rather than no
+         * argument at all. `null` does NOT clear — COALESCE treats a NULL argument as "unchanged".
+         */
+        setReportSectionState: async function (reportInstanceId, sectionKey, isEnabled, commentary, token = null) {
+            var raw = await this.callFunction('set_report_section_state', {
+                p_report_instance_id: reportInstanceId,
+                p_section_key: sectionKey,
+                p_is_enabled: isEnabled,
+                p_commentary: commentary
+            }, token, { useCache: false, preserveEmptyParams: true });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return Array.isArray(raw) ? raw[0] : raw;
+        },
+
+        /**
+         * Normalises to the raw text (preserving internal newlines) when non-blank, else `null` —
+         * a blank textarea must SET the column NULL, not leave the previous summary in place.
+         * preserveNullParams is required because p_summary has no DEFAULT.
+         */
+        setReportExecutiveSummary: async function (reportInstanceId, summary, token = null) {
+            var text = (typeof summary === 'string' && summary.trim() !== '') ? summary : null;
+            var raw = await this.callFunction('set_report_executive_summary', {
+                p_report_instance_id: reportInstanceId,
+                p_summary: text
+            }, token, { useCache: false, preserveNullParams: true });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return Array.isArray(raw) ? raw[0] : raw;
+        },
+
+        refreshReportInstance: async function (reportInstanceId, token = null) {
+            var raw = await this.callFunction('refresh_report_instance', {
+                p_report_instance_id: reportInstanceId
+            }, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return Array.isArray(raw) ? raw[0] : raw;
+        },
+
+        /** Drafts only — the RPC itself refuses a non-draft with its own error message. */
+        deleteReportInstance: async function (reportInstanceId, token = null) {
+            var raw = await this.callFunction('delete_report_instance', {
+                p_report_instance_id: reportInstanceId
+            }, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return Array.isArray(raw) ? raw[0] : raw;
         },
 
         // Oil Production Functions (cached for 1 minute)

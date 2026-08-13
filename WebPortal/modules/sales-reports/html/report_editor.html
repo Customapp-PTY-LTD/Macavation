@@ -1,0 +1,43 @@
+<!-- Sales & Production Reports — report editor (route: sales-report-editor).
+     Reached only from the report list; the id travels via Session.set('currentReportId', id) —
+     this app has no deep-linking (see CLAUDE.md "No screen is deep-linkable"). -->
+<div class="module-content">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-secondary mb-2" id="sreBackBtn">
+                <i class="fas fa-arrow-left me-1"></i>Back to reports
+            </button>
+            <h1 class="h2 mb-1" id="sreHeaderPeriodLabel">Report</h1>
+            <p class="text-muted small mb-0" id="sreHeaderDateRange"></p>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0 align-items-center">
+            <span id="sreStatusBadge" class="me-2"></span>
+            <button type="button" class="btn btn-outline-secondary me-2" id="sreRefreshBtn">
+                <i class="fas fa-sync-alt me-1"></i>Refresh figures
+            </button>
+        </div>
+    </div>
+
+    <div id="sreReadOnlyBanner" class="mac-report-section-banner d-none">
+        <i class="fas fa-lock me-1"></i>
+        This report is published — figures are locked and can no longer be edited.
+    </div>
+
+    <div id="sreLoadingState" class="text-center py-5">
+        <i class="fas fa-spinner fa-spin me-2"></i>Loading report…
+    </div>
+
+    <div id="sreContent" class="d-none">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-align-left me-1"></i>Executive summary
+            </div>
+            <div class="card-body">
+                <textarea class="form-control" id="sreExecutiveSummary" rows="4"
+                    placeholder="Overall commentary for this report…"></textarea>
+            </div>
+        </div>
+
+        <div class="accordion" id="sreSectionsAccordion"></div>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+/* Sales & Production Reports module styles */
+.module-content { min-height: 400px; }
+#srlTable th { border-top: none; font-weight: 600; }
+
+.mac-report-system-value--empty {
+    color: var(--mac-text-tertiary);
+    font-style: italic;
+}
+
+.mac-report-section-banner {
+    background: var(--mac-warning-light);
+    border: 1px solid var(--mac-warning);
+    color: var(--mac-warning-text);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+}
