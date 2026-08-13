@@ -1,0 +1,35 @@
+<!-- Sales & Production Reports — report editor -->
+<div class="module-content" id="reportEditorModule">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <button type="button" class="btn btn-link p-0 mb-1" id="reportEditorBackBtn">
+                <i class="fas fa-arrow-left me-1"></i>Back to reports
+            </button>
+            <h1 class="h2 mb-0" id="reportEditorTitle">&nbsp;</h1>
+            <div class="text-muted small" id="reportEditorSubtitle"></div>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
+            <button type="button" class="btn btn-outline-secondary" id="reportEditorRefreshFiguresBtn" data-action-perm="reports.report.edit">
+                <i class="fas fa-sync-alt me-1"></i>Refresh figures
+            </button>
+        </div>
+    </div>
+
+    <div class="alert alert-warning d-none" role="alert" id="reportEditorLockedBanner"></div>
+
+    <div id="reportEditorContent" class="d-none">
+        <div class="card mb-3">
+            <div class="card-body">
+                <label for="reportEditorExecSummary" class="form-label fw-semibold">Executive summary</label>
+                <textarea class="form-control" id="reportEditorExecSummary" rows="4"></textarea>
+            </div>
+        </div>
+
+        <div class="accordion" id="reportEditorAccordion"></div>
+    </div>
+
+    <div id="reportEditorEmptyState"></div>
+    <div id="reportEditorLoadingState" class="text-center py-5">
+        <i class="fas fa-spinner fa-spin me-2"></i>Loading report&hellip;
+    </div>
+</div>
