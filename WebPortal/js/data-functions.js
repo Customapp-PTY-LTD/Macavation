@@ -494,14 +494,24 @@ var _dataFunctions = function () {
                 msg.indexOf('PGRST301') >= 0;
         },
 
+        // preserveEmptyStrings: '' is otherwise stripped, which makes it impossible to clear a
+        // text column through an RPC that COALESCEs NULL onto the old value, and makes a
+        // no-DEFAULT text param vanish from the body entirely. Callers that pass no options
+        // (tryKernelRpcSupabaseFallback, returnKernelFromStockToProduction) keep the exact
+        // previous behaviour: null, undefined and '' are all stripped.
         buildPostgrestRpcBody: function (params, options) {
             const out = {};
             if (!params || typeof params !== 'object') return out;
             const preserveNulls = !!(options && options.preserveNulls);
+            const preserveEmptyStrings = !!(options && options.preserveEmptyStrings);
             Object.keys(params).forEach(function (key) {
                 const val = params[key];
                 if (preserveNulls && val === null) {
                     out[key] = null;
+                    return;
+                }
+                if (preserveEmptyStrings && val === '') {
+                    out[key] = '';
                     return;
                 }
                 if (val !== null && val !== undefined && val !== '') {
@@ -599,7 +609,10 @@ var _dataFunctions = function () {
             const response = await fetch(cfg.url + '/rest/v1/rpc/' + encodeURIComponent(functionName), {
                 method: 'POST',
                 headers: rpcHeaders,
-                body: JSON.stringify(scope.buildPostgrestRpcBody(params, { preserveNulls: options.preserveNullParams === true }))
+                body: JSON.stringify(scope.buildPostgrestRpcBody(params, {
+                    preserveNulls: options.preserveNullParams === true,
+                    preserveEmptyStrings: options.preserveEmptyParams === true
+                }))
             });
             const responseText = await response.text();
             if (!response.ok) {
@@ -733,7 +746,9 @@ var _dataFunctions = function () {
                     // PostgREST resolves an overload from the exact set of parameter NAMES in the
                     // body, so a stripped null makes it report "Could not find the function ... in
                     // the schema cache" rather than passing NULL. Pass the option through for callers
-                    // that need it instead of stripping unconditionally.
+                    // that need it instead of stripping unconditionally. preserveEmptyParams is the
+                    // same idea for '': a no-DEFAULT text param would otherwise vanish from the body,
+                    // and a COALESCE-onto-old-value param could never be cleared to ''.
                     // Pass RAW params: callSupabaseRpc builds the body itself. Pre-building here as
                     // well meant the body was processed twice, and the second pass used
                     // callSupabaseRpc's own options — where preserveNullParams was absent — so
@@ -742,7 +757,11 @@ var _dataFunctions = function () {
                         functionName,
                         params,
                         authToken,
-                        { useAnonAuth: true, preserveNullParams: options.preserveNullParams === true }
+                        {
+                            useAnonAuth: true,
+                            preserveNullParams: options.preserveNullParams === true,
+                            preserveEmptyParams: options.preserveEmptyParams === true
+                        }
                     );
 
                     // Cache successful responses (do not cache empty array for get_kernel_batches so we retry next load)
@@ -5874,6 +5893,185 @@ var _dataFunctions = function () {
             } catch (e) {
                 return { success: false, error: e.message || String(e) };
             }
+        },
+
+        // ------------------------------------------------------------------
+        // Report builder RPC wrappers. These call pre-existing
+        // SECURITY DEFINER functions from migrations/20260817090000 and
+        // migrations/20260817100000; whether either migration has been
+        // applied to any database cannot be verified from this checkout.
+        // None of these swallows an RPC error into a fake success/empty
+        // value — a missing migration must surface as a thrown error, not
+        // look like "no reports yet".
+        // ------------------------------------------------------------------
+
+        getReportTemplates: async function (periodType = null, token = null, forceRefresh = false) {
+            const params = { p_period_type: periodType || null };
+            const cacheKey = 'report_list_templates_' + (params.p_period_type || 'all');
+            return await this.callFunction('get_report_templates', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        getReportCurrentPeriod: async function (periodType, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            if (!pt) throw new Error('getReportCurrentPeriod: periodType is required.');
+            const params = { p_period_type: pt };
+            const cacheKey = 'report_list_current_period_' + params.p_period_type;
+            return await this.callFunction('get_report_current_period', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        listReportInstances: async function (filters = {}, token = null, forceRefresh = false) {
+            const params = {
+                p_period_type: filters.period_type || null,
+                p_status: filters.status || null,
+                p_limit: filters.limit || 50,
+                p_offset: filters.offset || 0
+            };
+            const cacheKey = 'report_list_' + (params.p_period_type || 'all') + '_' +
+                (params.p_status || 'all') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('list_report_instances', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        createReportInstance: async function (templateId, periodDate, token = null) {
+            const tid = (templateId != null ? String(templateId) : '').trim();
+            const pdate = (periodDate != null ? String(periodDate) : '').trim();
+            if (!tid) throw new Error('createReportInstance: templateId is required.');
+            if (!pdate) throw new Error('createReportInstance: periodDate is required.');
+            const params = {
+                p_template_id: tid,
+                p_period_date: pdate,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            // functionName contains "create": callFunction queues this while offline and
+            // returns { success: true, offline: true, queued: true } instead of calling the RPC.
+            const result = await this.callFunction('create_report_instance', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        getReportInstance: async function (reportInstanceId, token = null, forceRefresh = false) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('getReportInstance: reportInstanceId is required.');
+            const params = { p_report_instance_id: id };
+            const cacheKey = 'report_instance_' + params.p_report_instance_id;
+            return await this.callFunction('get_report_instance', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        overrideReportMetricValue: async function (reportInstanceId, metricKey, enteredValue, reason, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            const key = (metricKey != null ? String(metricKey) : '').trim();
+            const reasonText = (reason != null ? String(reason) : '').trim();
+            if (!id) throw new Error('overrideReportMetricValue: reportInstanceId is required.');
+            if (!key) throw new Error('overrideReportMetricValue: metricKey is required.');
+            if (!Number.isFinite(Number(enteredValue))) throw new Error('overrideReportMetricValue: enteredValue must be a number.');
+            if (!reasonText) throw new Error('overrideReportMetricValue: reason is required.');
+            const params = {
+                p_report_instance_id: id,
+                p_metric_key: key,
+                p_entered_value: Number(enteredValue),
+                p_reason: reasonText,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('override_report_metric_value', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        clearReportMetricOverride: async function (reportInstanceId, metricKey, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            const key = (metricKey != null ? String(metricKey) : '').trim();
+            if (!id) throw new Error('clearReportMetricOverride: reportInstanceId is required.');
+            if (!key) throw new Error('clearReportMetricOverride: metricKey is required.');
+            const params = { p_report_instance_id: id, p_metric_key: key };
+            const result = await this.callFunction('clear_report_metric_override', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        setReportSectionState: async function (reportInstanceId, sectionKey, changes = {}, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            const key = (sectionKey != null ? String(sectionKey) : '').trim();
+            if (!id) throw new Error('setReportSectionState: reportInstanceId is required.');
+            if (!key) throw new Error('setReportSectionState: sectionKey is required.');
+            const hasEnabled = changes.is_enabled === true || changes.is_enabled === false;
+            const hasCommentary = typeof changes.commentary === 'string';
+            if (!hasEnabled && !hasCommentary) throw new Error('setReportSectionState: nothing to change.');
+            // undefined (never null) leaves the server-side COALESCE on the untouched field alone.
+            // preserveEmptyParams is per-call, which is why id and key are validated above.
+            const params = {
+                p_report_instance_id: id,
+                p_section_key: key,
+                p_is_enabled: hasEnabled ? changes.is_enabled : undefined,
+                p_commentary: hasCommentary ? changes.commentary : undefined
+            };
+            const result = await this.callFunction('set_report_section_state', params, token, {
+                useCache: false,
+                preserveEmptyParams: true
+            });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        setReportExecutiveSummary: async function (reportInstanceId, summary, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('setReportExecutiveSummary: reportInstanceId is required.');
+            // p_summary has NO DEFAULT: it must be in the body every time, '' included.
+            const params = {
+                p_report_instance_id: id,
+                p_summary: (summary == null) ? '' : String(summary)
+            };
+            const result = await this.callFunction('set_report_executive_summary', params, token, {
+                useCache: false,
+                preserveEmptyParams: true
+            });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        refreshReportInstance: async function (reportInstanceId, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('refreshReportInstance: reportInstanceId is required.');
+            const params = { p_report_instance_id: id };
+            const result = await this.callFunction('refresh_report_instance', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        deleteReportInstance: async function (reportInstanceId, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('deleteReportInstance: reportInstanceId is required.');
+            const params = { p_report_instance_id: id };
+            // functionName contains "delete": callFunction queues this while offline and
+            // returns { success: true, offline: true, queued: true } instead of calling the RPC.
+            const result = await this.callFunction('delete_report_instance', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
         }
     }
 }();
