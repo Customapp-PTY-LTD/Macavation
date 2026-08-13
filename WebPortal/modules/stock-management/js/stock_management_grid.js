@@ -3,6 +3,44 @@
  * Entry module: loads table, filters, kernel batch journey, oil ledger. Routes to modals (stock take, raw material issued, send to dispatch, oil lot, import).
  * Follows SEPARATING_LARGE_JS_FILES.md and MODAL_PATTERN_INSTRUCTIONS.md.
  */
+/**
+ * Run `run` once KernelBatchEdit exists, fetching js/kernel-batch-edit.js if this page never
+ * loaded it.
+ *
+ * A tab opened before a deploy keeps that build's index.html — and its <script> tags — while the
+ * router swaps in fresh module JS like this file. So an Edit button can render in a page where the
+ * dialog global was never defined. Duplicated in kernel_production_grid.js and (generically) in
+ * batch_journey_grid.js on purpose: any shared home would itself be an index.html script tag, and
+ * so exactly as stale as the thing it is meant to rescue.
+ */
+function withKernelBatchEditDialog(run) {
+    function ready() {
+        return typeof KernelBatchEdit !== 'undefined' && KernelBatchEdit && KernelBatchEdit.prompt;
+    }
+    function fail() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire('Error', 'Edit is not available. Please refresh the page and try again.', 'error');
+        }
+    }
+    if (ready()) { run(); return; }
+
+    var existing = document.querySelector('script[data-mac-dialog="KernelBatchEdit"]');
+    if (existing) {
+        existing.addEventListener('load', function () { if (ready()) run(); else fail(); });
+        existing.addEventListener('error', fail);
+        return;
+    }
+    var el = document.createElement('script');
+    el.src = 'js/kernel-batch-edit.js';
+    el.setAttribute('data-mac-dialog', 'KernelBatchEdit');
+    el.onload = function () { if (ready()) run(); else fail(); };
+    el.onerror = function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+        fail();
+    };
+    document.head.appendChild(el);
+}
+
 var _stockManagementGrid = function () {
     'use strict';
 
@@ -2275,12 +2313,11 @@ var _stockManagementGrid = function () {
                 Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
                 return;
             }
-            if (typeof KernelBatchEdit === 'undefined' || !KernelBatchEdit.prompt) {
-                Swal.fire('Error', 'Edit is not available. Please refresh.', 'error');
-                return;
-            }
-            KernelBatchEdit.prompt(b, {
-                onSaved: function () { scope.loadKernelBatches(true); }
+            // Fetch the dialog if this page predates it — see withKernelBatchEditDialog below.
+            withKernelBatchEditDialog(function () {
+                KernelBatchEdit.prompt(b, {
+                    onSaved: function () { scope.loadKernelBatches(true); }
+                });
             });
         },
 
