@@ -4330,12 +4330,6 @@ var _dataFunctions = function () {
             };
         },
 
-        // Sales Forecasting Functions (placeholder — get_sales_forecasts does not
-        // exist in any database yet; skip the call until the feature is built)
-        getSalesForecasts: async function (token = null) {
-            return [];
-        },
-
         // Oil Production Functions (cached for 1 minute)
         getOilProductionSheets: async function (token = null, forceRefresh = false) {
             return await this.callFunction('get_oil_production_sheets', {}, token, {
