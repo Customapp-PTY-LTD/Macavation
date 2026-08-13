@@ -104,6 +104,10 @@ var _batchJourneyGrid = (function () {
             date_received: received,
             received_date: received,
             status: o.status,
+            // Carried through unmapped so the grid can show what these batches actually record,
+            // and so OilBatchEdit can prefill from the row without a second fetch.
+            production_date: o.production_date,
+            total_oil_litre: o.total_oil_litre,
             intake_data: o.intake_data,
             production_data: o.production_data,
             stock_data: o.stock_data,
@@ -113,6 +117,80 @@ var _batchJourneyGrid = (function () {
 
     function statusBadgeHtml(d) {
         return typeof BatchStatus !== 'undefined' ? BatchStatus.statusBadgeHtml(d) : escapeHtml(d.label || '');
+    }
+
+    /**
+     * Supplier cell for an oil batch.
+     *
+     * An oil batch has no single supplier contact — its "suppliers" are the raw material batches
+     * consumed to make it, each with its own supplier, quantity and FFA. So the cell is a button
+     * onto that list, and a plain "—" when the batch records no ingredients.
+     *
+     * The has/hasn't decision is read from production_data, which already travels with the row.
+     * Asking the detail RPC per row would be one request per visible batch (the grid loads up to
+     * 500). OilBatchIngredients may not be loaded yet on a pre-deploy page, so fall back to the
+     * old text rendering rather than showing nothing — the button appears once it is available.
+     */
+    function oilSupplierCellHtml(ob) {
+        var plain = escapeHtml(ob.supplier_name || ob.supplier_details || ob.grower_name || '-');
+        if (typeof OilBatchIngredients === 'undefined' || !OilBatchIngredients.hasIngredients) return plain;
+        if (!OilBatchIngredients.hasIngredients(ob)) return plain;
+
+        var names = OilBatchIngredients.supplierNames(ob);
+        var label = names.length === 1
+            ? names[0]
+            : (names.length > 1 ? names.length + ' suppliers' : 'View ingredients');
+        return '<button type="button" class="btn btn-link btn-sm p-0 text-start js-bj-oil-ingredients" '
+            + 'data-batch-number="' + escapeHtml(ob.batch_number || ob.batch_id || '') + '" '
+            + 'title="Show the raw material batches that went into this oil batch">'
+            + '<i class="fas fa-flask me-1"></i>' + escapeHtml(label) + '</button>';
+    }
+
+    /**
+     * Run `run` once the named edit-dialog global exists, fetching its script if the page never
+     * loaded it.
+     *
+     * WHY THIS EXISTS: the dialogs are plain <script> tags in index.html, but this is a single-page
+     * app. A tab opened BEFORE a deploy keeps that old index.html forever — the router only ever
+     * swaps module JS underneath it. So this file can arrive fresh, complete with an Edit button,
+     * inside a page whose script tags predate the dialog: the button renders, the global is
+     * undefined, and the user is told to refresh. Loading it on demand heals that in place.
+     *
+     * The guard is kept, not removed — if the fetch genuinely fails (offline, asset missing) the
+     * user still gets a clear message instead of a silent no-op.
+     */
+    function withEditDialog(globalName, src, run, onFail) {
+        function ready() {
+            return typeof window[globalName] !== 'undefined' && !!window[globalName];
+        }
+        // onFail lets a caller carry on without the module — the Supplier column preloads this way,
+        // so a failed fetch degrades to plain text instead of an error popup on page load.
+        function fail() {
+            if (typeof onFail === 'function') { onFail(); return; }
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Error', 'Edit is not available. Please refresh the page and try again.', 'error');
+            }
+        }
+        if (ready()) { run(); return; }
+
+        var selector = 'script[data-mac-dialog="' + globalName + '"]';
+        var existing = document.querySelector(selector);
+        if (existing) {
+            // A click landed while an earlier one was still fetching — wait on the same request.
+            existing.addEventListener('load', function () { if (ready()) run(); else fail(); });
+            existing.addEventListener('error', fail);
+            return;
+        }
+        var el = document.createElement('script');
+        el.src = src;
+        el.setAttribute('data-mac-dialog', globalName);
+        el.onload = function () { if (ready()) run(); else fail(); };
+        el.onerror = function () {
+            // Leaving the failed tag in place would make every later click wait on a dead request.
+            if (el.parentNode) el.parentNode.removeChild(el);
+            fail();
+        };
+        document.head.appendChild(el);
     }
 
     function sortBatches(batches, sortBy) {
@@ -227,6 +305,7 @@ var _batchJourneyGrid = (function () {
                     id: 'bjActions' + ddSuffix,
                     wrapLi: true,
                     items: [
+                        { label: 'Edit batch details', className: 'js-bj-edit-batch', icon: 'fas fa-pen', dataAttrs: { 'batch-id': b.id } },
                         { label: 'Archive', className: 'bj-archive-batch', icon: 'fas fa-archive', dataAttrs: { 'kernel-id': b.id } }
                     ]
                 })
@@ -254,22 +333,23 @@ var _batchJourneyGrid = (function () {
         for (var j = 0; j < scope.filteredOilBatches.length; j++) {
             var ob = scope.filteredOilBatches[j];
             var od = getOilDisplayStatus(ob);
-            var received = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
-                ? (_common.formatDateDDMMYYYY(ob.date_received || ob.received_date) || '-')
+            var productionDate = (typeof _common !== 'undefined' && _common.formatDateDDMMYYYY)
+                ? (_common.formatDateDDMMYYYY(ob.production_date) || '-')
                 : '-';
             var oid = escapeHtml(ob.id);
             var oilRoute = typeof BatchStatus !== 'undefined' ? BatchStatus.getOilRouteForStatus(od) : { label: 'Open' };
             html += '<tr class="js-bj-oil-row" data-oil-id="' + oid + '">'
                 + '<td>' + escapeHtml(ob.batch_number || ob.batch_id || '-') + '</td>'
-                + '<td>' + escapeHtml(ob.supplier_name || ob.supplier_details || ob.grower_name || '-') + '</td>'
+                + '<td>' + oilSupplierCellHtml(ob) + '</td>'
                 + '<td>' + statusBadgeHtml(od) + '</td>'
-                + '<td>' + received + '</td>'
-                + '<td class="text-end">' + formatNumber(ob.quantity_kg, 2) + '</td>'
+                + '<td>' + productionDate + '</td>'
+                + '<td class="text-end">' + (ob.total_oil_litre != null && ob.total_oil_litre !== '' ? formatNumber(ob.total_oil_litre, 2) : '-') + '</td>'
                 + '<td class="mac-table-actions-col">'
                 + MacTableActions.render({
                     id: 'bjOilActions' + String(ob.id || '').replace(/-/g, ''),
                     items: [
                         { label: oilRoute.label.replace(/^Open /, ''), className: 'js-bj-oil-open-module', dataAttrs: { 'oil-id': ob.id } },
+                        { label: 'Edit batch details', className: 'js-bj-oil-edit-batch', icon: 'fas fa-pen', dataAttrs: { 'oil-id': ob.id } },
                         { label: 'History', className: 'js-bj-oil-history', icon: 'fas fa-history', dataAttrs: { 'oil-id': ob.id } }
                     ]
                 })
@@ -394,11 +474,53 @@ var _batchJourneyGrid = (function () {
             if (batch) openActionForKernelBatch(batch);
         });
 
+        // Edit batch details — kernel. Reuses the shared dialog that Kernel Production uses, so the
+        // rules live in one place. Rows here come from get_kernel_batches, the exact shape the
+        // dialog expects, so no extra fetch is needed.
+        $(document).on('click', '#bjTableBody .js-bj-edit-batch', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var batchId = $(this).data('batch-id');
+            withEditDialog('KernelBatchEdit', 'js/kernel-batch-edit.js', function () {
+                var batch = scope.filteredBatches.find(function (b) { return String(b.id) === String(batchId); });
+                if (!batch) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
+                    return;
+                }
+                KernelBatchEdit.prompt(batch, { onSaved: function () { loadBatches(); } });
+            });
+        });
+
         $(document).on('click', '#bjOilTableBody .js-bj-oil-open-module', function (e) {
             e.preventDefault();
             var oilId = $(this).data('oil-id');
             var batch = scope.filteredOilBatches.find(function (b) { return String(b.id) === String(oilId); });
             if (batch) openActionForOilBatch(batch);
+        });
+
+        // Raw ingredients that went into an oil batch — the oil equivalent of "supplier".
+        $(document).on('click', '#bjOilTableBody .js-bj-oil-ingredients', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var batchNumber = $(this).data('batch-number');
+            withEditDialog('OilBatchIngredients', 'js/oil-batch-ingredients.js', function () {
+                OilBatchIngredients.show(batchNumber);
+            });
+        });
+
+        // Edit batch details — oil. Header fields only, mirroring the kernel dialog's scope.
+        $(document).on('click', '#bjOilTableBody .js-bj-oil-edit-batch', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var oilId = $(this).data('oil-id');
+            withEditDialog('OilBatchEdit', 'js/oil-batch-edit.js', function () {
+                var batch = scope.filteredOilBatches.find(function (b) { return String(b.id) === String(oilId); });
+                if (!batch) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Batch not found. Refresh and try again.', 'error');
+                    return;
+                }
+                OilBatchEdit.prompt(batch, { onSaved: function () { loadOilBatches(); } });
+            });
         });
 
         $(document).on('click', '#bjOilTableBody .js-bj-oil-history', function (e) {
@@ -506,7 +628,10 @@ var _batchJourneyGrid = (function () {
         }
         df.getOilBatches({ limit: 500 }, null, false).then(function (rows) {
             scope.oilBatches = normalizeOilBatchList(rows).map(mapOilRowForJourney);
-            filterAndSortOil();
+            // Make sure the ingredients module is present BEFORE the first render: the Supplier
+            // cell needs it to decide button-vs-"—", and on a pre-deploy page it would otherwise
+            // render plain text on load and only gain buttons after some later refresh.
+            withEditDialog('OilBatchIngredients', 'js/oil-batch-ingredients.js', filterAndSortOil, filterAndSortOil);
         }).catch(function (err) {
             console.error('Batch Journey: failed to load oil batches', err);
             var tbody = document.getElementById('bjOilTableBody');
