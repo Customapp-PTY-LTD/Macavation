@@ -15,6 +15,13 @@ that plan adds (`listReportInstances`, `createReportInstance`, `getReportTemplat
 `getReportCurrentPeriod`, `deleteReportInstance`), and both plans edit
 `WebPortal/js/data-functions.js`, which would otherwise be a real merge conflict.
 
+That prerequisite was blocked on its first run and has been auto-amended to
+`report-builder-01a-data-functions-transport.retry-1.md`. A merged retry satisfies this plan's
+`depends_on`, so no change to the dependency is needed — but **do not start this plan until those
+wrappers are actually present in `WebPortal/js/data-functions.js` in your checkout.** If they are
+absent, stop and report rather than adding them here; adding them in both plans is exactly the merge
+conflict the dependency exists to prevent.
+
 The RPCs are defined in `migrations/20260817090000_report_builder_foundations.sql` and
 `migrations/20260817100000_report_instances_and_targets.sql`, both in this checkout. **Whether those
 migrations have been applied to any database cannot be verified from this checkout — do not state or
@@ -46,9 +53,27 @@ nothing more.
    `object_name` text, not by folder, so deleting the module folder does not affect it.
 2. **A route needs an entry in BOTH `WebPortal/js/appRouteConfig.json` AND the hardcoded
    `initializeModule()` switch in `WebPortal/js/appRouter.js`.** The existing
-   `'sales-forecasting-grid'` case is at **`WebPortal/js/appRouter.js:433`** — re-grep before
-   editing rather than trusting that number. A route registered in only one of the two silently
-   renders nothing.
+   `'sales-forecasting-grid'` case is at **`WebPortal/js/appRouter.js:433`**, and its body calls a
+   **global function, not a module object**:
+
+   ```js
+   'sales-forecasting-grid': () => {                          // appRouter.js:433
+       if (typeof initializeSalesForecastingGrid === 'function') {   // :434
+           initializeSalesForecastingGrid();                        // :435
+       }
+   },
+   ```
+
+   `initializeSalesForecastingGrid` is defined at
+   `WebPortal/modules/sales-forecasting/js/sales_forecasting_grid.js:105` — the file this plan
+   deletes. So the case body **must** be repointed at the new module's own init global, or the route
+   silently renders nothing. Re-grep the line numbers before editing rather than trusting them. A
+   route registered in only one of the two files silently renders nothing.
+
+   **Do not use `.claude/worktrees/**` as evidence for any line number.** That directory holds stale
+   checkouts of this repo, and their copies of `appRouter.js` and the module files differ from the
+   live tree — an earlier revision of this plan cited a line number taken from one of them and was
+   wrong. Only `WebPortal/**` at the repo root is live.
 3. **No deep-linking.** The router never reads the URL (`CLAUDE.md`). Pass the selected report id to
    the editor via `Session.set('currentReportId', id)` (`WebPortal/js/session.js:68-84`), not a
    query string or hash. `_appRouter.routeParams` exists but is only a breadcrumb-label store —
@@ -170,14 +195,42 @@ boundary for a South African user. Format the date locally as `YYYY-MM-DD`.
   css `["css/sales_reports.css"]`. Keep the JSON valid.
 - `WebPortal/js/appRouter.js`: repoint the existing `'sales-forecasting-grid'` case (around line
   433) at the new module's init, following the shape of its neighbours.
-- `WebPortal/index.html`: relabel the existing `businessCollapse` item to
+- `WebPortal/index.html:274-275`: relabel the existing `businessCollapse` item to
   "Sales &amp; Production Reports" with `<i class="fas fa-file-invoice me-2">`. **Keep both
   `data-route` and `route` as `sales-forecasting-grid`** (constraint 1).
+- **`WebPortal/js/role-menu-config.js:395-400` is a second definition of this route's label and
+  icon** and must be updated too, or the old name keeps appearing:
+
+  ```js
+  'sales-forecasting-grid': {
+      route: 'sales-forecasting-grid',
+      icon: 'fas fa-chart-line',
+      label: 'Sales Forecasting',
+      category: 'business',
+      parent: 'businessCollapse'
+  ```
+
+  Change **only** `label` (to "Sales &amp; Production Reports") and `icon` (to
+  `fas fa-file-invoice`, matching the sidebar). **Leave `route`, `category` and `parent` exactly as
+  they are** — `parent: 'businessCollapse'` is what `Playwright Tests/helpers/navigation.helper.ts:53-56`
+  relies on. The replacement label still contains "Sales", which is what
+  `Playwright Tests/auth/rbac.spec.ts:101` asserts.
+
+  **Do not touch the `menus` arrays** that also name this key, at `role-menu-config.js:171`
+  (`PWA Sales`) and `:512` — those control which roles see the item, and changing them would
+  silently alter access.
+- **Leave these alone.** They key off text, not folders, so deleting the module does not affect
+  them: `WebPortal/modules/admin/js/permission-module-map.js:31,57`,
+  `WebPortal/js/data-functions.js:810`, and everything under `WebPortal/help/`.
 - **Delete `WebPortal/modules/sales-forecasting/`** and, in the same change, remove the
-  `getSalesForecasts` wrapper from `WebPortal/js/data-functions.js`. These must happen together:
-  the wrapper's only caller is `sales_forecasting_grid.js:46`, and because that call is
-  `dataFunctions.getSalesForecasts().catch(...)`, removing the wrapper while the module still exists
-  throws a synchronous `TypeError` the `.catch()` does not intercept.
+  `getSalesForecasts` wrapper from `WebPortal/js/data-functions.js`. Verified inventory: that
+  identifier has **exactly two** sites in the live tree — the definition at
+  `WebPortal/js/data-functions.js:4318` and the single caller at
+  `WebPortal/modules/sales-forecasting/js/sales_forecasting_grid.js:46`. They must go together:
+  because the call is `dataFunctions.getSalesForecasts().catch(...)`, removing the wrapper while the
+  module still exists throws a synchronous `TypeError` the `.catch()` does **not** intercept.
+  Re-run `grep -rn "getSalesForecasts" WebPortal/` before editing; if the count is not two, stop and
+  report rather than proceeding.
 
 ## Verification — all runnable inside the checkout, no browser, no login, no network
 
@@ -193,8 +246,18 @@ boundary for a South African user. Format the date locally as `YYYY-MM-DD`.
    (constraint 5).
 3. `grep -rn 'route="sales-forecasting-grid"' WebPortal/index.html` still returns a match inside the
    `businessCollapse` block, and the same `<li>`'s visible text contains "Sales".
-4. `grep -rn "getSalesForecasts\|_salesForecastingGrid" WebPortal/` returns nothing, and
-   `ls WebPortal/modules/sales-forecasting 2>/dev/null` finds nothing.
+4. No dangling reference to the deleted module remains:
+   `grep -rn "getSalesForecasts\|initializeSalesForecastingGrid\|_salesForecastingGrid" WebPortal/`
+   returns nothing, and `ls WebPortal/modules/sales-forecasting 2>/dev/null` finds nothing. Note
+   `initializeSalesForecastingGrid` is the identifier `appRouter.js:434` actually calls — greping
+   only for `getSalesForecasts` would leave the router pointing at a function that no longer exists.
+   `WebPortal/help/**` legitimately still contains the string "sales-forecasting"; that is
+   documentation and is out of scope, so scope this grep to `WebPortal/js/` and
+   `WebPortal/modules/` if the help files produce noise.
+4b. `grep -n "label" WebPortal/js/role-menu-config.js | sed -n '/sales-forecasting/p'` — or simply
+   read `role-menu-config.js:395-400` — shows the updated label, and
+   `grep -c "'sales-forecasting-grid'" WebPortal/js/role-menu-config.js` still returns `3`
+   (the two `menus` arrays plus the route entry), proving no role's access was changed.
 5. `grep -c "canOpenReportEditor" WebPortal/modules/sales-reports/js/report_list_grid.js` is at
    least `3` — the definition plus both call sites.
 6. `grep -rn "\.html(" WebPortal/modules/sales-reports/js/` — review every hit and confirm none
