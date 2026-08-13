@@ -648,6 +648,18 @@
                 "css/sales_reports.css"
             ]
         },
+        "sales-report-editor": {
+            "description": "Sales &amp; Production Report Editor",
+            "path": "sales-reports",
+            "html": "html/report_editor.html",
+            "js": [
+                "js/report-metric-line.js",
+                "js/report_editor.js"
+            ],
+            "css": [
+                "css/sales_reports.css"
+            ]
+        },
         "oil-production-grid": {
             "description": "Oil Production Workflow",
             "path": "oil-production",

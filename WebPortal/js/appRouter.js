@@ -435,6 +435,11 @@ var _appRouter = function () {
                         initializeReportListGrid();
                     }
                 },
+                'sales-report-editor': () => {
+                    if (typeof initializeReportEditor === 'function') {
+                        initializeReportEditor();
+                    }
+                },
                 'oil-production-grid': () => {
                     if (typeof initializeOilProductionGrid === 'function') {
                         initializeOilProductionGrid();

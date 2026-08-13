@@ -40,3 +40,40 @@
         font-size: 0.875rem;
     }
 }
+
+/* Report editor */
+
+#reportEditorAccordion .accordion-button {
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text);
+}
+
+#reportEditorAccordion .accordion-button:not(.collapsed) {
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text);
+    box-shadow: none;
+}
+
+#reportEditorAccordion .accordion-button:focus {
+    box-shadow: none;
+    border-color: var(--mac-border);
+}
+
+#reportEditorAccordion .accordion-item {
+    border-color: var(--mac-border);
+}
+
+.js-section-toggle-wrap {
+    flex-grow: 0;
+}
+
+.mac-metric-override-detail {
+    color: var(--mac-text-tertiary);
+    margin-top: 2px;
+}
+
+#reportEditorLockedBanner {
+    border-color: var(--mac-warning);
+    background-color: var(--mac-warning-light);
+    color: var(--mac-warning-text);
+}

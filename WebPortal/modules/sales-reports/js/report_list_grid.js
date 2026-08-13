@@ -84,7 +84,14 @@ var _reportListGrid = function () {
 
     // The single funnel: the only code path in this module that navigates to the editor.
     function openReportEditor(reportId) {
-        if (!canOpenReportEditor() || !reportEditorRouteExists()) {
+        // Checked first, with its own distinct message: a missing route is a deployment state,
+        // not a permissions state, and is unaffected by role (super_user included —
+        // role-menu-config.js:609 already returns true for that role).
+        if (!reportEditorRouteExists()) {
+            Swal.fire({ icon: 'info', title: 'Report editor not available', text: 'The report editor has not been deployed to this environment yet.' });
+            return false;
+        }
+        if (!canOpenReportEditor()) {
             Swal.fire({ icon: 'info', title: 'Report editing not enabled', text: 'Report editing has not been enabled for your role yet. An administrator must apply the report-builder permissions migration, then sign out and back in.' });
             return false;
         }
