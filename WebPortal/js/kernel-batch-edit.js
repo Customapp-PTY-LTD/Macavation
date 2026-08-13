@@ -79,23 +79,40 @@
         });
     }
 
+    /** Display name for a contact, without the "(supplier #)" suffix used only for disambiguation. */
+    function contactName(c) {
+        return c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
+    }
+
     /**
-     * Supplier <select> markup. A null list (load failed) still renders a usable dialog — the
-     * supplier simply cannot be changed, and an omitted supplier_id leaves it untouched server-side.
+     * Grower <select> markup.
+     *
+     * ONE field, not two. kernel carries both supplier_id (FK to contacts) and grower_name (free
+     * text) — the same thing under two names, "supplier" being the oil-side term and "grower" the
+     * kernel-side one. Exposing both let them drift: of the batches carrying both, most disagreed
+     * with the contact they point at (typos, truncations, "(40)" suffixes baked into the text).
+     * The dropdown is now the only input, and grower_name is written from the chosen contact.
+     *
+     * A null list (load failed) still renders a usable dialog — the grower simply cannot be
+     * changed, and an omitted supplier_id leaves both fields untouched server-side.
      */
-    function supplierSelectHtml(suppliers, currentSupplierId, currentGrowerName) {
+    function growerSelectHtml(suppliers, currentSupplierId, currentGrowerName) {
         if (!suppliers) {
-            var label = currentGrowerName || 'current supplier';
+            var label = currentGrowerName || 'current grower';
             return '<select id="swalKBatchSupplier" class="form-select mb-1" disabled>' +
                 '<option>' + escapeHtml(label) + '</option></select>' +
-                '<div class="small text-danger mb-2">Supplier list could not be loaded, so the supplier cannot be changed right now. Refresh and try again.</div>';
+                '<div class="small text-danger mb-2">Grower list could not be loaded, so the grower cannot be changed right now. Refresh and try again.</div>';
         }
-        var opts = '<option value="">Keep current supplier</option>';
+        // Batches predating the FK have a name but no contact. Their placeholder keeps that name
+        // visible and, left alone, preserves it — picking a grower is what replaces it.
+        var keepLabel = currentGrowerName && !currentSupplierId
+            ? 'Keep current: ' + currentGrowerName
+            : 'Keep current grower';
+        var opts = '<option value="">' + escapeHtml(keepLabel) + '</option>';
         suppliers.forEach(function (c) {
-            var name = c.company_name || c.trading_name || c.primary_contact_name || 'Unknown';
             var code = c.supplier_number != null ? ' (' + c.supplier_number + ')' : '';
             var selected = String(c.id) === String(currentSupplierId) ? ' selected' : '';
-            opts += '<option value="' + escapeHtml(c.id) + '"' + selected + '>' + escapeHtml(name + code) + '</option>';
+            opts += '<option value="' + escapeHtml(c.id) + '"' + selected + '>' + escapeHtml(contactName(c) + code) + '</option>';
         });
         return '<select id="swalKBatchSupplier" class="form-select mb-2">' + opts + '</select>';
     }
@@ -103,13 +120,11 @@
     function dialogHtml(batch, suppliers) {
         var currentSupplierId = supplierIdFromBatch(batch);
         return '<div class="text-start">' +
-            '<label class="form-label">Supplier</label>' +
-            supplierSelectHtml(suppliers, currentSupplierId, batch.grower_name) +
+            '<label class="form-label">Grower</label>' +
+            growerSelectHtml(suppliers, currentSupplierId, batch.grower_name) +
             '<label class="form-label">Batch number <span class="text-danger">*</span></label>' +
             '<input id="swalKBatchBn" class="form-control mb-1" value="' + escapeHtml(batch.batch_number || '') + '" autocomplete="off">' +
-            '<div id="swalKBatchBnHint" class="small text-muted mb-2">Changing the supplier suggests a new number (Bn [supplier #] [year] [seq]). You can still type your own.</div>' +
-            '<label class="form-label">Grower / supplier name</label>' +
-            '<input id="swalKBatchGrower" class="form-control mb-2" value="' + escapeHtml(batch.grower_name || '') + '">' +
+            '<div id="swalKBatchBnHint" class="small text-muted mb-2">Changing the grower suggests a new number (Bn [grower #] [year] [seq]). You can still type your own.</div>' +
             '<label class="form-label">Received date</label>' +
             '<input id="swalKBatchRd" type="date" class="form-control mb-2" value="' + escapeHtml(isoDateOnlyForInput(batch.received_date)) + '">' +
             '<label class="form-label">Wet NIS received (kg)</label>' +
@@ -171,7 +186,7 @@
         });
     }
 
-    function readForm() {
+    function readForm(batch, suppliers) {
         var Swal = global.Swal;
         var batchNumber = valueOf('swalKBatchBn').trim();
         if (!batchNumber) {
@@ -193,11 +208,25 @@
         var receivedDate = valueOf('swalKBatchRd').trim();
         var bestBefore = valueOf('swalKBatchBb').trim();
         var supplierEl = el('swalKBatchSupplier');
+        var chosenId = (supplierEl && !supplierEl.disabled && supplierEl.value) ? supplierEl.value : null;
+
+        // grower_name is derived, never typed. It is what every kernel grid displays and what
+        // get_kernel_batches searches on, so it has to stay in step with the chosen contact —
+        // that is exactly what drifted while this was a free-text box. Nothing chosen means keep
+        // what the batch already has: the RPC writes grower_name unconditionally, so sending null
+        // here would CLEAR the name on the legacy batches that have no contact to derive it from.
+        var chosenName = null;
+        if (chosenId && Array.isArray(suppliers)) {
+            var picked = suppliers.find(function (c) { return String(c.id) === String(chosenId); });
+            if (picked) chosenName = contactName(picked);
+        }
+        var growerName = chosenName != null ? chosenName : ((batch && batch.grower_name) || null);
+
         return {
             batch_number: batchNumber,
             // Empty means "keep current" — the RPC treats a null p_supplier_id as leave-unchanged.
-            supplier_id: (supplierEl && !supplierEl.disabled && supplierEl.value) ? supplierEl.value : null,
-            grower_name: valueOf('swalKBatchGrower'),
+            supplier_id: chosenId,
+            grower_name: growerName,
             received_date: receivedDate === '' ? null : receivedDate,
             wet_nis_received_kg: wet,
             ffa: ffa,
@@ -238,7 +267,7 @@
                 focusConfirm: false,
                 html: dialogHtml(batch, suppliers),
                 didOpen: function () { bindBatchNumberSuggestion(batch); },
-                preConfirm: readForm
+                preConfirm: function () { return readForm(batch, suppliers); }
             });
         }).then(function (res) {
             if (!res || !res.isConfirmed || !res.value) return;
