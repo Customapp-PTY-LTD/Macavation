@@ -75,17 +75,34 @@ const TOOLKIT_ENV = "AGENT_FLEET_TOOLKIT_PATH";
 
 /**
  * A plan is "fleet-bound" - worth the cost of a real gate call - if it carries a fleet-recognizable
- * frontmatter key (engine/model/notify/depends_on/preview_path/retry_of) or lives under the path
- * both submit templates teach (.cursor/plans/). Anything else is an ordinary Claude Code plan
- * never destined for dev-agent; running an Opus-priced review on every one of those is the fastest
- * way for a developer to just delete this hook.
+ * frontmatter key (engine/model/notify/depends_on/preview_path/retry_of), lives under the path both
+ * submit templates teach (.cursor/plans/), OR its own BODY describes submitting itself there.
+ *
+ * That third check exists because real usage looks nothing like the first two. Frontmatter is
+ * explicitly optional by design (CLAUDE.md's "Plan format": "A plan with no frontmatter at all is
+ * the normal case, not a degraded one"), and a native ExitPlanMode call only ever carries the
+ * plan's TEXT (ExitPlanMode's tool_input shape is `{plan: string}`, no path field at all) - so
+ * frontmatter/path detection can never fire for the single most common real path: a developer
+ * says "submit this to the fleet," Claude Code drafts an ordinary plan with its own "## Fleet
+ * submission" section spelling out "copy this file into `.cursor/plans/...`" and "push to
+ * `dev-agent`" - and never mentions frontmatter at all. Confirmed missed live (2026-08-13): a
+ * real plan drafted exactly that way, with an explicit fleet-submission section, was not
+ * recognized and the toolkit check was skipped entirely.
+ *
+ * Anything that matches none of the three is an ordinary Claude Code plan never destined for
+ * dev-agent; running an Opus-priced review on every one of those is the fastest way for a
+ * developer to just delete this hook - but the cost of a FALSE positive here (one skippable local
+ * check on a plan that happens to mention these fairly specific terms) is far smaller than the
+ * cost of a FALSE negative (silently skipping the one check this hook exists to run), so this
+ * errs toward catching more real submissions over avoiding every possible over-trigger.
  */
 export function isFleetBoundPlan(planContent, planPath) {
   const normalizedPath = (planPath || "").replace(/\\/g, "/");
   if (normalizedPath.includes("/.cursor/plans/") || normalizedPath.startsWith(".cursor/plans/")) return true;
-  const fm = (planContent || "").match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!fm) return false;
-  return /^(engine|model|notify|depends_on|preview_path|retry_of)\s*:/m.test(fm[1]);
+  const body = planContent || "";
+  const fm = body.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (fm && /^(engine|model|notify|depends_on|preview_path|retry_of)\s*:/m.test(fm[1])) return true;
+  return /\.cursor\/plans\//.test(body) || /\bdev-agent\b/.test(body);
 }
 
 /** Parses the hook's stdin payload. Never throws - malformed input is data, and the caller's job
@@ -335,7 +352,18 @@ async function runPreflightCheck(planContent, repoRoot) {
         "",
         `FIX: Set ${TOOLKIT_ENV} to your agent-fleet checkout to enable this.`,
       ]);
-      return { result: undefined, reason };
+      // CONFIG-FIXABLE, not transient: the developer can fix this in one command, right now -
+      // see the "ask" branch in main() below. Contrast the timeout/crash/malformed-output paths
+      // further down, which stay "allow" because asking the developer to retype the SAME
+      // unfixable answer on every flaky network blip would be the wrong kind of friction.
+      return {
+        result: undefined,
+        reason,
+        kind: "config",
+        askReason:
+          `The local fleet pre-flight check isn't configured on this machine (${TOOLKIT_ENV} not set, no checkout at ${defaultToolkitPath}). ` +
+          `Set it up now: setx ${TOOLKIT_ENV} "<path to your agent-fleet checkout>" (open a new terminal afterward), or continue without the local check - the server-side gate still runs regardless.`,
+      };
     }
   }
   const scriptPath = resolve(toolkitPath, "scripts", "preflight-review.sh");
@@ -345,7 +373,14 @@ async function runPreflightCheck(planContent, repoRoot) {
       `${scriptPath} does not exist - skipping the local pre-flight check.`,
       `Check ${TOOLKIT_ENV} points at a checkout of agent-fleet.`,
     ]);
-    return { result: undefined, reason };
+    return {
+      result: undefined,
+      reason,
+      kind: "config",
+      askReason:
+        `${TOOLKIT_ENV} points at "${toolkitPath}", but ${scriptPath} does not exist there - it doesn't look like an agent-fleet checkout. ` +
+        `Fix ${TOOLKIT_ENV} to point at a real agent-fleet checkout, or continue without the local check - the server-side gate still runs regardless.`,
+    };
   }
 
   const tmpPlanFile = resolve(dirname(CACHE_FILE), `.preflight-input-${process.pid}.md`);
@@ -438,12 +473,22 @@ async function main() {
       : buildHookResponse("allow", "fleet-preflight-gate: cached PASS for this plan/repo state");
   }
 
-  const { result, reason } = await runPreflightCheck(planContent, REPO_ROOT);
+  const { result, reason, kind, askReason } = await runPreflightCheck(planContent, REPO_ROOT);
   if (!result) {
-    // Genuinely unable to run the check - fail open. The stderr warnings above already fired;
-    // this puts the SAME reason into the one channel Claude Code's own hook protocol guarantees
-    // to carry (the JSON response itself), since stderr alone is not a reliable way to reach the
-    // developer - see the file header's FAIL OPEN, VISIBLY section.
+    // Genuinely unable to run the check - fail open, but not always silently. The stderr
+    // warnings above already fired; this puts the SAME reason into the one channel Claude Code's
+    // own hook protocol guarantees to carry (the JSON response itself), since stderr alone is not
+    // a reliable way to reach the developer - see the file header's FAIL OPEN, VISIBLY section.
+    //
+    // "config" (TOOLKIT_ENV unset/wrong) is fixable by the developer in one command right now, so
+    // this surfaces as "ask" - Claude Code's own permission-prompt flow - rather than a silent
+    // allow the developer would have to notice in scrollback. Every OTHER fail-open reason
+    // (timeout, crash, malformed verdict/stdin, no plan content) stays "allow": those are
+    // transient or our-own-error cases asking wouldn't fix, and asking on every flaky network
+    // blip is the wrong kind of friction, not a helpful nudge.
+    if (kind === "config") {
+      return buildHookResponse("ask", askReason ?? reason ?? "fleet-preflight-gate: local check not configured");
+    }
     return buildHookResponse(
       "allow",
       `fleet-preflight-gate: local check unavailable this time (${reason ?? "see stderr"}) - the real gate still runs on push`,
