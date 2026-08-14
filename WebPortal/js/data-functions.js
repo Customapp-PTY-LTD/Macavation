@@ -6091,6 +6091,126 @@ var _dataFunctions = function () {
             this.clearCachePattern('report_instance_');
             this.clearCachePattern('report_list_');
             return result;
+        },
+
+        // ------------------------------------------------------------------
+        // Sales & Production Data page (migrations/20260819090000_data_page_production_daily.sql).
+        // Whether that migration has been applied to any given database cannot be verified from
+        // this checkout — every wrapper here throws a clean local error for a bad argument (so a
+        // no-DEFAULT param is never silently stripped into a "function not found"), but a missing
+        // RPC itself still surfaces as a thrown error for the caller to catch, exactly like the
+        // report-builder wrappers above.
+        // ------------------------------------------------------------------
+
+        getDataDatasets: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_data_datasets', {}, token, {
+                cacheKey: 'sales_data_datasets',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // report_normalise_period_start(p_period_type, p_date) has no parameter DEFAULTs — never
+        // call it with a null/blank date, or PostgREST strips the param and reports the function
+        // missing (indistinguishable from an unapplied migration).
+        getReportPeriodStart: async function (periodType, isoDate, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const iso = (isoDate != null ? String(isoDate) : '').trim();
+            if (!pt) throw new Error('getReportPeriodStart: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) throw new Error('getReportPeriodStart: isoDate must be yyyy-mm-dd.');
+            const params = { p_period_type: pt, p_date: iso };
+            return await this.callFunction('report_normalise_period_start', params, token, {
+                cacheKey: 'sales_data_period_start_' + pt + '_' + iso,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // report_period_end(p_period_type, p_period_start) — same no-DEFAULT caveat as above.
+        getReportPeriodEnd: async function (periodType, isoPeriodStart, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const iso = (isoPeriodStart != null ? String(isoPeriodStart) : '').trim();
+            if (!pt) throw new Error('getReportPeriodEnd: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) throw new Error('getReportPeriodEnd: isoPeriodStart must be yyyy-mm-dd.');
+            const params = { p_period_type: pt, p_period_start: iso };
+            return await this.callFunction('report_period_end', params, token, {
+                cacheKey: 'sales_data_period_end_' + pt + '_' + iso,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        getDataProductionDaily: async function (dateFrom, dateTo, limit = 100, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 100,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_production_daily_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_production_daily', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertDataProductionDailyRows: async function (rows, token = null) {
+            // Pass the array itself, NOT JSON.stringify(rows) — PostgREST serialises the whole
+            // body to JSON, so a pre-stringified array arrives as a jsonb *string* and the RPC
+            // rejects it with "p_rows must be a JSON array"
+            // (migrations/20260819090000_data_page_production_daily.sql:368-373).
+            const params = {
+                p_rows: Array.isArray(rows) ? rows : [rows],
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('upsert_data_production_daily_rows', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        deleteDataProductionDailyRow: async function (productionDate, token = null) {
+            const iso = (productionDate != null ? String(productionDate) : '').trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) throw new Error('deleteDataProductionDailyRow: productionDate must be yyyy-mm-dd.');
+            const params = { p_production_date: iso };
+            // functionName contains "delete": callFunction queues this while offline and
+            // returns { success: true, offline: true, queued: true } instead of calling the RPC.
+            const result = await this.callFunction('delete_data_production_daily_row', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        reseedDataProductionDaily: async function (dateFrom, dateTo, token = null) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('reseed_data_production_daily', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        getDataProductionDailyDrift: async function (dateFrom, dateTo, limit = 200, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 200,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_production_daily_drift_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_production_daily_drift', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
         }
     }
 }();

@@ -660,6 +660,19 @@
                 "css/sales_reports.css"
             ]
         },
+        "sales-data-grid": {
+            "description": "Sales &amp; Production Data",
+            "path": "sales-data",
+            "html": "html/sales_data_grid.html",
+            "js": [
+                "js/sales-data-column-defs.js",
+                "js/sales-data-row-grid.js",
+                "js/sales_data_grid.js"
+            ],
+            "css": [
+                "css/sales_data_grid.css"
+            ]
+        },
         "oil-production-grid": {
             "description": "Oil Production Workflow",
             "path": "oil-production",
