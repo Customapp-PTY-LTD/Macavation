@@ -50,9 +50,19 @@
         return formatNumberInternal(n);
     }
 
+    // Number of decimal places a column's step implies — 0.01 => 2, 0.001 => 3. Defaults to 2 for
+    // a step with no decimal point, and is capped at 6 so a malformed step cannot blow up Math.pow.
+    function decimalsForStep(step) {
+        var s = String(step == null ? '' : step);
+        var dot = s.indexOf('.');
+        if (dot < 0) return 2;
+        return Math.min(6, s.length - dot - 1);
+    }
+
     // Never falls back to 0 — a blank/unparseable value on a nullable column must stay null, not
-    // become a silent 0 that the server would then persist.
-    function parseNullableNumber(value) {
+    // become a silent 0 that the server would then persist. `decimals` defaults to 2, so existing
+    // callers keep the repo's usual Math.round(x*100)/100 behaviour.
+    function parseNullableNumber(value, decimals) {
         if (value === null || value === undefined) return null;
         var s = String(value).trim();
         if (s === '') return null;
@@ -64,7 +74,12 @@
         }
         var n = parseFloat(t);
         if (!Number.isFinite(n)) return null;
-        return Math.round(n * 100) / 100;
+        // Rounds to the column's own scale, not a fixed 2dp: wholes_pct/uncracks_pct are
+        // numeric(6,3) with step="0.001", and a hard 2dp round here silently turned a typed
+        // 12.345 into 12.35 before it ever reached the database.
+        var dp = (decimals === null || decimals === undefined) ? 2 : decimals;
+        var f = Math.pow(10, dp);
+        return Math.round(n * f) / f;
     }
 
     // The 0-defaulting parse — used ONLY for the <tfoot> totals row, never for a save payload.
@@ -270,7 +285,7 @@
                 var s = String(raw == null ? '' : raw).trim();
                 payload[col.key] = s === '' ? null : s;
             } else {
-                payload[col.key] = parseNullableNumber(raw);
+                payload[col.key] = parseNullableNumber(raw, decimalsForStep(col.step));
             }
         });
         return payload;
@@ -296,6 +311,7 @@
 
     w.SalesDataRowGrid = {
         formatKg: formatKg,
+        decimalsForStep: decimalsForStep,
         parseNullableNumber: parseNullableNumber,
         parseTotalNumber: parseTotalNumber,
         sameKg: sameKg,

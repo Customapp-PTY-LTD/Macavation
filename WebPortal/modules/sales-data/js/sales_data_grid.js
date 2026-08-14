@@ -47,6 +47,7 @@ var _salesDataGrid = function () {
         dirtyDates: {},
         invalidDates: {},
         saveTimer: null,
+        reloadTimer: null,
         driftRows: []
     };
 
@@ -160,6 +161,40 @@ var _salesDataGrid = function () {
         return 1 + ((def && Array.isArray(def.columns)) ? def.columns.length : 0);
     }
 
+    // True while the caret is inside the grid. A full re-render under a live caret moves focus and
+    // throws away whatever was typed during the save round trip, so every re-render defers to this.
+    function productionGridHasFocus() {
+        var el = document.activeElement;
+        return !!(el && $(el).closest('#salesDataProductionBody').length);
+    }
+
+    // Totals are recomputed from the DOM on every keystroke, not only after a save — the
+    // reconciliation check this page exists for (a month's Cracked must total Pete's own figure) is
+    // read off the <tfoot> while the figures are still being typed.
+    function recomputeTotalsFromDom() {
+        var def = SalesDataColumnDefs.get('production_daily');
+        if (!def) return;
+        var rows = [];
+        $('#salesDataProductionBody tr[data-date]').each(function () {
+            rows.push(SalesDataRowGrid.collectRowPayload(def, this));
+        });
+        SalesDataRowGrid.renderTotalsRow($('#salesDataProductionTotals'), def, rows);
+    }
+
+    // A save that lands while Pete is still typing must not re-render under him. Retry on a timer
+    // until the grid is idle, so the seeded/drift accents still refresh — just not mid-keystroke.
+    function reloadProductionWhenIdle() {
+        if (state.reloadTimer) clearTimeout(state.reloadTimer);
+        state.reloadTimer = setTimeout(function () {
+            state.reloadTimer = null;
+            if (hasPendingEdits() || productionGridHasFocus()) {
+                reloadProductionWhenIdle();
+                return;
+            }
+            loadProductionData(true);
+        }, 1500);
+    }
+
     function loadProductionData(forceRefresh) {
         if (!state.start || !state.end) return Promise.resolve();
         var $tbody = $('#salesDataProductionBody');
@@ -263,7 +298,11 @@ var _salesDataGrid = function () {
             } else {
                 setSaveStatus('Saved.');
             }
-            loadProductionData(true);
+            if (hasPendingEdits() || productionGridHasFocus()) {
+                reloadProductionWhenIdle();
+            } else {
+                loadProductionData(true);
+            }
         } else {
             var msg = (row && row.error) ? row.error : 'Could not save the changes.';
             setSaveStatus(msg, true);
@@ -529,6 +568,7 @@ var _salesDataGrid = function () {
             if (!date) return;
             state.dirtyDates[date] = true;
             setSaveStatus('Unsaved changes\u2026');
+            recomputeTotalsFromDom();
             scheduleAutoSave();
         });
         $(document).on('click.salesData', '#salesDataReseedBtn', function () { handleReseed(); });
@@ -565,6 +605,12 @@ var _salesDataGrid = function () {
             if (state.saveTimer) {
                 clearTimeout(state.saveTimer);
                 state.saveTimer = null;
+            }
+            // The idle-reload retry re-arms itself, so it must be cleared here or it keeps firing
+            // against a DOM that belongs to whichever module loaded next.
+            if (state.reloadTimer) {
+                clearTimeout(state.reloadTimer);
+                state.reloadTimer = null;
             }
             $(document).off('.salesData');
         },
