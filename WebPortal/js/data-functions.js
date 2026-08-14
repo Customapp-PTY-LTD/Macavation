@@ -2081,12 +2081,13 @@ var _dataFunctions = function () {
          * @returns {Promise<Array<{trend_date:string,kg_cracked:number,kg_packed:number,kg_dispatched:number}>>}
          */
         getProductionTrendsDaily: async function (days, token = null) {
-            // Clamp to 1826, not 90. The Production Trends card offers 1M/3M/6M/1Y/3Y/5Y/All and asks
-            // for 1825 days; a 90-day cap silently made every range above 3M a no-op — the chart
-            // always showed the same last 90 days whichever button was pressed. The RPC itself has no
-            // such limit (it back-fills whatever window it is given), and 1826 matches the bound used
-            // by get_stock_soh_history.
-            var pDays = Math.max(7, Math.min(1826, parseInt(days, 10) || 30));
+            // Clamp to 1000 — the PostgREST row cap, NOT an RPC limit. The RPC back-fills one row per
+            // calendar day, so asking for more days than the cap silently truncates the response
+            // (Content-Range: 0-999/*). This card previously asked for 1825 and received
+            // 2021-08-16..2024-05-11 — every real production day discarded, so the chart showed an
+            // empty window whichever range was pressed. For spans longer than 1000 days use
+            // getProductionTrendsMonthly, which aggregates server-side and stays far below the cap.
+            var pDays = Math.max(7, Math.min(1000, parseInt(days, 10) || 30));
             try {
                 var raw = await this.callFunction('get_production_trends_daily', { p_days: pDays }, token, { useCache: false });
                 if (Array.isArray(raw)) return raw;
@@ -2095,6 +2096,28 @@ var _dataFunctions = function () {
                 return [];
             } catch (e) {
                 console.warn('[Dashboard] get_production_trends_daily failed. Apply migration 20260326000001_get_production_trends_daily.sql if needed.', e.message);
+                return [];
+            }
+        },
+
+        /**
+         * Month-aggregated production trends, for ranges too long to fit in daily rows.
+         *
+         * A daily response is capped at 1000 rows by PostgREST, so 3Y/5Y/All cannot be served from
+         * get_production_trends_daily. This aggregates server-side: 120 months is 120 rows.
+         * @param {number} months - Number of months (1–240)
+         * @returns {Promise<Array<{trend_month:string,kg_cracked:number,kg_packed:number,kg_dispatched:number}>>}
+         */
+        getProductionTrendsMonthly: async function (months, token = null) {
+            var pMonths = Math.max(1, Math.min(240, parseInt(months, 10) || 60));
+            try {
+                var raw = await this.callFunction('get_production_trends_monthly', { p_months: pMonths }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_production_trends_monthly)) return raw.get_production_trends_monthly;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_production_trends_monthly failed. Apply migration 20260818090400_production_trends_monthly_and_desc_order.sql if needed.', e.message);
                 return [];
             }
         },
