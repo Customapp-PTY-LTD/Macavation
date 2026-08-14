@@ -2420,7 +2420,9 @@ var _dataFunctions = function () {
                     this.clearCachePattern('contacts');
                     return normalizedImportResult;
                 }
-                throw new Error(normalizedImportResult?.error || normalizedImportResult?.message || functionError?.message || 'Failed to create contact');
+                // Report the create_contact_simple failure first: it is the real cause, and the
+                // fallback's own message (e.g. a p_rows complaint) only hides why the RPC failed.
+                throw new Error(functionError?.message || normalizedImportResult?.error || normalizedImportResult?.message || 'Failed to create contact');
             }
         },
 
@@ -5896,9 +5898,12 @@ dataFunctions.getTableColumns = async function (tableName, token = null) {
 
 dataFunctions.importTableRows = async function (tableName, rows, token = null) {
     try {
+        // Pass the array itself, NOT JSON.stringify(rows). PostgREST serialises the whole
+        // body to JSON, so a pre-stringified array arrives as a jsonb *string* and
+        // import_table_rows rejects it with "p_rows must be a JSON array".
         const params = {
             p_table_name: tableName,
-            p_rows: JSON.stringify(rows)
+            p_rows: Array.isArray(rows) ? rows : [rows]
         };
         return await this.callFunction('import_table_rows', params, token, { useCache: false });
     } catch (e) {
