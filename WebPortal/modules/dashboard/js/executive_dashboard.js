@@ -107,6 +107,7 @@ var _executiveDashboard = function () {
     return {
         kpis: {},
         productionTrendsData: null,
+        productionTrendsMonthlyData: null,
         productionTrendsChart: null,
         productionTrendsPageOffset: 0,
         productionTrendsRangeKey: '1Y',
@@ -464,8 +465,12 @@ var _executiveDashboard = function () {
             if (!canvas) return;
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getProductionTrendsDaily) return;
             try {
-                const raw = await dataFunctions.getProductionTrendsDaily(1825);
+                // 1000, not 1825: a daily response is capped at 1000 rows by PostgREST and the
+                // truncation keeps whichever end the RPC ordered first. Asking for more silently
+                // dropped every recent day. Longer spans come from the monthly RPC instead.
+                const raw = await dataFunctions.getProductionTrendsDaily(1000);
                 scope.productionTrendsData = Array.isArray(raw) ? raw : [];
+                await scope.ensureProductionTrendsData();
                 scope.renderProductionTrendsChart();
             } catch (e) {
                 // Do NOT replace the wrapper's innerHTML here: that deletes the canvas, so every later
@@ -478,14 +483,8 @@ var _executiveDashboard = function () {
 
         renderProductionTrendsChart: () => {
             const scope = _executiveDashboard;
-            const data = scope.productionTrendsData || [];
             const canvas = document.getElementById('productionTrendsChart');
             if (!canvas) return;
-            if (!data.length) {
-                if (scope.productionTrendsChart) { scope.productionTrendsChart.destroy(); scope.productionTrendsChart = null; }
-                scope.setChartEmptyState('productionTrendsChart', true);
-                return;
-            }
             const metric = document.getElementById('productionTrendsMetric');
             const key = (metric && metric.value) ? metric.value : 'kg_cracked';
             const datasetLabel = metric && metric.options[metric.selectedIndex] ? metric.options[metric.selectedIndex].text : 'kg';
@@ -496,6 +495,18 @@ var _executiveDashboard = function () {
             var pageOffset = Number(scope.productionTrendsPageOffset) || 0;
             if (pageOffset < 0) pageOffset = 0;
             var rangeKey = (scope.productionTrendsRangeKey || '1Y').toUpperCase();
+
+            // Which series backs this range: month-aggregated for the long ones, daily otherwise.
+            // Check emptiness against the ACTIVE series — bailing on an empty daily array would
+            // blank the 3Y/5Y/All views even when the monthly series has data.
+            const useMonthly = scope.needsMonthlyTrends(viewMode, rangeKey);
+            const monthlyRows = scope.productionTrendsMonthlyData || [];
+            const data = useMonthly ? monthlyRows : (scope.productionTrendsData || []);
+            if (!data.length) {
+                if (scope.productionTrendsChart) { scope.productionTrendsChart.destroy(); scope.productionTrendsChart = null; }
+                scope.setChartEmptyState('productionTrendsChart', true);
+                return;
+            }
 
             function spanForRange(view, key) {
                 if (key === 'ALL') return null;
@@ -516,10 +527,17 @@ var _executiveDashboard = function () {
 
             var prepared = [];
             var totalWindows = 1;
-            if (viewMode === 'yearly') {
+            // Kept so the caption can disambiguate a window that spans more than one calendar year:
+            // daily labels are DD/MM, so a 1Y window reads "Showing 14/08 - 14/08" without the year.
+            var firstIso = '';
+            var lastIso = '';
+            if (useMonthly) {
+                // Rows are already one-per-month from get_production_trends_monthly (trend_month).
+                // Fall back to aggregating daily rows if the monthly RPC is unavailable.
                 var byMonth = {};
                 data.forEach(function (r) {
-                    var iso = (r && r.trend_date) ? String(r.trend_date).split('T')[0] : '';
+                    var src = (r && (r.trend_month || r.trend_date)) || '';
+                    var iso = String(src).split('T')[0];
                     if (!iso || iso.length < 7) return;
                     var monthKey = iso.slice(0, 7); // YYYY-MM
                     if (!byMonth[monthKey]) byMonth[monthKey] = 0;
@@ -530,6 +548,12 @@ var _executiveDashboard = function () {
                     var m = monthKey.slice(5, 7);
                     return { label: m + '/' + y, value: byMonth[monthKey] };
                 });
+                // "All" spans 120 months, most of which predate the business. Trim the leading
+                // empty months so the chart starts where the data does instead of at a wall of zeros.
+                if (rangeKey === 'ALL') {
+                    var firstReal = monthly.findIndex(function (p) { return Number(p.value) > 0; });
+                    if (firstReal > 0) monthly = monthly.slice(firstReal);
+                }
                 var yearWindow = spanForRange('yearly', rangeKey);
                 if (yearWindow == null) {
                     prepared = monthly.slice();
@@ -573,6 +597,8 @@ var _executiveDashboard = function () {
                     var d = r && r.trend_date ? String(r.trend_date).split('T')[0] : '';
                     if (!d) return;
                     var parts = d.split('-');
+                    if (!firstIso) firstIso = d;
+                    lastIso = d;
                     prepared.push({
                         label: parts.length === 3 ? (parts[2] + '/' + parts[1]) : d,
                         value: Number(r[key]) || 0
@@ -583,19 +609,28 @@ var _executiveDashboard = function () {
             const labels = prepared.map(function (p) { return p.label; });
             const values = prepared.map(function (p) { return p.value; });
             var hasAny = values.some(function (v) { return Number(v) > 0; });
+
+            // Add the year to the caption when a daily window crosses a year boundary, so 1Y does
+            // not read "14/08 - 14/08". Axis labels stay short.
+            var capFirst = labels.length ? labels[0] : '';
+            var capLast = labels.length ? labels[labels.length - 1] : '';
+            if (!useMonthly && firstIso && lastIso && firstIso.slice(0, 4) !== lastIso.slice(0, 4)) {
+                capFirst = capFirst + '/' + firstIso.slice(0, 4);
+                capLast = capLast + '/' + lastIso.slice(0, 4);
+            }
             if (!labels.length || !hasAny) {
                 if (scope.productionTrendsChart) { scope.productionTrendsChart.destroy(); scope.productionTrendsChart = null; }
                 var emptyMsg = document.getElementById('productionTrendsEmpty');
                 if (emptyMsg) {
                     emptyMsg.textContent = labels.length
                         ? 'No ' + String(datasetLabel).toLowerCase() + ' recorded between ' +
-                          labels[0] + ' and ' + labels[labels.length - 1] + '.'
+                          capFirst + ' and ' + capLast + '.'
                         : 'No data recorded for this metric in the selected period.';
                 }
                 var rangeElEmpty = document.getElementById('productionTrendsRange');
                 if (rangeElEmpty) {
                     rangeElEmpty.textContent = labels.length
-                        ? 'Showing ' + labels[0] + ' - ' + labels[labels.length - 1]
+                        ? 'Showing ' + capFirst + ' - ' + capLast
                         : '';
                 }
                 scope.setChartEmptyState('productionTrendsChart', true);
@@ -603,7 +638,7 @@ var _executiveDashboard = function () {
             }
             scope.setChartEmptyState('productionTrendsChart', false);
             var rangeEl = document.getElementById('productionTrendsRange');
-            if (rangeEl) rangeEl.textContent = 'Showing ' + labels[0] + ' - ' + labels[labels.length - 1];
+            if (rangeEl) rangeEl.textContent = 'Showing ' + capFirst + ' - ' + capLast;
             var prevBtn = document.getElementById('productionTrendsPrev');
             var nextBtn = document.getElementById('productionTrendsNext');
             if (prevBtn) prevBtn.disabled = (scope.productionTrendsPageOffset >= totalWindows - 1);
@@ -611,9 +646,10 @@ var _executiveDashboard = function () {
             var currentView = viewMode;
             var hideWeekendsToggle = document.getElementById('productionTrendsHideWeekends');
             if (hideWeekendsToggle) {
-                hideWeekendsToggle.disabled = currentView === 'yearly';
+                // Meaningless on month-aggregated bars, not just in the Yearly view.
+                hideWeekendsToggle.disabled = useMonthly;
                 if (hideWeekendsToggle.parentElement) {
-                    hideWeekendsToggle.parentElement.classList.toggle('opacity-50', currentView === 'yearly');
+                    hideWeekendsToggle.parentElement.classList.toggle('opacity-50', useMonthly);
                 }
             }
             document.querySelectorAll('.production-trends-range-btn').forEach(function (btn) {
@@ -679,7 +715,34 @@ var _executiveDashboard = function () {
             });
         },
 
-        updateProductionTrendsChart: () => {
+        // 3Y/5Y/All and the Yearly view need more days than a 1000-row daily response can carry, so
+        // they are served from the month-aggregated RPC instead.
+        needsMonthlyTrends: function (viewMode, rangeKey) {
+            var k = String(rangeKey || '').toUpperCase();
+            return viewMode === 'yearly' || k === '3Y' || k === '5Y' || k === 'ALL';
+        },
+
+        // Fetch the monthly series on first use and cache it: one 120-month call covers every range
+        // that needs it.
+        ensureProductionTrendsData: async function () {
+            var scope = _executiveDashboard;
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getProductionTrendsMonthly) return;
+            var viewSel = document.getElementById('productionTrendsView');
+            var viewMode = (viewSel && viewSel.value) ? viewSel.value : 'monthly';
+            var rangeKey = (scope.productionTrendsRangeKey || '1Y').toUpperCase();
+            if (!scope.needsMonthlyTrends(viewMode, rangeKey)) return;
+            if (Array.isArray(scope.productionTrendsMonthlyData)) return;
+            try {
+                var raw = await dataFunctions.getProductionTrendsMonthly(120);
+                scope.productionTrendsMonthlyData = Array.isArray(raw) ? raw : [];
+            } catch (e) {
+                console.warn('[Executive Dashboard] monthly production trends unavailable', e);
+                scope.productionTrendsMonthlyData = [];
+            }
+        },
+
+        updateProductionTrendsChart: async () => {
+            await _executiveDashboard.ensureProductionTrendsData();
             _executiveDashboard.renderProductionTrendsChart();
         },
 
