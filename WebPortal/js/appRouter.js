@@ -440,6 +440,11 @@ var _appRouter = function () {
                         initializeReportEditor();
                     }
                 },
+                'sales-data-grid': () => {
+                    if (typeof initializeSalesDataGrid === 'function') {
+                        initializeSalesDataGrid();
+                    }
+                },
                 'oil-production-grid': () => {
                     if (typeof initializeOilProductionGrid === 'function') {
                         initializeOilProductionGrid();
@@ -559,6 +564,11 @@ var _appRouter = function () {
             return result;
         },
         routeTo: (routeName, addBreadCrumb, params) => {
+            try {
+                if (typeof _salesDataGrid !== 'undefined' && _salesDataGrid.hasPendingEdits && _salesDataGrid.hasPendingEdits()) {
+                    _salesDataGrid.flushAutoSave();
+                }
+            } catch (e) { /* ignore */ }
             // Store in both sessionStorage (current session) and localStorage (persist across sessions)
             sessionStorage.setItem('lastActivePage', routeName);
             Session.set('lastActivePage', routeName);
@@ -582,6 +592,11 @@ var _appRouter = function () {
 
         },
         promptOnFormExit: async (routeName) => {
+            try {
+                if (typeof _salesDataGrid !== 'undefined' && _salesDataGrid.hasPendingEdits && _salesDataGrid.hasPendingEdits()) {
+                    await _salesDataGrid.flushAutoSave();
+                }
+            } catch (e) { /* ignore */ }
             var doNavigate = function () {
                 sessionStorage.setItem('lastActivePage', routeName);
                 Session.set('lastActivePage', routeName);
