@@ -394,8 +394,8 @@ var _roleMenuConfig = function () {
             // Note: stock-management-kernel and stock-management-oil are defined above under kernel/oil categories
             'sales-forecasting-grid': {
                 route: 'sales-forecasting-grid',
-                icon: 'fas fa-chart-line',
-                label: 'Sales Forecasting',
+                icon: 'fas fa-file-invoice',
+                label: 'Sales & Production Reports',
                 category: 'business',
                 parent: 'businessCollapse'
             },
