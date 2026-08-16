@@ -6211,6 +6211,64 @@ var _dataFunctions = function () {
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: !!forceRefresh
             });
+        },
+
+        // ------------------------------------------------------------------
+        // Kernel sales ledger (migrations/20260819100000_data_page_sales.sql).
+        // ------------------------------------------------------------------
+
+        // p_limit is capped at 500 server-side, so 500 is the largest page worth asking for.
+        getDataKernelSalesLines: async function (dateFrom, dateTo, limit = 500, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 500,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_kernel_sales_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_kernel_sales_lines', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // The RPC is a WHOLE-ROW upsert: customer_id, invoice_number, item_code, style_code,
+        // description, cartons, price_per_kg and notes are assigned with no COALESCE back to the
+        // stored value, so any column left out of a row is nulled in the database. Always send the
+        // complete row (collectRowPayload does) — never a partial patch.
+        upsertDataKernelSalesLines: async function (rows, token = null) {
+            // Pass the array itself, NOT JSON.stringify(rows) — PostgREST serialises the body, so a
+            // pre-stringified array arrives as a jsonb string and the RPC rejects it.
+            const params = {
+                p_rows: Array.isArray(rows) ? rows : [rows],
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('upsert_data_kernel_sales_lines', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        deleteDataKernelSalesLine: async function (id, token = null) {
+            const key = (id != null ? String(id) : '').trim();
+            if (!key) throw new Error('deleteDataKernelSalesLine: id is required.');
+            const result = await this.callFunction('delete_data_kernel_sales_line', { p_id: key }, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        // Reference data for the Style dropdown. Static TTL like getContacts — the registry holds
+        // 11 rows and changes rarely.
+        getKernelStyles: async function (includeInactive = false, token = null, forceRefresh = false) {
+            const params = { p_include_inactive: !!includeInactive };
+            return await this.callFunction('get_kernel_styles', params, token, {
+                cacheKey: 'kernel_styles_' + (includeInactive ? 'all' : 'active'),
+                useCache: true,
+                cacheTtl: this.cache.ttl.static,
+                forceRefresh: !!forceRefresh
+            });
         }
     }
 }();
