@@ -6259,6 +6259,49 @@ var _dataFunctions = function () {
             return result;
         },
 
+        // ------------------------------------------------------------------
+        // Oil & protein sales ledger. Same contract as the kernel sales trio above, including the
+        // whole-row upsert caveat — product_line, customer_id, invoice_number, item_code and the
+        // rest are assigned with no COALESCE back to the stored value, so a partial row nulls
+        // whatever it leaves out.
+        // ------------------------------------------------------------------
+
+        getDataOilSalesLines: async function (dateFrom, dateTo, limit = 500, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 500,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_oil_sales_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_oil_sales_lines', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertDataOilSalesLines: async function (rows, token = null) {
+            // Pass the array itself, NOT JSON.stringify(rows).
+            const params = {
+                p_rows: Array.isArray(rows) ? rows : [rows],
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('upsert_data_oil_sales_lines', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        deleteDataOilSalesLine: async function (id, token = null) {
+            const key = (id != null ? String(id) : '').trim();
+            if (!key) throw new Error('deleteDataOilSalesLine: id is required.');
+            const result = await this.callFunction('delete_data_oil_sales_line', { p_id: key }, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
         // Reference data for the Style dropdown. Static TTL like getContacts — the registry holds
         // 11 rows and changes rarely.
         getKernelStyles: async function (includeInactive = false, token = null, forceRefresh = false) {

@@ -50,16 +50,12 @@ var _salesDataGrid = function () {
         reloadTimer: null,
         driftRows: [],
 
-        // Kernel sales ledger. Its date range is seeded from the page period the first time the tab
-        // is opened and whenever the period changes, but is then independently widenable — a week
-        // of a 277-line ledger is about two rows, which is not how Pete reads his sales.
-        ksFrom: null,
-        ksTo: null,
-        ksRows: [],
-        ksDirty: {},
-        ksNewSeq: 0,
-        ksLookups: { customer_id: [], style_code: [] },
-        ksLookupsLoaded: false
+        // Per-ledger-dataset: { from, to, rows, dirty, newSeq }. Keyed by dataset_key so switching
+        // tabs and back keeps each ledger's own date range and unsaved edits.
+        ledgers: {},
+        // Reference lists shared across ledgers, fetched at most once per session.
+        lookupSources: { contacts: [], kernel_styles: [] },
+        lookupsLoaded: {}
     };
 
     // ------------------------------------------------------------------
@@ -257,7 +253,7 @@ var _salesDataGrid = function () {
             state.saveTimer = null;
         }
         if (state.activeDatasetKey === 'production_daily') return flushProductionAutoSave();
-        if (state.activeDatasetKey === 'kernel_sales_lines') return flushKernelSalesAutoSave();
+        if (ledgerDef()) return flushLedgerAutoSave();
         return Promise.resolve();
     }
 
@@ -328,102 +324,137 @@ var _salesDataGrid = function () {
     }
 
     function hasPendingEdits() {
-        return Object.keys(state.dirtyDates).length > 0 || Object.keys(state.ksDirty).length > 0;
+        if (Object.keys(state.dirtyDates).length > 0) return true;
+        return Object.keys(state.ledgers).some(function (k) {
+            return Object.keys(state.ledgers[k].dirty).length > 0;
+        });
     }
 
     // ------------------------------------------------------------------
-    // Kernel sales ledger pane.
+    // Ledger pane — shared by every id-keyed dataset (kernel sales, oil sales, and the tabs still
+    // to come). Nothing here names a dataset: the column registry supplies the columns, which
+    // dataFunctions wrappers to call, which reference lists feed its dropdowns, and whether its
+    // money columns are derived. Adding a ledger tab is a registry entry plus three wrappers.
+    //
+    // Only one ledger is on screen at a time — switchTab replaces #salesDataTabContent outright —
+    // so the pane uses fixed element ids rather than per-dataset ones. Each dataset keeps its own
+    // date range and dirty set in state.ledgers, so switching tabs and back does not lose them.
     // ------------------------------------------------------------------
 
-    function fyRangeFor(iso) {
-        return SalesDataRowGrid.fyRangeFor(iso);
+    function ledgerDef(key) {
+        var def = SalesDataColumnDefs.get(key || state.activeDatasetKey);
+        return (def && def.idColumn) ? def : null;
     }
 
-    function ksDef() {
-        return SalesDataColumnDefs.get('kernel_sales_lines');
+    function ledgerState(key) {
+        if (!state.ledgers[key]) {
+            state.ledgers[key] = { from: null, to: null, rows: [], dirty: {}, newSeq: 0 };
+        }
+        return state.ledgers[key];
     }
 
-    function ksColCount() {
-        var def = ksDef();
-        return 1 + ((def && Array.isArray(def.columns)) ? def.columns.length : 0);
+    function ledgerColCount(def) {
+        // Columns, plus the leading flag cell, plus the trailing delete cell.
+        return 2 + ((def && Array.isArray(def.columns)) ? def.columns.length : 0);
     }
 
     // Every <tr> needs a stable handle for the dirty set. Saved rows use their uuid; a row the user
     // just added has none until it comes back from the server, so it gets a local key that lives
     // only on the DOM node.
-    function ksRowKey($tr) {
+    function ledgerRowKey($tr, ls) {
         var id = $tr.attr('data-row-id');
         if (id) return id;
         var local = $tr.attr('data-local-key');
         if (!local) {
-            state.ksNewSeq += 1;
-            local = 'new-' + state.ksNewSeq;
+            ls.newSeq += 1;
+            local = 'new-' + ls.newSeq;
             $tr.attr('data-local-key', local);
         }
         return local;
     }
 
-    function ksFindRow(key) {
-        var $byId = $('#salesDataKernelSalesBody tr[data-row-id="' + key + '"]');
+    function ledgerFindRow(key) {
+        var $byId = $('#salesDataLedgerBody tr[data-row-id="' + key + '"]');
         if ($byId.length) return $byId;
-        return $('#salesDataKernelSalesBody tr[data-local-key="' + key + '"]');
+        return $('#salesDataLedgerBody tr[data-local-key="' + key + '"]');
     }
 
-    function loadKernelSalesLookups() {
-        if (state.ksLookupsLoaded) return Promise.resolve();
-        return Promise.all([
-            dataFunctions.getContacts().catch(function (err) {
-                console.warn('[sales-data] getContacts failed', err);
-                return [];
-            }),
-            dataFunctions.getKernelStyles().catch(function (err) {
-                console.warn('[sales-data] getKernelStyles failed', err);
-                return [];
-            })
-        ]).then(function (results) {
-            var contacts = Array.isArray(results[0]) ? results[0] : [];
-            var styles = Array.isArray(results[1]) ? results[1] : [];
-            state.ksLookups.customer_id = contacts.map(function (c) {
-                return {
-                    value: c && (c.id || c.contact_id),
-                    label: (c && (c.company_name || c.name || c.contact_name || c.email)) || '(unnamed)'
-                };
-            }).filter(function (o) { return o.value; });
-            state.ksLookups.style_code = styles.map(function (s) {
-                return { value: s && s.style_code, label: (s && (s.label || s.style_code)) || '' };
-            }).filter(function (o) { return o.value; });
-            state.ksLookupsLoaded = true;
+    // Reference lists are shared across datasets and fetched at most once per session.
+    function loadLookupSources(def) {
+        var wanted = [];
+        Object.keys((def && def.lookups) || {}).forEach(function (colKey) {
+            var src = def.lookups[colKey];
+            if (wanted.indexOf(src) === -1 && !state.lookupsLoaded[src]) wanted.push(src);
         });
+        if (!wanted.length) return Promise.resolve();
+
+        return Promise.all(wanted.map(function (src) {
+            if (src === 'contacts') {
+                return dataFunctions.getContacts().then(function (rows) {
+                    state.lookupSources.contacts = (Array.isArray(rows) ? rows : []).map(function (c) {
+                        return {
+                            value: c && (c.id || c.contact_id),
+                            label: (c && (c.company_name || c.name || c.contact_name || c.email)) || '(unnamed)'
+                        };
+                    }).filter(function (o) { return o.value; });
+                    state.lookupsLoaded.contacts = true;
+                }).catch(function (err) {
+                    console.warn('[sales-data] getContacts failed', err);
+                });
+            }
+            if (src === 'kernel_styles') {
+                return dataFunctions.getKernelStyles().then(function (rows) {
+                    state.lookupSources.kernel_styles = (Array.isArray(rows) ? rows : []).map(function (s) {
+                        return { value: s && s.style_code, label: (s && (s.label || s.style_code)) || '' };
+                    }).filter(function (o) { return o.value; });
+                    state.lookupsLoaded.kernel_styles = true;
+                }).catch(function (err) {
+                    console.warn('[sales-data] getKernelStyles failed', err);
+                });
+            }
+            console.warn('[sales-data] unknown lookup source', src);
+            return Promise.resolve();
+        }));
     }
 
-    function buildKernelSalesShell($content) {
-        var def = ksDef();
+    // Maps the dataset's lookup columns onto the loaded reference lists, in the shape buildRow wants.
+    function lookupsFor(def) {
+        var out = {};
+        Object.keys((def && def.lookups) || {}).forEach(function (colKey) {
+            out[colKey] = state.lookupSources[def.lookups[colKey]] || [];
+        });
+        return out;
+    }
+
+    // Resolves a dataFunctions wrapper named by the registry, so a typo or an un-deployed wrapper
+    // surfaces as an empty state rather than a TypeError halfway through rendering.
+    function ledgerRpc(def, which) {
+        var name = def && def.rpc && def.rpc[which];
+        return (name && typeof dataFunctions[name] === 'function') ? name : null;
+    }
+
+    function buildLedgerShell($content, def) {
+        var ls = ledgerState(def.datasetKey);
         $content.empty();
-        if (!def) {
-            $content.html(macEmptyState('fa-database', 'Kernel sales is not available',
-                'The column definitions for this dataset are missing.'));
-            return;
-        }
 
         var $bar = $('<div>', { 'class': 'row g-2 align-items-end mb-3' });
         var $fromCol = $('<div>', { 'class': 'col-auto' });
-        $fromCol.append($('<label>', { 'class': 'form-label', 'for': 'salesDataKsFrom' }).text('From'));
-        $fromCol.append($('<input>', { type: 'text', id: 'salesDataKsFrom', 'class': 'form-control form-control-sm flatpickr-date', autocomplete: 'off' }));
+        $fromCol.append($('<label>', { 'class': 'form-label', 'for': 'salesDataLedgerFrom' }).text('From'));
+        $fromCol.append($('<input>', { type: 'text', id: 'salesDataLedgerFrom', 'class': 'form-control form-control-sm flatpickr-date', autocomplete: 'off' }));
         var $toCol = $('<div>', { 'class': 'col-auto' });
-        $toCol.append($('<label>', { 'class': 'form-label', 'for': 'salesDataKsTo' }).text('To'));
-        $toCol.append($('<input>', { type: 'text', id: 'salesDataKsTo', 'class': 'form-control form-control-sm flatpickr-date', autocomplete: 'off' }));
+        $toCol.append($('<label>', { 'class': 'form-label', 'for': 'salesDataLedgerTo' }).text('To'));
+        $toCol.append($('<input>', { type: 'text', id: 'salesDataLedgerTo', 'class': 'form-control form-control-sm flatpickr-date', autocomplete: 'off' }));
         var $applyCol = $('<div>', { 'class': 'col-auto' });
         $applyCol.append($('<label>', { 'class': 'form-label d-block' }).html('&nbsp;'));
-        $applyCol.append($('<button>', { type: 'button', 'class': 'btn btn-sm btn-outline-secondary', id: 'salesDataKsApply' }).text('Apply'));
+        $applyCol.append($('<button>', { type: 'button', 'class': 'btn btn-sm btn-outline-secondary', id: 'salesDataLedgerApply' }).text('Apply'));
         var $sumCol = $('<div>', { 'class': 'col' });
-        $sumCol.append($('<div>', { 'class': 'text-muted small', id: 'salesDataKsSummary' }).html('&nbsp;'));
+        $sumCol.append($('<div>', { 'class': 'text-muted small', id: 'salesDataLedgerSummary' }).html('&nbsp;'));
         var $addCol = $('<div>', { 'class': 'col-auto' });
         $addCol.append($('<label>', { 'class': 'form-label d-block' }).html('&nbsp;'));
-        var $addBtn = $('<button>', { type: 'button', 'class': 'btn btn-sm btn-primary', id: 'salesDataKsAdd' })
+        $addCol.append($('<button>', { type: 'button', 'class': 'btn btn-sm btn-primary', id: 'salesDataLedgerAdd' })
             .attr('data-action-perm', 'reports.data.edit')
             .prop('disabled', !canEdit())
-            .text('Add line');
-        $addCol.append($addBtn);
+            .text('Add line'));
         $bar.append($fromCol).append($toCol).append($applyCol).append($sumCol).append($addCol);
         $content.append($bar);
 
@@ -431,40 +462,38 @@ var _salesDataGrid = function () {
         var $table = $('<table>', { 'class': 'table table-sm align-middle mb-0' });
         var $trh = $('<tr>');
         $trh.append($('<th>').text(''));
-        def.columns.forEach(function (col) {
-            $trh.append($('<th>').text(col.label));
-        });
+        def.columns.forEach(function (col) { $trh.append($('<th>').text(col.label)); });
         $trh.append($('<th>').text(''));
         $table.append($('<thead>').append($trh));
-        $table.append($('<tbody>', { id: 'salesDataKernelSalesBody' }));
-        $table.append($('<tfoot>', { id: 'salesDataKernelSalesTotals' }));
+        $table.append($('<tbody>', { id: 'salesDataLedgerBody' }));
+        $table.append($('<tfoot>', { id: 'salesDataLedgerTotals' }));
         $wrap.append($table);
         $content.append($wrap);
 
-        // Seed the range to the financial year, not the page period. A ledger of 277 lines over two
-        // years has roughly two rows in any given week, so seeding from a weekly period opens the
-        // tab on an empty grid — which reads as "the tab is broken" rather than "no sales that week".
-        // The FY is the unit Pete actually reconciles in; he can narrow it from here.
-        if (!state.ksFrom || !state.ksTo) {
-            var fy = fyRangeFor(state.start);
-            state.ksFrom = fy ? fy.from : state.start;
-            state.ksTo = fy ? fy.to : state.end;
+        // Seed the range to the financial year, not the page period. A ledger spanning years has
+        // roughly no rows in any given week, so seeding from a weekly period opens the tab on an
+        // empty grid — which reads as "the tab is broken" rather than "no sales that week". The FY
+        // is the unit Pete reconciles in; he can narrow it from here.
+        if (!ls.from || !ls.to) {
+            var fy = SalesDataRowGrid.fyRangeFor(state.start);
+            ls.from = fy ? fy.from : state.start;
+            ls.to = fy ? fy.to : state.end;
         }
-        $('#salesDataKsFrom').val(isoToPicker(state.ksFrom));
-        $('#salesDataKsTo').val(isoToPicker(state.ksTo));
-        [document.getElementById('salesDataKsFrom'), document.getElementById('salesDataKsTo')].forEach(function (el) {
+        $('#salesDataLedgerFrom').val(isoToPicker(ls.from));
+        $('#salesDataLedgerTo').val(isoToPicker(ls.to));
+        [document.getElementById('salesDataLedgerFrom'), document.getElementById('salesDataLedgerTo')].forEach(function (el) {
             if (el && typeof flatpickr !== 'undefined' && !el._flatpickr) flatpickr(el, FLATPICKR_DDMMYYYY);
         });
     }
 
-    // The delete control lives in a trailing cell that the column registry does not describe, so it
-    // is appended per row here rather than inside the generic engine.
-    function ksDecorateRow($tr) {
+    // The delete control lives in a trailing cell the column registry does not describe, so it is
+    // appended per row here rather than inside the generic engine.
+    function ledgerDecorateRow($tr) {
         var $cell = $('<td>', { 'class': 'text-end' });
         if (canEdit()) {
             $cell.append($('<button>', {
                 type: 'button',
-                'class': 'btn btn-sm btn-outline-danger js-sales-data-ks-delete',
+                'class': 'btn btn-sm btn-outline-danger js-sales-data-ledger-delete',
                 title: 'Delete line'
             }).append($('<i>', { 'class': 'fas fa-trash' })));
         }
@@ -472,9 +501,8 @@ var _salesDataGrid = function () {
         return $tr;
     }
 
-    function ksRenderTotals(rows) {
-        var def = ksDef();
-        var $foot = $('#salesDataKernelSalesTotals');
+    function ledgerRenderTotals(def, rows) {
+        var $foot = $('#salesDataLedgerTotals');
         $foot.empty();
         var totals = SalesDataRowGrid.totalsFor(def, rows);
         var $tr = $('<tr>');
@@ -486,66 +514,79 @@ var _salesDataGrid = function () {
         });
         $tr.append($('<th>').text(''));
         $foot.append($tr);
-        $('#salesDataKsSummary').text(rows.length + ' line' + (rows.length === 1 ? '' : 's') +
-            ' · ' + SalesDataRowGrid.formatKg(totals.vat_excl_zar) + ' excl · ' +
-            SalesDataRowGrid.formatKg(totals.vat_incl_zar) + ' incl');
+
+        var summary = rows.length + ' line' + (rows.length === 1 ? '' : 's');
+        if (def.moneyColumns) {
+            summary += ' · ' + SalesDataRowGrid.formatKg(totals[def.moneyColumns.excl]) + ' excl' +
+                ' · ' + SalesDataRowGrid.formatKg(totals[def.moneyColumns.incl]) + ' incl';
+        }
+        $('#salesDataLedgerSummary').text(summary);
     }
 
-    // Recomputes the totals row from what is currently typed, so the figures Pete reconciles against
+    // Recomputes the totals from what is currently typed, so the figures Pete reconciles against
     // stay live rather than only refreshing after a save.
-    function ksRecomputeTotalsFromDom() {
-        var def = ksDef();
+    function ledgerRecomputeTotalsFromDom() {
+        var def = ledgerDef();
         if (!def) return;
         var rows = [];
-        $('#salesDataKernelSalesBody tr').each(function () {
+        $('#salesDataLedgerBody tr').each(function () {
             if ($(this).find('[data-field]').length) rows.push(SalesDataRowGrid.collectRowPayload(def, this));
         });
-        ksRenderTotals(rows);
+        ledgerRenderTotals(def, rows);
     }
 
-    function loadKernelSalesData(forceRefresh) {
-        var def = ksDef();
-        if (!def) return Promise.resolve();
-        var $tbody = $('#salesDataKernelSalesBody');
-        $tbody.html(macLoadingRow(ksColCount(), 'Loading kernel sales…'));
-        return loadKernelSalesLookups().then(function () {
-            return dataFunctions.getDataKernelSalesLines(state.ksFrom, state.ksTo, 500, 0, null, !!forceRefresh);
+    function loadLedgerData(def, forceRefresh) {
+        var ls = ledgerState(def.datasetKey);
+        var $tbody = $('#salesDataLedgerBody');
+        var getter = ledgerRpc(def, 'get');
+        if (!getter) {
+            $tbody.html('<tr><td colspan="' + ledgerColCount(def) + '">' +
+                macEmptyState('fa-database', def.label || 'This dataset', 'It is not available in this build.') +
+                '</td></tr>');
+            return Promise.resolve();
+        }
+        $tbody.html(macLoadingRow(ledgerColCount(def), 'Loading…'));
+        return loadLookupSources(def).then(function () {
+            return dataFunctions[getter](ls.from, ls.to, 500, 0, null, !!forceRefresh);
         }).then(function (result) {
             var rows = Array.isArray(result) ? result : (result ? [result] : []);
-            state.ksRows = rows;
-            state.ksDirty = {};
-            SalesDataRowGrid.renderRows($tbody, def, rows, canEdit(), state.ksLookups);
+            ls.rows = rows;
+            ls.dirty = {};
+            SalesDataRowGrid.renderRows($tbody, def, rows, canEdit(), lookupsFor(def));
             $tbody.find('tr').each(function () {
-                if ($(this).find('[data-field]').length) ksDecorateRow($(this));
+                if ($(this).find('[data-field]').length) ledgerDecorateRow($(this));
             });
-            ksRenderTotals(rows);
+            ledgerRenderTotals(def, rows);
             setSaveStatus(' ');
         }).catch(function (err) {
-            console.warn('[sales-data] getDataKernelSalesLines failed', err);
-            state.ksRows = [];
-            $tbody.html('<tr><td colspan="' + ksColCount() + '">' +
-                macEmptyState('fa-database', 'Kernel sales is not available yet',
+            console.warn('[sales-data] ' + getter + ' failed', err);
+            ls.rows = [];
+            $tbody.html('<tr><td colspan="' + ledgerColCount(def) + '">' +
+                macEmptyState('fa-database', (def.label || 'This dataset') + ' is not available yet',
                     'The data-page migrations have not been applied to this database.') +
                 '</td></tr>');
         });
     }
 
-    function flushKernelSalesAutoSave() {
-        var keys = Object.keys(state.ksDirty);
-        if (!keys.length) return Promise.resolve();
-        var def = ksDef();
+    function flushLedgerAutoSave() {
+        var def = ledgerDef();
         if (!def) return Promise.resolve();
+        var ls = ledgerState(def.datasetKey);
+        var keys = Object.keys(ls.dirty);
+        if (!keys.length) return Promise.resolve();
+        var saver = ledgerRpc(def, 'upsert');
+        if (!saver) return Promise.resolve();
 
         var payload = [];
         var savedKeys = [];
         var pendingInvalid = 0;
         keys.forEach(function (key) {
-            var $tr = ksFindRow(key);
+            var $tr = ledgerFindRow(key);
             if (!$tr.length) return;
             var row = SalesDataRowGrid.collectRowPayload(def, $tr);
-            // An insert with no sale_date is silently dropped by the RPC's WHERE clause, so hold the
-            // row back and leave it dirty rather than reporting a save that wrote nothing.
-            if (!row.sale_date) {
+            // An insert with no date is silently dropped by the RPC's WHERE clause, so hold the row
+            // back and leave it dirty rather than reporting a save that wrote nothing.
+            if (!row[def.dateColumn]) {
                 pendingInvalid += 1;
                 return;
             }
@@ -559,78 +600,83 @@ var _salesDataGrid = function () {
         }
 
         setSaveStatus('Saving…');
-        return dataFunctions.upsertDataKernelSalesLines(payload)
+        return dataFunctions[saver](payload)
             .then(function (result) {
                 if (isQueuedOffline(result)) {
-                    savedKeys.forEach(function (k) { delete state.ksDirty[k]; });
+                    savedKeys.forEach(function (k) { delete ls.dirty[k]; });
                     setSaveStatus('Offline — changes queued and will save when the connection returns.');
                     return;
                 }
                 var row = firstRpcRow(result);
                 if (row && Number(row.success) === 1) {
-                    savedKeys.forEach(function (k) { delete state.ksDirty[k]; });
+                    savedKeys.forEach(function (k) { delete ls.dirty[k]; });
                     setSaveStatus(pendingInvalid
                         ? 'Saved. ' + pendingInvalid + ' line(s) still need a date.'
                         : 'Saved.', !!pendingInvalid);
-                    // A reload is the only way a new row learns its server-assigned id, so unlike the
-                    // production pane this cannot be deferred indefinitely — but it still waits until
-                    // the caret is out of the grid.
-                    ksReloadWhenIdle();
+                    // A reload is the only way a new row learns its server-assigned id, but it still
+                    // waits until the caret is out of the grid.
+                    ledgerReloadWhenIdle(def);
                 } else {
                     setSaveStatus((row && row.error) ? row.error : 'Could not save the changes.', true);
                 }
             })
             .catch(function (err) {
-                console.warn('[sales-data] upsertDataKernelSalesLines failed', err);
+                console.warn('[sales-data] ' + saver + ' failed', err);
                 setSaveStatus('Could not save — this feature may not be available on this database yet.', true);
             });
     }
 
-    function ksGridHasFocus() {
+    function ledgerGridHasFocus() {
         var el = document.activeElement;
-        return !!(el && $(el).closest('#salesDataKernelSalesBody').length);
+        return !!(el && $(el).closest('#salesDataLedgerBody').length);
     }
 
-    function ksReloadWhenIdle() {
+    function ledgerReloadWhenIdle(def) {
         if (state.reloadTimer) clearTimeout(state.reloadTimer);
         state.reloadTimer = setTimeout(function () {
             state.reloadTimer = null;
-            if (Object.keys(state.ksDirty).length || ksGridHasFocus()) {
-                ksReloadWhenIdle();
+            var ls = ledgerState(def.datasetKey);
+            if (Object.keys(ls.dirty).length || ledgerGridHasFocus()) {
+                ledgerReloadWhenIdle(def);
                 return;
             }
-            loadKernelSalesData(true);
+            loadLedgerData(def, true);
         }, 1500);
     }
 
-    function ksAddLine() {
+    function ledgerAddLine() {
         if (!canEdit()) return;
-        var def = ksDef();
+        var def = ledgerDef();
         if (!def) return;
+        var ls = ledgerState(def.datasetKey);
         var seed = {};
-        seed[def.dateColumn] = state.ksFrom || state.start || '';
-        var $tr = SalesDataRowGrid.addBlankRow($('#salesDataKernelSalesBody'), def, true, state.ksLookups, seed);
-        ksDecorateRow($tr);
-        var key = ksRowKey($tr);
-        state.ksDirty[key] = true;
+        seed[def.dateColumn] = ls.from || state.start || '';
+        var $tr = SalesDataRowGrid.addBlankRow($('#salesDataLedgerBody'), def, true, lookupsFor(def), seed);
+        ledgerDecorateRow($tr);
+        ls.dirty[ledgerRowKey($tr, ls)] = true;
         setSaveStatus('Unsaved changes…');
         $tr.find('[data-field="' + def.dateColumn + '"]').trigger('focus');
     }
 
-    function ksDeleteLine($tr) {
+    function ledgerDeleteLine($tr) {
         if (!canEdit()) return;
+        var def = ledgerDef();
+        if (!def) return;
+        var ls = ledgerState(def.datasetKey);
         var id = $tr.attr('data-row-id');
         if (!id) {
             // Never saved — nothing on the server to remove.
-            delete state.ksDirty[ksRowKey($tr)];
+            delete ls.dirty[ledgerRowKey($tr, ls)];
             $tr.remove();
-            ksRecomputeTotalsFromDom();
+            ledgerRecomputeTotalsFromDom();
             return;
         }
+        var remover = ledgerRpc(def, 'del');
+        if (!remover) return;
         Swal.fire({
             icon: 'warning',
             title: 'Delete this line?',
-            text: 'The sales line is removed permanently.',
+            text: 'The line is removed permanently.',
             showCancelButton: true,
             confirmButtonText: 'Delete',
             cancelButtonText: 'Cancel',
@@ -638,42 +684,45 @@ var _salesDataGrid = function () {
             cancelButtonColor: '#6c757d'
         }).then(function (result) {
             if (!result.isConfirmed) return;
-            return dataFunctions.deleteDataKernelSalesLine(id).then(function (res) {
+            return dataFunctions[remover](id).then(function (res) {
                 if (isQueuedOffline(res)) {
                     setSaveStatus('Offline — the delete is queued.');
                     return;
                 }
                 var row = firstRpcRow(res);
                 if (row && Number(row.success) === 1) {
-                    delete state.ksDirty[id];
-                    loadKernelSalesData(true);
+                    delete ls.dirty[id];
+                    loadLedgerData(def, true);
                 } else {
                     Swal.fire({ icon: 'error', title: 'Could not delete', text: (row && row.error) || 'The line was not removed.' });
                 }
             }).catch(function (err) {
-                console.warn('[sales-data] deleteDataKernelSalesLine failed', err);
+                console.warn('[sales-data] ' + remover + ' failed', err);
                 Swal.fire({ icon: 'error', title: 'Could not delete', text: 'This feature is not available yet on this database.' });
             });
         });
     }
 
-    function ksApplyRange() {
-        var from = pickerDateToIso($('#salesDataKsFrom').val());
-        var to = pickerDateToIso($('#salesDataKsTo').val());
+    function ledgerApplyRange() {
+        var def = ledgerDef();
+        if (!def) return;
+        var ls = ledgerState(def.datasetKey);
+        var from = pickerDateToIso($('#salesDataLedgerFrom').val());
+        var to = pickerDateToIso($('#salesDataLedgerTo').val());
         if (!from || !to) {
             setSaveStatus('Enter both dates as dd/mm/yyyy.', true);
             return;
         }
+        // Plain string comparison is correct for yyyy-mm-dd and keeps this file free of Date
+        // arithmetic, as its header comment requires.
         if (from > to) {
-            // Plain string comparison is safe and correct for yyyy-mm-dd, and keeps this file free of
-            // Date arithmetic as its header comment requires.
             setSaveStatus('From must not be after To.', true);
             return;
         }
         flushAutoSave().then(function () {
-            state.ksFrom = from;
-            state.ksTo = to;
-            return loadKernelSalesData(true);
+            ls.from = from;
+            ls.to = to;
+            return loadLedgerData(def, true);
         });
     }
 
@@ -779,9 +828,10 @@ var _salesDataGrid = function () {
             buildProductionTableShell($content);
             return loadProductionData(!!forceReload);
         }
-        if (key === 'kernel_sales_lines') {
-            buildKernelSalesShell($content);
-            return loadKernelSalesData(!!forceReload);
+        var lDef = ledgerDef(key);
+        if (lDef) {
+            buildLedgerShell($content, lDef);
+            return loadLedgerData(lDef, !!forceReload);
         }
         $content.html(macEmptyState('fa-table', datasetLabel(key) + ' is not built yet',
             'This dataset will be added in a later release.'));
@@ -833,8 +883,10 @@ var _salesDataGrid = function () {
         // Changing the page period reseeds the ledger to that period's financial year. Pete can
         // narrow it again afterwards; this only decides where he starts from.
         var fyRange = fyRangeFor(start);
-        state.ksFrom = fyRange ? fyRange.from : start;
-        state.ksTo = fyRange ? fyRange.to : end;
+        Object.keys(state.ledgers).forEach(function (k) {
+            state.ledgers[k].from = fyRange ? fyRange.from : start;
+            state.ledgers[k].to = fyRange ? fyRange.to : end;
+        });
     }
 
     function resolvePeriodFromCurrent() {
@@ -958,34 +1010,35 @@ var _salesDataGrid = function () {
         $(document).on('click.salesData', '#salesDataReseedBtn', function () { handleReseed(); });
         $(document).on('click.salesData', '#salesDataDriftBtn', function () { openDriftModal(); });
 
-        // Kernel sales ledger.
-        $(document).on('input.salesData change.salesData', '#salesDataKernelSalesBody .js-sales-data-input', function () {
+        // Ledger tabs (kernel sales, oil sales, and any later id-keyed dataset).
+        $(document).on('input.salesData change.salesData', '#salesDataLedgerBody .js-sales-data-input', function () {
             if (!canEdit()) return;
             var $tr = $(this).closest('tr');
             if (!$tr.find('[data-field]').length) return;
-            var def = ksDef();
+            var def = ledgerDef();
+            if (!def) return;
+            var ls = ledgerState(def.datasetKey);
             var field = $(this).attr('data-field');
 
-            // Money is derived from quantity x price ONLY when one of those two changes, and never on
-            // load — 3 of the 277 backfilled rows do not satisfy excl = qty x price, and those stored
-            // figures are authoritative. Pete can still overtype any of the three afterwards.
             // Picking a contact keeps the free-text name in step with it, so the two never disagree.
-            // Clearing the dropdown deliberately leaves the name alone — that is the shape 63 of the
-            // backfilled rows already have (a name Pete typed, no contact it resolved to).
+            // Clearing the dropdown deliberately leaves the name alone — that is the shape most of
+            // the backfilled rows already have (a name Pete typed, no contact it resolved to).
             if (field === 'customer_id') {
                 var picked = $(this).val();
                 if (picked) {
                     var match = null;
-                    state.ksLookups.customer_id.forEach(function (o) {
+                    (state.lookupSources.contacts || []).forEach(function (o) {
                         if (String(o.value) === String(picked)) match = o;
                     });
                     if (match) $tr.find('[data-field="customer_name"]').val(match.label);
                 }
             }
 
-            if (def && def.derivedMoney && (field === 'quantity_kg' || field === 'price_per_kg')) {
-                var current = SalesDataRowGrid.collectRowPayload(def, $tr);
-                var money = SalesDataRowGrid.recomputeMoney(current);
+            // Money is derived from quantity x price ONLY when one of those two changes, and never
+            // on load — a handful of backfilled rows do not satisfy excl = qty x price, and those
+            // stored figures are authoritative. Pete can still overtype any of the three afterwards.
+            if (def.derivedMoney && (field === 'quantity_kg' || field === 'price_per_kg')) {
+                var money = SalesDataRowGrid.recomputeMoney(SalesDataRowGrid.collectRowPayload(def, $tr));
                 if (money) {
                     Object.keys(money).forEach(function (k) {
                         $tr.find('[data-field="' + k + '"]').val(String(money[k]));
@@ -993,15 +1046,15 @@ var _salesDataGrid = function () {
                 }
             }
 
-            state.ksDirty[ksRowKey($tr)] = true;
+            ls.dirty[ledgerRowKey($tr, ls)] = true;
             setSaveStatus('Unsaved changes…');
-            ksRecomputeTotalsFromDom();
+            ledgerRecomputeTotalsFromDom();
             scheduleAutoSave();
         });
-        $(document).on('click.salesData', '#salesDataKsAdd', function () { ksAddLine(); });
-        $(document).on('click.salesData', '#salesDataKsApply', function () { ksApplyRange(); });
-        $(document).on('click.salesData', '.js-sales-data-ks-delete', function () {
-            ksDeleteLine($(this).closest('tr'));
+        $(document).on('click.salesData', '#salesDataLedgerAdd', function () { ledgerAddLine(); });
+        $(document).on('click.salesData', '#salesDataLedgerApply', function () { ledgerApplyRange(); });
+        $(document).on('click.salesData', '.js-sales-data-ledger-delete', function () {
+            ledgerDeleteLine($(this).closest('tr'));
         });
     }
 
@@ -1018,13 +1071,9 @@ var _salesDataGrid = function () {
             state.dirtyDates = {};
             state.invalidDates = {};
             state.driftRows = [];
-            state.ksFrom = null;
-            state.ksTo = null;
-            state.ksRows = [];
-            state.ksDirty = {};
-            state.ksNewSeq = 0;
-            state.ksLookups = { customer_id: [], style_code: [] };
-            state.ksLookupsLoaded = false;
+            state.ledgers = {};
+            state.lookupSources = { contacts: [], kernel_styles: [] };
+            state.lookupsLoaded = {};
             $('#salesDataPeriodWeekly').prop('checked', true);
             setSaveStatus('\u00a0');
             bindEvents();
