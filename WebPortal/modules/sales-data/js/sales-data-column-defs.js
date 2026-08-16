@@ -225,11 +225,50 @@
         { key: 'notes', label: 'Notes', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false }
     ];
 
+    // Nut-in-shell intake — a ledger, but the only one with a factory mirror. moisture/PV/FFA carry
+    // *_system twins refreshed by reseed_data_nis_intake; SKR and USKR do not, because the crack-out
+    // sample is not trustworthy as a source (one batch records 5000g sound kernel in a 5kg sample).
+    //
+    // received_date is NULLABLE here, unlike sale_date and export_date. get_data_nis_intake returns
+    // dateless rows regardless of the range filter, deliberately, so an incomplete row cannot hide
+    // from whoever has to fix it — hence requiresDate: false on the registry entry below.
+    var NIS_INTAKE_COLUMNS = [
+        { key: 'received_date', label: 'Received', type: 'date', step: null, hasSystemTwin: false, nullable: true, totalable: false },
+        {
+            key: 'supplier_id', label: 'Supplier', type: 'lookup', step: null,
+            hasSystemTwin: false, nullable: true, totalable: false,
+            unmatchedFrom: 'supplier_name', blankLabel: '— none —'
+        },
+        { key: 'supplier_name', label: 'Supplier name', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false },
+        // `integer` in the database, not numeric — decimals: 0 keeps a typed "12.34" from reaching
+        // an ::integer cast and failing the whole save.
+        { key: 'supplier_number', label: 'Supplier no.', type: 'number', step: '1', decimals: 0, hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'job_number', label: 'Job', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'batch_number', label: 'Batch', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'nis_kg', label: 'NIS kg', type: 'number', step: '0.01', hasSystemTwin: false, nullable: false, totalable: true },
+        // The three seedable lab results, all numeric(_,4).
+        { key: 'moisture_pct', label: 'Moisture %', type: 'number', step: '0.0001', hasSystemTwin: true, nullable: true, totalable: false },
+        { key: 'pv', label: 'PV', type: 'number', step: '0.0001', hasSystemTwin: true, nullable: true, totalable: false },
+        { key: 'ffa_pct', label: 'FFA %', type: 'number', step: '0.0001', hasSystemTwin: true, nullable: true, totalable: false },
+        // Hand-entered only — no system twin, deliberately.
+        { key: 'sample_skr_pct', label: 'SKR %', type: 'number', step: '0.0001', hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'sample_uskr_pct', label: 'USKR %', type: 'number', step: '0.0001', hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'status_note', label: 'Status', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'notes', label: 'Notes', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false }
+    ];
+
     var DATASETS = {
         production_daily: {
             datasetKey: 'production_daily',
+            label: 'Production (daily)',
             dateColumn: 'production_date',
             supportsReseed: true,
+            // Re-seed and drift are independent capabilities. This dataset has both: its read RPC
+            // returns cracked_kg_live / sk_packed_kg_live, so a live comparison is possible.
+            rpc: { reseed: 'reseedDataProductionDaily' },
+            supportsDrift: true,
+            reseedPrompt: 'This re-pulls Cracked and Packed from the factory system for every day ' +
+                'in this period that is missing a row.',
             columns: PRODUCTION_DAILY_COLUMNS
         },
         kernel_sales_lines: {
@@ -301,6 +340,33 @@
                 { key: 'rand_value', label: 'ZAR' }
             ],
             columns: OIL_EXPORT_COLUMNS
+        },
+        nis_intake: {
+            datasetKey: 'nis_intake',
+            label: 'Nut in Shell Intake',
+            dateColumn: 'received_date',
+            idColumn: 'id',
+            allowAddRemove: true,
+            supportsReseed: true,
+            // Re-seed yes, drift no: reseed_data_nis_intake exists, but get_data_nis_intake returns
+            // no _live columns, so there is nothing to compare a mirror against. Showing a Drift
+            // button here would open a modal that can only ever be empty.
+            supportsDrift: false,
+            reseedPrompt: 'This re-pulls moisture, PV and FFA from batch capture for intake rows ' +
+                'linked to a batch. It creates no rows.',
+            // received_date is nullable and the insert has no date guard — see NIS_INTAKE_COLUMNS.
+            requiresDate: false,
+            emptyText: 'No intake rows in this date range.',
+            rpc: {
+                get: 'getDataNisIntake',
+                upsert: 'upsertDataNisIntakeRows',
+                del: 'deleteDataNisIntakeRow',
+                reseed: 'reseedDataNisIntake'
+            },
+            lookups: { supplier_id: 'contacts' },
+            derivedMoney: false,
+            summaryColumns: [{ key: 'nis_kg', label: 'kg' }],
+            columns: NIS_INTAKE_COLUMNS
         }
     };
 
