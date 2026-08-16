@@ -181,6 +181,50 @@
         { key: 'notes', label: 'Notes', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false }
     ];
 
+    // The four values data_oil_export_register_class_check allows. Note this is a DIFFERENT list
+    // from OIL_PRODUCT_LINES above — the export register classes by 'evmo'/'crude', the sales
+    // ledger by 'extra_virgin'/'crude_cosmetic'. They are not interchangeable and must not be
+    // merged into one list.
+    var OIL_EXPORT_CLASSES = [
+        { value: 'evmo', label: 'EVMO' },
+        { value: 'crude', label: 'Crude' },
+        { value: 'protein', label: 'Protein' },
+        { value: 'other', label: 'Other' }
+    ];
+
+    // Oil export register — a ledger like the sales tabs, but denominated in USD with a rand
+    // conversion, and keyed on export_date rather than sale_date. It carries no VAT columns at all,
+    // so nothing here is derived: see the registry entry below for why.
+    var OIL_EXPORT_COLUMNS = [
+        { key: 'export_date', label: 'Date', type: 'date', step: null, hasSystemTwin: false, nullable: false, totalable: false },
+        {
+            key: 'customer_id', label: 'Customer', type: 'lookup', step: null,
+            hasSystemTwin: false, nullable: true, totalable: false,
+            unmatchedFrom: 'customer_name', blankLabel: '— none —'
+        },
+        { key: 'customer_name', label: 'Customer name', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'location_country', label: 'Country', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'document_number', label: 'Document', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'reference', label: 'Reference', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false },
+        {
+            key: 'product_class', label: 'Class', type: 'select', step: null,
+            hasSystemTwin: false, nullable: true, totalable: false,
+            options: OIL_EXPORT_CLASSES, blankLabel: '— none —'
+        },
+        // Incoterm has no CHECK constraint in the database, so it stays free text rather than a
+        // select that would reject a term the register legitimately uses.
+        { key: 'incoterm', label: 'Incoterm', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'weight_kg', label: 'Weight kg', type: 'number', step: '0.01', hasSystemTwin: false, nullable: true, totalable: true },
+        // numeric(12,4)
+        { key: 'price_per_kg_usd', label: 'USD/kg', type: 'number', step: '0.0001', hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'usd_debit', label: 'USD', type: 'number', step: '0.01', hasSystemTwin: false, nullable: true, totalable: true },
+        { key: 'load_count', label: 'Loads', type: 'number', step: '0.01', hasSystemTwin: false, nullable: true, totalable: true },
+        // numeric(10,4) — the exchange rate needs all four decimals.
+        { key: 'usd_zar_rate', label: 'USD/ZAR', type: 'number', step: '0.0001', hasSystemTwin: false, nullable: true, totalable: false },
+        { key: 'rand_value', label: 'ZAR', type: 'number', step: '0.01', hasSystemTwin: false, nullable: true, totalable: true },
+        { key: 'notes', label: 'Notes', type: 'text', step: null, hasSystemTwin: false, nullable: true, totalable: false }
+    ];
+
     var DATASETS = {
         production_daily: {
             datasetKey: 'production_daily',
@@ -207,7 +251,7 @@
             lookups: { customer_id: 'contacts', style_code: 'kernel_styles' },
             // Recomputed from quantity x price when either changes — never on load.
             derivedMoney: true,
-            moneyColumns: { excl: 'vat_excl_zar', incl: 'vat_incl_zar' },
+            summaryColumns: [{ key: 'vat_excl_zar', label: 'excl' }, { key: 'vat_incl_zar', label: 'incl' }],
             columns: KERNEL_SALES_COLUMNS
         },
         oil_sales_lines: {
@@ -227,8 +271,36 @@
             // options inline — only the customer column needs a reference list.
             lookups: { customer_id: 'contacts' },
             derivedMoney: true,
-            moneyColumns: { excl: 'vat_excl_zar', incl: 'vat_incl_zar' },
+            summaryColumns: [{ key: 'vat_excl_zar', label: 'excl' }, { key: 'vat_incl_zar', label: 'incl' }],
             columns: OIL_SALES_COLUMNS
+        },
+        oil_export_register: {
+            datasetKey: 'oil_export_register',
+            label: 'Oil Export Register',
+            dateColumn: 'export_date',
+            idColumn: 'id',
+            allowAddRemove: true,
+            supportsReseed: false,
+            emptyText: 'No export register rows in this date range.',
+            rpc: {
+                get: 'getDataOilExportRegister',
+                upsert: 'upsertDataOilExportRegister',
+                // Note the suffix: this RPC is delete_data_oil_export_register_ROW, not _line.
+                del: 'deleteDataOilExportRegisterRow'
+            },
+            lookups: { customer_id: 'contacts' },
+            // NOT derived. usd_debit = weight x USD/kg and rand_value = usd_debit x rate is the
+            // obvious reading of these column names, but data_oil_export_register is empty on every
+            // database, so that arithmetic cannot be checked against a single real row. Deriving it
+            // on a guess would overwrite figures Pete typed from his own register. Turn this on once
+            // the YE2027 register is loaded and the convention can actually be verified.
+            derivedMoney: false,
+            summaryColumns: [
+                { key: 'weight_kg', label: 'kg' },
+                { key: 'usd_debit', label: 'USD' },
+                { key: 'rand_value', label: 'ZAR' }
+            ],
+            columns: OIL_EXPORT_COLUMNS
         }
     };
 

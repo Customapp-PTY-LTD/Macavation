@@ -6302,6 +6302,48 @@ var _dataFunctions = function () {
             return result;
         },
 
+        // ------------------------------------------------------------------
+        // Oil export register. Same whole-row upsert caveat as the two sales ledgers, and the same
+        // "an insert with no date is silently skipped" guard — here the date column is export_date.
+        // ------------------------------------------------------------------
+
+        getDataOilExportRegister: async function (dateFrom, dateTo, limit = 500, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 500,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_oil_export_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_oil_export_register', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertDataOilExportRegister: async function (rows, token = null) {
+            // Pass the array itself, NOT JSON.stringify(rows).
+            const params = {
+                p_rows: Array.isArray(rows) ? rows : [rows],
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('upsert_data_oil_export_register', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        // The RPC name ends in _row, not _line, unlike the two sales-line deletes above.
+        deleteDataOilExportRegisterRow: async function (id, token = null) {
+            const key = (id != null ? String(id) : '').trim();
+            if (!key) throw new Error('deleteDataOilExportRegisterRow: id is required.');
+            const result = await this.callFunction('delete_data_oil_export_register_row', { p_id: key }, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
         // Reference data for the Style dropdown. Static TTL like getContacts — the registry holds
         // 11 rows and changes rarely.
         getKernelStyles: async function (includeInactive = false, token = null, forceRefresh = false) {

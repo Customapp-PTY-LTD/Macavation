@@ -516,10 +516,11 @@ var _salesDataGrid = function () {
         $foot.append($tr);
 
         var summary = rows.length + ' line' + (rows.length === 1 ? '' : 's');
-        if (def.moneyColumns) {
-            summary += ' · ' + SalesDataRowGrid.formatKg(totals[def.moneyColumns.excl]) + ' excl' +
-                ' · ' + SalesDataRowGrid.formatKg(totals[def.moneyColumns.incl]) + ' incl';
-        }
+        // Which totals headline the summary is per dataset — the sales ledgers lead with VAT
+        // exclusive/inclusive, the export register with kilograms, USD and rands.
+        (def.summaryColumns || []).forEach(function (s) {
+            summary += ' · ' + SalesDataRowGrid.formatKg(totals[s.key]) + ' ' + s.label;
+        });
         $('#salesDataLedgerSummary').text(summary);
     }
 
