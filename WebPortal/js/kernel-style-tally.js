@@ -50,22 +50,28 @@
         return {};
     }
 
-    // Cartons per style for one batch: the recorded carton count, else a carton equivalent derived
-    // from kg, else zero. Cartons win when both exist — that is the stock page's rule, kept as-is.
-    function cellsForBatch(batch) {
+    // Per style for one batch, in the requested unit.
+    //
+    // 'cartons' (the default) is the Kernel Stock on Hand page's rule, unchanged: the recorded
+    // carton count, else a carton equivalent from kg, else zero. 'kg' is its mirror image: the
+    // recorded kg, else kg derived from the carton count. Each unit therefore prefers the figure
+    // that was actually captured in that unit and only derives the other as a fallback — so
+    // switching units is not a lossy round-trip through 11.34 when both were recorded.
+    function cellsForBatch(batch, unit) {
+        var wantKg = String(unit || 'cartons') === 'kg';
         var remKg = styleMapFromBatch(batch, 'remaining_by_style');
         var remCart = styleMapFromBatch(batch, 'remaining_by_style_cartons');
         var out = {};
         KERNEL_STYLES.forEach(function (k) {
             var rk = parseNum(remKg[k]);
             var rc = parseNum(remCart[k]);
-            if (rc > 0) {
-                out[k] = rc;
-            } else if (rk > 0) {
-                out[k] = Math.round((rk / KG_PER_CARTON) * 100) / 100;
+            var v;
+            if (wantKg) {
+                v = rk > 0 ? rk : (rc > 0 ? rc * KG_PER_CARTON : 0);
             } else {
-                out[k] = 0;
+                v = rc > 0 ? rc : (rk > 0 ? rk / KG_PER_CARTON : 0);
             }
+            out[k] = Math.round(v * 100) / 100;
         });
         return out;
     }
@@ -83,20 +89,23 @@
         return FINISHED_STATUSES.indexOf(st) !== -1;
     }
 
-    // The tally: cartons per style summed over every finished batch still holding stock, plus the
-    // batch count that produced it. Rounded to 2dp per style so float addition cannot show a
-    // carton count like 482.99999999.
-    function tallyForBatches(batches) {
+    // The tally: per style, in the requested unit, summed over every finished batch still holding
+    // stock, plus the batch count that produced it. Rounded to 2dp per style so float addition
+    // cannot show a carton count like 482.99999999.
+    //
+    // Which batches are included never depends on the unit — visibility is always decided on the
+    // carton view, so switching to kg cannot make a batch appear or vanish.
+    function tallyForBatches(batches, unit) {
         var list = Array.isArray(batches) ? batches : [];
         var visible = list.filter(function (b) { return isFinishedBatch(b) && batchHasStock(b); });
         var totals = {};
         KERNEL_STYLES.forEach(function (k) { totals[k] = 0; });
         visible.forEach(function (b) {
-            var cells = cellsForBatch(b);
+            var cells = cellsForBatch(b, unit);
             KERNEL_STYLES.forEach(function (k) { totals[k] += parseNum(cells[k]); });
         });
         KERNEL_STYLES.forEach(function (k) { totals[k] = Math.round(totals[k] * 100) / 100; });
-        return { totals: totals, batchCount: visible.length };
+        return { totals: totals, batchCount: visible.length, unit: String(unit || 'cartons') === 'kg' ? 'kg' : 'cartons' };
     }
 
     function grandTotal(totals) {

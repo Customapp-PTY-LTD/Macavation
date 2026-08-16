@@ -182,17 +182,36 @@ var _reportEditor = function () {
     // Chart.js object bound to a canvas that has been removed from the DOM.
     var kernelStockCharts = {};
 
+    // Batches are fetched once and held, so flipping cartons/kg re-totals in place rather than
+    // making another round trip for figures already in hand.
+    var kernelStockBatches = null;
+
     function destroyKernelStockCharts() {
         Object.keys(kernelStockCharts).forEach(function (k) {
             try { kernelStockCharts[k].destroy(); } catch (e) { /* ignore */ }
             delete kernelStockCharts[k];
         });
+        // Held batches belong to the report being torn down; a later report must re-fetch.
+        kernelStockBatches = null;
     }
 
     function buildKernelStockBody(index) {
         var $wrap = $('<div>', { 'class': 'js-kernel-stock-body' }).attr('data-index', String(index));
 
-        // Tally — styles across the top, one totals row beneath, exactly as the stock page shows it.
+        // Tally — styles across the top, one totals row beneath, exactly as the stock page shows it,
+        // under its own heading with a cartons/kg switch.
+        var $tallyHead = $('<div>', { 'class': 'd-flex flex-wrap align-items-center gap-2 mb-2' });
+        $tallyHead.append($('<h6>', { 'class': 'mb-0 me-2' }).text('Kernel Stock on Hand'));
+        var $unitGroup = $('<div>', { 'class': 'btn-group btn-group-sm js-kernel-stock-units' });
+        [{ key: 'cartons', label: 'Cartons' }, { key: 'kg', label: 'Kg' }].forEach(function (u) {
+            $unitGroup.append($('<button>', {
+                type: 'button',
+                'class': 'btn btn-outline-secondary js-kernel-stock-unit' + (u.key === 'cartons' ? ' active' : '')
+            }).attr('data-unit', u.key).text(u.label));
+        });
+        $tallyHead.append($unitGroup);
+        $wrap.append($tallyHead);
+
         var $tallyWrap = $('<div>', { 'class': 'table-responsive mb-3' });
         var $table = $('<table>', { 'class': 'table table-sm table-bordered align-middle mb-1 js-kernel-stock-tally' });
         var styles = (window.KernelStyleTally && window.KernelStyleTally.KERNEL_STYLES) || [];
@@ -235,9 +254,14 @@ var _reportEditor = function () {
         $bar.append($btnGroup);
         $wrap.append($bar);
 
+        // Chart.js runs with maintainAspectRatio:false, so it fills its container — the height is
+        // set on the wrapper, not the canvas, or the canvas attribute is simply overwritten on the
+        // first resize. 180px keeps the history readable without it dominating the section.
         var $chartWrap = $('<div>', { 'class': 'js-kernel-stock-chart-wrap' });
-        $chartWrap.append($('<canvas>', { 'class': 'js-kernel-stock-chart' })
-            .attr('height', '260').attr('data-index', String(index)));
+        var $chartBox = $('<div>', { 'class': 'js-kernel-stock-chart-box' }).css('height', '180px');
+        $chartBox.append($('<canvas>', { 'class': 'js-kernel-stock-chart' })
+            .attr('data-index', String(index)));
+        $chartWrap.append($chartBox);
         $chartWrap.append($('<div>', { 'class': 'text-muted small mt-1 js-kernel-stock-chart-note' })
             .text('Kilograms on hand, reconstructed from packing and dispatch. A different source ' +
                   'from the carton tally above.'));
@@ -246,28 +270,33 @@ var _reportEditor = function () {
         return $wrap;
     }
 
+    function renderKernelStockTally($body) {
+        var T = window.KernelStyleTally;
+        if (!T || !Array.isArray(kernelStockBatches)) return;
+        var unit = $body.find('.js-kernel-stock-unit.active').attr('data-unit') || 'cartons';
+        var result = T.tallyForBatches(kernelStockBatches, unit);
+        T.KERNEL_STYLES.forEach(function (s) {
+            $body.find('.js-kernel-stock-tally-row [data-style="' + s + '"]')
+                .text(formatCartons(result.totals[s] || 0));
+        });
+        $body.find('.js-kernel-stock-grand').text(formatCartons(T.grandTotal(result.totals)));
+        $body.find('.js-kernel-stock-tally-note').text(
+            (result.unit === 'kg' ? 'Kilograms' : 'Cartons') + ' on hand by style, across ' +
+            result.batchCount + ' finished batch' + (result.batchCount === 1 ? '' : 'es') +
+            ' still holding stock.');
+    }
+
     function loadKernelStockSection() {
         var $bodies = $('#reportEditorAccordion .js-kernel-stock-body');
         if (!$bodies.length) return;
 
         // Tally: the same call the Kernel Stock on Hand page makes, summed by the same shared module.
         dataFunctions.getKernelBatches(null, false, { status: 'complete' }).then(function (batches) {
-            var T = window.KernelStyleTally;
-            if (!T) return;
-            var result = T.tallyForBatches(Array.isArray(batches) ? batches : []);
-            $bodies.each(function () {
-                var $b = $(this);
-                T.KERNEL_STYLES.forEach(function (s) {
-                    $b.find('.js-kernel-stock-tally-row [data-style="' + s + '"]')
-                        .text(formatCartons(result.totals[s] || 0));
-                });
-                $b.find('.js-kernel-stock-grand').text(formatCartons(T.grandTotal(result.totals)));
-                $b.find('.js-kernel-stock-tally-note').text(
-                    'Cartons on hand by style, across ' + result.batchCount +
-                    ' finished batch' + (result.batchCount === 1 ? '' : 'es') + ' still holding stock.');
-            });
+            kernelStockBatches = Array.isArray(batches) ? batches : [];
+            $bodies.each(function () { renderKernelStockTally($(this)); });
         }).catch(function (err) {
             console.warn('[report-editor] kernel stock tally failed', err);
+            kernelStockBatches = null;
             $bodies.find('.js-kernel-stock-tally-note').text('Stock on hand is not available right now.');
         });
 
@@ -727,6 +756,13 @@ var _reportEditor = function () {
             $body.find('.js-kernel-stock-ranges').toggleClass('d-none', !on);
             // Chart.js sizes to a hidden canvas as zero, so redraw when it comes back into view.
             if (on) renderKernelStockChart($body, $body.find('.js-kernel-stock-range.active').attr('data-range') || '3M');
+        });
+        $(document).on('click.reportEditor', '.js-kernel-stock-unit', function () {
+            var $btn = $(this);
+            var $body = $btn.closest('.js-kernel-stock-body');
+            $body.find('.js-kernel-stock-unit').removeClass('active');
+            $btn.addClass('active');
+            renderKernelStockTally($body);
         });
         $(document).on('click.reportEditor', '.js-kernel-stock-range', function () {
             var $btn = $(this);
