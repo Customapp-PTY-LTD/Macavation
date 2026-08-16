@@ -193,7 +193,11 @@ var _stockManagementGrid = function () {
     /**
      * Per-style on-hand in cartons: use remaining cartons from the API; if none but remaining kg exists, show carton equivalent (kg / 11.34).
      */
+    // Delegates to WebPortal/js/kernel-style-tally.js so this page and the Kernel Stock Report
+    // section cannot drift apart on what "stock on hand" means. Falls back to the local computation
+    // only if that shared file failed to load, so the page still works rather than blanking.
     function getKernelStyleCellsForDisplay(batch) {
+        if (w_kernelTally()) return w_kernelTally().cellsForBatch(batch);
         var remKg = kernelStyleMapFromBatch(batch, 'remaining_by_style');
         var remCart = kernelStyleMapFromBatch(batch, 'remaining_by_style_cartons');
         var out = {};
@@ -209,6 +213,10 @@ var _stockManagementGrid = function () {
             }
         });
         return out;
+    }
+
+    function w_kernelTally() {
+        return (typeof window !== 'undefined' && window.KernelStyleTally) ? window.KernelStyleTally : null;
     }
 
     /**
