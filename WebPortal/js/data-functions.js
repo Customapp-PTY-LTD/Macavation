@@ -6344,6 +6344,61 @@ var _dataFunctions = function () {
             return result;
         },
 
+        // ------------------------------------------------------------------
+        // Nut-in-shell intake (migrations/20260819130000_data_page_nis_intake.sql). The only ledger
+        // with a factory mirror: moisture/PV/FFA carry *_system twins that reseed_data_nis_intake
+        // refreshes. Same whole-row upsert caveat as the other ledgers. Note received_date is
+        // NULLABLE and the insert has no date guard, unlike the sales ledgers.
+        // ------------------------------------------------------------------
+
+        getDataNisIntake: async function (dateFrom, dateTo, limit = 500, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 500,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_nis_intake_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_nis_intake', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertDataNisIntakeRows: async function (rows, token = null) {
+            // Pass the array itself, NOT JSON.stringify(rows).
+            const params = {
+                p_rows: Array.isArray(rows) ? rows : [rows],
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('upsert_data_nis_intake_rows', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        deleteDataNisIntakeRow: async function (id, token = null) {
+            const key = (id != null ? String(id) : '').trim();
+            if (!key) throw new Error('deleteDataNisIntakeRow: id is required.');
+            const result = await this.callFunction('delete_data_nis_intake_row', { p_id: key }, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        // Writes the *_system mirror columns only — never the effective figures Pete has entered.
+        reseedDataNisIntake: async function (dateFrom, dateTo, token = null) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('reseed_data_nis_intake', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
         // Reference data for the Style dropdown. Static TTL like getContacts — the registry holds
         // 11 rows and changes rarely.
         getKernelStyles: async function (includeInactive = false, token = null, forceRefresh = false) {

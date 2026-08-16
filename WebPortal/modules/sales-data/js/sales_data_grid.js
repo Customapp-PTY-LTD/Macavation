@@ -585,9 +585,13 @@ var _salesDataGrid = function () {
             var $tr = ledgerFindRow(key);
             if (!$tr.length) return;
             var row = SalesDataRowGrid.collectRowPayload(def, $tr);
-            // An insert with no date is silently dropped by the RPC's WHERE clause, so hold the row
-            // back and leave it dirty rather than reporting a save that wrote nothing.
-            if (!row[def.dateColumn]) {
+            // For the sales ledgers an insert with no date is silently dropped by the RPC's WHERE
+            // clause, so the row is held back and left dirty rather than reporting a save that
+            // wrote nothing. NIS intake is the exception: received_date is nullable there, its
+            // insert has no such guard, and get_data_nis_intake deliberately returns dateless rows
+            // regardless of the filter so an incomplete one cannot hide from whoever must fix it.
+            // Blocking the save would make those three rows uneditable.
+            if (def.requiresDate !== false && !row[def.dateColumn]) {
                 pendingInvalid += 1;
                 return;
             }
@@ -784,13 +788,26 @@ var _salesDataGrid = function () {
     // Refresh from factory (reseed).
     // ------------------------------------------------------------------
 
+    // Re-seed refreshes the *_system mirror columns only, never the effective figures — that single
+    // rule is the whole mechanism behind "keep Pete's value, flag the drift". Which RPC to call, and
+    // which date range to send, both come from the registry: a period-scoped dataset re-seeds the
+    // selected period, a ledger re-seeds its own From/To range.
     function handleReseed() {
-        if (!canEdit() || !state.start || !state.end) return;
+        var def = SalesDataColumnDefs.get(state.activeDatasetKey);
+        var fn = def && def.rpc && def.rpc.reseed;
+        if (!canEdit() || !fn || typeof dataFunctions[fn] !== 'function') return;
+
+        var ledger = SalesDataRowGrid.isLedger(def);
+        var ls = ledger ? ledgerState(def.datasetKey) : null;
+        var from = ledger ? ls.from : state.start;
+        var to = ledger ? ls.to : state.end;
+        if (!from || !to) return;
+
         Swal.fire({
             icon: 'question',
             title: 'Refresh from factory?',
-            text: 'This re-pulls Cracked and Packed from the factory system for every day in this ' +
-                'period that is missing a row. It will not change any figure you have already entered.',
+            text: (def.reseedPrompt || 'This re-pulls the factory figures for this range.') +
+                ' It will not change any figure you have already entered.',
             showCancelButton: true,
             confirmButtonText: 'Refresh',
             cancelButtonText: 'Cancel',
@@ -799,7 +816,7 @@ var _salesDataGrid = function () {
         }).then(function (result) {
             if (!result.isConfirmed) return;
             return flushAutoSave().then(function () {
-                return dataFunctions.reseedDataProductionDaily(state.start, state.end);
+                return dataFunctions[fn](from, to);
             }).then(function (reseedResult) {
                 if (isQueuedOffline(reseedResult)) {
                     Swal.fire({ icon: 'info', title: 'Queued', text: 'You are offline. The refresh will run when the connection returns.' });
@@ -807,13 +824,14 @@ var _salesDataGrid = function () {
                 }
                 var row = firstRpcRow(reseedResult);
                 if (row && Number(row.success) === 1) {
-                    loadProductionData(true);
+                    if (ledger) loadLedgerData(def, true);
+                    else loadProductionData(true);
                 } else {
                     var msg = (row && row.error) ? row.error : 'Could not refresh from the factory.';
                     Swal.fire({ icon: 'error', title: 'Could not refresh', text: msg });
                 }
             }).catch(function (err) {
-                console.warn('[sales-data] reseedDataProductionDaily failed', err);
+                console.warn('[sales-data] ' + fn + ' failed', err);
                 Swal.fire({ icon: 'error', title: 'Could not refresh', text: 'This feature is not available yet on this database.' });
             });
         });
@@ -849,14 +867,16 @@ var _salesDataGrid = function () {
         });
     }
 
-    // Drift and "Refresh from factory" are meaningful only for a dataset with a factory mirror.
-    // Kernel sales has no *_system columns and the catalog records supports_reseed = false, so both
-    // controls are hidden there rather than left visible and inert.
+    // The two header controls are independent capabilities, not one. NIS intake can be re-seeded
+    // (reseed_data_nis_intake) but has no drift RPC at all — get_data_nis_intake returns no _live
+    // columns to compare against — so it shows "Refresh from factory" and hides Drift. A dataset
+    // with neither, like the sales ledgers, hides both rather than leaving them visible and inert.
     function syncHeaderControls(key) {
         var def = SalesDataColumnDefs.get(key);
-        var seedable = !!(def && def.supportsReseed);
-        $('#salesDataReseedBtn').toggleClass('d-none', !seedable);
-        $('#salesDataDriftBtn').toggleClass('d-none', !seedable);
+        var canReseed = !!(def && def.rpc && def.rpc.reseed &&
+            typeof dataFunctions[def.rpc.reseed] === 'function');
+        $('#salesDataReseedBtn').toggleClass('d-none', !canReseed);
+        $('#salesDataDriftBtn').toggleClass('d-none', !(def && def.supportsDrift));
     }
 
     // ------------------------------------------------------------------
@@ -1021,17 +1041,21 @@ var _salesDataGrid = function () {
             var ls = ledgerState(def.datasetKey);
             var field = $(this).attr('data-field');
 
-            // Picking a contact keeps the free-text name in step with it, so the two never disagree.
+            // Picking a contact keeps the paired free-text name in step with it, so the two never
+            // disagree. The pairing is the column's own `unmatchedFrom`, so this works for the sales
+            // ledgers' customer_id/customer_name and NIS intake's supplier_id/supplier_name alike.
             // Clearing the dropdown deliberately leaves the name alone — that is the shape most of
             // the backfilled rows already have (a name Pete typed, no contact it resolved to).
-            if (field === 'customer_id') {
+            var col = null;
+            def.columns.forEach(function (c) { if (c.key === field) col = c; });
+            if (col && col.type === 'lookup' && col.unmatchedFrom) {
                 var picked = $(this).val();
                 if (picked) {
                     var match = null;
-                    (state.lookupSources.contacts || []).forEach(function (o) {
+                    (state.lookupSources[def.lookups[field]] || []).forEach(function (o) {
                         if (String(o.value) === String(picked)) match = o;
                     });
-                    if (match) $tr.find('[data-field="customer_name"]').val(match.label);
+                    if (match) $tr.find('[data-field="' + col.unmatchedFrom + '"]').val(match.label);
                 }
             }
 
