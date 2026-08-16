@@ -335,6 +335,10 @@ var _salesDataGrid = function () {
     // Kernel sales ledger pane.
     // ------------------------------------------------------------------
 
+    function fyRangeFor(iso) {
+        return SalesDataRowGrid.fyRangeFor(iso);
+    }
+
     function ksDef() {
         return SalesDataColumnDefs.get('kernel_sales_lines');
     }
@@ -437,9 +441,15 @@ var _salesDataGrid = function () {
         $wrap.append($table);
         $content.append($wrap);
 
-        // Seed the range from the page period the first time, then leave it under Pete's control.
-        if (!state.ksFrom) state.ksFrom = state.start;
-        if (!state.ksTo) state.ksTo = state.end;
+        // Seed the range to the financial year, not the page period. A ledger of 277 lines over two
+        // years has roughly two rows in any given week, so seeding from a weekly period opens the
+        // tab on an empty grid — which reads as "the tab is broken" rather than "no sales that week".
+        // The FY is the unit Pete actually reconciles in; he can narrow it from here.
+        if (!state.ksFrom || !state.ksTo) {
+            var fy = fyRangeFor(state.start);
+            state.ksFrom = fy ? fy.from : state.start;
+            state.ksTo = fy ? fy.to : state.end;
+        }
         $('#salesDataKsFrom').val(isoToPicker(state.ksFrom));
         $('#salesDataKsTo').val(isoToPicker(state.ksTo));
         [document.getElementById('salesDataKsFrom'), document.getElementById('salesDataKsTo')].forEach(function (el) {
@@ -820,10 +830,11 @@ var _salesDataGrid = function () {
             else el.value = ddmmyyyy;
         }
         if (canEdit()) $('#salesDataReseedBtn').prop('disabled', false);
-        // Changing the page period reseeds the ledger range. Pete can widen it again afterwards;
-        // this only decides where he starts from.
-        state.ksFrom = start;
-        state.ksTo = end;
+        // Changing the page period reseeds the ledger to that period's financial year. Pete can
+        // narrow it again afterwards; this only decides where he starts from.
+        var fyRange = fyRangeFor(start);
+        state.ksFrom = fyRange ? fyRange.from : start;
+        state.ksTo = fyRange ? fyRange.to : end;
     }
 
     function resolvePeriodFromCurrent() {

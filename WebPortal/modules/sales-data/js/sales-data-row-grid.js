@@ -216,6 +216,25 @@
         return d == null ? null : String(d).slice(0, 10);
     }
 
+    // The financial year containing a date, as a From/To pair.
+    //
+    // Mirrors report_fy_of_date() in migrations/20260817090000_report_builder_foundations.sql: an
+    // April–March year labelled by the year it ends in, so Aug 2026 is FY2027. This does not break
+    // the module's no-client-side-period-maths rule — an FY's boundaries are two FIXED calendar
+    // dates (1 April and 31 March), so deriving them needs only integer arithmetic on the year.
+    // There is no month-length, weekday or timezone question to get wrong, which is what that rule
+    // exists to prevent. Anything that genuinely varies still resolves on the server.
+    function fyRangeFor(iso) {
+        var s = String(iso == null ? '' : iso).trim();
+        if (!ISO_DATE_RE.test(s)) return null;
+        var parts = s.split('-');
+        var year = parseInt(parts[0], 10);
+        var month = parseInt(parts[1], 10);
+        if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) return null;
+        var fyEnd = year + (month >= 4 ? 1 : 0);
+        return { from: (fyEnd - 1) + '-04-01', to: fyEnd + '-03-31', fy: fyEnd };
+    }
+
     // ------------------------------------------------------------------
     // Rendering / DOM collection — browser only. References w.jQuery/w.MacStatus only inside
     // function bodies, never at evaluation time.
@@ -441,6 +460,7 @@
         countSeededDrift: countSeededDrift,
         scalarIsoDate: scalarIsoDate,
         shiftIsoDateByOneDay: shiftIsoDateByOneDay,
+        fyRangeFor: fyRangeFor,
         recomputeMoney: recomputeMoney,
         isLedger: isLedger,
         rowKeyOf: rowKeyOf,
