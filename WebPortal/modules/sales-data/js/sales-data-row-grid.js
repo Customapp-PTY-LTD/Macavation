@@ -99,18 +99,24 @@
 
     // Four states: system null => never seeded (no edited/drift accent); otherwise edited/drifted
     // are independent booleans and both may be true at once.
+    //
+    // `live` ABSENT is not the same as `live` null. Only some datasets' read RPCs recompute the
+    // factory figure as at now — get_data_production_daily returns cracked_kg_live, but
+    // get_data_nis_intake returns no _live column at all. Treating an absent live figure as null
+    // would make sameKg(system, null) false and paint every seeded cell as drifted, claiming a
+    // divergence that was never measured. So drift is only reported when a live figure was supplied.
     function cellState(opts) {
         var o = opts || {};
         var system = (o.system === undefined) ? null : o.system;
-        var live = (o.live === undefined) ? null : o.live;
         var effective = (o.effective === undefined) ? null : o.effective;
+        var hasLive = Object.prototype.hasOwnProperty.call(o, 'live') && o.live !== undefined;
         if (system === null || system === undefined) {
             return { seeded: false, edited: false, drifted: false };
         }
         return {
             seeded: true,
             edited: !sameKg(effective, system),
-            drifted: !sameKg(system, live)
+            drifted: hasLive ? !sameKg(system, o.live) : false
         };
     }
 
@@ -347,8 +353,13 @@
                 if (state.edited) $td.addClass('mac-cell-edited');
                 if (state.drifted) $td.addClass('mac-cell-drifted');
                 $td.append($input);
+                // "Not seeded" is useful on the tall, narrow production grid but is pure noise on a
+                // wide ledger — NIS intake would carry it under three columns of every row. A real
+                // divergence still gets its note on both.
                 if (!state.seeded) {
-                    $td.append($('<div>', { 'class': 'mac-cell-note text-muted small' }).text('Not seeded'));
+                    if (!ledger) {
+                        $td.append($('<div>', { 'class': 'mac-cell-note text-muted small' }).text('Not seeded'));
+                    }
                 } else if (state.drifted) {
                     $td.append($('<div>', { 'class': 'mac-cell-note small' }).text('System now says ' + formatKg(live)));
                 }
@@ -425,7 +436,13 @@
                 var s = String(raw == null ? '' : raw).trim();
                 payload[col.key] = s === '' ? null : s;
             } else {
-                payload[col.key] = parseNullableNumber(raw, decimalsForStep(col.step));
+                // An explicit `decimals` overrides the step. Needed for genuinely integer columns
+                // (supplier_number is `integer`, not numeric): the step-derived default of 2 would
+                // send "12.34" to an ::integer cast and the whole save would fail.
+                var dp = (col.decimals === undefined || col.decimals === null)
+                    ? decimalsForStep(col.step)
+                    : col.decimals;
+                payload[col.key] = parseNullableNumber(raw, dp);
             }
         });
         return payload;
