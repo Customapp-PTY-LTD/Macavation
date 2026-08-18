@@ -9,7 +9,11 @@ depends_on: report-builder-02b-publish-and-reissue.md
 Every metric row in Pete's report compares an achieved figure against a target. Those targets are
 currently constants typed into each spreadsheet sheet, and they legitimately drift: his sound-kernel
 packing target changed part-way through the year, so the same metric has different targets in
-different weeks. Until this screen exists, every Achieved % column in the report renders "—".
+different weeks. **Corrected 2026-08-18:** this plan originally said every Achieved % column renders "—". That is no
+longer true for historical periods — 359 targets were backfilled from the source workbooks into
+`report_period_targets` (commit `fe18206`), so past weeks and months now show a real target and a
+real Achieved %. What is still missing is any way to SET a target, so no FUTURE period can have
+one. That is what this screen is for.
 
 This plan builds **one new screen** with two tabs: setting targets for a period, and entering
 actuals for periods that predate the report builder so the year-on-year tracking tables have a

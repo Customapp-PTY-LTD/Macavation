@@ -1,7 +1,3 @@
----
-depends_on: report-builder-02a-pdf-export.md
----
-
 # Report builder — publish and re-issue
 
 ## Context
@@ -9,8 +5,12 @@ depends_on: report-builder-02a-pdf-export.md
 A report Pete sends to directors must stop changing. This plan adds the publish action that freezes
 one, and the re-issue action that corrects a published one by opening a new version.
 
-It waits on `report-builder-02a-pdf-export.md` because both edit the editor's toolbar, and because a
-published report is the one a director's PDF is generated from.
+**Dependency removed 2026-08-18.** This plan previously waited on `report-builder-02a-pdf-export.md`,
+which never merged — that PDF work landed instead as `report-pdf-01-doc-definition-builder.md`
+(commit `b5ba848`), so the dependency could never be satisfied and this plan sat Blocked from
+2026-08-13. Both of its stated reasons are now already true on `dev`: the editor toolbar exists and
+already carries a Download PDF button (commit `8165081`), and `report-pdf-builder.js` is loaded on
+the `sales-report-editor` route. Nothing is left to wait for.
 
 **Why freezing matters here.** Job-card approval rewrites `kernel.packing_data` after the fact in
 this business, so a report that recomputed whenever it was opened would silently stop matching the
