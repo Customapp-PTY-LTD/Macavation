@@ -478,5 +478,9 @@
         return docDefinition;
     }
 
-    w.ReportPdfBuilder = { buildReportDocDefinition: buildReportDocDefinition };
+    w.ReportPdfBuilder = {
+        buildReportDocDefinition: buildReportDocDefinition,
+        LINE_COLUMN_DEFS: LINE_COLUMN_DEFS,
+        TOTALLED_KEYS: TOTALLED_KEYS
+    };
 })(typeof window !== 'undefined' ? window : this);

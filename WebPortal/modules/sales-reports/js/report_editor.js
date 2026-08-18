@@ -419,62 +419,23 @@ var _reportEditor = function () {
     // ------------------------------------------------------------------
     // line_table / tracking_table rendering.
     //
-    // Column definitions are intentionally duplicated from report-pdf-builder.js rather than
-    // imported: that file is not on this route's script list (appRouteConfig.json) and is not
-    // loaded in the browser at all yet, so depending on it would leave every table blank. When the
-    // PDF export is wired up, the two lists should be unified — until then this is the only
-    // definition that actually renders.
+    // Column definitions live in report-pdf-builder.js (LINE_COLUMN_DEFS / TOTALLED_KEYS) and are
+    // read from there via the shared ReportPdfBuilder global rather than duplicated here, so the
+    // on-screen table and the exported PDF cannot drift apart on the same report.
+    // report-pdf-builder.js is listed before this file on the sales-report-editor route
+    // (appRouteConfig.json), so ReportPdfBuilder is normally already defined by the time this runs
+    // — but that ordering is not assumed load-bearing: getLineColumnDefs()/getTotalledKeys() below
+    // degrade gracefully (to "not displayable" / no totals) rather than throwing if it is ever
+    // missing.
     // ------------------------------------------------------------------
 
-    var LINE_COLUMN_DEFS = {
-        kernel_sales_line: [
-            { key: 'sale_date', label: 'Date' },
-            { key: 'customer_name', label: 'Customer' },
-            { key: 'invoice_number', label: 'Invoice' },
-            { key: 'style_code', label: 'Style' },
-            { key: 'description', label: 'Description' },
-            { key: 'cartons', label: 'Cartons', numeric: true },
-            { key: 'quantity_kg', label: 'Qty kg', numeric: true },
-            { key: 'price_per_kg', label: 'Price/kg', numeric: true },
-            { key: 'vat_excl_zar', label: 'Value excl VAT', numeric: true }
-        ],
-        oil_sales_line: [
-            { key: 'sale_date', label: 'Date' },
-            { key: 'customer_name', label: 'Customer' },
-            { key: 'invoice_number', label: 'Invoice' },
-            { key: 'product_line', label: 'Product' },
-            { key: 'description', label: 'Description' },
-            { key: 'quantity_kg', label: 'Qty kg', numeric: true },
-            { key: 'price_per_kg', label: 'Price/kg', numeric: true },
-            { key: 'vat_excl_zar', label: 'Value excl VAT', numeric: true }
-        ],
-        oil_export_line: [
-            { key: 'export_date', label: 'Date' },
-            { key: 'customer_name', label: 'Customer' },
-            { key: 'location_country', label: 'Country' },
-            { key: 'document_number', label: 'Document' },
-            { key: 'product_class', label: 'Product' },
-            { key: 'incoterm', label: 'Terms' },
-            { key: 'weight_kg', label: 'Qty kg', numeric: true },
-            { key: 'price_per_kg_usd', label: 'Price $/kg', numeric: true },
-            { key: 'usd_debit', label: 'Value $', numeric: true },
-            { key: 'usd_zar_rate', label: 'Rate', numeric: true },
-            { key: 'rand_value', label: 'Value R', numeric: true }
-        ],
-        kernel_sales_style_line: [
-            { key: 'style_label', label: 'Style' },
-            { key: 'cartons', label: 'Cartons', numeric: true },
-            { key: 'quantity_kg', label: 'Qty kg', numeric: true },
-            { key: 'price_per_kg', label: 'Price/kg', numeric: true },
-            { key: 'vat_excl_zar', label: 'Value excl VAT', numeric: true }
-        ]
-    };
+    function getLineColumnDefs() {
+        return (typeof ReportPdfBuilder !== 'undefined' && ReportPdfBuilder.LINE_COLUMN_DEFS) || null;
+    }
 
-    // Additive columns only. A summed price-per-kg or exchange rate is not a total.
-    var TOTALLED_KEYS = {
-        quantity_kg: true, vat_excl_zar: true, weight_kg: true,
-        usd_debit: true, rand_value: true, cartons: true
-    };
+    function getTotalledKeys() {
+        return (typeof ReportPdfBuilder !== 'undefined' && ReportPdfBuilder.TOTALLED_KEYS) || {};
+    }
 
     // Sections whose server-side resolver exists (see populate_report_instance_lines). Only these
     // may report "no rows for this period" when they come back empty — for any other section an
@@ -519,12 +480,15 @@ var _reportEditor = function () {
         }
 
         var lineType = lines[0] && lines[0].line_type;
-        var columns = LINE_COLUMN_DEFS[lineType];
+        var lineColumnDefs = getLineColumnDefs();
+        var columns = lineColumnDefs ? lineColumnDefs[lineType] : null;
         if (!columns) {
-            // Rows exist but this build does not know their shape. Say so rather than drop them.
+            // Rows exist but this build does not know their shape (or the shared column-definition
+            // module is unavailable — see the note above). Say so rather than drop them.
             return $(macEmptyState('fa-circle-question', 'Rows not displayable',
                 'This section returned rows in a format this screen does not recognise.'));
         }
+        var totalledKeys = getTotalledKeys();
 
         var $table = $('<table>', { 'class': 'table table-sm table-hover align-middle mb-0' });
         var $headRow = $('<tr>');
@@ -541,7 +505,7 @@ var _reportEditor = function () {
             columns.forEach(function (col) {
                 var raw = payload[col.key];
                 if (col.numeric) {
-                    if (TOTALLED_KEYS[col.key] && isFiniteNum(raw)) {
+                    if (totalledKeys[col.key] && isFiniteNum(raw)) {
                         totals[col.key] = (totals[col.key] || 0) + Number(raw);
                     }
                     $tr.append($('<td>', { 'class': 'text-end' }).text(fmtNum(raw)));
@@ -556,7 +520,7 @@ var _reportEditor = function () {
         var $totalRow = $('<tr>', { 'class': 'fw-bold border-top' });
         columns.forEach(function (col, idx) {
             if (idx === 0) { $totalRow.append($('<td>').text('Total')); return; }
-            if (TOTALLED_KEYS[col.key]) {
+            if (totalledKeys[col.key]) {
                 $totalRow.append($('<td>', { 'class': 'text-end' }).text(fmtNum(totals[col.key] || 0)));
                 return;
             }
