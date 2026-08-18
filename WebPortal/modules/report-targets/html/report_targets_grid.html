@@ -1,0 +1,165 @@
+<!-- Report Targets & Prior-Period Baselines. Two tabs: set per-period targets used by the
+     report builder's Achieved % column, and hand-enter actuals for periods that predate the
+     report builder so year-on-year tracking has a comparison series. -->
+<div class="module-content" id="reportTargetsModule">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Report Targets</h1>
+    </div>
+
+    <ul class="nav nav-pills mb-3 report-targets-tabs" id="reportTargetsTabs">
+        <li class="nav-item">
+            <a class="nav-link active" href="#" data-tab="targets">Targets</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-tab="baselines">Prior periods</a>
+        </li>
+    </ul>
+
+    <!-- Targets tab -->
+    <div class="report-targets-tab-pane" id="reportTargets-targets-pane">
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label for="targetsPeriodType" class="form-label">Period type</label>
+                        <select class="form-select" id="targetsPeriodType">
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="targetsPeriodDate" class="form-label">Period</label>
+                        <input type="text" class="form-control flatpickr-date" id="targetsPeriodDate" autocomplete="off" placeholder="dd/mm/yyyy">
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" id="refreshTargetsBtn">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="copyTargetsBtn" data-action-perm="reports.target.edit">
+                            <i class="fas fa-copy me-1"></i>Copy from previous period
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover mb-0" id="reportTargetsTable">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Section</th>
+                                <th>Unit</th>
+                                <th style="width:160px">Target</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                                <th style="width:100px">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTargetsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prior periods tab -->
+    <div class="report-targets-tab-pane d-none" id="reportTargets-baselines-pane">
+        <div class="alert alert-info py-2 px-3 small mb-3">
+            <i class="fas fa-circle-info me-1"></i>
+            Historical actuals for periods before the report builder existed. This is not a report
+            and does not override anything — it only feeds the year-on-year tracking tables.
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label for="baselinesFy" class="form-label">Financial year</label>
+                        <select class="form-select" id="baselinesFy">
+                            <option value="2024">FYE 2024 (Apr 2023 &ndash; Mar 2024)</option>
+                            <option value="2025">FYE 2025 (Apr 2024 &ndash; Mar 2025)</option>
+                            <option value="2026">FYE 2026 (Apr 2025 &ndash; Mar 2026)</option>
+                            <option value="2027" selected>FYE 2027 (Apr 2026 &ndash; Mar 2027)</option>
+                            <option value="2028">FYE 2028 (Apr 2027 &ndash; Mar 2028)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="baselinesPeriodType" class="form-label">Period type</label>
+                        <select class="form-select" id="baselinesPeriodType">
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" id="refreshBaselinesBtn">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                        <button type="button" class="btn btn-primary" id="addBaselineBtn" data-action-perm="reports.target.edit">
+                            <i class="fas fa-plus me-1"></i>Add baseline
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover mb-0" id="reportBaselinesTable">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Period</th>
+                                <th style="width:160px">Achieved</th>
+                                <th>Notes</th>
+                                <th style="width:100px">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportBaselinesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add baseline modal -->
+    <div class="modal fade" id="addBaselineModal" tabindex="-1" role="dialog" aria-labelledby="addBaselineModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addBaselineModalLabel">Add prior-period actual</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addBaselineForm">
+                        <div class="mb-3">
+                            <label for="addBaselineMetric" class="form-label">Metric</label>
+                            <select class="form-select" id="addBaselineMetric" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="addBaselinePeriodDate" class="form-label">Date within period</label>
+                            <input type="text" class="form-control flatpickr-date" id="addBaselinePeriodDate" autocomplete="off" placeholder="dd/mm/yyyy" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="addBaselineValue" class="form-label">Achieved value</label>
+                            <input type="number" step="any" class="form-control" id="addBaselineValue" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="addBaselineNotes" class="form-label">Notes</label>
+                            <input type="text" class="form-control" id="addBaselineNotes">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveBaselineBtn">
+                        <i class="fas fa-plus me-1"></i>Add
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
