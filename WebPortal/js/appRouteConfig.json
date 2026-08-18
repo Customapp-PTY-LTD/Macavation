@@ -661,6 +661,15 @@
                 "css/sales_reports.css"
             ]
         },
+        "report-targets-grid": {
+            "description": "Report Targets &amp; Prior-Period Baselines",
+            "path": "report-targets",
+            "html": "html/report_targets_grid.html",
+            "js": [
+                "js/report_targets_grid.js"
+            ],
+            "css": []
+        },
         "sales-data-grid": {
             "description": "Sales &amp; Production Data",
             "path": "sales-data",

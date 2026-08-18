@@ -440,6 +440,11 @@ var _appRouter = function () {
                         initializeReportEditor();
                     }
                 },
+                'report-targets-grid': () => {
+                    if (typeof _reportTargetsGrid !== 'undefined' && _reportTargetsGrid.init) {
+                        _reportTargetsGrid.init();
+                    }
+                },
                 'sales-data-grid': () => {
                     if (typeof initializeSalesDataGrid === 'function') {
                         initializeSalesDataGrid();

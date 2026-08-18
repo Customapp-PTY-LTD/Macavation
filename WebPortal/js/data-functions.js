@@ -6125,6 +6125,119 @@ var _dataFunctions = function () {
         },
 
         // ------------------------------------------------------------------
+        // Report period targets / manual baselines (migrations/20260817090000 get_report_metrics;
+        // migrations/20260817100000 the other five). Whether either migration has been applied to
+        // any database cannot be verified from this checkout — every write clears both the
+        // report_targets_ and report_instance_ cache prefixes, because a changed target changes
+        // what a draft report shows after its next refresh.
+        // ------------------------------------------------------------------
+
+        getReportMetrics: async function (sectionKey = null, periodType = null, token = null, forceRefresh = false) {
+            const sk = sectionKey || null;
+            const pt = periodType || null;
+            const params = { p_section_key: sk, p_period_type: pt };
+            const cacheKey = 'report_targets_metrics_' + (sk || 'all') + '_' + (pt || 'all');
+            return await this.callFunction('get_report_metrics', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        getReportPeriodTargets: async function (periodType, periodStart, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const ps = (periodStart != null ? String(periodStart) : '').trim();
+            if (!pt) throw new Error('getReportPeriodTargets: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(ps)) throw new Error('getReportPeriodTargets: periodStart must be yyyy-mm-dd.');
+            const params = { p_period_type: pt, p_period_start: ps };
+            const cacheKey = 'report_targets_period_' + pt + '_' + ps;
+            return await this.callFunction('get_report_period_targets', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertReportPeriodTarget: async function (metricKey, periodType, periodDate, targetValue, notes = null, token = null) {
+            const key = (metricKey != null ? String(metricKey) : '').trim();
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const pd = (periodDate != null ? String(periodDate) : '').trim();
+            if (!key) throw new Error('upsertReportPeriodTarget: metricKey is required.');
+            if (!pt) throw new Error('upsertReportPeriodTarget: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(pd)) throw new Error('upsertReportPeriodTarget: periodDate must be yyyy-mm-dd.');
+            if (!Number.isFinite(Number(targetValue))) throw new Error('upsertReportPeriodTarget: targetValue must be a number.');
+            const params = {
+                p_metric_key: key,
+                p_period_type: pt,
+                p_period_date: pd,
+                p_target_value: Number(targetValue),
+                p_notes: notes || null,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('upsert_report_period_target', params, token, { useCache: false });
+            this.clearCachePattern('report_targets_');
+            this.clearCachePattern('report_instance_');
+            return result;
+        },
+
+        copyReportPeriodTargets: async function (periodType, fromPeriod, toPeriod, token = null) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const fp = (fromPeriod != null ? String(fromPeriod) : '').trim();
+            const tp = (toPeriod != null ? String(toPeriod) : '').trim();
+            if (!pt) throw new Error('copyReportPeriodTargets: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(fp)) throw new Error('copyReportPeriodTargets: fromPeriod must be yyyy-mm-dd.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(tp)) throw new Error('copyReportPeriodTargets: toPeriod must be yyyy-mm-dd.');
+            const params = {
+                p_period_type: pt,
+                p_from_period: fp,
+                p_to_period: tp,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('copy_report_period_targets', params, token, { useCache: false });
+            this.clearCachePattern('report_targets_');
+            this.clearCachePattern('report_instance_');
+            return result;
+        },
+
+        getReportManualBaselines: async function (periodType, fy, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            if (!pt) throw new Error('getReportManualBaselines: periodType is required.');
+            if (!Number.isFinite(Number(fy))) throw new Error('getReportManualBaselines: fy must be a number.');
+            const params = { p_period_type: pt, p_fy: Number(fy) };
+            const cacheKey = 'report_targets_baselines_' + pt + '_' + Number(fy);
+            return await this.callFunction('get_report_manual_baselines', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertReportManualBaseline: async function (metricKey, periodType, periodDate, achievedValue, notes = null, token = null) {
+            const key = (metricKey != null ? String(metricKey) : '').trim();
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const pd = (periodDate != null ? String(periodDate) : '').trim();
+            if (!key) throw new Error('upsertReportManualBaseline: metricKey is required.');
+            if (!pt) throw new Error('upsertReportManualBaseline: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(pd)) throw new Error('upsertReportManualBaseline: periodDate must be yyyy-mm-dd.');
+            if (!Number.isFinite(Number(achievedValue))) throw new Error('upsertReportManualBaseline: achievedValue must be a number.');
+            const params = {
+                p_metric_key: key,
+                p_period_type: pt,
+                p_period_date: pd,
+                p_achieved_value: Number(achievedValue),
+                p_notes: notes || null,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('upsert_report_manual_baseline', params, token, { useCache: false });
+            this.clearCachePattern('report_targets_');
+            this.clearCachePattern('report_instance_');
+            return result;
+        },
+
+        // ------------------------------------------------------------------
         // Sales & Production Data page (migrations/20260819090000_data_page_production_daily.sql).
         // Whether that migration has been applied to any given database cannot be verified from
         // this checkout — every wrapper here throws a clean local error for a bad argument (so a

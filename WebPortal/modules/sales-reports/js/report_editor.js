@@ -678,6 +678,14 @@ var _reportEditor = function () {
         if (!isEditable || !statusDraft) $commentary.prop('disabled', true);
         $body.append($commentaryLabel).append($commentary);
 
+        var $targetsLink = $('<a>', {
+            href: '#',
+            'class': 'small js-section-edit-targets d-inline-block mt-2'
+        }).attr('data-section-key', sectionKey);
+        $targetsLink.append($('<i>', { 'class': 'fas fa-bullseye me-1' }));
+        $targetsLink.append(document.createTextNode('Edit targets for this period'));
+        $body.append($targetsLink);
+
         $collapse.append($body);
         $item.append($collapse);
         return $item;
@@ -1127,6 +1135,12 @@ var _reportEditor = function () {
         $(document).on('click.reportEditor', '#reportEditorBackBtn', function (e) {
             e.preventDefault();
             routeBackToList();
+        });
+        $(document).on('click.reportEditor', '.js-section-edit-targets', function (e) {
+            e.preventDefault();
+            if (typeof _appRouter !== 'undefined' && _appRouter.routeTo) {
+                _appRouter.routeTo('report-targets-grid', true);
+            }
         });
         $(document).on('click.reportEditor', '#reportEditorRefreshFiguresBtn', function () {
             handleRefreshFigures();
