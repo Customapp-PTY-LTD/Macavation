@@ -167,8 +167,36 @@
             { key: 'quantity_kg', label: 'Qty kg', numeric: true },
             { key: 'price_per_kg', label: 'Price/kg', numeric: true },
             { key: 'vat_excl_zar', label: 'Value excl VAT', numeric: true }
+        ],
+        // Export invoices are priced in USD and converted at the rate recorded on that invoice, so
+        // this table carries both currencies. rand_value is deliberately named as the totalling
+        // column below rather than vat_excl_zar — the register has no VAT concept (exports are
+        // zero-rated), and reusing the local book's column name would imply one.
+        oil_export_line: [
+            { key: 'export_date', label: 'Date', numeric: false },
+            { key: 'customer_name', label: 'Customer', numeric: false },
+            { key: 'location_country', label: 'Country', numeric: false },
+            { key: 'document_number', label: 'Document', numeric: false },
+            { key: 'product_class', label: 'Product', numeric: false },
+            { key: 'incoterm', label: 'Terms', numeric: false },
+            { key: 'weight_kg', label: 'Qty kg', numeric: true },
+            { key: 'price_per_kg_usd', label: 'Price $/kg', numeric: true },
+            { key: 'usd_debit', label: 'Value $', numeric: true },
+            { key: 'usd_zar_rate', label: 'Rate', numeric: true },
+            { key: 'rand_value', label: 'Value R', numeric: true }
+        ],
+        kernel_sales_style_line: [
+            { key: 'style_label', label: 'Style', numeric: false },
+            { key: 'cartons', label: 'Cartons', numeric: true },
+            { key: 'quantity_kg', label: 'Qty kg', numeric: true },
+            { key: 'price_per_kg', label: 'Price/kg', numeric: true },
+            { key: 'vat_excl_zar', label: 'Value excl VAT', numeric: true }
         ]
     };
+
+    // Which numeric columns are meaningful to add up. Summing a price-per-kg or an exchange rate is
+    // not a total, so those are left blank on the totals row.
+    var TOTALLED_KEYS = { quantity_kg: true, vat_excl_zar: true, weight_kg: true, usd_debit: true, rand_value: true, cartons: true };
 
     function cellForColumn(col, payload) {
         var raw = payload ? payload[col.key] : null;
@@ -202,12 +230,12 @@
             });
         });
 
-        // Totals row: label in the first text column, numeric totals for quantity_kg and
-        // vat_excl_zar specifically (other numeric columns, e.g. cartons/price_per_kg, are left
-        // blank in the totals row — summing a price-per-kg column is not a meaningful total).
+        // Totals row: label in the first text column, and a total only for the columns TOTALLED_KEYS
+        // says are additive. Price-per-kg and exchange-rate columns are left blank — summing them is
+        // not a meaningful total.
         var totalsRow = columns.map(function (col, idx) {
             if (idx === 0) return { text: 'Total', bold: true, alignment: 'left' };
-            if (col.key === 'quantity_kg' || col.key === 'vat_excl_zar') {
+            if (TOTALLED_KEYS[col.key]) {
                 return { text: formatNumber(totalsByKey[col.key]), bold: true, alignment: 'right' };
             }
             return { text: '' };
@@ -275,11 +303,56 @@
     }
 
     // ---- tracking_table -------------------------------------------------------------------------
-    // No data source exists for these yet. Treat exactly like an empty line_table — never assert
-    // that data was not captured, only that there are no rows for this period.
+    // A tracking section compares this financial year against the previous one, cumulatively by
+    // month. Rows arrive as line_type 'tracking_line' with row_kind in:
+    //   current_month / current_month_cumulative — this period, above the grid
+    //   month                                    — the twelve April-March cumulative rows
+    //   total                                    — full-year totals
+    // The two FY column headers come from the rows themselves (fy_prior / fy_current) rather than
+    // being derived here, so the header can never disagree with the figures underneath it.
 
-    function buildTrackingTable() {
-        return buildEmptyLineTable();
+    // Year-on-year variance, already computed server-side as a ratio. NULL where the prior year was
+    // zero or absent, which renders blank — the same blank Pete's workbook shows as #DIV/0!, and
+    // deliberately not "0%", which would claim the two years were equal.
+    function formatVariancePct(v) {
+        if (v === null || v === undefined || !isFiniteNumber(v)) return '';
+        return formatNumber(Number(v) * 100) + '%';
+    }
+
+    function buildTrackingTable(section) {
+        var lines = (section && Array.isArray(section.lines)) ? section.lines : [];
+        if (lines.length === 0) return buildEmptyLineTable();
+
+        var first = (lines[0] && lines[0].payload) || {};
+        var priorLabel = first.fy_prior != null ? 'FYE ' + normSpace(first.fy_prior) : 'Prior year';
+        var currentLabel = first.fy_current != null ? 'FYE ' + normSpace(first.fy_current) : 'This year';
+
+        var body = [[
+            { text: 'Month', style: 'tableHeader' },
+            { text: priorLabel, style: 'tableHeader' },
+            { text: currentLabel, style: 'tableHeader' },
+            { text: 'Variance', style: 'tableHeader' }
+        ]];
+
+        lines.forEach(function (line) {
+            var p = (line && line.payload) || {};
+            var isTotal = p.row_kind === 'total';
+            var isCurrent = p.row_kind === 'current_month' || p.row_kind === 'current_month_cumulative';
+            body.push([
+                { text: textOrEmpty(p.label), alignment: 'left', bold: isTotal, italics: isCurrent },
+                { text: formatMaybeNumber(p.prior_value), alignment: 'right', bold: isTotal },
+                { text: formatMaybeNumber(p.current_value), alignment: 'right', bold: isTotal },
+                { text: formatVariancePct(p.variance_pct), alignment: 'right', bold: isTotal }
+            ]);
+        });
+
+        return [
+            {
+                table: { headerRows: 1, widths: ['*', 'auto', 'auto', 'auto'], body: body },
+                layout: 'lightHorizontalLines',
+                fontSize: 8
+            }
+        ];
     }
 
     // ---- section dispatch -----------------------------------------------------------------------
