@@ -12,6 +12,11 @@
             <button type="button" class="btn btn-outline-secondary" id="reportEditorRefreshFiguresBtn" data-action-perm="reports.report.edit">
                 <i class="fas fa-sync-alt me-1"></i>Refresh figures
             </button>
+            <!-- No data-action-perm: exporting a report you can already read needs no stricter gate
+                 than opening this screen, which the route itself governs. -->
+            <button type="button" class="btn btn-outline-secondary" id="reportEditorDownloadPdfBtn" disabled>
+                <i class="fas fa-file-pdf me-1"></i>Download PDF
+            </button>
         </div>
     </div>
 

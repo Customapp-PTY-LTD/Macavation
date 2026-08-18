@@ -685,6 +685,10 @@ var _reportEditor = function () {
         $summary.prop('disabled', !isEditable);
 
         $('#reportEditorRefreshFiguresBtn').prop('disabled', !statusDraft);
+        // Export is available for any loaded report, draft or published — unlike refresh, it
+        // changes nothing. It stays disabled until a payload exists so a failed load presents a
+        // dead button rather than one that silently does nothing.
+        $('#reportEditorDownloadPdfBtn').prop('disabled', false);
 
         // Any chart from a previous render is bound to a canvas about to be discarded.
         destroyKernelStockCharts();
@@ -916,10 +920,84 @@ var _reportEditor = function () {
     }
 
     // ------------------------------------------------------------------
+    // PDF export.
+    //
+    // pdfmake is ~2.7MB with its embedded font file, so it is NOT added to index.html alongside the
+    // portal's other CDN libraries — that would charge every page load for a button most visits
+    // never press. It is fetched on first click, using the same lazy <script> pattern as
+    // kernel_production_grid.js / stock_management_grid.js. vfs_fonts must load AFTER pdfmake: it
+    // assigns into the pdfMake global.
+    // ------------------------------------------------------------------
+
+    var PDFMAKE_SRC = 'https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js';
+    var PDFFONTS_SRC = 'https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/vfs_fonts.js';
+
+    function loadScriptOnce(src, marker) {
+        return new Promise(function (resolve, reject) {
+            var existing = document.querySelector('script[data-mac-lib="' + marker + '"]');
+            if (existing) {
+                if (existing.getAttribute('data-mac-loaded') === '1') { resolve(); return; }
+                existing.addEventListener('load', function () { resolve(); });
+                existing.addEventListener('error', function () { reject(new Error(marker)); });
+                return;
+            }
+            var el = document.createElement('script');
+            el.src = src;
+            el.setAttribute('data-mac-lib', marker);
+            el.onload = function () { el.setAttribute('data-mac-loaded', '1'); resolve(); };
+            el.onerror = function () {
+                if (el.parentNode) el.parentNode.removeChild(el);
+                reject(new Error(marker));
+            };
+            document.head.appendChild(el);
+        });
+    }
+
+    function ensurePdfMake() {
+        if (typeof pdfMake !== 'undefined' && pdfMake.vfs) return Promise.resolve();
+        return loadScriptOnce(PDFMAKE_SRC, 'pdfmake')
+            .then(function () { return loadScriptOnce(PDFFONTS_SRC, 'pdfmake-vfs'); });
+    }
+
+    // Filename from the report's own period label, so a downloaded file is identifiable offline.
+    // Anything that is not a letter, digit or dash becomes a dash — the label is user-facing text
+    // and must never reach the filesystem verbatim.
+    function pdfFileName(payload) {
+        var base = displayLabel(payload && payload.period_label) || 'report';
+        var safe = base.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return 'Macavation-' + (safe || 'report') + '.pdf';
+    }
+
+    function handleDownloadPdf() {
+        if (!state.payload) return;
+        var $btn = $('#reportEditorDownloadPdfBtn');
+        $btn.prop('disabled', true);
+        ensurePdfMake().then(function () {
+            if (typeof ReportPdfBuilder === 'undefined' || !ReportPdfBuilder.buildReportDocDefinition) {
+                throw new Error('builder-missing');
+            }
+            var docDefinition = ReportPdfBuilder.buildReportDocDefinition(state.payload);
+            pdfMake.createPdf(docDefinition).download(pdfFileName(state.payload));
+        }).catch(function (err) {
+            console.warn('[sales-reports] PDF export failed', err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Could not build the PDF',
+                text: 'The PDF library could not be loaded. Check your connection and try again.'
+            });
+        }).finally(function () {
+            $btn.prop('disabled', false);
+        });
+    }
+
+    // ------------------------------------------------------------------
     // Event wiring — every binding namespaced ".reportEditor"; destroy() removes them all.
     // ------------------------------------------------------------------
 
     function bindEvents() {
+        $(document).on('click.reportEditor', '#reportEditorDownloadPdfBtn', function () {
+            handleDownloadPdf();
+        });
         $(document).on('click.reportEditor', '#reportEditorBackBtn', function (e) {
             e.preventDefault();
             routeBackToList();

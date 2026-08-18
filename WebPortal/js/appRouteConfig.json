@@ -654,6 +654,7 @@
             "html": "html/report_editor.html",
             "js": [
                 "js/report-metric-line.js",
+                "js/report-pdf-builder.js",
                 "js/report_editor.js"
             ],
             "css": [
