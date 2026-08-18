@@ -6093,6 +6093,37 @@ var _dataFunctions = function () {
             return result;
         },
 
+        publishReportInstance: async function (reportInstanceId, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('publishReportInstance: reportInstanceId is required.');
+            const params = {
+                p_report_instance_id: id,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+                // p_pdf_storage_bucket / p_pdf_storage_path / p_pdf_sha256 all DEFAULT NULL and are
+                // omitted entirely here — storage arrives in a later plan.
+            };
+            const result = await this.callFunction('publish_report_instance', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        supersedeReportInstance: async function (reportInstanceId, reason, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            const reasonText = (reason != null ? String(reason) : '').trim();
+            if (!id) throw new Error('supersedeReportInstance: reportInstanceId is required.');
+            if (!reasonText) throw new Error('supersedeReportInstance: reason is required.');
+            const params = {
+                p_report_instance_id: id,
+                p_reason: reasonText,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('supersede_report_instance', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
         // ------------------------------------------------------------------
         // Sales & Production Data page (migrations/20260819090000_data_page_production_daily.sql).
         // Whether that migration has been applied to any given database cannot be verified from

@@ -140,9 +140,20 @@ var _reportListGrid = function () {
         return items;
     }
 
+    // Appended only when the row is beyond its first version, so a normal first-issue report's
+    // label is left exactly as it always was.
+    function periodLabelWithVersion(row) {
+        var label = displayLabel(row.period_label);
+        var version = Number(row && row.version);
+        if (Number.isFinite(version) && version > 1) {
+            return label + ' \u00b7 v' + version;
+        }
+        return label;
+    }
+
     function buildRow(row) {
         var $tr = $('<tr>');
-        $tr.append($('<td>').text(displayLabel(row.period_label)));
+        $tr.append($('<td>').text(periodLabelWithVersion(row)));
         $tr.append($('<td>').html(MacStatus.pill(row.period_type, typeLabel(row.period_type))));
         $tr.append($('<td>').text(displayLabel(row.period_start) + ' \u2013 ' + displayLabel(row.period_end)));
         $tr.append($('<td>').html(MacStatus.pill(row.status)));

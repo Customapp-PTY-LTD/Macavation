@@ -139,7 +139,27 @@ var _reportEditor = function () {
         } else {
             text = 'Figures are locked.';
         }
+        var versionNum = Number(payload.version);
+        if (Number.isFinite(versionNum) && versionNum > 0) {
+            text += ' Version ' + versionNum + '.';
+        }
+        var sha = payload.content_sha256;
+        if (typeof sha === 'string' && sha.trim() !== '') {
+            text += ' Content fingerprint ' + sha.slice(0, 12) + '.';
+        }
         $banner.text(text).removeClass('d-none');
+    }
+
+    // ------------------------------------------------------------------
+    // Publish / re-issue button visibility — class toggling only. Toggling the d-none class can
+    // never clear the inline display style actionAccess.apply sets on a permission-denied
+    // control, so this is the only safe way to drive visibility here.
+    // ------------------------------------------------------------------
+
+    function updatePublishControls(payload) {
+        var status = payload && payload.status;
+        $('#reportEditorPublishBtn').toggleClass('d-none', status !== 'draft');
+        $('#reportEditorReissueBtn').toggleClass('d-none', status !== 'published');
     }
 
     // ------------------------------------------------------------------
@@ -677,6 +697,7 @@ var _reportEditor = function () {
         $('#reportEditorSubtitle').text(displayLabel(payload.period_start) + ' \u2013 ' + displayLabel(payload.period_end));
 
         renderLockedBanner(payload);
+        updatePublishControls(payload);
 
         var $summary = $('#reportEditorExecSummary');
         var summaryVal = payload.executive_summary == null ? '' : String(payload.executive_summary);
@@ -750,6 +771,111 @@ var _reportEditor = function () {
             renderPayload(fresh);
         }).catch(function (err) {
             console.warn('[sales-reports] could not refresh report after save', err);
+        });
+    }
+
+    // Used after publish and after re-issue, where the on-screen report's editability has changed.
+    // A failed reload must not leave a stale, wrongly-editable screen behind — unlike
+    // reloadAndRerender() above, this routes back to the list on failure rather than logging and
+    // leaving the DOM as-is. It reads state.reportId at call time, so callers must assign
+    // state.reportId before calling this (re-issue assigns the new report's id first).
+    function reloadAfterLockChange() {
+        if (!state.reportId) return Promise.resolve();
+        return dataFunctions.getReportInstance(state.reportId, null, true).then(function (fresh) {
+            if (!fresh) {
+                showEmptyState('fa-file-invoice', 'Report not found', 'This report could not be found. It may have been deleted.');
+                return;
+            }
+            state.payload = fresh;
+            renderPayload(fresh);
+        }).catch(function (err) {
+            console.warn('[sales-reports] could not reload report after publish/re-issue', err);
+            Swal.fire({
+                icon: 'warning',
+                title: 'Saved, but not reloaded',
+                text: 'The change was saved but this screen could not be refreshed. Reopen the report from the list.'
+            });
+            routeBackToList();
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // Publish / re-issue.
+    //
+    // publish_report_instance performs no permission check of its own (granted to
+    // anon/authenticated/service_role) — the DOM gate is the only gate, so both handlers below
+    // re-check hasAction('reports.report.publish') and fail closed before calling anything.
+    //
+    // Naming discipline (mandatory): each handler holds two different objects — the SweetAlert
+    // dialog result and the RPC result — bound under different identifiers. firstRpcRow/
+    // isRpcSuccess/rpcError may be called only on the RPC result, never on the dialog result.
+    // ------------------------------------------------------------------
+
+    function handlePublish() {
+        if (typeof hasAction !== 'function' || !hasAction('reports.report.publish')) {
+            Swal.fire({ icon: 'warning', title: 'Not permitted', text: 'You do not have permission for this action.' });
+            return;
+        }
+        if (!state.reportId) return;
+
+        Swal.fire({
+            icon: 'question',
+            title: 'Publish this report?',
+            text: 'Figures will be locked. Corrections after this create a new version.',
+            showCancelButton: true
+        }).then(function (confirmed) {
+            if (!confirmed.isConfirmed) return;
+
+            return dataFunctions.publishReportInstance(state.reportId).then(function (rpcResult) {
+                if (!isRpcSuccess(rpcResult)) {
+                    Swal.fire({ icon: 'error', title: 'Could not publish', text: rpcError(rpcResult, 'Could not publish this report.') });
+                    return;
+                }
+                return reloadAfterLockChange();
+            });
+        }).catch(function (err) {
+            console.warn('[sales-reports] publishReportInstance failed', err);
+            Swal.fire({ icon: 'error', title: 'Could not publish', text: 'Could not publish this report. Please try again.' });
+        });
+    }
+
+    function handleReissue() {
+        if (typeof hasAction !== 'function' || !hasAction('reports.report.publish')) {
+            Swal.fire({ icon: 'warning', title: 'Not permitted', text: 'You do not have permission for this action.' });
+            return;
+        }
+        if (!state.reportId) return;
+
+        Swal.fire({
+            input: 'text',
+            inputLabel: 'Why is this report being re-issued?',
+            inputValidator: function (v) { return (!v || !v.trim()) && 'A reason is required'; },
+            showCancelButton: true
+        }).then(function (reasonPrompt) {
+            if (!reasonPrompt.isConfirmed) return;
+
+            return dataFunctions.supersedeReportInstance(state.reportId, reasonPrompt.value).then(function (rpcResult) {
+                if (!isRpcSuccess(rpcResult)) {
+                    Swal.fire({ icon: 'error', title: 'Could not re-issue', text: rpcError(rpcResult, 'Could not re-issue this report.') });
+                    return;
+                }
+                var newId = (firstRpcRow(rpcResult) || {}).new_report_instance_id;
+                if (!isReportUuid(newId)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Re-issued, but could not open the new version',
+                        text: 'The new version was created. Reopen it from the report list.'
+                    });
+                    routeBackToList();
+                    return;
+                }
+                if (typeof Session !== 'undefined' && Session.set) Session.set('currentReportId', newId);
+                state.reportId = newId;
+                return reloadAfterLockChange();
+            });
+        }).catch(function (err) {
+            console.warn('[sales-reports] supersedeReportInstance failed', err);
+            Swal.fire({ icon: 'error', title: 'Could not re-issue', text: 'Could not re-issue this report. Please try again.' });
         });
     }
 
@@ -1005,6 +1131,8 @@ var _reportEditor = function () {
         $(document).on('click.reportEditor', '#reportEditorRefreshFiguresBtn', function () {
             handleRefreshFigures();
         });
+        $(document).on('click.reportEditor', '#reportEditorPublishBtn', function () { handlePublish(); });
+        $(document).on('click.reportEditor', '#reportEditorReissueBtn', function () { handleReissue(); });
         $(document).on('blur.reportEditor', '.js-report-metric-input', function () {
             handleMetricBlur($(this));
         });
