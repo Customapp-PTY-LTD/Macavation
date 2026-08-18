@@ -389,6 +389,198 @@ var _reportEditor = function () {
         return $(macEmptyState('fa-database', 'Not available yet', "Populated when this section's data source is connected."));
     }
 
+    function buildNoRowsBody() {
+        // A connected section that simply had nothing in this period. Distinct from the message
+        // above: "no rows" is a fact about the period, "not available yet" is a fact about the
+        // feature, and conflating them would tell Pete a quiet week was a broken report.
+        return $(macEmptyState('fa-table', 'No rows', 'Nothing was captured for this period.'));
+    }
+
+    // ------------------------------------------------------------------
+    // line_table / tracking_table rendering.
+    //
+    // Column definitions are intentionally duplicated from report-pdf-builder.js rather than
+    // imported: that file is not on this route's script list (appRouteConfig.json) and is not
+    // loaded in the browser at all yet, so depending on it would leave every table blank. When the
+    // PDF export is wired up, the two lists should be unified — until then this is the only
+    // definition that actually renders.
+    // ------------------------------------------------------------------
+
+    var LINE_COLUMN_DEFS = {
+        kernel_sales_line: [
+            { key: 'sale_date', label: 'Date' },
+            { key: 'customer_name', label: 'Customer' },
+            { key: 'invoice_number', label: 'Invoice' },
+            { key: 'style_code', label: 'Style' },
+            { key: 'description', label: 'Description' },
+            { key: 'cartons', label: 'Cartons', numeric: true },
+            { key: 'quantity_kg', label: 'Qty kg', numeric: true },
+            { key: 'price_per_kg', label: 'Price/kg', numeric: true },
+            { key: 'vat_excl_zar', label: 'Value excl VAT', numeric: true }
+        ],
+        oil_sales_line: [
+            { key: 'sale_date', label: 'Date' },
+            { key: 'customer_name', label: 'Customer' },
+            { key: 'invoice_number', label: 'Invoice' },
+            { key: 'product_line', label: 'Product' },
+            { key: 'description', label: 'Description' },
+            { key: 'quantity_kg', label: 'Qty kg', numeric: true },
+            { key: 'price_per_kg', label: 'Price/kg', numeric: true },
+            { key: 'vat_excl_zar', label: 'Value excl VAT', numeric: true }
+        ],
+        oil_export_line: [
+            { key: 'export_date', label: 'Date' },
+            { key: 'customer_name', label: 'Customer' },
+            { key: 'location_country', label: 'Country' },
+            { key: 'document_number', label: 'Document' },
+            { key: 'product_class', label: 'Product' },
+            { key: 'incoterm', label: 'Terms' },
+            { key: 'weight_kg', label: 'Qty kg', numeric: true },
+            { key: 'price_per_kg_usd', label: 'Price $/kg', numeric: true },
+            { key: 'usd_debit', label: 'Value $', numeric: true },
+            { key: 'usd_zar_rate', label: 'Rate', numeric: true },
+            { key: 'rand_value', label: 'Value R', numeric: true }
+        ],
+        kernel_sales_style_line: [
+            { key: 'style_label', label: 'Style' },
+            { key: 'cartons', label: 'Cartons', numeric: true },
+            { key: 'quantity_kg', label: 'Qty kg', numeric: true },
+            { key: 'price_per_kg', label: 'Price/kg', numeric: true },
+            { key: 'vat_excl_zar', label: 'Value excl VAT', numeric: true }
+        ]
+    };
+
+    // Additive columns only. A summed price-per-kg or exchange rate is not a total.
+    var TOTALLED_KEYS = {
+        quantity_kg: true, vat_excl_zar: true, weight_kg: true,
+        usd_debit: true, rand_value: true, cartons: true
+    };
+
+    // Sections whose server-side resolver exists (see populate_report_instance_lines). Only these
+    // may report "no rows for this period" when they come back empty — for any other section an
+    // empty result means the data source is not connected yet, and saying "nothing was captured"
+    // would assert a fact about the business that the database cannot support.
+    var CONNECTED_SECTIONS = {
+        kernel_sales_lines: true,
+        oil_sales_lines: true,
+        oil_export_lines: true,
+        kernel_sales_by_style: true,
+        nis_procurement_tracking: true,
+        sound_kernel_recovery_tracking: true,
+        kernel_sales_tracking: true
+    };
+
+    function isFiniteNum(v) {
+        if (v === null || v === undefined || String(v).trim() === '') return false;
+        return Number.isFinite(Number(v));
+    }
+
+    // Locale-independent, matching report-pdf-builder.js so the on-screen table and the PDF cannot
+    // print the same figure differently.
+    function fmtNum(v) {
+        if (!isFiniteNum(v)) return '';
+        var fixed = Number(v).toFixed(2);
+        var neg = fixed.charAt(0) === '-';
+        if (neg) fixed = fixed.slice(1);
+        var parts = fixed.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return (neg ? '-' : '') + parts.join('.');
+    }
+
+    function fmtPct(v) {
+        if (!isFiniteNum(v)) return '';
+        return fmtNum(Number(v) * 100) + '%';
+    }
+
+    function buildLineTableBody(section) {
+        var lines = Array.isArray(section.lines) ? section.lines : [];
+        if (lines.length === 0) {
+            return CONNECTED_SECTIONS[section.section_key] ? buildNoRowsBody() : buildEmptyRenderKindBody();
+        }
+
+        var lineType = lines[0] && lines[0].line_type;
+        var columns = LINE_COLUMN_DEFS[lineType];
+        if (!columns) {
+            // Rows exist but this build does not know their shape. Say so rather than drop them.
+            return $(macEmptyState('fa-circle-question', 'Rows not displayable',
+                'This section returned rows in a format this screen does not recognise.'));
+        }
+
+        var $table = $('<table>', { 'class': 'table table-sm table-hover align-middle mb-0' });
+        var $headRow = $('<tr>');
+        columns.forEach(function (col) {
+            $headRow.append($('<th>', { 'class': col.numeric ? 'text-end' : null }).text(col.label));
+        });
+        $table.append($('<thead>').append($headRow));
+
+        var totals = {};
+        var $tbody = $('<tbody>');
+        lines.forEach(function (line) {
+            var payload = (line && line.payload) || {};
+            var $tr = $('<tr>');
+            columns.forEach(function (col) {
+                var raw = payload[col.key];
+                if (col.numeric) {
+                    if (TOTALLED_KEYS[col.key] && isFiniteNum(raw)) {
+                        totals[col.key] = (totals[col.key] || 0) + Number(raw);
+                    }
+                    $tr.append($('<td>', { 'class': 'text-end' }).text(fmtNum(raw)));
+                } else {
+                    $tr.append($('<td>').text(raw == null ? '' : String(raw)));
+                }
+            });
+            $tbody.append($tr);
+        });
+        $table.append($tbody);
+
+        var $totalRow = $('<tr>', { 'class': 'fw-bold border-top' });
+        columns.forEach(function (col, idx) {
+            if (idx === 0) { $totalRow.append($('<td>').text('Total')); return; }
+            if (TOTALLED_KEYS[col.key]) {
+                $totalRow.append($('<td>', { 'class': 'text-end' }).text(fmtNum(totals[col.key] || 0)));
+                return;
+            }
+            $totalRow.append($('<td>'));
+        });
+        $table.append($('<tfoot>').append($totalRow));
+
+        return $('<div>', { 'class': 'table-responsive' }).append($table);
+    }
+
+    function buildTrackingTableBody(section) {
+        var lines = Array.isArray(section.lines) ? section.lines : [];
+        if (lines.length === 0) {
+            return CONNECTED_SECTIONS[section.section_key] ? buildNoRowsBody() : buildEmptyRenderKindBody();
+        }
+
+        var first = (lines[0] && lines[0].payload) || {};
+        var priorLabel = first.fy_prior != null ? 'FYE ' + String(first.fy_prior) : 'Prior year';
+        var currentLabel = first.fy_current != null ? 'FYE ' + String(first.fy_current) : 'This year';
+
+        var $table = $('<table>', { 'class': 'table table-sm table-hover align-middle mb-0' });
+        $table.append($('<thead>').append($('<tr>')
+            .append($('<th>').text('Month'))
+            .append($('<th>', { 'class': 'text-end' }).text(priorLabel))
+            .append($('<th>', { 'class': 'text-end' }).text(currentLabel))
+            .append($('<th>', { 'class': 'text-end' }).text('Variance'))));
+
+        var $tbody = $('<tbody>');
+        lines.forEach(function (line) {
+            var p = (line && line.payload) || {};
+            var isTotal = p.row_kind === 'total';
+            var isCurrent = p.row_kind === 'current_month' || p.row_kind === 'current_month_cumulative';
+            var cls = isTotal ? 'fw-bold border-top' : (isCurrent ? 'fst-italic text-body-secondary' : null);
+            $tbody.append($('<tr>', { 'class': cls })
+                .append($('<td>').text(p.label == null ? '' : String(p.label)))
+                .append($('<td>', { 'class': 'text-end' }).text(fmtNum(p.prior_value)))
+                .append($('<td>', { 'class': 'text-end' }).text(fmtNum(p.current_value)))
+                .append($('<td>', { 'class': 'text-end' }).text(fmtPct(p.variance_pct))));
+        });
+        $table.append($tbody);
+
+        return $('<div>', { 'class': 'table-responsive' }).append($table);
+    }
+
     function buildMetricTableBody(section, editable) {
         var $table = $('<table>', { 'class': 'table table-sm align-middle mb-0' });
         var $thead = $('<thead>').append(
@@ -445,6 +637,10 @@ var _reportEditor = function () {
             $body.append(buildMetricTableBody(section, isEditable && statusDraft));
         } else if (sectionKey === 'kernel_stock_report') {
             $body.append(buildKernelStockBody(index));
+        } else if (section.render_kind === 'line_table') {
+            $body.append(buildLineTableBody(section));
+        } else if (section.render_kind === 'tracking_table') {
+            $body.append(buildTrackingTableBody(section));
         } else {
             $body.append(buildEmptyRenderKindBody());
         }
