@@ -17,6 +17,10 @@
             <button type="button" class="btn btn-outline-secondary" id="reportEditorDownloadPdfBtn" disabled>
                 <i class="fas fa-file-pdf me-1"></i>Download PDF
             </button>
+            <button type="button" class="btn btn-outline-success d-none" id="reportEditorSendWhatsappBtn"
+                    data-action-perm="reports.report.send">
+                <i class="fas fa-paper-plane me-1"></i>Send via WhatsApp
+            </button>
             <button type="button" class="btn btn-primary d-none" id="reportEditorPublishBtn"
                     data-action-perm="reports.report.publish">
                 <i class="fas fa-lock me-1"></i>Publish
@@ -44,5 +48,55 @@
     <div id="reportEditorEmptyState"></div>
     <div id="reportEditorLoadingState" class="text-center py-5">
         <i class="fas fa-spinner fa-spin me-2"></i>Loading report&hellip;
+    </div>
+</div>
+
+<!-- Send via WhatsApp modal. All content below is populated by report-whatsapp-send.js at open
+     time — no database value appears in this static markup (CLAUDE.md: data-action-perm is
+     inert on dynamically-rendered content, so every control this JS renders is gated inline
+     with hasAction() rather than a static attribute here). -->
+<div class="modal fade" id="reportWhatsappSendModal" tabindex="-1" role="dialog"
+     aria-labelledby="reportWhatsappSendModalLabel" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportWhatsappSendModalLabel">Send via WhatsApp</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reportWhatsappSendLoading" class="text-center py-4">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Loading recipients&hellip;
+                </div>
+                <div id="reportWhatsappSendBody" class="d-none">
+                    <div class="mb-3">
+                        <h6 class="text-uppercase small text-muted mb-2">Saved recipients</h6>
+                        <div id="reportWhatsappSendSavedNote" class="text-muted small mb-1 d-none"></div>
+                        <div id="reportWhatsappSendSavedList"></div>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-uppercase small text-muted mb-2">From WhatsApp inbox</h6>
+                        <div id="reportWhatsappSendInboxNote" class="text-muted small mb-1 d-none"></div>
+                        <div id="reportWhatsappSendInboxList"></div>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-uppercase small text-muted mb-2">From CRM contacts</h6>
+                        <div id="reportWhatsappSendCrmNote" class="text-muted small mb-1 d-none"></div>
+                        <div id="reportWhatsappSendCrmList"></div>
+                    </div>
+                    <div id="reportWhatsappSendSkippedNote" class="text-muted small mb-3 d-none"></div>
+                    <div id="reportWhatsappSendAddForm" class="mb-3"></div>
+                    <div id="reportWhatsappSendCapNote" class="alert alert-warning small d-none"></div>
+                    <div id="reportWhatsappSendResults" class="d-none"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="text-muted small me-auto" id="reportWhatsappSendCount">0 selected</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="reportWhatsappSendSubmitBtn" disabled>
+                    <i class="fas fa-paper-plane me-1"></i>Send
+                </button>
+            </div>
+        </div>
     </div>
 </div>
