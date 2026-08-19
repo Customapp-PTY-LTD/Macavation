@@ -160,6 +160,11 @@ var _reportEditor = function () {
         var status = payload && payload.status;
         $('#reportEditorPublishBtn').toggleClass('d-none', status !== 'draft');
         $('#reportEditorReissueBtn').toggleClass('d-none', status !== 'published');
+        // Only a published report can be sent (the PDF builder watermarks a draft, and the
+        // send-report-whatsapp edge function refuses a non-published report with 409). A role
+        // denied reports.report.send stays hidden regardless — actionAccess.apply already set an
+        // inline display:none on this button that toggleClass cannot clear.
+        $('#reportEditorSendWhatsappBtn').toggleClass('d-none', status !== 'published');
     }
 
     // ------------------------------------------------------------------
@@ -1089,6 +1094,42 @@ var _reportEditor = function () {
     }
 
     // ------------------------------------------------------------------
+    // WhatsApp send — PDF provider injected into ReportWhatsappSend (report-whatsapp-send.js),
+    // which carries no pdfmake reference of its own. Both `return`s and the `resolve` inside the
+    // getBase64 callback are load-bearing: getBase64 is callback-style and returns nothing, so
+    // without this wrapper an `await`/`.then()` on it would resolve to undefined and the send
+    // would post an empty PDF.
+    // ------------------------------------------------------------------
+
+    function pdfBase64() {
+        return ensurePdfMake().then(function () {
+            if (typeof ReportPdfBuilder === 'undefined' || !ReportPdfBuilder.buildReportDocDefinition) {
+                throw new Error('builder-missing');
+            }
+            var docDefinition = ReportPdfBuilder.buildReportDocDefinition(state.payload);
+            return new Promise(function (resolve, reject) {
+                try {
+                    pdfMake.createPdf(docDefinition).getBase64(function (b64) {
+                        if (b64) { resolve(b64); } else { reject(new Error('pdf-empty')); }
+                    });
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+    }
+
+    function handleSendWhatsapp() {
+        if (typeof ReportWhatsappSend === 'undefined' || !state.payload) return;
+        ReportWhatsappSend.open({
+            reportInstanceId: state.reportId,
+            filename: pdfFileName(state.payload),
+            periodLabel: displayLabel(state.payload.period_label),
+            getPdfBase64: pdfBase64
+        });
+    }
+
+    // ------------------------------------------------------------------
     // Event wiring — every binding namespaced ".reportEditor"; destroy() removes them all.
     // ------------------------------------------------------------------
 
@@ -1111,6 +1152,7 @@ var _reportEditor = function () {
         });
         $(document).on('click.reportEditor', '#reportEditorPublishBtn', function () { handlePublish(); });
         $(document).on('click.reportEditor', '#reportEditorReissueBtn', function () { handleReissue(); });
+        $(document).on('click.reportEditor', '#reportEditorSendWhatsappBtn', function () { handleSendWhatsapp(); });
         $(document).on('blur.reportEditor', '.js-report-metric-input', function () {
             handleMetricBlur($(this));
         });
@@ -1162,6 +1204,10 @@ var _reportEditor = function () {
             pendingOverrides.clear();
             pendingCommentary.clear();
             bindEvents();
+            if (typeof ReportWhatsappSend !== 'undefined') {
+                ReportWhatsappSend.init();
+                ReportWhatsappSend.setPdfProvider(pdfBase64);
+            }
             load();
         },
 
@@ -1170,6 +1216,9 @@ var _reportEditor = function () {
             // behind would keep redrawing into a canvas belonging to whichever module loads next.
             destroyKernelStockCharts();
             $(document).off('.reportEditor');
+            if (typeof ReportWhatsappSend !== 'undefined') {
+                ReportWhatsappSend.destroy();
+            }
         }
     };
 }();
