@@ -6238,6 +6238,103 @@ var _dataFunctions = function () {
         },
 
         // ------------------------------------------------------------------
+        // Report WhatsApp distribution — transport only. sendReportWhatsapp calls the edge
+        // function that is meant to deliver a report PDF over WhatsApp; supabase/functions/ does
+        // not contain a send-report-whatsapp function in this checkout, so this wrapper returns a
+        // handled { success: false, error } object rather than throwing when the call 404s or the
+        // fetch itself fails — the same "never look like success" rule as the report-builder
+        // wrappers above, just expressed as a returned failure instead of a thrown one, because an
+        // edge-function call (unlike a PostgREST RPC) is expected to report its own transport
+        // failures back to the caller.
+        //
+        // As of this commit, no migration under migrations/ defines list_report_recipients,
+        // upsert_report_recipient, set_report_recipient_active or list_report_deliveries (checked
+        // by grep immediately before writing this block), so those four PostgREST wrappers are not
+        // implemented here — adding them against a guessed signature would silently call a
+        // function this repo does not define. They are deferred until a later plan commits the SQL
+        // that defines them.
+        //
+        // Whether any migration referenced anywhere in this file, or the edge function above, has
+        // actually been deployed to any given database or project cannot be verified from this
+        // checkout — the same caveat every neighbouring block in this file carries.
+        // ------------------------------------------------------------------
+
+        /** Send a report PDF via WhatsApp through the send-report-whatsapp edge function. */
+        sendReportWhatsapp: async function (payload, token = null) {
+            const reportInstanceId = (payload && payload.reportInstanceId != null) ? String(payload.reportInstanceId).trim() : '';
+            const pdfBase64 = (payload && payload.pdfBase64 != null) ? String(payload.pdfBase64) : '';
+            const filename = (payload && payload.filename != null) ? String(payload.filename).trim() : '';
+            const recipients = (payload && Array.isArray(payload.recipients)) ? payload.recipients : null;
+
+            if (!reportInstanceId) throw new Error('sendReportWhatsapp: reportInstanceId is required.');
+            if (!pdfBase64.trim()) throw new Error('sendReportWhatsapp: pdfBase64 is required.');
+            if (!filename || !/\.pdf$/i.test(filename)) throw new Error('sendReportWhatsapp: filename is required and must end in .pdf.');
+            if (!recipients || recipients.length === 0) throw new Error('sendReportWhatsapp: recipients must be a non-empty array.');
+            for (const r of recipients) {
+                if (!r || !r.phone || !String(r.phone).trim()) {
+                    throw new Error('sendReportWhatsapp: every recipient must have a non-empty phone.');
+                }
+            }
+
+            // Never post a confidential report PDF bearing only the public anon key — require a
+            // real portal session token before issuing the fetch at all.
+            const authToken = token || this.getToken();
+            if (!authToken) {
+                return { success: false, error: 'sendReportWhatsapp: no portal session; not sending.' };
+            }
+
+            try {
+                const supabaseConfig = window.MACAVATION_SUPABASE || {};
+                const url = (supabaseConfig.url || '').replace(/\/$/, '') + '/functions/v1/send-report-whatsapp';
+                const anonKey = supabaseConfig.anonKey || '';
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + anonKey,
+                        'apikey': anonKey,
+                        'X-Portal-Session': authToken
+                    },
+                    body: JSON.stringify({
+                        report_instance_id: reportInstanceId,
+                        pdf_base64: pdfBase64,
+                        filename: filename,
+                        recipients: recipients
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    return {
+                        success: false,
+                        error: data.error || 'HTTP ' + res.status
+                    };
+                }
+
+                // Response shape is authored by the send-report-whatsapp edge function itself
+                // (not present in this checkout) — returned unchanged, not reshaped or assumed.
+                return data;
+            } catch (e) {
+                // Never log pdfBase64 — it is the full contents of a confidential report.
+                console.warn('[Report] sendReportWhatsapp failed:', e.message);
+                return {
+                    success: false,
+                    error: e.message || String(e)
+                };
+            } finally {
+                // No wrapper in this file yet writes the 'report_deliveries_' or
+                // 'report_recipients_' cache prefixes (see block comment above), so both calls are
+                // harmless no-ops today — clearCachePattern only deletes matching keys it finds.
+                // They stay here so a later plan that adds those wrappers does not also have to
+                // remember to add the cache invalidation here.
+                this.clearCachePattern('report_deliveries_');
+                this.clearCachePattern('report_recipients_');
+            }
+        },
+
+        // ------------------------------------------------------------------
         // Sales & Production Data page (migrations/20260819090000_data_page_production_daily.sql).
         // Whether that migration has been applied to any given database cannot be verified from
         // this checkout — every wrapper here throws a clean local error for a bad argument (so a
