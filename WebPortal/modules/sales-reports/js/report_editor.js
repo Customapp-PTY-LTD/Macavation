@@ -676,6 +676,18 @@ var _reportEditor = function () {
         renderLockedBanner(payload);
         updatePublishControls(payload);
 
+        // Distribution history: shown for a published or superseded report (the record of who
+        // already got it must not vanish on re-issue) and hidden for a draft (which can never have
+        // deliveries — begin_report_delivery is only reached through a send, and a send requires
+        // 'published'). Re-send is offered only while the loaded report is still 'published' —
+        // canResend = false on a superseded report still shows its history, just with no re-send
+        // control, matching the edge function's own 409 on a non-published report.
+        var showHistory = payload.status === 'published' || payload.status === 'superseded';
+        $('#reportWhatsappHistoryCard').toggleClass('d-none', !showHistory);
+        if (showHistory && typeof ReportWhatsappHistory !== 'undefined') {
+            ReportWhatsappHistory.load(state.reportId, false, payload.status === 'published');
+        }
+
         var $summary = $('#reportEditorExecSummary');
         var summaryVal = payload.executive_summary == null ? '' : String(payload.executive_summary);
         $summary.val(summaryVal);
@@ -1129,6 +1141,26 @@ var _reportEditor = function () {
         });
     }
 
+    // Injected into ReportWhatsappHistory.setResendHandler() (report-whatsapp-history.js) so a
+    // re-send reuses the same dialog and filename-building logic as a fresh send, instead of a
+    // second, duplicate send path. Returns a boolean so the history panel can show an explicit
+    // message instead of silently doing nothing. This is the only place a re-send filename is
+    // produced — pdfFileName stays private to this file and no accessor is added for it.
+    function openSendDialogForResend(preselect) {
+        if (typeof ReportWhatsappSend === 'undefined' || !ReportWhatsappSend.open) return false;
+        if (!state.payload || !state.reportId) return false;
+        if (state.payload.status !== 'published') return false; // edge fn returns 409 otherwise
+        if (!Array.isArray(preselect) || !preselect.length) return false;
+        ReportWhatsappSend.open({
+            reportInstanceId: state.reportId,
+            filename: pdfFileName(state.payload),
+            periodLabel: displayLabel(state.payload.period_label),
+            getPdfBase64: pdfBase64,
+            preselect: preselect
+        });
+        return true;
+    }
+
     // ------------------------------------------------------------------
     // Event wiring — every binding namespaced ".reportEditor"; destroy() removes them all.
     // ------------------------------------------------------------------
@@ -1208,6 +1240,10 @@ var _reportEditor = function () {
                 ReportWhatsappSend.init();
                 ReportWhatsappSend.setPdfProvider(pdfBase64);
             }
+            if (typeof ReportWhatsappHistory !== 'undefined') {
+                ReportWhatsappHistory.init();
+                ReportWhatsappHistory.setResendHandler(openSendDialogForResend);
+            }
             load();
         },
 
@@ -1218,6 +1254,9 @@ var _reportEditor = function () {
             $(document).off('.reportEditor');
             if (typeof ReportWhatsappSend !== 'undefined') {
                 ReportWhatsappSend.destroy();
+            }
+            if (typeof ReportWhatsappHistory !== 'undefined') {
+                ReportWhatsappHistory.destroy();
             }
         }
     };

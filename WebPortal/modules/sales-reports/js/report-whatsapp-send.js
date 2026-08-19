@@ -36,11 +36,19 @@ var ReportWhatsappSend = (function () {
         filename: null,
         periodLabel: null,
         selected: {},                                  // key -> candidate object
-        lists: { saved: [], inbox: [], crm: [] },
+        lists: { saved: [], inbox: [], crm: [], resend: [] },
         skippedCount: 0,
         savedError: false,
         inboxAvailable: true,
-        sending: false
+        sending: false,
+        // Numbers preselected by report-whatsapp-history.js for a re-send (see open()'s
+        // opts.preselect). Never mutated after open()/loadSources() consumes it into
+        // state.lists.resend.
+        preselect: [],
+        // Incremented when a preselected number could not be ticked because the selection was
+        // already at MAX_RECIPIENTS; the candidate still renders (unticked), it is simply not
+        // auto-selected.
+        preselectOverflowCount: 0
     };
 
     var pdfProvider = null; // injected via setPdfProvider(); returns Promise<string>
@@ -140,12 +148,58 @@ var ReportWhatsappSend = (function () {
         return out;
     }
 
+    // Builds the fourth ("resend") candidate group from a preselect list handed in by
+    // report-whatsapp-history.js — numbers pulled off an earlier delivery that may no longer
+    // appear in any of the three live sources (a saved recipient deactivated, a CRM contact
+    // deleted, a conversation archived). A key already present in saved/inbox/crm is selected
+    // through that source's own candidate instead of being duplicated here — the source's
+    // candidate carries richer identity (contactId/conversationId) that a manufactured one would
+    // lose.
+    function buildResendGroup(preselectEntries, lists) {
+        var entries = Array.isArray(preselectEntries) ? preselectEntries : [];
+        var byKey = {};
+        ['saved', 'inbox', 'crm'].forEach(function (group) {
+            var rows = (lists && Array.isArray(lists[group])) ? lists[group] : [];
+            rows.forEach(function (c) { if (c && c.key) byKey[c.key] = c; });
+        });
+
+        var seen = {};
+        var resend = [];
+        var selectedKeys = [];
+        var skipped = 0;
+
+        entries.forEach(function (entry) {
+            var key = normalizeKey(entry && entry.phone);
+            if (!key || key.length < 11) { skipped++; return; }
+            if (seen[key]) return; // dedupe within the preselect list itself
+            seen[key] = true;
+
+            if (byKey[key]) {
+                selectedKeys.push(key);
+                return; // the source's own candidate is the one to select — no duplicate row
+            }
+
+            resend.push({
+                key: key,
+                phone: entry.phone,
+                displayName: entry.displayName || entry.phone,
+                // 'manual' is the only whitelist value (data-functions.js:6367-6369) that keeps
+                // ensureRecipientsSaved from throwing on a resend candidate with no recipientId.
+                source: 'manual',
+                recipientId: entry.recipientId || null
+            });
+            selectedKeys.push(key);
+        });
+
+        return { resend: resend, selectedKeys: selectedKeys, skippedCount: skipped };
+    }
+
     // Drops any selected key not present in the freshly rendered lists, and refreshes the stored
     // candidate object for keys that survive (so a newly-saved row's recipientId is picked up).
     // A confidential report must never be sent to a recipient the operator can no longer see.
     function pruneSelection(selected, lists) {
         var byKey = {};
-        ['saved', 'inbox', 'crm'].forEach(function (group) {
+        ['saved', 'inbox', 'crm', 'resend'].forEach(function (group) {
             var rows = (lists && Array.isArray(lists[group])) ? lists[group] : [];
             rows.forEach(function (c) { if (c && c.key) byKey[c.key] = c; });
         });
@@ -227,7 +281,7 @@ var ReportWhatsappSend = (function () {
     // ------------------------------------------------------------------
 
     function findCandidateByKey(key) {
-        var groups = [state.lists.saved, state.lists.inbox, state.lists.crm];
+        var groups = [state.lists.saved || [], state.lists.inbox || [], state.lists.crm || [], state.lists.resend || []];
         for (var g = 0; g < groups.length; g++) {
             for (var i = 0; i < groups[g].length; i++) {
                 if (groups[g][i].key === key) return groups[g][i];
@@ -296,7 +350,17 @@ var ReportWhatsappSend = (function () {
             state.lists.crm.length ? null : 'No CRM contacts found.'
         ));
 
-        // Source-neutral wording: this counter aggregates all three sources, so it must not blame
+        // Only rendered when a re-send preselected a number no longer found in any live source —
+        // the normal "Send via WhatsApp" open path has an empty resend list and grows no heading.
+        if (state.lists.resend.length) {
+            $body.append(renderGroup(
+                'From this report\'s earlier sends',
+                state.lists.resend,
+                'These numbers came from an earlier send of this report and are no longer in the lists above.'
+            ));
+        }
+
+        // Source-neutral wording: this counter aggregates all four sources, so it must not blame
         // one of them (a CRM contact with no mobile number and a malformed manual number look the
         // same from here).
         if (state.skippedCount > 0) {
@@ -304,6 +368,14 @@ var ReportWhatsappSend = (function () {
                 state.skippedCount + (state.skippedCount === 1
                     ? ' entry was hidden \u2014 no usable WhatsApp number.'
                     : ' entries were hidden \u2014 no usable WhatsApp number.')
+            ));
+        }
+
+        if (state.preselectOverflowCount > 0) {
+            $body.append($('<div>', { 'class': 'text-muted small mt-2' }).text(
+                state.preselectOverflowCount + (state.preselectOverflowCount === 1
+                    ? ' pre-selected recipient was not ticked because the maximum is ' + MAX_RECIPIENTS + ' per send.'
+                    : ' pre-selected recipients were not ticked because the maximum is ' + MAX_RECIPIENTS + ' per send.')
             ));
         }
 
@@ -437,9 +509,26 @@ var ReportWhatsappSend = (function () {
         });
 
         return Promise.all([savedP, inboxP, crmP]).then(function (results) {
-            var built = buildCandidateLists(results[0], results[1], results[2]);
-            state.lists = { saved: built.saved, inbox: built.inbox, crm: built.crm };
-            state.skippedCount = built.skippedCount;
+            var built  = buildCandidateLists(results[0], results[1], results[2]);
+            var resend = buildResendGroup(state.preselect, built);
+            state.lists = { saved: built.saved, inbox: built.inbox, crm: built.crm, resend: resend.resend };
+            state.skippedCount = built.skippedCount + resend.skippedCount;
+
+            // Seed the preselected keys before pruning — pruneSelection only refreshes candidate
+            // objects for keys already in state.selected, so a seeded key must be selected first
+            // or prune would see nothing to keep. The same MAX_RECIPIENTS cap
+            // handleCandidateToggle enforces for a human click applies here too; anything that
+            // doesn't fit still renders (unticked) and is counted instead.
+            state.preselectOverflowCount = 0;
+            resend.selectedKeys.forEach(function (key) {
+                if (Object.keys(state.selected).length >= MAX_RECIPIENTS) {
+                    state.preselectOverflowCount++;
+                    return;
+                }
+                var candidate = findCandidateByKey(key);
+                if (candidate) state.selected[key] = candidate;
+            });
+
             state.selected = pruneSelection(state.selected, state.lists);
             renderBody();
         });
@@ -652,11 +741,13 @@ var ReportWhatsappSend = (function () {
         state.filename = opts.filename || null;
         state.periodLabel = opts.periodLabel || null;
         state.selected = {};
-        state.lists = { saved: [], inbox: [], crm: [] };
+        state.lists = { saved: [], inbox: [], crm: [], resend: [] };
         state.skippedCount = 0;
         state.savedError = false;
         state.inboxAvailable = true;
         state.sending = false;
+        state.preselect = Array.isArray(opts.preselect) ? opts.preselect.slice() : [];
+        state.preselectOverflowCount = 0;
 
         // Show first, load second — a slow or failing RPC can never leave the operator staring at
         // nothing.
@@ -668,11 +759,13 @@ var ReportWhatsappSend = (function () {
         init: function () {
             unbindEvents();
             state.selected = {};
-            state.lists = { saved: [], inbox: [], crm: [] };
+            state.lists = { saved: [], inbox: [], crm: [], resend: [] };
             state.skippedCount = 0;
             state.savedError = false;
             state.inboxAvailable = true;
             state.sending = false;
+            state.preselect = [];
+            state.preselectOverflowCount = 0;
             bindEvents();
         },
 
@@ -691,7 +784,8 @@ var ReportWhatsappSend = (function () {
         _buildCandidateLists: buildCandidateLists,
         _pruneSelection: pruneSelection,
         _buildSendRecipients: buildSendRecipients,
-        _summarizeSend: summarizeSend
+        _summarizeSend: summarizeSend,
+        _buildResendGroup: buildResendGroup
     };
 })();
 
