@@ -6247,12 +6247,18 @@ var _dataFunctions = function () {
         // edge-function call (unlike a PostgREST RPC) is expected to report its own transport
         // failures back to the caller.
         //
-        // As of this commit, no migration under migrations/ defines list_report_recipients,
-        // upsert_report_recipient, set_report_recipient_active or list_report_deliveries (checked
-        // by grep immediately before writing this block), so those four PostgREST wrappers are not
-        // implemented here — adding them against a guessed signature would silently call a
-        // function this repo does not define. They are deferred until a later plan commits the SQL
-        // that defines them.
+        // list_report_recipients, upsert_report_recipient, set_report_recipient_active and
+        // list_report_deliveries are defined in
+        // migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql (merged in
+        // b3e6b66) and are wrapped below as listReportRecipients, upsertReportRecipient,
+        // setReportRecipientActive and listReportDeliveries.
+        //
+        // begin_report_delivery, complete_report_delivery and record_report_pdf_storage are
+        // defined in that same migration but are REVOKEd from PUBLIC, anon and authenticated and
+        // GRANTed to service_role only (same file) — they are reached only from an edge function
+        // that has already validated the caller's portal session, and anything the browser could
+        // call directly it could also call with a forged report id. Deliberately no wrapper for
+        // those three here, and none should be added.
         //
         // Whether any migration referenced anywhere in this file, or the edge function above, has
         // actually been deployed to any given database or project cannot be verified from this
@@ -6324,14 +6330,86 @@ var _dataFunctions = function () {
                     error: e.message || String(e)
                 };
             } finally {
-                // No wrapper in this file yet writes the 'report_deliveries_' or
-                // 'report_recipients_' cache prefixes (see block comment above), so both calls are
-                // harmless no-ops today — clearCachePattern only deletes matching keys it finds.
-                // They stay here so a later plan that adds those wrappers does not also have to
-                // remember to add the cache invalidation here.
+                // listReportDeliveries and listReportRecipients (below) now cache under these two
+                // prefixes ('report_deliveries_<id>' and 'report_recipients_all' /
+                // 'report_recipients_active'), and clearCachePattern matches by substring
+                // (key.includes(pattern)), so these two calls now invalidate real cached reads
+                // after a send — they are no longer no-ops.
                 this.clearCachePattern('report_deliveries_');
                 this.clearCachePattern('report_recipients_');
             }
+        },
+
+        /** List saved WhatsApp report-distribution recipients (list_report_recipients). */
+        listReportRecipients: async function (includeInactive = false, token = null, forceRefresh = false) {
+            const params = { p_include_inactive: !!includeInactive };
+            const cacheKey = 'report_recipients_' + (includeInactive ? 'all' : 'active');
+            return await this.callFunction('list_report_recipients', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        /**
+         * Create or reactivate a saved WhatsApp report-distribution recipient
+         * (upsert_report_recipient). Matches on the phone number after
+         * report_normalize_wa_phone — do not normalise the phone here, that function is the
+         * single source of truth for what "the same number" means.
+         */
+        upsertReportRecipient: async function (displayName, phone, source = 'manual', options = {}, token = null) {
+            const name = (displayName != null ? String(displayName) : '').trim();
+            const ph = (phone != null ? String(phone) : '').trim();
+            const src = (source != null ? String(source) : '').trim();
+            if (!name) throw new Error('upsertReportRecipient: displayName is required.');
+            if (!ph) throw new Error('upsertReportRecipient: phone is required.');
+            if (!['whatsapp_chat', 'crm_contact', 'manual'].includes(src)) {
+                throw new Error('upsertReportRecipient: source must be whatsapp_chat, crm_contact or manual.');
+            }
+            const opts = options || {};
+            const params = {
+                p_display_name: name,
+                p_phone: ph,
+                p_source: src,
+                p_contact_id: opts.contactId || undefined,
+                p_conversation_id: opts.conversationId || undefined,
+                p_notes: opts.notes || undefined,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('upsert_report_recipient', params, token, { useCache: false });
+            this.clearCachePattern('report_recipients_');
+            return result;
+        },
+
+        /** Activate or deactivate a saved WhatsApp report-distribution recipient (set_report_recipient_active). */
+        setReportRecipientActive: async function (recipientId, isActive, token = null) {
+            const id = (recipientId != null ? String(recipientId) : '').trim();
+            if (!id) throw new Error('setReportRecipientActive: recipientId is required.');
+            // p_is_active has no DEFAULT on the SQL side, so it must always be sent explicitly —
+            // buildPostgrestRpcBody only strips null/undefined/'', so a boolean false survives.
+            const params = {
+                p_recipient_id: id,
+                p_is_active: !!isActive,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('set_report_recipient_active', params, token, { useCache: false });
+            this.clearCachePattern('report_recipients_');
+            return result;
+        },
+
+        /** List the WhatsApp delivery log for one report instance (list_report_deliveries). */
+        listReportDeliveries: async function (reportInstanceId, token = null, forceRefresh = false) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('listReportDeliveries: reportInstanceId is required.');
+            const params = { p_report_instance_id: id };
+            const cacheKey = 'report_deliveries_' + id;
+            return await this.callFunction('list_report_deliveries', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
         },
 
         // ------------------------------------------------------------------
