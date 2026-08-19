@@ -656,6 +656,7 @@
                 "js/report-metric-line.js",
                 "js/report-pdf-builder.js",
                 "js/report-whatsapp-send.js",
+                "js/report-whatsapp-history.js",
                 "js/report_editor.js"
             ],
             "css": [
