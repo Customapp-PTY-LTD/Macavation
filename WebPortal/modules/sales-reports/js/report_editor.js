@@ -160,6 +160,9 @@ var _reportEditor = function () {
         var status = payload && payload.status;
         $('#reportEditorPublishBtn').toggleClass('d-none', status !== 'draft');
         $('#reportEditorReissueBtn').toggleClass('d-none', status !== 'published');
+        // A draft is watermarked by the PDF builder (report-pdf-builder.js) and a superseded
+        // report is locked, so only a published report may be sent.
+        $('#reportEditorSendWhatsappBtn').toggleClass('d-none', status !== 'published');
     }
 
     // ------------------------------------------------------------------
@@ -1066,6 +1069,28 @@ var _reportEditor = function () {
         return 'Macavation-' + (safe || 'report') + '.pdf';
     }
 
+    // Returns a Promise<string> of the report's PDF as base64 — used by report-whatsapp-send.js
+    // (deliverable 1) via ReportWhatsappSend.open({ getPdfBase64: buildPdfBase64 }). getBase64 is
+    // callback-style and returns nothing itself, so this wrapper is required: without it an
+    // `await` on the bare call would resolve to `undefined` and the send would post an empty PDF.
+    function buildPdfBase64() {
+        return ensurePdfMake().then(function () {
+            if (typeof ReportPdfBuilder === 'undefined' || !ReportPdfBuilder.buildReportDocDefinition) {
+                throw new Error('builder-missing');
+            }
+            var docDefinition = ReportPdfBuilder.buildReportDocDefinition(state.payload);
+            return new Promise(function (resolve, reject) {
+                try {
+                    pdfMake.createPdf(docDefinition).getBase64(function (b64) {
+                        if (b64) { resolve(b64); } else { reject(new Error('pdf-empty')); }
+                    });
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+    }
+
     function handleDownloadPdf() {
         if (!state.payload) return;
         var $btn = $('#reportEditorDownloadPdfBtn');
@@ -1111,6 +1136,20 @@ var _reportEditor = function () {
         });
         $(document).on('click.reportEditor', '#reportEditorPublishBtn', function () { handlePublish(); });
         $(document).on('click.reportEditor', '#reportEditorReissueBtn', function () { handleReissue(); });
+        $(document).on('click.reportEditor', '#reportEditorSendWhatsappBtn', function () {
+            if (!state.payload || state.payload.status !== 'published') return;
+            if (typeof ReportWhatsappSend === 'undefined' || !ReportWhatsappSend.open) {
+                Swal.fire({ icon: 'error', title: 'Could not open the send dialog',
+                            text: 'The send module did not load. Reload the page and try again.' });
+                return;
+            }
+            ReportWhatsappSend.open({
+                reportInstanceId: state.reportId,
+                filename: pdfFileName(state.payload),
+                periodLabel: displayLabel(state.payload.period_label),
+                getPdfBase64: buildPdfBase64
+            });
+        });
         $(document).on('blur.reportEditor', '.js-report-metric-input', function () {
             handleMetricBlur($(this));
         });
@@ -1162,6 +1201,7 @@ var _reportEditor = function () {
             pendingOverrides.clear();
             pendingCommentary.clear();
             bindEvents();
+            if (typeof ReportWhatsappSend !== 'undefined' && ReportWhatsappSend.init) ReportWhatsappSend.init();
             load();
         },
 
@@ -1169,6 +1209,7 @@ var _reportEditor = function () {
             // Chart.js keeps a live reference to its canvas and to resize listeners; leaving one
             // behind would keep redrawing into a canvas belonging to whichever module loads next.
             destroyKernelStockCharts();
+            if (typeof ReportWhatsappSend !== 'undefined' && ReportWhatsappSend.destroy) ReportWhatsappSend.destroy();
             $(document).off('.reportEditor');
         }
     };
