@@ -17,6 +17,10 @@
             <button type="button" class="btn btn-outline-secondary" id="reportEditorDownloadPdfBtn" disabled>
                 <i class="fas fa-file-pdf me-1"></i>Download PDF
             </button>
+            <button type="button" class="btn btn-outline-success d-none" id="reportEditorSendWhatsappBtn"
+                    data-action-perm="reports.report.send">
+                <i class="fas fa-paper-plane me-1"></i>Send via WhatsApp
+            </button>
             <button type="button" class="btn btn-primary d-none" id="reportEditorPublishBtn"
                     data-action-perm="reports.report.publish">
                 <i class="fas fa-lock me-1"></i>Publish
@@ -44,5 +48,32 @@
     <div id="reportEditorEmptyState"></div>
     <div id="reportEditorLoadingState" class="text-center py-5">
         <i class="fas fa-spinner fa-spin me-2"></i>Loading report&hellip;
+    </div>
+</div>
+
+<!-- Send via WhatsApp modal — every group list, the add-number sub-form and the results list are
+     populated by report-whatsapp-send.js; no database value appears in this static markup. -->
+<div class="modal fade" id="reportWhatsappSendModal" tabindex="-1" role="dialog"
+     aria-labelledby="reportWhatsappSendModalLabel" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportWhatsappSendModalLabel">Send via WhatsApp</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reportWhatsappSendBody"></div>
+                <div id="reportWhatsappSendAddForm"></div>
+                <div id="reportWhatsappSendResults" class="mt-3 d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto small text-muted" id="reportWhatsappSendFooterCount">0 recipients selected</div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="reportWhatsappSendSubmitBtn" disabled>
+                    <i class="fas fa-paper-plane me-1"></i>Send
+                </button>
+            </div>
+        </div>
     </div>
 </div>
