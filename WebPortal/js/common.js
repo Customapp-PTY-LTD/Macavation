@@ -128,6 +128,39 @@ var _common = {
         return `${day}/${month}/${year}`;
     },
 
+    // Kernel shelf life in months. Single source of truth for Best Before: the job card,
+    // the production-stages roll-up and the get_kernel_batches fallback must all agree.
+    // Change it here only, and keep the SQL fallback in step (see migrations, get_kernel_batches).
+    KERNEL_BEST_BEFORE_MONTHS: 24,
+
+    // Add whole months to a YYYY-MM-DD string using local date parts only. Deliberately avoids
+    // toISOString(), which turns a local-midnight Date into the previous day in SAST (UTC+2).
+    // Returns YYYY-MM-DD or null.
+    addMonthsToISODate: function (isoStr, months) {
+        if (!isoStr) return null;
+        const s = String(isoStr).trim().split('T')[0];
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+        const parts = s.split('-');
+        let y = parseInt(parts[0], 10);
+        let m = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const add = parseInt(months, 10);
+        if (isNaN(y) || isNaN(m) || isNaN(day) || isNaN(add)) return null;
+        m += add;
+        y += Math.floor(m / 12);
+        m = m % 12;
+        if (m < 0) { m += 12; y -= 1; }
+        const d = new Date(y, m, day);
+        if (isNaN(d.getTime())) return null;
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    },
+
+    // Best Before for a kernel batch = packing start date + KERNEL_BEST_BEFORE_MONTHS.
+    // Returns YYYY-MM-DD or null.
+    kernelBestBeforeFromPackingStart: function (packingStartISO) {
+        return _common.addMonthsToISODate(packingStartISO, _common.KERNEL_BEST_BEFORE_MONTHS);
+    },
+
     // Extract gender from SA ID number
     extractGenderFromId: function (idNumber) {
         if (!this.isValidSAIdNumber(idNumber)) {
