@@ -1,6 +1,6 @@
 /**
  * Modal: Kernel Job Card – form, sound kernel/butter grade rows, calculations, save.
- * Packing: Start Date = first production packing date. Best Before Date = Start Date + 18 months (always; never use stored value).
+ * Packing: Start Date = first production packing date. Best Before Date = Start Date + _common.KERNEL_BEST_BEFORE_MONTHS (always; never use stored value).
  * Date inputs follow docs/markdown-archive/INSTRUCTIONS-DATE-FLATPICKR.md:
  * - HTML: type="text", class="flatpickr-date", data-input, placeholder dd/mm/yyyy (§3).
  * - Config: dateFormat 'd/m/Y', allowInput: false, disableMobile: true (§6).
@@ -156,23 +156,10 @@ var _modal_kernel_job_card = (function () {
         return null;
     }
 
-    /** Best Before = 18 MONTHS (not 18 days) after the given ISO date. Returns YYYY-MM-DD or null. */
-    function add18MonthsToISO(isoStr) {
-        if (!isoStr) return null;
-        var s = String(isoStr).trim().split('T')[0];
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-        var parts = s.split('-');
-        var y = parseInt(parts[0], 10);
-        var m = parseInt(parts[1], 10) - 1;
-        var day = parseInt(parts[2], 10);
-        if (isNaN(y) || isNaN(m) || isNaN(day)) return null;
-        m += 18;
-        y += Math.floor(m / 12);
-        m = m % 12;
-        if (m < 0) { m += 12; y -= 1; }
-        var d = new Date(y, m, day);
-        if (isNaN(d.getTime())) return null;
-        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    /** Best Before = packing start + _common.KERNEL_BEST_BEFORE_MONTHS. Returns YYYY-MM-DD or null. */
+    function bestBeforeFromPackingStartISO(isoStr) {
+        if (typeof _common === 'undefined' || !_common.kernelBestBeforeFromPackingStart) return null;
+        return _common.kernelBestBeforeFromPackingStart(isoStr);
     }
 
     return {
@@ -191,7 +178,7 @@ var _modal_kernel_job_card = (function () {
                         if (el.id === 'jobCardPackingStartDate') {
                             opts.onChange = function (selectedDates) {
                                 _jobCardPackingStartISO = selectedDates[0] ? selectedDates[0].toISOString().split('T')[0] : null;
-                                _jobCardBestBeforeISO = _jobCardPackingStartISO ? add18MonthsToISO(_jobCardPackingStartISO) : null;
+                                _jobCardBestBeforeISO = _jobCardPackingStartISO ? bestBeforeFromPackingStartISO(_jobCardPackingStartISO) : null;
                                 scope.syncBestBeforeFromStartDate();
                             };
                         }
@@ -278,7 +265,7 @@ var _modal_kernel_job_card = (function () {
         syncBestBeforeFromStartDate: () => {
             const scope = _modal_kernel_job_card;
             if (!_jobCardPackingStartISO) return;
-            _jobCardBestBeforeISO = add18MonthsToISO(_jobCardPackingStartISO);
+            _jobCardBestBeforeISO = bestBeforeFromPackingStartISO(_jobCardPackingStartISO);
             if (_jobCardBestBeforeISO) scope.setJobCardField('jobCardBestBeforeDate', _jobCardBestBeforeISO);
         },
 
@@ -296,7 +283,7 @@ var _modal_kernel_job_card = (function () {
                     var startISOForState = /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(str) ? str.split('T')[0] : jobCardToISO(str);
                     if (startISOForState) {
                         _jobCardPackingStartISO = startISOForState;
-                        _jobCardBestBeforeISO = add18MonthsToISO(startISOForState);
+                        _jobCardBestBeforeISO = bestBeforeFromPackingStartISO(startISOForState);
                     }
                 }
                 if (id === 'jobCardBestBeforeDate') {
