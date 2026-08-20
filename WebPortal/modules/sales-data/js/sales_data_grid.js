@@ -910,11 +910,22 @@ var _salesDataGrid = function () {
         });
     }
 
-    function resolvePeriodFromCurrent() {
-        return dataFunctions.getReportCurrentPeriod(state.periodType).then(function (result) {
+    // The "answered, but with nothing usable" throws in both resolvers below are shown to the user
+    // verbatim by failureHint, so they say what happened in plain words AND name the RPC. This case
+    // is real, not defensive: the resolver returns an empty set with HTTP 200 — not an error — for
+    // any period type it does not recognise, which is indistinguishable from a missing migration
+    // unless the message spells it out.
+    //
+    // forceRefresh matters on a retry: callFunction caches any non-error response for its TTL, and
+    // an empty result IS a non-error response — so a period that came back empty would be served
+    // from the same cached emptiness for the next minute and the retry would "fail" without ever
+    // reaching the server.
+    function resolvePeriodFromCurrent(forceRefresh) {
+        return dataFunctions.getReportCurrentPeriod(state.periodType, null, !!forceRefresh).then(function (result) {
             var row = firstRpcRow(result);
             if (!row || !row.period_start || !row.period_end) {
-                throw new Error('get_report_current_period returned no row for "' + state.periodType + '"');
+                throw new Error('The server answered but sent back no ' + state.periodType
+                    + ' reporting period (get_report_current_period).');
             }
             applyPeriod(String(row.period_start).slice(0, 10), String(row.period_end).slice(0, 10), row.period_label || '');
         });
@@ -923,64 +934,116 @@ var _salesDataGrid = function () {
     function resolvePeriodFromDate(iso) {
         return dataFunctions.getReportPeriodStart(state.periodType, iso).then(function (startResult) {
             var start = SalesDataRowGrid.scalarIsoDate(startResult);
-            if (!start) throw new Error('report_normalise_period_start returned no usable date');
+            if (!start) {
+                throw new Error('The server could not work out where the ' + state.periodType
+                    + ' period containing ' + iso + ' starts (report_normalise_period_start).');
+            }
             return dataFunctions.getReportPeriodEnd(state.periodType, start).then(function (endResult) {
                 var end = SalesDataRowGrid.scalarIsoDate(endResult);
-                if (!end) throw new Error('report_period_end returned no usable date');
+                if (!end) {
+                    throw new Error('The server could not work out where the ' + state.periodType
+                        + ' period starting ' + start + ' ends (report_period_end).');
+                }
                 applyPeriod(start, end, periodLabelFor(state.periodType, start, end));
             });
         });
     }
 
-    // Renders the exact-required-text empty state and disables the reseed button — this is a
-    // deployment state (the period-resolution RPCs are missing), not a data state, and must be
-    // visibly distinguishable from "no rows for this period" in the console too.
+    // PostgREST's PGRST202 ("could not find the function ... in the schema cache") is the ONLY
+    // error that really means this database has not had the migrations applied. Everything else —
+    // a dropped request, a 5xx, a period type the resolver does not recognise — is a runtime
+    // failure. Reporting those as a deployment problem is not a cosmetic wording issue: it sent a
+    // transient failure on the dev site down a "promote the migrations to prod" investigation
+    // while the migrations were already present on the database being used.
+    function isMissingRpcError(err) {
+        var msg = err && err.message ? String(err.message) : '';
+        return /PGRST202|schema cache|Could not find the function/i.test(msg);
+    }
+
+    // What actually broke, in a form Pete can read out over the phone. macEmptyState escapes its
+    // arguments, so an error string is safe to pass straight through.
+    function failureHint(err) {
+        var msg = err && err.message ? String(err.message).trim() : '';
+        return msg || 'The server did not say why. Try again, and check your connection.';
+    }
+
+    // A retry affordance belongs on a transient failure specifically: an unapplied migration will
+    // not fix itself, but a schema-cache miss or a dropped request usually clears on the next try.
+    function retryButtonHtml() {
+        return '<div class="text-center pb-3">'
+            + '<button type="button" class="btn btn-sm btn-outline-secondary js-sales-data-retry">'
+            + '<i class="fas fa-sync-alt me-1"></i>Try again</button></div>';
+    }
+
+    // Period resolution failed. The two genuinely different causes get two genuinely different
+    // messages, and the console line names which branch was taken so the next person does not have
+    // to reverse-engineer it from the DOM.
     function handlePeriodResolutionFailure(err) {
-        console.warn('[sales-data] period resolution failed', err);
         state.start = null;
         state.end = null;
         $('#salesDataPeriodLabel').text('Could not resolve the reporting period.');
         $('#salesDataReseedBtn').prop('disabled', true);
-        $('#salesDataTabContent').html(macEmptyState('fa-calendar-times', 'Reporting period is not available yet',
-            'The report-builder migrations have not been applied to this database.'));
+        if (isMissingRpcError(err)) {
+            console.warn('[sales-data] period resolution failed — RPC missing on this database', err);
+            $('#salesDataTabContent').html(macEmptyState('fa-calendar-times', 'Reporting period is not available yet',
+                'The report-builder migrations have not been applied to this database.'));
+            return;
+        }
+        console.warn('[sales-data] period resolution failed — runtime error, NOT a missing migration', err);
+        $('#salesDataTabContent').html(
+            macEmptyState('fa-exclamation-triangle', 'Could not load the reporting period', failureHint(err))
+            + retryButtonHtml());
+    }
+
+    // Rendering the active tab is a separate failure from resolving the period: the period has
+    // already been applied by the time this runs, so blaming it — or the migrations — is always
+    // wrong. Only the tab body is replaced, leaving the period controls live so Pete can change
+    // period or switch tabs instead of being stuck on a dead page.
+    function handleTabRenderFailure(err) {
+        console.warn('[sales-data] tab render failed', err);
+        $('#salesDataTabContent').html(
+            macEmptyState('fa-exclamation-triangle',
+                'Could not open ' + datasetLabel(state.activeDatasetKey), failureHint(err))
+            + retryButtonHtml());
+    }
+
+    // Period-change entry points share one shape: resolve the period, then render the tab. The two
+    // steps are caught SEPARATELY — .then(onFulfilled, onRejected) means the rejection handler sees
+    // only what happened before it, and switchTab's own failure is caught by its own handler.
+    // flushAutoSave never rejects (both flush paths catch and report through setSaveStatus), so a
+    // save problem cannot surface here wearing a period error's clothes.
+    function resolveThenRender(resolveStep) {
+        return flushAutoSave()
+            .then(resolveStep)
+            .then(function () {
+                return switchTab(state.activeDatasetKey, true).catch(handleTabRenderFailure);
+            }, handlePeriodResolutionFailure);
     }
 
     function goToPreviousPeriod() {
         if (!state.start) return;
         var anchor = SalesDataRowGrid.shiftIsoDateByOneDay(state.start, -1);
         if (!anchor) return;
-        flushAutoSave()
-            .then(function () { return resolvePeriodFromDate(anchor); })
-            .then(function () { return switchTab(state.activeDatasetKey, true); })
-            .catch(handlePeriodResolutionFailure);
+        resolveThenRender(function () { return resolvePeriodFromDate(anchor); });
     }
 
     function goToNextPeriod() {
         if (!state.end) return;
         var anchor = SalesDataRowGrid.shiftIsoDateByOneDay(state.end, 1);
         if (!anchor) return;
-        flushAutoSave()
-            .then(function () { return resolvePeriodFromDate(anchor); })
-            .then(function () { return switchTab(state.activeDatasetKey, true); })
-            .catch(handlePeriodResolutionFailure);
+        resolveThenRender(function () { return resolvePeriodFromDate(anchor); });
     }
 
     function onPeriodTypeChanged() {
         state.periodType = $('input[name="salesDataPeriodType"]:checked').val() || 'weekly';
-        flushAutoSave()
-            .then(function () { return resolvePeriodFromCurrent(); })
-            .then(function () { return switchTab(state.activeDatasetKey, true); })
-            .catch(handlePeriodResolutionFailure);
+        resolveThenRender(function () { return resolvePeriodFromCurrent(); });
     }
 
     function onPeriodDateChanged() {
         var el = document.getElementById('salesDataPeriodDate');
         var iso = pickerDateToIso(el ? el.value : '');
         if (!iso) return;
-        flushAutoSave()
-            .then(function () { return resolvePeriodFromDate(iso); })
-            .then(function () { return switchTab(state.activeDatasetKey, true); })
-            .catch(handlePeriodResolutionFailure);
+        resolveThenRender(function () { return resolvePeriodFromDate(iso); });
     }
 
     // ------------------------------------------------------------------
@@ -1081,6 +1144,13 @@ var _salesDataGrid = function () {
         $(document).on('click.salesData', '.js-sales-data-ledger-delete', function () {
             ledgerDeleteLine($(this).closest('tr'));
         });
+        // Retry re-runs the boot chain rather than only the step that failed: whichever step it was,
+        // the period may still be unresolved. It resolves from CURRENT rather than from the date in
+        // the picker because a failed boot never populated that picker.
+        $(document).on('click.salesData', '.js-sales-data-retry', function () {
+            $('#salesDataTabContent').html(macEmptyState('fa-spinner fa-spin', 'Trying again…', ''));
+            resolveThenRender(function () { return resolvePeriodFromCurrent(true); });
+        });
     }
 
     return {
@@ -1103,13 +1173,17 @@ var _salesDataGrid = function () {
             setSaveStatus('\u00a0');
             bindEvents();
             initFlatpickr();
+            // Boot in two separately-caught steps. The old single .catch() covered the tab render
+            // as well, so ANY failure on this page — a dropped request, a bad row, a slow network —
+            // was reported to the user as "the report-builder migrations have not been applied",
+            // which is a claim about the deployment that was usually false.
             loadDatasetsList().then(function () {
                 renderTabStrip();
                 ensureActiveDataset();
                 return resolvePeriodFromCurrent();
             }).then(function () {
-                return switchTab(state.activeDatasetKey, false);
-            }).catch(handlePeriodResolutionFailure);
+                return switchTab(state.activeDatasetKey, false).catch(handleTabRenderFailure);
+            }, handlePeriodResolutionFailure);
         },
 
         destroy: function () {
