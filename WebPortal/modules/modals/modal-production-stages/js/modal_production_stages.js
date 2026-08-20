@@ -17,23 +17,10 @@ function fromISO(isoStr) {
     return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
-/** Best Before = 18 MONTHS (not 18 days) after ISO date. Returns YYYY-MM-DD or null. */
-function add18MonthsToISO(isoStr) {
-    if (!isoStr) return null;
-    var s = String(isoStr).trim().split('T')[0];
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-    var parts = s.split('-');
-    var y = parseInt(parts[0], 10);
-    var m = parseInt(parts[1], 10) - 1;
-    var day = parseInt(parts[2], 10);
-    if (isNaN(y) || isNaN(m) || isNaN(day)) return null;
-    m += 18;
-    y += Math.floor(m / 12);
-    m = m % 12;
-    if (m < 0) { m += 12; y -= 1; }
-    var d = new Date(y, m, day);
-    if (isNaN(d.getTime())) return null;
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+/** Best Before = packing start + _common.KERNEL_BEST_BEFORE_MONTHS. Returns YYYY-MM-DD or null. */
+function bestBeforeFromPackingStartISO(isoStr) {
+    if (typeof _common === 'undefined' || !_common.kernelBestBeforeFromPackingStart) return null;
+    return _common.kernelBestBeforeFromPackingStart(isoStr);
 }
 
 /** Return YYYY-MM-DD from stages (first found: crack, wash, sort, pack). Used when comparing to a single day's date. */
@@ -1079,7 +1066,7 @@ var _modal_production_stages = (function () {
                 var crackDates = unwrapped.map(function (s) { return (s.cracking_data && s.cracking_data.date) ? String(s.cracking_data.date).split('T')[0] : null; }).filter(function (d) { return d && /^\d{4}-\d{2}-\d{2}$/.test(d); });
                 if (crackDates.length) { crackDates.sort(); receivedDate = crackDates[0]; }
             }
-            // Start = chronologically first packing date (earliest calendar date). Best Before = Start + 18 months.
+            // Start = chronologically first packing date (earliest calendar date). Best Before = Start + _common.KERNEL_BEST_BEFORE_MONTHS.
             var packingDates = [];
             unwrapped.forEach(function (s) {
                 var p = s.packing_data;
@@ -1091,7 +1078,7 @@ var _modal_production_stages = (function () {
             packingDates.sort();
             var packingStart = packingDates.length ? packingDates[0] : null;
             var packingCompletion = packingDates.length ? packingDates[packingDates.length - 1] : null;
-            var bestBeforeDate = (packingStart && /^\d{4}-\d{2}-\d{2}$/.test(packingStart)) ? add18MonthsToISO(packingStart) : null;
+            var bestBeforeDate = (packingStart && /^\d{4}-\d{2}-\d{2}$/.test(packingStart)) ? bestBeforeFromPackingStartISO(packingStart) : null;
             var p = (agg.packing_data && typeof agg.packing_data === 'object') ? agg.packing_data : {};
             var soundKernelStyles = [];
             [
