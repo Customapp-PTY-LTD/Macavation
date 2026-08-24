@@ -5146,6 +5146,26 @@ var _dataFunctions = function () {
         },
 
         /**
+         * Remove one line from a kernel dispatch order's lines array, returning its cartons to
+         * derived kernel stock on hand. p_line_index is the array index of the line (not an id -
+         * line objects have none); expected kernel_id/style are a stale-window guard checked
+         * server-side against the line found at that index.
+         * Removing the last line cancels the order (order_cancelled: true in the result).
+         */
+        returnKernelDispatchLineToStock: async function (payload, token = null) {
+            const params = {
+                p_order_id: payload.order_id || null,
+                p_line_index: Number(payload.line_index),
+                p_expected_kernel_id: payload.expected_kernel_id != null ? payload.expected_kernel_id : null,
+                p_expected_style: payload.expected_style != null ? payload.expected_style : null
+            };
+            const result = await this._callWithActor('return_kernel_dispatch_line_to_stock', params, token, { useCache: false });
+            this.clearCachePattern('kernel_dispatch_orders_list');
+            this.clearCachePattern('kernel_batches');
+            return result;
+        },
+
+        /**
          * @param {string|null} token
          * @param {boolean} forceRefresh
          * @param {{ batchSearch?: string, supplierReceivedDate?: string }|null} filters Optional: batchSearch matches buyer name or any line batch (substring + separator-insensitive on server); supplierReceivedDate is YYYY-MM-DD (kernel.received_date).

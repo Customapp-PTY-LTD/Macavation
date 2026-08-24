@@ -82,6 +82,11 @@ var _modal_kernel_dispatch_edit = (function () {
                 e.preventDefault();
                 _modal_kernel_dispatch_edit.submit();
             });
+
+            $modal.off('click.kdispatchSendBack').on('click.kdispatchSendBack', '.js-kernel-dispatch-send-back', function (e) {
+                e.preventDefault();
+                _modal_kernel_dispatch_edit.sendLineBackToStock(this);
+            });
         },
 
         show: function (orderId) {
@@ -101,6 +106,10 @@ var _modal_kernel_dispatch_edit = (function () {
                     if (typeof Swal !== 'undefined') Swal.fire('Info', 'This order has already been dispatched and cannot be edited.', 'info');
                     return;
                 }
+                if (st === 'cancelled') {
+                    if (typeof Swal !== 'undefined') Swal.fire('Info', 'This order was cancelled when its last line went back to stock.', 'info');
+                    return;
+                }
                 $('#kernelDispatchEditBuyer').val(order.buyer_name || '');
                 $('#kernelDispatchEditDelivery').val(formatDateForDisplay(order.delivery_date));
                 $('#kernelDispatchEditBestBefore').val(formatDateForDisplay(order.best_before_date));
@@ -108,23 +117,29 @@ var _modal_kernel_dispatch_edit = (function () {
                 var tbody = document.getElementById('kernelDispatchEditLinesBody');
                 tbody.innerHTML = '';
                 var lines = parseLines(data);
-                lines.forEach(function (line) {
+                var canSendBack = typeof hasAction === 'function' && hasAction('kernel.dispatch.edit');
+                lines.forEach(function (line, idx) {
                     var kid = escapeHtml(line.kernel_id || '');
                     var bn = escapeHtml(line.batch_number || '—');
                     var stl = escapeHtml(line.style || '—');
                     var ct = line.cartons != null ? Number(line.cartons) : (line.quantity_kg != null ? Math.round(Number(line.quantity_kg) / 11.34) : 0);
                     if (isNaN(ct) || ct < 0) ct = 0;
                     var tr = document.createElement('tr');
+                    tr.setAttribute('data-line-index', String(idx));
                     tr.setAttribute('data-kernel-id', line.kernel_id || '');
                     tr.setAttribute('data-style', line.style || '');
                     tr.setAttribute('data-batch-number', line.batch_number || '');
+                    var actionCell = canSendBack
+                        ? '<button type="button" class="btn btn-sm btn-outline-secondary js-kernel-dispatch-send-back">' +
+                          '<i class="fas fa-rotate-left me-1"></i>Send back to stock</button>'
+                        : '';
                     tr.innerHTML = '<td>' + bn + '</td><td>' + stl + '</td><td class="text-end">' +
                         '<input type="number" class="form-control form-control-sm text-end js-kernel-dispatch-edit-cartons" min="0" step="1" value="' + ct + '">' +
-                        '</td>';
+                        '</td><td class="text-end">' + actionCell + '</td>';
                     tbody.appendChild(tr);
                 });
                 if (!lines.length) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="text-muted text-center py-2">No lines on this order.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center py-2">No lines on this order.</td></tr>';
                 }
 
                 var modalEl = document.getElementById('kernelDispatchEditModal');
@@ -137,6 +152,92 @@ var _modal_kernel_dispatch_edit = (function () {
                 console.error(e);
                 if (typeof Swal !== 'undefined') Swal.fire('Error', (e && e.message) || 'Failed to load order', 'error');
             });
+        },
+
+        /** Remove one line from the order, returning its cartons to stock immediately (not on Save). */
+        sendLineBackToStock: function (btnEl) {
+            var $btn = $(btnEl);
+            var $tr = $btn.closest('tr');
+            var orderId = $('#kernelDispatchEditOrderId').val();
+            var lineIndex = parseInt($tr.attr('data-line-index'), 10);
+            var kernelId = $tr.attr('data-kernel-id') || '';
+            var style = $tr.attr('data-style') || '';
+            var batchNumber = $tr.attr('data-batch-number') || '';
+            var cartonsInput = $tr.find('.js-kernel-dispatch-edit-cartons')[0];
+            var cartons = cartonsInput ? cartonsInput.value : '';
+
+            if (!orderId || isNaN(lineIndex)) {
+                if (typeof Swal !== 'undefined') Swal.fire('Error', 'Cannot identify this line. Close this window, reopen it and try again.', 'error');
+                return;
+            }
+
+            var confirmText = 'This returns ' + cartons + ' carton(s) of batch ' + batchNumber + ' (' + style + ') to Stock (Kernel) immediately. ' +
+                'Any unsaved changes to buyer, dates or carton figures in this window will be discarded, because the window reloads afterwards.';
+
+            var run = function () {
+                if (typeof dataFunctions === 'undefined' || !dataFunctions.returnKernelDispatchLineToStock) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'Send back to stock is not available. Refresh the page after the latest deployment.', 'error');
+                    return;
+                }
+                $btn.prop('disabled', true);
+                dataFunctions.returnKernelDispatchLineToStock({
+                    order_id: orderId,
+                    line_index: lineIndex,
+                    expected_kernel_id: kernelId,
+                    expected_style: style
+                }).then(function (result) {
+                    if (result && result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
+                        result = result.data;
+                    }
+                    if (result && result.success === true) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'success', title: 'Sent back to stock', text: result.message || 'Sent back to stock.', timer: 2200, showConfirmButton: false });
+                        }
+                        if (typeof _kernelDispatchGrid !== 'undefined' && _kernelDispatchGrid.loadOrders) {
+                            _kernelDispatchGrid.loadOrders(true);
+                        }
+                        if (result.order_cancelled === true) {
+                            var modalEl = document.getElementById('kernelDispatchEditModal');
+                            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                var m = bootstrap.Modal.getInstance(modalEl);
+                                if (m) m.hide();
+                            } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                                $('#kernelDispatchEditModal').modal('hide');
+                            }
+                        } else {
+                            _modal_kernel_dispatch_edit.show(orderId);
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Error', (result && result.error) || 'Could not send that line back to stock.', 'error');
+                        }
+                        _modal_kernel_dispatch_edit.show(orderId);
+                    }
+                }).catch(function (e) {
+                    console.error(e);
+                    var msg = (e && e.message) ? String(e.message) : '';
+                    if (/PGRST202|Could not find the function|schema cache/i.test(msg)) {
+                        if (typeof Swal !== 'undefined') Swal.fire('Info', "Sending a line back to stock isn't available on this environment yet.", 'info');
+                    } else {
+                        if (typeof Swal !== 'undefined') Swal.fire('Error', msg || 'Failed to send that line back to stock', 'error');
+                    }
+                    $btn.prop('disabled', false);
+                });
+            };
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Send this line back to stock?',
+                    text: confirmText,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, send back to stock',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: true
+                }).then(function (res) { if (res.isConfirmed) run(); });
+            } else if (window.confirm(confirmText)) {
+                run();
+            }
         },
 
         submit: function () {
