@@ -150,7 +150,10 @@ var _kernelDispatchGrid = function () {
                 var filters = scope.listFiltersActive()
                     ? { batchSearch: f.batch, supplierReceivedDate: f.supplierDate }
                     : null;
-                scope.orders = await dataFunctions.getKernelDispatchOrders(null, forceRefresh, filters) || [];
+                var rows = await dataFunctions.getKernelDispatchOrders(null, forceRefresh, filters) || [];
+                // Cancelled orders (their last line sent back to stock) never belong on this board -
+                // the movement is already recorded in stock_soh_history.
+                scope.orders = rows.filter(function (o) { return String(o && o.status || '').toLowerCase() !== 'cancelled'; });
                 scope.render();
             } catch (e) {
                 console.error('[Kernel Dispatch] loadOrders failed:', e);
