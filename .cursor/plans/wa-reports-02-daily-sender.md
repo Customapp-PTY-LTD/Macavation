@@ -30,6 +30,17 @@ and schedules it. **Do not add a fallback that reads the tables directly, and do
 guessing figures** — if an RPC is missing the function should fail loudly with the Postgres error, so
 whoever deploys it finds out immediately.
 
+## ⚠ Correction — how this repo's RPCs actually return (read before writing any call)
+
+An earlier revision of this plan stated these contracts wrongly. **These are the real ones,
+read out of `migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql`.**
+
+**Every RPC in this family returns an envelope, not a bare value, and never throws for a business
+failure.** `RETURNS TABLE (success int, error text, …)`. Over PostgREST that arrives as an **array of
+rows** — so read `data[0]`, check `success === 1`, and treat `error` as the message to surface or log.
+A `success: 0` is a normal response with HTTP 200, not an exception. Code that only try/catches will
+sail straight past a refusal.
+
 ## FIXED contracts — implement against these exactly
 
 These signatures and shapes are settled. Do not adapt them, and do not defensively handle a
@@ -70,13 +81,23 @@ re-deriving it from the numbers.
 **`daily_report_already_sent(p_date date) → boolean`** — true when a `sent` delivery row already
 exists for that date.
 
-**`begin_report_delivery(p_report_instance_id uuid, p_recipient_id uuid, p_phone text, p_display_name text, p_sent_by uuid, p_report_kind text, p_report_date date, p_message_kind text, p_template_name text) → uuid`**
-— inserts a `pending` row and returns its id. Pass `p_report_instance_id = null`, `p_sent_by = null`,
-`p_report_kind = 'daily'`, `p_message_kind = 'template'`,
-`p_template_name = 'macavation_daily_production'`.
+**`begin_report_delivery(p_report_instance_id uuid, p_phone text, p_display_name text DEFAULT NULL, p_recipient_id uuid DEFAULT NULL, p_message_body text DEFAULT NULL, p_pdf_storage_bucket text DEFAULT NULL, p_pdf_storage_path text DEFAULT NULL, p_link_expires_at timestamptz DEFAULT NULL, p_actor_user_id uuid DEFAULT NULL, p_report_kind text DEFAULT 'weekly', p_report_date date DEFAULT NULL, p_message_kind text DEFAULT 'text', p_template_name text DEFAULT NULL)`**
+→ `TABLE (success int, error text, id uuid)`. Note the **parameter order and names** — `p_phone` is
+second, and the actor is `p_actor_user_id`, not `p_sent_by`. The last four are new.
 
-**`complete_report_delivery(p_delivery_id uuid, p_status text, p_external_message_id text, p_error text, p_message_body text) → void`**
-— `p_status` is `'sent'` or `'failed'`.
+For the daily send pass: `p_report_instance_id => null`, `p_report_kind => 'daily'`,
+`p_report_date => <the date>`, `p_message_kind => 'template'`,
+`p_template_name => 'macavation_daily_production'`, `p_actor_user_id => null`. Take the delivery id
+from `data[0].id` **after** checking `data[0].success === 1`.
+
+⚠ `p_report_instance_id` is normally required and the function returns
+`success: 0, error: 'p_report_instance_id is required.'` when it is null. The migration that adds
+`p_report_kind` relaxes that specifically for `p_report_kind => 'daily'`. If you get that error back,
+the migration has not been applied yet — surface it, do not work around it.
+
+**`complete_report_delivery(p_delivery_id uuid, p_status text, p_external_message_id text DEFAULT NULL, p_error text DEFAULT NULL, p_message_body text DEFAULT NULL)`**
+→ `TABLE (success int, error text)`. `p_status` is `'sent'` or `'failed'`. The gateway's own message
+goes in `p_error` **verbatim**. `p_message_body` is new and appended last.
 
 ## The template — its shape is fixed by Meta approval
 

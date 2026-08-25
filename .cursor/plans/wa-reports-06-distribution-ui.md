@@ -47,6 +47,17 @@ in your report so nobody thinks the screen is broken.
 | `BluePrint/javascript-jquery-rules.md`, `BluePrint/BEST_PRACTICES.md` | this repo's frontend rules — read before writing |
 | `migrations/20260822090200_report_whatsapp_rbac.sql:23-28` | why dynamic rows must call `hasAction()` inline |
 
+## ⚠ Correction — how this repo's RPCs actually return (read before writing any call)
+
+An earlier revision of this plan stated these contracts wrongly. **These are the real ones,
+read out of `migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql`.**
+
+**Every RPC in this family returns an envelope, not a bare value, and never throws for a business
+failure.** `RETURNS TABLE (success int, error text, …)`. Over PostgREST that arrives as an **array of
+rows** — so read `data[0]`, check `success === 1`, and treat `error` as the message to surface or log.
+A `success: 0` is a normal response with HTTP 200, not an exception. Code that only try/catches will
+sail straight past a refusal.
+
 ## FIXED contracts — implement against these exactly
 
 **`list_report_distribution(p_include_inactive boolean default false) → jsonb`**
@@ -74,12 +85,17 @@ in your report so nobody thinks the screen is broken.
 
 **`set_report_recipient_staff(p_recipient_id uuid, p_is_staff boolean) → jsonb`** → `{ "ok": true }`.
 
-**`upsert_report_recipient(p_display_name text, p_phone text, p_source text, p_notes text) → jsonb`**
-→ `{ "ok": true, "recipient_id": "…" }` — **already exists**
-(`migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql:201`). Reuse it; do not
-write a second add-recipient path.
+**`upsert_report_recipient(p_display_name text, p_phone text, p_source text, p_contact_id uuid, p_conversation_id uuid, p_notes text, p_actor_user_id uuid)`**
+→ `TABLE (success int, error text, id uuid)` — **already exists**
+(`migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql:201`). Seven parameters, not
+four. For a typed-in recipient pass `p_source => 'manual'` and null for `p_contact_id` /
+`p_conversation_id`. Reuse it; do not write a second add-recipient path.
 
-**`set_report_recipient_active(p_recipient_id uuid, p_is_active boolean)`** — already exists (`:265`).
+**`set_report_recipient_active(p_recipient_id uuid, p_is_active boolean, p_actor_user_id uuid)`**
+→ `TABLE (success int, error text)` — already exists (`:265`). Three parameters.
+
+**`list_report_recipients(p_include_inactive boolean)`** → also already exists (`:159`) and is what
+`list_report_distribution` wraps. Do not call both.
 
 Existing action keys to gate on — both already seeded
 (`migrations/20260822090200_report_whatsapp_rbac.sql`): `reports.recipient.manage` for every write,

@@ -52,6 +52,17 @@ reformat, or move those three regex declarations. Editing them fails the merge g
 - **`MAX_RECIPIENTS = 25`** and the existing validation allowlist.
 - **The three regexes named above.**
 
+## ⚠ Correction — how this repo's RPCs actually return (read before writing any call)
+
+An earlier revision of this plan stated these contracts wrongly. **These are the real ones,
+read out of `migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql`.**
+
+**Every RPC in this family returns an envelope, not a bare value, and never throws for a business
+failure.** `RETURNS TABLE (success int, error text, …)`. Over PostgREST that arrives as an **array of
+rows** — so read `data[0]`, check `success === 1`, and treat `error` as the message to surface or log.
+A `success: 0` is a normal response with HTTP 200, not an exception. Code that only try/catches will
+sail straight past a refusal.
+
 ## FIXED contracts — implement against these exactly
 
 **`recipient_last_inbound_at(p_phone text) → timestamptz`** — the most recent inbound WhatsApp
@@ -62,14 +73,26 @@ URL-safe code (`^[A-Za-z0-9_-]{8,64}$`) resolvable by `wa-reports-04-report-link
 endpoint. Calling it twice for the same report returns a **new** code; mint once per send, not once
 per recipient.
 
-**`begin_report_delivery(p_report_instance_id uuid, p_recipient_id uuid, p_phone text, p_display_name text, p_sent_by uuid, p_report_kind text, p_report_date date, p_message_kind text, p_template_name text) → uuid`**
-— the existing function, widened. Pass `p_report_kind` as `'weekly'` or `'monthly'` from the report's
-own period type, `p_report_date = null`, and `p_message_kind` as `'text'` or `'template'`.
+**`begin_report_delivery(...)`** → `TABLE (success int, error text, id uuid)` — the existing function,
+with four parameters appended. **Its real order and names are**
+`p_report_instance_id, p_phone, p_display_name, p_recipient_id, p_message_body, p_pdf_storage_bucket,
+p_pdf_storage_path, p_link_expires_at, p_actor_user_id` and then the new
+`p_report_kind DEFAULT 'weekly', p_report_date DEFAULT NULL, p_message_kind DEFAULT 'text',
+p_template_name DEFAULT NULL`.
 
-**`complete_report_delivery(p_delivery_id uuid, p_status text, p_external_message_id text, p_error text, p_message_body text) → void`**
-— unchanged in behaviour.
+**The existing call in this file already passes the first nine correctly — leave those exactly as they
+are** and add only the new named arguments. Pass `p_report_kind` as `'weekly'` or `'monthly'` from the
+report's period type, `p_report_date => null`, and `p_message_kind` as `'text'` or `'template'`.
 
-**`list_report_deliveries(p_report_instance_id uuid)`** — now also returns `message_kind`.
+**`complete_report_delivery(p_delivery_id uuid, p_status text, p_external_message_id text DEFAULT NULL, p_error text DEFAULT NULL, p_message_body text DEFAULT NULL)`**
+→ `TABLE (success int, error text)`. Only `p_message_body` is new.
+
+**`list_report_deliveries(p_report_instance_id uuid)`** → the existing
+`TABLE (success, error, id, recipient_id, phone, display_name, channel, status, external_message_id,
+delivery_error, sent_by, sent_by_name, created_at, completed_at, link_expires_at)`, now with
+`message_kind` appended as a final column. ⚠ Note the delivery's own error arrives as
+**`delivery_error`**, not `error` — `error` is the envelope's field. The existing verifier already
+asserts these are not conflated; keep it that way.
 
 ## The template — shape fixed by Meta approval
 
