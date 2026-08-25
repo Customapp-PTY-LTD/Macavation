@@ -37,7 +37,12 @@ const WA_INBOUND_PATH = path.join(ROOT, 'supabase/functions/_shared/wa-inbound.t
 const SEND_REPORT_PATH = path.join(ROOT, 'supabase/functions/send-report-whatsapp/index.ts');
 
 function readFile(full) {
-  return fs.readFileSync(full, 'utf8');
+  // Normalise line endings before any comparison. Every literal source block below is built by
+  // block(), which joins with a hard LF. On a Windows checkout these files come back CRLF, so
+  // without this normalisation every multi-line includes() check fails for a reason that has
+  // nothing to do with the code under test. A Linux checkout has no CRLF to strip, so this cannot
+  // mask a real failure on the fleet runner.
+  return fs.readFileSync(full, 'utf8').split('\r\n').join('\n');
 }
 
 const waLimitsSrc = readFile(WA_LIMITS_PATH);
@@ -800,14 +805,40 @@ check('substring: wa-inbound.ts verifyControlRoomSignature verifies before parsi
 // 13. Unconfirmed-contract markers.
 // ================================================================================================
 
-check('wa-send.ts header carries an UNCONFIRMED marker', () => {
-  assert.ok(waSendSrc.includes('UNCONFIRMED'));
+// These three checks previously asserted the OPPOSITE — that the header carried an UNCONFIRMED
+// marker and that no non-text sender existed. That was correct while nobody had read the gateway.
+// The `meta-proxy` source has since been read directly (provenance recorded in the wa-send.ts
+// header), which settled the shapes, so the assertions are inverted rather than deleted: the file
+// must now carry the provenance and must export all three senders.
+
+check('wa-send.ts header records the confirmed-from-source provenance for the non-text shapes', () => {
+  assert.ok(waSendSrc.includes('CONFIRMED FROM SOURCE'));
+  assert.ok(waSendSrc.includes('shapeMetaContent'));
+  // The specific fact that makes the interactive builders safe: the gateway does not correct them.
+  assert.ok(waSendSrc.includes('passed through UNCHANGED'));
 });
 
-check('wa-send.ts does not export sendButtons / sendList / sendTemplate', () => {
-  assert.ok(!/export (async )?function sendButtons/.test(waSendSrc));
-  assert.ok(!/export (async )?function sendList/.test(waSendSrc));
-  assert.ok(!/export (async )?function sendTemplate/.test(waSendSrc));
+check('wa-send.ts exports sendButtons / sendList / sendTemplate, each via sendViaControlRoom', () => {
+  assert.ok(/export async function sendButtons\(/.test(waSendSrc));
+  assert.ok(/export async function sendList\(/.test(waSendSrc));
+  assert.ok(/export async function sendTemplate\(/.test(waSendSrc));
+  // Every sender must go through the single signing path. A sender that builds its own fetch would
+  // be a second place for the HMAC to drift out of step.
+  assert.equal((waSendSrc.match(/return sendViaControlRoom\(body\);/g) || []).length, 4);
+  assert.equal((waSendSrc.match(/await fetch\(/g) || []).length, 1);
+});
+
+check('wa-send.ts senders delegate to the builders rather than composing content inline', () => {
+  assert.ok(waSendSrc.includes('const body = buildButtonsBody(to, bodyText, buttons);'));
+  assert.ok(waSendSrc.includes('const body = buildListBody(to, bodyText, buttonLabel, sections);'));
+  assert.ok(
+    waSendSrc.includes('const body = buildTemplateBody(to, templateName, languageCode, components);')
+  );
+});
+
+check('wa-send.ts records that only sendTemplate can reach outside the 24-hour window', () => {
+  assert.ok(waSendSrc.includes('24-hour window'));
+  assert.ok(waSendSrc.includes('APPROVED template'));
 });
 
 // ================================================================================================

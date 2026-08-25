@@ -18,15 +18,32 @@
  *     whatsapp-inbound/index.ts:88-98,:219.
  *   - The gateway response is read as `{ ok, wamid, error }` — send-report-whatsapp/index.ts:451-462.
  *
- * UNCONFIRMED — OPEN QUESTION (do not treat any of this as settled):
- *   The `content` shapes below for `type:'interactive'` (buttons, lists) and `type:'template'`
- *   have NOT been verified against `meta-proxy`. Nothing in this repo currently sends them, and
- *   the `meta-proxy` source, a database, and the network are all unreachable from this checkout.
- *   They are this repo's current PROPOSAL for those shapes, not a confirmed contract. See the
- *   standing decision at whatsapp-inbound/index.ts:182-185 ("do not add an interactive/button
- *   send here (unconfirmed external contract)"). Before any caller sends a non-text type, someone
- *   with Control Room access must confirm the real shape. Until then this file exports builders
- *   for them (safe — nothing is sent) but no sender.
+ * CONFIRMED FROM SOURCE 2026-08-25 — the non-text shapes below are settled, and this supersedes
+ * the standing "unconfirmed external contract" decision at whatsapp-inbound/index.ts:182-185.
+ * That comment was written when nobody here had read the gateway. Somebody now has: the deployed
+ * `meta-proxy` source on the devtools project (`ejnncypummmvyojhovme`) was read directly, and its
+ * `shapeMetaContent(type, content)` reshapes `content` per type before building
+ * `{ messaging_product, recipient_type:'individual', to, type, [type]: metaContent }`:
+ *
+ *   text                                  -> { body }  (accepts body | text | message)
+ *   image|video|audio|document|sticker     -> { id?, link?, caption? } (+ filename for document)
+ *   template                               -> the Meta template object AS-IS: { name, language:{code}, components? }
+ *   interactive|contacts|reaction          -> passed through UNCHANGED to Meta
+ *   location                               -> { latitude, longitude, name?, address? }
+ *
+ *   Two consequences worth stating plainly, because they are the whole reason this file can now
+ *   carry senders. `template` is passed as-is, so buildTemplateBody's output IS the Meta object.
+ *   `interactive` is passed through UNCHANGED, so buildButtonsBody / buildListBody must emit
+ *   Meta's own interactive shape exactly — the gateway will not correct them. Both builders below
+ *   already do; they are unchanged by this edit, only re-labelled.
+ *
+ *   This repo is therefore text-only BY CHOICE, not by limitation. No Control Room change is
+ *   needed to send a template, a quick-reply button set, or a list menu.
+ *
+ * Meta's 24-hour customer-service window still applies and is not a Control Room concern: a send
+ * to somebody who has not messaged in 24 hours must be an APPROVED TEMPLATE. `sendButtons` and
+ * `sendList` are for replying INSIDE an open window (a tap opens one); `sendTemplate` is the only
+ * one of the three that can open a window.
  *
  * The fallback base URL below is byte-identical to the literal already hardcoded at
  * send-report-whatsapp/index.ts:33 and whatsapp-inbound/index.ts:188. If any of the three
@@ -81,7 +98,6 @@ export function buildTextBody(to: string, text: string): WaMessageBody {
   return { to, type: 'text', content: { text } };
 }
 
-// UNCONFIRMED external contract
 export function buildButtonsBody(to: string, bodyText: string, buttons: WaButton[]): WaMessageBody {
   if (!buttons || buttons.length === 0) {
     throw new WaSendError('buildButtonsBody: buttons must not be empty.');
@@ -109,7 +125,6 @@ export function buildButtonsBody(to: string, bodyText: string, buttons: WaButton
   };
 }
 
-// UNCONFIRMED external contract
 export function buildListBody(
   to: string,
   bodyText: string,
@@ -151,7 +166,6 @@ export function buildListBody(
 
 const URL_PARAM_RE = /^https?:\/\//i;
 
-// UNCONFIRMED external contract
 export function buildTemplateBody(
   to: string,
   templateName: string,
@@ -313,12 +327,58 @@ async function sendViaControlRoom(body: WaMessageBody): Promise<WaSendResult> {
   }
 }
 
-/** The only exported sender in this plan. buildTextBody + sendViaControlRoom. */
+/** buildTextBody + sendViaControlRoom. */
 export async function sendText(to: string, text: string): Promise<WaSendResult> {
   const body = buildTextBody(to, text);
   return sendViaControlRoom(body);
 }
 
-// No sendButtons / sendList / sendTemplate sender is exported by this file. The `interactive`
-// and `template` content shapes above are UNCONFIRMED (see the header). Before any of those
-// senders is added, someone with Control Room access must confirm the real shapes.
+/**
+ * Quick-reply buttons, for use INSIDE an open 24-hour window (a button or list tap opens one).
+ * Sending this to somebody who has not messaged in 24 hours is accepted by the gateway and then
+ * dropped by Meta — use `sendTemplate` for that case.
+ *
+ * Throws WaSendError (does not return a failed result) when the buttons breach Meta's caps, so a
+ * caller cannot quietly send a message with a silently-truncated button set.
+ */
+export async function sendButtons(
+  to: string,
+  bodyText: string,
+  buttons: WaButton[]
+): Promise<WaSendResult> {
+  const body = buildButtonsBody(to, bodyText, buttons);
+  return sendViaControlRoom(body);
+}
+
+/** A list menu. Same 24-hour-window caveat as `sendButtons`. */
+export async function sendList(
+  to: string,
+  bodyText: string,
+  buttonLabel: string,
+  sections: WaListSection[]
+): Promise<WaSendResult> {
+  const body = buildListBody(to, bodyText, buttonLabel, sections);
+  return sendViaControlRoom(body);
+}
+
+/**
+ * An APPROVED template — the only send in this file that can reach somebody outside the 24-hour
+ * window, and therefore the only one usable for an unprompted send such as the 17:00 daily report.
+ *
+ * `templateName` must be a template that is APPROVED on the channel's WABA. A name that is merely
+ * drafted, or still pending review, fails at Meta with a template-not-found error that says
+ * nothing about approval state — check the template's status before blaming this function.
+ *
+ * ⚠ For a url-button component the parameter is ONLY the short suffix that replaces {{1}} in the
+ * base URL fixed at approval time — never a full URL. buildTemplateBody throws on a full URL
+ * rather than letting Meta reject it as error 100/2388052.
+ */
+export async function sendTemplate(
+  to: string,
+  templateName: string,
+  languageCode: string,
+  components?: WaTemplateComponent[]
+): Promise<WaSendResult> {
+  const body = buildTemplateBody(to, templateName, languageCode, components);
+  return sendViaControlRoom(body);
+}
