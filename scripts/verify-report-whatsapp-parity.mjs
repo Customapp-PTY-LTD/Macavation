@@ -56,8 +56,9 @@
  * deliberate blind spot:
  *   - JS/TS candidate: any .ts under supabase/functions/, or any .js under WebPortal/, whose text
  *     contains the substring `replace(/\D/g` AND the two-character sequence `27` anywhere. On
- *     this tree that is exactly 5 files: rows 1, 2, 3, 6, and the allowlisted
- *     crm_whatsapp_contacts_tab.js (see SWEEP_ALLOWLIST below).
+ *     this tree that is exactly 6 files: rows 1, 2, 3, 6, the allowlisted
+ *     crm_whatsapp_contacts_tab.js, and the allowlisted supabase/functions/_shared/wa-send.ts
+ *     (see SWEEP_ALLOWLIST below).
  *   - SQL candidate: any migrations/*.sql whose text contains the substring `'\D', '', 'g'` AND
  *     the substring `'27'`. On this tree that is exactly 3 files: rows 4, 5 and 7.
  *   - Blind spot, stated honestly: a normaliser written with a different digit-stripping idiom (a
@@ -191,8 +192,9 @@ const INVENTORY = [
   },
 ];
 
-// The one known non-canonical hit the sweep must not flag as an eighth copy: a DISPLAY formatter
-// (produces '+27 71 463 9643', with spaces), not a dedup/canonicalisation key.
+// The two known non-canonical hits the sweep must not flag as an eighth/ninth copy: a DISPLAY
+// formatter (produces '+27 71 463 9643', with spaces), not a dedup/canonicalisation key; and an
+// already-international E.164 formatter that applies none of the three SA rules.
 const SWEEP_ALLOWLIST = [
   {
     file: 'WebPortal/modules/crm-whatsapp/js/crm_whatsapp_contacts_tab.js',
@@ -200,6 +202,15 @@ const SWEEP_ALLOWLIST = [
     reason:
       "display formatter ('+27 71 463 9643', with spaces) — not a canonical dedup key, uses the " +
       'same replace(/\\D/g idiom and a bare "27" substring but is not one of the seven',
+  },
+  {
+    file: 'supabase/functions/_shared/wa-send.ts',
+    identifier: 'toWaPhone',
+    reason:
+      "E.164 formatter for ALREADY-INTERNATIONAL numbers — strips non-digits and prefixes '+', " +
+      'applies NONE of the three SA rules (no leading-0 substitution, no 27-prefix) and throws on ' +
+      'empty input instead of returning the unguarded \'+27\'; uses the same replace(/\\D/g idiom ' +
+      "and mentions '+27' in its doc comment, but is not one of the seven",
   },
 ];
 
@@ -308,7 +319,7 @@ check('every INVENTORY row is present at its named file', () => {
   }
 });
 
-check('sweep finds exactly the 5 expected JS/TS candidate files', () => {
+check('sweep finds exactly the 6 expected JS/TS candidate files', () => {
   const tsFiles = walk(path.join(ROOT, 'supabase/functions'), ['.ts']);
   const jsFiles = walk(path.join(ROOT, 'WebPortal'), ['.js']);
   const candidates = [...tsFiles, ...jsFiles].filter((full) => {
@@ -322,7 +333,7 @@ check('sweep finds exactly the 5 expected JS/TS candidate files', () => {
     ...SWEEP_ALLOWLIST.map((a) => a.file),
   ].sort();
 
-  assert.equal(relCandidates.length, 5, `expected 5 JS/TS candidates, found ${relCandidates.length}: ${relCandidates.join(', ')}`);
+  assert.equal(relCandidates.length, 6, `expected 6 JS/TS candidates, found ${relCandidates.length}: ${relCandidates.join(', ')}`);
   assert.deepEqual(
     relCandidates,
     expectedFiles,
