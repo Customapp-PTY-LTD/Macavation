@@ -1,7 +1,94 @@
----
-depends_on: wa-reports-01-shared-plumbing.md
----
 # WhatsApp reports — the Report distribution screen
+
+## ⚠ Read this first — why this plan is being re-issued, and what changed
+
+An earlier version of this plan could not be built. The cause was not in the plan body below, which
+is unchanged apart from the corrections noted here. Two things were in the way, **both now resolved
+in code on `dev`**:
+
+1. **`_shared/wa-send.ts` shipped with builders but no non-text sender.** The plumbing plan
+   deliberately exported no `sendButtons` / `sendList` / `sendTemplate`, because the `meta-proxy`
+   content shapes could not be verified from inside the checkout. It then wrote a verifier
+   asserting those senders must *not* exist. That made every downstream plan unbuildable: adding a
+   sender turned `npm run test:fleet` red.
+2. **A stale in-code prohibition.** `whatsapp-inbound/index.ts` carried *"TEXT ONLY. Do not add an
+   interactive/button send here (unconfirmed external contract)"*. That was correct when written,
+   and an agent working inside the repo could only obey it — the fact needed to lift it did not
+   exist anywhere in the repo.
+
+Neither was a mistake by the agent. Both were the same structural problem: the work depended on a
+fact obtainable only from outside the checkout. **That fact has now been obtained and committed**,
+so nothing in this plan requires you to verify anything external.
+
+The gateway source was read directly. `meta-proxy`'s `shapeMetaContent` forwards `template` as-is
+and passes `interactive` through unchanged, so the existing builders were already emitting the right
+shape. The three senders now exist, the verifier asserts they *do* exist, and the stale comment now
+records that it is superseded and points at the confirmed contract. Read the header of
+`supabase/functions/_shared/wa-send.ts` — the provenance is written down there.
+
+**This plan depends on no other plan.** Everything it builds on is already merged into `dev`.
+
+### The senders, exactly as they exist now
+
+```ts
+// supabase/functions/_shared/wa-send.ts
+export async function sendText(to: string, text: string): Promise<WaSendResult>
+export async function sendButtons(to: string, bodyText: string, buttons: WaButton[]): Promise<WaSendResult>
+export async function sendList(to: string, bodyText: string, buttonLabel: string, sections: WaListSection[]): Promise<WaSendResult>
+export async function sendTemplate(to: string, templateName: string, languageCode: string, components?: WaTemplateComponent[]): Promise<WaSendResult>
+
+export type WaSendResult = { ok: boolean; wamid: string | null; error: string | null };
+export type WaButton = { id: string; title: string };
+export type WaListRow = { id: string; title: string };
+export type WaListSection = { title: string; rows: WaListRow[] };
+export type WaTemplateComponent = {
+  type: 'header' | 'body' | 'button';
+  sub_type?: 'url' | 'quick_reply';
+  index?: number;
+  parameters: { type: 'text'; text: string }[];
+};
+```
+
+All four go through one private signing path, so there is exactly one `fetch` and one HMAC in the
+file — keep it that way. Each **throws `WaSendError`** on a cap breach (more than 3 buttons, more
+than 10 list rows, a button title over 20 characters, a list row or section title over 24, or a full
+URL where a template url-button parameter belongs). A breach is a programming error: let it throw.
+Do not catch it and send a truncated message instead.
+
+Also available, and already used by the merged code — do not re-implement any of these:
+`buildTextBody`, `buildButtonsBody`, `buildListBody`, `buildTemplateBody`, `buildReplyId`,
+`parseReplyId`, `toWaPhone`, `hmacSha256Hex` (`_shared/wa-send.ts`); `MAX_BUTTONS`,
+`MAX_BUTTON_CTA`, `MAX_LIST_ROWS`, `MAX_LIST_TITLE`, `MAX_LIST_SECTION`, `truncate`, `paginateRows`
+(`_shared/wa-limits.ts`); `extractMessage`, `classifyMessage`, `verifyControlRoomSignature`,
+`parseSignatureHeader`, `timingSafeEqual`, `sanitizeSenderName` (`_shared/wa-inbound.ts`).
+
+**Why `sendTemplate` is not interchangeable with the other two.** Meta's 24-hour customer-service
+window is real. `sendButtons` and `sendList` only reach somebody who has messaged in the last 24
+hours — the gateway accepts the send and Meta then drops it, so it fails silently, which is the
+worst possible failure mode. Only an approved template reaches a silent recipient. A button or list
+tap *is* an inbound message and opens the window, which is why a template carrying buttons can
+start a conversation that plain interactive sends then continue.
+
+### What is yours to do, and what is not
+
+| | |
+|---|---|
+| You **can** | author files, edit files, and run `npm run test:fleet` or any individual `npm run *:verify` |
+| You **cannot** | apply a migration, reach a database, deploy a function, run Deno or typecheck TypeScript, use the network, read another repository, or drive a browser |
+
+Three consequences, all of which have bitten this work already:
+
+- **Every database object named below is already applied on `dev`.** Do not write a migration. Do
+  not add a fallback that reads tables directly if an RPC looks missing — fail loudly with the
+  Postgres error so whoever deploys finds out immediately.
+- **Do not write a verification step you cannot run.** No "log in and check", no "deploy and send a
+  test message", no "query the database to confirm". Those read as completed work when nothing was
+  checked. State them as handover notes for a human instead, clearly separated.
+- **If you find a genuine contradiction between this plan and the code, stop and say so in your
+  report rather than narrowing scope silently.** The earlier run narrowed its own scope for a good
+  reason and the result looked like a success, so the blockage was invisible until someone read the
+  exports by hand. A plan that cannot be built as written is useful information; a quietly reduced
+  deliverable is not.
 
 ## Context
 
@@ -13,20 +100,24 @@ has never sent anything). Neither lets somebody say "this shareholder gets the m
 This plan builds **Report distribution**: one row per person, a tick per report kind, plus a Staff
 flag that decides whether WhatsApp will hand that number production figures.
 
-**Why this plan waits on plan 01.** Not for anything it needs from it — this screen uses none of
-the WhatsApp plumbing. It waits because both plans append a verifier to `package.json`'s
-`test:fleet` chain, and two plans editing the same shared file concurrently produce a real merge
-conflict rather than a clean merge. Sequencing them is the fix.
+**This plan no longer waits on anything.** It used to be sequenced behind the plumbing plan, not
+for anything it needed but because both appended a verifier to `package.json`'s `test:fleet` chain
+and two concurrent edits to that one line produce a real merge conflict. The plumbing plan is
+merged and its entry is in place, so that contention is gone. **You are the only plan in this batch
+that touches `package.json`** — the other three add no verifier. Append your entry to the end of the
+`test:fleet` chain and change nothing else in that file.
 
 `scheduled_reports` is **not** touched — it still owns the separate email digest. Do not try to merge
 or migrate it.
 
-**You cannot apply a migration or reach a database.** The RPCs below do not exist when this merges,
-and unlike the edge-function plans **this screen is reachable in `dev` as soon as it lands**. So it
+**You cannot apply a migration or reach a database.** The RPCs below, the feature row and the
+action grant are all already applied on `dev` — that changed since the first version of this plan,
+which told you they were missing. You still cannot call them, so treat the contracts here as
+settled. Unlike the edge-function plans **this screen is reachable in `dev` as soon as it lands**,
+and a stale browser cache or an older environment can still serve it without those RPCs, so it
 must **degrade gracefully**: if an RPC is missing or errors, show an empty grid with a plain message
 ("Report distribution is not available yet — the database update has not been applied."), not a
-console error, not a spinner forever, and not a broken page. A human applies the migration and adds
-the feature/action rows out of band.
+console error, not a spinner forever, and not a broken page.
 
 **A new route will not appear in the sidebar until two separate things happen**: the `features` row is
 applied for it, **and** the user logs out and back in (`Session.get('featureKeys')` is read at login).
