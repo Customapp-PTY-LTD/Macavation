@@ -293,5 +293,6 @@ and reasoning, and state your findings:
 - `npm run test:fleet` passes.
 
 Then state plainly in your report that the function is **authored but not deployed and not
-scheduled**, and that a human must deploy it, apply the migrations, and confirm a `dry_run` before
-it is ever put on a timer.
+scheduled**, and that a human must deploy it and confirm a `dry_run` returns the right seven
+parameters before it is ever put on a timer. The migrations are already applied and the template
+still needs Meta's approval, so do not describe either as outstanding work of yours.
