@@ -19,7 +19,8 @@
  *   - The gateway response is read as `{ ok, wamid, error }` — send-report-whatsapp/index.ts:451-462.
  *
  * CONFIRMED FROM SOURCE 2026-08-25 — the non-text shapes below are settled, and this supersedes
- * the standing "unconfirmed external contract" decision at whatsapp-inbound/index.ts:182-185.
+ * the standing "unconfirmed external contract" decision now retired at
+ * whatsapp-inbound/index.ts:186-197.
  * That comment was written when nobody here had read the gateway. Somebody now has: the deployed
  * `meta-proxy` source on the devtools project (`ejnncypummmvyojhovme`) was read directly, and its
  * `shapeMetaContent(type, content)` reshapes `content` per type before building
