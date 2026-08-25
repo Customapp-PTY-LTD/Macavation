@@ -91,7 +91,11 @@ function fail(msg) {
 function readFile(relPath) {
   const full = path.join(ROOT, relPath);
   try {
-    return fs.readFileSync(full, 'utf8');
+    // Normalise CRLF -> LF. TS_NORMALIZER_LITERAL and the SQL text assertions are written with LF,
+    // so on a Windows checkout every one of them failed for a reason unrelated to the code under
+    // test — which trained everyone to treat 3 red lines here as normal. A Linux checkout has no
+    // CRLF to strip, so this cannot hide a real divergence on the fleet runner.
+    return fs.readFileSync(full, 'utf8').split('\r\n').join('\n');
   } catch (err) {
     fail(`cannot read ${relPath}: ${err.message}`);
     return '';
