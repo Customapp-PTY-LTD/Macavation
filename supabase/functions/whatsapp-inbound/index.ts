@@ -61,6 +61,17 @@
  *   placeholder body recording the type and media id.
  */
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  sendText,
+  sendButtons,
+  sendList,
+  buildReplyId,
+  parseReplyId,
+  type WaButton,
+  type WaListSection,
+} from '../_shared/wa-send.ts';
+import { classifyMessage, sanitizeSenderName } from '../_shared/wa-inbound.ts';
+import { truncate, MAX_LIST_TITLE, MAX_LIST_SECTION, MAX_BUTTON_CTA } from '../_shared/wa-limits.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -172,80 +183,20 @@ function isMissingRpc(err: Any): boolean {
 }
 
 // ============================================================================
-// Outbound reply — a small, deliberately duplicated send path.
+// Outbound reply.
 //
-// supabase/functions/send-whatsapp-message/index.ts cannot be reused here: it requires an
-// X-Portal-Session header validated via assistant_validate_session and fails closed with no
-// bypass, because without that check anyone holding the public anon key (which ships in the
-// browser) could send WhatsApp messages through that channel. This webhook has no portal
-// session — it is a server-to-server call authenticated by the Control Room HMAC — so it posts
-// to Control Room's meta-proxy directly, signed the same way. Do not add a service-role bypass to
-// send-whatsapp-message instead — this ~25-line duplication is the deliberate trade-off. The two
-// payload shapes must stay in step by hand.
+// Every reply this function sends goes through supabase/functions/_shared/wa-send.ts
+// (`sendText`, `sendButtons`, `sendList`) — never a locally hand-rolled Control Room payload.
+// That file is the single place the Control Room envelope, the HMAC signing, and Meta's
+// interactive/list shapes are kept in step; duplicating any of that here would make a second
+// place to get out of sync. See wa-send.ts:21-47 for the confirmed non-text send shapes and why
+// this repo can now send buttons/lists/templates, not just text.
 //
-// ⚠ SUPERSEDED 2026-08-25 — the clause that used to stand here, "TEXT ONLY. Do not add an
-// interactive/button send here (unconfirmed external contract)", no longer applies. The reason it
-// existed was that nobody here had read the gateway. Somebody has now: meta-proxy's
-// shapeMetaContent was read from the deployed source, and it forwards `template` as-is and
-// `interactive` unchanged. The shapes are recorded, with their provenance, in the header of
-// supabase/functions/_shared/wa-send.ts.
-//
-// So an interactive/button reply from this webhook is now allowed — but send it through
-// _shared/wa-send.ts (`sendButtons`, `sendList`, `sendTemplate`), NOT by extending the local
-// sendWhatsappText below into a second hand-rolled payload builder. The local function stays
-// text-only on purpose: it is the deliberate duplication described above, and widening it would
-// make a third place where the Control Room envelope has to be kept in step by hand.
+// supabase/functions/send-whatsapp-message/index.ts is still not reusable here: it requires an
+// X-Portal-Session header validated via assistant_validate_session, and this webhook has no
+// portal session — it is a server-to-server call authenticated only by the Control Room HMAC that
+// wa-send.ts itself applies.
 // ============================================================================
-
-const CONTROL_ROOM_BASE_URL = 'https://ejnncypummmvyojhovme.supabase.co/functions/v1';
-
-/**
- * Sends a plain-text WhatsApp reply via Control Room's meta-proxy. Never throws — a failed
- * reply must never turn an already-ingested message into a function error. Returns whether the
- * send succeeded, purely for logging; callers must not retry.
- */
-async function sendWhatsappText(toPhone: string, text: string): Promise<boolean> {
-  const forwardSecret = Deno.env.get('CONTROL_ROOM_FORWARD_SECRET');
-  const channelSlug = Deno.env.get('CONTROL_ROOM_CHANNEL_SLUG');
-
-  if (!forwardSecret || !channelSlug) {
-    console.error(
-      '[whatsapp-inbound] CONTROL_ROOM_CHANNEL_SLUG is not set — skipping reply (message is already ingested)'
-    );
-    return false;
-  }
-
-  const requestBody = JSON.stringify({
-    action: 'send_message',
-    channelSlug,
-    to: toPhone,
-    type: 'text',
-    content: { text },
-  });
-
-  try {
-    const res = await fetch(`${CONTROL_ROOM_BASE_URL}/meta-proxy`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Control-Room-Signature': `sha256=${await hmacHex(forwardSecret, requestBody)}`,
-      },
-      body: requestBody,
-    });
-
-    const result = await res.json().catch(() => ({} as Any));
-    if (!res.ok || !(result as Any)?.ok) {
-      console.error(
-        `[whatsapp-inbound] reply send rejected: ${(result as Any)?.error || res.statusText}`
-      );
-      return false;
-    }
-    return true;
-  } catch (e) {
-    console.error('[whatsapp-inbound] reply send threw:', e);
-    return false;
-  }
-}
 
 // ============================================================================
 // Audit log — one row per dispatch attempt, refusals included.
@@ -541,8 +492,10 @@ async function tryConfirmEnrolment(
     const reply =
       `Thanks ${displayName}, this number is now enrolled.\n\n` +
       `Text HELP any time to see what I can do.`;
-    const sent = await sendWhatsappText(from, reply);
-    if (!sent) console.error(`[whatsapp-inbound] enrolment confirmation reply failed wamid=${wamid}`);
+    const sent = await sendText(from, reply);
+    if (!sent.ok) {
+      console.error(`[whatsapp-inbound] enrolment confirmation reply failed wamid=${wamid}: ${sent.error}`);
+    }
     return;
   }
 
@@ -558,25 +511,896 @@ async function tryConfirmEnrolment(
   });
 }
 
+// ============================================================================
+// Report actions — WhatsApp replies to Macavation's daily production report, reached either by
+// tapping a button/list row on a message we sent (a template quick-reply tap or an interactive
+// reply) or by typing a recognised word. This is a SECOND, separate audience from the staff
+// command system above: it is gated by report_recipients.is_staff (a report-distribution
+// authorisation flag), not by whatsapp_resolve_staff_user (portal login enrolment) — the two sets
+// of phone numbers can overlap or not, and neither RPC is a fallback for the other.
+// ============================================================================
+
+/** The fixed, total set of report actions. Every reply-id and typed alias resolves to one of
+ * these, or to none at all. */
+type ReportAction =
+  | 'today'
+  | 'yesterday'
+  | 'week'
+  | 'month'
+  | 'full'
+  | 'stock'
+  | 'alerts'
+  | 'report'
+  | 'menu'
+  | 'mute7'
+  | 'stop'
+  | 'start'
+  | 'help';
+
+const REPORT_ACTIONS: readonly ReportAction[] = [
+  'today',
+  'yesterday',
+  'week',
+  'month',
+  'full',
+  'stock',
+  'alerts',
+  'report',
+  'menu',
+  'mute7',
+  'stop',
+  'start',
+  'help',
+];
+const REPORT_ACTION_SET = new Set<string>(REPORT_ACTIONS);
+
+function isReportAction(s: string): s is ReportAction {
+  return REPORT_ACTION_SET.has(s);
+}
+
+// Two mutually exclusive, jointly exhaustive tiers. Every ReportAction is in exactly one.
+const STAFF_ONLY_ACTIONS: ReadonlySet<ReportAction> = new Set<ReportAction>([
+  'today',
+  'yesterday',
+  'week',
+  'month',
+  'full',
+  'stock',
+  'alerts',
+]);
+const ANY_RECIPIENT_ACTIONS: ReadonlySet<ReportAction> = new Set<ReportAction>([
+  'menu',
+  'help',
+  'report',
+  'mute7',
+  'stop',
+  'start',
+]);
+
+const REPLY_NS = 'mac';
+
+/** Builds this file's own namespaced reply id for a report action, e.g. "mac:today". */
+function waReplyId(action: ReportAction): string {
+  return buildReplyId(REPLY_NS, action);
+}
+
+/** Resolves an inbound button/list reply id to a ReportAction. Null for anything not in the
+ * "mac" namespace or not one of the 13 known actions — including another feature's reply id. */
+function resolveAction(replyId: string): ReportAction | null {
+  const parsed = parseReplyId(replyId);
+  if (parsed && parsed.ns === REPLY_NS && isReportAction(parsed.action)) {
+    return parsed.action;
+  }
+  return null;
+}
+
 /**
- * Runs once per inbound TEXT message, after it is already persisted. Never throws — any
- * unexpected error is caught, logged (console + audit row), and swallowed so the caller's 2xx
- * response is unaffected.
+ * Legacy/template button payloads and typed synonyms, for anything that does not arrive as this
+ * file's own "mac:<action>" reply id — a template's quick-reply button whose payload/text is a
+ * plain word, or a person typing "STOP" instead of tapping. YES / Y / CONFIRM / NO / N / CANCEL
+ * are deliberately absent: those verbs already dispatch through COMMAND_HANDLERS (commandYes /
+ * commandNo) for the staff command system above, and aliasing them here would silently repurpose
+ * an existing staged-command verb. HELP is also deliberately absent for the same reason — typed
+ * "HELP" already short-circuits to commandHelp in handleCommand for a staff-resolved number, and
+ * that existing reply must not change; a report recipient who is not portal staff still reaches
+ * actionHelp by TAPPING the menu's Help row, which carries this file's own "mac:help" reply id
+ * and is resolved via resolveAction above, not through this alias table.
+ */
+const LEGACY_REPLY_ALIASES: Record<string, ReportAction> = {
+  MENU: 'menu',
+  TODAY: 'today',
+  YESTERDAY: 'yesterday',
+  WEEK: 'week',
+  MONTH: 'month',
+  FULL: 'full',
+  STOCK: 'stock',
+  ALERTS: 'alerts',
+  REPORT: 'report',
+  LATEST: 'report',
+  MUTE: 'mute7',
+  MUTE7: 'mute7',
+  PAUSE: 'mute7',
+  STOP: 'stop',
+  UNSUBSCRIBE: 'stop',
+  START: 'start',
+  SUBSCRIBE: 'start',
+  RESUME: 'start',
+};
+
+function normaliseAlias(s: string): string {
+  return s.trim().toUpperCase();
+}
+
+/** Never throws. Null for anything not in LEGACY_REPLY_ALIASES, including an empty string. */
+function lookupAlias(s: string): ReportAction | null {
+  return LEGACY_REPLY_ALIASES[normaliseAlias(s)] ?? null;
+}
+
+interface ReportContext {
+  sb: SupabaseClient;
+  from: string;
+  wamid: string;
+  displayName: string;
+  isStaff: boolean;
+  userId: string | null;
+  recipient: Any;
+  getSastToday: () => Promise<string | null>;
+}
+
+interface ReportActionResult {
+  outcome: CommandOutcome;
+  command: string;
+  detail?: string | null;
+  /** Always non-empty. Doubles as the interactive body text when `buttons`/`list` is present. */
+  reply: string;
+  buttons?: WaButton[];
+  list?: { buttonLabel: string; sections: WaListSection[] };
+}
+
+/**
+ * Adds `days` (may be negative) to a 'YYYY-MM-DD' SAST date string. The only `new Date(` in this
+ * file besides metaTimestampToIso — always anchored at an explicit UTC midnight on the SAST
+ * calendar date already resolved via report_sast_today(), never a bare `new Date()` off the
+ * container's own clock.
+ */
+function sastDatePlusDays(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Renders a production figure as free WhatsApp text: thousands separated by a REGULAR space.
+ * Unlike send-daily-production-report/index.ts's formatFigure, this does not need a non-breaking
+ * space — that file sends a TEMPLATE parameter later collapsed by its own sanitizeParam (which
+ * would eat a run of regular spaces); this file sends free text via sendText/sendList, calls no
+ * such sanitizer, and has nothing to survive. 'not captured' for null/undefined/non-numeric —
+ * never '0' for an uncaptured figure.
+ */
+function formatFigureText(value: unknown, decimals = 0): string {
+  if (value === null || value === undefined) return 'not captured';
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 'not captured';
+  const fixed = num.toFixed(decimals);
+  const negative = fixed.startsWith('-');
+  const abs = negative ? fixed.slice(1) : fixed;
+  const [intPart, fracPart] = abs.split('.');
+  const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const combined = fracPart ? `${withThousands}.${fracPart}` : withThousands;
+  return negative ? `-${combined}` : combined;
+}
+
+/** formatFigureText with 2 decimals and an 'R' prefix, for a Rand amount. */
+function formatZar(value: unknown): string {
+  const figure = formatFigureText(value, 2);
+  return figure === 'not captured' ? figure : `R${figure}`;
+}
+
+/** Builds the WhatsApp list menu — a fuller staff menu, or a restricted subscriber-only menu. */
+function buildMenuResult(displayName: string, isStaff: boolean): ReportActionResult {
+  const sections: WaListSection[] = isStaff
+    ? [
+        {
+          title: truncate('Today', MAX_LIST_SECTION),
+          rows: [
+            { id: waReplyId('today'), title: truncate("Today's production", MAX_LIST_TITLE) },
+            { id: waReplyId('yesterday'), title: truncate('Yesterday', MAX_LIST_TITLE) },
+          ],
+        },
+        {
+          title: truncate('Period summary', MAX_LIST_SECTION),
+          rows: [
+            { id: waReplyId('week'), title: truncate('Week to date', MAX_LIST_TITLE) },
+            { id: waReplyId('month'), title: truncate('Month to date', MAX_LIST_TITLE) },
+            { id: waReplyId('full'), title: truncate('Full daily report', MAX_LIST_TITLE) },
+          ],
+        },
+        {
+          title: truncate('Status', MAX_LIST_SECTION),
+          rows: [
+            { id: waReplyId('stock'), title: truncate('Kernel stock', MAX_LIST_TITLE) },
+            { id: waReplyId('alerts'), title: truncate('Open alerts', MAX_LIST_TITLE) },
+          ],
+        },
+        {
+          title: truncate('More', MAX_LIST_SECTION),
+          rows: [
+            { id: waReplyId('report'), title: truncate('Latest report link', MAX_LIST_TITLE) },
+            { id: waReplyId('help'), title: truncate('Help', MAX_LIST_TITLE) },
+          ],
+        },
+      ]
+    : [
+        {
+          title: truncate('Reports', MAX_LIST_SECTION),
+          rows: [{ id: waReplyId('report'), title: truncate('Latest report link', MAX_LIST_TITLE) }],
+        },
+        {
+          title: truncate('Subscription', MAX_LIST_SECTION),
+          rows: [
+            { id: waReplyId('mute7'), title: truncate('Pause 7 days', MAX_LIST_TITLE) },
+            { id: waReplyId('stop'), title: truncate('Stop reports', MAX_LIST_TITLE) },
+          ],
+        },
+      ];
+
+  return {
+    outcome: 'ok',
+    command: 'MENU',
+    reply: `Hi ${displayName}, what would you like?`,
+    list: { buttonLabel: truncate('Choose', MAX_BUTTON_CTA), sections },
+  };
+}
+
+/**
+ * The one place a ReportActionResult becomes exactly one outbound send, always preceded by
+ * exactly one whatsapp_log_command row. Priority when more than one payload is present:
+ * list > buttons > plain text. A send that throws (e.g. a caller-side cap violation) is caught
+ * and logged here — it must never escape to processCommandForMessage's own backstop and must
+ * never cause a second audit row.
+ */
+async function deliverActionResult(
+  ctx: ReportContext,
+  rawBody: string,
+  result: ReportActionResult
+): Promise<void> {
+  await logCommand(ctx.sb, {
+    phone: ctx.from,
+    userId: ctx.userId,
+    wamid: ctx.wamid,
+    rawBody,
+    command: result.command,
+    outcome: result.outcome,
+    detail: result.detail ?? null,
+  });
+
+  try {
+    const sendResult = result.list
+      ? await sendList(ctx.from, result.reply, result.list.buttonLabel, result.list.sections)
+      : result.buttons && result.buttons.length > 0
+        ? await sendButtons(ctx.from, result.reply, result.buttons)
+        : await sendText(ctx.from, result.reply);
+
+    if (!sendResult.ok) {
+      console.error(
+        `[whatsapp-inbound] report action reply send failed wamid=${ctx.wamid} command=${result.command}: ${sendResult.error}`
+      );
+    }
+  } catch (e) {
+    console.error(
+      `[whatsapp-inbound] report action reply send threw wamid=${ctx.wamid} command=${result.command}:`,
+      e
+    );
+  }
+}
+
+/** Shared by TODAY (headline only) / YESTERDAY / FULL (everything) — reads the one RPC both the
+ * daily sender and this file rely on for the same date, so they cannot disagree about a figure. */
+async function dailyFiguresResult(
+  ctx: ReportContext,
+  command: string,
+  date: string,
+  full: boolean
+): Promise<ReportActionResult> {
+  const { data, error } = await ctx.sb.rpc('get_daily_production_report', { p_date: date });
+  if (error) {
+    if (isMissingRpc(error)) {
+      return {
+        outcome: 'error',
+        command,
+        reply: `Sorry ${ctx.displayName}, that is not available yet. Please try again later.`,
+        detail: 'rpc missing',
+      };
+    }
+    console.error(`[whatsapp-inbound] get_daily_production_report failed for ${command}:`, error.message);
+    return {
+      outcome: 'error',
+      command,
+      reply: `Sorry ${ctx.displayName}, I could not load that report. Please try again shortly.`,
+      detail: error.message,
+    };
+  }
+
+  const report = (data ?? {}) as Any;
+  if (report.has_production !== true) {
+    return {
+      outcome: 'ok',
+      command,
+      reply: `Hi ${ctx.displayName}, ${report.date_label || date} has no production captured yet.`,
+    };
+  }
+
+  if (!full) {
+    return {
+      outcome: 'ok',
+      command,
+      reply:
+        `Production for ${report.date_label}\n\n` +
+        `Cracked: ${formatFigureText(report.cracked_kg)} kg\n` +
+        `SK packed: ${formatFigureText(report.sk_packed_kg)} kg\n` +
+        `Wholes: ${formatFigureText(report.wholes_pct, 1)}%`,
+    };
+  }
+
+  return {
+    outcome: 'ok',
+    command,
+    reply:
+      `Full production report — ${report.date_label}\n\n` +
+      `Cracked: ${formatFigureText(report.cracked_kg)} kg\n` +
+      `SK packed: ${formatFigureText(report.sk_packed_kg)} kg\n` +
+      `Wholes: ${formatFigureText(report.wholes_pct, 1)}%\n` +
+      `NIS received: ${formatFigureText(report.nis_kg)} kg\n\n` +
+      `Week to date (${report.week_label}): ${formatFigureText(report.wtd_cracked_kg)} kg` +
+      (report.wtd_target_kg != null
+        ? ` of ${formatFigureText(report.wtd_target_kg)} kg target`
+        : ' (no target set)'),
+  };
+}
+
+async function actionToday(ctx: ReportContext): Promise<ReportActionResult> {
+  const today = await ctx.getSastToday();
+  if (!today) {
+    return {
+      outcome: 'error',
+      command: 'TODAY',
+      reply: `Sorry ${ctx.displayName}, I could not work out today's date. Please try again shortly.`,
+      detail: 'sast today unavailable',
+    };
+  }
+  return dailyFiguresResult(ctx, 'TODAY', today, false);
+}
+
+async function actionYesterday(ctx: ReportContext): Promise<ReportActionResult> {
+  const today = await ctx.getSastToday();
+  if (!today) {
+    return {
+      outcome: 'error',
+      command: 'YESTERDAY',
+      reply: `Sorry ${ctx.displayName}, I could not work out today's date. Please try again shortly.`,
+      detail: 'sast today unavailable',
+    };
+  }
+  return dailyFiguresResult(ctx, 'YESTERDAY', sastDatePlusDays(today, -1), true);
+}
+
+async function actionFull(ctx: ReportContext): Promise<ReportActionResult> {
+  const today = await ctx.getSastToday();
+  if (!today) {
+    return {
+      outcome: 'error',
+      command: 'FULL',
+      reply: `Sorry ${ctx.displayName}, I could not work out today's date. Please try again shortly.`,
+      detail: 'sast today unavailable',
+    };
+  }
+  return dailyFiguresResult(ctx, 'FULL', today, true);
+}
+
+/** Shared by WEEK and MONTH. */
+async function actionPeriod(ctx: ReportContext, kind: 'week' | 'month'): Promise<ReportActionResult> {
+  const command = kind.toUpperCase();
+  const { data, error } = await ctx.sb.rpc('get_period_production_summary', { p_kind: kind });
+  if (error) {
+    if (isMissingRpc(error)) {
+      return {
+        outcome: 'error',
+        command,
+        reply: `Sorry ${ctx.displayName}, that is not available yet. Please try again later.`,
+        detail: 'rpc missing',
+      };
+    }
+    console.error(`[whatsapp-inbound] get_period_production_summary failed for ${command}:`, error.message);
+    return {
+      outcome: 'error',
+      command,
+      reply: `Sorry ${ctx.displayName}, I could not load that summary. Please try again shortly.`,
+      detail: error.message,
+    };
+  }
+
+  const summary = (data ?? {}) as Any;
+  if (summary.ok !== true) {
+    return {
+      outcome: 'error',
+      command,
+      reply: `Sorry ${ctx.displayName}, I could not load that summary.`,
+      detail: summary.error ?? null,
+    };
+  }
+
+  const targetPart =
+    summary.target_kg != null
+      ? ` of ${formatFigureText(summary.target_kg)} kg target` +
+        (summary.pct_of_target != null ? ` (${formatFigureText(summary.pct_of_target, 1)}%)` : '')
+      : ' (no target set)';
+
+  return {
+    outcome: 'ok',
+    command,
+    reply:
+      `${summary.label} (${summary.range_label})\n\n` +
+      `Cracked: ${formatFigureText(summary.cracked_kg)} kg${targetPart}\n` +
+      `Days left: ${summary.days_left}\n\n` +
+      `Kernel sales: ${formatZar(summary.kernel_sales_zar)}\n` +
+      `Oil sales: ${formatZar(summary.oil_sales_zar)}`,
+  };
+}
+
+async function actionStock(ctx: ReportContext): Promise<ReportActionResult> {
+  const { data, error } = await ctx.sb.rpc('get_kernel_stock_summary');
+  if (error) {
+    if (isMissingRpc(error)) {
+      return {
+        outcome: 'error',
+        command: 'STOCK',
+        reply: `Sorry ${ctx.displayName}, that is not available yet. Please try again later.`,
+        detail: 'rpc missing',
+      };
+    }
+    console.error('[whatsapp-inbound] get_kernel_stock_summary failed:', error.message);
+    return {
+      outcome: 'error',
+      command: 'STOCK',
+      reply: `Sorry ${ctx.displayName}, I could not load kernel stock. Please try again shortly.`,
+      detail: error.message,
+    };
+  }
+
+  const summary = (data ?? {}) as Any;
+  const lines: Any[] = Array.isArray(summary.lines) ? summary.lines : [];
+  if (lines.length === 0) {
+    return {
+      outcome: 'ok',
+      command: 'STOCK',
+      reply: `Hi ${ctx.displayName}, ${summary.label || 'no kernel stock is available right now'}.`,
+    };
+  }
+
+  const body = lines.map((l) => `${l.style}: ${formatFigureText(l.kg)} kg`).join('\n');
+  return {
+    outcome: 'ok',
+    command: 'STOCK',
+    reply:
+      `${summary.label}${summary.as_of ? ` (as of ${summary.as_of})` : ''}\n\n${body}\n\n` +
+      `Total: ${formatFigureText(summary.total_kg)} kg`,
+  };
+}
+
+async function actionAlerts(ctx: ReportContext): Promise<ReportActionResult> {
+  const { data, error } = await ctx.sb.rpc('get_open_alerts_summary');
+  if (error) {
+    if (isMissingRpc(error)) {
+      return {
+        outcome: 'error',
+        command: 'ALERTS',
+        reply: `Sorry ${ctx.displayName}, that is not available yet. Please try again later.`,
+        detail: 'rpc missing',
+      };
+    }
+    console.error('[whatsapp-inbound] get_open_alerts_summary failed:', error.message);
+    return {
+      outcome: 'error',
+      command: 'ALERTS',
+      reply: `Sorry ${ctx.displayName}, I could not load open alerts. Please try again shortly.`,
+      detail: error.message,
+    };
+  }
+
+  const summary = (data ?? {}) as Any;
+  const count = Number(summary.count || 0);
+  if (count === 0) {
+    return { outcome: 'ok', command: 'ALERTS', reply: `Hi ${ctx.displayName}, there are no open alerts right now.` };
+  }
+
+  const lines: Any[] = Array.isArray(summary.lines) ? summary.lines : [];
+  const distinctCount = Number(summary.distinct_count ?? lines.length);
+  const body = lines
+    .map(
+      (l) =>
+        `[${String(l.severity || '').toUpperCase()}] ${l.text}${l.occurrences > 1 ? ` (x${l.occurrences})` : ''}`
+    )
+    .join('\n');
+
+  return {
+    outcome: 'ok',
+    command: 'ALERTS',
+    reply:
+      `${count} open alert${count === 1 ? '' : 's'}` +
+      (distinctCount !== count ? ` (${distinctCount} distinct)` : '') +
+      `:\n\n${body}` +
+      (lines.length < distinctCount ? `\n\n…and more not shown here.` : ''),
+  };
+}
+
+/**
+ * REPORT — the most recently published weekly/monthly report this phone was actually SENT.
+ * get_latest_published_report_for_phone WRITES on every successful call: it mints a fresh
+ * report_link_codes row via mint_report_link_code (migrations/20260825092000_report_link_codes.sql:225),
+ * a bearer credential good for 7 days. Called at most once per inbound message (only from here).
+ * The returned link_code must never be logged — it goes ONLY into the reply text below, never into
+ * `detail` (which whatsapp_log_command persists).
+ */
+async function actionReport(ctx: ReportContext): Promise<ReportActionResult> {
+  const { data, error } = await ctx.sb.rpc('get_latest_published_report_for_phone', { p_phone: ctx.from });
+  if (error) {
+    if (isMissingRpc(error)) {
+      return {
+        outcome: 'error',
+        command: 'REPORT',
+        reply: `Sorry ${ctx.displayName}, that is not available yet. Please try again later.`,
+        detail: 'rpc missing',
+      };
+    }
+    console.error('[whatsapp-inbound] get_latest_published_report_for_phone failed:', error.message);
+    return {
+      outcome: 'error',
+      command: 'REPORT',
+      reply: `Sorry ${ctx.displayName}, I could not load your latest report. Please try again shortly.`,
+      detail: error.message,
+    };
+  }
+
+  const row = (data ?? {}) as Any;
+  if (row.found !== true) {
+    return {
+      outcome: 'ok',
+      command: 'REPORT',
+      reply: `Hi ${ctx.displayName}, I could not find a report that was sent to this number yet.`,
+      detail: row.error ?? null,
+    };
+  }
+
+  const supabaseUrl = (Deno.env.get('SUPABASE_URL') || '').replace(/\/+$/, '');
+  if (!supabaseUrl) {
+    console.error('[whatsapp-inbound] SUPABASE_URL not set — cannot build report link');
+    return {
+      outcome: 'error',
+      command: 'REPORT',
+      reply: `Sorry ${ctx.displayName}, I could not build your report link. Please try again shortly.`,
+      detail: 'SUPABASE_URL not set',
+    };
+  }
+
+  const link = `${supabaseUrl}/functions/v1/r/${row.link_code}`;
+  return {
+    outcome: 'ok',
+    command: 'REPORT',
+    reply: `Hi ${ctx.displayName}, here is your ${row.period_label || 'latest'} report:\n${link}\n\nThis link expires soon — ask again if it stops working.`,
+  };
+}
+
+async function actionMenu(ctx: ReportContext): Promise<ReportActionResult> {
+  return buildMenuResult(ctx.displayName, ctx.isStaff);
+}
+
+async function actionMute7(ctx: ReportContext): Promise<ReportActionResult> {
+  const today = await ctx.getSastToday();
+  if (!today) {
+    return {
+      outcome: 'error',
+      command: 'MUTE7',
+      reply: `Sorry ${ctx.displayName}, I could not work out today's date. Please try again shortly.`,
+      detail: 'sast today unavailable',
+    };
+  }
+  const mutedUntil = sastDatePlusDays(today, 7);
+
+  const { data, error } = await ctx.sb.rpc('set_report_subscription_by_phone', {
+    p_phone: ctx.from,
+    p_report_kind: 'daily',
+    p_is_active: true,
+    p_muted_until: mutedUntil,
+  });
+  if (error) {
+    if (isMissingRpc(error)) {
+      return {
+        outcome: 'error',
+        command: 'MUTE7',
+        reply: `Sorry ${ctx.displayName}, that is not available yet. Please try again later.`,
+        detail: 'rpc missing',
+      };
+    }
+    console.error('[whatsapp-inbound] set_report_subscription_by_phone failed (mute7):', error.message);
+    return {
+      outcome: 'error',
+      command: 'MUTE7',
+      reply: `Sorry ${ctx.displayName}, I could not pause your reports. Please try again shortly.`,
+      detail: error.message,
+    };
+  }
+
+  const row = (data ?? {}) as Any;
+  if (row.ok !== true) {
+    return {
+      outcome: 'error',
+      command: 'MUTE7',
+      reply: `Sorry ${ctx.displayName}, I could not pause your reports.`,
+      detail: row.error ?? null,
+    };
+  }
+
+  return {
+    outcome: 'ok',
+    command: 'MUTE7',
+    reply: `OK ${ctx.displayName}, your daily report is paused until ${mutedUntil}. Text START any time to turn it back on sooner.`,
+  };
+}
+
+async function actionStop(ctx: ReportContext): Promise<ReportActionResult> {
+  const { data, error } = await ctx.sb.rpc('set_report_subscription_by_phone', {
+    p_phone: ctx.from,
+    p_report_kind: 'daily',
+    p_is_active: false,
+    p_muted_until: null,
+  });
+  if (error) {
+    if (isMissingRpc(error)) {
+      return {
+        outcome: 'error',
+        command: 'STOP',
+        reply: `Sorry ${ctx.displayName}, that is not available yet. Please try again later.`,
+        detail: 'rpc missing',
+      };
+    }
+    console.error('[whatsapp-inbound] set_report_subscription_by_phone failed (stop):', error.message);
+    return {
+      outcome: 'error',
+      command: 'STOP',
+      reply: `Sorry ${ctx.displayName}, I could not stop your reports. Please try again shortly.`,
+      detail: error.message,
+    };
+  }
+
+  const row = (data ?? {}) as Any;
+  if (row.ok !== true) {
+    return {
+      outcome: 'error',
+      command: 'STOP',
+      reply: `Sorry ${ctx.displayName}, I could not stop your reports.`,
+      detail: row.error ?? null,
+    };
+  }
+
+  return {
+    outcome: 'ok',
+    command: 'STOP',
+    reply: `OK ${ctx.displayName}, your daily report is stopped. Text START any time to turn it back on.`,
+  };
+}
+
+async function actionStart(ctx: ReportContext): Promise<ReportActionResult> {
+  const { data, error } = await ctx.sb.rpc('set_report_subscription_by_phone', {
+    p_phone: ctx.from,
+    p_report_kind: 'daily',
+    p_is_active: true,
+    p_muted_until: null,
+  });
+  if (error) {
+    if (isMissingRpc(error)) {
+      return {
+        outcome: 'error',
+        command: 'START',
+        reply: `Sorry ${ctx.displayName}, that is not available yet. Please try again later.`,
+        detail: 'rpc missing',
+      };
+    }
+    console.error('[whatsapp-inbound] set_report_subscription_by_phone failed (start):', error.message);
+    return {
+      outcome: 'error',
+      command: 'START',
+      reply: `Sorry ${ctx.displayName}, I could not turn your reports back on. Please try again shortly.`,
+      detail: error.message,
+    };
+  }
+
+  const row = (data ?? {}) as Any;
+  if (row.ok !== true) {
+    return {
+      outcome: 'error',
+      command: 'START',
+      reply: `Sorry ${ctx.displayName}, I could not turn your reports back on.`,
+      detail: row.error ?? null,
+    };
+  }
+
+  return { outcome: 'ok', command: 'START', reply: `OK ${ctx.displayName}, your daily report is back on.` };
+}
+
+const REPORT_HELP_LIST_STAFF =
+  'MENU — show the report menu\n' +
+  'TODAY, YESTERDAY, WEEK, MONTH, FULL — production figures\n' +
+  'STOCK — kernel stock on hand\n' +
+  'ALERTS — open alerts\n' +
+  'REPORT — link to your latest report\n' +
+  'MUTE (or PAUSE) — pause your daily report for 7 days\n' +
+  'STOP — stop your daily report\n' +
+  'START — turn your daily report back on';
+
+const REPORT_HELP_LIST_SUBSCRIBER =
+  'MENU — show the report menu\n' +
+  'REPORT — link to your latest report\n' +
+  'MUTE (or PAUSE) — pause your daily report for 7 days\n' +
+  'STOP — stop your daily report\n' +
+  'START — turn your daily report back on';
+
+async function actionHelp(ctx: ReportContext): Promise<ReportActionResult> {
+  const list = ctx.isStaff ? REPORT_HELP_LIST_STAFF : REPORT_HELP_LIST_SUBSCRIBER;
+  return {
+    outcome: 'ok',
+    command: 'HELP',
+    reply: `Hi ${ctx.displayName}, here is what I can do:\n\n${list}\n\nText MENU any time for a tappable list.`,
+  };
+}
+
+const ACTION_HANDLERS: Record<ReportAction, (ctx: ReportContext) => Promise<ReportActionResult>> = {
+  today: actionToday,
+  yesterday: actionYesterday,
+  week: (ctx) => actionPeriod(ctx, 'week'),
+  month: (ctx) => actionPeriod(ctx, 'month'),
+  full: actionFull,
+  stock: actionStock,
+  alerts: actionAlerts,
+  report: actionReport,
+  menu: actionMenu,
+  mute7: actionMute7,
+  stop: actionStop,
+  start: actionStart,
+  help: actionHelp,
+};
+
+/**
+ * Runs once per inbound message, after it is already persisted. Never throws — any unexpected
+ * error is caught, logged (console + audit row), and swallowed so the caller's 2xx response is
+ * unaffected.
+ *
+ * Dispatches EVERY message kind classifyMessage can return for an actual message (never
+ * extractMessage, which reads only the envelope's first message and is the wrong tool for a
+ * per-message loop): text, button_reply and list_reply. 'status' and 'unsupported' return
+ * immediately — a status never reaches this function's caller in the first place (see the
+ * messages[]-loop-only comment at the call site), and 'unsupported' has nothing to command off.
  */
 async function processCommandForMessage(
   sb: SupabaseClient,
   msg: Any,
   from: string,
-  wamid: string
+  wamid: string,
+  senderName: string | undefined
 ): Promise<void> {
-  if (String(msg?.type ?? '') !== 'text') {
-    // Non-text messages already store a placeholder body; never try to command off one.
+  const classified = classifyMessage(msg, senderName);
+  if (classified.kind === 'status' || classified.kind === 'unsupported') {
     return;
   }
 
-  const rawBody = String(msg?.text?.body ?? '');
+  const rawBody = classified.kind === 'text' ? classified.text : classified.replyId;
+
+  // Memoizing closures: report_recipient_by_inbound_phone and report_sast_today are each called
+  // AT MOST ONCE per inbound message, no matter how many places below want the same answer.
+  let recipientFetched = false;
+  let recipientCache: Any = null;
+  const getRecipient = async (): Promise<Any> => {
+    if (recipientFetched) return recipientCache;
+    recipientFetched = true;
+    try {
+      const { data, error } = await sb.rpc('report_recipient_by_inbound_phone', { p_phone: from });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] report_recipient_by_inbound_phone is missing — migration 20260825090000 not applied.'
+          );
+          return (recipientCache = null);
+        }
+        console.error('[whatsapp-inbound] report_recipient_by_inbound_phone failed:', error.message);
+        return (recipientCache = null);
+      }
+      return (recipientCache = data ?? null);
+    } catch (e) {
+      console.error('[whatsapp-inbound] report_recipient_by_inbound_phone threw:', e);
+      return (recipientCache = null);
+    }
+  };
+
+  let sastFetched = false;
+  let sastCache: string | null = null;
+  const getSastToday = async (): Promise<string | null> => {
+    if (sastFetched) return sastCache;
+    sastFetched = true;
+    try {
+      const { data, error } = await sb.rpc('report_sast_today');
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error('[whatsapp-inbound] report_sast_today is missing — migration 20260825090000 not applied.');
+          return (sastCache = null);
+        }
+        console.error('[whatsapp-inbound] report_sast_today failed:', error.message);
+        return (sastCache = null);
+      }
+      return (sastCache = typeof data === 'string' ? data : null);
+    } catch (e) {
+      console.error('[whatsapp-inbound] report_sast_today threw:', e);
+      return (sastCache = null);
+    }
+  };
+
+  /** Resolves the recipient row (if any), tier-checks, runs the handler, and makes exactly one
+   * deliverActionResult call. Silent — no send, no audit row — when the phone is not a known
+   * report recipient at all: mirrors the existing not_enrolled silence below, for the same
+   * reason (an unsolicited reply to an arbitrary number is worse than nothing). */
+  const dispatchAction = async (action: ReportAction): Promise<void> => {
+    const recipient = await getRecipient();
+    if (!recipient || recipient.found !== true) {
+      return;
+    }
+
+    const isStaff = recipient.is_staff === true;
+    const ctx: ReportContext = {
+      sb,
+      from,
+      wamid,
+      displayName: String(recipient.display_name || 'there'),
+      isStaff,
+      userId: recipient.user_id ?? null,
+      recipient,
+      getSastToday,
+    };
+
+    if (STAFF_ONLY_ACTIONS.has(action) && !isStaff) {
+      await deliverActionResult(ctx, rawBody, {
+        outcome: 'denied',
+        command: action.toUpperCase(),
+        reply: `Sorry ${ctx.displayName}, production figures are only available to staff numbers.`,
+      });
+      return;
+    }
+
+    let result: ReportActionResult;
+    try {
+      result = await ACTION_HANDLERS[action](ctx);
+    } catch (e) {
+      console.error(`[whatsapp-inbound] report action ${action} threw wamid=${wamid}:`, e);
+      result = {
+        outcome: 'error',
+        command: action.toUpperCase(),
+        reply: `Sorry ${ctx.displayName}, something went wrong with that request. Please try again shortly.`,
+        detail: String(e),
+      };
+    }
+    await deliverActionResult(ctx, rawBody, result);
+  };
 
   try {
+    if (classified.kind === 'button_reply' || classified.kind === 'list_reply') {
+      const action = resolveAction(classified.replyId) ?? lookupAlias(classified.replyTitle) ?? lookupAlias(classified.replyId);
+      if (action) {
+        await dispatchAction(action);
+      }
+      // An unrecognised tap (neither this file's own reply id nor a known legacy alias) is
+      // silently ignored — there is nothing sensible to reply to a stale or foreign payload.
+      return;
+    }
+
+    // classified.kind === 'text' from here — the existing staff command system, unchanged, with
+    // one insertion point per branch for the report-action alias check.
     let resolved: Any;
     try {
       const { data, error } = await sb.rpc('whatsapp_resolve_staff_user', { p_phone: from });
@@ -605,11 +1429,18 @@ async function processCommandForMessage(
     }
 
     if (!resolved || resolved.success !== 1) {
-      // Unenrolled. The ONLY exception is a body that is exactly six digits — try it as an
-      // enrolment code. Anything else is untouched: behaviour identical to before this plan.
+      // Unenrolled as portal staff. The ONLY exceptions are a body that is exactly six digits —
+      // try it as an enrolment code — or a recognised report-action alias (e.g. "STOP"). Anything
+      // else is untouched: behaviour identical to before this plan.
       const trimmedBody = rawBody.trim();
       if (/^\d{6}$/.test(trimmedBody)) {
         await tryConfirmEnrolment(sb, from, wamid, rawBody, trimmedBody);
+        return;
+      }
+
+      const action = lookupAlias(trimmedBody);
+      if (action) {
+        await dispatchAction(action);
         return;
       }
 
@@ -624,6 +1455,15 @@ async function processCommandForMessage(
         outcome: 'not_enrolled',
         detail: resolved?.error ?? 'not resolved',
       });
+      return;
+    }
+
+    // Resolved as portal staff. A recognised report-action alias (e.g. "STOCK") is dispatched
+    // through the report-action system instead of falling through to handleCommand — "HELP"
+    // is not in the alias table, so it keeps reaching commandHelp exactly as before.
+    const reportAction = lookupAlias(rawBody.trim());
+    if (reportAction) {
+      await dispatchAction(reportAction);
       return;
     }
 
@@ -650,8 +1490,10 @@ async function processCommandForMessage(
     });
 
     if (result.reply) {
-      const sent = await sendWhatsappText(from, result.reply);
-      if (!sent) console.error(`[whatsapp-inbound] command reply send failed wamid=${wamid}`);
+      const sent = await sendText(from, result.reply);
+      if (!sent.ok) {
+        console.error(`[whatsapp-inbound] command reply send failed wamid=${wamid}: ${sent.error}`);
+      }
     }
   } catch (e) {
     // Backstop for anything unexpected above (e.g. a bug in a future command handler).
@@ -812,7 +1654,13 @@ Deno.serve(async (req) => {
           // redelivery of the same wamid must not re-run a command), only here inside the
           // messages[] loop, and NEVER from the statuses[] loop below (our own replies
           // generate statuses, which would be an infinite loop).
-          await processCommandForMessage(sb, msg, from, wamid);
+          await processCommandForMessage(
+            sb,
+            msg,
+            from,
+            wamid,
+            sanitizeSenderName(profileByWaId.get(from) ?? fallbackProfile)
+          );
         }
       }
 
