@@ -126,6 +126,17 @@ function verifyRemoteToml() {
 }
 
 function verifyCliLink() {
+  // Local-only check. The CLI records its link in supabase/.temp/project-ref,
+  // which supabase/.gitignore excludes, so the file can never exist on a fresh
+  // CI checkout and the workflow has no `supabase link` step. Asserting it in
+  // CI made this guard fail on every run of every branch — including pushes to
+  // prod — which is indistinguishable from having no guard at all. Skipping it
+  // in CI keeps the checks that DO work there (blocked project refs,
+  // remote.toml, MCP pin, anon keys, appRouteConfig URLs) meaningful.
+  if (process.env.CI) {
+    console.log('Supabase CLI link: skipped (CI has no local CLI link).');
+    return;
+  }
   try {
     verifyCliLinkedProject(root);
   } catch (err) {
@@ -202,4 +213,7 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`Supabase project guard OK (dev DB ${UAT.ref}; CLI link verified).`);
+console.log(
+  `Supabase project guard OK (dev DB ${UAT.ref}; ` +
+    `CLI link ${process.env.CI ? 'not checked in CI' : 'verified'}).`
+);
