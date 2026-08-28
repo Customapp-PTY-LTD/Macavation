@@ -880,7 +880,8 @@ var _dataFunctions = function () {
                 p_first_name: userData.first_name || null,
                 p_last_name: userData.last_name || null,
                 p_role_id: userData.role_id || null,
-                p_password: userData.password || null
+                p_password: userData.password || null,
+                p_mobile_number: userData.mobile_number || null
             };
             const result = await this.callFunction('create_user_simple', params, token, { useCache: false });
             // Invalidate users cache
@@ -906,7 +907,13 @@ var _dataFunctions = function () {
                 p_last_name: userData.last_name || null,
                 p_role_id: userData.role_id || null,
                 p_is_active: userData.is_active !== undefined ? userData.is_active : null,
-                p_password: userData.password || null
+                p_password: userData.password || null,
+                // Blank must survive as '' so the RPC can clear a wrong number.
+                // `|| null` here would mean "leave unchanged" and the box would
+                // never empty. Omitted entirely (undefined) still means leave it.
+                p_mobile_number: userData.mobile_number !== undefined && userData.mobile_number !== null
+                    ? String(userData.mobile_number)
+                    : null
             };
 
             const result = await this.callFunction('update_user_simple', params, token, { useCache: false });

@@ -56,7 +56,7 @@ var _modal_admin_add_user = (function () {
                 first_name: formData.get('first_name'),
                 last_name: formData.get('last_name'),
                 email: email,
-                phone_number: formData.get('phone_number') || null,
+                mobile_number: (formData.get('mobile_number') || '').toString().trim() || null,
                 role_id: formData.get('role_id'),
                 is_active: formData.get('is_active') === 'true'
             };

@@ -318,7 +318,7 @@ var _adminGrid = function () {
                         role_id: user.role_id,
                         is_active: user.is_active !== false,
                         status: user.is_active !== false ? 'active' : 'inactive',
-                        phone_number: user.phone_number || null
+                        mobile_number: user.mobile_number || null
                     }));
                 }
 
@@ -362,7 +362,7 @@ var _adminGrid = function () {
                     ? '<span class="badge bg-success">Active</span>'
                     : '<span class="badge bg-secondary">Inactive</span>';
                 const name = escapeHtml((user.first_name || '') + ' ' + (user.last_name || '').trim() || 'User');
-                const phone = user.phone_number ? escapeHtml(user.phone_number) : '';
+                const phone = user.mobile_number ? escapeHtml(user.mobile_number) : '';
                 const email = escapeHtml(user.email || '');
                 return `
         <tr class="js-admin-user-row" data-user-id="${escapeHtml(String(user.id))}">
@@ -1733,6 +1733,10 @@ var _adminGrid = function () {
                 email: user.email,
                 first_name: user.first_name,
                 last_name: user.last_name,
+                // Must be carried through: the modal now saves whatever is in the
+                // mobile box, so omitting it here would open the box blank and
+                // then wipe the stored number on save.
+                mobile_number: user.mobile_number,
                 role_id: user.role_id,
                 is_active: user.is_active !== false
             };

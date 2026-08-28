@@ -35,6 +35,7 @@ var _modal_user = (function () {
                     $('#email').val(((user.email || user.email_address || '') + '').trim().toLowerCase());
                     $('#firstName').val(user.first_name || user.firstName || user.firstname || '');
                     $('#lastName').val(user.last_name || user.lastName || user.lastname || '');
+                    $('#txtMobile').val(user.mobile_number || user.mobileNumber || '');
                     $('#cboRole').val(user.role_id || user.roleId || '');
                     $('#isActive').prop('checked', user.is_active !== undefined ? user.is_active : true);
                     $('#password').val('');
@@ -103,6 +104,9 @@ var _modal_user = (function () {
                 email: email,
                 first_name: $('#firstName').val().trim(),
                 last_name: $('#lastName').val().trim(),
+                // Always send the box, even empty - an empty string is how the
+                // RPC is told to clear a number, not to leave the old one.
+                mobile_number: ($('#txtMobile').val() || '').trim(),
                 role_id: $('#cboRole').val(),
                 is_active: $('#isActive').is(':checked')
             };
