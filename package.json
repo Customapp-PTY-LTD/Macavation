@@ -22,8 +22,14 @@
     "username:verify": "node scripts/verify-no-username.mjs",
     "migrations:verify": "node scripts/verify-migration-prefixes.mjs",
     "registry:verify": "node scripts/verify-registry-paths.mjs",
+    "reports:verify": "node scripts/verify-report-rendering.mjs",
+    "report-whatsapp-payload:verify": "node scripts/verify-report-whatsapp-payload.mjs",
+    "report-whatsapp-picker:verify": "node scripts/verify-report-whatsapp-picker.mjs",
+    "report-whatsapp-history:verify": "node scripts/verify-report-whatsapp-history.mjs",
+    "report-whatsapp-parity:verify": "node scripts/verify-report-whatsapp-parity.mjs",
+    "wa-plumbing:verify": "node scripts/verify-wa-plumbing.mjs",
 
     "//test:fleet": "Gate for Agent Fleet merges (agent-fleet config/repos.json points here). Must stay FAST and HERMETIC: pure Node stdlib, no browser, no login, no network, no deployed app. Do NOT add rbac:verify or audit:verify (both call Supabase with a service-role key) or the Playwright suite (it targets the deployed demo site with real logins) - either would ERROR and block every merge. ui:verify is included: it is pure fs reads, no network, no browser, runs in seconds.",
-    "test:fleet": "npm run routing:verify && npm run username:verify && node scripts/verify-phase2-migrations.mjs && npm run ui:verify && npm run migrations:verify && npm run registry:verify"
+    "test:fleet": "npm run routing:verify && npm run username:verify && node scripts/verify-phase2-migrations.mjs && npm run ui:verify && npm run migrations:verify && npm run registry:verify && npm run reports:verify && npm run report-whatsapp-payload:verify && npm run report-whatsapp-picker:verify && npm run report-whatsapp-history:verify && npm run report-whatsapp-parity:verify && npm run wa-plumbing:verify"
   }
 }

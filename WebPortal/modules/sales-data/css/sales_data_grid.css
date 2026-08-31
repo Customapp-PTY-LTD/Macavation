@@ -1,0 +1,66 @@
+/* Sales & Production Data — follows docs/design/DESIGN_SYSTEM.md and the sales-reports reference
+   (WebPortal/modules/sales-reports/css/sales_reports.css). No raw hex — every colour below is one
+   of the --mac-* tokens in WebPortal/css/design-tokens.css. No bare td/th selector here (the table
+   standard owns row height) — every rule below is scoped to a state class on the cell. */
+
+.module-content {
+    min-height: 400px;
+}
+
+#salesDataTabContent {
+    background-color: var(--mac-bg);
+}
+
+/* Period bar */
+
+#salesDataPeriodLabel {
+    font-weight: 500;
+}
+
+/* Cell states — a cell can be edited, drifted, or both at once (independent booleans, see
+   sales-data-row-grid.js's cellState()). */
+
+td.mac-cell-edited {
+    background-color: var(--mac-info-light);
+}
+
+td.mac-cell-drifted {
+    background-color: var(--mac-warning-light);
+}
+
+td.mac-cell-edited.mac-cell-drifted {
+    background-image: none;
+    background-color: var(--mac-warning-light);
+    box-shadow: inset 2px 0 0 var(--mac-info);
+}
+
+.mac-cell-note {
+    color: var(--mac-warning-text);
+    margin-top: 2px;
+}
+
+td.mac-cell-edited .mac-cell-note {
+    color: var(--mac-text-tertiary);
+}
+
+.js-sales-data-input {
+    min-width: 6rem;
+}
+
+textarea.js-sales-data-input {
+    min-width: 10rem;
+    resize: vertical;
+}
+
+/* Drift modal */
+
+#salesDataDriftTable td,
+#salesDataDriftTable th {
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    #salesDataTabContent .table-responsive {
+        font-size: 0.875rem;
+    }
+}

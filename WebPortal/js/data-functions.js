@@ -494,14 +494,24 @@ var _dataFunctions = function () {
                 msg.indexOf('PGRST301') >= 0;
         },
 
+        // preserveEmptyStrings: '' is otherwise stripped, which makes it impossible to clear a
+        // text column through an RPC that COALESCEs NULL onto the old value, and makes a
+        // no-DEFAULT text param vanish from the body entirely. Callers that pass no options
+        // (tryKernelRpcSupabaseFallback, returnKernelFromStockToProduction) keep the exact
+        // previous behaviour: null, undefined and '' are all stripped.
         buildPostgrestRpcBody: function (params, options) {
             const out = {};
             if (!params || typeof params !== 'object') return out;
             const preserveNulls = !!(options && options.preserveNulls);
+            const preserveEmptyStrings = !!(options && options.preserveEmptyStrings);
             Object.keys(params).forEach(function (key) {
                 const val = params[key];
                 if (preserveNulls && val === null) {
                     out[key] = null;
+                    return;
+                }
+                if (preserveEmptyStrings && val === '') {
+                    out[key] = '';
                     return;
                 }
                 if (val !== null && val !== undefined && val !== '') {
@@ -599,7 +609,10 @@ var _dataFunctions = function () {
             const response = await fetch(cfg.url + '/rest/v1/rpc/' + encodeURIComponent(functionName), {
                 method: 'POST',
                 headers: rpcHeaders,
-                body: JSON.stringify(scope.buildPostgrestRpcBody(params, { preserveNulls: options.preserveNullParams === true }))
+                body: JSON.stringify(scope.buildPostgrestRpcBody(params, {
+                    preserveNulls: options.preserveNullParams === true,
+                    preserveEmptyStrings: options.preserveEmptyParams === true
+                }))
             });
             const responseText = await response.text();
             if (!response.ok) {
@@ -733,7 +746,9 @@ var _dataFunctions = function () {
                     // PostgREST resolves an overload from the exact set of parameter NAMES in the
                     // body, so a stripped null makes it report "Could not find the function ... in
                     // the schema cache" rather than passing NULL. Pass the option through for callers
-                    // that need it instead of stripping unconditionally.
+                    // that need it instead of stripping unconditionally. preserveEmptyParams is the
+                    // same idea for '': a no-DEFAULT text param would otherwise vanish from the body,
+                    // and a COALESCE-onto-old-value param could never be cleared to ''.
                     // Pass RAW params: callSupabaseRpc builds the body itself. Pre-building here as
                     // well meant the body was processed twice, and the second pass used
                     // callSupabaseRpc's own options — where preserveNullParams was absent — so
@@ -742,7 +757,11 @@ var _dataFunctions = function () {
                         functionName,
                         params,
                         authToken,
-                        { useAnonAuth: true, preserveNullParams: options.preserveNullParams === true }
+                        {
+                            useAnonAuth: true,
+                            preserveNullParams: options.preserveNullParams === true,
+                            preserveEmptyParams: options.preserveEmptyParams === true
+                        }
                     );
 
                     // Cache successful responses (do not cache empty array for get_kernel_batches so we retry next load)
@@ -861,7 +880,8 @@ var _dataFunctions = function () {
                 p_first_name: userData.first_name || null,
                 p_last_name: userData.last_name || null,
                 p_role_id: userData.role_id || null,
-                p_password: userData.password || null
+                p_password: userData.password || null,
+                p_mobile_number: userData.mobile_number || null
             };
             const result = await this.callFunction('create_user_simple', params, token, { useCache: false });
             // Invalidate users cache
@@ -887,7 +907,13 @@ var _dataFunctions = function () {
                 p_last_name: userData.last_name || null,
                 p_role_id: userData.role_id || null,
                 p_is_active: userData.is_active !== undefined ? userData.is_active : null,
-                p_password: userData.password || null
+                p_password: userData.password || null,
+                // Blank must survive as '' so the RPC can clear a wrong number.
+                // `|| null` here would mean "leave unchanged" and the box would
+                // never empty. Omitted entirely (undefined) still means leave it.
+                p_mobile_number: userData.mobile_number !== undefined && userData.mobile_number !== null
+                    ? String(userData.mobile_number)
+                    : null
             };
 
             const result = await this.callFunction('update_user_simple', params, token, { useCache: false });
@@ -2081,12 +2107,13 @@ var _dataFunctions = function () {
          * @returns {Promise<Array<{trend_date:string,kg_cracked:number,kg_packed:number,kg_dispatched:number}>>}
          */
         getProductionTrendsDaily: async function (days, token = null) {
-            // Clamp to 1826, not 90. The Production Trends card offers 1M/3M/6M/1Y/3Y/5Y/All and asks
-            // for 1825 days; a 90-day cap silently made every range above 3M a no-op — the chart
-            // always showed the same last 90 days whichever button was pressed. The RPC itself has no
-            // such limit (it back-fills whatever window it is given), and 1826 matches the bound used
-            // by get_stock_soh_history.
-            var pDays = Math.max(7, Math.min(1826, parseInt(days, 10) || 30));
+            // Clamp to 1000 — the PostgREST row cap, NOT an RPC limit. The RPC back-fills one row per
+            // calendar day, so asking for more days than the cap silently truncates the response
+            // (Content-Range: 0-999/*). This card previously asked for 1825 and received
+            // 2021-08-16..2024-05-11 — every real production day discarded, so the chart showed an
+            // empty window whichever range was pressed. For spans longer than 1000 days use
+            // getProductionTrendsMonthly, which aggregates server-side and stays far below the cap.
+            var pDays = Math.max(7, Math.min(1000, parseInt(days, 10) || 30));
             try {
                 var raw = await this.callFunction('get_production_trends_daily', { p_days: pDays }, token, { useCache: false });
                 if (Array.isArray(raw)) return raw;
@@ -2095,6 +2122,28 @@ var _dataFunctions = function () {
                 return [];
             } catch (e) {
                 console.warn('[Dashboard] get_production_trends_daily failed. Apply migration 20260326000001_get_production_trends_daily.sql if needed.', e.message);
+                return [];
+            }
+        },
+
+        /**
+         * Month-aggregated production trends, for ranges too long to fit in daily rows.
+         *
+         * A daily response is capped at 1000 rows by PostgREST, so 3Y/5Y/All cannot be served from
+         * get_production_trends_daily. This aggregates server-side: 120 months is 120 rows.
+         * @param {number} months - Number of months (1–240)
+         * @returns {Promise<Array<{trend_month:string,kg_cracked:number,kg_packed:number,kg_dispatched:number}>>}
+         */
+        getProductionTrendsMonthly: async function (months, token = null) {
+            var pMonths = Math.max(1, Math.min(240, parseInt(months, 10) || 60));
+            try {
+                var raw = await this.callFunction('get_production_trends_monthly', { p_months: pMonths }, token, { useCache: false });
+                if (Array.isArray(raw)) return raw;
+                if (raw && Array.isArray(raw.get_production_trends_monthly)) return raw.get_production_trends_monthly;
+                if (raw && Array.isArray(raw.data)) return raw.data;
+                return [];
+            } catch (e) {
+                console.warn('[Dashboard] get_production_trends_monthly failed. Apply migration 20260818090400_production_trends_monthly_and_desc_order.sql if needed.', e.message);
                 return [];
             }
         },
@@ -2420,7 +2469,9 @@ var _dataFunctions = function () {
                     this.clearCachePattern('contacts');
                     return normalizedImportResult;
                 }
-                throw new Error(normalizedImportResult?.error || normalizedImportResult?.message || functionError?.message || 'Failed to create contact');
+                // Report the create_contact_simple failure first: it is the real cause, and the
+                // fallback's own message (e.g. a p_rows complaint) only hides why the RPC failed.
+                throw new Error(functionError?.message || normalizedImportResult?.error || normalizedImportResult?.message || 'Failed to create contact');
             }
         },
 
@@ -4311,12 +4362,6 @@ var _dataFunctions = function () {
             };
         },
 
-        // Sales Forecasting Functions (placeholder — get_sales_forecasts does not
-        // exist in any database yet; skip the call until the feature is built)
-        getSalesForecasts: async function (token = null) {
-            return [];
-        },
-
         // Oil Production Functions (cached for 1 minute)
         getOilProductionSheets: async function (token = null, forceRefresh = false) {
             return await this.callFunction('get_oil_production_sheets', {}, token, {
@@ -5894,6 +5939,822 @@ var _dataFunctions = function () {
             } catch (e) {
                 return { success: false, error: e.message || String(e) };
             }
+        },
+
+        // ------------------------------------------------------------------
+        // Report builder RPC wrappers. These call pre-existing
+        // SECURITY DEFINER functions from migrations/20260817090000 and
+        // migrations/20260817100000; whether either migration has been
+        // applied to any database cannot be verified from this checkout.
+        // None of these swallows an RPC error into a fake success/empty
+        // value — a missing migration must surface as a thrown error, not
+        // look like "no reports yet".
+        // ------------------------------------------------------------------
+
+        getReportTemplates: async function (periodType = null, token = null, forceRefresh = false) {
+            const params = { p_period_type: periodType || null };
+            const cacheKey = 'report_list_templates_' + (params.p_period_type || 'all');
+            return await this.callFunction('get_report_templates', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        getReportCurrentPeriod: async function (periodType, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            if (!pt) throw new Error('getReportCurrentPeriod: periodType is required.');
+            const params = { p_period_type: pt };
+            const cacheKey = 'report_list_current_period_' + params.p_period_type;
+            return await this.callFunction('get_report_current_period', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        listReportInstances: async function (filters = {}, token = null, forceRefresh = false) {
+            const params = {
+                p_period_type: filters.period_type || null,
+                p_status: filters.status || null,
+                p_limit: filters.limit || 50,
+                p_offset: filters.offset || 0
+            };
+            const cacheKey = 'report_list_' + (params.p_period_type || 'all') + '_' +
+                (params.p_status || 'all') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('list_report_instances', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        createReportInstance: async function (templateId, periodDate, token = null) {
+            const tid = (templateId != null ? String(templateId) : '').trim();
+            const pdate = (periodDate != null ? String(periodDate) : '').trim();
+            if (!tid) throw new Error('createReportInstance: templateId is required.');
+            if (!pdate) throw new Error('createReportInstance: periodDate is required.');
+            const params = {
+                p_template_id: tid,
+                p_period_date: pdate,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            // functionName contains "create": callFunction queues this while offline and
+            // returns { success: true, offline: true, queued: true } instead of calling the RPC.
+            const result = await this.callFunction('create_report_instance', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        getReportInstance: async function (reportInstanceId, token = null, forceRefresh = false) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('getReportInstance: reportInstanceId is required.');
+            const params = { p_report_instance_id: id };
+            const cacheKey = 'report_instance_' + params.p_report_instance_id;
+            return await this.callFunction('get_report_instance', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        overrideReportMetricValue: async function (reportInstanceId, metricKey, enteredValue, reason, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            const key = (metricKey != null ? String(metricKey) : '').trim();
+            const reasonText = (reason != null ? String(reason) : '').trim();
+            if (!id) throw new Error('overrideReportMetricValue: reportInstanceId is required.');
+            if (!key) throw new Error('overrideReportMetricValue: metricKey is required.');
+            if (!Number.isFinite(Number(enteredValue))) throw new Error('overrideReportMetricValue: enteredValue must be a number.');
+            if (!reasonText) throw new Error('overrideReportMetricValue: reason is required.');
+            const params = {
+                p_report_instance_id: id,
+                p_metric_key: key,
+                p_entered_value: Number(enteredValue),
+                p_reason: reasonText,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('override_report_metric_value', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        clearReportMetricOverride: async function (reportInstanceId, metricKey, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            const key = (metricKey != null ? String(metricKey) : '').trim();
+            if (!id) throw new Error('clearReportMetricOverride: reportInstanceId is required.');
+            if (!key) throw new Error('clearReportMetricOverride: metricKey is required.');
+            const params = { p_report_instance_id: id, p_metric_key: key };
+            const result = await this.callFunction('clear_report_metric_override', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        setReportSectionState: async function (reportInstanceId, sectionKey, changes = {}, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            const key = (sectionKey != null ? String(sectionKey) : '').trim();
+            if (!id) throw new Error('setReportSectionState: reportInstanceId is required.');
+            if (!key) throw new Error('setReportSectionState: sectionKey is required.');
+            const hasEnabled = changes.is_enabled === true || changes.is_enabled === false;
+            const hasCommentary = typeof changes.commentary === 'string';
+            if (!hasEnabled && !hasCommentary) throw new Error('setReportSectionState: nothing to change.');
+            // undefined (never null) leaves the server-side COALESCE on the untouched field alone.
+            // preserveEmptyParams is per-call, which is why id and key are validated above.
+            const params = {
+                p_report_instance_id: id,
+                p_section_key: key,
+                p_is_enabled: hasEnabled ? changes.is_enabled : undefined,
+                p_commentary: hasCommentary ? changes.commentary : undefined
+            };
+            const result = await this.callFunction('set_report_section_state', params, token, {
+                useCache: false,
+                preserveEmptyParams: true
+            });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        setReportExecutiveSummary: async function (reportInstanceId, summary, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('setReportExecutiveSummary: reportInstanceId is required.');
+            // p_summary has NO DEFAULT: it must be in the body every time, '' included.
+            const params = {
+                p_report_instance_id: id,
+                p_summary: (summary == null) ? '' : String(summary)
+            };
+            const result = await this.callFunction('set_report_executive_summary', params, token, {
+                useCache: false,
+                preserveEmptyParams: true
+            });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        refreshReportInstance: async function (reportInstanceId, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('refreshReportInstance: reportInstanceId is required.');
+            const params = { p_report_instance_id: id };
+            const result = await this.callFunction('refresh_report_instance', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        deleteReportInstance: async function (reportInstanceId, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('deleteReportInstance: reportInstanceId is required.');
+            const params = { p_report_instance_id: id };
+            // functionName contains "delete": callFunction queues this while offline and
+            // returns { success: true, offline: true, queued: true } instead of calling the RPC.
+            const result = await this.callFunction('delete_report_instance', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        publishReportInstance: async function (reportInstanceId, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('publishReportInstance: reportInstanceId is required.');
+            const params = {
+                p_report_instance_id: id,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+                // p_pdf_storage_bucket / p_pdf_storage_path / p_pdf_sha256 all DEFAULT NULL and are
+                // omitted entirely here — storage arrives in a later plan.
+            };
+            const result = await this.callFunction('publish_report_instance', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        supersedeReportInstance: async function (reportInstanceId, reason, token = null) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            const reasonText = (reason != null ? String(reason) : '').trim();
+            if (!id) throw new Error('supersedeReportInstance: reportInstanceId is required.');
+            if (!reasonText) throw new Error('supersedeReportInstance: reason is required.');
+            const params = {
+                p_report_instance_id: id,
+                p_reason: reasonText,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('supersede_report_instance', params, token, { useCache: false });
+            this.clearCachePattern('report_instance_');
+            this.clearCachePattern('report_list_');
+            return result;
+        },
+
+        // ------------------------------------------------------------------
+        // Report period targets / manual baselines (migrations/20260817090000 get_report_metrics;
+        // migrations/20260817100000 the other five). Whether either migration has been applied to
+        // any database cannot be verified from this checkout — every write clears both the
+        // report_targets_ and report_instance_ cache prefixes, because a changed target changes
+        // what a draft report shows after its next refresh.
+        // ------------------------------------------------------------------
+
+        getReportMetrics: async function (sectionKey = null, periodType = null, token = null, forceRefresh = false) {
+            const sk = sectionKey || null;
+            const pt = periodType || null;
+            const params = { p_section_key: sk, p_period_type: pt };
+            const cacheKey = 'report_targets_metrics_' + (sk || 'all') + '_' + (pt || 'all');
+            return await this.callFunction('get_report_metrics', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        getReportPeriodTargets: async function (periodType, periodStart, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const ps = (periodStart != null ? String(periodStart) : '').trim();
+            if (!pt) throw new Error('getReportPeriodTargets: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(ps)) throw new Error('getReportPeriodTargets: periodStart must be yyyy-mm-dd.');
+            const params = { p_period_type: pt, p_period_start: ps };
+            const cacheKey = 'report_targets_period_' + pt + '_' + ps;
+            return await this.callFunction('get_report_period_targets', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertReportPeriodTarget: async function (metricKey, periodType, periodDate, targetValue, notes = null, token = null) {
+            const key = (metricKey != null ? String(metricKey) : '').trim();
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const pd = (periodDate != null ? String(periodDate) : '').trim();
+            if (!key) throw new Error('upsertReportPeriodTarget: metricKey is required.');
+            if (!pt) throw new Error('upsertReportPeriodTarget: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(pd)) throw new Error('upsertReportPeriodTarget: periodDate must be yyyy-mm-dd.');
+            if (!Number.isFinite(Number(targetValue))) throw new Error('upsertReportPeriodTarget: targetValue must be a number.');
+            const params = {
+                p_metric_key: key,
+                p_period_type: pt,
+                p_period_date: pd,
+                p_target_value: Number(targetValue),
+                p_notes: notes || null,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('upsert_report_period_target', params, token, { useCache: false });
+            this.clearCachePattern('report_targets_');
+            this.clearCachePattern('report_instance_');
+            return result;
+        },
+
+        copyReportPeriodTargets: async function (periodType, fromPeriod, toPeriod, token = null) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const fp = (fromPeriod != null ? String(fromPeriod) : '').trim();
+            const tp = (toPeriod != null ? String(toPeriod) : '').trim();
+            if (!pt) throw new Error('copyReportPeriodTargets: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(fp)) throw new Error('copyReportPeriodTargets: fromPeriod must be yyyy-mm-dd.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(tp)) throw new Error('copyReportPeriodTargets: toPeriod must be yyyy-mm-dd.');
+            const params = {
+                p_period_type: pt,
+                p_from_period: fp,
+                p_to_period: tp,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('copy_report_period_targets', params, token, { useCache: false });
+            this.clearCachePattern('report_targets_');
+            this.clearCachePattern('report_instance_');
+            return result;
+        },
+
+        getReportManualBaselines: async function (periodType, fy, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            if (!pt) throw new Error('getReportManualBaselines: periodType is required.');
+            if (!Number.isFinite(Number(fy))) throw new Error('getReportManualBaselines: fy must be a number.');
+            const params = { p_period_type: pt, p_fy: Number(fy) };
+            const cacheKey = 'report_targets_baselines_' + pt + '_' + Number(fy);
+            return await this.callFunction('get_report_manual_baselines', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertReportManualBaseline: async function (metricKey, periodType, periodDate, achievedValue, notes = null, token = null) {
+            const key = (metricKey != null ? String(metricKey) : '').trim();
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const pd = (periodDate != null ? String(periodDate) : '').trim();
+            if (!key) throw new Error('upsertReportManualBaseline: metricKey is required.');
+            if (!pt) throw new Error('upsertReportManualBaseline: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(pd)) throw new Error('upsertReportManualBaseline: periodDate must be yyyy-mm-dd.');
+            if (!Number.isFinite(Number(achievedValue))) throw new Error('upsertReportManualBaseline: achievedValue must be a number.');
+            const params = {
+                p_metric_key: key,
+                p_period_type: pt,
+                p_period_date: pd,
+                p_achieved_value: Number(achievedValue),
+                p_notes: notes || null,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('upsert_report_manual_baseline', params, token, { useCache: false });
+            this.clearCachePattern('report_targets_');
+            this.clearCachePattern('report_instance_');
+            return result;
+        },
+
+        // ------------------------------------------------------------------
+        // Report WhatsApp distribution — transport only. sendReportWhatsapp calls the edge
+        // function that is meant to deliver a report PDF over WhatsApp; supabase/functions/ does
+        // not contain a send-report-whatsapp function in this checkout, so this wrapper returns a
+        // handled { success: false, error } object rather than throwing when the call 404s or the
+        // fetch itself fails — the same "never look like success" rule as the report-builder
+        // wrappers above, just expressed as a returned failure instead of a thrown one, because an
+        // edge-function call (unlike a PostgREST RPC) is expected to report its own transport
+        // failures back to the caller.
+        //
+        // list_report_recipients, upsert_report_recipient, set_report_recipient_active and
+        // list_report_deliveries are defined in
+        // migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql (merged in
+        // b3e6b66) and are wrapped below as listReportRecipients, upsertReportRecipient,
+        // setReportRecipientActive and listReportDeliveries.
+        //
+        // begin_report_delivery, complete_report_delivery and record_report_pdf_storage are
+        // defined in that same migration but are REVOKEd from PUBLIC, anon and authenticated and
+        // GRANTed to service_role only (same file) — they are reached only from an edge function
+        // that has already validated the caller's portal session, and anything the browser could
+        // call directly it could also call with a forged report id. Deliberately no wrapper for
+        // those three here, and none should be added.
+        //
+        // Whether any migration referenced anywhere in this file, or the edge function above, has
+        // actually been deployed to any given database or project cannot be verified from this
+        // checkout — the same caveat every neighbouring block in this file carries.
+        // ------------------------------------------------------------------
+
+        /** Send a report PDF via WhatsApp through the send-report-whatsapp edge function. */
+        sendReportWhatsapp: async function (payload, token = null) {
+            const reportInstanceId = (payload && payload.reportInstanceId != null) ? String(payload.reportInstanceId).trim() : '';
+            const pdfBase64 = (payload && payload.pdfBase64 != null) ? String(payload.pdfBase64) : '';
+            const filename = (payload && payload.filename != null) ? String(payload.filename).trim() : '';
+            const recipients = (payload && Array.isArray(payload.recipients)) ? payload.recipients : null;
+
+            if (!reportInstanceId) throw new Error('sendReportWhatsapp: reportInstanceId is required.');
+            if (!pdfBase64.trim()) throw new Error('sendReportWhatsapp: pdfBase64 is required.');
+            if (!filename || !/\.pdf$/i.test(filename)) throw new Error('sendReportWhatsapp: filename is required and must end in .pdf.');
+            if (!recipients || recipients.length === 0) throw new Error('sendReportWhatsapp: recipients must be a non-empty array.');
+            for (const r of recipients) {
+                if (!r || !r.phone || !String(r.phone).trim()) {
+                    throw new Error('sendReportWhatsapp: every recipient must have a non-empty phone.');
+                }
+            }
+
+            // Never post a confidential report PDF bearing only the public anon key — require a
+            // real portal session token before issuing the fetch at all.
+            const authToken = token || this.getToken();
+            if (!authToken) {
+                return { success: false, error: 'sendReportWhatsapp: no portal session; not sending.' };
+            }
+
+            try {
+                const supabaseConfig = window.MACAVATION_SUPABASE || {};
+                const url = (supabaseConfig.url || '').replace(/\/$/, '') + '/functions/v1/send-report-whatsapp';
+                const anonKey = supabaseConfig.anonKey || '';
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + anonKey,
+                        'apikey': anonKey,
+                        'X-Portal-Session': authToken
+                    },
+                    body: JSON.stringify({
+                        report_instance_id: reportInstanceId,
+                        pdf_base64: pdfBase64,
+                        filename: filename,
+                        recipients: recipients
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    return {
+                        success: false,
+                        error: data.error || 'HTTP ' + res.status
+                    };
+                }
+
+                // Response shape is authored by the send-report-whatsapp edge function itself
+                // (not present in this checkout) — returned unchanged, not reshaped or assumed.
+                return data;
+            } catch (e) {
+                // Never log pdfBase64 — it is the full contents of a confidential report.
+                console.warn('[Report] sendReportWhatsapp failed:', e.message);
+                return {
+                    success: false,
+                    error: e.message || String(e)
+                };
+            } finally {
+                // listReportDeliveries and listReportRecipients (below) now cache under these two
+                // prefixes ('report_deliveries_<id>' and 'report_recipients_all' /
+                // 'report_recipients_active'), and clearCachePattern matches by substring
+                // (key.includes(pattern)), so these two calls now invalidate real cached reads
+                // after a send — they are no longer no-ops.
+                this.clearCachePattern('report_deliveries_');
+                this.clearCachePattern('report_recipients_');
+            }
+        },
+
+        /** List saved WhatsApp report-distribution recipients (list_report_recipients). */
+        listReportRecipients: async function (includeInactive = false, token = null, forceRefresh = false) {
+            const params = { p_include_inactive: !!includeInactive };
+            const cacheKey = 'report_recipients_' + (includeInactive ? 'all' : 'active');
+            return await this.callFunction('list_report_recipients', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        /**
+         * Create or reactivate a saved WhatsApp report-distribution recipient
+         * (upsert_report_recipient). Matches on the phone number after
+         * report_normalize_wa_phone — do not normalise the phone here, that function is the
+         * single source of truth for what "the same number" means.
+         */
+        upsertReportRecipient: async function (displayName, phone, source = 'manual', options = {}, token = null) {
+            const name = (displayName != null ? String(displayName) : '').trim();
+            const ph = (phone != null ? String(phone) : '').trim();
+            const src = (source != null ? String(source) : '').trim();
+            if (!name) throw new Error('upsertReportRecipient: displayName is required.');
+            if (!ph) throw new Error('upsertReportRecipient: phone is required.');
+            if (!['whatsapp_chat', 'crm_contact', 'manual'].includes(src)) {
+                throw new Error('upsertReportRecipient: source must be whatsapp_chat, crm_contact or manual.');
+            }
+            const opts = options || {};
+            const params = {
+                p_display_name: name,
+                p_phone: ph,
+                p_source: src,
+                p_contact_id: opts.contactId || undefined,
+                p_conversation_id: opts.conversationId || undefined,
+                p_notes: opts.notes || undefined,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('upsert_report_recipient', params, token, { useCache: false });
+            this.clearCachePattern('report_recipients_');
+            return result;
+        },
+
+        /** Activate or deactivate a saved WhatsApp report-distribution recipient (set_report_recipient_active). */
+        setReportRecipientActive: async function (recipientId, isActive, token = null) {
+            const id = (recipientId != null ? String(recipientId) : '').trim();
+            if (!id) throw new Error('setReportRecipientActive: recipientId is required.');
+            // p_is_active has no DEFAULT on the SQL side, so it must always be sent explicitly —
+            // buildPostgrestRpcBody only strips null/undefined/'', so a boolean false survives.
+            const params = {
+                p_recipient_id: id,
+                p_is_active: !!isActive,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const result = await this.callFunction('set_report_recipient_active', params, token, { useCache: false });
+            this.clearCachePattern('report_recipients_');
+            return result;
+        },
+
+        /** List the WhatsApp delivery log for one report instance (list_report_deliveries). */
+        listReportDeliveries: async function (reportInstanceId, token = null, forceRefresh = false) {
+            const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();
+            if (!id) throw new Error('listReportDeliveries: reportInstanceId is required.');
+            const params = { p_report_instance_id: id };
+            const cacheKey = 'report_deliveries_' + id;
+            return await this.callFunction('list_report_deliveries', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // ------------------------------------------------------------------
+        // Sales & Production Data page (migrations/20260819090000_data_page_production_daily.sql).
+        // Whether that migration has been applied to any given database cannot be verified from
+        // this checkout — every wrapper here throws a clean local error for a bad argument (so a
+        // no-DEFAULT param is never silently stripped into a "function not found"), but a missing
+        // RPC itself still surfaces as a thrown error for the caller to catch, exactly like the
+        // report-builder wrappers above.
+        // ------------------------------------------------------------------
+
+        getDataDatasets: async function (token = null, forceRefresh = false) {
+            return await this.callFunction('get_data_datasets', {}, token, {
+                cacheKey: 'sales_data_datasets',
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // report_normalise_period_start(p_period_type, p_date) has no parameter DEFAULTs — never
+        // call it with a null/blank date, or PostgREST strips the param and reports the function
+        // missing (indistinguishable from an unapplied migration).
+        getReportPeriodStart: async function (periodType, isoDate, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const iso = (isoDate != null ? String(isoDate) : '').trim();
+            if (!pt) throw new Error('getReportPeriodStart: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) throw new Error('getReportPeriodStart: isoDate must be yyyy-mm-dd.');
+            const params = { p_period_type: pt, p_date: iso };
+            return await this.callFunction('report_normalise_period_start', params, token, {
+                cacheKey: 'sales_data_period_start_' + pt + '_' + iso,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // report_period_end(p_period_type, p_period_start) — same no-DEFAULT caveat as above.
+        getReportPeriodEnd: async function (periodType, isoPeriodStart, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const iso = (isoPeriodStart != null ? String(isoPeriodStart) : '').trim();
+            if (!pt) throw new Error('getReportPeriodEnd: periodType is required.');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) throw new Error('getReportPeriodEnd: isoPeriodStart must be yyyy-mm-dd.');
+            const params = { p_period_type: pt, p_period_start: iso };
+            return await this.callFunction('report_period_end', params, token, {
+                cacheKey: 'sales_data_period_end_' + pt + '_' + iso,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        getDataProductionDaily: async function (dateFrom, dateTo, limit = 100, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 100,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_production_daily_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_production_daily', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertDataProductionDailyRows: async function (rows, token = null) {
+            // Pass the array itself, NOT JSON.stringify(rows) — PostgREST serialises the whole
+            // body to JSON, so a pre-stringified array arrives as a jsonb *string* and the RPC
+            // rejects it with "p_rows must be a JSON array"
+            // (migrations/20260819090000_data_page_production_daily.sql:368-373).
+            const params = {
+                p_rows: Array.isArray(rows) ? rows : [rows],
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('upsert_data_production_daily_rows', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        deleteDataProductionDailyRow: async function (productionDate, token = null) {
+            const iso = (productionDate != null ? String(productionDate) : '').trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) throw new Error('deleteDataProductionDailyRow: productionDate must be yyyy-mm-dd.');
+            const params = { p_production_date: iso };
+            // functionName contains "delete": callFunction queues this while offline and
+            // returns { success: true, offline: true, queued: true } instead of calling the RPC.
+            const result = await this.callFunction('delete_data_production_daily_row', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        reseedDataProductionDaily: async function (dateFrom, dateTo, token = null) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('reseed_data_production_daily', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        getDataProductionDailyDrift: async function (dateFrom, dateTo, limit = 200, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 200,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_production_daily_drift_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_production_daily_drift', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // ------------------------------------------------------------------
+        // Kernel sales ledger (migrations/20260819100000_data_page_sales.sql).
+        // ------------------------------------------------------------------
+
+        // p_limit is capped at 500 server-side, so 500 is the largest page worth asking for.
+        getDataKernelSalesLines: async function (dateFrom, dateTo, limit = 500, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 500,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_kernel_sales_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_kernel_sales_lines', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // The RPC is a WHOLE-ROW upsert: customer_id, invoice_number, item_code, style_code,
+        // description, cartons, price_per_kg and notes are assigned with no COALESCE back to the
+        // stored value, so any column left out of a row is nulled in the database. Always send the
+        // complete row (collectRowPayload does) — never a partial patch.
+        upsertDataKernelSalesLines: async function (rows, token = null) {
+            // Pass the array itself, NOT JSON.stringify(rows) — PostgREST serialises the body, so a
+            // pre-stringified array arrives as a jsonb string and the RPC rejects it.
+            const params = {
+                p_rows: Array.isArray(rows) ? rows : [rows],
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('upsert_data_kernel_sales_lines', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        deleteDataKernelSalesLine: async function (id, token = null) {
+            const key = (id != null ? String(id) : '').trim();
+            if (!key) throw new Error('deleteDataKernelSalesLine: id is required.');
+            const result = await this.callFunction('delete_data_kernel_sales_line', { p_id: key }, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        // ------------------------------------------------------------------
+        // Oil & protein sales ledger. Same contract as the kernel sales trio above, including the
+        // whole-row upsert caveat — product_line, customer_id, invoice_number, item_code and the
+        // rest are assigned with no COALESCE back to the stored value, so a partial row nulls
+        // whatever it leaves out.
+        // ------------------------------------------------------------------
+
+        getDataOilSalesLines: async function (dateFrom, dateTo, limit = 500, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 500,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_oil_sales_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_oil_sales_lines', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertDataOilSalesLines: async function (rows, token = null) {
+            // Pass the array itself, NOT JSON.stringify(rows).
+            const params = {
+                p_rows: Array.isArray(rows) ? rows : [rows],
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('upsert_data_oil_sales_lines', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        deleteDataOilSalesLine: async function (id, token = null) {
+            const key = (id != null ? String(id) : '').trim();
+            if (!key) throw new Error('deleteDataOilSalesLine: id is required.');
+            const result = await this.callFunction('delete_data_oil_sales_line', { p_id: key }, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        // ------------------------------------------------------------------
+        // Oil export register. Same whole-row upsert caveat as the two sales ledgers, and the same
+        // "an insert with no date is silently skipped" guard — here the date column is export_date.
+        // ------------------------------------------------------------------
+
+        getDataOilExportRegister: async function (dateFrom, dateTo, limit = 500, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 500,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_oil_export_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_oil_export_register', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertDataOilExportRegister: async function (rows, token = null) {
+            // Pass the array itself, NOT JSON.stringify(rows).
+            const params = {
+                p_rows: Array.isArray(rows) ? rows : [rows],
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('upsert_data_oil_export_register', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        // The RPC name ends in _row, not _line, unlike the two sales-line deletes above.
+        deleteDataOilExportRegisterRow: async function (id, token = null) {
+            const key = (id != null ? String(id) : '').trim();
+            if (!key) throw new Error('deleteDataOilExportRegisterRow: id is required.');
+            const result = await this.callFunction('delete_data_oil_export_register_row', { p_id: key }, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        // ------------------------------------------------------------------
+        // Nut-in-shell intake (migrations/20260819130000_data_page_nis_intake.sql). The only ledger
+        // with a factory mirror: moisture/PV/FFA carry *_system twins that reseed_data_nis_intake
+        // refreshes. Same whole-row upsert caveat as the other ledgers. Note received_date is
+        // NULLABLE and the insert has no date guard, unlike the sales ledgers.
+        // ------------------------------------------------------------------
+
+        getDataNisIntake: async function (dateFrom, dateTo, limit = 500, offset = 0, token = null, forceRefresh = false) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_limit: limit || 500,
+                p_offset: offset || 0
+            };
+            const cacheKey = 'sales_data_nis_intake_' + (params.p_date_from || 'x') + '_' +
+                (params.p_date_to || 'x') + '_' + params.p_limit + '_' + params.p_offset;
+            return await this.callFunction('get_data_nis_intake', params, token, {
+                cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        upsertDataNisIntakeRows: async function (rows, token = null) {
+            // Pass the array itself, NOT JSON.stringify(rows).
+            const params = {
+                p_rows: Array.isArray(rows) ? rows : [rows],
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('upsert_data_nis_intake_rows', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        deleteDataNisIntakeRow: async function (id, token = null) {
+            const key = (id != null ? String(id) : '').trim();
+            if (!key) throw new Error('deleteDataNisIntakeRow: id is required.');
+            const result = await this.callFunction('delete_data_nis_intake_row', { p_id: key }, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        // Writes the *_system mirror columns only — never the effective figures Pete has entered.
+        reseedDataNisIntake: async function (dateFrom, dateTo, token = null) {
+            const params = {
+                p_date_from: dateFrom || null,
+                p_date_to: dateTo || null,
+                p_actor_user_id: this.getCurrentUserId() || null
+            };
+            const result = await this.callFunction('reseed_data_nis_intake', params, token, { useCache: false });
+            this.clearCachePattern('sales_data_');
+            return result;
+        },
+
+        // Reference data for the Style dropdown. Static TTL like getContacts — the registry holds
+        // 11 rows and changes rarely.
+        getKernelStyles: async function (includeInactive = false, token = null, forceRefresh = false) {
+            const params = { p_include_inactive: !!includeInactive };
+            return await this.callFunction('get_kernel_styles', params, token, {
+                cacheKey: 'kernel_styles_' + (includeInactive ? 'all' : 'active'),
+                useCache: true,
+                cacheTtl: this.cache.ttl.static,
+                forceRefresh: !!forceRefresh
+            });
         }
     }
 }();
@@ -5916,9 +6777,12 @@ dataFunctions.getTableColumns = async function (tableName, token = null) {
 
 dataFunctions.importTableRows = async function (tableName, rows, token = null) {
     try {
+        // Pass the array itself, NOT JSON.stringify(rows). PostgREST serialises the whole
+        // body to JSON, so a pre-stringified array arrives as a jsonb *string* and
+        // import_table_rows rejects it with "p_rows must be a JSON array".
         const params = {
             p_table_name: tableName,
-            p_rows: JSON.stringify(rows)
+            p_rows: Array.isArray(rows) ? rows : [rows]
         };
         return await this.callFunction('import_table_rows', params, token, { useCache: false });
     } catch (e) {

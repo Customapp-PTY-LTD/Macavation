@@ -431,8 +431,23 @@ var _appRouter = function () {
                     if (typeof _modal_stock_send_to_dispatch_oil !== 'undefined' && _modal_stock_send_to_dispatch_oil.init) _modal_stock_send_to_dispatch_oil.init();
                 },
                 'sales-forecasting-grid': () => {
-                    if (typeof initializeSalesForecastingGrid === 'function') {
-                        initializeSalesForecastingGrid();
+                    if (typeof initializeReportListGrid === 'function') {
+                        initializeReportListGrid();
+                    }
+                },
+                'sales-report-editor': () => {
+                    if (typeof initializeReportEditor === 'function') {
+                        initializeReportEditor();
+                    }
+                },
+                'report-targets-grid': () => {
+                    if (typeof _reportTargetsGrid !== 'undefined' && _reportTargetsGrid.init) {
+                        _reportTargetsGrid.init();
+                    }
+                },
+                'sales-data-grid': () => {
+                    if (typeof initializeSalesDataGrid === 'function') {
+                        initializeSalesDataGrid();
                     }
                 },
                 'oil-production-grid': () => {
@@ -554,6 +569,11 @@ var _appRouter = function () {
             return result;
         },
         routeTo: (routeName, addBreadCrumb, params) => {
+            try {
+                if (typeof _salesDataGrid !== 'undefined' && _salesDataGrid.hasPendingEdits && _salesDataGrid.hasPendingEdits()) {
+                    _salesDataGrid.flushAutoSave();
+                }
+            } catch (e) { /* ignore */ }
             // Store in both sessionStorage (current session) and localStorage (persist across sessions)
             sessionStorage.setItem('lastActivePage', routeName);
             Session.set('lastActivePage', routeName);
@@ -577,6 +597,11 @@ var _appRouter = function () {
 
         },
         promptOnFormExit: async (routeName) => {
+            try {
+                if (typeof _salesDataGrid !== 'undefined' && _salesDataGrid.hasPendingEdits && _salesDataGrid.hasPendingEdits()) {
+                    await _salesDataGrid.flushAutoSave();
+                }
+            } catch (e) { /* ignore */ }
             var doNavigate = function () {
                 sessionStorage.setItem('lastActivePage', routeName);
                 Session.set('lastActivePage', routeName);
