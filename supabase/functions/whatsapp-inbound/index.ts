@@ -179,10 +179,22 @@ function isMissingRpc(err: Any): boolean {
 // bypass, because without that check anyone holding the public anon key (which ships in the
 // browser) could send WhatsApp messages through that channel. This webhook has no portal
 // session — it is a server-to-server call authenticated by the Control Room HMAC — so it posts
-// to Control Room's meta-proxy directly, signed the same way, TEXT ONLY. Do not add an
-// interactive/button send here (unconfirmed external contract) and do not add a service-role
-// bypass to send-whatsapp-message instead — this ~25-line duplication is the deliberate
-// trade-off. The two payload shapes must stay in step by hand.
+// to Control Room's meta-proxy directly, signed the same way. Do not add a service-role bypass to
+// send-whatsapp-message instead — this ~25-line duplication is the deliberate trade-off. The two
+// payload shapes must stay in step by hand.
+//
+// ⚠ SUPERSEDED 2026-08-25 — the clause that used to stand here, "TEXT ONLY. Do not add an
+// interactive/button send here (unconfirmed external contract)", no longer applies. The reason it
+// existed was that nobody here had read the gateway. Somebody has now: meta-proxy's
+// shapeMetaContent was read from the deployed source, and it forwards `template` as-is and
+// `interactive` unchanged. The shapes are recorded, with their provenance, in the header of
+// supabase/functions/_shared/wa-send.ts.
+//
+// So an interactive/button reply from this webhook is now allowed — but send it through
+// _shared/wa-send.ts (`sendButtons`, `sendList`, `sendTemplate`), NOT by extending the local
+// sendWhatsappText below into a second hand-rolled payload builder. The local function stays
+// text-only on purpose: it is the deliberate duplication described above, and widening it would
+// make a third place where the Control Room envelope has to be kept in step by hand.
 // ============================================================================
 
 const CONTROL_ROOM_BASE_URL = 'https://ejnncypummmvyojhovme.supabase.co/functions/v1';

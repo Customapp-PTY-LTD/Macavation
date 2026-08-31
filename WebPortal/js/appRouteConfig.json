@@ -638,14 +638,51 @@
             "css": []
         },
         "sales-forecasting-grid": {
-            "description": "Sales Forecasting",
-            "path": "sales-forecasting",
-            "html": "html/sales_forecasting_grid.html",
+            "description": "Sales &amp; Production Reports",
+            "path": "sales-reports",
+            "html": "html/report_list.html",
             "js": [
-                "js/sales_forecasting_grid.js"
+                "js/report_list_grid.js"
             ],
             "css": [
-                "css/sales_forecasting_grid.css"
+                "css/sales_reports.css"
+            ]
+        },
+        "sales-report-editor": {
+            "description": "Sales &amp; Production Report Editor",
+            "path": "sales-reports",
+            "html": "html/report_editor.html",
+            "js": [
+                "js/report-metric-line.js",
+                "js/report-pdf-builder.js",
+                "js/report-whatsapp-send.js",
+                "js/report-whatsapp-history.js",
+                "js/report_editor.js"
+            ],
+            "css": [
+                "css/sales_reports.css"
+            ]
+        },
+        "report-targets-grid": {
+            "description": "Report Targets &amp; Prior-Period Baselines",
+            "path": "report-targets",
+            "html": "html/report_targets_grid.html",
+            "js": [
+                "js/report_targets_grid.js"
+            ],
+            "css": []
+        },
+        "sales-data-grid": {
+            "description": "Sales &amp; Production Data",
+            "path": "sales-data",
+            "html": "html/sales_data_grid.html",
+            "js": [
+                "js/sales-data-column-defs.js",
+                "js/sales-data-row-grid.js",
+                "js/sales_data_grid.js"
+            ],
+            "css": [
+                "css/sales_data_grid.css"
             ]
         },
         "oil-production-grid": {

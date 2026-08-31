@@ -1,0 +1,21 @@
+# Per-function config for send-daily-production-report.
+#
+# verify_jwt = true is defence in depth ONLY. It proves the caller presented SOME valid project
+# JWT — it does NOT prove the caller holds the service-role key, because this repo's own anon-key
+# JWTs are committed in source at WebPortal/js/macavation-supabase.js:16 (prod) and :22 (dev), so
+# anyone who reads the site's JavaScript already holds a token that satisfies this setting alone.
+#
+# The real gate is the service-role bearer check inside index.ts (see its header and the
+# "Auth gate" section): the Authorization header is compared, with a constant-time comparison,
+# against SUPABASE_SERVICE_ROLE_KEY, and an empty header or an empty env var is always rejected
+# rather than treated as a match. Do not rely on verify_jwt as the access control for this
+# function's production figures or recipient roster — it is not.
+#
+# This file may also be documentary rather than load-bearing depending on how the function is
+# deployed: this checkout contains a per-function config.toml only for a small number of
+# functions (this one, portal-assistant, r), and supabase/config.toml itself has no
+# [functions.*] table at all — every other function's verify_jwt setting lives in platform state
+# this checkout cannot see. That gap is a further reason the in-code gate, not this setting, is
+# the control that actually matters here.
+[functions.send-daily-production-report]
+verify_jwt = true

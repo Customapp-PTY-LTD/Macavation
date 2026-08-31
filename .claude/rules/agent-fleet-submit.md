@@ -27,11 +27,16 @@ A few things are cheaper to build in from the start than to catch afterward:
 - **The plan-safety checklist** (`plan-safety-checklist.md`, in the fleet's `templates/`,
   summarized again in Step 0.7 below as a final re-check) - skim it now, while you're still
   shaping the plan, not only once it's already written.
-- **Whether the local pre-flight check can actually protect you.** It only works if
-  `AGENT_FLEET_TOOLKIT_PATH` is set, or a fleet toolkit checkout exists at the documented default
-  `~/agent-fleet` - check for one of those now, before drafting, not after pushing. If neither
-  resolves, say so out loud to the developer: the free local safety net (Step 0.8) is off for this
-  session, and only the slower server-side gate will catch a problem.
+- **The automatic local pre-flight check needs nothing from you.** Since 2026-08-13 it runs as a
+  `PreToolUse`/`ExitPlanMode` hook wired straight into this repo's own `.claude/settings.json` -
+  it uses your own already-authenticated Claude Code session, with real read access to this
+  checkout, no separate `ANTHROPIC_API_KEY` and no toolkit clone required. It fires the moment you
+  call `ExitPlanMode` on a fleet-bound plan, before you ever get to push.
+- **Step 0.8's manual, deeper check is a separate, optional extra**, not the same thing. It needs
+  a clone of this `agent-fleet` toolkit repo SOMEWHERE on your machine (any path - you pass it
+  directly on the command line each time, no environment variable involved) plus an
+  `ANTHROPIC_API_KEY` in your shell - check you have those now if you want the extra pass, not
+  after pushing.
 
 Step 0.7 further down is still worth doing right before you push - this section is about not
 writing the problem in the first place.
@@ -257,7 +262,13 @@ final re-read, against all eleven, right before you push:
    just the bug you're diagnosing**: a correct root-cause diagnosis can still ship a regression if
    you haven't checked what else reads, renders, or reacts to the same element, DOM node, or shared
    state/function - a new guard or condition can fire in a case the plan never considered if
-   something else in the repo already touches that same surface for an unrelated reason.
+   something else in the repo already touches that same surface for an unrelated reason. **This
+   also extends to any invariant/non-regression claim** ("this can never make X worse/later than
+   today") - if the behavior spans more than one call site, check the claim at each one, not just
+   the first; say so explicitly if checking every site is impractical (e.g. one shared choke point
+   every call site funnels through). (This is what blocked a JWT-refresh retry on
+   `BrokerPortal-standard`, 2026-08-12: the claim held at one login path but not the second, which
+   computes the stored value from a different base.)
 6. **Before building something new, check whether this repo already has a near-duplicate to model
    after or reuse.** A new module, screen, or flow that closely resembles something already in the
    codebase should be built FROM that existing implementation, not from scratch - grep for the
@@ -309,7 +320,16 @@ first pass, re-wrapped it into a `data:image/...;base64,...` candidate, and test
 so no non-empty value was ever actually rejected, and the plan's own required test case
 (`Photo: 'http://evil.example/x.png'` must resolve to no image) would have failed against the
 plan's own code. Trace validation logic against every required test case by hand before
-submitting, especially when it IS the security control.)
+submitting, especially when it IS the security control.) A third shape: an identifier one
+deliverable defines is called under a different name later - grep the plan for every identifier it
+defines and confirm later references match exactly. A fourth shape: a later deliverable reuses a
+helper/fallback the plan relies on elsewhere without checking whether that helper's own edge case
+is still safe at the new site - e.g. a fallback that's safe on login, reused unmodified for a
+post-refresh check, masking a real failure instead of surfacing it. (Both are from the same
+JWT-refresh retry on `BrokerPortal-standard`, 2026-08-12: one deliverable exported
+`AuthTokenExpiry` while another called the undefined `AuthTokenTools.formatTokenExpires(...)`, and
+a login-expiry fallback the plan existed to remove reappeared, reused unmodified, in the
+post-refresh deliverable.)
 11. **When a fix depends on a live data or environment shape you can't confirm from the checkout
 (item 4), don't let it replace a currently-working path - keep the old shape handled too.**
 Detect-and-branch for every shape the existing code already covers, in addition to the new one;
@@ -323,9 +343,16 @@ actual photo.)
 **Never block on this** - same as the size check, it's advisory. Full checklist and rationale live
 in the fleet toolkit's `templates/plan-safety-checklist.md`.
 
-## Step 0.8 - run the real gate locally before pushing (optional, but the cheapest check there is)
+**Pushing a `.retry-N.md` amendment?** Re-running Step 0.8 locally before pushing is not optional -
+the amendment can introduce fresh defects the original draft didn't have (this is exactly how the
+JWT-refresh retry above ended up blocked a second time), and Step 0.8 is the same tool that would
+catch that before a second paid run does.
 
-If the fleet toolkit's own checkout is available on this machine, `scripts/preflight-review.sh`
+## Step 0.8 - the manual, deeper local check (optional - the automatic hook above already ran)
+
+The automatic `ExitPlanMode` hook from "Before you draft" already ran, with zero setup, the
+moment you tried to leave plan mode. This step is a SEPARATE, optional, deeper pass: if the fleet
+toolkit's own checkout is available on this machine, `scripts/preflight-review.sh`
 runs the EXACT same review the fleet's plan-review gate runs - same model, same prompt, same
 checks - against this repo's own checkout, in about 1-2 minutes, with zero fleet dispatch and
 zero blocked-run bookkeeping. It costs one real model call (needs an `ANTHROPIC_API_KEY` in this
@@ -342,12 +369,22 @@ If it reports BLOCK, fix what it found before pushing - that is exactly what the
 say, just without the round trip. If the fleet toolkit is not checked out locally, skip this step;
 it is a convenience, never a requirement, and the live gate still runs regardless.
 
-**First time on this machine?** The *local hook version* of this same check resolves a toolkit
-checkout from `AGENT_FLEET_TOOLKIT_PATH`, or - if that's unset - the documented default location
-`~/agent-fleet`. Only if **neither** resolves does it silently allow every plan through with just
-a stderr warning. See the fleet user guide's
-["One-time setup: enable your local pre-flight check"](https://github.com/Customapp-PTY-LTD/agent-fleet/blob/dev/docs/fleet-user-guide.md#one-time-setup-enable-your-local-pre-flight-check)
-for how to set it up (you already checked this above, under "Before you draft").
+**Record that you ran it.** Once it reports PASS (fix and re-run until it does), the script prints
+a line like `preflight: pass a1b2c3d4e5f6`. Copy that exact line into the plan's own frontmatter
+before committing (add a `---\n---\n` block at the top of the plan if it doesn't have one yet) - the
+server-side gate re-hashes the pushed plan body and only credits this local check if the hash
+matches. The hash12 must come from the LAST run against the FINAL content you actually push - if
+you edit the plan after checking it, the marker silently stops verifying (recorded as absent, never
+as a false pass) and you've wasted the check.
+
+**Want this script's own deeper check too, not just the automatic hook?** Unlike the automatic
+hook, it does not auto-discover anything - clone `agent-fleet` anywhere on your machine and pass
+that path as this command's second argument every time. It errors out plainly (a usage message,
+non-zero exit) if you give it fewer than two arguments, and it needs an `ANTHROPIC_API_KEY` set to
+make its one real model call. See the fleet user guide's
+["Optional: the manual deeper local check"](https://github.com/Customapp-PTY-LTD/agent-fleet/blob/dev/docs/fleet-user-guide.md#optional-the-manual-deeper-local-check)
+for the one-time clone-and-remember-the-path setup (you already checked this above, under "Before
+you draft").
 
 ## Submit (the Claude Code path differs from Cursor)
 

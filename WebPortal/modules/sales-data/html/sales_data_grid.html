@@ -1,0 +1,90 @@
+<!-- Sales & Production Data — Pete's standing data page. One tab per dataset from get_data_datasets(); only production_daily renders content in this release. -->
+<div class="module-content" id="salesDataGridModule">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Sales &amp; Production Data</h1>
+        <div class="btn-toolbar mb-2 mb-md-0 ms-auto gap-2">
+            <button type="button" class="btn btn-outline-secondary" id="salesDataDriftBtn">
+                <i class="fas fa-exchange-alt me-1"></i>Drift
+                <span class="mac-pill mac-pill-warning ms-1" id="salesDataDriftCount">0</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="salesDataReseedBtn"
+                data-action-perm="reports.data.edit" data-action-deny="disable" disabled>
+                <i class="fas fa-sync-alt me-1"></i>Refresh from factory
+            </button>
+        </div>
+    </div>
+
+    <!-- Period bar -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label d-block">Period</label>
+                    <div class="btn-group" role="group" aria-label="Period type">
+                        <input type="radio" class="btn-check" name="salesDataPeriodType" id="salesDataPeriodWeekly" value="weekly" checked autocomplete="off">
+                        <label class="btn btn-outline-secondary" for="salesDataPeriodWeekly">Weekly</label>
+                        <input type="radio" class="btn-check" name="salesDataPeriodType" id="salesDataPeriodMonthly" value="monthly" autocomplete="off">
+                        <label class="btn btn-outline-secondary" for="salesDataPeriodMonthly">Monthly</label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label d-block">&nbsp;</label>
+                    <button type="button" class="btn btn-outline-secondary" id="salesDataPeriodPrev" title="Previous period">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                </div>
+                <div class="col-auto">
+                    <label for="salesDataPeriodDate" class="form-label">Date within period</label>
+                    <input type="text" class="form-control flatpickr-date" id="salesDataPeriodDate" autocomplete="off">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label d-block">&nbsp;</label>
+                    <button type="button" class="btn btn-outline-secondary" id="salesDataPeriodNext" title="Next period">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="col">
+                    <div class="text-muted" id="salesDataPeriodLabel">&nbsp;</div>
+                </div>
+                <div class="col-auto">
+                    <div id="salesDataSaveStatus">&nbsp;</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dataset tabs -->
+    <ul class="nav nav-tabs" id="salesDataTabStrip"></ul>
+    <div class="tab-content border border-top-0 p-3 mb-4" id="salesDataTabContent"></div>
+</div>
+
+<!-- Drift modal — read-only list of days where the factory figure has moved since it was last seeded -->
+<div class="modal fade" id="salesDataDriftModal" tabindex="-1" aria-labelledby="salesDataDriftModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="salesDataDriftModalLabel">Factory drift</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle" id="salesDataDriftTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Field</th>
+                                <th>Stored (system)</th>
+                                <th>Live (system)</th>
+                                <th>Delta</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesDataDriftTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

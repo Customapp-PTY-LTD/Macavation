@@ -272,8 +272,13 @@
                                             <div class="collapse" id="businessCollapse">
                                                 <ul class="nav flex-column ms-3">
                                                     <li class="nav-item d-none" data-route="sales-forecasting-grid">
-                                                        <a class="nav-link" href="#" route="sales-forecasting-grid" title="Sales Forecasting">
-                                                            <i class="fas fa-chart-line me-2"></i>Sales Forecasting
+                                                        <a class="nav-link" href="#" route="sales-forecasting-grid" title="Sales &amp; Production Reports">
+                                                            <i class="fas fa-file-invoice me-2"></i>Sales &amp; Production Reports
+                                                        </a>
+                                                    </li>
+                                                    <li class="nav-item d-none" data-route="sales-data-grid">
+                                                        <a class="nav-link" href="#" route="sales-data-grid" title="Sales &amp; Production Data">
+                                                            <i class="fas fa-table me-2"></i>Sales &amp; Production Data
                                                         </a>
                                                     </li>
                                                     <li class="nav-item d-none" data-route="financial-management-grid">
@@ -315,6 +320,11 @@
                                         <li class="nav-item d-none" data-route="dashboard-targets-grid">
                                             <a class="nav-link" href="#" route="dashboard-targets-grid" title="Set KPI targets used by dashboards">
                                                 <i class="fas fa-bullseye me-2"></i>Dashboard Targets
+                                            </a>
+                                        </li>
+                                        <li class="nav-item d-none" data-route="report-targets-grid">
+                                            <a class="nav-link" href="#" route="report-targets-grid" title="Set per-period report targets and enter prior-period baselines">
+                                                <i class="fas fa-bullseye me-2"></i>Report Targets
                                             </a>
                                         </li>
                                         <li class="nav-item d-none" data-route="stock-alert-rules-grid">
@@ -570,6 +580,7 @@
     <!-- Design-system shared components: status pills + loading/empty states -->
     <script src="js/mac-status.js?v=20260708a"></script>
     <script src="js/ui-states.js?v=20260708a"></script>
+    <script src="js/kernel-style-tally.js?v=20260816a"></script>
     
     <!-- (Offline/PWA stack removed — design plan Phase 2: SW was already disabled;
          data-functions guards all offlineStorage usage with typeof checks.) -->

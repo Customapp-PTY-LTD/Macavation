@@ -1,0 +1,11 @@
+# Per-function config for `r` (the WhatsApp report short-link redirector).
+#
+# This endpoint is opened by tapping a link/template button in WhatsApp, straight into a
+# phone's browser — there is no Supabase auth JWT, no portal session, no credential of any
+# kind on that request. Supabase's platform JWT verification would reject every single tap,
+# so it must be disabled here (same reasoning as portal-assistant needing to run before a
+# portal session exists, and auth-google needing to run before any auth at all). The function
+# itself is what stands between the public internet and the private report-pdfs bucket — see
+# the security notes at the top of index.ts.
+[functions.r]
+verify_jwt = false
