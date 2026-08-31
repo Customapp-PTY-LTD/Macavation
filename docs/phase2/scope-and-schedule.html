@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Macavation Phase 2 — Scope, Schedule, Delivered and Outstanding Work</title>
+  <style>
+  /* ------------------------------------------------------------------
+     Layout note: this page is built on ordinary block flow. Block boxes
+     always fill their containing block, so a paragraph cannot be squeezed
+     to a column of single words the way a nested flex or grid child can.
+     Flex and grid are used in exactly two places — the stat row and the
+     table wrappers — and both are written so they collapse to one column
+     rather than forcing the page wider.
+     ------------------------------------------------------------------ */
+
+  :root {
+    --ink: #17271f;
+    --ink-soft: #3f524a;
+    --muted: #6b7d75;
+    --brand: #2d4a3e;
+    --accent: #197a4f;
+    --accent-soft: #e3f0e8;
+    --ground: #f3f6f4;
+    --card: #ffffff;
+    --border: #d7e0da;
+    --border-strong: #b9c8c0;
+    --warn: #8a6520;
+    --warn-bg: #fbf3e2;
+    --risk: #9b3a30;
+    --risk-bg: #fbecea;
+    --ok: #1f7a4d;
+    --ok-bg: #e6f2ea;
+    --meter: #2f8f5f;
+    --meter-track: #cfe4d8;
+    --display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #e7eee9;
+      --ink-soft: #c2d0c9;
+      --muted: #8ea099;
+      --brand: #a9d3bd;
+      --accent: #4fb281;
+      --accent-soft: #1b3128;
+      --ground: #0f1714;
+      --card: #16221d;
+      --border: #2a3b34;
+      --border-strong: #3b5147;
+      --warn: #e0bd6d;
+      --warn-bg: #2b2416;
+      --risk: #e8968c;
+      --risk-bg: #2e1c19;
+      --ok: #6fc496;
+      --ok-bg: #172c22;
+      --meter: #4aa87a;
+      --meter-track: #24382f;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ink: #e7eee9;
+    --ink-soft: #c2d0c9;
+    --muted: #8ea099;
+    --brand: #a9d3bd;
+    --accent: #4fb281;
+    --accent-soft: #1b3128;
+    --ground: #0f1714;
+    --card: #16221d;
+    --border: #2a3b34;
+    --border-strong: #3b5147;
+    --warn: #e0bd6d;
+    --warn-bg: #2b2416;
+    --risk: #e8968c;
+    --risk-bg: #2e1c19;
+    --ok: #6fc496;
+    --ok-bg: #172c22;
+    --meter: #4aa87a;
+    --meter-track: #24382f;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    /* A reading column has a floor. Below this the page scrolls sideways
+       rather than reflowing into unreadable slivers. */
+    min-width: 20rem;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 58rem;
+    margin: 0 auto;
+    padding: 0 1.75rem;
+  }
+
+  /* Long identifiers break rather than overflow; ordinary words never break. */
+  code { overflow-wrap: anywhere; }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 2.75rem 0 1.9rem;
+  }
+
+  .eyebrow {
+    display: block;
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(1.8rem, 4.2vw, 2.6rem);
+    line-height: 1.15;
+    letter-spacing: -.01em;
+    text-wrap: balance;
+    margin: .4rem 0 0;
+    color: var(--ink);
+  }
+
+  .byline {
+    margin-top: .9rem;
+    font-size: .9rem;
+    color: var(--ink-soft);
+  }
+
+  .byline span {
+    display: inline-block;
+    margin: 0 1.75rem .2rem 0;
+  }
+
+  .byline b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- stat row ---------- */
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+    gap: 1px;
+    margin-top: 1.7rem;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .stat {
+    background: var(--card);
+    padding: .9rem 1.1rem 1rem;
+  }
+
+  .stat .label {
+    display: block;
+    font-size: .7rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .stat .value {
+    display: block;
+    margin-top: .3rem;
+    font-size: 1.65rem;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -.015em;
+    color: var(--ink);
+  }
+
+  .stat .value .of {
+    font-size: .95rem;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0;
+  }
+
+  .stat .foot {
+    display: block;
+    margin-top: .3rem;
+    font-size: .8rem;
+    color: var(--muted);
+  }
+
+  /* ---------- sticky section nav ---------- */
+
+  .sectionnav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--brand);
+    border-bottom: 1px solid var(--border);
+  }
+
+  :root[data-theme="dark"] .sectionnav { background: var(--card); }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .sectionnav { background: var(--card); }
+  }
+
+  .sectionnav .wrap {
+    padding-top: .55rem;
+    padding-bottom: .55rem;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .sectionnav .wrap::-webkit-scrollbar { display: none; }
+
+  .sectionnav a {
+    display: inline-block;
+    margin-right: 1.15rem;
+    font-size: .82rem;
+    color: #dfeae4;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+
+  .sectionnav a:hover { color: #fff; border-bottom-color: currentColor; }
+
+  :root[data-theme="dark"] .sectionnav a { color: var(--ink-soft); }
+  :root[data-theme="dark"] .sectionnav a:hover { color: var(--ink); }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .sectionnav a { color: var(--ink-soft); }
+    :root:not([data-theme="light"]) .sectionnav a:hover { color: var(--ink); }
+  }
+
+  /* ---------- document flow ---------- */
+
+  main { padding-bottom: 5rem; }
+
+  section { padding-top: 2.9rem; }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.55rem;
+    line-height: 1.25;
+    text-wrap: balance;
+    margin: 0 0 1.1rem;
+    padding-bottom: .6rem;
+    border-bottom: 2px solid var(--brand);
+    color: var(--ink);
+  }
+
+  h2 .num {
+    font-family: var(--mono);
+    font-size: .8rem;
+    color: var(--accent);
+    margin-right: .6rem;
+    vertical-align: .12em;
+  }
+
+  h3 {
+    font-family: var(--body);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  p {
+    margin: 0 0 1rem;
+    max-width: 74ch;
+  }
+
+  .lede {
+    font-size: 1.12rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+
+  .lede strong { color: var(--ink); }
+
+  a { color: var(--accent); }
+
+  code {
+    font-family: var(--mono);
+    font-size: .86em;
+    background: var(--accent-soft);
+    color: var(--ink);
+    padding: .1em .35em;
+    border-radius: 3px;
+  }
+
+  /* ---------- tables ---------- */
+
+  .scroll {
+    overflow-x: auto;
+    margin: 0 0 1.15rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .92rem;
+    font-variant-numeric: tabular-nums;
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-size: .84rem;
+    color: var(--muted);
+    padding-bottom: .5rem;
+    max-width: 74ch;
+  }
+
+  th, td {
+    text-align: left;
+    padding: .65rem .8rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  thead th {
+    font-size: .72rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    background: var(--ground);
+    border-bottom: 1px solid var(--border-strong);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  td.key { font-weight: 600; }
+  td .sub { display: block; color: var(--muted); font-size: .85em; font-weight: 400; }
+
+  /* ---------- flags, meters ---------- */
+
+  .flag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: .12rem .4rem;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .flag.stop { background: var(--risk-bg); color: var(--risk); }
+  .flag.hold { background: var(--warn-bg); color: var(--warn); }
+  .flag.go { background: var(--ok-bg); color: var(--ok); }
+
+  .meter {
+    display: block;
+    width: 100%;
+    min-width: 3.5rem;
+    height: 6px;
+    margin-top: .35rem;
+    background: var(--meter-track);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .meter span {
+    display: block;
+    height: 100%;
+    background: var(--meter);
+    border-radius: 0 3px 3px 0;
+  }
+
+  .count { white-space: nowrap; font-weight: 600; }
+  .count em { font-style: normal; font-weight: 400; color: var(--muted); }
+  td.progress { min-width: 7rem; }
+
+  /* ---------- cards ---------- */
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px;
+    padding: 1.1rem 1.25rem;
+    margin: 0 0 1.15rem;
+  }
+  .panel.alarm { border-left-color: var(--risk); }
+
+  .work {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px;
+    padding: 1.1rem 1.25rem;
+    margin: 0 0 1.15rem;
+  }
+
+  .work.shipped { border-left-color: var(--ok); }
+
+  .work-head {
+    padding-bottom: .6rem;
+    margin-bottom: .85rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .work-head h3 { display: inline; margin-right: .55rem; }
+
+  .work-head .est {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .work > *:last-child, .panel > *:last-child { margin-bottom: 0; }
+  .work table { font-size: .88rem; }
+
+  /* ---------- lists ----------
+     Markers are positioned out of flow, so the text box is the full width of
+     the list item minus its indent. Nothing here can collapse the measure. */
+
+  ul.done, ul.todo {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+  }
+
+  ul.done li, ul.todo li {
+    position: relative;
+    padding-left: 1.6rem;
+    margin-bottom: .55rem;
+    color: var(--ink-soft);
+  }
+
+  ul.done li:last-child, ul.todo li:last-child { margin-bottom: 0; }
+
+  ul.done li::before {
+    content: "\2713";
+    position: absolute;
+    left: .05rem;
+    top: 0;
+    color: var(--ok);
+    font-weight: 700;
+    font-size: .9rem;
+  }
+
+  ul.todo li::before {
+    content: "";
+    position: absolute;
+    left: .1rem;
+    top: .5em;
+    width: .8rem;
+    height: .8rem;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 2px;
+  }
+
+  ul.done li strong, ul.todo li strong { color: var(--ink); font-weight: 600; }
+
+  ul.todo li p {
+    margin: .3rem 0 0;
+    color: var(--muted);
+    font-size: .96em;
+  }
+
+  ol.asks {
+    margin: 0;
+    padding-left: 1.4rem;
+    color: var(--ink-soft);
+  }
+  ol.asks li { margin-bottom: .85rem; }
+  ol.asks li:last-child { margin-bottom: 0; }
+  ol.asks li::marker { color: var(--accent); font-weight: 700; }
+  ol.asks strong { color: var(--ink); }
+
+  /* ---------- milestones ---------- */
+
+  .milestones {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+  }
+
+  .milestones li {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: .75rem .95rem;
+    margin-bottom: .5rem;
+  }
+
+  .milestones .when {
+    display: inline-block;
+    min-width: 9.5rem;
+    font-family: var(--mono);
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .milestones .what { font-weight: 600; }
+
+  /* ---------- notes and callouts ---------- */
+
+  .note {
+    margin: .9rem 0 0;
+    padding-top: .65rem;
+    border-top: 1px dashed var(--border);
+    font-size: .9rem;
+    color: var(--muted);
+  }
+  .note b { color: var(--ok); font-weight: 700; }
+
+  .callout {
+    background: var(--warn-bg);
+    border-left: 3px solid var(--warn);
+    border-radius: 2px;
+    padding: .85rem 1rem;
+    margin: 0 0 1.15rem;
+    font-size: .95rem;
+    color: var(--ink);
+    max-width: 74ch;
+  }
+
+  .callout.hard { background: var(--risk-bg); border-left-color: var(--risk); }
+
+  .built {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: .75rem;
+    color: var(--ok);
+    background: var(--ok-bg);
+    padding: .1rem .4rem;
+    border-radius: 3px;
+  }
+
+  footer {
+    margin-top: 3.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    font-size: .85rem;
+    color: var(--muted);
+  }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- narrow viewports ---------- */
+
+  @media (max-width: 48rem) {
+    .wrap { padding: 0 1.15rem; }
+    .masthead { padding: 2rem 0 1.5rem; }
+    section { padding-top: 2.25rem; }
+    .work, .panel { padding: .95rem 1rem; }
+    .milestones .when { display: block; min-width: 0; margin-bottom: .1rem; }
+  }
+
+  @media (max-width: 30rem) {
+    .wrap { padding: 0 .9rem; }
+    .work, .panel { padding: .85rem .9rem; }
+    .callout { padding: .75rem .85rem; }
+    ul.done li, ul.todo li { padding-left: 1.35rem; }
+    th, td { padding: .5rem .55rem; }
+    table, .work table { font-size: .86rem; }
+  }
+
+  /* ---------- print / save as PDF ---------- */
+
+  @media print {
+    body { min-width: 0; background: #fff; font-size: 10.5pt; line-height: 1.5; }
+    .sectionnav, .backlink { display: none; }
+    .masthead { padding: 0 0 1rem; border-bottom-width: 2px; }
+    .wrap { max-width: none; padding: 0; }
+    main { padding-bottom: 0; }
+    section { padding-top: 1.6rem; }
+    h2 { font-size: 1.2rem; }
+    .stats { break-inside: avoid; }
+    .work, .panel, .callout, .milestones li, tr { break-inside: avoid; }
+    thead { display: table-header-group; }
+    a { color: inherit; text-decoration: none; }
+    .scroll { overflow: visible; }
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <span class="eyebrow">Macavation · CustomApp delivery · <a class="backlink" href="index.html">Phase&nbsp;2 docs</a></span>
+    <h1>Phase&nbsp;2 — Scope, Schedule, Delivered and Outstanding Work</h1>
+    <div class="byline">
+      <span><b>Issued</b> 18 August 2026</span>
+      <span><b>For</b> Paul, Pete, Josslyn, Mark</span>
+      <span><b>Prepared by</b> CustomApp delivery</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="label">Work items delivered</span>
+        <span class="value">70 <span class="of">of 126</span></span>
+        <span class="foot">Counted from the lists in sections 2 and 5</span>
+      </div>
+      <div class="stat">
+        <span class="label">Developer-days left</span>
+        <span class="value">~90</span>
+        <span class="foot">One developer, five days a week</span>
+      </div>
+      <div class="stat">
+        <span class="label">Production lag</span>
+        <span class="value">41 <span class="of">commits</span></span>
+        <span class="foot">Plus 20 unapplied migrations</span>
+      </div>
+      <div class="stat">
+        <span class="label">Decisions needed</span>
+        <span class="value">3</span>
+        <span class="foot">One of them gates the largest workstream</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav class="sectionnav" aria-label="Sections">
+  <div class="wrap">
+    <a href="#standing">1 · Where it stands</a>
+    <a href="#delivered">2 · Delivered</a>
+    <a href="#scope">3 · Remaining scope</a>
+    <a href="#schedule">4 · Schedule</a>
+    <a href="#outstanding">5 · Outstanding</a>
+    <a href="#risks">6 · Risks</a>
+    <a href="#inputs">7 · We need from you</a>
+    <a href="#decisions">8 · Decisions</a>
+    <a href="#criteria">9 · Success criteria</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <section id="standing">
+    <h2><span class="num">01</span>Where Phase 2 actually stands</h2>
+    <p class="lede">Phase 2 is roughly <strong>two thirds built, and almost none of it is in
+      production yet.</strong> That is the single most important fact in this document — the gap
+      between "built" and "in Macavation's hands" is now the critical path, not the feature backlog.</p>
+
+    <div class="scroll">
+      <table>
+        <caption>Verified against the dev branch, the migration set and the live production database on 18 August 2026.</caption>
+        <thead>
+          <tr><th>What</th><th>State today</th><th class="num">Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="key">Work done since Phase 2 opened</td><td><strong>213 commits and 95 migrations</strong> since 1 June 2026</td><td class="num"><span class="flag go">Delivered</span></td></tr>
+          <tr><td class="key">dev branch</td><td>Auto-deploys to dev-macavation.customapp.co.za; carries the full Phase 2 build</td><td class="num"><span class="flag go">Current</span></td></tr>
+          <tr><td class="key">demo and prod branches</td><td>Both stopped at 13 August — <strong>41 commits behind dev</strong></td><td class="num"><span class="flag stop">Behind</span></td></tr>
+          <tr><td class="key">Production database</td><td>20 report-builder and data-page migrations not applied</td><td class="num"><span class="flag stop">Behind</span></td></tr>
+          <tr><td class="key">Scheduler on production</td><td><code>pg_cron</code> not installed — no daily digest, no stock-alert evaluation runs</td><td class="num"><span class="flag stop">Off</span></td></tr>
+          <tr><td class="key">Daily digest subscribers</td><td>Zero — the digest has never sent to a real recipient</td><td class="num"><span class="flag stop">Off</span></td></tr>
+          <tr><td class="key">Dashboard targets</td><td>4 rows on production</td><td class="num"><span class="flag hold">Thin</span></td></tr>
+          <tr><td class="key">Open stock alerts</td><td>40 unresolved on production</td><td class="num"><span class="flag hold">Triage</span></td></tr>
+          <tr><td class="key">Action permissions</td><td>27 keys, 95 role grants — all UI-only, nothing enforced server-side</td><td class="num"><span class="flag hold">Partial</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+
+  <section id="delivered">
+    <h2><span class="num">02</span>What is already delivered</h2>
+    <p>Each count is the number of items delivered against the total for that workstream — every one
+      of them is spelled out either in the list below it or in section 5. Everything here was verified
+      in the code or the database on 18 August.</p>
+
+    <div class="scroll">
+      <table>
+        <caption>A count treats a half-day item the same as an eight-day one, so read it alongside the
+          days-left column, which carries the weight.</caption>
+        <thead><tr><th class="num">#</th><th>Workstream</th><th class="num">Items done</th><th class="progress">Progress</th><th class="num">Days left</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td class="key">Production cutover</td><td class="num count">0 <em>of 7</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:0%"></span></span></td><td class="num">3</td></tr>
+          <tr><td class="num">1</td><td class="key">Historical data</td><td class="num count">7 <em>of 10</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:70%"></span></span></td><td class="num">7–8</td></tr>
+          <tr><td class="num">2</td><td class="key">Advanced permissions</td><td class="num count">6 <em>of 12</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:50%"></span></span></td><td class="num">17</td></tr>
+          <tr><td class="num">3</td><td class="key">Messaging and chat</td><td class="num count">8 <em>of 11</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:73%"></span></span></td><td class="num">4–5</td></tr>
+          <tr><td class="num">4</td><td class="key">Stock red-flag alerts</td><td class="num count">6 <em>of 11</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:55%"></span></span></td><td class="num">3–4</td></tr>
+          <tr><td class="num">5</td><td class="key">Daily reporting</td><td class="num count">4 <em>of 9</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:44%"></span></span></td><td class="num">4</td></tr>
+          <tr><td class="num">6</td><td class="key">Dashboard</td><td class="num count">8 <em>of 12</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:67%"></span></span></td><td class="num">6–7</td></tr>
+          <tr><td class="num">7</td><td class="key">Shell waste</td><td class="num count">4 <em>of 8</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:50%"></span></span></td><td class="num">7</td></tr>
+          <tr><td class="num">8</td><td class="key">Grower intake and procurement</td><td class="num count">4 <em>of 7</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:57%"></span></span></td><td class="num">4–5</td></tr>
+          <tr><td class="num">9</td><td class="key">Oil module</td><td class="num count">5 <em>of 10</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:50%"></span></span></td><td class="num">6–7</td></tr>
+          <tr><td class="num">10</td><td class="key">Sales &amp; Production Report<span class="sub">added scope</span></td><td class="num count">10 <em>of 17</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:59%"></span></span></td><td class="num">19</td></tr>
+          <tr><td class="num">—</td><td class="key">Cross-cutting<span class="sub">guides, UAT, training</span></td><td class="num count">0 <em>of 4</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:0%"></span></span></td><td class="num">11</td></tr>
+          <tr><td class="num">—</td><td class="key">Platform and carry-over fixes</td><td class="num count">8 <em>of 8</em></td><td class="progress"><span class="meter" aria-hidden="true"><span style="width:100%"></span></span></td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Historical data</h3><span class="est">7 of 10 delivered</span></div>
+      <ul class="done">
+        <li>Kernel historical import: database function, CLI helper and a portal import modal on Kernel Stock</li>
+        <li>Procurement CSV import script</li>
+        <li>Oil stock-on-hand seeded from a real workbook — about 818 rows, Apr 2024 to Dec 2025</li>
+        <li><strong>Nut-in-shell procurement history loaded and reconciled</strong> — 1,201,217 kg, matching the workbook's own grand total, 11 of 12 FYE 2026 months exact</li>
+        <li><strong>Kernel sales history loaded</strong> — 278 lines, tracking Pete's sheet to within two cents across FYE 2026</li>
+        <li>Oil export register seeded</li>
+        <li>Import runbook and sign-off checklist written</li>
+      </ul>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Advanced permissions</h3><span class="est">6 of 12 delivered</span></div>
+      <ul class="done">
+        <li>Three permission layers live: API-level execute grants, module and screen visibility, and button-level actions</li>
+        <li>Admin UI for all three — Roles &amp; modules, with per-role Customize and role-scoped editing</li>
+        <li>27 action keys wired across roughly nine modules, with 95 role grants</li>
+        <li>Eight active roles after the July cleanup: super user, admin, Shareholder, Sales Exec, Factory Manager, Production Manager, Palladium Manager, Quality Assurance</li>
+        <li>Direct anonymous table access revoked at the database</li>
+        <li>Server-side gate function written — the primitive for enforcement, not yet called</li>
+      </ul>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Messaging and chat</h3><span class="est">8 of 11 delivered</span></div>
+      <ul class="done">
+        <li>Notifications with read tracking, and the header inbox bell</li>
+        <li>Compose screen for broadcast, per-role and per-user messages</li>
+        <li><strong>Entity links</strong> — attach a batch, stock lot or delivery; the inbox shows a badge and resolves the link to the right screen</li>
+        <li>Automatic notification when a new stock red flag is raised</li>
+        <li><strong>Internal 1:1 staff chat</strong> — conversations, messages, participants and read state, with participant-based privacy</li>
+        <li><strong>WhatsApp outbound send</strong> through CustomApp's Control Room gateway</li>
+        <li><strong>WhatsApp inbound shared team inbox</strong> on +27 71 463 9643 — profile names, duplicate-safe ingest, visible to any user holding the WhatsApp action</li>
+        <li>Staff WhatsApp number enrolment, inbound command handling, and a command log</li>
+      </ul>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Stock red-flag alerts</h3><span class="est">6 of 11 delivered</span></div>
+      <ul class="done">
+        <li>Alert rules admin UI, configurable per product and style</li>
+        <li>Evaluation feeding the dashboard alert list and raising an in-app notification</li>
+        <li>Acknowledge and resolve, with automatic clearing when stock recovers</li>
+        <li>Raw nut-in-shell included in stock-on-hand collection</li>
+        <li>Default thresholds seeded for kernel styles 0 and 1, oil, protein and shell</li>
+        <li>Scheduled evaluation function written — not yet scheduled</li>
+      </ul>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Daily reporting</h3><span class="est">4 of 9 delivered</span></div>
+      <ul class="done">
+        <li>Scheduled Reports table and admin module</li>
+        <li>Digest content covering kernel stats, oil stats, open alerts, procurement today, runway, extended KPIs and produced-versus-target — broader than the original checklist</li>
+        <li>Email delivery function</li>
+        <li>WhatsApp delivery function over Control Room — <strong>the Meta Business API blocker is gone</strong></li>
+      </ul>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Dashboard</h3><span class="est">8 of 12 delivered</span></div>
+      <ul class="done">
+        <li>Three role-partitioned dashboards — default, Palladium integrator, executive</li>
+        <li><strong>Six live charts</strong>: production trends, oil production trends, oil production forecast, raw-material runway forecast, stock accuracy, and stock-on-hand history</li>
+        <li>Produced-versus-target widget with a generic targets admin module</li>
+        <li>Procurement and forecast chart</li>
+        <li>Consolidated-batch summary widget for oil</li>
+        <li>Executive KPIs and active-batch counts</li>
+        <li>Nut-in-shell runway forecast including full-depletion projection</li>
+        <li>Recovery and yield KPIs — sound kernel recovery, oil yield, months of cover</li>
+      </ul>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Shell waste</h3><span class="est">4 of 8 delivered</span></div>
+      <ul class="done">
+        <li>Shell stock lots and a movement ledger, with manual editing on the Kernel Stock screen</li>
+        <li><strong>Shell lots created automatically from production</strong> — per-bag weighing at the cracking stage feeds the stock lot, matching how shell is recorded operationally</li>
+        <li>A shell alert rule type</li>
+        <li>Shell and production tab on the data page</li>
+      </ul>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Grower intake and procurement</h3><span class="est">4 of 7 delivered</span></div>
+      <ul class="done">
+        <li>Procurement calendar with month view, drag-to-reschedule and convert-to-batch</li>
+        <li>Stream-level mass balance and weekly procurement variance calculations — built, not yet surfaced</li>
+        <li>Per-batch mass balance on the kernel job card</li>
+        <li>Nut-in-shell intake dataset and tab, with procurement tracking backfilled</li>
+      </ul>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Oil module</h3><span class="est">5 of 10 delivered</span></div>
+      <ul class="done">
+        <li>Oil batch search with date-range and status filters</li>
+        <li>Consolidated batches with members, lab reference and notes, and full editing</li>
+        <li>Oil bins, streams, shift segments, FFA tests and raw-ingredient links</li>
+        <li>Oil batch header editing; raw-ingredient suppliers visible from Find a Batch</li>
+        <li>Oil export register channel and seed data</li>
+      </ul>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Sales &amp; Production Report <span class="sub">added scope</span></h3><span class="est">10 of 17 delivered</span></div>
+      <ul class="done">
+        <li><strong>Report engine foundations</strong> — 23 registered sections, a 50-entry metric registry, weekly and monthly templates, period helpers</li>
+        <li><strong>Report instances with targets</strong> — draft lifecycle, immutability once issued, content hashing for tamper-evidence, and publish and supersede functions on the database side</li>
+        <li>Permissions and grants, including Sales Exec and Palladium Manager</li>
+        <li><strong>Report list and report editor</strong> — per-section enable/disable, commentary, metric overrides, refresh figures, and template sync for sections registered after a draft was created</li>
+        <li><strong>Data page</strong> — five editable datasets (daily production, kernel sales, oil and protein sales, oil export register, nut-in-shell intake) with autosave, drift detection against the live system, and financial-year defaults</li>
+        <li>Resolvers that read only the data page, so every report figure has one traceable source</li>
+        <li>Kernel Stock Report section — per-style tally plus the stock-on-hand history chart, with a cartons/kg switch</li>
+        <li>Three tracking tables — nut-in-shell procurement, sound kernel recovery and kernel sales — each financial year against the prior year</li>
+        <li>Kernel sales by style, with item-code mapping held as correctable data rather than in code</li>
+        <li><strong>PDF export</strong> with a draft watermark, using a lazily loaded renderer</li>
+      </ul>
+    </div>
+
+    <div class="work shipped">
+      <div class="work-head"><h3>Platform and Phase 1 carry-over fixes</h3><span class="est">8 of 8 delivered</span></div>
+      <ul class="done">
+        <li>Application tree consolidated — one tree, duplicate and dead files removed</li>
+        <li>Automated build gate: hermetic test suite, UI standard verifier, migration prefix and registry checks — a new violation blocks a merge</li>
+        <li>Agent Fleet delivery pipeline with plan submission rules and a pre-flight gate</li>
+        <li>CRM contact saving fixed; contact records now persist every live field</li>
+        <li>Batch editing from Find a Batch, for kernel and oil</li>
+        <li>One grower dropdown instead of a dropdown plus a free-text twin</li>
+        <li>Stock-on-hand history now records who changed stock and when</li>
+        <li>Cracking-kg helpers, so one definition of cracked weight feeds every screen</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="scope">
+    <h2><span class="num">03</span>Scope of the remainder</h2>
+    <p>Ten workstreams. Workstream 10 is the addition; the rest are the original epics, re-scoped to
+      what is genuinely left.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th class="num">#</th><th>Workstream</th><th class="num">Days</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td class="key">Production cutover</td><td class="num">3</td><td>41 commits, 20 migrations, <code>pg_cron</code>, edge functions and secrets</td></tr>
+          <tr><td class="num">1</td><td class="key">Historical data</td><td class="num">7–8</td><td>Oil import path; Pete's batch-level 24 months; data audit sign-off</td></tr>
+          <tr><td class="num">2</td><td class="key">Advanced permissions</td><td class="num">17</td><td>Server-side enforcement plus 7 ungated modules — largest single item</td></tr>
+          <tr><td class="num">3</td><td class="key">Messaging and chat</td><td class="num">4–5</td><td>Polish, UAT and one security fix</td></tr>
+          <tr><td class="num">4</td><td class="key">Stock red-flag alerts</td><td class="num">3–4</td><td>Grid badges, live schedule, remaining thresholds, alert triage</td></tr>
+          <tr><td class="num">5</td><td class="key">Daily reporting</td><td class="num">4</td><td>Deploy, schedule, recipients; WhatsApp channel now unblocked</td></tr>
+          <tr><td class="num">6</td><td class="key">Dashboard completion</td><td class="num">6–7</td><td>Targets and deltas for remaining KPIs, kernel consolidated widget</td></tr>
+          <tr><td class="num">7</td><td class="key">Shell waste</td><td class="num">7</td><td>Dispatch workflow, movement history, reconcile duplicate inputs</td></tr>
+          <tr><td class="num">8</td><td class="key">Grower intake and procurement</td><td class="num">4–5</td><td>Surface mass-balance and variance calculations that already exist</td></tr>
+          <tr><td class="num">9</td><td class="key">Oil module</td><td class="num">6–7</td><td>Lab document upload, release workflow, role grants</td></tr>
+          <tr><td class="num">10</td><td class="key">Sales &amp; Production Report<span class="sub">added scope</span></td><td class="num">19</td><td>Nine report sections still have no data source; publish workflow; oil dataset</td></tr>
+          <tr><td class="num">—</td><td class="key">Cross-cutting</td><td class="num">11</td><td>User guide (about 6), UAT, training</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <p><strong>Total remaining: about 90 developer-days.</strong> At the documented capacity of one
+        full-stack developer at five days a week, that is roughly 18 working weeks. The schedule below
+        compresses it to 17 by running business-gated items alongside build work.</p>
+      <p><strong>Out of scope for Phase 2</strong>, as candidates for Phase 3: purchase-order and
+        grower-contract tracking, full Palladium integration (IBTs, GRVs, stock movements), silo
+        automation, pricing and grower-statistics automation, GMP forms, and predictive forecasting.</p>
+    </div>
+  </section>
+
+  <section id="schedule">
+    <h2><span class="num">04</span>Schedule</h2>
+    <p>One full-stack developer, five days a week, from 18 August 2026. Business inputs are assumed to
+      land on the dates in section 7; each slip moves its dependent milestone.</p>
+    <p><strong>There is deliberately no fixed sign-off date.</strong> The sprint dates below are
+      planning dates that sequence the work and give the near-term milestones something to hold to,
+      not a commitment to finish on a particular day. Several estimates still carry open decisions —
+      permissions most of all — and a close date quoted before those are answered would be a guess
+      presented as a promise.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th class="num">Sprint</th><th>Dates</th><th>Focus</th><th>Exit</th></tr></thead>
+        <tbody>
+          <tr><td class="num key">S0</td><td>18–21 Aug</td><td>Land the in-flight report work: today's PDF-export commits, publish and supersede workflow, automated render checks</td><td>A report can be issued, not just drafted</td></tr>
+          <tr><td class="num key">S1</td><td>24 Aug – 4 Sep</td><td>Report completion: the nine sections that still read "Not available yet", the oil-production dataset, Pete's review of July and August</td><td><strong>Pete signs off the monthly report</strong></td></tr>
+          <tr><td class="num key">S2</td><td>7–18 Sep</td><td>Go-live: promote dev → demo → prod, apply 20 migrations, install the scheduler, deploy and schedule both digests, alert schedule and grid badges, thresholds and targets workshop</td><td><strong>Leadership go-live in production</strong></td></tr>
+          <tr><td class="num key">S3</td><td>21 Sep – 2 Oct</td><td>Kernel upstream: procurement workspace, shell waste dispatch, movement history, reconcile the two shell inputs</td><td>Procurement workspace and shell dispatch usable</td></tr>
+          <tr><td class="num key">S4</td><td>5–16 Oct</td><td>Oil module and historical data: lab upload, release workflow, oil import path, Pete's 24-month load, data audit</td><td><strong>Full operational scope live</strong></td></tr>
+          <tr><td class="num key">S5</td><td>19 Oct – 13 Nov<span class="sub">four weeks</span></td><td>Permissions: module audit, role matrix workshop, enforcement decision, roll out to the seven ungated modules, server-side enforcement, role-by-role UAT</td><td><strong>A denied button cannot be bypassed</strong></td></tr>
+          <tr><td class="num key">S6</td><td>16–27 Nov</td><td>Dashboard completion, messaging polish, security hardening</td><td>Dashboard KPI set complete</td></tr>
+          <tr><td class="num key">S7</td><td>From 30 Nov</td><td>Close-out: user guide, training, full UAT against the success criteria, final cutover</td><td><strong>Phase 2 sign-off — no fixed date</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Milestone dates</h3>
+    <ul class="milestones">
+      <li><span class="when">Fri 4 Sep 2026</span><span class="what">Monthly Sales &amp; Production report signed off by Pete</span></li>
+      <li><span class="when">Fri 18 Sep 2026</span><span class="what">Leadership go-live — dashboard, daily digest and stock alerts running in production</span></li>
+      <li><span class="when">Fri 16 Oct 2026</span><span class="what">Full operational scope in production, including two years of history</span></li>
+      <li><span class="when">Fri 13 Nov 2026</span><span class="what">Permissions enforced end to end</span></li>
+      <li><span class="when">Not fixed</span><span class="what">Phase 2 sign-off — when the remaining
+        work and UAT are complete. On current capacity close-out starts around the end of November;
+        we will set a date once permissions is scoped against the confirmed role matrix.</span></li>
+    </ul>
+  </section>
+
+  <section id="outstanding">
+    <h2><span class="num">05</span>What is outstanding</h2>
+    <p>Every item below was verified against the code, the migrations or the production database on
+      18 August.</p>
+
+    <div class="work">
+      <div class="work-head"><h3>Production cutover — blocks everything else</h3><span class="est">7 items left · 3 days</span></div>
+      <p>The build is three weeks ahead of anything Macavation can see. Nothing else in this plan
+        reaches a user until this lands.</p>
+      <ul class="todo">
+        <li>Push the three local commits and merge to <code>origin/dev</code></li>
+        <li><strong>Promote dev → demo</strong> (41 commits) and validate there.
+          <p>Demo shares the dev database, so it proves the code, never the production schema — the schema is only ever proved on production itself.</p></li>
+        <li><strong>Promote demo → prod</strong></li>
+        <li><strong>Apply the 20 migrations one file at a time.</strong>
+          <p>They are written idempotently, but the bulk apply path re-stamps its own version and can replay a file, so each is applied and verified individually.</p></li>
+        <li><strong>Install the scheduler.</strong>
+          <p>Without <code>pg_cron</code> nothing is scheduled at all — the digest and the stock-alert evaluation are both cron-driven.</p></li>
+        <li>Deploy five edge functions and configure four production secrets</li>
+        <li><strong>Re-point Control Room's <code>macavation-9349</code> channel</strong> from dev to production.
+          <p>Until that changes, inbound WhatsApp lands in dev and production's inbox stays empty.</p></li>
+      </ul>
+      <p class="note"><b>Done when</b> — a report opens on production, the digest sends on schedule
+        without intervention, and an inbound WhatsApp message reaches the production inbox.</p>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Sales &amp; Production Report</h3><span class="est">7 items left · 19 days</span></div>
+      <p>The engine works and the July report reconciles to Pete's sheet. What is left is the half of
+        his workbook that has no data source behind it, plus the lifecycle that turns a draft into an
+        issued document.</p>
+      <ul class="todo">
+        <li><strong>Publish and supersede — 1.5 d.</strong>
+          <p>The database functions exist and are granted to every role; nothing in the portal calls
+            them. Four consequences today: every PDF carries a DRAFT watermark, the content hash that
+            makes a report tamper-evident is never computed, the immutability trigger never engages,
+            and there is no way to correct a report once it has gone out. Needs two buttons, enabling
+            driven by the report's own status, a confirmation stating plainly that publishing freezes
+            the figures and cannot be undone, and a supersede flow that collects a reason and lands
+            the user on the resulting new draft. <em>Plan written, ready to build.</em></p></li>
+        <li><strong>Automated render checks — 1 d.</strong>
+          <p>Four line types and the whole tracking-table renderer have no test at all, and the next
+            planned change refactors exactly that code. Covers column headers per line type; totals
+            that sum quantities and values but never a unit price or an exchange rate; a null variance
+            rendering blank rather than 0%, which would falsely claim two years were equal; an
+            unrecognised line type degrading instead of throwing; and the draft watermark appearing
+            only on drafts. <em>Plan written, ready to build.</em></p></li>
+        <li><strong>Nine sections still read "Not available yet" — about 8 d.</strong> Grouped by what
+          each one needs:</li>
+      </ul>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Section</th><th>What would feed it</th><th class="num">Effort</th></tr></thead>
+          <tbody>
+            <tr><td class="key">Kernel Stock on Hand</td><td>The per-style tally already written for the Kernel Stock Report — promote it to a shared source</td><td class="num">Small</td></tr>
+            <tr><td class="key">Oil &amp; Protein Stock on Hand</td><td>The oil stock lots that already back the stock screen</td><td class="num">Small</td></tr>
+            <tr><td class="key">Raw Material Stock on Hand</td><td>Oil feedstock lots; the weeks-of-cover calculation already exists</td><td class="num">Small</td></tr>
+            <tr><td class="key">Nut-in-Shell Stock on Hand</td><td><strong>Needs a definition first.</strong> Uncracked NIS is intake minus cracked, and no such pool is tracked as a stock level today</td><td class="num">Medium</td></tr>
+            <tr><td class="key">Upcoming Sales</td><td>Committed kernel and oil dispatch orders, by customer and style</td><td class="num">Medium</td></tr>
+            <tr><td class="key">NIS Procurement Pipeline</td><td>The intake and procurement-forecast functions, both of which exist</td><td class="num">Small</td></tr>
+            <tr><td class="key">Forward Month Planning</td><td>Combines stock, forecast production, orders and surplus or deficit by style — all three forecast functions exist</td><td class="num">Large</td></tr>
+            <tr><td class="key">Kernel, Raw Material and Oil Stock Reports</td><td><strong>Blocked</strong> — see below</td><td class="num">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout hard">
+        <strong>The three Stock Report sections are blocked on a business input, not on development.</strong>
+        Each is specified as <em>stock, cost price and book value</em>. There is no cost price, unit
+        cost or book value anywhere in the system — not in kernel stock, not in oil stock lots,
+        nowhere. They cannot be built until Macavation supplies a valuation source, whether that is
+        Palladium or Pete's finance sheet. The Kernel Stock Report as shipped shows the per-style tally
+        and the stock-on-hand history chart instead, which is the useful half of it.
+      </div>
+
+      <ul class="todo">
+        <li><strong>Six oil-production metrics render blank — about 3 d.</strong>
+          <p>The Oil Processing table draws with six empty rows: Cosmetic Oil, EV Oil, B-grade,
+            Protein, Filter Fines and Cake produced. No oil production dataset exists on the data page,
+            and inventing a source would be worse than an honest blank. Needs a dataset mirroring daily
+            production, then a resolver pointing the six metrics at it.</p></li>
+        <li><strong>PDF archive — 2 d.</strong>
+          <p>The generated PDF is downloaded, not kept. The storage columns exist on the report and are
+            deliberately empty. An issued report should hold the exact file that was issued.</p></li>
+        <li><strong>Weekly template validation — 2 d.</strong>
+          <p>Only the monthly template has been run against a real sheet, and the weekly one includes
+            the Forward Month grid.</p></li>
+        <li><strong>March FYE 2026 ruling — Pete, no development.</strong>
+          <p>His sheet claims 138,371.50 kg where both source sheets hold four deliveries totalling
+            18,434.50 kg. The figure is within R0.50 of his own May figure, so it reads as a formula
+            error rather than 119,937 kg of unrecorded nut.</p></li>
+      </ul>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Permissions — the biggest remaining block</h3><span class="est">6 items left · 17 days</span></div>
+      <p>The button layer and the API layer disagree, and the API layer is the one that decides.</p>
+      <ul class="todo">
+        <li><strong>Server-side enforcement.</strong>
+          <p>The gate function was written this month and has zero callers. A hidden button does not
+            prevent the operation: six of the eight roles hold a couple of action keys but 186 or more
+            API grants each, so anyone who can reach the underlying operation can run it. Closing this
+            is the whole point of the epic.</p></li>
+        <li><strong>The architecture decision comes first, and it moves the estimate.</strong>
+          <p>Either inside the database functions — fully controllable here, but some functions bundle
+            several actions behind one entry point (edit, approve and finalise a job card all go
+            through the same call) and would need splitting — or in the external Lambda proxy, which
+            is not part of this repository and whose ownership has to be confirmed first.</p></li>
+        <li><strong>Seven modules have no action gating at all.</strong></li>
+      </ul>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Module</th><th>Operations that need gating</th></tr></thead>
+          <tbody>
+            <tr><td class="key">CRM</td><td>Creating and editing customer and supplier records</td></tr>
+            <tr><td class="key">Document Management</td><td>Uploading and deleting documents and categories</td></tr>
+            <tr><td class="key">Supplier Intake</td><td>Receiving weights — the figures that feed mass balance</td></tr>
+            <tr><td class="key">Oil Dispatch</td><td>Creating a dispatch, which deducts stock</td></tr>
+            <tr><td class="key">Palladium Integration</td><td>Stock movement export</td></tr>
+            <tr><td class="key">Financial Management</td><td>All of it</td></tr>
+            <tr><td class="key">Sales Forecasting</td><td>Creating and editing forecasts</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ul class="todo">
+        <li>Catalogue the full action set — 27 keys today, 35 to 45 expected</li>
+        <li>Role matrix workshop, which has to happen before grants can be seeded</li>
+        <li>Role-by-role UAT — log in as each of the eight roles and confirm both layers agree</li>
+      </ul>
+      <p class="note"><b>Done when</b> — every sensitive action has a paired grant and server-side
+        check, and a denied user gets the same answer from the button and from the API.</p>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Daily reporting</h3><span class="est">5 items left · 4 days</span></div>
+      <ul class="todo">
+        <li><strong>Deploy and schedule the email digest.</strong>
+          <p>The content is already broader than the original checklist — kernel stats, oil stats, open
+            alerts, procurement today, runway, extended KPIs and produced-versus-target. It has simply
+            never run on a schedule against a real recipient.</p></li>
+        <li><strong>Populate the recipient list.</strong>
+          <p>Zero subscribers on production today. Paul supplies the list; it goes in through the
+            Scheduled Reports admin screen.</p></li>
+        <li><strong>Activate the WhatsApp digest.</strong>
+          <p>The send path is already live for chat, so this is configuration rather than build —
+            numbers, secrets and a schedule.</p></li>
+        <li><strong>Fix the Scheduled Reports screen</strong>, which shows a "Live" badge next to a
+          "WhatsApp delivery is not live yet" disabled banner. Neither statement matches the code any more</li>
+        <li>End-to-end test against the real list, including at least one WhatsApp recipient</li>
+      </ul>
+      <p class="note"><b>Done when</b> — Paul receives the digest for five consecutive working days
+        without anyone intervening.</p>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Stock alerts</h3><span class="est">5 items left · 3–4 days</span></div>
+      <ul class="todo">
+        <li><strong>Get the evaluation onto a schedule.</strong>
+          <p>Nothing runs it today — alerts refresh only when somebody opens a stock screen, so an
+            overnight stock-out is found by whoever happens to open that screen next.</p></li>
+        <li><strong>Low-stock badge on the grids.</strong>
+          <p>Alerts surface on the dashboard and the notification bell but never on the stock row
+            itself, which is where somebody working the screen would look.</p></li>
+        <li><strong>Seed the remaining thresholds</strong> — kernel styles SP, 1S, 4L, 5, 6, 7/8,
+          Butter High and Low, plus raw nut-in-shell.
+          <p>The mechanism is configurable per material already; only the values are missing, and they
+            come from Josslyn and Mark.</p></li>
+        <li><strong>Triage the 40 open alerts on production.</strong>
+          <p>A digest that opens with 40 stale red flags teaches people to ignore it. This is a
+            business review, not a code change.</p></li>
+        <li><strong>Open decision: what "raw ingredient stock" means.</strong>
+          <p>Either the oil feedstock category that already exists and is already wired, or an
+            aggregate wet nut-in-shell awaiting-processing pool — which does not exist as a countable
+            level today, because intake batches flow one by one rather than sitting in a pool. The
+            second reading is new scope.</p></li>
+      </ul>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Shell waste</h3><span class="est">4 items left · 7 days</span></div>
+      <ul class="todo">
+        <li><strong>Dispatch and sales workflow.</strong>
+          <p>Today it is a status flip plus a free-text reference, with no link to a customer or an
+            invoice. Decide between lightweight (2 d) and integrated with CRM and invoicing the way
+            kernel and oil dispatch are (3 d).</p></li>
+        <li><strong>Movement history view.</strong>
+          <p>The ledger has been written to since the feature shipped and has never been displayed
+            anywhere.</p></li>
+        <li><strong>Reconcile the two shell inputs.</strong>
+          <p>Per-bag weighing at the cracking stage feeds the stock lot; a separate manual "Shell (kg)"
+            field on the kernel job card feeds only that card's own mass balance. Nothing reconciles
+            them, so the two can drift, or the same shell can be counted twice.</p></li>
+        <li><strong>Replace free-text batch linkage with a real key.</strong>
+          <p>A shell lot links to its kernel batch by matching a typed batch number, so a typo silently
+            creates a duplicate lot instead of adding to the existing one.</p></li>
+      </ul>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Grower intake and procurement</h3><span class="est">3 items left · 4–5 days</span></div>
+      <ul class="todo">
+        <li><strong>Build the procurement workspace.</strong>
+          <p>Planned versus actual versus variance, plus a this-week summary card. Both calculations
+            already run in the database and neither has ever been displayed — this is surfacing work,
+            not modelling work.</p></li>
+        <li><strong>Switch "actual received" to the weighbridge figure.</strong>
+          <p>The calculation currently uses the grower-declared weight; the weighbridge-confirmed
+            weight is already captured on the receiving checklist and is the trustworthy one. Do this
+            before building a variance screen on top of it.</p></li>
+        <li>Bulk import screen for historical procurement rows — the script already exists</li>
+      </ul>
+      <div class="callout">
+        <strong>Flagged as out of scope.</strong> No purchase-order or grower-contract concept exists
+        anywhere in the system. If "procurement workspace" is meant to include agreed price per kg, PO
+        numbers, supplier acceptance or invoicing linkage, that is a separate and much larger piece of
+        work.
+      </div>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Oil module</h3><span class="est">5 items left · 6–7 days</span></div>
+      <ul class="todo">
+        <li><strong>Real lab-document upload on a consolidated batch.</strong>
+          <p>Today the lab result is a free-text reference, so the actual certificate is not attached
+            to anything. Reuses the upload helper already used by document management and the kernel QA
+            end-sample modal — a well-precedented task, not new infrastructure.</p></li>
+        <li><strong>Wire up remove-member and delete-consolidated-batch.</strong>
+          <p>Both are built and granted; neither is reachable from any control in the UI.</p></li>
+        <li>Expose the grade field in the create and edit dialogs — it exists on the record and is not shown</li>
+        <li><strong>Grant consolidated-batch management beyond admins.</strong>
+          <p>Only admins can use the feature today, which means the QA and production people who
+            actually consolidate cannot.</p></li>
+        <li>Release workflow polish — status transitions and stock linkage</li>
+      </ul>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Historical data</h3><span class="est">3 items left · 7–8 days</span></div>
+      <ul class="todo">
+        <li><strong>Oil historical import.</strong>
+          <p>Mirror the kernel pattern: import function, CLI helper, portal modal. The only oil history
+            today came from a one-off seed migration off a workbook, and it is patchy — several months
+            are missing entirely.</p></li>
+        <li><strong>Pete's batch-level 24 months.</strong>
+          <p>Staging import, duplicate check, spot-check, then the production import. Worth noting what
+            is already covered: nut-in-shell procurement and kernel sales history are loaded and
+            reconciled through the data page. What is still missing is batch-level kernel production.</p></li>
+        <li>Live data audit, then sign-off from Pete, Josslyn and Paul</li>
+      </ul>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Dashboard</h3><span class="est">4 items left · 6–7 days</span></div>
+      <ul class="todo">
+        <li><strong>Targets for the four KPIs that have none</strong> — sound kernel recovery, oil
+          yield, months of cover and stock accuracy.
+          <p>The targets admin and the comparison widget both exist and work; these four have no target
+            rows behind them, so each shows a number with nothing to judge it against.</p></li>
+        <li><strong>Period-over-period deltas across the KPI cards.</strong>
+          <p>Production has a "vs last month" delta; the rest do not, so a card shows a value with no
+            direction.</p></li>
+        <li>Kernel-side consolidated-batch summary widget — oil has one, kernel does not</li>
+        <li><strong>Two definition decisions that could cause rework.</strong>
+          <p>"Raw material runway" currently measures finished kernel stock against open customer
+            demand, not raw-material depletion netted against production and procurement. "Stock
+            accuracy" currently measures the share of monthly stock that was manually adjusted — an
+            inventory-correction rate, not month-on-month change. Both are useful as they stand, but
+            neither is what the original requirement literally describes.</p></li>
+      </ul>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Messaging</h3><span class="est">3 items left · 4–5 days</span></div>
+      <ul class="todo">
+        <li><strong>Operational UAT.</strong>
+          <p>Zero conversations on production — nobody has used 1:1 chat or the WhatsApp shared inbox
+            in anger yet, so nothing about either is proven in real use.</p></li>
+        <li><strong>Security fix.</strong>
+          <p>The WhatsApp operations take the user id as a caller-supplied parameter, and the browser
+            calls them as an anonymous role, so the public key is enough to act as another user.
+            Identity must be derived server-side from the verified phone number instead.</p></li>
+        <li>User guide and training for both</li>
+      </ul>
+    </div>
+
+    <div class="work">
+      <div class="work-head"><h3>Cross-cutting</h3><span class="est">4 items left · 11 days</span></div>
+      <ul class="todo">
+        <li>User guide updates across every new screen, then run the help-link script — about 6 days</li>
+        <li>Full UAT against the Phase 2 success criteria — 2 days</li>
+        <li>Training session — 1 day</li>
+        <li>Final production cutover and sign-off — 2 days</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="risks">
+    <h2><span class="num">06</span>Risks</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Risk</th><th>Impact</th><th>Handling</th></tr></thead>
+        <tbody>
+          <tr><td class="key">Everything built since 13 August is production-untested — 41 commits and 20 migrations land in one go</td><td>A bad cutover lands on live operations</td><td>Promote through demo first and validate there; apply migrations one file at a time</td></tr>
+          <tr><td class="key">Public-key exposure on the WhatsApp operations</td><td>The browser calls these as an anonymous role and they trust a caller-supplied user id, so anyone holding the public key can act as another user. A real hole, already documented in the code</td><td>Derive the user identity server-side before those operations trust it</td></tr>
+          <tr><td class="key">The permissions estimate is conditional on the enforcement-location decision</td><td>Could move S5 materially</td><td>Decide before S5 opens, by 9 October</td></tr>
+          <tr><td class="key">Pete's batch-level 24-month data has not arrived</td><td>Delays the historical-data close, not the build</td><td>Already sequenced last, in S4; everything else proceeds regardless</td></tr>
+          <tr><td class="key">Report scope was added mid-phase, about 19 days</td><td>Adds roughly four weeks to the close</td><td>Flagged for an explicit decision below</td></tr>
+          <tr><td class="key">40 unresolved production alerts</td><td>If people already ignore alerts, go-live changes nothing</td><td>Triage before the digest goes live, not after</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="inputs">
+    <h2><span class="num">07</span>What we need from Macavation</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Input</th><th>Owner</th><th>Needed by</th><th>Blocks</th></tr></thead>
+        <tbody>
+          <tr><td class="key">Ruling on the March FYE 2026 procurement figure</td><td>Pete</td><td>Fri 28 Aug</td><td>Report sign-off</td></tr>
+          <tr><td class="key">Stock valuation source — cost price and book value per style</td><td>Pete / finance</td><td>Fri 28 Aug</td><td>The three Stock Report sections, which cannot be built without it</td></tr>
+          <tr><td class="key">Sign-off on the July and August monthly reports</td><td>Pete</td><td>Fri 4 Sep</td><td>S1 exit</td></tr>
+          <tr><td class="key">Daily digest recipients — email addresses and WhatsApp numbers</td><td>Paul</td><td>Fri 11 Sep</td><td>Go-live</td></tr>
+          <tr><td class="key">Alert threshold values per material</td><td>Josslyn, Mark</td><td>Fri 11 Sep</td><td>Go-live</td></tr>
+          <tr><td class="key">Monthly dashboard targets per product line</td><td>Paul</td><td>Fri 11 Sep</td><td>Go-live</td></tr>
+          <tr><td class="key">What "raw ingredient stock" means for alerts</td><td>Business</td><td>Fri 11 Sep</td><td>S2</td></tr>
+          <tr><td class="key">Definitions of "raw material runway" and "stock accuracy"</td><td>Paul</td><td>Fri 2 Oct</td><td>S6</td></tr>
+          <tr><td class="key">Pete's batch-level 24-month kernel dataset</td><td>Pete</td><td>Fri 2 Oct</td><td>S4</td></tr>
+          <tr><td class="key">Permission role matrix — who may create, edit, approve and adjust stock, per role</td><td>Business, CustomApp</td><td>Fri 9 Oct</td><td>S5, the largest workstream</td></tr>
+          <tr><td class="key">Ownership of the Lambda permission proxy — is it in scope?</td><td>CustomApp, Macavation</td><td>Fri 9 Oct</td><td>The S5 estimate</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="decisions">
+    <h2><span class="num">08</span>Decisions requested</h2>
+    <div class="panel alarm">
+      <ol class="asks">
+        <li><strong>Confirm the Sales &amp; Production Report sits inside Phase 2.</strong> It is about
+          19 days of work that was not in the original proposal. Keeping it in adds roughly four weeks
+          to the close; moving it to its own phase takes those four weeks back.</li>
+        <li><strong>Approve the 18 September go-live.</strong> It puts three weeks of
+          production-untested work in front of users at once. The alternative is a slower staged
+          rollout, which pushes every later milestone.</li>
+        <li><strong>Choose where permissions are enforced</strong> — in the database functions or in
+          the Lambda proxy — before 9 October. It is the one open decision that can move the schedule
+          by weeks.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="criteria">
+    <h2><span class="num">09</span>Success criteria</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Criterion</th><th>How it is verified</th></tr></thead>
+        <tbody>
+          <tr><td class="key">Leadership uses the dashboard and daily report as their primary operational check</td><td>Paul confirms daily use for two consecutive weeks after go-live</td></tr>
+          <tr><td class="key">Red flags prevent stock-outs</td><td>An alert fires below threshold, is received, and clears on recovery</td></tr>
+          <tr><td class="key">Oil consolidated batches in live use with lab results attached</td><td>At least one consolidation in production with a real lab document</td></tr>
+          <tr><td class="key">Two years of history visible in trend charts</td><td>A 24-month range in the production trends chart, signed off by Pete</td></tr>
+          <tr><td class="key">Colleagues can message each other 1:1</td><td>At least one real conversation used operationally</td></tr>
+          <tr><td class="key">The monthly report is produced from the portal</td><td>Pete issues a published, non-draft report for a full month</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Supersedes <code>docs/phase2/PHASE2_IMPLEMENTATION_PLAN.md</code> for scope, status and
+    scheduling. Estimates are engineering judgement against one developer at five days a week, not a
+    quote. Source of record: <code>docs/phase2/PHASE2_SCOPE_AND_SCHEDULE.md</code>.
+  </footer>
+
+</main>
+</body>
+</html>

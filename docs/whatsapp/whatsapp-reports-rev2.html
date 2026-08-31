@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Macavation — Reports on WhatsApp (v2)</title>
+<style>
+/* ------------------------------------------------------------------
+   Built for print (A4). Light palette only — a PDF has no dark mode.
+   Layout is ordinary block flow. Flex is used only for the phone-plus-
+   explanation rows, and every one of them is allowed to wrap so a
+   paragraph can never be squeezed into a column of single words.
+   ------------------------------------------------------------------ */
+
+:root {
+  --ink:        #241f1a;
+  --ink-soft:   #4a423a;
+  --muted:      #7a6f63;
+  --brand:      #2e4636;
+  --accent:     #5c7d4c;
+  --accent-soft:#eaf0e4;
+  --nut:        #9c7a4f;
+  --nut-soft:   #f6efe4;
+  --ground:     #faf7f1;
+  --card:       #ffffff;
+  --border:     #e3dbcd;
+  --border-strong: #cdc0a9;
+  --warn:       #8a6520;
+  --warn-bg:    #fbf3e2;
+  --risk:       #9b3a30;
+  --risk-bg:    #fbecea;
+  --ok:         #1f7a4d;
+  --ok-bg:      #e8f2eb;
+
+  /* WhatsApp's own colours, so the mockups read as the real thing */
+  --wa-header:  #008069;
+  --wa-chat-bg: #efeae2;
+  --wa-in:      #ffffff;
+  --wa-out:     #d9fdd3;
+  --wa-meta:    #667781;
+  --wa-tick:    #53bdeb;
+  --wa-link:    #027eb5;
+  --wa-btn:     #00a884;
+
+  --display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+}
+
+@page { size: A4; margin: 15mm 14mm; }
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  font-family: var(--body);
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--card);
+}
+
+.page { break-after: page; page-break-after: always; }
+.page:last-of-type { break-after: auto; page-break-after: auto; }
+
+h1, h2, h3, h4 { font-family: var(--display); font-weight: 600; color: var(--brand); margin: 0; }
+h1 { font-size: 27pt; line-height: 1.15; letter-spacing: -0.01em; }
+h2 { font-size: 17pt; line-height: 1.2; margin: 0 0 3mm; }
+h3 { font-size: 12.5pt; margin: 6mm 0 2mm; color: var(--ink); }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; color: var(--ink); font-family: var(--body); font-weight: 650; }
+p  { margin: 0 0 2.6mm; }
+ul, ol { margin: 0 0 2.6mm; padding-left: 5.5mm; }
+li { margin-bottom: 1.2mm; }
+strong { font-weight: 650; }
+
+.eyebrow {
+  font-family: var(--body);
+  font-size: 8pt;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nut);
+  margin: 0 0 2mm;
+}
+
+.rule { height: 2px; background: var(--brand); margin: 3mm 0 5mm; border: 0; }
+.rule-soft { height: 1px; background: var(--border); margin: 5mm 0; border: 0; }
+
+/* ---------- cover ---------- */
+
+.cover { padding-top: 20mm; }
+.cover h1 { max-width: 150mm; }
+.cover .sub {
+  font-family: var(--display);
+  font-size: 13.5pt;
+  color: var(--ink-soft);
+  margin: 4mm 0 0;
+  max-width: 152mm;
+}
+.cover-meta {
+  margin-top: 12mm;
+  border-top: 1px solid var(--border);
+  padding-top: 4mm;
+  font-size: 9.5pt;
+  color: var(--muted);
+}
+.cover-meta div { margin-bottom: 1mm; }
+.cover-meta b { color: var(--ink-soft); font-weight: 650; }
+
+/* ---------- callouts ---------- */
+
+.lead {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  padding: 4mm 5mm;
+  margin: 6mm 0;
+  font-size: 11pt;
+  line-height: 1.5;
+}
+.lead p:last-child { margin-bottom: 0; }
+
+.note, .warn, .good {
+  padding: 3.5mm 4.5mm;
+  margin: 4mm 0;
+  border-radius: 2mm;
+  font-size: 10pt;
+  border: 1px solid var(--border);
+  background: var(--ground);
+}
+.warn  { background: var(--warn-bg); border-color: #e8d5a8; }
+.good  { background: var(--ok-bg);   border-color: #bfdcca; }
+.note p:last-child, .warn p:last-child, .good p:last-child { margin-bottom: 0; }
+.note-label {
+  display: block;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1.5mm;
+}
+.warn .note-label { color: var(--warn); }
+.good .note-label { color: var(--ok); }
+.note .note-label { color: var(--muted); }
+
+/* ---------- tables ---------- */
+
+table { width: 100%; border-collapse: collapse; margin: 4mm 0; font-size: 9.5pt; }
+th, td { text-align: left; padding: 2.2mm 3mm; border-bottom: 1px solid var(--border); vertical-align: top; }
+thead th {
+  background: var(--brand);
+  color: #fff;
+  font-size: 8pt;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 0;
+}
+tbody tr:nth-child(even) { background: var(--ground); }
+.tick { color: var(--ok); font-weight: 700; }
+.cross { color: var(--border-strong); }
+.center { text-align: center; }
+code {
+  font-family: var(--mono);
+  font-size: 9pt;
+  background: var(--nut-soft);
+  padding: 0.4mm 1.2mm;
+  border-radius: 1mm;
+  color: var(--brand);
+}
+
+/* ---------- phone + explanation rows ---------- */
+
+.showcase {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8mm;
+  align-items: flex-start;
+  margin: 5mm 0;
+}
+.showcase .phone-col { flex: 0 0 79mm; }
+.showcase .say { flex: 1 1 80mm; min-width: 70mm; }
+.showcase .say > :first-child { margin-top: 0; }
+
+/* ---------- the phone ---------- */
+
+.phone {
+  width: 79mm;
+  border: 1.2mm solid #2b2b2b;
+  border-radius: 5mm;
+  overflow: hidden;
+  background: var(--wa-chat-bg);
+  box-shadow: 0 1mm 3mm rgba(0,0,0,0.10);
+}
+.wa-bar {
+  background: var(--wa-header);
+  color: #fff;
+  padding: 2.4mm 3mm;
+  display: flex;
+  align-items: center;
+  gap: 2.2mm;
+}
+.wa-avatar {
+  width: 6.5mm; height: 6.5mm;
+  border-radius: 50%;
+  background: #ffffff2e;
+  border: 0.3mm solid #ffffff55;
+  flex: 0 0 auto;
+  text-align: center;
+  font-size: 7pt;
+  line-height: 6mm;
+  font-weight: 700;
+  color: #fff;
+}
+.wa-who { font-size: 8.5pt; font-weight: 650; line-height: 1.2; }
+.wa-sub { font-size: 6.5pt; opacity: 0.8; line-height: 1.2; }
+.wa-body { padding: 3mm 2.5mm 4mm; min-height: 20mm; }
+.wa-day {
+  text-align: center;
+  font-size: 6.5pt;
+  color: var(--wa-meta);
+  background: #ffffffcc;
+  border-radius: 1.2mm;
+  padding: 0.8mm 2mm;
+  width: fit-content;
+  margin: 0 auto 3mm;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.bubble {
+  border-radius: 2mm;
+  padding: 2mm 2.4mm 1.4mm;
+  margin-bottom: 2.5mm;
+  font-size: 8.5pt;
+  line-height: 1.42;
+  width: fit-content;
+  max-width: 92%;
+  box-shadow: 0 0.3mm 0.6mm rgba(0,0,0,0.10);
+}
+.bubble.in  { background: var(--wa-in);  border-top-left-radius: 0; margin-right: auto; }
+.bubble.out { background: var(--wa-out); border-top-right-radius: 0; margin-left: auto; }
+.bubble .tmpl-header { font-weight: 700; margin-bottom: 1.8mm; }
+.bubble .tmpl-body { white-space: pre-line; }
+.bubble .link { color: var(--wa-link); text-decoration: underline; word-break: break-all; }
+.bubble .stamp {
+  display: block;
+  text-align: right;
+  font-size: 6.2pt;
+  color: var(--wa-meta);
+  margin-top: 0.8mm;
+}
+.bubble.out .stamp::after { content: " ✓✓"; color: var(--wa-tick); font-size: 7pt; }
+.figs { font-variant-numeric: tabular-nums; }
+
+.caption {
+  font-size: 8pt;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 2mm;
+  font-style: italic;
+}
+
+/* ---------- WhatsApp interactive elements (v2) ---------- */
+
+.wa-btns { max-width: 92%; margin: -1.5mm 0 2.5mm; }
+.wa-btn {
+  background: #fff;
+  border-radius: 2mm;
+  margin-top: 1mm;
+  padding: 1.6mm 2mm;
+  text-align: center;
+  font-size: 8.2pt;
+  font-weight: 600;
+  color: var(--wa-btn);
+  box-shadow: 0 0.3mm 0.6mm rgba(0,0,0,0.10);
+}
+.wa-btn.url::before  { content: "\2197  "; font-weight: 400; }
+.wa-btn.list::before { content: "\2630  "; font-weight: 400; }
+
+.wa-sheet {
+  background: #fff;
+  border-radius: 3mm 3mm 0 0;
+  margin: 2mm 0 0;
+  overflow: hidden;
+}
+.wa-sheet-head {
+  padding: 2.4mm 3mm 1.6mm;
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: 0.3mm solid #e9edef;
+}
+.wa-sheet-sec {
+  padding: 1.8mm 3mm 0.8mm;
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--wa-btn);
+}
+.wa-row {
+  padding: 1.9mm 3mm;
+  font-size: 8.2pt;
+  color: var(--ink);
+  border-bottom: 0.3mm solid #f0f2f3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.wa-row:last-child { border-bottom: 0; }
+.wa-row .radio {
+  width: 3.4mm; height: 3.4mm;
+  border: 0.4mm solid #c4ccd1;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+/* two phones beside each other, for a this-or-that comparison */
+.pair { display: flex; flex-wrap: wrap; gap: 7mm; margin: 5mm 0; }
+.pair > div { flex: 0 0 79mm; }
+.pair h4 { margin: 0 0 2mm; }
+
+/* the version-1-versus-version-2 strip */
+.changed { display: flex; flex-wrap: wrap; gap: 4mm; margin: 5mm 0; }
+.changed > div {
+  flex: 1 1 52mm;
+  min-width: 48mm;
+  border: 1px solid var(--border);
+  border-radius: 2mm;
+  padding: 3mm 3.5mm;
+  background: var(--ground);
+}
+.changed h4 { margin: 0 0 1.5mm; color: var(--brand); }
+.changed p { margin: 0; font-size: 9.5pt; }
+.changed .was { color: var(--muted); text-decoration: line-through; display: block; font-size: 9pt; }
+
+/* ---------- portal screen mockup ---------- */
+
+.screen {
+  border: 1px solid var(--border-strong);
+  border-radius: 2mm;
+  overflow: hidden;
+  margin: 4mm 0;
+}
+.screen-bar {
+  background: var(--brand);
+  color: #fff;
+  padding: 2.4mm 3.5mm;
+  font-size: 9pt;
+  font-weight: 650;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.screen-bar .btn {
+  background: #ffffff26;
+  border: 0.3mm solid #ffffff55;
+  border-radius: 1.2mm;
+  padding: 0.8mm 2.4mm;
+  font-size: 7.5pt;
+  font-weight: 600;
+}
+.screen table { margin: 0; font-size: 9pt; }
+.screen thead th { background: var(--ground); color: var(--ink-soft); border-bottom: 1px solid var(--border-strong); }
+.screen td, .screen th { padding: 2mm 3.5mm; }
+
+/* ---------- step list ---------- */
+
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 4mm 0; }
+.steps li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 3.2mm; }
+.steps li::before {
+  content: counter(s);
+  position: absolute;
+  left: 0; top: 0.2mm;
+  width: 6mm; height: 6mm;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-size: 8.5pt;
+  font-weight: 700;
+  text-align: center;
+  line-height: 6mm;
+  font-family: var(--body);
+}
+.steps b { display: block; }
+.steps .who { font-size: 9pt; color: var(--muted); }
+
+.footer-note {
+  margin-top: 8mm;
+  padding-top: 3mm;
+  border-top: 1px solid var(--border);
+  font-size: 8.5pt;
+  color: var(--muted);
+}
+</style>
+</head>
+<body>
+
+<!-- ============================ COVER ============================ -->
+<section class="page cover">
+  <p class="eyebrow">Macavation · Sales &amp; Production Reporting · Version 2</p>
+  <h1>Reports on WhatsApp</h1>
+  <p class="sub">Tap a button, get an answer. What the daily, weekly and monthly reports will look
+  like — and what people can do with them without typing a word.</p>
+
+  <div class="lead">
+    <p>Version 1 of this document had people typing words like <em>WEEK</em> to get a figure. That was
+    the wrong design.</p>
+    <p>We already have a WhatsApp product — <strong>Howdie</strong> — that solved these problems
+    properly, with tested code we can reuse. This version uses that approach: <strong>tappable buttons
+    and menus</strong>, not typed commands. It also fixes a real problem that version 1 missed about
+    the weekly and monthly reports.</p>
+  </div>
+
+  <div class="cover-meta">
+    <div><b>Prepared for</b> &nbsp; Macavation</div>
+    <div><b>Prepared by</b> &nbsp; Customapp</div>
+    <div><b>Date</b> &nbsp; 25 August 2026</div>
+    <div><b>Status</b> &nbsp; For review — replaces version 1</div>
+  </div>
+</section>
+
+<!-- ============================ WHAT CHANGED ============================ -->
+<section class="page">
+  <p class="eyebrow">Section 1</p>
+  <h2>What changed, and why</h2>
+  <hr class="rule" />
+
+  <p>I went and read how Howdie handles WhatsApp. Three things came out of it.</p>
+
+  <h3>1. The WhatsApp rule I described is real — but there is a far better way to live with it</h3>
+  <p>WhatsApp genuinely will not let a business send an unprompted message in free wording. Howdie's
+  own notes say exactly the same thing. That part of version 1 was correct and does not change.</p>
+  <p>What version 1 got wrong was the consequence. I assumed a fixed-format message was a dead end —
+  that people would have to type words back to get anything more. It is not.
+  <strong>A fixed-format message can carry buttons.</strong> The moment somebody taps one, the
+  conversation is open and we can reply with anything we like, in whatever wording suits.</p>
+
+  <div class="changed">
+    <div>
+      <h4>Version 1</h4>
+      <p><span class="was">Type WEEK to get week-to-date figures.</span>
+      Remember the right word, spell it correctly, and hope.</p>
+    </div>
+    <div>
+      <h4>Version 2</h4>
+      <p>Tap <strong>Week to date</strong>. A button on the message itself. Nothing to remember,
+      nothing to spell, nothing to teach anybody.</p>
+    </div>
+  </div>
+
+  <h3>2. Version 1 missed a problem with the weekly and monthly reports</h3>
+  <p>I applied the WhatsApp rule to the daily report and stopped there. It applies to the weekly and
+  monthly reports too. Pete's send works today because he sends into conversations that are already
+  live — but a shareholder who has not messaged Macavation in three weeks
+  <strong>would simply not receive the report</strong>, and nobody would find out why.</p>
+  <p>Section 5 shows how that gets handled.</p>
+
+  <h3>3. We are not writing this from scratch</h3>
+  <p>Howdie already has a tested library for sending WhatsApp buttons, menus and fixed-format
+  messages — written against the live messaging system rather than guessed at. Macavation reuses it
+  as-is. That takes real risk and real time out of the build.</p>
+
+  <div class="good">
+    <span class="note-label">Also already done</span>
+    <p>Macavation's WhatsApp channel is active, and the security key needed to register the
+    fixed-format messages <strong>was already created on 30 July</strong> and has never been used. So
+    there is less setup ahead of us than version 1 assumed.</p>
+  </div>
+</section>
+
+<!-- ============================ DAILY ============================ -->
+<section class="page">
+  <p class="eyebrow">Section 2</p>
+  <h2>The daily production report</h2>
+  <hr class="rule" />
+
+  <div class="showcase">
+    <div class="phone-col">
+      <div class="phone">
+        <div class="wa-bar">
+          <div class="wa-avatar">M</div>
+          <div>
+            <div class="wa-who">Macavation</div>
+            <div class="wa-sub">business account</div>
+          </div>
+        </div>
+        <div class="wa-body">
+          <div class="wa-day">Today</div>
+          <div class="bubble in">
+            <div class="tmpl-header">Macavation daily production</div>
+            <div class="tmpl-body figs">Thu 27 Aug 2026
+
+Cracked: 12 480 kg
+Kernel packed: 4 210 kg
+Wholes: 62.4%
+NIS received: 18 000 kg
+
+Week to date: 48 600 kg of 60 000 kg target</div>
+            <span class="stamp">17:00</span>
+          </div>
+          <div class="wa-btns">
+            <div class="wa-btn">Week to date</div>
+            <div class="wa-btn">Full breakdown</div>
+            <div class="wa-btn list">More options</div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Arrives automatically at 5:00 pm</p>
+    </div>
+
+    <div class="say">
+      <h4>The three buttons are the whole difference</h4>
+      <p>They are part of the message. Nobody has to know a command exists, and nothing depends on
+      spelling. Tapping one sends a reply back to us, which is what lets us answer in full sentences
+      with whatever detail is useful.</p>
+      <p>WhatsApp allows three buttons on a message like this, each label up to twenty characters.
+      <strong>More options</strong> is the third one because it opens a longer menu — that is how we
+      get past the limit of three.</p>
+
+      <h4>What happens at five o'clock</h4>
+      <p>The system pulls the latest figures off the factory system first, then reads them back and
+      sends. The numbers are as fresh as the factory data, not a snapshot from whenever somebody last
+      pressed refresh in the portal.</p>
+
+      <h4>If Pete has corrected a figure</h4>
+      <p>His correction wins. The refresh only updates the raw factory mirror — it never overwrites a
+      number a person deliberately entered.</p>
+
+      <h4>On a day with no production</h4>
+      <p>Nothing is sent. No Sunday message, no public holiday message, no "0 kg".</p>
+
+      <h4>You will not get it twice</h4>
+      <p>The system checks whether today has already gone out before sending again.</p>
+    </div>
+  </div>
+
+  <div class="warn">
+    <span class="note-label">The one thing to decide</span>
+    <p>Four figures plus week to date — <strong>cracked, kernel packed, wholes percentage, NIS
+    received</strong>. And three buttons — <strong>Week to date, Full breakdown, More options</strong>.</p>
+    <p>Both the figures and the button labels have to be registered with WhatsApp before the first
+    message can go out. Changing them later means submitting again and waiting for approval a second
+    time, so this is the moment to add, drop or rename anything.</p>
+  </div>
+</section>
+
+<!-- ============================ TAPPING ============================ -->
+<section class="page">
+  <p class="eyebrow">Section 3</p>
+  <h2>What happens when somebody taps</h2>
+  <hr class="rule" />
+
+  <p>Once a button is tapped the conversation is open, and the system can reply properly — full
+  sentences, any figures, and more buttons to carry on with.</p>
+
+  <div class="showcase">
+    <div class="phone-col">
+      <div class="phone">
+        <div class="wa-bar">
+          <div class="wa-avatar">M</div>
+          <div>
+            <div class="wa-who">Macavation</div>
+            <div class="wa-sub">business account</div>
+          </div>
+        </div>
+        <div class="wa-body">
+          <div class="bubble out">Week to date<span class="stamp">17:04</span></div>
+          <div class="bubble in">
+            <div class="tmpl-body figs">Week to date — Mon 24 to Thu 27 Aug
+
+Cracked: 48 600 kg
+Target: 60 000 kg
+Tracking 81% with 2 days to go
+
+Kernel sales: R 1 240 500
+Oil sales: R 386 200</div>
+            <span class="stamp">17:04</span>
+          </div>
+          <div class="wa-btns">
+            <div class="wa-btn">Month to date</div>
+            <div class="wa-btn">Stock on hand</div>
+            <div class="wa-btn list">More options</div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Each answer carries its own buttons</p>
+    </div>
+
+    <div class="say">
+      <h4>Nothing can be changed from a phone</h4>
+      <p>Every button only reads information. There is no way to enter production figures, edit a
+      report, or send anything to anybody else from a handset. That is a deliberate limit — a phone is
+      too easy to pick up.</p>
+
+      <h4>Only known staff get figures</h4>
+      <p>The system already knows which phone numbers belong to which staff member. Production figures
+      only go to a number it recognises. A shareholder who taps <strong>Full breakdown</strong> gets a
+      polite "not available on this number", not the tonnage.</p>
+
+      <h4>The buttons keep going</h4>
+      <p>Somebody can move from the day, to the week, to stock on hand without ever typing or opening
+      the portal.</p>
+
+      <h4>Typing still works</h4>
+      <p>If somebody types "week" or "figures" anyway, it is understood. The buttons exist so nobody
+      <em>has</em> to — not to stop anyone who prefers typing.</p>
+
+      <h4>Everything is recorded</h4>
+      <p>Who asked, what they asked, and what they were told, including anything refused. Already
+      built.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ MENU ============================ -->
+<section class="page">
+  <p class="eyebrow">Section 4</p>
+  <h2>The full menu</h2>
+  <hr class="rule" />
+
+  <p>Three buttons is not enough for everything, so the third one opens a proper menu — a scrollable
+  list of up to ten choices. This is a standard WhatsApp feature, not something we invented.</p>
+
+  <div class="showcase">
+    <div class="phone-col">
+      <div class="phone">
+        <div class="wa-bar">
+          <div class="wa-avatar">M</div>
+          <div>
+            <div class="wa-who">Macavation</div>
+            <div class="wa-sub">business account</div>
+          </div>
+        </div>
+        <div class="wa-body" style="padding-bottom:0">
+          <div class="bubble in">
+            <div class="tmpl-body">What would you like?</div>
+            <span class="stamp">17:05</span>
+          </div>
+          <div class="wa-sheet">
+            <div class="wa-sheet-head">Macavation menu</div>
+            <div class="wa-sheet-sec">Production</div>
+            <div class="wa-row"><span>Today's production</span><span class="radio"></span></div>
+            <div class="wa-row"><span>Yesterday</span><span class="radio"></span></div>
+            <div class="wa-row"><span>Week to date</span><span class="radio"></span></div>
+            <div class="wa-row"><span>Month to date</span><span class="radio"></span></div>
+            <div class="wa-sheet-sec">Stock and alerts</div>
+            <div class="wa-row"><span>Kernel stock on hand</span><span class="radio"></span></div>
+            <div class="wa-row"><span>Open alerts</span><span class="radio"></span></div>
+            <div class="wa-sheet-sec">Reports</div>
+            <div class="wa-row"><span>Latest report link</span><span class="radio"></span></div>
+            <div class="wa-sheet-sec">These messages</div>
+            <div class="wa-row"><span>Pause for 7 days</span><span class="radio"></span></div>
+            <div class="wa-row"><span>Stop daily messages</span><span class="radio"></span></div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Nine choices, grouped, no typing</p>
+    </div>
+
+    <div class="say">
+      <h4>Stopping is on the menu, not hidden</h4>
+      <p><strong>Stop daily messages</strong> and <strong>Pause for 7 days</strong> sit in the same
+      list as everything else. This matters more than it looks: if somebody cannot easily make the
+      messages stop, they block the number — and then they never receive the monthly report
+      either.</p>
+
+      <h4>Pause is usually the right one</h4>
+      <p>Somebody going on leave taps <strong>Pause for 7 days</strong> and it resumes on its own.
+      Nobody has to remember to put them back.</p>
+
+      <h4>Stopping does not delete them</h4>
+      <p>Their row stays on Pete's list, marked as stopped, so he can see it happened rather than
+      wondering where they went.</p>
+
+      <h4>Anyone can stop, only staff get figures</h4>
+      <p>Stopping and the menu work for everybody on the list. The production figures behind the menu
+      are still staff-only.</p>
+
+      <h4>Menu labels are short by rule</h4>
+      <p>WhatsApp caps each line at 24 characters, which is why they read as
+      <em>Kernel stock on hand</em> rather than anything longer. Ten lines is the hard maximum, so
+      nine leaves one spare.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ WEEKLY / MONTHLY ============================ -->
+<section class="page">
+  <p class="eyebrow">Section 5</p>
+  <h2>The weekly and monthly reports</h2>
+  <hr class="rule" />
+
+  <p>Pete still sends these himself, by hand, after he has checked and edited them. That does not
+  change. What changes is that they will now reach people who have not been chatting to us.</p>
+
+  <p><strong>The problem version 1 missed.</strong> The same WhatsApp rule applies here. Today Pete's
+  send only works for someone who has messaged Macavation in the last day. A shareholder who has not
+  would silently not receive the report. The fix is to send whichever version WhatsApp allows, and the
+  system works that out per person — Pete does nothing differently.</p>
+
+  <div class="pair">
+    <div>
+      <h4>If they have messaged recently</h4>
+      <div class="phone">
+        <div class="wa-bar">
+          <div class="wa-avatar">M</div>
+          <div><div class="wa-who">Macavation</div><div class="wa-sub">business account</div></div>
+        </div>
+        <div class="wa-body">
+          <div class="bubble in">
+            <div class="tmpl-body">Macavation — Week ending 23 Aug 2026 Sales &amp; Production report
+Published 24 Aug 2026
+
+Kernel sales held up despite the wet week. Cracking finished 3% under target after Tuesday's downtime on line 2, but packing recovered by Friday. Oil sales ahead of budget for the third week running.
+
+Full report:
+<span class="link">https://macavation.app/r/wk34-2026</span></div>
+            <span class="stamp">09:14</span>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Pete's full note, exactly as today</p>
+    </div>
+
+    <div>
+      <h4>If they have not</h4>
+      <div class="phone">
+        <div class="wa-bar">
+          <div class="wa-avatar">M</div>
+          <div><div class="wa-who">Macavation</div><div class="wa-sub">business account</div></div>
+        </div>
+        <div class="wa-body">
+          <div class="bubble in">
+            <div class="tmpl-header">Macavation report published</div>
+            <div class="tmpl-body">Week ending 23 Aug 2026
+Sales &amp; Production report
+Published 24 Aug 2026
+
+Tap below to read Pete's summary or open the full report.</div>
+            <span class="stamp">09:14</span>
+          </div>
+          <div class="wa-btns">
+            <div class="wa-btn">Read summary</div>
+            <div class="wa-btn url">Open report</div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Fixed format — the buttons do the rest</p>
+    </div>
+  </div>
+
+  <p><strong>Tapping "Read summary" opens the conversation</strong>, so Pete's full note arrives as an
+  ordinary message straight afterwards. The recipient sees the same words either way. They just get
+  there in one extra tap.</p>
+
+  <div class="note">
+    <span class="note-label">A security improvement that comes with this</span>
+    <p>The <strong>Open report</strong> button needs a short, tidy web address, so the 30-day link
+    that currently sits in the chat is replaced by a short code we look up when it is tapped. The
+    actual file link is then created fresh at the moment of opening and expires within minutes —
+    instead of a working link to a confidential report sitting in a WhatsApp chat for a month.</p>
+    <p>It also means a link can be switched off if a report is withdrawn. Today it cannot be.</p>
+  </div>
+
+  <h3>Pete still sees exactly who got it</h3>
+  <div class="screen">
+    <div class="screen-bar">
+      <span>Distribution — Week ending 23 Aug 2026</span>
+      <span class="btn">Re-send all failed</span>
+    </div>
+    <table>
+      <thead><tr><th>Recipient</th><th>Number</th><th>Sent as</th><th>Status</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Paul</td><td>+27 82 555 0110</td><td>Full note</td><td><span class="tick">Delivered</span></td><td></td></tr>
+        <tr><td>Pete</td><td>+27 82 555 0114</td><td>Full note</td><td><span class="tick">Delivered</span></td><td></td></tr>
+        <tr><td>Shareholder — J. Malan</td><td>+27 83 555 0182</td><td>Fixed format</td><td><span class="tick">Delivered</span></td><td style="font-size:8.5pt;color:var(--muted)">No recent reply</td></tr>
+        <tr><td>Factory Manager</td><td>+27 71 555 0143</td><td>Fixed format</td><td style="color:var(--risk);font-weight:650">Failed</td><td style="font-size:8.5pt;color:var(--muted)">Number not on WhatsApp</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The new <strong>Sent as</strong> column tells Pete which version each person got, so a
+  shareholder saying "I only got a short one" is answerable at a glance.</p>
+</section>
+
+<!-- ============================ WHO GETS WHAT ============================ -->
+<section class="page">
+  <p class="eyebrow">Section 6</p>
+  <h2>Deciding who gets what</h2>
+  <hr class="rule" />
+
+  <p>One list, one row per person, a tick for each report they should receive. Pete manages it
+  himself — no developer needed to add somebody or take them off.</p>
+
+  <div class="screen">
+    <div class="screen-bar">
+      <span>Report distribution</span>
+      <span class="btn">Add recipient</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th><th>WhatsApp number</th>
+          <th class="center">Daily</th><th class="center">Weekly</th><th class="center">Monthly</th>
+          <th class="center">Staff</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Paul</td><td>+27 82 555 0110</td><td class="center tick">✓</td><td class="center tick">✓</td><td class="center tick">✓</td><td class="center tick">✓</td><td>Active</td></tr>
+        <tr><td>Pete</td><td>+27 82 555 0114</td><td class="center tick">✓</td><td class="center tick">✓</td><td class="center tick">✓</td><td class="center tick">✓</td><td>Active</td></tr>
+        <tr><td>Factory Manager</td><td>+27 71 555 0143</td><td class="center tick">✓</td><td class="center cross">—</td><td class="center cross">—</td><td class="center tick">✓</td><td>Active</td></tr>
+        <tr><td>Production Manager</td><td>+27 71 555 0166</td><td class="center tick">✓</td><td class="center tick">✓</td><td class="center cross">—</td><td class="center tick">✓</td><td>Active</td></tr>
+        <tr><td>Shareholder — J. Malan</td><td>+27 83 555 0182</td><td class="center cross">—</td><td class="center tick">✓</td><td class="center tick">✓</td><td class="center cross">—</td><td>Active</td></tr>
+        <tr><td>Shareholder — A. Rossouw</td><td>+27 83 555 0197</td><td class="center cross">—</td><td class="center cross">—</td><td class="center tick">✓</td><td class="center cross">—</td><td>Active</td></tr>
+        <tr><td>Quality Assurance</td><td>+27 76 555 0121</td><td class="center tick">✓</td><td class="center cross">—</td><td class="center cross">—</td><td class="center tick">✓</td><td style="color:var(--warn)">Paused to 3 Sep</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="caption" style="text-align:left">Example only — the real names and numbers are for Pete and
+  Paul to decide.</p>
+
+  <p>The <strong>Staff</strong> tick is what decides whether the menu will hand somebody production
+  figures. A shareholder gets the reports they are ticked for and can stop them, but tapping
+  <em>Today's production</em> politely declines.</p>
+
+  <h3>Two protections built in</h3>
+  <ul>
+    <li><strong>The same person cannot be added twice.</strong> Saving someone as
+    <code>082 555 0110</code> and again as <code>+27 82 555 0110</code> is caught as the same number.
+    Nobody gets a confidential report twice, and nobody is missed because they were on the list under
+    a different format.</li>
+    <li><strong>Stopping does not delete them.</strong> The row stays, marked stopped, so Pete can see
+    it happened.</li>
+  </ul>
+
+  <div class="warn">
+    <span class="note-label">Needed from Macavation</span>
+    <p>The real list: names, WhatsApp numbers, which of the three reports each person gets, and who
+    counts as staff. Nothing can be properly tested against made-up numbers.</p>
+  </div>
+</section>
+
+<!-- ============================ STATE OF PLAY ============================ -->
+<section class="page">
+  <p class="eyebrow">Section 7</p>
+  <h2>Where things actually stand</h2>
+  <hr class="rule" />
+
+  <h3>Already in place — no work needed</h3>
+  <table>
+    <thead><tr><th>Thing</th><th>State</th></tr></thead>
+    <tbody>
+      <tr><td>Macavation's WhatsApp channel</td><td><span class="tick">Active</span> — number +27 71 463 9643</td></tr>
+      <tr><td>Sending fixed formats, buttons and menus</td><td><span class="tick">Supported</span> — confirmed by reading the live messaging system, not assumed</td></tr>
+      <tr><td>Security key to register the fixed formats</td><td><span class="tick">Created 30 July</span> — never used since</td></tr>
+      <tr><td>Tested code for all of it</td><td><span class="tick">Exists in Howdie</span> — reused, not rewritten</td></tr>
+      <tr><td>Handling incoming replies, with staff phone recognition</td><td><span class="tick">Built</span> — including a log of every request and refusal</td></tr>
+      <tr><td>Weekly and monthly editing, publishing and sending</td><td><span class="tick">Built</span> — working on the test system</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Still to do</h3>
+  <table>
+    <thead><tr><th>Thing</th><th>What it involves</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Register two fixed formats with WhatsApp</strong></td><td>One for the daily figures, one for a published report. Submitted from our side; WhatsApp usually reviews within a day or two.</td></tr>
+      <tr><td><strong>Locate the security key's value</strong></td><td>It is shown once when created and was never used, so the value has to be found — or a replacement requested, which is quick.</td></tr>
+      <tr><td><strong>Move the report system to the live database</strong></td><td>The reports, recipients, delivery records and daily figures currently exist only on the test system.</td></tr>
+      <tr><td><strong>Point the WhatsApp number at the live system</strong></td><td>It is presently wired to the test database, so a reply today would be answered using test data.</td></tr>
+      <tr><td><strong>Switch on the timer</strong></td><td>Nothing in the system can run on a schedule yet. A standard switch-on, done on test first, then demo, then live.</td></tr>
+    </tbody>
+  </table>
+
+  <hr class="rule-soft" />
+
+  <h3>What it costs to send</h3>
+  <p>WhatsApp charges per conversation for an unprompted message like the daily. A tapped button opens
+  a conversation that lasts 24 hours, so somebody tapping five buttons costs no more than tapping one.
+  For a handful of recipients once a day it is small money, but it scales with the number of people on
+  the daily list — worth knowing before that list reaches thirty.</p>
+</section>
+
+<!-- ============================ NEXT ============================ -->
+<section class="page">
+  <p class="eyebrow">Section 8</p>
+  <h2>The order we would build it</h2>
+  <hr class="rule" />
+
+  <ol class="steps">
+    <li><b>Register the two fixed formats with WhatsApp</b>
+      <span class="who">Customapp · needs your sign-off on the figures and button labels first · then a day or two of review</span></li>
+    <li><b>Build the daily figures behind the scenes</b>
+      <span class="who">Customapp · proved by checking a known day against the portal and against the weekly report</span></li>
+    <li><b>Send one real daily message to a single number</b>
+      <span class="who">Customapp · one message on one handset, buttons and all, before anybody else is on the list</span></li>
+    <li><b>Switch on the 5 pm timer and watch it for three days</b>
+      <span class="who">Customapp · three correct sends before the list grows</span></li>
+    <li><b>Make the buttons and the menu work</b>
+      <span class="who">Customapp · reusing Howdie's tested code</span></li>
+    <li><b>Fix the weekly and monthly send for people who have not messaged</b>
+      <span class="who">Customapp · including the short-code links that replace the 30-day ones</span></li>
+    <li><b>Build the recipient screen and load the real list</b>
+      <span class="who">Customapp builds it · Pete and Paul decide who is on it</span></li>
+    <li><b>Move everything to the live system and point the WhatsApp number at it</b>
+      <span class="who">Customapp · test, then demo, then live</span></li>
+  </ol>
+
+  <div class="lead">
+    <p><strong>What I need from you to start.</strong> Two things.</p>
+    <p><strong>One.</strong> Page 3 — are those the right four figures? Cracked, kernel packed, wholes
+    percentage, NIS received, plus week to date against target.</p>
+    <p><strong>Two.</strong> Pages 3 and 5 — are those the right three buttons
+    (<em>Week to date</em>, <em>Full breakdown</em>, <em>More options</em>) and the right nine menu
+    lines?</p>
+    <p>Both get locked in when WhatsApp approves them, so it is worth ten minutes now. Confirm those
+    and I submit for approval, then build while we wait.</p>
+  </div>
+
+  <p class="footer-note">Macavation — Reports on WhatsApp, version 2 · Prepared by Customapp ·
+  25 August 2026 · Replaces version 1. Figures, names and numbers shown throughout are illustrative
+  examples, not real production data.</p>
+</section>
+
+</body>
+</html>

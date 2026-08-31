@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Macavation Phase 2 — Completion Plan</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   CustomApp Reports house style
+   Segoe UI + Consolas (system faces, no webfonts — keeps the file small
+   enough to send over WhatsApp). Navy headings, tinted callout family,
+   banded tables. A4 portrait, Chromium print-to-pdf.
+   ══════════════════════════════════════════════════════════════════════ */
+:root {
+  --navy:      #1e3a5f;
+  --ink:       #23272e;
+  --ink-2:     #3e4145;
+  --sub:       #5b6472;
+  --meta:      #78828f;
+  --panel:     #f1f4f8;
+  --band:      #eaf0f7;
+  --rule:      #cfd6dd;
+  --rule-2:    #c8d2dd;
+  --accent:    #2563eb;
+
+  --ok:        #15803d;
+  --ok-bg:     #f4fbf5;
+  --ok-br:     #a7d3ae;
+
+  --warn:      #9a4d00;
+  --warn-bg:   #fff8f0;
+  --warn-br:   #f0b37e;
+
+  --crit:      #b42318;
+  --crit-bg:   #fef4f2;
+  --crit-br:   #f0a79e;
+}
+
+@page { size: A4 portrait; margin: 14mm 12mm 15mm; }
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  font-size: 10.2pt;
+  line-height: 1.5;
+  color: var(--ink);
+  background: #fff;
+}
+
+code, .m {
+  font-family: Consolas, "Cascadia Mono", ui-monospace, monospace;
+  font-size: .9em;
+  color: var(--navy);
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+b, strong { font-weight: 600; color: var(--ink); }
+em { font-style: italic; }
+
+/* ── Masthead ──────────────────────────────────────────────────────── */
+.mast { border-bottom: 3px solid var(--accent); padding-bottom: .55rem; margin-bottom: 1.1rem; }
+h1 {
+  font-size: 21pt; font-weight: 600; line-height: 1.15;
+  color: var(--navy); margin: 0 0 .3rem; letter-spacing: -.005em;
+}
+.stand { font-size: 11.2pt; color: var(--sub); margin: 0 0 .45rem; line-height: 1.4; }
+.meta  { font-size: 8.6pt;  color: var(--meta); margin: 0; }
+.meta code { color: var(--navy); }
+
+/* ── Headings ──────────────────────────────────────────────────────── */
+h2 {
+  font-size: 14pt; font-weight: 600; color: var(--navy);
+  margin: 1.5rem 0 .45rem; padding-bottom: .2rem;
+  border-bottom: 1px solid var(--rule);
+  break-after: avoid; break-inside: avoid;
+}
+h2 .n { color: var(--accent); font-weight: 600; }
+h3 {
+  font-size: 10.6pt; font-weight: 600; color: var(--ink);
+  margin: 1rem 0 .3rem; break-after: avoid;
+}
+
+p  { margin: 0 0 .6rem; }
+ul, ol { margin: 0 0 .7rem; padding-left: 1.15rem; }
+li { margin-bottom: .28rem; }
+li > ul { margin-top: .28rem; margin-bottom: 0; }
+
+/* ── Callout family ────────────────────────────────────────────────── */
+.box {
+  border: 1px solid var(--rule); background: var(--panel);
+  border-radius: 3px; padding: .55rem .7rem; margin: .7rem 0;
+  break-inside: avoid;
+}
+.box > :last-child { margin-bottom: 0; }
+.box .t {
+  display: block; font-size: 8.4pt; font-weight: 600;
+  letter-spacing: .05em; text-transform: uppercase; margin-bottom: .28rem;
+}
+.box.ok   { background: var(--ok-bg);   border-color: var(--ok-br); }
+.box.ok   .t { color: var(--ok); }
+.box.warn { background: var(--warn-bg); border-color: var(--warn-br); }
+.box.warn .t { color: var(--warn); }
+.box.crit { background: var(--crit-bg); border-color: var(--crit-br); }
+.box.crit .t { color: var(--crit); }
+.box.plain .t { color: var(--navy); }
+
+/* ── Figure panel ──────────────────────────────────────────────────── */
+.figs {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); border-radius: 3px;
+  margin: .8rem 0; break-inside: avoid;
+}
+.fig { background: var(--panel); padding: .4rem .55rem; }
+.fig .v {
+  display: block; font-size: 15pt; font-weight: 600; color: var(--navy);
+  line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+.fig .v.bad { color: var(--crit); }
+.fig .k { display: block; font-size: 8pt; color: var(--meta); line-height: 1.3; margin-top: .1rem; }
+
+/* ── Tables ────────────────────────────────────────────────────────── */
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 8.6pt; margin: .7rem 0;
+  border: 1px solid var(--rule);
+}
+caption {
+  caption-side: top; text-align: left;
+  font-size: 8pt; color: var(--meta); font-style: italic;
+  padding: 0 0 .25rem;
+}
+thead { display: table-header-group; }
+thead th {
+  background: var(--band); color: var(--navy);
+  font-size: 7.8pt; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase;
+  text-align: left; vertical-align: bottom;
+  padding: .34rem .45rem;
+  border-bottom: 1px solid var(--rule-2);
+}
+tbody td { padding: .34rem .45rem; vertical-align: top; border-bottom: 1px solid var(--rule); }
+tbody tr:last-child td { border-bottom: none; }
+tfoot td {
+  background: var(--band); font-weight: 600;
+  padding: .34rem .45rem; border-top: 1px solid var(--rule-2);
+}
+tr { break-inside: avoid; }
+td.c, th.c { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dim { color: var(--meta); }
+
+/* ── Status tags ───────────────────────────────────────────────────── */
+.tag {
+  display: inline-block; font-size: 7.2pt; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase;
+  padding: .04rem .28rem; border-radius: 2px;
+  border: 1px solid currentColor; white-space: nowrap;
+}
+.tag.ok   { color: var(--ok);   background: var(--ok-bg); }
+.tag.warn { color: var(--warn); background: var(--warn-bg); }
+.tag.crit { color: var(--crit); background: var(--crit-bg); }
+.tag.info { color: var(--navy); background: var(--band); }
+
+/* ── Progress bar in the scope table ───────────────────────────────── */
+.pr { display: flex; align-items: center; gap: .3rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pr .bar { flex: none; width: 2.1rem; height: 4px; background: var(--rule-2); border-radius: 99px; overflow: hidden; }
+.pr .bar i { display: block; height: 100%; background: var(--ok); }
+.pr .bar.lo i { background: var(--crit); }
+
+footer {
+  margin-top: 1.4rem; padding-top: .5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 8pt; color: var(--meta);
+}
+</style>
+</head>
+<body>
+
+<div class="mast">
+  <h1>Macavation Phase 2 &mdash; Completion Plan</h1>
+  <p class="stand">The build is close to done. Production is six weeks behind it, and the record of
+  what has been applied there cannot be trusted to tell us how far.</p>
+  <p class="meta">21 August 2026 &middot; CustomApp delivery (Henry) &middot; For Paul, Pete, Josslyn
+  and Mark &middot; Verified against <code>dev</code> at <code>56b38c1</code>, 331 migration files and
+  production <code>sofanhfpxifgdtooefzq</code> &middot; Full plan:
+  <code>docs/phase2/PHASE2_COMPLETION_PLAN.md</code></p>
+</div>
+
+<div class="box crit">
+  <span class="t">The one thing to take from this</span>
+  <p>Roughly two thirds of Phase 2 is built. <b>Almost none of it is in front of a Macavation
+  user.</b> Closing that gap &mdash; not the feature backlog &mdash; is now the critical path.</p>
+</div>
+
+<div class="figs">
+  <div class="fig"><span class="v bad">58</span><span class="k">commits behind on <code>demo</code> and <code>prod</code></span></div>
+  <div class="fig"><span class="v bad">47</span><span class="k">migrations outstanding on production</span></div>
+  <div class="fig"><span class="v bad">0</span><span class="k">daily digest subscribers</span></div>
+  <div class="fig"><span class="v bad">46</span><span class="k">unresolved stock alerts</span></div>
+  <div class="fig"><span class="v">27</span><span class="k">UI action keys, against 2,012 API grants</span></div>
+  <div class="fig"><span class="v">~91</span><span class="k">developer-days remaining</span></div>
+</div>
+
+<!-- ═══ Scope ═══ -->
+<h2>Scope at a glance</h2>
+
+<p>Items 1 to 9 are the scope agreed in the Phase 2 proposal, in the proposal's own order. Item 10 was
+added mid-phase and was never in that document. Item 0 is delivery, not scope &mdash; but it is why
+the last column reads the way it does.</p>
+
+<table>
+  <caption>Verified against <code>dev</code>, the migration set and production on 21 August 2026. Counts treat a half-day item the same as an eight-day one &mdash; read them with the days column.</caption>
+  <thead>
+    <tr><th class="c">#</th><th>Scope item</th><th class="c">Built</th><th class="c">Days</th><th class="c">Sprint</th><th>In production today</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="c">1</td><td><b>Historical data</b><br><span class="dim">Two years of operational history</span></td>
+      <td class="c"><span class="pr"><span class="bar"><i style="width:70%"></i></span>7 / 10</span></td>
+      <td class="c">7&ndash;8</td><td class="c">S4</td>
+      <td><span class="tag crit">Not live</span> <span class="dim">NIS procurement and kernel sales history are loaded and reconciled, but they live on the data page, which is not on production</span></td>
+    </tr>
+    <tr>
+      <td class="c">2</td><td><b>Advanced permissions</b><br><span class="dim">Buttons and actions per role, in UI <em>and</em> at the API</span></td>
+      <td class="c"><span class="pr"><span class="bar lo"><i style="width:50%"></i></span>6 / 12</span></td>
+      <td class="c">17</td><td class="c">S5</td>
+      <td><span class="tag warn">Partly</span> <span class="dim">27 keys and 95 grants are live, but UI-only &mdash; the API half is not enforced. Largest remaining block</span></td>
+    </tr>
+    <tr>
+      <td class="c">3</td><td><b>In-app messaging</b><br><span class="dim">Messaging, read/unread, links to batches and lots</span></td>
+      <td class="c"><span class="pr"><span class="bar"><i style="width:73%"></i></span>8 / 11</span></td>
+      <td class="c">4.5</td><td class="c">S2, S6</td>
+      <td><span class="tag warn">Partly</span> <span class="dim">1:1 chat schema is on production; the WhatsApp shared inbox is not, and no conversation has happened yet</span></td>
+    </tr>
+    <tr>
+      <td class="c">4</td><td><b>Stock red-flag alerts</b><br><span class="dim">Configurable thresholds on stock screens and dashboard</span></td>
+      <td class="c"><span class="pr"><span class="bar"><i style="width:55%"></i></span>6 / 11</span></td>
+      <td class="c">3&ndash;4</td><td class="c">S2</td>
+      <td><span class="tag warn">Partly</span> <span class="dim">Rules and alerts exist &mdash; 46 sit unresolved &mdash; but nothing evaluates them on a schedule, so an overnight stock-out waits for whoever opens the screen</span></td>
+    </tr>
+    <tr>
+      <td class="c">5</td><td><b>Daily reporting</b><br><span class="dim">Scheduled WhatsApp and/or email summary</span></td>
+      <td class="c"><span class="pr"><span class="bar lo"><i style="width:44%"></i></span>4 / 9</span></td>
+      <td class="c">4</td><td class="c">S2</td>
+      <td><span class="tag crit">Never sent</span> <span class="dim">Content function and both delivery paths are written; <code>pg_cron</code> is not installed and there are zero subscribers. The Meta approval blocker is gone</span></td>
+    </tr>
+    <tr>
+      <td class="c">6</td><td><b>Dashboard enhancements</b><br><span class="dim">Forecasts, runway, produced vs target, KPIs</span></td>
+      <td class="c"><span class="pr"><span class="bar"><i style="width:67%"></i></span>8 / 12</span></td>
+      <td class="c">6&ndash;7</td><td class="c">S6</td>
+      <td><span class="tag warn">Partly</span> <span class="dim">Six charts and the KPI set are built; four KPIs have no target behind them. Two definitions still need Paul's ruling</span></td>
+    </tr>
+    <tr>
+      <td class="c">7</td><td><b>Shell waste tracking</b><br><span class="dim">Shell as saleable stock &mdash; lots, movements, link to production</span></td>
+      <td class="c"><span class="pr"><span class="bar lo"><i style="width:50%"></i></span>4 / 8</span></td>
+      <td class="c">7</td><td class="c">S3</td>
+      <td><span class="tag warn">Partly</span> <span class="dim">Lots are created automatically from cracking. No dispatch workflow, and two separate shell inputs can drift apart</span></td>
+    </tr>
+    <tr>
+      <td class="c">8</td><td><b>Grower intake &mdash; mass balance &amp; procurement</b><br><span class="dim">Full-stream mass balance, planned vs actual</span></td>
+      <td class="c"><span class="pr"><span class="bar"><i style="width:57%"></i></span>4 / 7</span></td>
+      <td class="c">4&ndash;5</td><td class="c">S3</td>
+      <td><span class="tag warn">Partly</span> <span class="dim">Both calculations already run in the database and have never been displayed. Surfacing work, not modelling work</span></td>
+    </tr>
+    <tr>
+      <td class="c">9</td><td><b>Oil module</b><br><span class="dim">Faster search, consolidated batches, lab results</span></td>
+      <td class="c"><span class="pr"><span class="bar lo"><i style="width:50%"></i></span>5 / 10</span></td>
+      <td class="c">6&ndash;7</td><td class="c">S4</td>
+      <td><span class="tag warn">Partly</span> <span class="dim">Search and consolidated batches work. Lab results are still free text, not a real document, and only admins can consolidate</span></td>
+    </tr>
+    <tr>
+      <td class="c">10</td><td><b>Sales &amp; Production Report</b><br><span class="tag info">Added mid-phase</span> <span class="dim">Not in the proposal</span></td>
+      <td class="c"><span class="pr"><span class="bar"><i style="width:76%"></i></span>13 / 17</span></td>
+      <td class="c">15</td><td class="c">S1</td>
+      <td><span class="tag crit">Not live</span> <span class="dim">No report or data-page table exists on production at all. A report can now be issued rather than only drafted &mdash; that landed this week</span></td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <td class="c">0</td><td><b>Production cutover</b><br><span class="dim">Delivery, not scope &mdash; and the critical path</span></td>
+      <td class="c"><span class="pr"><span class="bar lo"><i style="width:2%"></i></span>0 / 7</span></td>
+      <td class="c">7</td><td class="c">S1&ndash;S2</td>
+      <td><span class="tag crit">Blocking</span> 58 commits and 47 migrations behind &mdash; see section 3</td>
+    </tr>
+  </tfoot>
+</table>
+
+<h3>Also delivered, outside the numbered scope</h3>
+<p><b>Platform and Phase 1 carry-over fixes</b> are complete (8 of 8) &mdash; one consolidated
+application tree, an automated build gate that blocks a merge on a new violation, CRM contact saving
+repaired, and one grower dropdown instead of two. <b>Cross-cutting close-out</b> &mdash; user guide,
+full UAT, training, final cutover &mdash; is 0 of 4 and 11 days, scheduled in S7.</p>
+
+<h3>Blocked on an answer rather than on development</h3>
+<table>
+  <thead><tr><th>Item</th><th class="c">Under</th><th>What is needed</th><th class="c">From</th></tr></thead>
+  <tbody>
+    <tr><td>The three <b>Stock Report</b> sections</td><td class="c">10</td><td>Cost price and book value exist nowhere in the system. Cannot be built until Macavation supplies a valuation source &mdash; Palladium or Pete's finance sheet</td><td class="c">Pete / finance</td></tr>
+    <tr><td><b>March FYE 2026</b> procurement figure</td><td class="c">10</td><td>Pete's sheet claims 138,371.50 kg against four deliveries totalling 18,434.50 kg. It reads as a formula error, but it needs his ruling before sign-off</td><td class="c">Pete</td></tr>
+    <tr><td>What <b>&ldquo;raw ingredient stock&rdquo;</b> means</td><td class="c">4</td><td>Either the oil feedstock category already wired, or an aggregate wet nut-in-shell pool &mdash; which does not exist as a countable level today. The second reading is new scope</td><td class="c">Business</td></tr>
+    <tr><td>Definitions of <b>runway</b> and <b>stock accuracy</b></td><td class="c">6</td><td>Both are useful as built, but neither is what the proposal literally describes. Changing them later means rework</td><td class="c">Paul</td></tr>
+    <tr><td><b>Permission role matrix</b>, and where enforcement lives</td><td class="c">2</td><td>Who may create, edit, approve and adjust stock, per role &mdash; plus Postgres functions or the Lambda proxy. The one decision that can still move the schedule by weeks</td><td class="c">Business &amp; CustomApp</td></tr>
+  </tbody>
+</table>
+
+<p class="dim">Out of scope for Phase 2, and candidates for Phase 3: purchase-order and
+grower-contract tracking, full Palladium integration, silo automation, pricing and grower-statistics
+automation, GMP forms, and predictive forecasting. Mobile apps, ERP replacement, Phase 1 re-builds and
+new hardware integrations were excluded in the original proposal.</p>
+
+<!-- ═══ 1 ═══ -->
+<h2><span class="n">1.</span> Where Phase 2 stands</h2>
+
+<p>Three things are true today, and the second one is new.</p>
+<ol>
+  <li><b>The build is close to done.</b> Around two thirds of Phase 2 is written and working on
+    <code>dev</code>.</li>
+  <li><b>Production is further behind than we thought, and the migration ledger cannot be trusted to
+    tell us how far.</b> The 18 August document said 20 migrations were outstanding. The real number
+    is <b>47</b>, some from early July. Worse, we found <em>why</em> the ledger drifts: the scripts
+    that record a migration key on one field, and the scripts that check for pending ones compare a
+    different field, so records are silently dropped.</li>
+  <li><b>Nothing else on this plan matters until that is fixed.</b> The cutover is the critical path,
+    it is 7 days rather than the 3 we costed, and it cannot be done by running a bulk script.</li>
+</ol>
+
+<!-- ═══ 2 ═══ -->
+<h2><span class="n">2.</span> What changed since 18 August</h2>
+
+<h3>Delivered in the last three days &mdash; sprint 0 closed</h3>
+<table>
+  <thead><tr><th>Item</th><th>Evidence</th></tr></thead>
+  <tbody>
+    <tr><td>Publish and supersede workflow wired into the portal</td><td><code>report_editor.js</code> calls <code>publish_report_instance</code> and <code>supersede_report_instance</code>, with a fail-closed <code>hasAction()</code> check</td></tr>
+    <tr><td>Automated report render checks</td><td><code>npm run reports:verify</code></td></tr>
+    <tr><td>Report distribution over WhatsApp &mdash; recipients, send dialog, delivery history, phone parity harness</td><td>6 commits; migrations <code>20260822090000</code>&ndash;<code>090200</code></td></tr>
+    <tr><td>PDF export, and a storage bucket for the archive</td><td><code>20260822090100</code></td></tr>
+    <tr><td>Kernel stock 24-month best-before from packing start</td><td><code>20260822100000</code></td></tr>
+  </tbody>
+</table>
+<p><b>A report can now be issued, not just drafted.</b> That was the sprint 0 exit milestone, and it
+is met.</p>
+
+<h3>Corrections to the production picture</h3>
+<table>
+  <thead><tr><th>The 18 August document said</th><th>Verified 21 August</th></tr></thead>
+  <tbody>
+    <tr><td>41 commits behind on <code>demo</code> / <code>prod</code></td><td><b>58 commits</b> behind &mdash; both branches, identical</td></tr>
+    <tr><td>20 migrations outstanding</td><td><b>47 outstanding by name</b>, the oldest from 8 July</td></tr>
+    <tr><td class="dim">&mdash;</td><td><b>The ledger is wrong in both directions</b> &mdash; see section 3</td></tr>
+    <tr><td>40 open stock alerts</td><td><b>46</b></td></tr>
+    <tr><td><code>pg_cron</code> not installed</td><td>Confirmed &mdash; still not installed</td></tr>
+    <tr><td>0 digest subscribers</td><td>Confirmed &mdash; <code>scheduled_reports</code> completely empty</td></tr>
+    <tr><td>27 action keys, 95 grants, UI-only</td><td>Confirmed &mdash; against <b>2,012</b> API-level grants</td></tr>
+    <tr><td class="dim">&mdash;</td><td><b>4 of 9 edge functions deployed.</b> Missing: <code>send-whatsapp-message</code>, <code>whatsapp-inbound</code>, <code>send-report-whatsapp</code>, <code>portal-assistant</code>, <code>send-password-reset</code></td></tr>
+    <tr><td class="dim">&mdash;</td><td>No report-builder or data-page tables exist on production at all</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══ 3 ═══ -->
+<h2><span class="n">3.</span> The cutover, re-scoped &mdash; 7 days, not 3</h2>
+
+<p>This is the one section worth reading in full, because it is the difference between a clean go-live
+and a bad weekend.</p>
+
+<h3>Why the ledger cannot be trusted, and what actually causes it</h3>
+
+<p>Both apply scripts record a migration with <code>INSERT &hellip; ON CONFLICT (version) DO
+NOTHING</code> (<code>apply-migration-to-ref.mjs:38</code>, <code>apply-migration-prod.mjs:104</code>).
+The unique key is the <b>version</b>, the 14-digit timestamp. But the pending check compares the
+<b>name</b>, the part of the filename after that timestamp
+(<code>apply-pending-prod-migrations.mjs:44</code>).</p>
+
+<p>Those two keys do not agree, and the repository contains 20 pairs of files that share a version. So
+when a migration runs whose version is already on the ledger, <b>the SQL executes and the ledger row
+is silently discarded.</b> The work lands; the record of it does not. Run it a second time and it
+lands again.</p>
+
+<p>That single mechanism explains both directions of the drift we measured:</p>
+<ul>
+  <li><b>Under-reporting.</b> Five migrations the ledger calls pending are demonstrably already
+    applied &mdash; <code>users.first_name</code> and <code>last_name</code> exist,
+    <code>users.username</code> is gone, <code>get_stock_soh_history</code> exists, the
+    issues-register tables exist, and the role cull has clearly run (8 roles remain).</li>
+  <li><b>Over-reporting.</b> Version <code>20260813090000</code> is stamped as applied, yet none of
+    the three WhatsApp inbound shared-inbox tables exist on production. Something claimed that
+    version; the inbox migration was not it.</li>
+</ul>
+
+<div class="box crit">
+  <span class="t">This is a repository defect, not just a production one</span>
+  <p>Until the two keys agree, every future cutover inherits the same problem. Fixing it is step 2
+  below, and it is a small change &mdash; but every later step depends on it.</p>
+</div>
+
+<h3>The pending list needs judging, not just running</h3>
+<p>Our first read of this was too alarmist, and the audit is what corrects it. Checked file by
+file:</p>
+<ul>
+  <li><code>20260709170000_cull_unused_roles_and_obsolete_users.sql</code> deletes by <b>named</b>
+    email and role (lines 23&ndash;47), not in bulk. Production already shows 8 roles, so replaying it
+    is almost certainly a zero-row no-op. It still gets confirmed before it is skipped, but it is not
+    the live-data threat we first called it.</li>
+  <li><code>20260709120000_drop_users_username_column.sql</code> is idempotent by construction
+    &mdash; <code>DROP COLUMN IF EXISTS</code> (line 213) and <code>CREATE OR REPLACE</code>
+    throughout.</li>
+  <li><code>20260708130000_users_first_last_name_replace_username.sql</code> is the genuine problem,
+    and it is a <b>blocker, not a data risk</b>: it reads <code>users.username</code> in 13 places,
+    and that column no longer exists on production, so it fails loudly the moment it runs. It needs a
+    production variant or a formal retirement before the run, or it stops the run dead.</li>
+</ul>
+
+<div class="box warn">
+  <span class="t">The audit has a blind spot we have to design around</span>
+  <p>Twenty of the 47 pending migrations are <code>fix_</code>, <code>update_</code>,
+  <code>restore_</code> or <code>redeploy_</code> files that change the <em>body</em> of a function
+  without changing its name. Checking whether an object exists cannot tell us whether those landed.
+  For that class we compare the live function definition against the one in the file, rather than
+  merely asking whether the function is there.</p>
+</div>
+
+<h3>The seven steps</h3>
+<table>
+  <caption>Production cutover &mdash; 7 developer-days, split across S1 and S2</caption>
+  <thead><tr><th class="c">Step</th><th class="c">Days</th><th>Detail</th></tr></thead>
+  <tbody>
+    <tr><td><b>1</b> Object-level audit</td><td class="c">2</td><td>Stop asking the ledger. For each of the 47, check whether the objects it creates actually exist on production &mdash; and for the 20 body-changing ones, compare the live function definition against the file. Output: one line per migration, classified <em>already in place</em> / <em>safe to replay</em> / <em>needs a production variant</em> / <em>retire with reason</em>. A checked-in script, not a one-off.</td></tr>
+    <tr><td><b>2</b> Fix the key, reconcile</td><td class="c">1</td><td>Make the apply scripts conflict on the same key the pending check uses, so the ledger stops losing rows. Then stamp the migrations proven already applied, and surface the <code>20260813090000</code> gap.</td></tr>
+    <tr><td><b>3</b> Handle the exceptions</td><td class="c">0.5</td><td>Production variants for the files that cannot run as they stand &mdash; <code>20260708130000</code> at minimum. Nothing is skipped without a written reason.</td></tr>
+    <tr><td><b>4</b> Promote the code</td><td class="c">0.5</td><td><code>dev</code> &rarr; <code>demo</code>, validate there, <code>demo</code> &rarr; <code>prod</code>. Demo shares the dev database, so demo proves the <b>code</b> and never the production schema.</td></tr>
+    <tr><td><b>5</b> Apply, one file at a time</td><td class="c">1.5</td><td>Each file applied and verified individually, results logged to <code>prod_migration_apply_results.json</code>. We do not use the bulk path.</td></tr>
+    <tr><td><b>6</b> Platform</td><td class="c">1</td><td>Install <code>pg_cron</code>. Deploy the 5 missing edge functions &mdash; <code>whatsapp-inbound</code> <b>must</b> use <code>--no-verify-jwt</code>, or Control Room's forwards are rejected at the gateway and no inbound message ever arrives. Set the 4 secrets. Re-point Control Room's <code>macavation-9349</code> channel from dev to production. Schedule the three cron jobs.</td></tr>
+    <tr><td><b>7</b> Permissions, config, verify</td><td class="c">0.5</td><td>The steps the cutover checklist specifies and our first draft dropped: <code>db:sync-permissions-prod</code> and <code>db:sync-config-prod</code> (dry-run first), <code>npm run verify:portal-routing</code>, confirm the production Lambda still points at <code>sofanhfpxifgdtooefzq</code>, then a one-user-per-role smoke test. <b>Every affected user must log out and back in</b> &mdash; <code>featureKeys</code> and <code>actionKeys</code> are cached in the session.</td></tr>
+  </tbody>
+  <tfoot><tr><td><b>Total</b></td><td class="c">7</td><td>Steps 1&ndash;3 in S1, steps 4&ndash;7 in S2</td></tr></tfoot>
+</table>
+
+<p><b>Done when:</b> a report opens on production, the digest sends on schedule with nobody touching
+it, an inbound WhatsApp message reaches the production inbox, one user per role passes the smoke test
+with no <code>403 RBAC_PERMISSION_DENIED</code>, and the audit script reports zero unexplained
+differences.</p>
+
+<div class="box ok">
+  <span class="t">Recommendation</span>
+  <p>Start step 1 on <b>Monday 24 August</b>, in parallel with the report work &mdash; not in
+  September when the cutover sprint opens. The audit is desk work, it does not compete with the report
+  build, and it is the only way the 18 September go-live date survives contact with what we just
+  found.</p>
+</div>
+
+<!-- ═══ 4 ═══ -->
+<h2><span class="n">4.</span> Schedule</h2>
+
+<p>Capacity assumption: <b>one full-stack developer, five days a week</b>, from Monday 24 August.
+Business inputs are assumed to land on the dates in section 6; each slip moves its dependent
+milestone.</p>
+
+<p><b>Remaining effort: ~91 developer-days (range 91&ndash;97)</b> &mdash; about 18 working weeks,
+running to roughly the end of December.</p>
+
+<div class="box crit">
+  <span class="t">The schedule below is about two weeks short of that</span>
+  <p>S1 to S6 are 14 calendar weeks &mdash; 70 developer-days &mdash; and S7 close-out is a further
+  11, giving 81 against the 91 we owe. That gap is real and there is no honest way to sequence it
+  away. Three options, in order of our preference:</p>
+  <ol>
+    <li><b>Move the Sales &amp; Production Report out of Phase 2.</b> It is 15 days and it was never
+      in the original proposal. The only option that closes the gap outright.</li>
+    <li><b>Accept a two-week slip</b> on final sign-off, holding every dated milestone above it.</li>
+    <li><b>Add capacity</b> for S5, the permissions sprint, which is the largest single block.</li>
+  </ol>
+  <p>We have not silently absorbed the gap into the sprints, because that is how a plan quietly
+  becomes late.</p>
+</div>
+
+<table>
+  <thead><tr><th class="c">Sprint</th><th class="c">Dates</th><th>Focus</th><th>Exit milestone</th></tr></thead>
+  <tbody>
+    <tr><td class="c"><b>S1</b></td><td class="c">24 Aug &ndash; 4 Sep</td><td>Report completion: the 9 sections reading &ldquo;Not available yet&rdquo;, the oil-production dataset, PDF archive, weekly template validation. <b>In parallel: cutover steps 1&ndash;3</b></td><td><b>Pete signs off the monthly report</b>, and the production ledger is reconciled</td></tr>
+    <tr><td class="c"><b>S2</b></td><td class="c">7 Sep &ndash; 18 Sep</td><td>Go-live: cutover steps 4&ndash;7, digest deployed and scheduled, recipients loaded, stock-alert schedule and grid badges, thresholds and targets workshop, triage the 46 open alerts. <b>Plus the anon-key security fix, moved forward from S6</b></td><td><b>Leadership go-live</b> &mdash; dashboard, digest and alerts live in production, with the WhatsApp RPCs closed</td></tr>
+    <tr><td class="c"><b>S3</b></td><td class="c">21 Sep &ndash; 2 Oct</td><td>Kernel upstream: procurement workspace UI, weighbridge figure as &ldquo;actual received&rdquo;, shell dispatch, movement history, reconcile the two shell inputs</td><td>Procurement workspace and shell dispatch in use</td></tr>
+    <tr><td class="c"><b>S4</b></td><td class="c">5 Oct &ndash; 16 Oct</td><td>Oil module (lab document upload, remove-member and delete controls, grade field, role grants, release polish) and historical data (oil import path, Pete's 24-month kernel load, data audit)</td><td><b>Full operational scope live</b>; two years of history in the charts</td></tr>
+    <tr><td class="c"><b>S5</b></td><td class="c">19 Oct &ndash; 13 Nov</td><td>Permissions: module audit, role matrix workshop, enforcement-location decision, the 7 ungated modules, server-side enforcement, role-by-role UAT</td><td><b>A denied button cannot be bypassed via the API</b></td></tr>
+    <tr><td class="c"><b>S6</b></td><td class="c">16 Nov &ndash; 27 Nov</td><td>Dashboard completion, messaging polish and operational UAT</td><td>Dashboard KPI set complete</td></tr>
+    <tr><td class="c"><b>S7</b></td><td class="c">From 30 Nov</td><td>Close-out: user guide, training, full UAT against the success criteria, final cutover</td><td><b>Phase 2 sign-off</b></td></tr>
+  </tbody>
+</table>
+
+<h3>Client-facing milestone dates</h3>
+<table>
+  <thead><tr><th class="c">Date</th><th>Milestone</th></tr></thead>
+  <tbody>
+    <tr><td class="c"><b>Fri 4 Sep 2026</b></td><td>Monthly Sales &amp; Production report signed off by Pete</td></tr>
+    <tr><td class="c"><b>Fri 18 Sep 2026</b></td><td>Leadership go-live &mdash; dashboard, daily digest and stock alerts running in production</td></tr>
+    <tr><td class="c"><b>Fri 16 Oct 2026</b></td><td>Full operational scope in production, including two years of history</td></tr>
+    <tr><td class="c"><b>Fri 13 Nov 2026</b></td><td>Permissions enforced end to end</td></tr>
+    <tr><td class="c"><span class="tag warn">Not fixed</span></td><td><b>Phase 2 sign-off.</b> On current capacity close-out starts around the end of November. We will set a date once S5 is scoped against the confirmed role matrix &mdash; quoting one before the permissions decision is answered would be a guess presented as a promise</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══ 5 ═══ -->
+<h2><span class="n">5.</span> Remaining work by workstream</h2>
+
+<table>
+  <thead><tr><th class="c">#</th><th>Workstream</th><th class="c">Days</th><th class="c">Sprint</th><th>The short version</th></tr></thead>
+  <tbody>
+    <tr><td class="c">0</td><td><b>Production cutover</b></td><td class="c">7</td><td class="c">S1&ndash;S2</td><td>Audit, fix the ledger key, promote, platform, permissions sync and smoke test</td></tr>
+    <tr><td class="c">10</td><td>Sales &amp; Production Report</td><td class="c">15</td><td class="c">S1</td><td>9 sections with no data source, oil dataset, PDF archive, weekly template. Publish workflow now done</td></tr>
+    <tr><td class="c">5</td><td>Daily reporting</td><td class="c">4</td><td class="c">S2</td><td>Deploy, schedule, recipients. The Meta blocker is gone &mdash; this is configuration now</td></tr>
+    <tr><td class="c">4</td><td>Stock red-flag alerts</td><td class="c">3&ndash;4</td><td class="c">S2</td><td>Live schedule, grid badges, remaining thresholds, triage the 46 open alerts</td></tr>
+    <tr><td class="c">3a</td><td><b>Anon-key security fix</b></td><td class="c">1.5</td><td class="c"><b>S2</b></td><td>Derive the user id server-side on the five WhatsApp RPCs. Moved forward &mdash; see section 7</td></tr>
+    <tr><td class="c">8</td><td>Grower intake and procurement</td><td class="c">4&ndash;5</td><td class="c">S3</td><td>Surface calculations that already run in the database. Switch to the weighbridge figure first</td></tr>
+    <tr><td class="c">7</td><td>Shell waste</td><td class="c">7</td><td class="c">S3</td><td>Dispatch workflow, movement history UI, reconcile the two shell inputs, replace free-text batch linkage</td></tr>
+    <tr><td class="c">9</td><td>Oil module</td><td class="c">6&ndash;7</td><td class="c">S4</td><td>Lab document upload, wire up built-but-unreachable controls, grants beyond admin</td></tr>
+    <tr><td class="c">1</td><td>Historical data</td><td class="c">7&ndash;8</td><td class="c">S4</td><td>Oil import path, Pete's batch-level 24 months, data audit sign-off</td></tr>
+    <tr><td class="c">2</td><td><b>Advanced permissions</b></td><td class="c">17</td><td class="c">S5</td><td>Server-side enforcement plus 7 ungated modules. Largest single item, and the estimate is conditional</td></tr>
+    <tr><td class="c">6</td><td>Dashboard completion</td><td class="c">6&ndash;7</td><td class="c">S6</td><td>Targets and deltas for the remaining KPIs, kernel consolidated widget, two definition decisions</td></tr>
+    <tr><td class="c">3b</td><td>Messaging and chat</td><td class="c">3</td><td class="c">S6</td><td>Operational UAT, polish, user guide</td></tr>
+    <tr><td class="c dim">&mdash;</td><td>Cross-cutting</td><td class="c">11</td><td class="c">S7</td><td>User guide (~6 d), full UAT, training, final cutover</td></tr>
+  </tbody>
+  <tfoot><tr><td class="c"></td><td><b>Total</b></td><td class="c">91&ndash;97</td><td class="c"></td><td>Plan against ~91; the range is the honest spread, not a hedge</td></tr></tfoot>
+</table>
+
+<!-- ═══ 6 ═══ -->
+<h2><span class="n">6.</span> What we need from Macavation, and by when</h2>
+
+<table>
+  <thead><tr><th>Input</th><th class="c">Owner</th><th class="c">Needed by</th><th>Blocks</th></tr></thead>
+  <tbody>
+    <tr><td>Ruling on the March FYE 2026 procurement figure</td><td class="c">Pete</td><td class="c">Fri 28 Aug</td><td>Report sign-off (S1)</td></tr>
+    <tr><td><b>Stock valuation source</b> &mdash; cost price and book value per style</td><td class="c">Pete / finance</td><td class="c">Fri 28 Aug</td><td>Three Stock Report sections, which cannot be built without it</td></tr>
+    <tr><td>Sign-off on the July and August monthly reports</td><td class="c">Pete</td><td class="c">Fri 4 Sep</td><td>S1 exit</td></tr>
+    <tr><td>Daily digest recipient list &mdash; emails and WhatsApp numbers</td><td class="c">Paul</td><td class="c">Fri 11 Sep</td><td>Go-live (S2)</td></tr>
+    <tr><td>Alert threshold values per material</td><td class="c">Josslyn &amp; Mark</td><td class="c">Fri 11 Sep</td><td>Go-live (S2)</td></tr>
+    <tr><td>Monthly dashboard targets per product line</td><td class="c">Paul</td><td class="c">Fri 11 Sep</td><td>Go-live (S2)</td></tr>
+    <tr><td>Decision: what &ldquo;raw ingredient stock&rdquo; means for alerts</td><td class="c">Business</td><td class="c">Fri 11 Sep</td><td>S2</td></tr>
+    <tr><td>Review of the 46 open production alerts</td><td class="c">Josslyn &amp; Mark</td><td class="c">Fri 11 Sep</td><td>Go-live &mdash; a digest opening with 46 stale flags teaches people to ignore it</td></tr>
+    <tr><td>Definitions of &ldquo;raw material runway&rdquo; and &ldquo;stock accuracy&rdquo;</td><td class="c">Paul</td><td class="c">Fri 2 Oct</td><td>S6</td></tr>
+    <tr><td>Pete's batch-level 24-month kernel dataset</td><td class="c">Pete</td><td class="c">Fri 2 Oct</td><td>S4</td></tr>
+    <tr><td>Permission role matrix &mdash; who may create, edit, approve, adjust stock, per role</td><td class="c">Business &amp; CustomApp</td><td class="c">Fri 9 Oct</td><td>S5, the largest workstream</td></tr>
+    <tr><td>Ownership of <code>auth/rbacChecker.js</code> &mdash; is the Lambda proxy in scope?</td><td class="c">CustomApp &amp; Macavation</td><td class="c">Fri 9 Oct</td><td>The S5 estimate</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══ 7 ═══ -->
+<h2><span class="n">7.</span> Risks</h2>
+
+<table>
+  <thead><tr><th>Risk</th><th>Impact</th><th>Handling</th></tr></thead>
+  <tbody>
+    <tr><td><b>The migration ledger loses rows by design</b> &mdash; the apply scripts conflict on <code>version</code>, the pending check compares <code>name</code>, and 20 file pairs share a version</td><td>Schema silently absent while the ledger says applied; a replay applies the same SQL twice</td><td>Section 3. Fix the key mismatch in the repository, then an object-level audit before anything is applied. No bulk path; no file skipped without a written reason</td></tr>
+    <tr><td><b>Six weeks of work lands in one go</b> &mdash; 58 commits, 47 migrations</td><td>A bad cutover lands on live operations</td><td>Promote through <code>demo</code> first; apply one file at a time; audit completed before the sprint opens</td></tr>
+    <tr><td><b>The audit cannot see body-only changes.</b> 20 of the 47 pending files rewrite a function without renaming it</td><td>An audit based on &ldquo;does the object exist&rdquo; would pass them wrongly</td><td>Compare the live function definition against the file, not just its presence. Built into section 3 step 1</td></tr>
+    <tr><td><b>Anon-key RPC exposure.</b> The browser calls RPCs as <code>anon</code>, and five WhatsApp RPCs take the user id as a caller-supplied parameter, so the public key is enough to act as another user</td><td>A real hole, documented in <code>20260815110000</code>'s own header, which states closing it was out of scope there</td><td><b>Fixed in S2, not S6.</b> These RPCs reach production the moment the cutover migrations land &mdash; the exposure starts at go-live, so a November fix would have left it open for two months</td></tr>
+    <tr><td><b>Permissions: 27 UI action keys against 2,012 API grants</b></td><td>A hidden button prevents nothing</td><td>S5. <code>has_action()</code> exists and has zero callers; the epic is about giving it callers</td></tr>
+    <tr><td><b>The permissions estimate is conditional</b> on the Postgres-versus-Lambda decision</td><td>Could move S5 by weeks</td><td>Decide by 9 October, before S5 opens</td></tr>
+    <tr><td><b>Report scope was added mid-phase</b> &mdash; about 15 days remaining</td><td>Adds around three weeks to the close</td><td>Flagged for an explicit decision &mdash; section 8</td></tr>
+    <tr><td>Pete's 24-month data has not arrived</td><td>Delays the historical close, not the build</td><td>Sequenced last, in S4; everything else proceeds regardless</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══ 8 ═══ -->
+<h2><span class="n">8.</span> Decisions requested</h2>
+
+<div class="box warn">
+  <span class="t">Decision 1 &middot; Cutover approach</span>
+  <p><b>Authorise the approach in section 3</b> &mdash; fix the ledger key, audit at object level, and
+  write production variants where a file cannot run as it stands, before anything is applied. The
+  alternative, running the bulk script over 47 files, stops dead on the first one that reads a column
+  production no longer has.</p>
+</div>
+
+<div class="box warn">
+  <span class="t">Decision 2 &middot; The two-week capacity gap</span>
+  <p><b>Close the gap identified in section 4.</b> Our recommendation is to move the Sales &amp;
+  Production Report into its own phase: it is 15 days, it was not in the original Phase 2 proposal,
+  and it is the only option that closes the gap outright rather than absorbing it into a slip.</p>
+</div>
+
+<div class="box warn">
+  <span class="t">Decision 3 &middot; The 18 September go-live</span>
+  <p><b>Approve it, or choose the alternative.</b> It puts six weeks of production-untested work in
+  front of users at once. The alternative is a staged rollout, which pushes every later
+  milestone.</p>
+</div>
+
+<div class="box warn">
+  <span class="t">Decision 4 &middot; Permissions enforcement location</span>
+  <p><b>Postgres functions or the Lambda proxy</b> &mdash; before 9 October. It is the one open
+  decision that can still move the schedule by weeks.</p>
+</div>
+
+<div class="box ok">
+  <span class="t">Note 5 &middot; Not a decision &mdash; the anon-key fix has moved to S2</span>
+  <p>We are flagging it because it is a security change landing in the same sprint as go-live rather
+  than being deferred, and because the alternative &mdash; shipping the WhatsApp RPCs in September and
+  fixing them in November &mdash; is not one we are willing to recommend.</p>
+</div>
+
+<!-- ═══ 9 ═══ -->
+<h2><span class="n">9.</span> Definition of done</h2>
+
+<p>Phase 2 closes when every line below is true in <b>production</b>, not on <code>dev</code>.</p>
+<table>
+  <thead><tr><th>Criterion</th><th>Verification</th></tr></thead>
+  <tbody>
+    <tr><td>Leadership uses the dashboard and daily report as their primary operational check</td><td>Paul confirms daily use for two consecutive weeks after go-live</td></tr>
+    <tr><td>Red flags prevent stock-outs</td><td>An alert fires below threshold, is received, and clears on recovery</td></tr>
+    <tr><td>Oil consolidated batches in live use with lab results attached</td><td>At least one consolidation in production with a real lab document</td></tr>
+    <tr><td>Two years of history visible in trend charts</td><td>A 24-month range in the production trends chart, signed off by Pete</td></tr>
+    <tr><td>Colleagues can message each other 1:1</td><td>At least one real 1:1 conversation used operationally</td></tr>
+    <tr><td>The monthly Sales &amp; Production report is produced from the portal</td><td>Pete issues a published, non-draft report for a full month</td></tr>
+    <tr><td>A denied button cannot be bypassed via the API</td><td>Role-by-role UAT: the button and the API give the same answer</td></tr>
+    <tr><td>The production schema matches the repository</td><td>The audit script from section 3 reports zero unexplained differences</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══ 10 ═══ -->
+<h2><span class="n">10.</span> The next five working days</h2>
+
+<table>
+  <thead><tr><th class="c">Day</th><th>Action</th><th class="c">Owner</th></tr></thead>
+  <tbody>
+    <tr><td class="c">Mon 24 Aug</td><td>Start the object-level production audit, including the function-definition comparison for the 20 body-only files</td><td class="c">Dev</td></tr>
+    <tr><td class="c">Mon 24 Aug</td><td>Start the 9 report sections &mdash; the four small ones first, since their data sources already exist</td><td class="c">Dev</td></tr>
+    <tr><td class="c">Mon 24 Aug</td><td>Send Pete the March FYE 2026 query and the valuation-source request</td><td class="c">Henry</td></tr>
+    <tr><td class="c">Tue 25 Aug</td><td>Fix the <code>version</code>/<code>name</code> key mismatch in the apply scripts &mdash; a small change that every later step depends on</td><td class="c">Dev</td></tr>
+    <tr><td class="c">Wed 26 Aug</td><td>Audit complete; circulate the classification of all 47 migrations</td><td class="c">Dev</td></tr>
+    <tr><td class="c">Thu 27 Aug</td><td>Ledger reconciled; production variant written for <code>20260708130000</code> and any sibling the audit finds</td><td class="c">Dev</td></tr>
+    <tr><td class="c">Fri 28 Aug</td><td>Pete's two answers due. Oil-production dataset started. <b>Decisions 1 and 2 needed from Paul</b> to keep S2 on its date</td><td class="c">Pete / Paul / Dev</td></tr>
+  </tbody>
+</table>
+
+<div class="box crit">
+  <span class="t">The one thing to act on</span>
+  <p>Two answers from Pete and two decisions from Paul, all by <b>Friday 28 August</b>. Everything on
+  the dev side starts Monday regardless &mdash; but the 18 September go-live only holds if those four
+  land on time.</p>
+</div>
+
+<footer>
+  <p>Macavation Phase 2 &mdash; Completion Plan &middot; CustomApp delivery &middot; 21 August 2026.
+  Supersedes <code>PHASE2_SCOPE_AND_SCHEDULE.md</code> for scheduling; that document remains the
+  reference for delivered scope. Verified against <code>dev</code> at <code>56b38c1</code>, 331
+  migration files and production <code>sofanhfpxifgdtooefzq</code>.</p>
+</footer>
+
+</body>
+</html>
