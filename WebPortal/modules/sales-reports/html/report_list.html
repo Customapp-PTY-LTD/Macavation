@@ -94,8 +94,11 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="newReportPeriodDate" class="form-label">Date within period</label>
-                        <input type="text" class="form-control flatpickr-date" id="newReportPeriodDate" name="newReportPeriodDate" autocomplete="off" required>
+                        <label for="newReportPeriod" class="form-label">Period</label>
+                        <select class="form-select" id="newReportPeriod" name="newReportPeriod" required>
+                            <option value="">Loading periods...</option>
+                        </select>
+                        <div class="form-text" id="newReportPeriodRange"></div>
                     </div>
                     <div class="alert alert-warning d-none" id="newReportNoTemplateMsg">
                         No active report template exists for this report type yet.

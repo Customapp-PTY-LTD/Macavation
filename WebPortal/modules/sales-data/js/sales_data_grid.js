@@ -889,17 +889,27 @@ var _salesDataGrid = function () {
         return (periodType === 'monthly' ? 'Month of ' : 'Week of ') + start + ' \u2013 ' + end;
     }
 
+    // Point the period <select> at an already-resolved period start. Prev/next can walk back
+    // further than the list was built for; ensureIso extends the list back to reach that period
+    // while KEEPING the newer ones listed, so there is still a way forward in the dropdown.
+    // Without this, assigning an absent value silently blanks the select and the page would show
+    // a period the control itself denies is selected.
+    function syncPeriodSelect(start) {
+        var el = document.getElementById('salesDataPeriod');
+        if (!el || !MacPeriodPicker.isIso(start)) return;
+        var present = Array.prototype.some.call(el.options, function (o) { return o.value === start; });
+        if (!present) {
+            rebuildPeriodSelect(null, start);
+        }
+        el.value = start;
+    }
+
     function applyPeriod(start, end, label) {
         state.start = start;
         state.end = end;
         state.label = label || periodLabelFor(state.periodType, start, end);
         $('#salesDataPeriodLabel').text(state.label);
-        var el = document.getElementById('salesDataPeriodDate');
-        if (el) {
-            var ddmmyyyy = isoToPicker(start);
-            if (el._flatpickr) el._flatpickr.setDate(ddmmyyyy, false, 'd/m/Y');
-            else el.value = ddmmyyyy;
-        }
+        syncPeriodSelect(start);
         if (canEdit()) $('#salesDataReseedBtn').prop('disabled', false);
         // Changing the page period reseeds the ledger to that period's financial year. Pete can
         // narrow it again afterwards; this only decides where he starts from.
@@ -1041,13 +1051,18 @@ var _salesDataGrid = function () {
 
     function onPeriodTypeChanged() {
         state.periodType = $('input[name="salesDataPeriodType"]:checked').val() || 'weekly';
+        // Rebuild the list for the new type before resolving, so the options are never a week
+        // list while the page is loading a month. applyPeriod then selects the resolved period.
+        rebuildPeriodSelect(null);
         resolveThenRender(function () { return resolvePeriodFromCurrent(); });
     }
 
-    function onPeriodDateChanged() {
-        var el = document.getElementById('salesDataPeriodDate');
-        var iso = pickerDateToIso(el ? el.value : '');
-        if (!iso) return;
+    function onPeriodChanged() {
+        var iso = String($('#salesDataPeriod').val() || '');
+        if (!MacPeriodPicker.isIso(iso)) return;
+        // Still round-tripped through the server: this screen's rule is that every period
+        // boundary comes from report_normalise_period_start / report_period_end, and the select
+        // only supplies the anchor date it snaps.
         resolveThenRender(function () { return resolvePeriodFromDate(iso); });
     }
 
@@ -1069,15 +1084,23 @@ var _salesDataGrid = function () {
     // Event wiring — every binding namespaced ".salesData"; destroy() removes them all.
     // ------------------------------------------------------------------
 
-    function initFlatpickr() {
-        var el = document.getElementById('salesDataPeriodDate');
-        if (!el || typeof flatpickr === 'undefined' || el._flatpickr) return;
-        flatpickr(el, FLATPICKR_DDMMYYYY);
+    // Fills the period list for the current type. anchorIso null means "anchor on the current
+    // period per the browser's own date" — applyPeriod immediately corrects the selection to
+    // whatever the server resolved, so the browser date only decides how far the list reaches,
+    // never which period the page is actually showing. ensureIso, when given, makes the list
+    // reach back far enough to contain that period as well.
+    function rebuildPeriodSelect(anchorIso, ensureIso) {
+        MacPeriodPicker.fill(document.getElementById('salesDataPeriod'), {
+            periodType: state.periodType,
+            anchorIso: anchorIso,
+            selectedIso: ensureIso || anchorIso,
+            ensureIso: ensureIso || null
+        });
     }
 
     function bindEvents() {
         $(document).on('change.salesData', 'input[name="salesDataPeriodType"]', onPeriodTypeChanged);
-        $(document).on('change.salesData', '#salesDataPeriodDate', onPeriodDateChanged);
+        $(document).on('change.salesData', '#salesDataPeriod', onPeriodChanged);
         $(document).on('click.salesData', '#salesDataPeriodPrev', function () { goToPreviousPeriod(); });
         $(document).on('click.salesData', '#salesDataPeriodNext', function () { goToNextPeriod(); });
         $(document).on('click.salesData', '.js-sales-data-tab', function (e) {
@@ -1177,7 +1200,7 @@ var _salesDataGrid = function () {
             $('#salesDataPeriodWeekly').prop('checked', true);
             setSaveStatus('\u00a0');
             bindEvents();
-            initFlatpickr();
+            rebuildPeriodSelect(null);
             // Boot in two separately-caught steps. The old single .catch() covered the tab render
             // as well, so ANY failure on this page — a dropped request, a bad row, a slow network —
             // was reported to the user as "the report-builder migrations have not been applied",

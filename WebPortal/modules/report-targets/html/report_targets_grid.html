@@ -28,8 +28,11 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label for="targetsPeriodDate" class="form-label">Period</label>
-                        <input type="text" class="form-control flatpickr-date" id="targetsPeriodDate" autocomplete="off" placeholder="dd/mm/yyyy">
+                        <label for="targetsPeriod" class="form-label">Period</label>
+                        <select class="form-select" id="targetsPeriod">
+                            <option value="">Loading periods...</option>
+                        </select>
+                        <div class="form-text" id="targetsPeriodRange"></div>
                     </div>
                     <div class="col-md-3 d-flex gap-2">
                         <button type="button" class="btn btn-outline-secondary" id="refreshTargetsBtn">
@@ -140,8 +143,11 @@
                             <select class="form-select" id="addBaselineMetric" required></select>
                         </div>
                         <div class="mb-3">
-                            <label for="addBaselinePeriodDate" class="form-label">Date within period</label>
-                            <input type="text" class="form-control flatpickr-date" id="addBaselinePeriodDate" autocomplete="off" placeholder="dd/mm/yyyy" required>
+                            <label for="addBaselinePeriod" class="form-label">Period</label>
+                            <select class="form-select" id="addBaselinePeriod" required>
+                                <option value="">Loading periods...</option>
+                            </select>
+                            <div class="form-text" id="addBaselinePeriodRange"></div>
                         </div>
                         <div class="mb-3">
                             <label for="addBaselineValue" class="form-label">Achieved value</label>

@@ -18,10 +18,6 @@ var _reportListGrid = function () {
 
     var REPORT_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    // Local dd/mm/yyyy <-> Flatpickr config, matching the existing repo idiom
-    // (WebPortal/modules/modals/modal-stock-receiving-checklist/js/modal_receiving_checklist.js:9-17).
-    var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
-
     var state = {
         reports: [],
         totalCount: 0,
@@ -53,15 +49,6 @@ var _reportListGrid = function () {
 
     function isQueuedOffline(result) {
         return !!(result && result.offline === true && result.queued === true);
-    }
-
-    // Local dd/mm/yyyy -> yyyy-mm-dd by string split only. No Date arithmetic, no UTC conversion.
-    function pickerDateToIso(dateStr) {
-        var s = String(dateStr == null ? '' : dateStr).trim();
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-        if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) return null;
-        var p = s.split('/');
-        return p[2] + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0');
     }
 
     // Mirrors appRouter.js:137-138 exactly. The router only runs its own hasAccess gate when
@@ -240,53 +227,119 @@ var _reportListGrid = function () {
         return $('input[name="newReportPeriodType"]:checked').val() || 'weekly';
     }
 
-    function initFlatpickrForModal() {
-        var el = document.getElementById('newReportPeriodDate');
-        if (!el || typeof flatpickr === 'undefined' || el._flatpickr) return;
-        flatpickr(el, FLATPICKR_DDMMYYYY);
+    // The line under the period select: the exact days the chosen period covers, so which period
+    // is about to be created is visible BEFORE the click, not only in the duplicate error after it.
+    function refreshPeriodRangeHint() {
+        var iso = String($('#newReportPeriod').val() || '');
+        var text = iso ? MacPeriodPicker.rangeText(selectedNewReportPeriodType(), iso) : '';
+        $('#newReportPeriodRange').text(text);
     }
 
-    function refreshTemplateAvailability() {
+    // Period starts that already carry a live report for THIS template. create_report_instance
+    // rejects a duplicate on (template_id, period_start) where status <> 'superseded'
+    // (migrations/20260817100000_report_instances_and_targets.sql:417-424) — this matches that
+    // predicate exactly so the greyed-out options are the ones the database would actually refuse.
+    // Resolves to [] on failure: the worst case is an option that is not greyed out, and the
+    // database still blocks it with its own message. It must never block the dropdown itself.
+    function takenPeriodStarts(periodType, templateId) {
+        return dataFunctions.listReportInstances({ period_type: periodType, limit: 100 })
+            .then(function (result) {
+                var rows = Array.isArray(result) ? result : (result ? [result] : []);
+                return rows.filter(function (row) {
+                    return row && row.template_id === templateId &&
+                        String(row.status || '') !== 'superseded' && row.period_start;
+                }).map(function (row) {
+                    return String(row.period_start).slice(0, 10);
+                });
+            })
+            .catch(function (err) {
+                console.warn('[sales-reports] listReportInstances failed while marking taken periods', err);
+                return [];
+            });
+    }
+
+    // Distinct from null/undefined so a failed get_report_templates call is never confused with a
+    // successful one that found no active template. Object identity, not a string, so no RPC
+    // payload could ever collide with it.
+    var TEMPLATES_UNREACHABLE = {};
+
+    function noPeriodsAvailable(message) {
+        $('#newReportNoTemplateMsg').text(message).removeClass('d-none');
+        $('#createReportBtn').prop('disabled', true);
+        $('#newReportPeriod').empty().append($('<option>').attr('value', '').text('No periods available'));
+        refreshPeriodRangeHint();
+    }
+
+    // One pass: resolve the template, then the anchor period and the already-created periods, then
+    // build the dropdown. Chained rather than parallel because the taken-period lookup is per
+    // template and cannot start until the template id is known.
+    //
+    // Each step carries its OWN catch, and no catch spans a step it cannot explain. This module
+    // used to end the chain with a single catch claiming "the report-builder migrations have not
+    // been applied" — which would have reported a plain JS fault in the dropdown-building step as
+    // a fact about the deployment. sales_data_grid.js:1181-1186 records the same bug being fixed
+    // on that screen; it is not repeated here.
+    function refreshPeriodOptions() {
         var periodType = selectedNewReportPeriodType();
-        var $msg = $('#newReportNoTemplateMsg');
-        var $submit = $('#createReportBtn');
-        dataFunctions.getReportTemplates(periodType).then(function (result) {
+
+        return dataFunctions.getReportTemplates(periodType).then(function (result) {
             var rows = Array.isArray(result) ? result : (result ? [result] : []);
             modalState.templateId = rows.length && rows[0] && rows[0].id ? rows[0].id : null;
-            if (modalState.templateId) {
-                $msg.addClass('d-none');
-                $submit.prop('disabled', false);
-            } else {
-                $msg.text('No active report template exists for this report type yet.').removeClass('d-none');
-                $submit.prop('disabled', true);
-            }
+            return modalState.templateId;
         }).catch(function (err) {
+            // Only the template RPC is covered here, so this message is only ever said about a
+            // failure of that RPC — the one thing that does mean the migrations are missing.
+            // TEMPLATES_UNREACHABLE, not null: the step below must tell "the RPC failed" apart
+            // from "the RPC answered and there is no active template", which read the same as a
+            // falsy template id and are two different things to tell the user.
             console.warn('[sales-reports] getReportTemplates failed', err);
             modalState.templateId = null;
-            $msg.text('Reports are not available yet. The report-builder migrations have not been applied to this database.').removeClass('d-none');
-            $submit.prop('disabled', true);
-        });
-    }
-
-    function refreshDefaultDate() {
-        var periodType = selectedNewReportPeriodType();
-        dataFunctions.getReportCurrentPeriod(periodType).then(function (result) {
-            // get_report_current_period returns no rows for an unknown period type — treat an
-            // empty result as "no default date" and leave the field as the user set it.
-            var row = firstRpcRow(result);
-            var iso = row && row.period_start ? String(row.period_start).slice(0, 10) : null;
-            if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-                var parts = iso.split('-');
-                var ddmmyyyy = parts[2] + '/' + parts[1] + '/' + parts[0];
-                var el = document.getElementById('newReportPeriodDate');
-                if (el) {
-                    if (el._flatpickr) el._flatpickr.setDate(ddmmyyyy, false, 'd/m/Y');
-                    else el.value = ddmmyyyy;
-                }
+            return TEMPLATES_UNREACHABLE;
+        }).then(function (templateId) {
+            if (templateId === TEMPLATES_UNREACHABLE) {
+                noPeriodsAvailable('Reports are not available yet. The report-builder migrations have not been applied to this database.');
+                return;
             }
-        }).catch(function (err) {
-            console.warn('[sales-reports] getReportCurrentPeriod failed', err);
-            // Leave the field as-is; the modal still opens.
+            if (!templateId) {
+                noPeriodsAvailable('No active report template exists for this report type yet.');
+                return;
+            }
+            $('#newReportNoTemplateMsg').addClass('d-none');
+
+            // The anchor decides which period counts as "current". It comes from the database
+            // because get_report_current_period is SAST-correct; a failure falls back to the
+            // browser's own date rather than leaving the dropdown empty.
+            return Promise.all([
+                dataFunctions.getReportCurrentPeriod(periodType).then(function (cur) {
+                    var row = firstRpcRow(cur);
+                    return row && row.period_start ? String(row.period_start).slice(0, 10) : null;
+                }).catch(function (err) {
+                    console.warn('[sales-reports] getReportCurrentPeriod failed; using the browser date', err);
+                    return null;
+                }),
+                takenPeriodStarts(periodType, templateId)
+            ]).then(function (parts) {
+                var selected = MacPeriodPicker.fill(document.getElementById('newReportPeriod'), {
+                    periodType: periodType,
+                    anchorIso: parts[0],
+                    taken: parts[1],
+                    takenSuffix: ' — already created'
+                });
+                // Every offered period already has a report: there is nothing to create, so say
+                // that instead of letting Create fail on a disabled option.
+                if (!selected) {
+                    $('#newReportNoTemplateMsg')
+                        .text('Every recent ' + periodType + ' period already has a report. Delete or supersede one first.')
+                        .removeClass('d-none');
+                }
+                $('#createReportBtn').prop('disabled', !selected);
+                refreshPeriodRangeHint();
+            }).catch(function (err) {
+                // A fault in building the dropdown itself. Says what it is, and does NOT blame
+                // the database — the RPCs above already answered by this point.
+                console.warn('[sales-reports] could not build the period list', err);
+                noPeriodsAvailable('The period list could not be built. Reload the page and try again.');
+            });
         });
     }
 
@@ -295,6 +348,9 @@ var _reportListGrid = function () {
         if (form) form.reset();
         $('#newReportPeriodTypeWeekly').prop('checked', true);
         $('#newReportNoTemplateMsg').addClass('d-none').text('No active report template exists for this report type yet.');
+        // form.reset() restores the select's markup default, which is the "Loading periods..."
+        // placeholder; the range hint has no markup default, so clear it explicitly.
+        $('#newReportPeriodRange').text('');
         modalState.templateId = null;
         var modalEl = document.getElementById('newReportModal');
         if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -318,10 +374,12 @@ var _reportListGrid = function () {
             return;
         }
         if (!modalState.templateId) return; // submit is disabled in this case; defensive guard.
-        var dateEl = document.getElementById('newReportPeriodDate');
-        var iso = pickerDateToIso(dateEl ? dateEl.value : '');
-        if (!iso) {
-            Swal.fire({ icon: 'error', title: 'Invalid date', text: 'Enter a valid date (dd/mm/yyyy) within the reporting period.' });
+        // The select's value is already a canonical period start (yyyy-mm-dd, snapped by
+        // MacPeriodPicker to the same day report_normalise_period_start would). Validated rather
+        // than trusted: an empty or placeholder value must not reach the RPC as a date.
+        var iso = String($('#newReportPeriod').val() || '');
+        if (!MacPeriodPicker.isIso(iso)) {
+            Swal.fire({ icon: 'error', title: 'No period selected', text: 'Choose the period this report covers.' });
             return;
         }
         var $btn = $('#createReportBtn');
@@ -436,13 +494,13 @@ var _reportListGrid = function () {
             confirmDeleteReport(String($(this).data('report-id') || ''));
         });
         $(document).on('change.salesReports', 'input[name="newReportPeriodType"]', function () {
-            refreshTemplateAvailability();
-            refreshDefaultDate();
+            refreshPeriodOptions();
+        });
+        $(document).on('change.salesReports', '#newReportPeriod', function () {
+            refreshPeriodRangeHint();
         });
         $(document).on('shown.bs.modal.salesReports', '#newReportModal', function () {
-            initFlatpickrForModal();
-            refreshTemplateAvailability();
-            refreshDefaultDate();
+            refreshPeriodOptions();
         });
         $(document).on('click.salesReports', '#createReportBtn', function () {
             handleCreateReport();
