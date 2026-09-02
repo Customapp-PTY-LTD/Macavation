@@ -903,7 +903,12 @@ var _salesDataGrid = function () {
         if (canEdit()) $('#salesDataReseedBtn').prop('disabled', false);
         // Changing the page period reseeds the ledger to that period's financial year. Pete can
         // narrow it again afterwards; this only decides where he starts from.
-        var fyRange = fyRangeFor(start);
+        // SalesDataRowGrid.fyRangeFor, not a bare fyRangeFor — it is defined inside
+        // sales-data-row-grid.js's IIFE and reaches this file only through that namespace, exactly
+        // as line 478 already calls it. Unqualified, it threw ReferenceError on EVERY page load:
+        // applyPeriod runs during boot, so the rejection landed in handlePeriodResolutionFailure,
+        // which blanked the tab and re-disabled "Refresh from factory" — the page never worked.
+        var fyRange = SalesDataRowGrid.fyRangeFor(start);
         Object.keys(state.ledgers).forEach(function (k) {
             state.ledgers[k].from = fyRange ? fyRange.from : start;
             state.ledgers[k].to = fyRange ? fyRange.to : end;
