@@ -21,8 +21,6 @@
 var _reportTargetsGrid = (function () {
     'use strict';
 
-    var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
-
     var state = {
         activeTab: 'targets',
         targets: {
@@ -64,34 +62,46 @@ var _reportTargetsGrid = (function () {
         return typeof hasAction === 'function' && hasAction('reports.target.edit');
     }
 
-    // Local dd/mm/yyyy -> yyyy-mm-dd by string split only. No Date arithmetic, no UTC conversion
-    // (matches WebPortal/modules/sales-reports/js/report_list_grid.js:59-65 exactly).
-    function pickerDateToIso(dateStr) {
-        var s = String(dateStr == null ? '' : dateStr).trim();
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-        if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) return null;
-        var p = s.split('/');
-        return p[2] + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0');
+    // Populate a period <select> (MacPeriodPicker, js/report-period-picker.js) and write the
+    // day range it covers into its hint line. Nothing here is greyed out: unlike a report, a
+    // target or a prior-period actual can legitimately be revisited for a period that already
+    // has one — the RPCs upsert rather than reject.
+    //
+    // The anchor comes from get_report_current_period because that RPC is SAST-correct; a
+    // failure falls back to the browser's own date so the dropdown still populates.
+    function fillPeriodSelect(selectElId, rangeElId, periodType, selectedIso) {
+        return dataFunctions.getReportCurrentPeriod(periodType).then(function (result) {
+            var row = firstRpcRow(result);
+            return row && row.period_start ? String(row.period_start).slice(0, 10) : null;
+        }).catch(function (err) {
+            console.warn('[report-targets] getReportCurrentPeriod failed; using the browser date', err);
+            return null;
+        }).then(function (anchorIso) {
+            var chosen = MacPeriodPicker.fill(document.getElementById(selectElId), {
+                periodType: periodType,
+                anchorIso: anchorIso,
+                selectedIso: selectedIso || null,
+                // Keeps a period the user was already on even when switching type lands it
+                // outside the default window, instead of silently jumping back to this week.
+                ensureIso: selectedIso || null
+            });
+            refreshPeriodRangeHint(selectElId, rangeElId, periodType);
+            return chosen;
+        }).catch(function (err) {
+            // Resolves rather than rejects: both callers chain loadTargets/loadBaselines off this
+            // promise, and a rejection here would leave the grid stuck on its loading row with
+            // nothing said. The empty option makes the failure visible in the control itself.
+            console.warn('[report-targets] could not build the period list', err);
+            $('#' + selectElId).empty()
+                .append($('<option>').attr('value', '').text('Period list unavailable — reload the page'));
+            $('#' + rangeElId).text('');
+            return '';
+        });
     }
 
-    function isoToDdMmYyyy(iso) {
-        if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
-        var parts = iso.split('-');
-        return parts[2] + '/' + parts[1] + '/' + parts[0];
-    }
-
-    function setFlatpickrValue(elId, iso) {
-        var el = document.getElementById(elId);
-        var ddmmyyyy = isoToDdMmYyyy(iso);
-        if (!el || !ddmmyyyy) return;
-        if (el._flatpickr) el._flatpickr.setDate(ddmmyyyy, false, 'd/m/Y');
-        else el.value = ddmmyyyy;
-    }
-
-    function initFlatpickrFor(elId) {
-        var el = document.getElementById(elId);
-        if (!el || typeof flatpickr === 'undefined' || el._flatpickr) return;
-        flatpickr(el, FLATPICKR_DDMMYYYY);
+    function refreshPeriodRangeHint(selectElId, rangeElId, periodType) {
+        var iso = String($('#' + selectElId).val() || '');
+        $('#' + rangeElId).text(iso ? MacPeriodPicker.rangeText(periodType, iso) : '');
     }
 
     // ------------------------------------------------------------------
@@ -121,19 +131,17 @@ var _reportTargetsGrid = (function () {
     }
 
     function currentTargetsPeriodIso() {
-        var el = document.getElementById('targetsPeriodDate');
-        return pickerDateToIso(el ? el.value : '');
+        var iso = String($('#targetsPeriod').val() || '');
+        return MacPeriodPicker.isIso(iso) ? iso : null;
     }
 
-    function refreshDefaultTargetsPeriodDate() {
+    // Repopulates the period list for the selected type. Keeps the period the user was already
+    // on if it survives the switch to the new type — the equivalent week of the month they were
+    // looking at, snapped — rather than jumping back to today.
+    function refreshTargetsPeriodOptions() {
         var periodType = currentTargetsPeriodType();
-        return dataFunctions.getReportCurrentPeriod(periodType).then(function (result) {
-            var row = firstRpcRow(result);
-            var iso = row && row.period_start ? String(row.period_start).slice(0, 10) : null;
-            if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) setFlatpickrValue('targetsPeriodDate', iso);
-        }).catch(function (err) {
-            console.warn('[report-targets] getReportCurrentPeriod failed', err);
-        });
+        var keep = MacPeriodPicker.normalise(periodType, currentTargetsPeriodIso());
+        return fillPeriodSelect('targetsPeriod', 'targetsPeriodRange', periodType, keep);
     }
 
     function targetRowHtml(row) {
@@ -228,16 +236,27 @@ var _reportTargetsGrid = (function () {
         Swal.fire({
             title: 'Copy targets from which period?',
             html: '<div class="text-start">' +
-                '<label class="form-label">Any date within the source period</label>' +
-                '<input id="copyTargetsFromDate" type="date" class="form-control">' +
+                '<label class="form-label" for="copyTargetsFromPeriod">Source period</label>' +
+                '<select id="copyTargetsFromPeriod" class="form-select"></select>' +
                 '</div>',
             showCancelButton: true,
             confirmButtonText: 'Copy',
+            // Populated in didOpen rather than inlined into the html string: MacPeriodPicker.fill
+            // sets each option with textContent, so no label can carry markup into the dialog.
+            // The destination period is excluded — copying a period onto itself does nothing.
+            didOpen: function () {
+                MacPeriodPicker.fill(document.getElementById('copyTargetsFromPeriod'), {
+                    periodType: periodType,
+                    anchorIso: toIso,
+                    taken: [toIso],
+                    takenSuffix: ' — this is the destination'
+                });
+            },
             preConfirm: function () {
-                var el = document.getElementById('copyTargetsFromDate');
+                var el = document.getElementById('copyTargetsFromPeriod');
                 var iso = el ? el.value : '';
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-                    Swal.showValidationMessage('Pick a source date.');
+                if (!MacPeriodPicker.isIso(iso)) {
+                    Swal.showValidationMessage('Pick a source period.');
                     return false;
                 }
                 return iso;
@@ -398,8 +417,7 @@ var _reportTargetsGrid = (function () {
         }
         var metricKey = $('#addBaselineMetric').val();
         var periodType = currentBaselinesPeriodType();
-        var dateEl = document.getElementById('addBaselinePeriodDate');
-        var iso = pickerDateToIso(dateEl ? dateEl.value : '');
+        var iso = String($('#addBaselinePeriod').val() || '');
         var value = $('#addBaselineValue').val();
         var notes = ($('#addBaselineNotes').val() || '').trim() || null;
 
@@ -407,8 +425,8 @@ var _reportTargetsGrid = (function () {
             Swal.fire({ icon: 'error', text: 'Pick a metric.' });
             return;
         }
-        if (!iso) {
-            Swal.fire({ icon: 'error', text: 'Enter a valid date (dd/mm/yyyy).' });
+        if (!MacPeriodPicker.isIso(iso)) {
+            Swal.fire({ icon: 'error', text: 'Choose the period this actual belongs to.' });
             return;
         }
         if (value === '' || value === null || !Number.isFinite(Number(value))) {
@@ -445,9 +463,12 @@ var _reportTargetsGrid = (function () {
 
         $(document).on('click.reportTargets', '#refreshTargetsBtn', function () { loadTargets(true); });
         $(document).on('change.reportTargets', '#targetsPeriodType', function () {
-            refreshDefaultTargetsPeriodDate().then(function () { loadTargets(false); });
+            refreshTargetsPeriodOptions().then(function () { loadTargets(false); });
         });
-        $(document).on('change.reportTargets', '#targetsPeriodDate', function () { loadTargets(false); });
+        $(document).on('change.reportTargets', '#targetsPeriod', function () {
+            refreshPeriodRangeHint('targetsPeriod', 'targetsPeriodRange', currentTargetsPeriodType());
+            loadTargets(false);
+        });
         $(document).on('click.reportTargets', '.js-save-target', function () {
             saveTargetRow($(this).closest('tr'));
         });
@@ -467,7 +488,12 @@ var _reportTargetsGrid = (function () {
             openAddBaselineModal();
         });
         $(document).on('shown.bs.modal.reportTargets', '#addBaselineModal', function () {
-            initFlatpickrFor('addBaselinePeriodDate');
+            // The modal has no period type of its own: a prior-period actual is filed against
+            // whichever type the tab is showing, exactly as handleSaveNewBaseline reads it.
+            fillPeriodSelect('addBaselinePeriod', 'addBaselinePeriodRange', currentBaselinesPeriodType());
+        });
+        $(document).on('change.reportTargets', '#addBaselinePeriod', function () {
+            refreshPeriodRangeHint('addBaselinePeriod', 'addBaselinePeriodRange', currentBaselinesPeriodType());
         });
         $(document).on('click.reportTargets', '#saveBaselineBtn', function () { handleSaveNewBaseline(); });
     }
@@ -477,12 +503,11 @@ var _reportTargetsGrid = (function () {
             _reportTargetsGrid.destroy();
             state.activeTab = 'targets';
             bindEvents();
-            initFlatpickrFor('targetsPeriodDate');
             $('.report-targets-tab-pane').addClass('d-none');
             $('#reportTargets-targets-pane').removeClass('d-none');
             $('#reportTargetsTabs .nav-link').removeClass('active');
             $('#reportTargetsTabs .nav-link[data-tab="targets"]').addClass('active');
-            refreshDefaultTargetsPeriodDate().then(function () { loadTargets(false); });
+            refreshTargetsPeriodOptions().then(function () { loadTargets(false); });
         },
 
         destroy: function () {
