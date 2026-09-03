@@ -535,6 +535,307 @@ check('data-functions sends the session token and posts to whatsapp-enrol-staff'
 });
 
 // ================================================================================================
+// Latest report + alert acknowledgement
+//
+// Same doctrine as everything above: each PURE helper gets a literal-presence assertion plus a
+// re-declared plain-JS copy the behavioural cases run against. The impure parts (the RPC calls in
+// the `report` resolve closure, commandAck and the ACK_ALERT staged handler) get textual
+// assertions only.
+// ================================================================================================
+
+/**
+ * The source of one top-level function, from its declaration to the first line-start `}`.
+ * The same idiom already used inline at :347-348 and :361-362, named so the checks below can
+ * scope an assertion to ONE function instead of the whole file — which matters: this file
+ * legitimately contains `.supabase.co` literals that a whole-file assertion would trip over.
+ */
+function fnBody(source, declaration) {
+  const at = source.indexOf(declaration);
+  assert.ok(at !== -1, `could not find ${declaration}`);
+  const fn = source.slice(at);
+  const end = fn.indexOf('\n}\n');
+  return fn.slice(0, end === -1 ? fn.length : end);
+}
+
+const SHORT_DATE_LITERAL = block([
+  'function shortDate(v: unknown): string {',
+  "  if (v === null || v === undefined || v === '') return '—';",
+  '  const d = new Date(String(v));',
+  "  if (Number.isNaN(d.getTime())) return '—';",
+  "  return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });",
+  '}',
+]);
+
+check('presence: whatsapp-inbound shortDate', () => {
+  assertPresent(inboundSrc, REL_INBOUND, 'shortDate', SHORT_DATE_LITERAL);
+});
+
+// Identical plain-JS copy of the block asserted above.
+function shortDateCopy(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  const d = new Date(String(v));
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+check('shortDate: an absent or unparseable date is an em dash, never "Invalid Date"', () => {
+  assert.equal(shortDateCopy(null), '—');
+  assert.equal(shortDateCopy(undefined), '—');
+  assert.equal(shortDateCopy(''), '—');
+  assert.equal(shortDateCopy('not a date'), '—');
+  assert.ok(!shortDateCopy('2026-09-03T10:00:00Z').includes('Invalid'));
+});
+
+// ---- formatOpenAlerts -------------------------------------------------------------------------
+
+const ALERTS_LITERAL = block([
+  'function formatOpenAlerts(d: Any, canAck: boolean): string {',
+  '  const alerts: Any[] = Array.isArray(d?.open_alerts) ? d.open_alerts : [];',
+  "  if (alerts.length === 0) return '*Open alerts*\\n\\nNothing open. ✅';",
+]);
+
+check('presence: whatsapp-inbound formatOpenAlerts', () => {
+  assertPresent(inboundSrc, REL_INBOUND, 'formatOpenAlerts', ALERTS_LITERAL);
+});
+
+const ALERT_LIST_MAX_COPY = (() => {
+  const m = inboundSrc.match(/const ALERT_LIST_MAX = (\d+);/);
+  assert.ok(m, 'could not read ALERT_LIST_MAX from whatsapp-inbound');
+  return Number(m[1]);
+})();
+
+// Identical plain-JS copy of the function asserted above.
+function formatOpenAlertsCopy(d, canAck) {
+  const alerts = Array.isArray(d?.open_alerts) ? d.open_alerts : [];
+  if (alerts.length === 0) return '*Open alerts*\n\nNothing open. ✅';
+  const shown = alerts.slice(0, ALERT_LIST_MAX_COPY);
+  const lines = shown.map((a, i) => `${i + 1}. ${String(a?.title ?? 'Untitled')} (${String(a?.severity ?? '—')})`);
+  const more = alerts.length > shown.length ? `\n\n…and ${alerts.length - shown.length} more.` : '';
+  const ack = canAck ? '\n\nReply ACK <number> to acknowledge one.' : '';
+  return `*Open alerts · ${alerts.length}*\n\n${lines.join('\n')}${more}${ack}`;
+}
+
+const alertsPayload = (n) => ({
+  open_alerts: Array.from({ length: n }, (_, i) => ({
+    id: `id-${i}`,
+    title: `Alert ${i}`,
+    severity: 'warning',
+  })),
+});
+
+check('formatOpenAlerts: entries are NUMBERED, because ACK <n> resolves by position', () => {
+  const out = formatOpenAlertsCopy(alertsPayload(3), true);
+  assert.ok(out.includes('1. Alert 0'), out);
+  assert.ok(out.includes('2. Alert 1'), out);
+  assert.ok(out.includes('3. Alert 2'), out);
+});
+
+check('formatOpenAlerts: empty list keeps the all-clear wording and offers no ACK', () => {
+  const out = formatOpenAlertsCopy({ open_alerts: [] }, true);
+  assert.equal(out, '*Open alerts*\n\nNothing open. ✅');
+  assert.ok(!out.includes('ACK'));
+});
+
+check('formatOpenAlerts: caps the transcript and says how many were held back', () => {
+  const out = formatOpenAlertsCopy(alertsPayload(ALERT_LIST_MAX_COPY + 2), false);
+  assert.ok(out.includes(`…and 2 more.`), out);
+  assert.ok(!out.includes(`${ALERT_LIST_MAX_COPY + 1}. Alert`), 'listed past the cap');
+});
+
+check('formatOpenAlerts: the ACK invitation appears ONLY for someone who may resolve', () => {
+  assert.ok(formatOpenAlertsCopy(alertsPayload(2), true).includes('Reply ACK <number>'));
+  assert.ok(!formatOpenAlertsCopy(alertsPayload(2), false).includes('Reply ACK'));
+});
+
+check('formatOpenAlerts: a missing title or severity never renders undefined', () => {
+  const out = formatOpenAlertsCopy({ open_alerts: [{ id: 'x' }] }, false);
+  assert.ok(!out.includes('undefined'), out);
+  assert.ok(out.includes('Untitled'), out);
+});
+
+// ---- buildReportUrl ---------------------------------------------------------------------------
+
+check('buildReportUrl: the host comes from SUPABASE_URL, never a hardcoded domain', () => {
+  const body = fnBody(inboundSrc, 'function buildReportUrl');
+  assert.ok(
+    body.includes("Deno.env.get('SUPABASE_URL')"),
+    'buildReportUrl must read SUPABASE_URL at runtime'
+  );
+  // Scoped to THIS function on purpose. The file legitimately contains .supabase.co literals at
+  // its deployment doc comment and at CONTROL_ROOM_BASE_URL — asserting over the whole file would
+  // fail immediately and invite deleting the send gateway to make it pass.
+  assert.ok(!/https?:\/\//.test(body), `buildReportUrl must contain no literal URL:\n${body}`);
+});
+
+check('CONTROL_ROOM_BASE_URL is still present — every outbound reply depends on it', () => {
+  assert.ok(
+    inboundSrc.includes(
+      "const CONTROL_ROOM_BASE_URL = 'https://ejnncypummmvyojhovme.supabase.co/functions/v1';"
+    ),
+    'CONTROL_ROOM_BASE_URL was changed or removed — the function can no longer send anything'
+  );
+});
+
+// ---- formatLatestReportReply ------------------------------------------------------------------
+
+const REPORT_REPLY_LITERAL = block([
+  'function formatLatestReportReply(res: Any, displayName: string, url: string | null): string {',
+]);
+
+check('presence: whatsapp-inbound formatLatestReportReply', () => {
+  assertPresent(inboundSrc, REL_INBOUND, 'formatLatestReportReply', REPORT_REPLY_LITERAL);
+});
+
+// Identical plain-JS copy of the function asserted above.
+function formatLatestReportReplyCopy(res, displayName, url) {
+  if (res === 'error' || (res && res.found !== true && res.error)) {
+    return `*Latest report*\n\nSorry ${displayName}, I could not fetch your report just now. Please try again shortly.`;
+  }
+  if (!res || res.found !== true || !url) {
+    return `*Latest report*\n\nThere is no published report on your number yet. Once one is sent to you, you can fetch it here.`;
+  }
+  return (
+    `*Latest report*\n\n` +
+    `${String(res.period_label ?? 'Latest period')}\n` +
+    `Published ${shortDateCopy(res.published_at)}\n\n` +
+    `Open the full report:\n${url}\n\n` +
+    `This link works until ${shortDateCopy(res.expires_at)}.`
+  );
+}
+
+const foundReport = {
+  found: true,
+  period_label: 'August 2026',
+  published_at: '2026-09-01T08:00:00Z',
+  expires_at: '2026-09-08T08:00:00Z',
+  link_code: '8ZQK4M',
+};
+
+check('formatLatestReportReply: nothing sent to this number yields no link at all', () => {
+  const out = formatLatestReportReplyCopy({ found: false }, 'Pete', null);
+  assert.ok(out.includes('no published report on your number'), out);
+  assert.ok(!out.includes('http'), out);
+});
+
+check('formatLatestReportReply: the link sits ALONE on its line so WhatsApp linkifies it', () => {
+  const url = 'https://example.supabase.co/functions/v1/r/8ZQK4M';
+  const out = formatLatestReportReplyCopy(foundReport, 'Pete', url);
+  assert.ok(out.split('\n').includes(url), `link is not on its own line:\n${out}`);
+});
+
+check('formatLatestReportReply: the expiry is the RPC\'s, not a hardcoded "7 days"', () => {
+  const out = formatLatestReportReplyCopy(foundReport, 'Pete', 'https://x/r/c');
+  assert.ok(!out.includes('7 days'), out);
+  assert.ok(out.includes(shortDateCopy(foundReport.expires_at)), out);
+});
+
+check('formatLatestReportReply: never claims a publisher — the payload has none', () => {
+  const out = formatLatestReportReplyCopy(foundReport, 'Pete', 'https://x/r/c');
+  assert.ok(!/published by/i.test(out), `must not name a publisher:\n${out}`);
+  assert.ok(out.includes('August 2026'), out);
+});
+
+check('formatLatestReportReply: absent optional fields never render undefined or null', () => {
+  const out = formatLatestReportReplyCopy({ found: true }, 'Pete', 'https://x/r/c');
+  assert.ok(!out.includes('undefined') && !out.includes('null'), out);
+  assert.ok(out.includes('https://x/r/c'), out);
+});
+
+check('formatLatestReportReply: an RPC failure says try again, and leaks nothing', () => {
+  const out = formatLatestReportReplyCopy('error', 'Pete', null);
+  assert.ok(out.includes('could not fetch your report'), out);
+  assert.ok(!out.includes('http'), out);
+});
+
+// ---- the impure parts: textual assertions only --------------------------------------------------
+
+check('every menu item declares exactly one of render or resolve', () => {
+  // renderMenuItem calls item.render! for anything without a resolve, so an item with neither
+  // would throw at dispatch and the member would get the generic error.
+  const entries = inboundSrc.split(/\n  \{\n/).slice(1);
+  for (const e of entries) {
+    const m = e.match(/action: '([^']+)'/);
+    if (!m) continue;
+    const hasRender = /\n    render:/.test(e);
+    const hasResolve = /\n    resolve:/.test(e);
+    assert.ok(
+      hasRender !== hasResolve,
+      `menu item '${m[1]}' must declare exactly one of render/resolve (render=${hasRender}, resolve=${hasResolve})`
+    );
+  }
+});
+
+check('a resolve item never consults the digest', () => {
+  const body = fnBody(inboundSrc, 'async function renderMenuItem');
+  const resolveIdx = body.indexOf('if (item.resolve)');
+  const digestIdx = body.indexOf("rpc('get_daily_digest')");
+  assert.ok(resolveIdx !== -1, 'renderMenuItem must short-circuit resolve items');
+  assert.ok(
+    resolveIdx < digestIdx,
+    'the resolve branch must return BEFORE the digest is fetched, or a broken digest makes the ' +
+      'latest-report item report a failure that has nothing to do with it'
+  );
+});
+
+check('the report resolver passes the SENDER\'s phone, never one from the message', () => {
+  const idx = inboundSrc.indexOf("action: 'report'");
+  assert.ok(idx !== -1, "the 'report' menu item is missing");
+  const seg = inboundSrc.slice(idx, idx + 2000);
+  assert.ok(seg.includes('get_latest_published_report_for_phone'), 'must call the scoped RPC');
+  assert.ok(seg.includes('p_phone: ctx.phone'), 'must pass ctx.phone');
+});
+
+check('commandAck checks alerts.resolve BEFORE it stages anything', () => {
+  const body = fnBody(inboundSrc, 'async function commandAck');
+  const permIdx = body.indexOf("'alerts.resolve'");
+  const stageIdx = body.indexOf("rpc('whatsapp_stage_pending_command'");
+  assert.ok(permIdx !== -1 && stageIdx !== -1, 'commandAck must check the action key and stage');
+  assert.ok(permIdx < stageIdx, 'the permission check must come first');
+});
+
+check('commandAck reads alerts through the digest, not straight off the table', () => {
+  const body = fnBody(inboundSrc, 'async function commandAck');
+  assert.ok(body.includes("rpc('get_daily_digest')"), 'must read via get_daily_digest');
+  assert.ok(
+    !body.includes("from('dashboard_alerts')"),
+    'must not query dashboard_alerts directly — that is a second, drifting definition of "open"'
+  );
+});
+
+check('commandAck stages but does NOT take — taking is the YES handler\'s job', () => {
+  const body = fnBody(inboundSrc, 'async function commandAck');
+  assert.ok(
+    !body.includes('whatsapp_take_pending_command'),
+    'taking here would destroy the pending record before it could be confirmed'
+  );
+});
+
+check('ACK_ALERT is registered and re-checks the permission before it writes', () => {
+  const mapIdx = inboundSrc.indexOf('const STAGED_COMMAND_HANDLERS');
+  const idx = inboundSrc.indexOf('ACK_ALERT: async (ctx, staged)');
+  assert.ok(mapIdx !== -1, 'STAGED_COMMAND_HANDLERS not found');
+  assert.ok(idx !== -1, 'ACK_ALERT handler not found');
+  assert.ok(
+    idx > mapIdx,
+    'ACK_ALERT must be registered INSIDE STAGED_COMMAND_HANDLERS — YES dispatches through that map'
+  );
+  const seg = inboundSrc.slice(idx, idx + 3000);
+  const permIdx = seg.indexOf("'alerts.resolve'");
+  const writeIdx = seg.indexOf("rpc('resolve_dashboard_alert'");
+  assert.ok(permIdx !== -1 && writeIdx !== -1, 'must check the key and call the resolve RPC');
+  assert.ok(
+    permIdx < writeIdx,
+    'a staged command is confirmed later and the role may have changed — re-check before writing'
+  );
+});
+
+check('hasAction fails closed', () => {
+  const body = fnBody(inboundSrc, 'async function hasAction');
+  assert.ok(body.includes('return false;'), 'must return false on error');
+  assert.ok(body.includes('data === true'), 'must require an explicit true');
+});
+
+// ================================================================================================
 // Report
 // ================================================================================================
 
