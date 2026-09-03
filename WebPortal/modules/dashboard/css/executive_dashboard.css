@@ -132,3 +132,47 @@
    !important is deliberate: it must win over any Bootstrap display utility that could
    land on the same element (see the plan's "Visibility is a module-owned class" note). */
 .exec-hidden { display: none !important; }
+
+/* Executive dashboard stat-tile strip (plan exec-dash-03b) — chip + sparkline + click-to-filter
+   on the three flow tiles (cracked/packed/dispatched today). */
+
+.exec-tile-value { font-variant-numeric: tabular-nums; }
+
+.exec-tile-btn {
+    display: block;
+    cursor: pointer;
+}
+
+.exec-tile-btn:focus-visible {
+    outline: 2px solid var(--mac-info);
+    outline-offset: 2px;
+    border-radius: var(--mac-radius-sm);
+}
+
+.exec-tile-btn[aria-pressed="true"] {
+    box-shadow: var(--mac-shadow-card);
+    border-radius: var(--mac-radius-sm);
+}
+
+.exec-tile-chip {
+    display: inline-block;
+    min-height: 1.1em;
+    margin-top: var(--mac-space-xs);
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    color: var(--mac-text-tertiary);
+}
+
+.exec-tile-chip--up { color: var(--mac-success); }
+.exec-tile-chip--down { color: var(--mac-danger); }
+
+.exec-tile-spark {
+    margin-top: var(--mac-space-xs);
+    height: 30px;
+}
+
+.exec-tile-spark-svg {
+    width: 100%;
+    height: 30px;
+    display: block;
+}

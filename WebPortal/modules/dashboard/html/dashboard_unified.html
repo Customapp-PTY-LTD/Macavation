@@ -348,43 +348,49 @@
             <div class="collapse show" id="execKernelOpsCollapse">
             <div class="card-body pt-3">
         <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesInProduction">
-                <div class="card h-100 border-primary">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Kernel batches in production</h6>
-                        <h3 class="mb-0" id="execStatBatchesInProduction">—</h3>
-                    </div>
-                </div>
-            </div>
             <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgCrackedToday">
                 <div class="card h-100 border-success">
-                    <div class="card-body text-center">
+                    <button type="button" class="card-body text-center exec-tile-btn w-100 border-0 bg-transparent" data-metric="kg_cracked" aria-pressed="false">
                         <h6 class="text-muted text-uppercase small mb-1">Kg cracked today</h6>
-                        <h3 class="mb-0" id="execStatKgCrackedToday">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgCrackedWeek">
-                <div class="card h-100 border-info">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Kg cracked this week</h6>
-                        <h3 class="mb-0" id="execStatKgCrackedWeek">—</h3>
-                    </div>
+                        <h3 class="mb-0 exec-tile-value" id="execStatKgCrackedToday">—</h3>
+                        <div class="exec-tile-chip" id="execStatKgCrackedTodayChip" aria-live="polite"></div>
+                        <div class="exec-tile-spark" id="execStatKgCrackedTodaySpark" aria-hidden="true"></div>
+                    </button>
                 </div>
             </div>
             <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgPackedToday">
                 <div class="card h-100 border-warning">
-                    <div class="card-body text-center">
+                    <button type="button" class="card-body text-center exec-tile-btn w-100 border-0 bg-transparent" data-metric="kg_packed" aria-pressed="false">
                         <h6 class="text-muted text-uppercase small mb-1">Kg packed today</h6>
-                        <h3 class="mb-0" id="execStatKgPackedToday">—</h3>
+                        <h3 class="mb-0 exec-tile-value" id="execStatKgPackedToday">—</h3>
+                        <div class="exec-tile-chip" id="execStatKgPackedTodayChip" aria-live="polite"></div>
+                        <div class="exec-tile-spark" id="execStatKgPackedTodaySpark" aria-hidden="true"></div>
+                    </button>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg">
+                <div class="card h-100 border-info">
+                    <button type="button" class="card-body text-center exec-tile-btn w-100 border-0 bg-transparent" data-metric="kg_dispatched" aria-pressed="false">
+                        <h6 class="text-muted text-uppercase small mb-1">Kg dispatched today</h6>
+                        <h3 class="mb-0 exec-tile-value" id="execStatKgDispatchedToday">—</h3>
+                        <div class="exec-tile-chip" id="execStatKgDispatchedTodayChip" aria-live="polite"></div>
+                        <div class="exec-tile-spark" id="execStatKgDispatchedTodaySpark" aria-hidden="true"></div>
+                    </button>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesInProduction">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted text-uppercase small mb-1">Kernel batches in production</h6>
+                        <h3 class="mb-0 exec-tile-value" id="execStatBatchesInProduction">—</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgPackedWeek">
+            <div class="col-6 col-md-4 col-lg">
                 <div class="card h-100 border-secondary">
                     <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Kg packed this week</h6>
-                        <h3 class="mb-0" id="execStatKgPackedWeek">—</h3>
+                        <h6 class="text-muted text-uppercase small mb-1">Nut-in-shell cover</h6>
+                        <h3 class="mb-0 exec-tile-value" id="execStatNisCover">—</h3>
                     </div>
                 </div>
             </div>
