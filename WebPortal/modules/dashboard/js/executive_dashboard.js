@@ -76,9 +76,7 @@ var _executiveDashboard = function () {
         totalProduction: 'Total Production (kg)',
         execStatBatchesInProduction: 'Kernel batches in production',
         execStatKgCrackedToday: 'Kg cracked today',
-        execStatKgCrackedWeek: 'Kg cracked this week',
         execStatKgPackedToday: 'Kg packed today',
-        execStatKgPackedWeek: 'Kg packed this week',
         execStatBatchesAwaitingTest: 'Awaiting test',
         execStatBatchesReleaseReady: 'Release ready',
         execStatBatchesCompletedWeek: 'Completed this week',
@@ -484,6 +482,7 @@ var _executiveDashboard = function () {
             scope.applyDashboardVisibility();
             await scope.loadKPIs();
             await scope.loadKernelStats();
+            await scope.loadTileHistory();
             await scope.loadProductionStats();
             await scope.loadDailyMinuteTests();
             await scope.loadProductionTrendsChart();
@@ -543,8 +542,8 @@ var _executiveDashboard = function () {
                 }
             } catch (e) { role = ''; }
 
-            var production = ['totalProduction', 'execStatBatchesInProduction', 'execStatKgCrackedToday', 'execStatKgCrackedWeek',
-                'execStatKgPackedToday', 'execStatKgPackedWeek', 'execStatBatchesAwaitingTest', 'execStatBatchesReleaseReady',
+            var production = ['totalProduction', 'execStatBatchesInProduction', 'execStatKgCrackedToday',
+                'execStatKgPackedToday', 'execStatBatchesAwaitingTest', 'execStatBatchesReleaseReady',
                 'execStatBatchesCompletedWeek', 'execStatBatchesInIntake', 'execDailyMinuteTests', 'execProductionTrends',
                 'execRunwayForecast'];
             var oil = ['execStatOilLitresToday', 'execStatOilLitresWeek', 'execProductionTrends', 'totalProduction'];
@@ -622,12 +621,144 @@ var _executiveDashboard = function () {
                 const stats = await dataFunctions.getDashboardKernelStats();
                 $('#execStatBatchesInProduction').text(Number(stats.batches_in_production) || 0);
                 $('#execStatKgCrackedToday').text(fmt(stats.kg_cracked_today));
-                $('#execStatKgCrackedWeek').text(fmt(stats.kg_cracked_week));
                 $('#execStatKgPackedToday').text(fmt(stats.kg_packed_today));
-                $('#execStatKgPackedWeek').text(fmt(stats.kg_packed_week));
             } catch (error) {
                 console.error('Error loading kernel stats:', error);
-                $('#execStatBatchesInProduction, #execStatKgCrackedToday, #execStatKgCrackedWeek, #execStatKgPackedToday, #execStatKgPackedWeek').text('—');
+                $('#execStatBatchesInProduction, #execStatKgCrackedToday, #execStatKgPackedToday').text('—');
+            }
+        },
+
+        // Pure: sorts a COPY of the rows ascending by trend_date (the RPC returns them newest
+        // first - see the plan's "Facts" section) and reads today/yesterday off that sorted copy.
+        // Never indexes into the raw, unsorted response.
+        execTileSeries: (rows, field) => {
+            var arr = (Array.isArray(rows) ? rows.slice() : []).sort(function (a, b) {
+                var da = a && a.trend_date ? String(a.trend_date) : '';
+                var db = b && b.trend_date ? String(b.trend_date) : '';
+                return da.localeCompare(db);
+            });
+            var values = arr.map(function (r) { return Number(r && r[field]) || 0; });
+            return {
+                values: values,
+                today: values.length ? values[values.length - 1] : null,
+                yesterday: values.length > 1 ? values[values.length - 2] : null
+            };
+        },
+
+        // Pure. Up is always the good direction for these three flow metrics, so '▲' takes the
+        // success tone and '▼' the danger tone (state this here, not re-derived by callers).
+        // yesterday === 0/null renders as "no comparison" rather than dividing by zero.
+        execTileDelta: (today, yesterday) => {
+            if (yesterday == null || yesterday === 0 || today == null) {
+                return { kind: 'none', pct: null };
+            }
+            var pct = Math.round(Math.abs(today - yesterday) / yesterday * 100);
+            return { kind: today >= yesterday ? 'up' : 'down', pct: pct };
+        },
+
+        // Renders the chip produced by execTileDelta into hostEl. Pure w.r.t. its inputs; its only
+        // side effect is writing to hostEl.
+        execRenderTileChip: (hostEl, delta) => {
+            if (!hostEl) return;
+            hostEl.classList.remove('exec-tile-chip--up', 'exec-tile-chip--down');
+            if (!delta || delta.kind === 'none') {
+                hostEl.textContent = delta ? 'no comparison' : '';
+                return;
+            }
+            hostEl.classList.add(delta.kind === 'up' ? 'exec-tile-chip--up' : 'exec-tile-chip--down');
+            hostEl.textContent = (delta.kind === 'up' ? '\u25B2 ' : '\u25BC ') + delta.pct + '%';
+        },
+
+        // Builds a small inline SVG sparkline by hand - no charting library for a 14-point strip.
+        // `values` arrives oldest-first (the caller sorts via execTileSeries), so the trailing dot
+        // belongs on the LAST element.
+        renderSparkline: (hostEl, values, colorVar) => {
+            if (!hostEl) return;
+            hostEl.innerHTML = '';
+            if (!Array.isArray(values) || values.length < 2) return;
+
+            var color = '';
+            try {
+                color = getComputedStyle(document.documentElement).getPropertyValue(colorVar).trim();
+            } catch (e) { color = ''; }
+            if (!color) color = '#000';
+
+            var w = 100, h = 30, pad = 2;
+            var min = Math.min.apply(null, values);
+            var max = Math.max.apply(null, values);
+            var range = max - min;
+            var n = values.length;
+            var points = values.map(function (v, i) {
+                var x = pad + (i / (n - 1)) * (w - 2 * pad);
+                var y = range === 0 ? h / 2 : (h - pad) - ((v - min) / range) * (h - 2 * pad);
+                return [x, y];
+            });
+
+            var linePath = points.map(function (p, i) {
+                return (i === 0 ? 'M' : 'L') + p[0].toFixed(2) + ',' + p[1].toFixed(2);
+            }).join(' ');
+            var areaPath = linePath + ' L' + points[n - 1][0].toFixed(2) + ',' + h + ' L' + points[0][0].toFixed(2) + ',' + h + ' Z';
+            var last = points[n - 1];
+
+            var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+            svg.setAttribute('preserveAspectRatio', 'none');
+            svg.classList.add('exec-tile-spark-svg');
+
+            var area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            area.setAttribute('d', areaPath);
+            area.setAttribute('fill', color);
+            area.setAttribute('opacity', '0.15');
+            area.setAttribute('stroke', 'none');
+            svg.appendChild(area);
+
+            var line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            line.setAttribute('d', linePath);
+            line.setAttribute('fill', 'none');
+            line.setAttribute('stroke', color);
+            line.setAttribute('stroke-width', '1.6');
+            svg.appendChild(line);
+
+            var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('cx', last[0].toFixed(2));
+            dot.setAttribute('cy', last[1].toFixed(2));
+            dot.setAttribute('r', '2');
+            dot.setAttribute('fill', color);
+            svg.appendChild(dot);
+
+            hostEl.appendChild(svg);
+        },
+
+        // Fetches getProductionTrendsDaily ONCE and feeds all three flow tiles' chips, sparklines
+        // and (for dispatched) the big number from that single sorted-ascending copy.
+        loadTileHistory: async () => {
+            const scope = _executiveDashboard;
+            const TILES = [
+                { field: 'kg_cracked', chip: 'execStatKgCrackedTodayChip', spark: 'execStatKgCrackedTodaySpark', color: '--mac-success' },
+                { field: 'kg_packed', chip: 'execStatKgPackedTodayChip', spark: 'execStatKgPackedTodaySpark', color: '--mac-warning' },
+                { field: 'kg_dispatched', chip: 'execStatKgDispatchedTodayChip', spark: 'execStatKgDispatchedTodaySpark', color: '--mac-info', valueEl: 'execStatKgDispatchedToday' }
+            ];
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getProductionTrendsDaily) {
+                $('#execStatKgDispatchedToday').text('—');
+                return;
+            }
+            try {
+                const raw = await dataFunctions.getProductionTrendsDaily(14);
+                const rows = Array.isArray(raw) ? raw : [];
+                TILES.forEach(function (t) {
+                    const series = scope.execTileSeries(rows, t.field);
+                    const chipEl = document.getElementById(t.chip);
+                    const sparkEl = document.getElementById(t.spark);
+                    scope.execRenderTileChip(chipEl, series.values.length >= 2 ? scope.execTileDelta(series.today, series.yesterday) : null);
+                    scope.renderSparkline(sparkEl, series.values, t.color);
+                    if (t.valueEl) {
+                        const val = series.today != null ? series.today : null;
+                        $('#' + t.valueEl).text(val != null ? val.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
+                    }
+                });
+            } catch (e) {
+                console.error('Error loading tile history:', e);
+                $('#execStatKgDispatchedToday').text('—');
             }
         },
 
@@ -715,6 +846,17 @@ var _executiveDashboard = function () {
             });
             $('#productionTrendsMetric').off('change').on('change', function () {
                 scope.updateProductionTrendsChart();
+            });
+            $('.exec-tile-btn').off('click').on('click', function () {
+                var metric = $(this).data('metric');
+                if (!metric) return;
+                var metricSel = document.getElementById('productionTrendsMetric');
+                if (!metricSel) return;
+                metricSel.value = String(metric);
+                scope.updateProductionTrendsChart();
+                scope.execGoToTarget(document.getElementById('productionTrendsChart'));
+                $('.exec-tile-btn').attr('aria-pressed', 'false');
+                $(this).attr('aria-pressed', 'true');
             });
             $('#productionTrendsView').off('change').on('change', function () {
                 scope.productionTrendsPageOffset = 0;
@@ -2029,8 +2171,9 @@ var _executiveDashboard = function () {
                 $('#execRunwayWeeks').text(weeks != null ? weeks + ' wks' : '—');
                 $('#execRunwayMonths').text(months != null ? months + ' mo' : '—');
                 $('#execRunwayDemand').text(Number(r.weekly_demand_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg/wk');
+                $('#execStatNisCover').text(weeks != null ? weeks + ' wks' : '—');
             } catch (e) {
-                $('#execRunwaySohKg, #execRunwayWeeks, #execRunwayMonths, #execRunwayDemand').text('—');
+                $('#execRunwaySohKg, #execRunwayWeeks, #execRunwayMonths, #execRunwayDemand, #execStatNisCover').text('—');
             }
         },
 
