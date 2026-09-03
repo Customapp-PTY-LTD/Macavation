@@ -77,14 +77,8 @@ var _executiveDashboard = function () {
         execStatBatchesInProduction: 'Kernel batches in production',
         execStatKgCrackedToday: 'Kg cracked today',
         execStatKgPackedToday: 'Kg packed today',
-        execStatBatchesAwaitingTest: 'Awaiting test',
-        execStatBatchesReleaseReady: 'Release ready',
-        execStatBatchesCompletedWeek: 'Completed this week',
-        execStatBatchesInIntake: 'In intake',
         execStatOilLitresToday: 'Oil bins today',
         execStatOilLitresWeek: 'Oil bins this week',
-        execStatDispatchWeek: 'Dispatch this week',
-        execStatDispatchPending: 'Dispatch pending',
         execDailyMinuteTests: 'Daily minute tests',
         execProductionTrends: 'Production Trends',
         execStockHistory: 'Stock on hand history',
@@ -543,12 +537,11 @@ var _executiveDashboard = function () {
             } catch (e) { role = ''; }
 
             var production = ['totalProduction', 'execStatBatchesInProduction', 'execStatKgCrackedToday',
-                'execStatKgPackedToday', 'execStatBatchesAwaitingTest', 'execStatBatchesReleaseReady',
-                'execStatBatchesCompletedWeek', 'execStatBatchesInIntake', 'execDailyMinuteTests', 'execProductionTrends',
+                'execStatKgPackedToday', 'execDailyMinuteTests', 'execProductionTrends',
                 'execRunwayForecast'];
             var oil = ['execStatOilLitresToday', 'execStatOilLitresWeek', 'execProductionTrends', 'totalProduction'];
-            var qa = ['execStatBatchesAwaitingTest', 'execStatBatchesReleaseReady', 'execDailyMinuteTests', 'totalProduction'];
-            var forecastSales = ['execRunwayForecast', 'totalProduction', 'execStatBatchesCompletedWeek', 'execProductionTrends'];
+            var qa = ['execDailyMinuteTests', 'totalProduction'];
+            var forecastSales = ['execRunwayForecast', 'totalProduction', 'execProductionTrends'];
 
             var map = {
                 'production manager': production,
@@ -785,27 +778,109 @@ var _executiveDashboard = function () {
         },
 
         loadProductionStats: async () => {
+            const scope = _executiveDashboard;
             const fmt = (n) => (typeof n === 'number' ? n.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : (n || 0));
             const fmtDec = (n, d) => (typeof n === 'number' ? Number(n).toLocaleString('en-ZA', { minimumFractionDigits: d, maximumFractionDigits: d }) : (n || 0));
+            // Paint the zeroed bar FIRST, before the guard below can early-return and before the
+            // fetch resolves - the pipeline must never render as an empty strip.
+            scope.renderPipeline({});
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.getDashboardProductionStats) return;
                 const s = await dataFunctions.getDashboardProductionStats();
-                $('#execStatBatchesAwaitingTest').text(fmt(s.batches_awaiting_test));
-                $('#execStatBatchesReleaseReady').text(fmt(s.batches_release_ready));
-                $('#execStatBatchesCompletedWeek').text(fmt(s.batches_completed_week));
-                $('#execStatBatchesInIntake').text(fmt(s.batches_in_intake));
                 $('#execStatBatchesOnHold').text(fmt(s.batches_on_hold));
                 $('#execStatOilLitresToday').text(fmt(s.oil_litres_today));
                 $('#execStatOilLitresWeek').text(fmt(s.oil_litres_week));
                 $('#execStatOilSheetsWeek').text(fmt(s.oil_sheets_week));
                 $('#execStatQualityPassRate').text(fmtDec(s.quality_pass_rate, 1) + '%');
                 $('#execStatQualityTestsWeek').text(fmt(s.quality_tests_week));
-                $('#execStatDispatchWeek').text(fmt(s.dispatch_orders_week));
-                $('#execStatDispatchPending').text(fmt(s.dispatch_pending));
+                scope.renderPipeline(s);
             } catch (error) {
                 console.error('Error loading production stats:', error);
-                $('#execStatBatchesAwaitingTest, #execStatBatchesReleaseReady, #execStatBatchesCompletedWeek, #execStatBatchesInIntake, #execStatBatchesOnHold, #execStatOilLitresToday, #execStatOilLitresWeek, #execStatOilSheetsWeek, #execStatQualityPassRate, #execStatQualityTestsWeek, #execStatDispatchWeek, #execStatDispatchPending').text('—');
+                $('#execStatBatchesOnHold, #execStatOilLitresToday, #execStatOilLitresWeek, #execStatOilSheetsWeek, #execStatQualityPassRate, #execStatQualityTestsWeek').text('—');
             }
+        },
+
+        /**
+         * Pure: turn a get_dashboard_production_stats response into the pipeline's segments and
+         * its note. Exposed so it can be exercised without a DOM.
+         *
+         * Every stage renders even at zero - a missing stage is more confusing than an empty one,
+         * and the data layer's own default object is all zeros. `batches_completed_week` is a
+         * weekly throughput count, NOT part of the open-stage population, so it sits at the end
+         * for context and is excluded from the note's total.
+         */
+        execPipelineSegments: (stats) => {
+            var s = stats || {};
+            var num = function (v) { return Number(v) || 0; };
+            var segments = [
+                { key: 'in_intake', label: 'In intake', count: num(s.batches_in_intake), tone: 'info', open: true },
+                { key: 'awaiting_test', label: 'Awaiting test', count: num(s.batches_awaiting_test), tone: 'warning', open: true },
+                { key: 'on_hold', label: 'On hold', count: num(s.batches_on_hold), tone: 'danger', open: true },
+                { key: 'release_ready', label: 'Release ready', count: num(s.batches_release_ready), tone: 'success', open: true },
+                { key: 'dispatch_pending', label: 'Dispatch pending', count: num(s.dispatch_pending), tone: 'info', open: true },
+                { key: 'completed_week', label: 'Completed this week', count: num(s.batches_completed_week), tone: 'neutral', open: false }
+            ];
+            // Colour alone must not carry the warning - these two also get an icon.
+            segments.forEach(function (seg) {
+                seg.alert = (seg.key === 'on_hold' || seg.key === 'awaiting_test') && seg.count > 0;
+            });
+            var openTotal = segments.reduce(function (a, seg) { return a + (seg.open ? seg.count : 0); }, 0);
+            return { segments: segments, note: openTotal + ' open batches across five stages.' };
+        },
+
+        /**
+         * Render the pipeline bar. Segments are buttons that jump to the alerts card - where a
+         * piled-up stage actually gets acted on. If that card is unreachable for this user
+         * (absent, or hidden by applyDashboardVisibility) the segments still show their numbers
+         * but are disabled, rather than looking clickable and doing nothing.
+         */
+        renderPipeline: (stats) => {
+            var scope = _executiveDashboard;
+            var host = document.getElementById('execPipeline');
+            var noteEl = document.getElementById('execPipelineNote');
+            if (!host) return;
+            var built = scope.execPipelineSegments(stats);
+            var alertsEl = document.getElementById('execAlertsContainer');
+            var canJump = scope.execScrollTarget(alertsEl) === 'ok';
+
+            host.textContent = '';
+            built.segments.forEach(function (seg) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'exec-pipe-seg exec-pipe-seg--' + seg.tone;
+                // A zero stage still needs a share of the bar, or an all-zero pipeline collapses
+                // to six min-width blocks and leaves the strip half empty. min-width does the
+                // readability work; this just keeps the bar filling its container.
+                btn.style.flexGrow = String(Math.max(seg.count, 0.25));
+                btn.setAttribute('data-stage', seg.key);
+                btn.title = seg.label + ': ' + seg.count;
+                if (canJump) {
+                    btn.setAttribute('aria-label', seg.label + ': ' + seg.count + '. Go to alerts.');
+                    btn.addEventListener('click', function () { scope.execGoToTarget(alertsEl); });
+                } else {
+                    btn.disabled = true;
+                    btn.setAttribute('aria-label', seg.label + ': ' + seg.count);
+                }
+
+                var count = document.createElement('span');
+                count.className = 'exec-pipe-count';
+                if (seg.alert) {
+                    var icon = document.createElement('i');
+                    icon.className = 'fas fa-triangle-exclamation me-1';
+                    icon.setAttribute('aria-hidden', 'true');
+                    count.appendChild(icon);
+                }
+                count.appendChild(document.createTextNode(String(seg.count)));
+
+                var label = document.createElement('span');
+                label.className = 'exec-pipe-label';
+                label.textContent = seg.label;
+
+                btn.appendChild(count);
+                btn.appendChild(label);
+                host.appendChild(btn);
+            });
+            if (noteEl) noteEl.textContent = built.note;
         },
 
         initHandlers: () => {

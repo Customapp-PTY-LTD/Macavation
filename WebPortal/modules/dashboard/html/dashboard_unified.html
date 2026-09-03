@@ -396,58 +396,10 @@
             </div>
         </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesAwaitingTest">
-                <div class="card h-100 border-primary">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Awaiting test</h6>
-                        <h3 class="mb-0" id="execStatBatchesAwaitingTest">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesReleaseReady">
-                <div class="card h-100 border-success">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Release ready</h6>
-                        <h3 class="mb-0" id="execStatBatchesReleaseReady">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesCompletedWeek">
-                <div class="card h-100 border-info">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Completed this week</h6>
-                        <h3 class="mb-0" id="execStatBatchesCompletedWeek">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesInIntake">
-                <div class="card h-100 border-warning">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">In intake</h6>
-                        <h3 class="mb-0" id="execStatBatchesInIntake">—</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatDispatchWeek">
-                <div class="card h-100 border-primary">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Dispatch this week</h6>
-                        <h3 class="mb-0" id="execStatDispatchWeek">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatDispatchPending">
-                <div class="card h-100 border-warning">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Dispatch pending</h6>
-                        <h3 class="mb-0" id="execStatDispatchPending">—</h3>
-                    </div>
-                </div>
-            </div>
+        <div class="mb-4">
+            <h6 class="text-muted text-uppercase small mb-2">Open batches by stage</h6>
+            <div class="exec-pipe" id="execPipeline" role="group" aria-label="Open batches by stage"></div>
+            <p class="exec-pipe-note" id="execPipelineNote"></p>
         </div>
             </div>
             </div>
