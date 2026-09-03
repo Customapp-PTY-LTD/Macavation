@@ -94,9 +94,7 @@ var _executiveDashboard = function () {
         execStockAlerts: 'Stock alerts',
         execRunway: 'Finished stock cover (vs open orders)',
         execOilTrends: 'Oil production trends',
-        execStockAccuracy: 'Stock accuracy',
         execProducedVsTarget: 'Produced vs target',
-        execDailyReportDelivery: 'Daily report delivery',
         execSoundRecovery: 'Sound kernel recovery',
         execOilYield: 'Oil yield',
         execStockOnHand: 'Stock on hand summary',
@@ -165,7 +163,6 @@ var _executiveDashboard = function () {
             await scope.loadExecutiveAlerts();
             await scope.loadRunwaySummary();
             await scope.loadOilTrendsChart();
-            await scope.loadStockAccuracyChart();
             await scope.loadProducedVsTarget();
             await scope.loadPhase2ExtendedKpis();
             await scope.loadConsolidatedSummary();
@@ -370,7 +367,7 @@ var _executiveDashboard = function () {
                     Swal.fire('Info', 'Open Scheduled Reports from Support in the sidebar.', 'info');
                 }
             });
-            $('#execDailyReportBtn, #execOpenScheduledReportsBtn').off('click').on('click', function () {
+            $('#execDailyReportBtn').off('click').on('click', function () {
                 if (typeof _appRouter !== 'undefined') {
                     _appRouter.navigate('scheduled-reports-grid');
                 }
@@ -901,7 +898,6 @@ var _executiveDashboard = function () {
         },
 
         oilTrendsChart: null,
-        stockAccuracyChart: null,
         oilForecastChart: null,
         dashboardTargets: [],
 
@@ -1630,32 +1626,6 @@ var _executiveDashboard = function () {
             } catch (e) {
                 console.warn('[Executive Dashboard] oil trends failed', e);
                 scope.setChartEmptyState('oilTrendsChart', true);
-            }
-        },
-
-        loadStockAccuracyChart: async () => {
-            var scope = _executiveDashboard;
-            var canvas = document.getElementById('stockAccuracyChart');
-            if (!canvas || typeof Chart === 'undefined' || !dataFunctions.getStockAccuracy) return;
-            try {
-                var rows = await dataFunctions.getStockAccuracy(6);
-                rows = (rows || []).slice().reverse();
-                var labels = rows.map(function (r) { return String(r.snapshot_month || '').slice(0, 7); });
-                var pct = rows.map(function (r) { return Number(r.pct_adjusted) || 0; });
-                if (scope.stockAccuracyChart) { scope.stockAccuracyChart.destroy(); scope.stockAccuracyChart = null; }
-                if (!pct.length) {
-                    scope.setChartEmptyState('stockAccuracyChart', true);
-                    return;
-                }
-                scope.setChartEmptyState('stockAccuracyChart', false);
-                scope.stockAccuracyChart = new Chart(canvas.getContext('2d'), {
-                    type: 'bar',
-                    data: { labels: labels, datasets: [{ label: '% adjusted', data: pct, backgroundColor: 'rgba(255,193,7,0.7)' }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, title: { display: true, text: '% of SOH adjusted' } } } }
-                });
-            } catch (e) {
-                console.warn('[Executive Dashboard] stock accuracy failed', e);
-                scope.setChartEmptyState('stockAccuracyChart', true);
             }
         },
 
