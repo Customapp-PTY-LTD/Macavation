@@ -55,6 +55,21 @@
                                 <label for="txtConfirmPassword" class="form-label" id="confirmPasswordLabel">Confirm Password</label>
                                 <input type="password" class="form-control" id="txtConfirmPassword">
                             </div>
+                            <!-- WhatsApp enrolment. Hidden until the user has been saved: enrolment
+                                 binds a code to an existing user id, so there is nothing to enrol
+                                 against while adding. Status is read-only here - the only writer of
+                                 users.whatsapp_phone is whatsapp_confirm_enrolment, when the staff
+                                 member texts the code back from the handset itself. -->
+                            <div class="mb-3" id="whatsappEnrolSection" style="display: none;">
+                                <label class="form-label">WhatsApp Access</label>
+                                <div class="d-flex align-items-center flex-wrap gap-2">
+                                    <span id="whatsappEnrolStatus"></span>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnSendEnrolCode">
+                                        <i class="fas fa-paper-plane me-1"></i>Send enrolment code
+                                    </button>
+                                </div>
+                                <small class="form-text text-muted" id="whatsappEnrolHelp"></small>
+                            </div>
                         </div>
                     </div>
                 </div>
