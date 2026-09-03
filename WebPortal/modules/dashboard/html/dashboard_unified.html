@@ -220,6 +220,18 @@
                 </button>
             </div>
             <div class="collapse show" id="execAlertsCollapse">
+                    <div class="exec-alert-chips exec-hidden" id="execAlertChips" role="group" aria-label="Filter alerts by severity">
+                        <button type="button" class="exec-chip exec-chip--critical" data-sev="critical" aria-pressed="false">
+                            <span data-count="critical">0</span> critical
+                        </button>
+                        <button type="button" class="exec-chip exec-chip--warning" data-sev="warning" aria-pressed="false">
+                            <span data-count="warning">0</span> to watch
+                        </button>
+                        <button type="button" class="exec-chip exec-chip--info" data-sev="info" aria-pressed="false">
+                            <span data-count="info">0</span> note
+                        </button>
+                        <span class="exec-alert-hint" id="execAlertHint"></span>
+                    </div>
                     <div class="card-body" id="execAlertsContainer"><p class="text-muted small mb-0">Loading alerts…</p></div>
             </div>
         </div>

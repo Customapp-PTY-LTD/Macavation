@@ -102,6 +102,335 @@ var _executiveDashboard = function () {
         execOilForecast: 'Oil production forecast'
     };
 
+    // ---- Executive alerts panel (severity ordering, counts, undo-able resolve, "Go to" links) ----
+    // Module-internal state — plan exec-dash-02-alerts owns these names.
+    var execAlertsFilterSeverity = null;   // null = no filter, else 'critical' | 'warning' | 'info'
+    var execAlertsHintDefault = '';        // e.g. 'showing 8 of 12', or '' when nothing was capped
+    var execAlertsRenderSeq = 0;           // bumped at the top of every loadExecutiveAlerts() call
+
+    // a.severity / a.alert_type may be either shape (see facts in the plan) — normalise to one
+    // of the three buckets this panel understands. Anything unrecognised is treated as 'info'.
+    function execAlertSeverityOf(a) {
+        var raw = String((a && (a.severity || a.alert_type)) || 'info').toLowerCase();
+        if (raw === 'critical') return 'critical';
+        if (raw === 'warning') return 'warning';
+        return 'info';
+    }
+
+    function execAlertSeverityRank(sev) {
+        if (sev === 'critical') return 0;
+        if (sev === 'warning') return 1;
+        return 2;
+    }
+
+    function execAlertSeverityIcon(sev) {
+        if (sev === 'critical') return 'fas fa-triangle-exclamation';
+        if (sev === 'warning') return 'fas fa-circle-exclamation';
+        return 'fas fa-circle-info';
+    }
+
+    // Conservative text match against the alert's own title+message — there is no field naming
+    // a target screen. Returns a selector for one of the three chart canvases, or null.
+    function execMatchAlertGoToSelector(text) {
+        var t = String(text || '').toLowerCase();
+        if (t.indexOf('runway') >= 0 || t.indexOf('nut-in-shell') >= 0 || t.indexOf('nut in shell') >= 0) {
+            return '#runwayForecastChart';
+        }
+        if (t.indexOf('stock') >= 0) {
+            return '#stockHistoryChart';
+        }
+        if (t.indexOf('production') >= 0 || t.indexOf('cracked') >= 0 || t.indexOf('packed') >= 0) {
+            return '#productionTrendsChart';
+        }
+        return null;
+    }
+
+    // Builds one alert row with DOM APIs only — title/message/id are operator-entered DB values,
+    // so every one of them goes in with textContent/dataset, never string-concatenated HTML
+    // (BluePrint/javascript-jquery-rules.md:226).
+    function execBuildAlertRow(a, canResolve) {
+        var sev = execAlertSeverityOf(a);
+        var id = a.id || a.alert_id || '';
+        var title = a.title || a.alert_title || 'Alert';
+        var message = a.message || a.alert_message || '';
+
+        var row = document.createElement('div');
+        row.className = _executiveDashboard.execAlertRowClass(sev);
+        row.setAttribute('data-sev', sev);
+
+        var icon = document.createElement('i');
+        icon.className = execAlertSeverityIcon(sev) + ' exec-alert-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        row.appendChild(icon);
+
+        var body = document.createElement('div');
+        body.className = 'exec-alert-body';
+
+        var head = document.createElement('div');
+        var sevLabel = document.createElement('span');
+        sevLabel.className = 'exec-alert-sev-label';
+        sevLabel.textContent = sev.toUpperCase();
+        head.appendChild(sevLabel);
+
+        var titleEl = document.createElement('strong');
+        titleEl.textContent = ' ' + title;
+        head.appendChild(titleEl);
+        body.appendChild(head);
+
+        var msgEl = document.createElement('div');
+        msgEl.className = 'small';
+        msgEl.textContent = message;
+        body.appendChild(msgEl);
+
+        row.appendChild(body);
+
+        var actions = document.createElement('div');
+        actions.className = 'exec-alert-actions';
+
+        var selector = execMatchAlertGoToSelector(title + ' ' + message);
+        if (selector) {
+            var target = document.querySelector(selector);
+            if (_executiveDashboard.execScrollTarget(target) === 'ok') {
+                var goBtn = document.createElement('button');
+                goBtn.type = 'button';
+                goBtn.className = 'btn btn-xs btn-sm btn-outline-secondary exec-alert-goto-btn';
+                goBtn.setAttribute('data-goto', selector);
+                goBtn.textContent = 'Go to';
+                actions.appendChild(goBtn);
+            }
+        }
+
+        if (canResolve && id) {
+            var resolveBtn = document.createElement('button');
+            resolveBtn.type = 'button';
+            resolveBtn.className = 'btn btn-xs btn-sm btn-outline-dark ms-2 exec-resolve-alert-btn';
+            resolveBtn.setAttribute('data-alert-id', id);
+            resolveBtn.setAttribute('data-action-perm', 'alerts.resolve');
+            resolveBtn.textContent = 'Resolve';
+            actions.appendChild(resolveBtn);
+        }
+
+        row.appendChild(actions);
+        return row;
+    }
+
+    function execAlertAdjustCount(sev, delta) {
+        var chips = document.getElementById('execAlertChips');
+        if (!chips) return;
+        var span = chips.querySelector('[data-count="' + sev + '"]');
+        if (!span) return;
+        var current = parseInt(span.textContent, 10) || 0;
+        span.textContent = String(Math.max(0, current + delta));
+    }
+
+    function execAlertSetHint(text) {
+        var hint = document.getElementById('execAlertHint');
+        if (!hint) return;
+        hint.textContent = text || '';
+    }
+
+    // Rebuilds #execAlertHint from current filter state: either the default cap message, or
+    // 'showing <sev> only' plus a real "Show all" button (built with DOM APIs, not innerHTML).
+    function execAlertRenderFilterHint() {
+        var hint = document.getElementById('execAlertHint');
+        if (!hint) return;
+        hint.textContent = '';
+        if (execAlertsFilterSeverity) {
+            hint.appendChild(document.createTextNode('showing ' + execAlertsFilterSeverity + ' only '));
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-link btn-sm p-0 exec-alert-show-all';
+            btn.textContent = 'Show all';
+            hint.appendChild(btn);
+        } else {
+            hint.textContent = execAlertsHintDefault;
+        }
+    }
+
+    // Applies the current severity filter to whatever rows are currently rendered. Visibility
+    // goes through execSetHidden only — see the plan's "module-owned class" rule.
+    function execAlertsApplyFilter() {
+        var container = document.getElementById('execAlertsContainer');
+        if (!container) return;
+        var rows = container.querySelectorAll('.exec-alert-row');
+        var anyVisible = false;
+        rows.forEach(function (row) {
+            var match = !execAlertsFilterSeverity || row.getAttribute('data-sev') === execAlertsFilterSeverity;
+            _executiveDashboard.execSetHidden(row, !match);
+            if (match) anyVisible = true;
+        });
+        var emptyEl = document.getElementById('execAlertsFilterEmpty');
+        if (emptyEl) {
+            _executiveDashboard.execSetHidden(emptyEl, rows.length === 0 || anyVisible);
+        }
+    }
+
+    // Delegated click handler for the chips strip, bound once per element (dataset guard) so a
+    // re-render never stacks duplicate listeners.
+    function execAlertsBindChipsOnce(chipsEl) {
+        if (!chipsEl || chipsEl.dataset.execBound === '1') return;
+        chipsEl.dataset.execBound = '1';
+        chipsEl.addEventListener('click', function (e) {
+            var chip = e.target.closest ? e.target.closest('.exec-chip') : null;
+            if (chip) {
+                var sev = chip.getAttribute('data-sev');
+                execAlertsFilterSeverity = (execAlertsFilterSeverity === sev) ? null : sev;
+                chipsEl.querySelectorAll('.exec-chip').forEach(function (c) {
+                    c.setAttribute('aria-pressed', c.getAttribute('data-sev') === execAlertsFilterSeverity ? 'true' : 'false');
+                });
+                execAlertRenderFilterHint();
+                execAlertsApplyFilter();
+                return;
+            }
+            var showAll = e.target.closest ? e.target.closest('.exec-alert-show-all') : null;
+            if (showAll) {
+                execAlertsFilterSeverity = null;
+                chipsEl.querySelectorAll('.exec-chip').forEach(function (c) {
+                    c.setAttribute('aria-pressed', 'false');
+                });
+                execAlertRenderFilterHint();
+                execAlertsApplyFilter();
+            }
+        });
+    }
+
+    // Delegated click handler for the alerts list itself (Go-to + Resolve), bound once.
+    function execAlertsBindContainerOnce(container) {
+        if (!container || container.dataset.execBound === '1') return;
+        container.dataset.execBound = '1';
+        container.addEventListener('click', function (e) {
+            var goBtn = e.target.closest ? e.target.closest('.exec-alert-goto-btn') : null;
+            if (goBtn) {
+                var sel = goBtn.getAttribute('data-goto');
+                var target = sel ? document.querySelector(sel) : null;
+                _executiveDashboard.execGoToTarget(target);
+                return;
+            }
+            var resolveBtn = e.target.closest ? e.target.closest('.exec-resolve-alert-btn') : null;
+            if (resolveBtn) {
+                execHandleResolveClick(resolveBtn);
+            }
+        });
+    }
+
+    function execEnsureToastHost() {
+        var host = document.getElementById('execToastHost');
+        if (!host) {
+            host = document.createElement('div');
+            host.id = 'execToastHost';
+            host.className = 'exec-toast-host';
+            host.setAttribute('role', 'status');
+            host.setAttribute('aria-live', 'polite');
+            document.body.appendChild(host);
+        }
+        return host;
+    }
+
+    // _common's toast helpers (js/common.js:21-53) are SweetAlert2 `toast: true` mixins with
+    // showConfirmButton explicitly suppressed — there is no parameter through which an Undo
+    // control could be added. This small local toast exists only because of that gap.
+    function execShowUndoToast(title, onUndo) {
+        var host = execEnsureToastHost();
+        var toast = document.createElement('div');
+        toast.className = 'exec-toast';
+
+        var msg = document.createElement('span');
+        msg.textContent = 'Resolved: ' + title;
+        toast.appendChild(msg);
+
+        var undoBtn = document.createElement('button');
+        undoBtn.type = 'button';
+        undoBtn.className = 'btn btn-link btn-sm exec-toast-undo';
+        undoBtn.textContent = 'Undo';
+        toast.appendChild(undoBtn);
+
+        host.appendChild(toast);
+
+        var dismissed = false;
+        function dismiss() {
+            if (dismissed) return;
+            dismissed = true;
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }
+
+        undoBtn.addEventListener('click', function () {
+            dismiss();
+            onUndo();
+        });
+
+        setTimeout(dismiss, 6000);
+    }
+
+    // Optimistic resolve with a single undo window. One settled flag decided synchronously by
+    // whichever of {Undo click, timer fire} runs first — see the plan's "one timer, one settled
+    // flag, one generation check" rule.
+    function execHandleResolveClick(btn) {
+        var alertId = btn.getAttribute('data-alert-id');
+        if (!alertId || !dataFunctions.resolveDashboardAlert) return;
+        var row = btn.closest('.exec-alert-row');
+        if (!row) return;
+        var sev = row.getAttribute('data-sev') || 'info';
+        var strongEl = row.querySelector('strong');
+        var title = strongEl ? strongEl.textContent.replace(/^\s+/, '') : 'Alert';
+
+        var parent = row.parentNode;
+        var nextSibling = row.nextSibling;
+        var seq = execAlertsRenderSeq;
+
+        if (parent) parent.removeChild(row);
+        execAlertAdjustCount(sev, -1);
+        execAlertsApplyFilter();
+
+        var settled = false;
+        var writeTimer = null;
+
+        function restore() {
+            if (seq !== execAlertsRenderSeq) return; // a later render already rebuilt the list
+            var containerNow = document.getElementById('execAlertsContainer');
+            if (!containerNow) return;
+            var emptyEl = document.getElementById('execAlertsFilterEmpty');
+            if (nextSibling && nextSibling.parentNode === parent) {
+                parent.insertBefore(row, nextSibling);
+            } else if (emptyEl && emptyEl.parentNode === containerNow) {
+                containerNow.insertBefore(row, emptyEl);
+            } else {
+                containerNow.appendChild(row);
+            }
+            execAlertAdjustCount(sev, 1);
+            execAlertsApplyFilter();
+        }
+
+        function doWrite() {
+            if (settled) return;
+            settled = true;
+            dataFunctions.resolveDashboardAlert(alertId, '').then(function (result) {
+                if (result && result.success === false) {
+                    throw new Error('resolve_dashboard_alert reported failure');
+                }
+                _executiveDashboard.loadExecutiveAlerts();
+            }).catch(function (e) {
+                console.warn('[Executive Dashboard] resolve alert failed', e);
+                var movedOn = seq !== execAlertsRenderSeq;
+                restore();
+                if (typeof _common !== 'undefined' && _common.showErrorToast) {
+                    _common.showErrorToast('Could not resolve that alert. It is still open.');
+                }
+                if (movedOn) {
+                    _executiveDashboard.loadExecutiveAlerts();
+                }
+            });
+        }
+
+        writeTimer = setTimeout(doWrite, 6000);
+
+        execShowUndoToast(title, function () {
+            if (settled) return;
+            settled = true;
+            clearTimeout(writeTimer);
+            restore();
+        });
+    }
+
     return {
         kpis: {},
         productionTrendsData: null,
@@ -1547,42 +1876,145 @@ var _executiveDashboard = function () {
             if (qEl.length) qEl.text((scope.kpis.quality_pass_rate || '0') + '%');
         },
 
+        // Pure: 'exec-alert-row exec-alert-row--' + sev. No Bootstrap display utility — the row
+        // gets `display: flex` from .exec-alert-row in the module CSS.
+        execAlertRowClass: (sev) => {
+            return 'exec-alert-row exec-alert-row--' + sev;
+        },
+
+        // Pure, side-effect-free classification of whether a "Go to" scroll would actually land
+        // anywhere. Does not scroll, mutate or throw — see the plan's fixed contract.
+        execScrollTarget: (el) => {
+            if (!el || typeof el.closest !== 'function') return 'missing';
+            var card = el.closest('.card');
+            if (!card) return 'missing';
+            var widget = el.closest('[data-dashboard-widget]');
+            if (widget && widget.style && widget.style.display === 'none') return 'hidden';
+            return 'ok';
+        },
+
+        // Expands the target's collapse (if folded) and scrolls to it once expansion has
+        // actually finished, so the target's position is never measured mid-animation.
+        execGoToTarget: (el) => {
+            if (_executiveDashboard.execScrollTarget(el) !== 'ok') return;
+            var card = el.closest('.card');
+            var collapseEl = el.closest('.collapse');
+            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var behavior = reduce ? 'auto' : 'smooth';
+
+            function doScroll() {
+                if (!card) return;
+                card.scrollIntoView({ behavior: behavior, block: 'center' });
+                card.classList.add('exec-flash');
+                setTimeout(function () { card.classList.remove('exec-flash'); }, 1600);
+            }
+
+            if (collapseEl && !collapseEl.classList.contains('show')) {
+                var toggleBtn = collapseEl.id ? document.querySelector('[data-bs-target="#' + collapseEl.id + '"]') : null;
+                var expanded = false;
+                var onShown = function () {
+                    if (expanded) return;
+                    expanded = true;
+                    collapseEl.removeEventListener('shown.bs.collapse', onShown);
+                    doScroll();
+                };
+                collapseEl.addEventListener('shown.bs.collapse', onShown);
+                if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+                    bootstrap.Collapse.getOrCreateInstance(collapseEl).show();
+                } else {
+                    collapseEl.classList.add('show');
+                }
+                if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
+                setTimeout(function () {
+                    if (expanded) return;
+                    expanded = true;
+                    collapseEl.removeEventListener('shown.bs.collapse', onShown);
+                    doScroll();
+                }, 400);
+            } else {
+                doScroll();
+            }
+        },
+
+        // The one and only way anything in this module hides/shows an element — a module-owned
+        // class, never `el.hidden` and never a Bootstrap display utility. See the plan's
+        // "Visibility is a module-owned class" section for why.
+        execSetHidden: (el, isHidden) => {
+            if (!el || !el.classList) return;
+            el.classList.toggle('exec-hidden', !!isHidden);
+        },
+
         loadExecutiveAlerts: async () => {
             var container = document.getElementById('execAlertsContainer');
+            var chips = document.getElementById('execAlertChips');
             if (!container || !dataFunctions.getDashboardAlerts) return;
+
+            execAlertsRenderSeq += 1;
+            execAlertsFilterSeverity = null;
+            if (chips) {
+                chips.querySelectorAll('.exec-chip').forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+                execAlertsBindChipsOnce(chips);
+            }
+            execAlertsHintDefault = '';
+            execAlertSetHint('');
+
             try {
-                var alerts = await dataFunctions.getDashboardAlerts(null, true);
-                if (!alerts || !alerts.length) {
+                var alertsRaw = await dataFunctions.getDashboardAlerts(null, true);
+                if (!alertsRaw || !alertsRaw.length) {
                     container.innerHTML = '<p class="text-muted small mb-0">No active alerts.</p>';
+                    if (chips) {
+                        ['critical', 'warning', 'info'].forEach(function (s) {
+                            var span = chips.querySelector('[data-count="' + s + '"]');
+                            if (span) span.textContent = '0';
+                        });
+                        _executiveDashboard.execSetHidden(chips, true);
+                    }
                     return;
                 }
+
                 var canResolve = typeof hasAction === 'function' ? hasAction('alerts.resolve') : true;
-                container.innerHTML = alerts.slice(0, 8).map(function (a) {
-                    var sev = (a.severity || a.alert_type || 'info').toLowerCase();
-                    var cls = sev === 'critical' ? 'danger' : sev === 'warning' ? 'warning' : 'info';
-                    var id = a.id || a.alert_id || '';
-                    var resolveBtn = canResolve && id
-                        ? ' <button type="button" class="btn btn-xs btn-sm btn-outline-dark ms-2 exec-resolve-alert-btn" data-alert-id="' + id + '" data-action-perm="alerts.resolve">Resolve</button>'
-                        : '';
-                    return '<div class="alert alert-' + cls + ' py-2 px-3 small mb-2 d-flex justify-content-between align-items-start">' +
-                        '<span><strong>' + (a.title || a.alert_title || 'Alert') + '</strong> — ' + (a.message || a.alert_message || '') + '</span>' +
-                        resolveBtn + '</div>';
-                }).join('');
-                container.querySelectorAll('.exec-resolve-alert-btn').forEach(function (btn) {
-                    btn.addEventListener('click', async function () {
-                        var alertId = btn.getAttribute('data-alert-id');
-                        if (!alertId || !dataFunctions.resolveDashboardAlert) return;
-                        var note = window.prompt('Optional note when resolving this alert:', '') || '';
-                        try {
-                            await dataFunctions.resolveDashboardAlert(alertId, note);
-                            await _executiveDashboard.loadExecutiveAlerts();
-                        } catch (e) {
-                            console.warn('[Executive Dashboard] resolve alert failed', e);
-                        }
-                    });
+
+                // Sort a COPY critical-first/warning/else, then slice — sorting after the slice
+                // would show 8 arbitrary rows instead of the most severe 8.
+                var alerts = alertsRaw.slice().sort(function (a, b) {
+                    return execAlertSeverityRank(execAlertSeverityOf(a)) - execAlertSeverityRank(execAlertSeverityOf(b));
                 });
+                var totalCount = alerts.length;
+                var shown = alerts.slice(0, 8);
+
+                container.innerHTML = '';
+                var counts = { critical: 0, warning: 0, info: 0 };
+                shown.forEach(function (a) {
+                    var row = execBuildAlertRow(a, canResolve);
+                    var sev = row.getAttribute('data-sev');
+                    counts[sev] = (counts[sev] || 0) + 1;
+                    container.appendChild(row);
+                });
+
+                var emptyEl = document.createElement('p');
+                emptyEl.id = 'execAlertsFilterEmpty';
+                emptyEl.className = 'text-muted small mb-0 mt-2 exec-hidden';
+                emptyEl.textContent = 'Nothing at this level right now.';
+                container.appendChild(emptyEl);
+
+                if (chips) {
+                    ['critical', 'warning', 'info'].forEach(function (s) {
+                        var span = chips.querySelector('[data-count="' + s + '"]');
+                        if (span) span.textContent = String(counts[s] || 0);
+                    });
+                    _executiveDashboard.execSetHidden(chips, false);
+                }
+
+                execAlertsHintDefault = totalCount > 8 ? ('showing 8 of ' + totalCount) : '';
+                execAlertSetHint(execAlertsHintDefault);
+
+                execAlertsBindContainerOnce(container);
+                execAlertsApplyFilter();
             } catch (e) {
                 container.innerHTML = '<p class="text-muted small mb-0">Unable to load alerts.</p>';
+                if (chips) {
+                    _executiveDashboard.execSetHidden(chips, true);
+                }
             }
         },
 
