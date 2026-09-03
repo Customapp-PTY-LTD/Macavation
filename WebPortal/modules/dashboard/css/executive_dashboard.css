@@ -176,3 +176,71 @@
     height: 30px;
     display: block;
 }
+
+/* Executive dashboard batch pipeline (plan exec-dash-04b) - six stage counts as one segmented
+   bar, so a queue is visible at a glance rather than read off six separate boxes. Segment width
+   is proportional to the count; min-width keeps a small stage readable and clickable. */
+
+.exec-pipe {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    overflow-x: auto;
+    padding-bottom: var(--mac-space-xs);
+}
+
+.exec-pipe-seg {
+    flex: 1 1 0;
+    min-width: 8.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: var(--mac-space-sm) var(--mac-space-xs);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-sm);
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text);
+    cursor: pointer;
+    text-align: center;
+}
+
+.exec-pipe-seg:disabled {
+    cursor: default;
+}
+
+.exec-pipe-seg:focus-visible {
+    outline: 2px solid var(--mac-info);
+    outline-offset: 2px;
+}
+
+.exec-pipe-count {
+    font-size: var(--mac-text-lg);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.exec-pipe-label {
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.exec-pipe-seg--info { border-color: var(--mac-info); background-color: var(--mac-info-light); }
+.exec-pipe-seg--info .exec-pipe-count { color: var(--mac-info); }
+.exec-pipe-seg--warning { border-color: var(--mac-warning); background-color: var(--mac-warning-light); }
+.exec-pipe-seg--warning .exec-pipe-count { color: var(--mac-warning-text); }
+.exec-pipe-seg--danger { border-color: var(--mac-danger); background-color: var(--mac-danger-light); }
+.exec-pipe-seg--danger .exec-pipe-count { color: var(--mac-danger); }
+.exec-pipe-seg--success { border-color: var(--mac-success); background-color: var(--mac-success-light); }
+.exec-pipe-seg--success .exec-pipe-count { color: var(--mac-success); }
+.exec-pipe-seg--neutral { border-color: var(--mac-border-strong); }
+
+.exec-pipe-note {
+    margin: var(--mac-space-xs) 0 0;
+    font-size: var(--mac-text-sm);
+    color: var(--mac-text-secondary);
+}
