@@ -23,6 +23,19 @@
  * Command dispatch (added after the original store-only version of this function):
  * - Every inbound TEXT message from a number resolved by whatsapp_resolve_staff_user to an
  *   enrolled, active staff user is parsed as a command, dispatched, and replied to.
+ * - MENU TAPS dispatch too: a type:'interactive' list_reply/button_reply, and the type:'button'
+ *   shape Meta uses for a quick-reply tap on an approved template, are dispatched on their REPLY
+ *   ID (`menu:<action>`, via buildReplyId/parseReplyId in _shared/wa-send.ts) — never on the row's
+ *   display title, so rewording a label cannot break a menu and a handset cannot pick a command
+ *   by sending text that happens to match one. Every other non-text type still returns early.
+ * - The menu itself is role-filtered on the SAME public.features keys as the portal sidebar
+ *   (get_role_features_for_role), and every item is READ-ONLY, rendered from get_daily_digest().
+ *   A tap is re-checked against the role's current features before anything is rendered: the id
+ *   is a request, not an authorisation. See "The menu" section below.
+ * - Enrolment REQUIRES supabase/functions/whatsapp-enrol-staff — the function that mints a code
+ *   via whatsapp_start_enrolment and texts it to the handset. Until that existed nothing in the
+ *   repo called whatsapp_start_enrolment, so no number could become enrolled and none of the
+ *   dispatch below was reachable by anyone.
  * - Unenrolled numbers are left exactly as before — untouched — with ONE exception: a body
  *   that is exactly six digits is tried against whatsapp_confirm_enrolment, since that is the
  *   only way a pending enrolment code ever gets consumed. Success or failure either way, no
@@ -61,6 +74,9 @@
  *   placeholder body recording the type and media id.
  */
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { buildReplyId, parseReplyId, sendList, toWaPhone } from '../_shared/wa-send.ts';
+import { MAX_LIST_ROWS } from '../_shared/wa-limits.ts';
+import { classifyMessage } from '../_shared/wa-inbound.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -195,6 +211,13 @@ function isMissingRpc(err: Any): boolean {
 // sendWhatsappText below into a second hand-rolled payload builder. The local function stays
 // text-only on purpose: it is the deliberate duplication described above, and widening it would
 // make a third place where the Control Room envelope has to be kept in step by hand.
+//
+// AS OF THE MENU, BOTH PATHS ARE LIVE IN THIS FILE, exactly as the paragraph above prescribes:
+// every TEXT reply still goes through the local sendWhatsappText, and the one interactive send
+// (the list menu, in commandMenu) goes through sendList from _shared/wa-send.ts. That is not an
+// oversight to tidy up by collapsing them — sendWhatsappText addresses the recipient as Meta
+// delivered it (bare digits) while the shared module documents '+' -form input via toWaPhone, and
+// the shared senders read CONTROL_ROOM_* at module scope. Leave the split alone.
 // ============================================================================
 
 const CONTROL_ROOM_BASE_URL = 'https://ejnncypummmvyojhovme.supabase.co/functions/v1';
@@ -305,6 +328,16 @@ interface CommandContext {
   userId: string;
   roleId: string | null;
   displayName: string;
+  /**
+   * Set ONLY for a menu tap (interactive list_reply / button_reply, and a quick-reply tap on a
+   * template, which Meta delivers as type:'button' rather than 'interactive'). It is the reply
+   * ID — a stable `menu:<action>` string built by buildReplyId — never the row's display text.
+   *
+   * Dispatching on the title would mean rewording a row silently broke it, and would let a
+   * handset choose the command by sending arbitrary text that happened to match a label. When
+   * this is set, rawBody carries the same id for the audit log, not the visible title.
+   */
+  replyId?: string | null;
 }
 
 interface CommandResult {
@@ -314,7 +347,351 @@ interface CommandResult {
   detail?: string | null;
 }
 
+// ============================================================================
+// The menu — what an enrolled staff member sees after they are identified.
+//
+// EVERY ITEM IS READ-ONLY. Each renders from get_daily_digest(), the same RPC the 17:00 digest
+// sends (send-daily-digest-whatsapp/index.ts:82). Nothing here writes, so nothing here needs the
+// YES/NO staging flow; a future write command still stages via whatsapp_stage_pending_command
+// exactly as before and is unaffected by this menu.
+//
+// GATED ON THE SAME FEATURE KEYS AS THE PORTAL SIDEBAR. `feature` is a public.features.key, read
+// per role via get_role_features_for_role — the same mechanism menuFilter uses in the browser. So
+// a role sees on WhatsApp exactly the areas it can already open in the portal, and there is no
+// second, drifting permission model to maintain. A role with none of these features enabled gets
+// told so rather than shown an empty list.
+//
+// KEY CONVENTION, FIXED: 0 is always "back" and 99 is always "main menu", on every step. Never
+// introduce another key for either, and never use the legacy 9. This menu is one level deep, so
+// both land on the main menu; the handlers exist so the convention holds the moment a second
+// level is added.
+//
+// NUMBERS WORK TOO. A row title is display text and must never be dispatched on — taps come back
+// as a reply id (`menu:<action>`, built and parsed by buildReplyId/parseReplyId in
+// _shared/wa-send.ts), and typed input is matched on the item's POSITION in this same
+// role-filtered list. That is what makes the plain-text fallback below usable rather than
+// decorative: whether the handset renders the list or not, "3" means the third row it was shown.
+// ============================================================================
+
+interface MenuItem {
+  /** Reply-id action segment. Must satisfy buildReplyId's segment rule: [a-z0-9][a-z0-9_-]{0,23} */
+  action: string;
+  /** Row title. Capped at MAX_LIST_TITLE (24) by buildListBody, which THROWS rather than truncating. */
+  title: string;
+  /** public.features.key that must be 'true' for this role. */
+  feature: string;
+  render: (digest: Any) => string;
+}
+
+/**
+ * A figure, or an em dash when there ISN'T one.
+ *
+ * The null/empty-string guard is the whole job and must not be dropped: `Number(null)` and
+ * `Number('')` are both 0, and 0 is finite, so a Number.isFinite check ALONE reports a missing
+ * figure as a real zero. get_daily_digest() returns genuine nulls today — runway.weeks_cover and
+ * produced_vs_target.target_kg are both null on the dev dataset — and "Cover: 0,0 weeks" is a
+ * materially different (and wrong) statement from "cover not calculable".
+ *
+ * en-ZA to match the portal's own 22 toLocaleString call sites, so a figure read on WhatsApp is
+ * punctuated the same way as the same figure on the dashboard.
+ */
+function num(v: unknown, dp = 0): string {
+  if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  return n.toLocaleString('en-ZA', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+
+/** A percentage, or an em dash when absent. Same null trap as num — see there. */
+function pct(v: unknown): string {
+  if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  return Number.isFinite(n) ? `${n.toFixed(1)}%` : '—';
+}
+
+const MENU_ITEMS: MenuItem[] = [
+  {
+    action: 'production',
+    title: 'Production today',
+    feature: 'dashboard',
+    render: (d) => {
+      const ks = d?.kernel_stats ?? {};
+      const oil = d?.oil_stats ?? {};
+      return (
+        `*Production · ${d?.date ?? 'today'}*\n\n` +
+        `Kernel cracked: ${num(ks.kg_cracked_today)} kg today, ${num(ks.kg_cracked_week)} kg this week\n` +
+        `Kernel packed: ${num(ks.kg_packed_today)} kg today, ${num(ks.kg_packed_week)} kg this week\n` +
+        `Oil: ${num(oil.litres_today)} L today, ${num(oil.litres_week)} L this week\n` +
+        `Batches in production: ${num(ks.batches_in_production)}`
+      );
+    },
+  },
+  {
+    action: 'stock',
+    title: 'Stock & runway',
+    feature: 'stock-management-kernel',
+    render: (d) => {
+      const ext = d?.extended_kpis ?? {};
+      const runway = d?.runway ?? {};
+      const weeks = runway.weeks_cover;
+      return (
+        `*Stock & runway*\n\n` +
+        `Kernel on hand: ${num(ext.kernel_soh_kg, 2)} kg\n` +
+        `Oil finished: ${num(ext.oil_finished_soh_kg, 2)} kg\n` +
+        `Oil raw material: ${num(ext.oil_rm_soh_kg, 2)} kg\n` +
+        `Weekly demand: ${num(runway.weekly_demand_kg, 2)} kg\n` +
+        `Cover: ${weeks == null ? 'not calculable — no demand recorded' : `${num(weeks, 1)} weeks`}`
+      );
+    },
+  },
+  {
+    action: 'yield',
+    title: 'Recovery & yield',
+    feature: 'dashboard',
+    render: (d) => {
+      const ext = d?.extended_kpis ?? {};
+      const pvt = d?.produced_vs_target ?? {};
+      const variance = pvt.variance_kg;
+      return (
+        `*Recovery & yield*\n\n` +
+        `Sound kernel recovery: ${pct(ext.sound_kernel_recovery_pct)}\n` +
+        `Oil yield: ${pct(ext.oil_yield_pct)}\n` +
+        `This month: ${num(ext.production_kg_this_month)} kg (last month ${num(ext.production_kg_last_month)} kg)\n` +
+        `Against target: ${
+          variance == null
+            ? 'no target set for this period'
+            : `${num(variance)} kg vs ${num(pvt.target_kg)} kg`
+        }`
+      );
+    },
+  },
+  {
+    action: 'alerts',
+    title: 'Open alerts',
+    feature: 'dashboard',
+    render: (d) => {
+      const alerts: Any[] = Array.isArray(d?.open_alerts) ? d.open_alerts : [];
+      if (alerts.length === 0) return '*Open alerts*\n\nNothing open. ✅';
+      // Cap the transcript, not the count: the number is the fact that matters, and a WhatsApp
+      // message listing 40 alerts is unreadable.
+      const shown = alerts.slice(0, 5);
+      const lines = shown.map((a) => `• ${String(a?.title ?? 'Untitled')} (${String(a?.severity ?? '—')})`);
+      const more = alerts.length > shown.length ? `\n\n…and ${alerts.length - shown.length} more.` : '';
+      return `*Open alerts · ${alerts.length}*\n\n${lines.join('\n')}${more}`;
+    },
+  },
+  {
+    action: 'intake',
+    title: 'Intake today',
+    feature: 'grower-intake-grid',
+    render: (d) => {
+      const proc = d?.procurement_today ?? {};
+      return (
+        `*Intake today*\n\n` +
+        `Deliveries: ${num(proc.deliveries_today)}\n` +
+        `Predicted: ${num(proc.predicted_kg_today)} kg`
+      );
+    },
+  },
+  {
+    action: 'digest',
+    title: 'Full daily digest',
+    feature: 'dashboard',
+    render: (d) => {
+      const ks = d?.kernel_stats ?? {};
+      const oil = d?.oil_stats ?? {};
+      const ext = d?.extended_kpis ?? {};
+      const runway = d?.runway ?? {};
+      const pvt = d?.produced_vs_target ?? {};
+      const proc = d?.procurement_today ?? {};
+      const alerts: Any[] = Array.isArray(d?.open_alerts) ? d.open_alerts : [];
+      return (
+        `*Macavation daily digest · ${d?.date ?? 'today'}*\n\n` +
+        `Kernel: ${num(ks.kg_cracked_today)} kg cracked today, ${num(ks.kg_packed_week)} kg packed this week\n` +
+        `Oil: ${num(oil.litres_today)} L today, ${num(oil.litres_week)} L this week\n` +
+        `Recovery: ${pct(ext.sound_kernel_recovery_pct)} · Yield: ${pct(ext.oil_yield_pct)}\n` +
+        `Kernel on hand: ${num(ext.kernel_soh_kg, 2)} kg\n` +
+        `Cover: ${runway.weeks_cover == null ? '—' : `${num(runway.weeks_cover, 1)} wks`}\n` +
+        `Against target: ${pvt.variance_kg == null ? '—' : `${num(pvt.variance_kg)} kg`}\n` +
+        `Open alerts: ${alerts.length}\n` +
+        `Intake today: ${num(proc.deliveries_today)} deliveries, ${num(proc.predicted_kg_today)} kg`
+      );
+    },
+  },
+];
+
+/**
+ * Feature keys enabled for this role, as public.features.key strings.
+ *
+ * Returns an EMPTY SET on any failure — a missing RPC, an error, a role with nothing enabled. The
+ * caller then shows no items and says so. Failing to an empty menu rather than a full one is
+ * deliberate: an unreadable permission table must never widen what somebody can read over
+ * WhatsApp.
+ */
+async function loadFeatureKeys(sb: SupabaseClient, roleId: string | null): Promise<Set<string>> {
+  if (!roleId) return new Set();
+  try {
+    const { data, error } = await sb.rpc('get_role_features_for_role', { p_role_id: roleId });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error('[whatsapp-inbound] get_role_features_for_role is missing — cannot build the menu.');
+      } else {
+        console.error('[whatsapp-inbound] get_role_features_for_role failed:', error.message);
+      }
+      return new Set();
+    }
+    const rows: Any[] = Array.isArray(data) ? data : data ? [data] : [];
+    const keys = new Set<string>();
+    for (const r of rows) {
+      if (String(r?.value ?? '') === 'true' && r?.feature_key) keys.add(String(r.feature_key));
+    }
+    return keys;
+  } catch (e) {
+    console.error('[whatsapp-inbound] get_role_features_for_role threw:', e);
+    return new Set();
+  }
+}
+
+/** The items this role may see, in MENU_ITEMS order. Position in THIS array is the typed number. */
+function visibleItems(featureKeys: Set<string>): MenuItem[] {
+  // MAX_LIST_ROWS is Meta's cap for one list and buildListBody throws above it. MENU_ITEMS is
+  // well under it today; the slice means adding a seventh, eighth… item can never turn a menu
+  // send into a thrown error for a role that happens to have everything enabled.
+  return MENU_ITEMS.filter((i) => featureKeys.has(i.feature)).slice(0, MAX_LIST_ROWS);
+}
+
+const MENU_NS = 'menu';
+
+function menuBodyText(displayName: string): string {
+  return `Hi ${displayName}. What would you like to see?`;
+}
+
+/** Plain-text rendering of the same role-filtered list, used when the interactive send fails. */
+function menuFallbackText(displayName: string, items: MenuItem[]): string {
+  const lines = items.map((item, i) => `${i + 1}. ${item.title}`);
+  return (
+    `${menuBodyText(displayName)}\n\n` +
+    `${lines.join('\n')}\n\n` +
+    `Reply with a number. 99 brings this menu back at any time.`
+  );
+}
+
+/**
+ * Sends the main menu as an interactive list, falling back to numbered text if the list send is
+ * rejected.
+ *
+ * Returns `reply: null` in the success case BECAUSE IT HAS ALREADY SENT: processCommandForMessage
+ * only sends `result.reply` when it is non-null, so a handler that sends its own interactive
+ * message must return null or the member would receive the menu twice. The fallback path returns
+ * text and lets the caller send it in the usual way.
+ */
+async function commandMenu(ctx: CommandContext): Promise<CommandResult> {
+  const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
+  const items = visibleItems(featureKeys);
+
+  if (items.length === 0) {
+    return {
+      outcome: 'denied',
+      reply:
+        `Hi ${ctx.displayName}, your role does not have access to any of the WhatsApp reports ` +
+        `yet. Ask an administrator to enable the areas you need in the portal.`,
+      command: 'MENU',
+      detail: 'no features enabled for role',
+    };
+  }
+
+  const rows = items.map((item) => ({ id: buildReplyId(MENU_NS, item.action), title: item.title }));
+
+  const result = await sendList(toWaPhone(ctx.phone), menuBodyText(ctx.displayName), 'Choose', [
+    { title: 'Macavation', rows },
+  ]);
+
+  if (!result.ok) {
+    console.error(`[whatsapp-inbound] menu list send failed, falling back to text: ${result.error}`);
+    return {
+      outcome: 'ok',
+      reply: menuFallbackText(ctx.displayName, items),
+      command: 'MENU',
+      detail: 'list send failed; text fallback',
+    };
+  }
+
+  return { outcome: 'ok', reply: null, command: 'MENU' };
+}
+
+/**
+ * Renders one menu item, re-checking the role's features FIRST.
+ *
+ * The re-check is not redundant. A reply id is whatever the handset sends back — a member can tap
+ * a row from a menu sent before their role changed, or send a saved id by hand — so the tap is a
+ * request, never an authorisation. Anything not in the role's CURRENT visible set is refused here.
+ */
+async function renderMenuItem(ctx: CommandContext, action: string): Promise<CommandResult> {
+  const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
+  const item = visibleItems(featureKeys).find((i) => i.action === action);
+
+  if (!item) {
+    return {
+      outcome: 'denied',
+      reply:
+        `Sorry ${ctx.displayName}, that option is not available to you. Reply 99 for the menu.`,
+      command: `MENU:${action.toUpperCase()}`,
+      detail: 'action not in role visible set',
+    };
+  }
+
+  let digest: Any;
+  try {
+    const { data, error } = await ctx.sb.rpc('get_daily_digest');
+    if (error) throw error;
+    digest = Array.isArray(data) ? data[0] : data;
+  } catch (e) {
+    console.error('[whatsapp-inbound] get_daily_digest failed:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not read the figures just now. Please try again shortly.`,
+      command: `MENU:${action.toUpperCase()}`,
+      detail: String(e),
+    };
+  }
+
+  if (!digest) {
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, there are no figures available right now.`,
+      command: `MENU:${action.toUpperCase()}`,
+      detail: 'empty digest',
+    };
+  }
+
+  return {
+    outcome: 'ok',
+    reply: `${item.render(digest)}\n\nReply 99 for the menu.`,
+    command: `MENU:${action.toUpperCase()}`,
+  };
+}
+
+/** A typed number: position in the role's own visible list. 0 and 99 never reach here. */
+async function renderMenuPosition(ctx: CommandContext, position: number): Promise<CommandResult> {
+  const featureKeys = await loadFeatureKeys(ctx.sb, ctx.roleId);
+  const items = visibleItems(featureKeys);
+  const item = items[position - 1];
+
+  if (!item) {
+    return {
+      outcome: 'unknown_command',
+      reply:
+        `Sorry ${ctx.displayName}, there is no option ${position}. Reply 99 for the menu.`,
+      command: `MENU#${position}`,
+      detail: 'position out of range',
+    };
+  }
+
+  return renderMenuItem(ctx, item.action);
+}
+
 const HELP_COMMAND_LIST =
+  'MENU (or 99) — show the menu of reports\n' +
   'HELP — show this message\n' +
   'YES (or Y, CONFIRM) — confirm a pending request\n' +
   'NO (or N, CANCEL) — cancel a pending request';
@@ -326,6 +703,7 @@ function helpReplyText(displayName: string): string {
   return (
     `Hi ${displayName}. Here is what I can do right now:\n\n` +
     `${HELP_COMMAND_LIST}\n\n` +
+    `The menu shows only the areas your role can already open in the portal.\n\n` +
     `Some requests write data — those ask you to confirm what was understood before anything is ` +
     `saved. Reply YES to go ahead or NO to cancel.\n\n` +
     `More commands are coming. Text HELP any time to see the current list.`
@@ -462,27 +840,78 @@ const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandR
   NO: commandNo,
   N: commandNo,
   CANCEL: commandNo,
+  // The menu, plus the greetings somebody actually opens a chat with.
+  MENU: commandMenu,
+  HI: commandMenu,
+  HELLO: commandMenu,
+  START: commandMenu,
+  // 0 = back, 99 = main menu — the fixed convention, on every step, for every instance. This
+  // menu is one level deep so both reach the same place; they are registered separately so the
+  // convention already holds when a second level is added. The legacy 9 is deliberately absent.
+  '0': commandMenu,
+  '99': commandMenu,
 };
 
-/** Parses the verb and dispatches. HELP (also empty body and "?") always short-circuits. */
+/**
+ * Parses a tap or a typed verb and dispatches.
+ *
+ * Order matters and is deliberate:
+ *   1. A menu TAP (ctx.replyId) wins outright — it is a stable id, not free text.
+ *   2. HELP is the only word that still short-circuits to the help text.
+ *   3. An empty body or "?" opens the MENU. This is the change from the store-only era, when
+ *      both fell through to HELP: a member who says "Hi" wants to be shown what they can do,
+ *      not read a list of verbs to type.
+ *   4. A registered verb (including '0' and '99').
+ *   5. A bare one- or two-digit number = a position in the role's own visible menu, which is
+ *      what makes the plain-text menu fallback work.
+ */
 async function handleCommand(ctx: CommandContext): Promise<CommandResult> {
+  if (ctx.replyId) {
+    const parsed = parseReplyId(ctx.replyId);
+    if (parsed && parsed.ns === MENU_NS) {
+      return renderMenuItem(ctx, parsed.action);
+    }
+    // A well-formed id from another namespace, or an id this build does not know: treat it as a
+    // stale menu rather than an error, since the commonest cause is a tap on a menu sent by an
+    // older deployment.
+    return {
+      outcome: 'unknown_command',
+      reply:
+        `Sorry ${ctx.displayName}, that option is no longer available. Reply 99 for the menu.`,
+      command: 'MENU',
+      detail: `unrecognised reply id: ${ctx.replyId}`,
+    };
+  }
+
   const collapsed = ctx.rawBody.trim().replace(/\s+/g, ' ');
   const verb = (collapsed.split(' ')[0] || '').toUpperCase();
 
-  if (!collapsed || collapsed === '?' || verb === 'HELP') {
+  if (verb === 'HELP') {
     return commandHelp(ctx);
   }
 
-  const handler = COMMAND_HANDLERS[verb];
-  if (!handler) {
-    const reply =
-      `Sorry ${ctx.displayName}, I did not recognise "${verb}".\n\n` +
-      `Here is what I can do right now:\n\n${HELP_COMMAND_LIST}\n\n` +
-      `More commands are coming. Text HELP any time to see the current list.`;
-    return { outcome: 'unknown_command', reply, command: verb || null };
+  if (!collapsed || collapsed === '?') {
+    return commandMenu(ctx);
   }
 
-  return handler(ctx);
+  // hasOwnProperty, not a bare lookup: COMMAND_HANDLERS is a plain object, so a bare
+  // COMMAND_HANDLERS[verb] also finds Object.prototype members and would call one as though it
+  // were a handler. Uppercasing `verb` happens to make that unreachable today (no prototype
+  // member is spelled in capitals), but that is an accident of casing, not a guard — this is the
+  // guard. `verb` is attacker-controlled text off a public WhatsApp line.
+  if (Object.prototype.hasOwnProperty.call(COMMAND_HANDLERS, verb)) {
+    return COMMAND_HANDLERS[verb](ctx);
+  }
+
+  if (/^\d{1,2}$/.test(verb)) {
+    return renderMenuPosition(ctx, Number(verb));
+  }
+
+  const reply =
+    `Sorry ${ctx.displayName}, I did not recognise "${verb}".\n\n` +
+    `Here is what I can do right now:\n\n${HELP_COMMAND_LIST}\n\n` +
+    `More commands are coming. Text HELP any time to see the current list.`;
+  return { outcome: 'unknown_command', reply, command: verb || null };
 }
 
 /**
@@ -569,12 +998,33 @@ async function processCommandForMessage(
   from: string,
   wamid: string
 ): Promise<void> {
-  if (String(msg?.type ?? '') !== 'text') {
-    // Non-text messages already store a placeholder body; never try to command off one.
+  const type = String(msg?.type ?? '');
+
+  let rawBody: string;
+  let replyId: string | null = null;
+
+  if (type === 'text') {
+    // Read straight from the message rather than through classifyMessage: that classifier treats
+    // an empty text body as 'unsupported', and an empty body has always reached the dispatcher
+    // here (handleCommand answers it). Routing text through it would silently drop that case.
+    rawBody = String(msg?.text?.body ?? '');
+  } else if (type === 'interactive' || type === 'button') {
+    // A menu tap. classifyMessage owns the reply-id extraction for both shapes — a real
+    // interactive list_reply/button_reply, and the type:'button' form Meta uses for a quick-reply
+    // tap on an approved template. It returns the id, not the display title, which is the whole
+    // point: see CommandContext.replyId.
+    const classified = classifyMessage(msg, undefined);
+    if (classified.kind !== 'button_reply' && classified.kind !== 'list_reply') {
+      return;
+    }
+    replyId = classified.replyId;
+    // The audit log records the id that was dispatched on, not the label the member saw.
+    rawBody = classified.replyId;
+  } else {
+    // Images, location, reactions and anything else already store a placeholder body via
+    // bodyForMessage; never try to command off one.
     return;
   }
-
-  const rawBody = String(msg?.text?.body ?? '');
 
   try {
     let resolved: Any;
@@ -607,8 +1057,11 @@ async function processCommandForMessage(
     if (!resolved || resolved.success !== 1) {
       // Unenrolled. The ONLY exception is a body that is exactly six digits — try it as an
       // enrolment code. Anything else is untouched: behaviour identical to before this plan.
+      // TEXT ONLY. A tap cannot be an enrolment code, and an unenrolled number has no menu to
+      // have tapped in the first place — guarding on replyId keeps that impossible rather than
+      // merely unlikely.
       const trimmedBody = rawBody.trim();
-      if (/^\d{6}$/.test(trimmedBody)) {
+      if (!replyId && /^\d{6}$/.test(trimmedBody)) {
         await tryConfirmEnrolment(sb, from, wamid, rawBody, trimmedBody);
         return;
       }
@@ -635,6 +1088,7 @@ async function processCommandForMessage(
       userId: String(resolved.user_id),
       roleId: resolved.role_id != null ? String(resolved.role_id) : null,
       displayName: String(resolved.display_name || 'there'),
+      replyId,
     };
 
     const result = await handleCommand(ctx);
