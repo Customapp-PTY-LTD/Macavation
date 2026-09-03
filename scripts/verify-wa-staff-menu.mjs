@@ -398,6 +398,36 @@ check('whatsapp-enrol-staff checks admin.users.manage BEFORE minting', () => {
   assert.ok(mintIdx > permIdx, 'the permission check must run before whatsapp_start_enrolment');
 });
 
+check('the boolean permission RPC is NOT routed through the row-shaped rpc() helper', () => {
+  // Regression guard for a real bug shipped on this function's first deployment. rpc() returns []
+  // for anything that is neither an array nor an object, and whatsapp_user_manages_users is
+  // RETURNS boolean — so `true` arrived as [], rows[0] was undefined, and the gate refused every
+  // caller including a super_user holding admin.users.manage. The failure direction was safe but
+  // the function was entirely unusable.
+  assert.ok(
+    !/rpc\(sb,\s*'whatsapp_user_manages_users'/.test(enrolSrc),
+    'whatsapp_user_manages_users returns a SCALAR boolean and must be read directly from sb.rpc, ' +
+      'not through the row-shaped rpc() helper, which discards scalars'
+  );
+  assert.ok(
+    /sb\.rpc\('whatsapp_user_manages_users'/.test(enrolSrc),
+    'expected a direct sb.rpc call for the boolean permission check'
+  );
+  assert.ok(
+    enrolSrc.includes('manages = data === true'),
+    'expected the boolean to be read off `data` itself, not off a row'
+  );
+});
+
+check('the other scalar-returning RPC is read directly too', () => {
+  // chat_normalize_phone is RETURNS text — same trap, and it was always read correctly. Asserted
+  // so a later tidy-up cannot "simplify" it into the helper and reintroduce the same class of bug.
+  assert.ok(
+    !/rpc\(sb,\s*'chat_normalize_phone'/.test(enrolSrc),
+    'chat_normalize_phone returns a scalar and must not go through the rpc() helper'
+  );
+});
+
 check('whatsapp-enrol-staff derives the requesting user from the session, never the request body', () => {
   assert.ok(
     enrolSrc.includes('p_requesting_user_id: requestingUserId'),

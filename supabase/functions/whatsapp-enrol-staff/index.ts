@@ -187,13 +187,23 @@ Deno.serve(async (req) => {
   const requestingUserId = sessionOrErr.userId;
 
   // The real authorisation gate. Runs on the SESSION's user id, before anything is minted.
+  //
+  // CALLED DIRECTLY, NOT THROUGH THE rpc() HELPER ABOVE — and that is not a style choice.
+  // whatsapp_user_manages_users is declared RETURNS boolean, so supabase-js hands back the bare
+  // scalar `true`. rpc() returns [] for anything that is neither an array nor an object, so a
+  // scalar `true` arrives as an empty array, `rows[0]` is undefined, and the check evaluates
+  // false — refusing EVERY caller, including a super_user who genuinely holds
+  // admin.users.manage. That is exactly what happened on the first deployment of this function.
+  // rpc() is for the row-returning RPCs (assistant_validate_session, whatsapp_start_enrolment);
+  // scalar-returning RPCs are read directly, the same way canonicalisePhone reads
+  // chat_normalize_phone's text return.
   let manages = false;
   try {
-    const rows = await rpc(sb, 'whatsapp_user_manages_users', { p_user_id: requestingUserId });
-    const row = rows?.[0] ?? null;
-    // The RPC returns a bare boolean; supabase-js wraps a scalar as either the value itself or a
-    // single-element array depending on the shape, so accept both rather than assuming one.
-    manages = row === true || row?.whatsapp_user_manages_users === true;
+    const { data, error } = await sb.rpc('whatsapp_user_manages_users', {
+      p_user_id: requestingUserId,
+    });
+    if (error) throw new Error(error.message);
+    manages = data === true || (Array.isArray(data) && data[0] === true);
   } catch (e) {
     console.error('[whatsapp-enrol-staff] permission check failed:', e);
     return json({ success: false, error: 'Permission check unavailable. Please try again.' }, 503);
