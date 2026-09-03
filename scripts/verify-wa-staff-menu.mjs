@@ -89,6 +89,21 @@ check("the legacy '9' is never registered as a navigation key", () => {
   );
 });
 
+check('the verb lookup is guarded with hasOwnProperty', () => {
+  // COMMAND_HANDLERS is a plain object, so a bare index also resolves Object.prototype members
+  // and would invoke one as a handler. `verb` is attacker-controlled text off a public WhatsApp
+  // line, so the guard is explicit rather than left to the accident that no prototype member is
+  // spelled in capitals.
+  assert.ok(
+    inboundSrc.includes('Object.prototype.hasOwnProperty.call(COMMAND_HANDLERS, verb)'),
+    'expected handleCommand to guard the COMMAND_HANDLERS lookup with hasOwnProperty'
+  );
+  assert.ok(
+    !/const handler = COMMAND_HANDLERS\[verb\]/.test(inboundSrc),
+    'the unguarded COMMAND_HANDLERS[verb] lookup is back'
+  );
+});
+
 // ================================================================================================
 // 2. Dispatch is on the reply ID, never on the row's display title.
 // ================================================================================================

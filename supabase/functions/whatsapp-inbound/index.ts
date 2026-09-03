@@ -894,9 +894,13 @@ async function handleCommand(ctx: CommandContext): Promise<CommandResult> {
     return commandMenu(ctx);
   }
 
-  const handler = COMMAND_HANDLERS[verb];
-  if (handler) {
-    return handler(ctx);
+  // hasOwnProperty, not a bare lookup: COMMAND_HANDLERS is a plain object, so a bare
+  // COMMAND_HANDLERS[verb] also finds Object.prototype members and would call one as though it
+  // were a handler. Uppercasing `verb` happens to make that unreachable today (no prototype
+  // member is spelled in capitals), but that is an accident of casing, not a guard — this is the
+  // guard. `verb` is attacker-controlled text off a public WhatsApp line.
+  if (Object.prototype.hasOwnProperty.call(COMMAND_HANDLERS, verb)) {
+    return COMMAND_HANDLERS[verb](ctx);
   }
 
   if (/^\d{1,2}$/.test(verb)) {
