@@ -314,10 +314,10 @@ async function logCommand(
 }
 
 // ============================================================================
-// Command dispatch — HELP plus the generic YES/NO confirm-cancel flow in this plan. No write
-// command exists yet: the next plan adds one by adding an entry to STAGED_COMMAND_HANDLERS below
-// (keyed on the pending command's `command` value) and, separately, a verb to COMMAND_HANDLERS
-// (keyed on what the user types) — not by restructuring this.
+// Command dispatch — HELP, the generic YES/NO confirm-cancel flow, the menu, and the typed verbs.
+// A write command is added by registering an entry in STAGED_COMMAND_HANDLERS below (keyed on the
+// pending command's `command` value) and, separately, a verb in COMMAND_HANDLERS (keyed on what the
+// user types) — not by restructuring this. ACK/ACK_ALERT is the worked example.
 // ============================================================================
 
 interface CommandContext {
@@ -380,7 +380,23 @@ interface MenuItem {
   title: string;
   /** public.features.key that must be 'true' for this role. */
   feature: string;
-  render: (digest: Any) => string;
+  /**
+   * Renders from the shared get_daily_digest() payload. Exactly one of `render` or `resolve` must
+   * be set. `canAct` is the result of the item's own `needsAction` check (false when it declares
+   * none) — passed in rather than looked up here so `render` stays synchronous and pure.
+   */
+  render?: (digest: Any, canAct?: boolean) => string;
+  /**
+   * For an item whose answer depends on WHO is asking rather than on the shared digest. The digest
+   * is never fetched for a `resolve` item, so a broken digest cannot make this item report a
+   * failure that has nothing to do with it.
+   */
+  resolve?: (ctx: CommandContext) => Promise<string>;
+  /**
+   * Optional action key whose grant this item's wording depends on (NOT its visibility — that is
+   * `feature`). Resolved by renderMenuItem and handed to `render` as `canAct`.
+   */
+  needsAction?: string;
 }
 
 /**
@@ -407,6 +423,117 @@ function pct(v: unknown): string {
   if (v === null || v === undefined || v === '') return '—';
   const n = Number(v);
   return Number.isFinite(n) ? `${n.toFixed(1)}%` : '—';
+}
+
+/**
+ * How many alerts the open-alerts view lists before it says "…and N more". ACK <n> is a position in
+ * THAT list, so this is also the largest number ACK will accept.
+ */
+const ALERT_LIST_MAX = 10;
+
+/**
+ * public.has_action(user, action_key) — the server-side action gate.
+ *
+ * FAILS CLOSED on any error, including the RPC being absent: this function runs as service_role,
+ * which bypasses RLS, so a failed authorization check must never read as "allowed".
+ *
+ * Called directly rather than through any array-normalising helper because has_action returns a
+ * bare boolean, not a TABLE — the same reasoning recorded at
+ * send-report-whatsapp/index.ts:126-140, which is the precedent this follows.
+ */
+async function hasAction(sb: SupabaseClient, userId: string, actionKey: string): Promise<boolean> {
+  try {
+    const { data, error } = await sb.rpc('has_action', {
+      p_user_id: userId,
+      p_action_key: actionKey,
+    });
+    if (error) {
+      console.error(`[whatsapp-inbound] has_action(${actionKey}) failed:`, error.message);
+      return false;
+    }
+    return data === true;
+  } catch (e) {
+    console.error(`[whatsapp-inbound] has_action(${actionKey}) threw:`, e);
+    return false;
+  }
+}
+
+/** A date, or an em dash when there isn't one. Same null trap as num — see there. */
+function shortDate(v: unknown): string {
+  if (v === null || v === undefined || v === '') return '—';
+  const d = new Date(String(v));
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/**
+ * The open-alerts view. PURE — no client, no I/O — so verify-wa-staff-menu can re-declare and test
+ * it. Numbered because ACK <n> resolves by position in THIS list.
+ *
+ * `canAck` is public.has_action(user, 'alerts.resolve'), resolved by the caller. The ACK line is
+ * withheld when false so nobody is invited to use a command they cannot run; withholding the line
+ * is presentation only — commandAck re-checks the same key server-side.
+ */
+function formatOpenAlerts(d: Any, canAck: boolean): string {
+  const alerts: Any[] = Array.isArray(d?.open_alerts) ? d.open_alerts : [];
+  if (alerts.length === 0) return '*Open alerts*\n\nNothing open. ✅';
+  // Cap the transcript, not the count: the number is the fact that matters, and a WhatsApp
+  // message listing 40 alerts is unreadable.
+  const shown = alerts.slice(0, ALERT_LIST_MAX);
+  const lines = shown.map(
+    (a, i) => `${i + 1}. ${String(a?.title ?? 'Untitled')} (${String(a?.severity ?? '—')})`
+  );
+  const more = alerts.length > shown.length ? `\n\n…and ${alerts.length - shown.length} more.` : '';
+  const ack = canAck ? '\n\nReply ACK <number> to acknowledge one.' : '';
+  return `*Open alerts · ${alerts.length}*\n\n${lines.join('\n')}${more}${ack}`;
+}
+
+/**
+ * The latest-report reply. PURE. `url` is null when there is nothing to link to.
+ *
+ * Built ONLY from what get_latest_published_report_for_phone actually returns —
+ * { found, period_label, published_at, link_code, expires_at }
+ * (migrations/20260825092000_report_link_codes.sql:231-237). There is no report name and no
+ * publisher in that payload, so this must not claim either. The link lifetime is read from
+ * expires_at rather than restated, so changing the TTL at :225 cannot leave this message lying.
+ */
+function formatLatestReportReply(res: Any, displayName: string, url: string | null): string {
+  if (res === 'error' || (res && res.found !== true && res.error)) {
+    return (
+      `*Latest report*\n\n` +
+      `Sorry ${displayName}, I could not fetch your report just now. Please try again shortly.`
+    );
+  }
+  if (!res || res.found !== true || !url) {
+    return (
+      `*Latest report*\n\n` +
+      `There is no published report on your number yet. Once one is sent to you, you can fetch ` +
+      `it here.`
+    );
+  }
+  return (
+    `*Latest report*\n\n` +
+    `${String(res.period_label ?? 'Latest period')}\n` +
+    `Published ${shortDate(res.published_at)}\n\n` +
+    `Open the full report:\n${url}\n\n` +
+    `This link works until ${shortDate(res.expires_at)}.`
+  );
+}
+
+/**
+ * The short-link URL for a report code.
+ *
+ * The host comes from SUPABASE_URL at runtime — NEVER a hardcoded domain. A literal host would send
+ * production users to dev or vice versa and no check in this repo would catch it. `r` accepts
+ * /r/<code> or ?c=<code> (supabase/functions/r/index.ts:3-4); the path form is used here.
+ * Returns null when SUPABASE_URL is unset, so the caller sends the not-found reply rather than a
+ * malformed link.
+ */
+function buildReportUrl(linkCode: unknown): string | null {
+  const base = (Deno.env.get('SUPABASE_URL') || '').replace(/\/+$/, '');
+  const code = String(linkCode ?? '').trim();
+  if (!base || !code) return null;
+  return `${base}/functions/v1/r/${encodeURIComponent(code)}`;
 }
 
 const MENU_ITEMS: MenuItem[] = [
@@ -469,16 +596,8 @@ const MENU_ITEMS: MenuItem[] = [
     action: 'alerts',
     title: 'Open alerts',
     feature: 'dashboard',
-    render: (d) => {
-      const alerts: Any[] = Array.isArray(d?.open_alerts) ? d.open_alerts : [];
-      if (alerts.length === 0) return '*Open alerts*\n\nNothing open. ✅';
-      // Cap the transcript, not the count: the number is the fact that matters, and a WhatsApp
-      // message listing 40 alerts is unreadable.
-      const shown = alerts.slice(0, 5);
-      const lines = shown.map((a) => `• ${String(a?.title ?? 'Untitled')} (${String(a?.severity ?? '—')})`);
-      const more = alerts.length > shown.length ? `\n\n…and ${alerts.length - shown.length} more.` : '';
-      return `*Open alerts · ${alerts.length}*\n\n${lines.join('\n')}${more}`;
-    },
+    needsAction: 'alerts.resolve',
+    render: (d, canAct) => formatOpenAlerts(d, canAct === true),
   },
   {
     action: 'intake',
@@ -516,6 +635,49 @@ const MENU_ITEMS: MenuItem[] = [
         `Open alerts: ${alerts.length}\n` +
         `Intake today: ${num(proc.deliveries_today)} deliveries, ${num(proc.predicted_kg_today)} kg`
       );
+    },
+  },
+  {
+    // The ONLY item that resolves per-user rather than rendering from the shared digest: the answer
+    // depends on the asking number, which the digest knows nothing about. Feature key is
+    // scheduled-reports-grid — the existing key governing report delivery to people; there is no
+    // plainer 'reports' key seeded in this repo.
+    //
+    // The real access control is not this feature key. get_latest_published_report_for_phone
+    // filters to reports ALREADY SENT to the asking number
+    // (migrations/20260825092000_report_link_codes.sql:211-219), so a member can only ever retrieve
+    // something that was sent to them in the first place.
+    action: 'report',
+    title: 'Latest report',
+    feature: 'scheduled-reports-grid',
+    resolve: async (ctx) => {
+      let row: Any;
+      try {
+        const { data, error } = await ctx.sb.rpc('get_latest_published_report_for_phone', {
+          p_phone: ctx.phone,
+        });
+        if (error) {
+          if (isMissingRpc(error)) {
+            console.error(
+              '[whatsapp-inbound] get_latest_published_report_for_phone is missing — migration 20260825092000 not applied.'
+            );
+          } else {
+            console.error(
+              '[whatsapp-inbound] get_latest_published_report_for_phone failed:',
+              error.message
+            );
+          }
+          return formatLatestReportReply('error', ctx.displayName, null);
+        }
+        row = Array.isArray(data) ? data[0] : data;
+      } catch (e) {
+        console.error('[whatsapp-inbound] get_latest_published_report_for_phone threw:', e);
+        return formatLatestReportReply('error', ctx.displayName, null);
+      }
+      // Never log the minted link or the code — same rule as send-report-whatsapp's
+      // "never log the signed URL".
+      const url = row?.found === true ? buildReportUrl(row.link_code) : null;
+      return formatLatestReportReply(row, ctx.displayName, url);
     },
   },
 ];
@@ -640,6 +802,27 @@ async function renderMenuItem(ctx: CommandContext, action: string): Promise<Comm
     };
   }
 
+  // A `resolve` item answers from its own per-user source. The digest is NOT fetched for it — a
+  // broken digest must not make "latest report" reply "could not read the figures", which is a
+  // different feature failing.
+  if (item.resolve) {
+    try {
+      return {
+        outcome: 'ok',
+        reply: `${await item.resolve(ctx)}\n\nReply 99 for the menu.`,
+        command: `MENU:${action.toUpperCase()}`,
+      };
+    } catch (e) {
+      console.error(`[whatsapp-inbound] resolve failed for ${action}:`, e);
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I could not fetch that just now. Please try again shortly.`,
+        command: `MENU:${action.toUpperCase()}`,
+        detail: String(e),
+      };
+    }
+  }
+
   let digest: Any;
   try {
     const { data, error } = await ctx.sb.rpc('get_daily_digest');
@@ -664,9 +847,13 @@ async function renderMenuItem(ctx: CommandContext, action: string): Promise<Comm
     };
   }
 
+  // An item may declare an action key its WORDING depends on (not its visibility — that is
+  // `feature`, already checked above). Resolved here so `render` stays synchronous and pure.
+  const canAct = item.needsAction ? await hasAction(ctx.sb, ctx.userId, item.needsAction) : false;
+
   return {
     outcome: 'ok',
-    reply: `${item.render(digest)}\n\nReply 99 for the menu.`,
+    reply: `${item.render!(digest, canAct)}\n\nReply 99 for the menu.`,
     command: `MENU:${action.toUpperCase()}`,
   };
 }
@@ -716,10 +903,11 @@ async function commandHelp(ctx: CommandContext): Promise<CommandResult> {
 
 // ============================================================================
 // Staged-command handlers — dispatched by YES on whatever was staged via
-// whatsapp_stage_pending_command, keyed on its `command` value. EMPTY in this plan: there is no
-// write command yet to stage one in the first place. The next plan registers a real handler here
-// (and, separately, the verb that stages it, in COMMAND_HANDLERS below) — this map is the only
-// thing it needs to touch to do so.
+// whatsapp_stage_pending_command, keyed on its `command` value.
+//
+// A handler here runs only after the member has replied YES, which can be minutes after staging —
+// so it re-checks its own permission rather than trusting the check made at staging time. Add a
+// new write command by registering a handler here AND the verb that stages it in COMMAND_HANDLERS.
 // ============================================================================
 
 interface StagedCommand {
@@ -731,13 +919,92 @@ interface StagedCommand {
 const STAGED_COMMAND_HANDLERS: Record<
   string,
   (ctx: CommandContext, staged: StagedCommand) => Promise<CommandResult>
-> = {};
+> = {
+  /**
+   * ACK_ALERT — staged by commandAck, applied when the member replies YES.
+   *
+   * The permission is re-checked HERE as well as in commandAck. A staged command can be confirmed
+   * minutes later and a role can change in between; the check at staging time is not the one that
+   * authorises the write.
+   */
+  ACK_ALERT: async (ctx, staged) => {
+    const alertId = String(staged.payload?.alertId ?? '');
+    const title = String(staged.payload?.title ?? 'that alert');
+
+    if (!alertId) {
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I lost track of which alert that was. Please open the alerts list again.`,
+        command: 'ACK_ALERT',
+        detail: 'staged payload missing alertId',
+      };
+    }
+
+    if (!(await hasAction(ctx.sb, ctx.userId, 'alerts.resolve'))) {
+      return {
+        outcome: 'denied',
+        reply: `Sorry ${ctx.displayName}, closing alerts is not on your access.`,
+        command: 'ACK_ALERT',
+      };
+    }
+
+    let row: Any;
+    try {
+      const { data, error } = await ctx.sb.rpc('resolve_dashboard_alert', {
+        p_alert_id: alertId,
+        p_note: `Acknowledged over WhatsApp by ${ctx.displayName}`,
+      });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] resolve_dashboard_alert is missing — migration 20260706100000 not applied.'
+          );
+        } else {
+          console.error('[whatsapp-inbound] resolve_dashboard_alert failed:', error.message);
+        }
+        return {
+          outcome: 'error',
+          reply: `Sorry ${ctx.displayName}, I could not close that just now. Please try again shortly.`,
+          command: 'ACK_ALERT',
+          detail: error.message,
+        };
+      }
+      row = Array.isArray(data) ? data[0] : data;
+    } catch (e) {
+      console.error('[whatsapp-inbound] resolve_dashboard_alert threw:', e);
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I could not close that just now. Please try again shortly.`,
+        command: 'ACK_ALERT',
+        detail: String(e),
+      };
+    }
+
+    // resolve_dashboard_alert updates only WHERE status = 'active' and reports
+    // { success: false, error: 'Alert not found or already resolved' } when it matched no row
+    // (migrations/20260706100000_phase2_implementation_complete.sql:12-30). That is a normal
+    // outcome, not a failure.
+    if (row?.success !== true) {
+      return {
+        outcome: 'ok',
+        reply: `That one is already closed, ${ctx.displayName}.`,
+        command: 'ACK_ALERT',
+      };
+    }
+
+    return {
+      outcome: 'ok',
+      reply: `Noted, ${ctx.displayName}. "${title}" is marked acknowledged in the portal.`,
+      command: 'ACK_ALERT',
+    };
+  },
+};
 
 /**
  * YES / Y / CONFIRM — takes (fetches-and-deletes) whatever is staged for this phone+user and
  * applies it via STAGED_COMMAND_HANDLERS. With nothing pending, or an RPC failure, replies
- * accordingly rather than throwing; a staged command with no registered handler (the only
- * reachable case until the next plan) replies that the request has expired.
+ * accordingly rather than throwing; a staged command with no registered handler replies that the
+ * request has expired.
  */
 async function commandYes(ctx: CommandContext): Promise<CommandResult> {
   let data: Any;
@@ -832,6 +1099,111 @@ async function commandNo(ctx: CommandContext): Promise<CommandResult> {
   };
 }
 
+/**
+ * ACK <n> — stage the acknowledgement of the nth open alert, awaiting YES.
+ *
+ * <n> is a position in the list the member was just shown, which comes from get_daily_digest()'s
+ * open_alerts (ordered created_at DESC, LIMIT 25). This re-reads that SAME source rather than
+ * querying dashboard_alerts directly, so there is only ever one definition of "open alerts".
+ *
+ * There is deliberately NO stored copy of the list. The alerts view renders synchronously with no
+ * client and could not stage one, and there is no read-without-delete RPC to read it back with —
+ * whatsapp_take_pending_command fetches AND deletes in one statement, by design. What makes this
+ * safe instead is the confirmation step: it names the alert, so if the list shifted between the
+ * listing and the ACK the member sees a title they did not expect and replies NO.
+ */
+async function commandAck(ctx: CommandContext): Promise<CommandResult> {
+  const parts = ctx.rawBody.trim().replace(/\s+/g, ' ').split(' ');
+  const raw = parts[1] ?? '';
+  const n = /^\d{1,3}$/.test(raw) ? Number(raw) : NaN;
+
+  if (!Number.isInteger(n) || n < 1 || n > ALERT_LIST_MAX) {
+    return {
+      outcome: 'unknown_command',
+      reply:
+        `Reply ACK followed by the number of the alert, for example ACK 2. ` +
+        `Reply 99 for the menu to see the list again.`,
+      command: 'ACK',
+    };
+  }
+
+  if (!(await hasAction(ctx.sb, ctx.userId, 'alerts.resolve'))) {
+    return {
+      outcome: 'denied',
+      reply: `Sorry ${ctx.displayName}, closing alerts is not on your access. Speak to an administrator if you need it.`,
+      command: 'ACK',
+    };
+  }
+
+  let alerts: Any[] = [];
+  try {
+    const { data, error } = await ctx.sb.rpc('get_daily_digest');
+    if (error) throw error;
+    const digest = Array.isArray(data) ? data[0] : data;
+    alerts = Array.isArray(digest?.open_alerts) ? digest.open_alerts : [];
+  } catch (e) {
+    console.error('[whatsapp-inbound] get_daily_digest failed for ACK:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not read the alerts just now. Please try again shortly.`,
+      command: 'ACK',
+      detail: String(e),
+    };
+  }
+
+  const chosen = alerts[n - 1];
+  const alertId = chosen?.id ? String(chosen.id) : '';
+  if (!alertId) {
+    return {
+      outcome: 'ok',
+      reply: `There is no alert ${n} open right now, ${ctx.displayName}. Reply 99 for the menu to see the current list.`,
+      command: 'ACK',
+    };
+  }
+
+  const title = String(chosen?.title ?? 'Untitled');
+  const summary = `Acknowledge "${title}"`;
+
+  try {
+    const { error } = await ctx.sb.rpc('whatsapp_stage_pending_command', {
+      p_phone: ctx.phone,
+      p_user_id: ctx.userId,
+      p_command: 'ACK_ALERT',
+      p_payload: { alertId, title },
+      p_summary: summary,
+    });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] whatsapp_stage_pending_command is missing — migration 20260815130000 not applied.'
+        );
+      } else {
+        console.error('[whatsapp-inbound] whatsapp_stage_pending_command failed:', error.message);
+      }
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
+        command: 'ACK',
+        detail: error.message,
+      };
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] whatsapp_stage_pending_command threw:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
+      command: 'ACK',
+      detail: String(e),
+    };
+  }
+
+  return {
+    outcome: 'ok',
+    reply: `${summary}?\n\nReply YES to confirm, or NO to cancel.`,
+    command: 'ACK',
+  };
+}
+
 const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandResult>> = {
   HELP: commandHelp,
   YES: commandYes,
@@ -840,6 +1212,11 @@ const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandR
   NO: commandNo,
   N: commandNo,
   CANCEL: commandNo,
+  // Typed shortcuts to menu items, for members who would rather type than tap. Each one goes
+  // through renderMenuItem, so the role's CURRENT feature set is re-checked exactly as for a tap.
+  REPORT: (ctx) => renderMenuItem(ctx, 'report'),
+  // ACK <n> — stages an alert acknowledgement, applied by YES.
+  ACK: commandAck,
   // The menu, plus the greetings somebody actually opens a chat with.
   MENU: commandMenu,
   HI: commandMenu,
