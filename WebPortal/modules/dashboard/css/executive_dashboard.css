@@ -15,3 +15,120 @@
     font-size: 0.875rem;
 }
 .minute-test-cell:empty::after { content: '\2014'; color: var(--mac-text); }
+
+/* Executive alerts panel — chips filter strip, severity rows, undo toast (plan exec-dash-02) */
+
+.exec-alert-chips {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--mac-space-sm);
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    border-bottom: 1px solid var(--mac-border);
+    background-color: var(--mac-bg-secondary);
+}
+
+.exec-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mac-space-xs);
+    padding: var(--mac-space-xs) var(--mac-space-sm);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-pill);
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text-secondary);
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.exec-chip--critical { border-color: var(--mac-danger); color: var(--mac-danger); }
+.exec-chip--critical[aria-pressed="true"] { background-color: var(--mac-danger-light); }
+.exec-chip--warning { border-color: var(--mac-warning); color: var(--mac-warning-text); }
+.exec-chip--warning[aria-pressed="true"] { background-color: var(--mac-warning-light); }
+.exec-chip--info { border-color: var(--mac-info); color: var(--mac-info); }
+.exec-chip--info[aria-pressed="true"] { background-color: var(--mac-info-light); }
+
+.exec-alert-hint {
+    margin-left: auto;
+    color: var(--mac-text-tertiary);
+    font-size: var(--mac-text-xs);
+}
+
+.exec-alert-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--mac-space-sm);
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    margin-bottom: var(--mac-space-sm);
+    border: 1px solid var(--mac-border);
+    border-left: 4px solid var(--mac-border-strong);
+    border-radius: var(--mac-radius-sm);
+    background-color: var(--mac-bg-secondary);
+}
+
+.exec-alert-row--critical { border-left-color: var(--mac-danger); background-color: var(--mac-danger-light); }
+.exec-alert-row--warning { border-left-color: var(--mac-warning); background-color: var(--mac-warning-light); }
+.exec-alert-row--info { border-left-color: var(--mac-info); background-color: var(--mac-info-light); }
+
+.exec-alert-icon { margin-top: 2px; font-size: var(--mac-text-md); }
+.exec-alert-row--critical .exec-alert-icon { color: var(--mac-danger); }
+.exec-alert-row--warning .exec-alert-icon { color: var(--mac-warning-text); }
+.exec-alert-row--info .exec-alert-icon { color: var(--mac-info); }
+
+.exec-alert-body { flex: 1 1 auto; min-width: 0; }
+
+.exec-alert-sev-label {
+    font-size: var(--mac-text-xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--mac-text-tertiary);
+    margin-right: var(--mac-space-xs);
+}
+
+.exec-alert-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--mac-space-xs);
+    white-space: nowrap;
+}
+
+.exec-toast-host {
+    position: fixed;
+    top: var(--mac-space-md);
+    right: var(--mac-space-md);
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    gap: var(--mac-space-sm);
+}
+
+.exec-toast {
+    display: flex;
+    align-items: center;
+    gap: var(--mac-space-md);
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    background-color: var(--mac-bg-secondary);
+    box-shadow: var(--mac-shadow-md);
+    color: var(--mac-text);
+    font-size: var(--mac-text-sm);
+}
+
+@keyframes exec-flash-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(var(--mac-green-rgb), 0.5); }
+    100% { box-shadow: 0 0 0 8px rgba(var(--mac-green-rgb), 0); }
+}
+
+.exec-flash { animation: exec-flash-pulse 0.8s ease-out 2; }
+
+@media (prefers-reduced-motion: reduce) {
+    .exec-flash { animation: none; }
+}
+
+/* Module-owned visibility class — the only way this module hides/shows an element.
+   !important is deliberate: it must win over any Bootstrap display utility that could
+   land on the same element (see the plan's "Visibility is a module-owned class" note). */
+.exec-hidden { display: none !important; }
