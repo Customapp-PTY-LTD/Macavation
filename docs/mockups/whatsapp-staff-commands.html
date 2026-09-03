@@ -1,0 +1,782 @@
+<title>Macavation on WhatsApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ---------- tokens: complete light palette on bare :root ---------- */
+:root{
+  --ground:#E7EAE5;
+  --ground-2:#DDE2DC;
+  --surface:#FCFCFB;
+  --ink:#141917;
+  --ink-2:#39443F;
+  --muted:#5C6963;
+  --hair:#C6CEC7;
+  --hair-soft:#D5DBD4;
+  --accent:#7C4A22;
+  --accent-soft:#EFE2D6;
+  --steel:#38566A;
+  --steel-soft:#DEE6EB;
+  --amber:#7E5A12;
+  --amber-soft:#F0E7CE;
+  --shadow:0 1px 2px rgba(15,25,20,.10), 0 14px 34px -12px rgba(15,25,20,.30);
+  --shadow-lift:0 2px 4px rgba(15,25,20,.12), 0 26px 60px -18px rgba(15,25,20,.40);
+
+  /* WhatsApp is a fixed product: reproduced faithfully, never theme-swapped */
+  --wa-chat:#EFEAE2;
+  --wa-head:#F0F2F5;
+  --wa-in:#FFFFFF;
+  --wa-out:#D9FDD3;
+  --wa-text:#111B21;
+  --wa-meta:#667781;
+  --wa-tick:#53BDEB;
+  --wa-btn:#00A5F4;
+  --wa-bezel:#1B2320;
+  --wa-day:#E1F2FA;
+  --wa-link:#027EB5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F1513;
+    --ground-2:#0A0F0E;
+    --surface:#18201D;
+    --ink:#EAEEE9;
+    --ink-2:#C2CCC6;
+    --muted:#8F9E96;
+    --hair:#2C3733;
+    --hair-soft:#232C29;
+    --accent:#CC8B52;
+    --accent-soft:#2E241A;
+    --steel:#8FB6CC;
+    --steel-soft:#1B2830;
+    --amber:#D8B25E;
+    --amber-soft:#2B2415;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 16px 40px -12px rgba(0,0,0,.7);
+    --shadow-lift:0 2px 6px rgba(0,0,0,.55), 0 30px 70px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F1513;
+  --ground-2:#0A0F0E;
+  --surface:#18201D;
+  --ink:#EAEEE9;
+  --ink-2:#C2CCC6;
+  --muted:#8F9E96;
+  --hair:#2C3733;
+  --hair-soft:#232C29;
+  --accent:#CC8B52;
+  --accent-soft:#2E241A;
+  --steel:#8FB6CC;
+  --steel-soft:#1B2830;
+  --amber:#D8B25E;
+  --amber-soft:#2B2415;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 16px 40px -12px rgba(0,0,0,.7);
+  --shadow-lift:0 2px 6px rgba(0,0,0,.55), 0 30px 70px -18px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Karla","Segoe UI",system-ui,sans-serif;
+  font-size:16px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+
+h1,h2,h3,h4{
+  font-family:"Archivo","Segoe UI",system-ui,sans-serif;
+  font-variation-settings:"wdth" 112;
+  font-weight:700;
+  line-height:1.08;
+  letter-spacing:-.012em;
+  text-wrap:balance;
+  margin:0;
+}
+p{margin:0}
+.eyebrow{
+  font-family:"Archivo",system-ui,sans-serif;
+  font-variation-settings:"wdth" 96;
+  font-weight:600;
+  font-size:11px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.note{
+  font-family:"Karla",system-ui,sans-serif;
+  font-size:13.5px;
+  letter-spacing:0;
+  text-transform:none;
+  color:var(--muted);
+}
+code{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.88em;
+  background:var(--accent-soft);
+  color:var(--accent);
+  padding:.12em .38em;
+  border-radius:4px;
+  white-space:nowrap;
+}
+
+/* ---------- masthead ---------- */
+.mast{
+  border-bottom:1px solid var(--hair);
+  background:linear-gradient(180deg,var(--ground-2),var(--ground));
+}
+.mast .wrap{
+  display:flex;flex-direction:column;gap:26px;
+  padding-top:74px;padding-bottom:64px;
+}
+.mast h1{font-size:clamp(40px,6.4vw,74px);font-variation-settings:"wdth" 118;letter-spacing:-.028em}
+.mast h1 em{font-style:normal;color:var(--accent)}
+.lede{font-size:clamp(17px,1.7vw,20px);color:var(--ink-2);max-width:60ch;line-height:1.55}
+.mast-foot{
+  display:flex;flex-wrap:wrap;gap:12px 26px;align-items:center;
+  padding-top:22px;border-top:1px solid var(--hair-soft);
+}
+
+/* ---------- shared bits ---------- */
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:"Archivo",system-ui,sans-serif;
+  font-variation-settings:"wdth" 96;
+  font-weight:600;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  padding:4px 9px;border-radius:3px;white-space:nowrap;
+}
+.chip--built{background:var(--steel-soft);color:var(--steel)}
+.chip--todo{background:var(--amber-soft);color:var(--amber)}
+.chip--new{background:var(--accent-soft);color:var(--accent)}
+
+section{padding:72px 0}
+section + section{border-top:1px solid var(--hair-soft)}
+.sec-head{display:flex;flex-direction:column;gap:12px;margin-bottom:44px;max-width:64ch}
+.sec-head h2{font-size:clamp(26px,3.2vw,36px)}
+.sec-head p{color:var(--ink-2)}
+
+/* ---------- phone ---------- */
+.phone{
+  width:308px;max-width:100%;
+  background:var(--wa-bezel);
+  border-radius:36px;
+  padding:9px;
+  box-shadow:var(--shadow-lift);
+  flex:none;
+}
+.phone__screen{
+  border-radius:28px;overflow:hidden;
+  background:var(--wa-chat);
+  display:flex;flex-direction:column;
+  font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color:var(--wa-text);
+}
+.statusbar{
+  background:var(--wa-head);
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 16px 3px;
+  font-size:12px;font-weight:600;color:var(--wa-text);
+}
+.statusbar svg{display:block}
+.statusbar__icons{display:flex;gap:5px;align-items:center;opacity:.85}
+.wa-header{
+  background:var(--wa-head);
+  display:flex;align-items:center;gap:9px;
+  padding:7px 12px 9px;
+}
+.wa-av{
+  width:32px;height:32px;border-radius:50%;
+  background:#3A7D65;color:#fff;
+  display:grid;place-items:center;
+  font-size:13px;font-weight:600;flex:none;
+}
+.wa-who{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.wa-who b{font-size:14.5px;font-weight:600}
+.wa-who span{font-size:11.5px;color:var(--wa-meta)}
+.wa-header .wa-icons{display:flex;gap:14px;opacity:.6;flex:none}
+
+.wa-chat{
+  flex:1;
+  display:flex;flex-direction:column;
+  padding:12px 8px 10px;
+  background-color:var(--wa-chat);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23D7CDBF' stroke-width='1.1' opacity='.5'%3E%3Ccircle cx='13' cy='15' r='5.5'/%3E%3Crect x='40' y='8' width='13' height='10' rx='2'/%3E%3Cpath d='M7 47l7-7 6 6'/%3E%3Cpath d='M33 34h9M37.5 29.5v9'/%3E%3Ccircle cx='55' cy='51' r='3.5'/%3E%3Cpath d='M24 63h11'/%3E%3C/g%3E%3C/svg%3E");
+}
+.wa-day{
+  align-self:center;
+  background:var(--wa-day);
+  color:#54656F;
+  font-size:11px;font-weight:500;
+  padding:4px 11px;border-radius:7px;
+  margin:2px 0 8px;
+  text-transform:uppercase;letter-spacing:.03em;
+}
+.msg{display:flex;max-width:100%}
+.msg--in{justify-content:flex-start}
+.msg--out{justify-content:flex-end}
+.msg + .msg{margin-top:3px}
+.msg.gap{margin-top:10px}
+
+.bubble{
+  position:relative;
+  max-width:85%;
+  background:var(--wa-in);
+  border-radius:8px;
+  padding:6px 9px 5px;
+  font-size:13.6px;line-height:1.42;
+  box-shadow:0 1px .5px rgba(11,20,26,.13);
+  overflow-wrap:break-word;
+  white-space:pre-wrap;
+}
+.msg--out .bubble{background:var(--wa-out)}
+.bubble--tail{border-top-left-radius:0}
+.msg--out .bubble--tail{border-top-left-radius:8px;border-top-right-radius:0}
+.bubble--tail::after{
+  content:"";position:absolute;top:0;left:-8px;
+  width:8px;height:13px;
+  background:var(--wa-in);
+  clip-path:polygon(100% 0,0 0,100% 100%);
+}
+.msg--out .bubble--tail::after{
+  left:auto;right:-8px;
+  background:var(--wa-out);
+  clip-path:polygon(0 0,100% 0,0 100%);
+}
+.bubble b{font-weight:600}
+.pre{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:12px;line-height:1.55;
+  display:block;
+  font-variant-numeric:tabular-nums;
+}
+.meta{
+  display:inline-flex;align-items:center;gap:3px;
+  float:right;
+  margin:6px -2px -2px 10px;
+  font-size:10.5px;color:var(--wa-meta);
+  white-space:nowrap;
+}
+.meta svg{fill:var(--wa-tick)}
+
+.wa-link{color:var(--wa-link);text-decoration:underline;overflow-wrap:anywhere}
+
+.msg--stack{flex-direction:column;align-items:flex-start}
+.msg--stack .bubble{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.wa-btns{
+  display:flex;flex-direction:column;
+  max-width:85%;width:100%;
+  margin-top:1px;
+  border-radius:0 0 8px 8px;overflow:hidden;
+}
+.wa-btn{
+  background:var(--wa-in);
+  color:var(--wa-btn);
+  text-align:center;
+  font-size:13.4px;font-weight:500;
+  padding:9px 8px;
+  box-shadow:0 1px .5px rgba(11,20,26,.13);
+}
+.wa-btn + .wa-btn{border-top:1px solid #E9EDEF}
+
+.wa-input{
+  background:var(--wa-head);
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px 12px;
+}
+.wa-input__box{
+  flex:1;background:#fff;border-radius:18px;
+  padding:8px 13px;font-size:13px;color:#8696A0;
+}
+.wa-input__box.typed{color:var(--wa-text)}
+.wa-input__send{
+  width:32px;height:32px;border-radius:50%;background:#00A884;flex:none;
+  display:grid;place-items:center;
+}
+
+/* ---------- plates ---------- */
+.plate{
+  display:grid;
+  grid-template-columns:308px minmax(0,1fr);
+  gap:52px;
+  align-items:start;
+}
+.plate + .plate{margin-top:64px;padding-top:64px;border-top:1px solid var(--hair-soft)}
+.plate__notes{display:flex;flex-direction:column;gap:18px;padding-top:4px}
+.plate__num{
+  font-family:"Archivo",system-ui,sans-serif;
+  font-variation-settings:"wdth" 124;
+  font-weight:800;font-size:13px;letter-spacing:.06em;
+  color:var(--accent);
+}
+.plate__notes h3{font-size:clamp(23px,2.6vw,30px)}
+.plate__notes > p{color:var(--ink-2);max-width:58ch}
+.tags{display:flex;flex-wrap:wrap;gap:7px}
+
+.spec{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  border-top:1px solid var(--hair);
+  margin:4px 0 0;
+}
+.spec dt{
+  font-family:"Archivo",system-ui,sans-serif;
+  font-variation-settings:"wdth" 92;
+  font-weight:600;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);
+  padding:12px 26px 12px 0;
+  border-bottom:1px solid var(--hair-soft);
+  white-space:nowrap;
+}
+.spec dd{
+  margin:0;padding:12px 0;
+  border-bottom:1px solid var(--hair-soft);
+  font-size:15px;color:var(--ink-2);line-height:1.55;
+}
+
+/* ---------- triptych ---------- */
+.tript{display:flex;flex-wrap:wrap;gap:34px}
+.tript figure{margin:0;display:flex;flex-direction:column;gap:14px;width:308px;max-width:100%}
+.tript figcaption{font-size:14.5px;color:var(--ink-2);line-height:1.5}
+.tript figcaption b{
+  display:block;color:var(--ink);
+  font-family:"Archivo",system-ui,sans-serif;
+  font-variation-settings:"wdth" 106;
+  font-weight:700;font-size:16px;margin-bottom:2px;
+}
+
+/* ---------- cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:20px}
+.card{
+  background:var(--surface);
+  border:1px solid var(--hair);
+  border-radius:3px;
+  padding:22px 22px 24px;
+  display:flex;flex-direction:column;gap:9px;
+  box-shadow:var(--shadow);
+}
+.card .chip{align-self:flex-start}
+.card h4{font-size:17.5px;font-variation-settings:"wdth" 104}
+.card p{font-size:14.6px;color:var(--ink-2)}
+
+/* ---------- table ---------- */
+.tablewrap{overflow-x:auto;border:1px solid var(--hair);border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:14.6px}
+th,td{text-align:left;padding:13px 18px;border-bottom:1px solid var(--hair-soft);vertical-align:top}
+th{
+  font-family:"Archivo",system-ui,sans-serif;
+  font-variation-settings:"wdth" 94;
+  font-weight:600;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);background:var(--ground-2);
+}
+tbody tr:last-child td{border-bottom:none}
+td{color:var(--ink-2)}
+td.cmd{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13.2px;color:var(--accent);white-space:nowrap}
+td b{font-weight:700;color:var(--ink)}
+
+/* ---------- close ---------- */
+.close{background:var(--ground-2);border-top:1px solid var(--hair)}
+.close .wrap{display:flex;flex-direction:column;gap:20px;padding-top:66px;padding-bottom:80px}
+.close h2{font-size:clamp(26px,3.4vw,38px);max-width:22ch}
+.close p{color:var(--ink-2);max-width:62ch;font-size:17px}
+.rule{height:3px;width:56px;background:var(--accent);border-radius:2px}
+.foot{
+  font-size:13px;color:var(--muted);
+  padding-top:22px;margin-top:8px;border-top:1px solid var(--hair);
+  max-width:74ch;line-height:1.6;
+}
+
+@media (max-width:860px){
+  .plate{grid-template-columns:minmax(0,1fr);gap:30px}
+  .wrap{padding:0 20px}
+  section{padding:54px 0}
+  .mast .wrap{padding-top:52px;padding-bottom:46px}
+}
+</style>
+
+<header class="mast">
+  <div class="wrap">
+    <span class="eyebrow">Macavation Portal &middot; Feature proposal &middot; 3 September 2026</span>
+    <h1>The portal, in <em>WhatsApp</em>.</h1>
+    <p class="lede">The messaging line is already built and connected &mdash; it just has nothing to say yet. Text it today and it can enrol you, greet you by name, and offer three words: help, yes and no. Here are the four things worth putting behind it, drawn as real conversations. Two are built and on their way to the dev site; two are waiting on a decision.</p>
+    <div class="mast-foot">
+      <span class="chip chip--built">Line already live</span>
+      <span class="chip chip--built">Two built</span>
+      <span class="chip chip--todo">Two awaiting a decision</span>
+      <span class="note">All numbers below are illustrative &mdash; the layout and the wording are the point.</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">The mechanism</span>
+      <h2>Who sees what is already decided for you</h2>
+      <p>A phone number only gets answered once it has been linked to a real portal user, and that link brings the person&rsquo;s role with it. Every command is then checked against that role before it runs. So the same word, texted from two different phones, gets two different answers &mdash; and the help menu only ever lists what that person is allowed to do.</p>
+    </div>
+    <div class="tript">
+
+      <figure>
+        <div class="phone"><div class="phone__screen">
+          <div class="statusbar"><span>07:12</span><span class="statusbar__icons">
+            <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx=".5"/><rect x="4.3" y="5" width="3" height="6" rx=".5"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".5"/><rect x="12.9" y="0" width="3" height="11" rx=".5" opacity=".35"/></svg>
+            <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" aria-hidden="true"><path d="M7.5 10.4 5.3 8.1a3.1 3.1 0 0 1 4.4 0zM3.2 6a6.1 6.1 0 0 1 8.6 0l1.4-1.5a8.2 8.2 0 0 0-11.4 0z"/></svg>
+            <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" aria-hidden="true"><rect x=".6" y=".6" width="18" height="9.8" rx="2.6"/><rect x="2.2" y="2.2" width="12" height="6.6" rx="1.4" fill="currentColor" stroke="none"/><path d="M20.4 4v3" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="wa-header">
+            <div class="wa-av">M</div>
+            <div class="wa-who"><b>Macavation</b><span>online</span></div>
+            <div class="wa-icons">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11z"/></svg>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2 11 11 0 0 0 3.5.6 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11 11 0 0 0 .6 3.5 1 1 0 0 1-.3 1z"/></svg>
+            </div>
+          </div>
+          <div class="wa-chat">
+            <div class="wa-day">Today</div>
+            <div class="msg msg--in"><div class="bubble bubble--tail">Your Macavation code is <b>481902</b>. Reply with it from this phone to link it to your portal account. It expires in 30 minutes.<span class="meta">07:10</span></div></div>
+            <div class="msg msg--out gap"><div class="bubble bubble--tail">481902<span class="meta">07:11 <svg width="15" height="11" viewBox="0 0 16 11" aria-hidden="true"><path d="M11.07.65a.5.5 0 0 0-.7.06L5.4 6.6 3.6 4.72a.5.5 0 1 0-.72.7l2.2 2.28a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/><path d="M15.07.65a.5.5 0 0 0-.7.06L9.4 6.6l-.6-.62-.68.81 1 1.04a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/></svg></span></div></div>
+            <div class="msg msg--in gap"><div class="bubble bubble--tail">Thanks Johan, this number is now enrolled.
+
+Text HELP any time to see what I can do.<span class="meta">07:11</span></div></div>
+          </div>
+          <div class="wa-input">
+            <div class="wa-input__box">Message</div>
+            <div class="wa-input__send"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></div>
+          </div>
+        </div></div>
+        <figcaption><b>Linking a person</b>An administrator issues a code from the portal; the staff member texts it back. This exchange works today &mdash; that reply is the wording already written into the system.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="phone__screen">
+          <div class="statusbar"><span>06:48</span><span class="statusbar__icons">
+            <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx=".5"/><rect x="4.3" y="5" width="3" height="6" rx=".5"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".5"/><rect x="12.9" y="0" width="3" height="11" rx=".5" opacity=".35"/></svg>
+            <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" aria-hidden="true"><rect x=".6" y=".6" width="18" height="9.8" rx="2.6"/><rect x="2.2" y="2.2" width="9" height="6.6" rx="1.4" fill="currentColor" stroke="none"/><path d="M20.4 4v3" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="wa-header">
+            <div class="wa-av">M</div>
+            <div class="wa-who"><b>Macavation</b><span>online</span></div>
+            <div class="wa-icons"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+          </div>
+          <div class="wa-chat">
+            <div class="wa-day">Today</div>
+            <div class="msg msg--out"><div class="bubble bubble--tail">HELP<span class="meta">06:47 <svg width="15" height="11" viewBox="0 0 16 11" aria-hidden="true"><path d="M11.07.65a.5.5 0 0 0-.7.06L5.4 6.6 3.6 4.72a.5.5 0 1 0-.72.7l2.2 2.28a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/><path d="M15.07.65a.5.5 0 0 0-.7.06L9.4 6.6l-.6-.62-.68.81 1 1.04a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/></svg></span></div></div>
+            <div class="msg msg--in gap"><div class="bubble bubble--tail">Hi Johan. Here is what I can do:
+
+<b>INTAKE</b> supplier kg &mdash; log a delivery
+<b>SOH</b> kernel &mdash; stock on hand
+<b>HELP</b> &mdash; show this message
+<b>YES</b> / <b>NO</b> &mdash; confirm or cancel
+
+Anything that saves data will ask you to check it first. Reply YES to go ahead or NO to cancel.<span class="meta">06:47</span></div></div>
+          </div>
+          <div class="wa-input">
+            <div class="wa-input__box">Message</div>
+            <div class="wa-input__send"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></div>
+          </div>
+        </div></div>
+        <figcaption><b>Johan &mdash; weighbridge</b>Sees the two commands his job needs. Reports and financial figures are not on his menu, because they are not on his role.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="phone__screen">
+          <div class="statusbar"><span>06:52</span><span class="statusbar__icons">
+            <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx=".5"/><rect x="4.3" y="5" width="3" height="6" rx=".5"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".5"/><rect x="12.9" y="0" width="3" height="11" rx=".5"/></svg>
+            <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" aria-hidden="true"><rect x=".6" y=".6" width="18" height="9.8" rx="2.6"/><rect x="2.2" y="2.2" width="15" height="6.6" rx="1.4" fill="currentColor" stroke="none"/><path d="M20.4 4v3" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="wa-header">
+            <div class="wa-av">M</div>
+            <div class="wa-who"><b>Macavation</b><span>online</span></div>
+            <div class="wa-icons"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+          </div>
+          <div class="wa-chat">
+            <div class="wa-day">Today</div>
+            <div class="msg msg--out"><div class="bubble bubble--tail">HELP<span class="meta">06:51 <svg width="15" height="11" viewBox="0 0 16 11" aria-hidden="true"><path d="M11.07.65a.5.5 0 0 0-.7.06L5.4 6.6 3.6 4.72a.5.5 0 1 0-.72.7l2.2 2.28a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/><path d="M15.07.65a.5.5 0 0 0-.7.06L9.4 6.6l-.6-.62-.68.81 1 1.04a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/></svg></span></div></div>
+            <div class="msg msg--in gap"><div class="bubble bubble--tail">Hi Pete. Here is what I can do:
+
+<b>STATS</b> &mdash; today&rsquo;s production numbers
+<b>SOH</b> kernel or oil &mdash; stock on hand
+<b>REPORT</b> &mdash; latest published report
+<b>ALERTS</b> &mdash; what is open right now
+<b>HELP</b> &mdash; show this message
+
+You will also get a message here when stock drops below its reorder level.<span class="meta">06:51</span></div></div>
+          </div>
+          <div class="wa-input">
+            <div class="wa-input__box">Message</div>
+            <div class="wa-input__send"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></div>
+          </div>
+        </div></div>
+        <figcaption><b>Pete &mdash; management</b>Same number, same word, a different menu. He gets the numbers and the reports, and he is the one the alerts go to.</figcaption>
+      </figure>
+
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">The four, in recommended order</span>
+      <h2>What each one actually looks like on the phone</h2>
+      <p>Ordered by what to build first, not by size. The last two on this page have already been built and are waiting to go live; the first two are held until a question each is answered.</p>
+    </div>
+
+    <div class="plate">
+      <div class="phone"><div class="phone__screen">
+        <div class="statusbar"><span>16:40</span><span class="statusbar__icons">
+          <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx=".5"/><rect x="4.3" y="5" width="3" height="6" rx=".5"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".5"/><rect x="12.9" y="0" width="3" height="11" rx=".5" opacity=".35"/></svg>
+          <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" aria-hidden="true"><rect x=".6" y=".6" width="18" height="9.8" rx="2.6"/><rect x="2.2" y="2.2" width="11" height="6.6" rx="1.4" fill="currentColor" stroke="none"/><path d="M20.4 4v3" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span></div>
+        <div class="wa-header">
+          <div class="wa-av">M</div>
+          <div class="wa-who"><b>Macavation</b><span>online</span></div>
+          <div class="wa-icons"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+        </div>
+        <div class="wa-chat">
+          <div class="wa-day">Today</div>
+          <div class="msg msg--out"><div class="bubble bubble--tail">STATS<span class="meta">16:39 <svg width="15" height="11" viewBox="0 0 16 11" aria-hidden="true"><path d="M11.07.65a.5.5 0 0 0-.7.06L5.4 6.6 3.6 4.72a.5.5 0 1 0-.72.7l2.2 2.28a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/><path d="M15.07.65a.5.5 0 0 0-.7.06L9.4 6.6l-.6-.62-.68.81 1 1.04a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/></svg></span></div></div>
+          <div class="msg msg--in gap"><div class="bubble bubble--tail"><b>Macavation daily digest &middot; 3 Sep 2026</b>
+
+Kernel: 4 820 kg cracked today, 26 140 kg packed this week
+Oil: 310 L today, 1 940 L this week
+Recovery: 31.4% &middot; Yield: 68.2%
+Runway: 6.2 wks &middot; SOH 118 400 kg
+Target variance: &minus;1 180 kg
+Alerts: 2 open
+Procurement today: 5 deliveries, 21 300 kg
+
+Full detail in the portal dashboard.<span class="meta">16:39</span></div></div>
+        </div>
+        <div class="wa-input">
+          <div class="wa-input__box">Message</div>
+          <div class="wa-input__send"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></div>
+        </div>
+      </div></div>
+      <div class="plate__notes">
+        <span class="plate__num">01 &mdash; Build first</span>
+        <h3>Today&rsquo;s numbers, on request</h3>
+        <p>Nobody logs into a portal to read seven lines. Text one word from the bakkie and the day&rsquo;s production comes back &mdash; cracked, pressed, recovery, yield, weeks of cover, and anything that has gone wrong.</p>
+        <div class="tags"><span class="chip chip--built">Reads only</span><span class="chip chip--built">Wording already written</span></div>
+        <dl class="spec">
+          <dt>What you text</dt><dd><code>STATS</code></dd>
+          <dt>Who gets it</dt><dd>Management, production supervisors, directors</dd>
+          <dt>Already there</dt><dd>Every figure and the exact message layout shown here are lifted from the daily-digest function that already exists. Nothing new is being calculated</dd>
+          <dt>Still to build</dt><dd>Connect the existing digest to a typed word. Roughly half a day</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="plate">
+      <div class="phone"><div class="phone__screen">
+        <div class="statusbar"><span>14:20</span><span class="statusbar__icons">
+          <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx=".5"/><rect x="4.3" y="5" width="3" height="6" rx=".5"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".5"/><rect x="12.9" y="0" width="3" height="11" rx=".5"/></svg>
+          <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" aria-hidden="true"><rect x=".6" y=".6" width="18" height="9.8" rx="2.6"/><rect x="2.2" y="2.2" width="13" height="6.6" rx="1.4" fill="currentColor" stroke="none"/><path d="M20.4 4v3" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span></div>
+        <div class="wa-header">
+          <div class="wa-av">M</div>
+          <div class="wa-who"><b>Macavation</b><span>online</span></div>
+          <div class="wa-icons"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+        </div>
+        <div class="wa-chat">
+          <div class="wa-day">Today</div>
+          <div class="msg msg--out"><div class="bubble bubble--tail">SOH kernel<span class="meta">14:19 <svg width="15" height="11" viewBox="0 0 16 11" aria-hidden="true"><path d="M11.07.65a.5.5 0 0 0-.7.06L5.4 6.6 3.6 4.72a.5.5 0 1 0-.72.7l2.2 2.28a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/><path d="M15.07.65a.5.5 0 0 0-.7.06L9.4 6.6l-.6-.62-.68.81 1 1.04a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/></svg></span></div></div>
+          <div class="msg msg--in gap"><div class="bubble bubble--tail"><b>Kernel stock on hand</b>
+As at 3 Sep, 14:19
+
+<span class="pre">Style 0      12 480 kg
+Style 1      31 260 kg
+Style 1S      8 940 kg
+Style 4L     22 100 kg
+Style 5      15 720 kg
+Style 6       9 380 kg
+Style 7/8    18 520 kg
+----------------------
+Total       118 400 kg</span>
+Cover: 6.2 weeks at the current rate.
+
+Reply <b>SOH OIL</b> for oil stock.<span class="meta">14:19</span></div></div>
+        </div>
+        <div class="wa-input">
+          <div class="wa-input__box">Message</div>
+          <div class="wa-input__send"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></div>
+        </div>
+      </div></div>
+      <div class="plate__notes">
+        <span class="plate__num">02 &mdash; Build first</span>
+        <h3>Stock on hand, by style</h3>
+        <p>The most-asked question in the business, answered in four seconds instead of a phone call. Sales can quote while standing on a client&rsquo;s farm; the plant can check cover before committing to an order.</p>
+        <div class="tags"><span class="chip chip--built">Reads only</span><span class="chip chip--new">Aligned columns</span></div>
+        <dl class="spec">
+          <dt>What you text</dt><dd><code>SOH kernel</code> &middot; <code>SOH oil</code></dd>
+          <dt>Who gets it</dt><dd>Sales, dispatch, production, management</dd>
+          <dt>Already there</dt><dd>The stock-alert engine already totals stock against exactly these style codes on a schedule. This reads the same figures</dd>
+          <dt>Worth knowing</dt><dd>WhatsApp has a fixed-width text mode, which is what keeps the kilogram column lined up. Worth using anywhere we send a table</dd>
+          <dt>Still to build</dt><dd>The command and the formatting. Shares its work with 01</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="plate">
+      <div class="phone"><div class="phone__screen">
+        <div class="statusbar"><span>14:06</span><span class="statusbar__icons">
+          <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx=".5"/><rect x="4.3" y="5" width="3" height="6" rx=".5"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".5"/><rect x="12.9" y="0" width="3" height="11" rx=".5" opacity=".35"/></svg>
+          <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" aria-hidden="true"><rect x=".6" y=".6" width="18" height="9.8" rx="2.6"/><rect x="2.2" y="2.2" width="8" height="6.6" rx="1.4" fill="currentColor" stroke="none"/><path d="M20.4 4v3" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span></div>
+        <div class="wa-header">
+          <div class="wa-av">M</div>
+          <div class="wa-who"><b>Macavation</b><span>online</span></div>
+          <div class="wa-icons"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+        </div>
+        <div class="wa-chat">
+          <div class="wa-day">Today</div>
+          <div class="msg msg--in msg--stack">
+            <div class="bubble bubble--tail"><b>Stock alert &middot; Macavation</b>
+
+Style 1S has dropped below its reorder level.
+
+<span class="pre">On hand    8 940 kg
+Reorder   12 000 kg
+Short      3 060 kg
+Cover        2.1 wks</span>
+Raised 14:05 by the stock alert rules.<span class="meta">14:05</span></div>
+            <div class="wa-btns">
+              <span class="wa-btn">Acknowledge</span>
+              <span class="wa-btn">Show all open alerts</span>
+            </div>
+          </div>
+          <div class="msg msg--out gap"><div class="bubble bubble--tail">Acknowledge<span class="meta">14:12 <svg width="15" height="11" viewBox="0 0 16 11" aria-hidden="true"><path d="M11.07.65a.5.5 0 0 0-.7.06L5.4 6.6 3.6 4.72a.5.5 0 1 0-.72.7l2.2 2.28a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/><path d="M15.07.65a.5.5 0 0 0-.7.06L9.4 6.6l-.6-.62-.68.81 1 1.04a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/></svg></span></div></div>
+          <div class="msg msg--in gap"><div class="bubble bubble--tail">Noted, Pete. The alert is marked acknowledged in the portal and nobody else will be chased about it.<span class="meta">14:12</span></div></div>
+        </div>
+        <div class="wa-input">
+          <div class="wa-input__box">Message</div>
+          <div class="wa-input__send"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></div>
+        </div>
+      </div></div>
+      <div class="plate__notes">
+        <span class="plate__num">03 &mdash; Half built</span>
+        <h3>Low stock finds you</h3>
+        <p>These alerts are already worked out three times a day. Right now they sit in the portal waiting for somebody to remember to look. Sending them turns the portal from something you check into something that tells you &mdash; and the two buttons let a supervisor close the loop without opening a laptop.</p>
+        <div class="tags"><span class="chip chip--built">Alerts already calculated</span><span class="chip chip--todo">Needs Meta approval</span><span class="chip chip--todo">Needs a real schedule</span></div>
+        <dl class="spec">
+          <dt>What triggers it</dt><dd>Stock falling under its reorder rule</dd>
+          <dt>Who gets it</dt><dd>Whoever owns that product line, plus management</dd>
+          <dt>Already there</dt><dd>The rules, the thresholds and the checking all exist. Only the sending is missing</dd>
+          <dt>Watch out</dt><dd>Two things. WhatsApp will not let us message someone out of the blue unless the wording has been approved by Meta first &mdash; that takes a day or two and must be requested up front. And the schedule meant to run these checks was never actually created, so it needs setting up before anything fires on its own</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="plate">
+      <div class="phone"><div class="phone__screen">
+        <div class="statusbar"><span>07:05</span><span class="statusbar__icons">
+          <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx=".5"/><rect x="4.3" y="5" width="3" height="6" rx=".5"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".5"/><rect x="12.9" y="0" width="3" height="11" rx=".5"/></svg>
+          <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor" aria-hidden="true"><rect x=".6" y=".6" width="18" height="9.8" rx="2.6"/><rect x="2.2" y="2.2" width="14" height="6.6" rx="1.4" fill="currentColor" stroke="none"/><path d="M20.4 4v3" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span></div>
+        <div class="wa-header">
+          <div class="wa-av">M</div>
+          <div class="wa-who"><b>Macavation</b><span>online</span></div>
+          <div class="wa-icons"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+        </div>
+        <div class="wa-chat">
+          <div class="wa-day">Today</div>
+          <div class="msg msg--out"><div class="bubble bubble--tail">REPORT<span class="meta">07:04 <svg width="15" height="11" viewBox="0 0 16 11" aria-hidden="true"><path d="M11.07.65a.5.5 0 0 0-.7.06L5.4 6.6 3.6 4.72a.5.5 0 1 0-.72.7l2.2 2.28a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/><path d="M15.07.65a.5.5 0 0 0-.7.06L9.4 6.6l-.6-.62-.68.81 1 1.04a.5.5 0 0 0 .74-.03l5.31-6.32a.5.5 0 0 0-.06-.7z"/></svg></span></div></div>
+          <div class="msg msg--in gap"><div class="bubble bubble--tail"><b>Latest report</b>
+August 2026
+Published 1 Sep 2026
+
+Open the full report:
+<span class="wa-link">https://&hellip;/functions/v1/r/8ZQK4M</span>
+
+This link works until 8 Sep 2026.<span class="meta">07:04</span></div></div>
+          <div class="msg msg--in gap"><div class="bubble bubble--tail" style="opacity:.6">Sorry Sipho, reports are not on your access. Speak to an administrator if you need them.<span class="meta">07:06</span></div></div>
+        </div>
+        <div class="wa-input">
+          <div class="wa-input__box">Message</div>
+          <div class="wa-input__send"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></div>
+        </div>
+      </div></div>
+      <div class="plate__notes">
+        <span class="plate__num">04 &mdash; Built</span>
+        <h3>The latest report, on request</h3>
+        <p>Directors and shareholders want the monthly report on their phone, not behind a login. The portal already sends published reports to WhatsApp numbers. This lets the person ask for it themselves instead of waiting to be sent it.</p>
+        <div class="tags"><span class="chip chip--built">Lookup already written</span><span class="chip chip--built">Access already enforced</span></div>
+        <dl class="spec">
+          <dt>What you text</dt><dd><code>REPORT</code></dd>
+          <dt>Who gets it</dt><dd>Anyone who has already been sent that report. The lookup is scoped to the asking number, so a person can only ever retrieve a report that was sent to them in the first place</dd>
+          <dt>Already there</dt><dd>Effectively all of it. There is already a routine that takes a phone number, finds the most recent published report sent to it, and mints a fresh time-limited link. It has never been called from a text message</dd>
+          <dt>A link, not an attachment</dt><dd>Worth being straight about this. The report PDF is produced in the browser when a person sends one, so there is no PDF sitting on the server to attach. What arrives is a short link that opens the report and expires after seven days. An earlier draft of this page showed it as a file attachment &mdash; that was wrong</dd>
+          <dt>What the message can say</dt><dd>Only what the lookup actually returns: the period, when it was published, the link, and when the link stops working. It does <em>not</em> return the publisher's name, so the message cannot credit a person &mdash; an earlier draft claimed it could. The web address is built from the environment rather than written down, so the same code sends dev links on dev and live links on live</dd>
+          <dt>Shown here</dt><dd>The faded message is the second half of the point. Somebody with nothing sent to them gets a polite refusal, enforced on the server rather than by hiding a button</dd>
+          <dt>Still to build</dt><dd>Nothing &mdash; this is built and waiting to go live</dd>
+        </dl>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Before anyone signs this off</span>
+      <h2>Four things that shape what is possible</h2>
+      <p>None of these are reasons not to do it. They are the reasons the four features look the way they do above.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="chip chip--todo">Needs setting up</span>
+        <h4>Nothing runs on a timer yet</h4>
+        <p>Several parts of the system carry notes describing daily schedules, but those schedules were never actually created. The daily digest is not going out. Anything automatic, the stock alerts included, needs that put in place first.</p>
+      </div>
+      <div class="card">
+        <span class="chip chip--todo">Meta approval</span>
+        <h4>You cannot message someone cold</h4>
+        <p>WhatsApp only allows a business to start a conversation using wording Meta has approved in advance. Replies within a day of the person texting are free-form. So the alert in 03 needs its wording submitted and approved before it can ever send.</p>
+      </div>
+      <div class="card">
+        <span class="chip chip--new">Design constraint</span>
+        <h4>There is no link back into the portal</h4>
+        <p>No screen in the portal can be opened directly by web address &mdash; every link lands on the home page. So a WhatsApp feature has to finish the job in the chat. That is why every mockup above answers in full rather than saying &ldquo;open the portal to see more&rdquo;.</p>
+      </div>
+      <div class="card">
+        <span class="chip chip--todo">Not yet possible</span>
+        <h4>Photographs will not work today</h4>
+        <p>Pictures sent in cannot be downloaded and kept &mdash; the key to fetch them sits with our messaging provider, not with us. So photographing a delivery note or a quality defect is off the table until that is arranged. Worth knowing before it gets promised.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Summary</span>
+      <h2>What exists, and what it would take</h2>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th scope="col">Feature</th><th scope="col">What you text</th><th scope="col">What already exists</th><th scope="col">What is missing</th></tr></thead>
+        <tbody>
+          <tr><td><b>Linking a person</b></td><td class="cmd">a 6-digit code</td><td>Working end to end today</td><td>Nothing</td></tr>
+          <tr><td><b>01&nbsp; Today&rsquo;s numbers</b></td><td class="cmd">on the menu</td><td>Everything</td><td>Nothing &mdash; this was already live before we started</td></tr>
+          <tr><td><b>02&nbsp; Stock by style</b></td><td class="cmd">on the menu</td><td>The screen that already shows it</td><td>Confirming where the per-style figures come from &mdash; see the note below</td></tr>
+          <tr><td><b>03&nbsp; Alerts</b></td><td class="cmd">ACK 2</td><td>The rules, the checking, the closing</td><td>Closing one from the phone is <b>built</b>; the unprompted message still needs approved wording and a schedule</td></tr>
+          <tr><td><b>04&nbsp; Latest report</b></td><td class="cmd">REPORT</td><td>The whole lookup, link and access check</td><td><b>Built</b> &mdash; waiting to go live</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="close">
+  <div class="wrap">
+    <div class="rule"></div>
+    <span class="eyebrow">Recommendation</span>
+    <h2>Two are built. Two need a decision.</h2>
+    <p><b>Latest report</b> and <b>closing an alert from your phone</b> are written, tested and waiting for review. Neither needed a database change &mdash; every permission and lookup they use already existed and simply had never been called.</p>
+    <p><b>What is still open:</b> where the per-style kernel figures should be read from, and whether the unprompted alert goes to one person or a group. Capturing a delivery by text has been dropped &mdash; there is nowhere in the system to save one.</p>
+    <p class="foot">Mockups drawn to match WhatsApp&rsquo;s real message layout. All production figures, tonnages and reference numbers shown are illustrative and demonstrate the format only &mdash; they have not been read from the live system. Supplier names and kernel style codes are the real ones in use. Prepared for Macavation, 3 September 2026.</p>
+  </div>
+</section>
