@@ -75,18 +75,8 @@ var _executiveDashboard = function () {
     var DASHBOARD_WIDGET_LABELS = {
         totalProduction: 'Total Production (kg)',
         execStatBatchesInProduction: 'Kernel batches in production',
-        execStatKgCrackedToday: 'Kg cracked today',
-        execStatKgCrackedWeek: 'Kg cracked this week',
-        execStatKgPackedToday: 'Kg packed today',
-        execStatKgPackedWeek: 'Kg packed this week',
-        execStatBatchesAwaitingTest: 'Awaiting test',
-        execStatBatchesReleaseReady: 'Release ready',
-        execStatBatchesCompletedWeek: 'Completed this week',
-        execStatBatchesInIntake: 'In intake',
         execStatOilLitresToday: 'Oil bins today',
         execStatOilLitresWeek: 'Oil bins this week',
-        execStatDispatchWeek: 'Dispatch this week',
-        execStatDispatchPending: 'Dispatch pending',
         execDailyMinuteTests: 'Daily minute tests',
         execProductionTrends: 'Production Trends',
         execStockHistory: 'Stock on hand history',
@@ -94,15 +84,342 @@ var _executiveDashboard = function () {
         execStockAlerts: 'Stock alerts',
         execRunway: 'Finished stock cover (vs open orders)',
         execOilTrends: 'Oil production trends',
-        execStockAccuracy: 'Stock accuracy',
         execProducedVsTarget: 'Produced vs target',
-        execDailyReportDelivery: 'Daily report delivery',
         execSoundRecovery: 'Sound kernel recovery',
         execOilYield: 'Oil yield',
         execStockOnHand: 'Stock on hand summary',
         execConsolidatedSummary: 'Oil consolidated summary',
         execOilForecast: 'Oil production forecast'
     };
+
+    // ---- Executive alerts panel (severity ordering, counts, undo-able resolve, "Go to" links) ----
+    // Module-internal state — plan exec-dash-02-alerts owns these names.
+    var execAlertsFilterSeverity = null;   // null = no filter, else 'critical' | 'warning' | 'info'
+    var execAlertsHintDefault = '';        // e.g. 'showing 8 of 12', or '' when nothing was capped
+    var execAlertsRenderSeq = 0;           // bumped at the top of every loadExecutiveAlerts() call
+
+    // a.severity / a.alert_type may be either shape (see facts in the plan) — normalise to one
+    // of the three buckets this panel understands. Anything unrecognised is treated as 'info'.
+    function execAlertSeverityOf(a) {
+        var raw = String((a && (a.severity || a.alert_type)) || 'info').toLowerCase();
+        if (raw === 'critical') return 'critical';
+        if (raw === 'warning') return 'warning';
+        return 'info';
+    }
+
+    function execAlertSeverityRank(sev) {
+        if (sev === 'critical') return 0;
+        if (sev === 'warning') return 1;
+        return 2;
+    }
+
+    function execAlertSeverityIcon(sev) {
+        if (sev === 'critical') return 'fas fa-triangle-exclamation';
+        if (sev === 'warning') return 'fas fa-circle-exclamation';
+        return 'fas fa-circle-info';
+    }
+
+    // Conservative text match against the alert's own title+message — there is no field naming
+    // a target screen. Returns a selector for one of the three chart canvases, or null.
+    function execMatchAlertGoToSelector(text) {
+        var t = String(text || '').toLowerCase();
+        if (t.indexOf('runway') >= 0 || t.indexOf('nut-in-shell') >= 0 || t.indexOf('nut in shell') >= 0) {
+            return '#runwayForecastChart';
+        }
+        if (t.indexOf('stock') >= 0) {
+            return '#stockHistoryChart';
+        }
+        if (t.indexOf('production') >= 0 || t.indexOf('cracked') >= 0 || t.indexOf('packed') >= 0) {
+            return '#productionTrendsChart';
+        }
+        return null;
+    }
+
+    // Builds one alert row with DOM APIs only — title/message/id are operator-entered DB values,
+    // so every one of them goes in with textContent/dataset, never string-concatenated HTML
+    // (BluePrint/javascript-jquery-rules.md:226).
+    function execBuildAlertRow(a, canResolve) {
+        var sev = execAlertSeverityOf(a);
+        var id = a.id || a.alert_id || '';
+        var title = a.title || a.alert_title || 'Alert';
+        var message = a.message || a.alert_message || '';
+
+        var row = document.createElement('div');
+        row.className = _executiveDashboard.execAlertRowClass(sev);
+        row.setAttribute('data-sev', sev);
+
+        var icon = document.createElement('i');
+        icon.className = execAlertSeverityIcon(sev) + ' exec-alert-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        row.appendChild(icon);
+
+        var body = document.createElement('div');
+        body.className = 'exec-alert-body';
+
+        var head = document.createElement('div');
+        var sevLabel = document.createElement('span');
+        sevLabel.className = 'exec-alert-sev-label';
+        sevLabel.textContent = sev.toUpperCase();
+        head.appendChild(sevLabel);
+
+        var titleEl = document.createElement('strong');
+        titleEl.textContent = ' ' + title;
+        head.appendChild(titleEl);
+        body.appendChild(head);
+
+        var msgEl = document.createElement('div');
+        msgEl.className = 'small';
+        msgEl.textContent = message;
+        body.appendChild(msgEl);
+
+        row.appendChild(body);
+
+        var actions = document.createElement('div');
+        actions.className = 'exec-alert-actions';
+
+        var selector = execMatchAlertGoToSelector(title + ' ' + message);
+        if (selector) {
+            var target = document.querySelector(selector);
+            if (_executiveDashboard.execScrollTarget(target) === 'ok') {
+                var goBtn = document.createElement('button');
+                goBtn.type = 'button';
+                goBtn.className = 'btn btn-xs btn-sm btn-outline-secondary exec-alert-goto-btn';
+                goBtn.setAttribute('data-goto', selector);
+                goBtn.textContent = 'Go to';
+                actions.appendChild(goBtn);
+            }
+        }
+
+        if (canResolve && id) {
+            var resolveBtn = document.createElement('button');
+            resolveBtn.type = 'button';
+            resolveBtn.className = 'btn btn-xs btn-sm btn-outline-dark ms-2 exec-resolve-alert-btn';
+            resolveBtn.setAttribute('data-alert-id', id);
+            resolveBtn.setAttribute('data-action-perm', 'alerts.resolve');
+            resolveBtn.textContent = 'Resolve';
+            actions.appendChild(resolveBtn);
+        }
+
+        row.appendChild(actions);
+        return row;
+    }
+
+    function execAlertAdjustCount(sev, delta) {
+        var chips = document.getElementById('execAlertChips');
+        if (!chips) return;
+        var span = chips.querySelector('[data-count="' + sev + '"]');
+        if (!span) return;
+        var current = parseInt(span.textContent, 10) || 0;
+        span.textContent = String(Math.max(0, current + delta));
+    }
+
+    function execAlertSetHint(text) {
+        var hint = document.getElementById('execAlertHint');
+        if (!hint) return;
+        hint.textContent = text || '';
+    }
+
+    // Rebuilds #execAlertHint from current filter state: either the default cap message, or
+    // 'showing <sev> only' plus a real "Show all" button (built with DOM APIs, not innerHTML).
+    function execAlertRenderFilterHint() {
+        var hint = document.getElementById('execAlertHint');
+        if (!hint) return;
+        hint.textContent = '';
+        if (execAlertsFilterSeverity) {
+            hint.appendChild(document.createTextNode('showing ' + execAlertsFilterSeverity + ' only '));
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-link btn-sm p-0 exec-alert-show-all';
+            btn.textContent = 'Show all';
+            hint.appendChild(btn);
+        } else {
+            hint.textContent = execAlertsHintDefault;
+        }
+    }
+
+    // Applies the current severity filter to whatever rows are currently rendered. Visibility
+    // goes through execSetHidden only — see the plan's "module-owned class" rule.
+    function execAlertsApplyFilter() {
+        var container = document.getElementById('execAlertsContainer');
+        if (!container) return;
+        var rows = container.querySelectorAll('.exec-alert-row');
+        var anyVisible = false;
+        rows.forEach(function (row) {
+            var match = !execAlertsFilterSeverity || row.getAttribute('data-sev') === execAlertsFilterSeverity;
+            _executiveDashboard.execSetHidden(row, !match);
+            if (match) anyVisible = true;
+        });
+        var emptyEl = document.getElementById('execAlertsFilterEmpty');
+        if (emptyEl) {
+            _executiveDashboard.execSetHidden(emptyEl, rows.length === 0 || anyVisible);
+        }
+    }
+
+    // Delegated click handler for the chips strip, bound once per element (dataset guard) so a
+    // re-render never stacks duplicate listeners.
+    function execAlertsBindChipsOnce(chipsEl) {
+        if (!chipsEl || chipsEl.dataset.execBound === '1') return;
+        chipsEl.dataset.execBound = '1';
+        chipsEl.addEventListener('click', function (e) {
+            var chip = e.target.closest ? e.target.closest('.exec-chip') : null;
+            if (chip) {
+                var sev = chip.getAttribute('data-sev');
+                execAlertsFilterSeverity = (execAlertsFilterSeverity === sev) ? null : sev;
+                chipsEl.querySelectorAll('.exec-chip').forEach(function (c) {
+                    c.setAttribute('aria-pressed', c.getAttribute('data-sev') === execAlertsFilterSeverity ? 'true' : 'false');
+                });
+                execAlertRenderFilterHint();
+                execAlertsApplyFilter();
+                return;
+            }
+            var showAll = e.target.closest ? e.target.closest('.exec-alert-show-all') : null;
+            if (showAll) {
+                execAlertsFilterSeverity = null;
+                chipsEl.querySelectorAll('.exec-chip').forEach(function (c) {
+                    c.setAttribute('aria-pressed', 'false');
+                });
+                execAlertRenderFilterHint();
+                execAlertsApplyFilter();
+            }
+        });
+    }
+
+    // Delegated click handler for the alerts list itself (Go-to + Resolve), bound once.
+    function execAlertsBindContainerOnce(container) {
+        if (!container || container.dataset.execBound === '1') return;
+        container.dataset.execBound = '1';
+        container.addEventListener('click', function (e) {
+            var goBtn = e.target.closest ? e.target.closest('.exec-alert-goto-btn') : null;
+            if (goBtn) {
+                var sel = goBtn.getAttribute('data-goto');
+                var target = sel ? document.querySelector(sel) : null;
+                _executiveDashboard.execGoToTarget(target);
+                return;
+            }
+            var resolveBtn = e.target.closest ? e.target.closest('.exec-resolve-alert-btn') : null;
+            if (resolveBtn) {
+                execHandleResolveClick(resolveBtn);
+            }
+        });
+    }
+
+    function execEnsureToastHost() {
+        var host = document.getElementById('execToastHost');
+        if (!host) {
+            host = document.createElement('div');
+            host.id = 'execToastHost';
+            host.className = 'exec-toast-host';
+            host.setAttribute('role', 'status');
+            host.setAttribute('aria-live', 'polite');
+            document.body.appendChild(host);
+        }
+        return host;
+    }
+
+    // _common's toast helpers (js/common.js:21-53) are SweetAlert2 `toast: true` mixins with
+    // showConfirmButton explicitly suppressed — there is no parameter through which an Undo
+    // control could be added. This small local toast exists only because of that gap.
+    function execShowUndoToast(title, onUndo) {
+        var host = execEnsureToastHost();
+        var toast = document.createElement('div');
+        toast.className = 'exec-toast';
+
+        var msg = document.createElement('span');
+        msg.textContent = 'Resolved: ' + title;
+        toast.appendChild(msg);
+
+        var undoBtn = document.createElement('button');
+        undoBtn.type = 'button';
+        undoBtn.className = 'btn btn-link btn-sm exec-toast-undo';
+        undoBtn.textContent = 'Undo';
+        toast.appendChild(undoBtn);
+
+        host.appendChild(toast);
+
+        var dismissed = false;
+        function dismiss() {
+            if (dismissed) return;
+            dismissed = true;
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }
+
+        undoBtn.addEventListener('click', function () {
+            dismiss();
+            onUndo();
+        });
+
+        setTimeout(dismiss, 6000);
+    }
+
+    // Optimistic resolve with a single undo window. One settled flag decided synchronously by
+    // whichever of {Undo click, timer fire} runs first — see the plan's "one timer, one settled
+    // flag, one generation check" rule.
+    function execHandleResolveClick(btn) {
+        var alertId = btn.getAttribute('data-alert-id');
+        if (!alertId || !dataFunctions.resolveDashboardAlert) return;
+        var row = btn.closest('.exec-alert-row');
+        if (!row) return;
+        var sev = row.getAttribute('data-sev') || 'info';
+        var strongEl = row.querySelector('strong');
+        var title = strongEl ? strongEl.textContent.replace(/^\s+/, '') : 'Alert';
+
+        var parent = row.parentNode;
+        var nextSibling = row.nextSibling;
+        var seq = execAlertsRenderSeq;
+
+        if (parent) parent.removeChild(row);
+        execAlertAdjustCount(sev, -1);
+        execAlertsApplyFilter();
+
+        var settled = false;
+        var writeTimer = null;
+
+        function restore() {
+            if (seq !== execAlertsRenderSeq) return; // a later render already rebuilt the list
+            var containerNow = document.getElementById('execAlertsContainer');
+            if (!containerNow) return;
+            var emptyEl = document.getElementById('execAlertsFilterEmpty');
+            if (nextSibling && nextSibling.parentNode === parent) {
+                parent.insertBefore(row, nextSibling);
+            } else if (emptyEl && emptyEl.parentNode === containerNow) {
+                containerNow.insertBefore(row, emptyEl);
+            } else {
+                containerNow.appendChild(row);
+            }
+            execAlertAdjustCount(sev, 1);
+            execAlertsApplyFilter();
+        }
+
+        function doWrite() {
+            if (settled) return;
+            settled = true;
+            dataFunctions.resolveDashboardAlert(alertId, '').then(function (result) {
+                if (result && result.success === false) {
+                    throw new Error('resolve_dashboard_alert reported failure');
+                }
+                _executiveDashboard.loadExecutiveAlerts();
+            }).catch(function (e) {
+                console.warn('[Executive Dashboard] resolve alert failed', e);
+                var movedOn = seq !== execAlertsRenderSeq;
+                restore();
+                if (typeof _common !== 'undefined' && _common.showErrorToast) {
+                    _common.showErrorToast('Could not resolve that alert. It is still open.');
+                }
+                if (movedOn) {
+                    _executiveDashboard.loadExecutiveAlerts();
+                }
+            });
+        }
+
+        writeTimer = setTimeout(doWrite, 6000);
+
+        execShowUndoToast(title, function () {
+            if (settled) return;
+            settled = true;
+            clearTimeout(writeTimer);
+            restore();
+        });
+    }
 
     return {
         kpis: {},
@@ -157,6 +474,7 @@ var _executiveDashboard = function () {
             scope.applyDashboardVisibility();
             await scope.loadKPIs();
             await scope.loadKernelStats();
+            await scope.loadTileHistory();
             await scope.loadProductionStats();
             await scope.loadDailyMinuteTests();
             await scope.loadProductionTrendsChart();
@@ -165,7 +483,6 @@ var _executiveDashboard = function () {
             await scope.loadExecutiveAlerts();
             await scope.loadRunwaySummary();
             await scope.loadOilTrendsChart();
-            await scope.loadStockAccuracyChart();
             await scope.loadProducedVsTarget();
             await scope.loadPhase2ExtendedKpis();
             await scope.loadConsolidatedSummary();
@@ -217,13 +534,11 @@ var _executiveDashboard = function () {
                 }
             } catch (e) { role = ''; }
 
-            var production = ['totalProduction', 'execStatBatchesInProduction', 'execStatKgCrackedToday', 'execStatKgCrackedWeek',
-                'execStatKgPackedToday', 'execStatKgPackedWeek', 'execStatBatchesAwaitingTest', 'execStatBatchesReleaseReady',
-                'execStatBatchesCompletedWeek', 'execStatBatchesInIntake', 'execDailyMinuteTests', 'execProductionTrends',
-                'execRunwayForecast'];
+            var production = ['totalProduction', 'execStatBatchesInProduction',
+                'execDailyMinuteTests', 'execProductionTrends', 'execRunwayForecast'];
             var oil = ['execStatOilLitresToday', 'execStatOilLitresWeek', 'execProductionTrends', 'totalProduction'];
-            var qa = ['execStatBatchesAwaitingTest', 'execStatBatchesReleaseReady', 'execDailyMinuteTests', 'totalProduction'];
-            var forecastSales = ['execRunwayForecast', 'totalProduction', 'execStatBatchesCompletedWeek', 'execProductionTrends'];
+            var qa = ['execDailyMinuteTests', 'totalProduction'];
+            var forecastSales = ['execRunwayForecast', 'totalProduction', 'execProductionTrends'];
 
             var map = {
                 'production manager': production,
@@ -296,12 +611,159 @@ var _executiveDashboard = function () {
                 const stats = await dataFunctions.getDashboardKernelStats();
                 $('#execStatBatchesInProduction').text(Number(stats.batches_in_production) || 0);
                 $('#execStatKgCrackedToday').text(fmt(stats.kg_cracked_today));
-                $('#execStatKgCrackedWeek').text(fmt(stats.kg_cracked_week));
                 $('#execStatKgPackedToday').text(fmt(stats.kg_packed_today));
-                $('#execStatKgPackedWeek').text(fmt(stats.kg_packed_week));
             } catch (error) {
                 console.error('Error loading kernel stats:', error);
-                $('#execStatBatchesInProduction, #execStatKgCrackedToday, #execStatKgCrackedWeek, #execStatKgPackedToday, #execStatKgPackedWeek').text('—');
+                $('#execStatBatchesInProduction, #execStatKgCrackedToday, #execStatKgPackedToday').text('—');
+            }
+        },
+
+        // Pure: sorts a COPY of the rows ascending by trend_date (the RPC returns them newest
+        // first - see the plan's "Facts" section) and reads today/yesterday off that sorted copy.
+        // Never indexes into the raw, unsorted response.
+        execTileSeries: (rows, field) => {
+            var arr = (Array.isArray(rows) ? rows.slice() : []).sort(function (a, b) {
+                var da = a && a.trend_date ? String(a.trend_date) : '';
+                var db = b && b.trend_date ? String(b.trend_date) : '';
+                return da.localeCompare(db);
+            });
+            var values = arr.map(function (r) { return Number(r && r[field]) || 0; });
+            return {
+                values: values,
+                today: values.length ? values[values.length - 1] : null,
+                yesterday: values.length > 1 ? values[values.length - 2] : null
+            };
+        },
+
+        // Pure. Up is always the good direction for these three flow metrics, so '▲' takes the
+        // success tone and '▼' the danger tone (state this here, not re-derived by callers).
+        // yesterday === 0/null renders as "no comparison" rather than dividing by zero.
+        execTileDelta: (today, yesterday) => {
+            if (yesterday == null || yesterday === 0 || today == null) {
+                return { kind: 'none', pct: null };
+            }
+            var pct = Math.round(Math.abs(today - yesterday) / yesterday * 100);
+            return { kind: today >= yesterday ? 'up' : 'down', pct: pct };
+        },
+
+        /**
+         * Pure. The sentence under the chip: "Up from 4 300 kg yesterday". Returns '' when there
+         * is no yesterday to compare against, so the tile shows nothing rather than a fragment.
+         */
+        execTileNote: (today, yesterday) => {
+            if (today == null || yesterday == null) return '';
+            var was = Number(yesterday).toLocaleString('en-ZA', { maximumFractionDigits: 0 });
+            if (today === yesterday) return 'Level with ' + was + ' kg yesterday';
+            return (today > yesterday ? 'Up from ' : 'Down from ') + was + ' kg yesterday';
+        },
+
+        // Renders the chip produced by execTileDelta into hostEl. Pure w.r.t. its inputs; its only
+        // side effect is writing to hostEl.
+        execRenderTileChip: (hostEl, delta) => {
+            if (!hostEl) return;
+            hostEl.classList.remove('exec-tile-chip--up', 'exec-tile-chip--down');
+            if (!delta || delta.kind === 'none') {
+                hostEl.textContent = delta ? 'no comparison' : '';
+                return;
+            }
+            hostEl.classList.add(delta.kind === 'up' ? 'exec-tile-chip--up' : 'exec-tile-chip--down');
+            hostEl.textContent = (delta.kind === 'up' ? '\u25B2 ' : '\u25BC ') + delta.pct + '%';
+        },
+
+        // Builds a small inline SVG sparkline by hand - no charting library for a 14-point strip.
+        // `values` arrives oldest-first (the caller sorts via execTileSeries), so the trailing dot
+        // belongs on the LAST element.
+        renderSparkline: (hostEl, values, colorVar) => {
+            if (!hostEl) return;
+            hostEl.innerHTML = '';
+            if (!Array.isArray(values) || values.length < 2) return;
+
+            var color = '';
+            try {
+                color = getComputedStyle(document.documentElement).getPropertyValue(colorVar).trim();
+            } catch (e) { color = ''; }
+            if (!color) color = '#000';
+
+            var w = 100, h = 30, pad = 2;
+            var min = Math.min.apply(null, values);
+            var max = Math.max.apply(null, values);
+            var range = max - min;
+            var n = values.length;
+            var points = values.map(function (v, i) {
+                var x = pad + (i / (n - 1)) * (w - 2 * pad);
+                var y = range === 0 ? h / 2 : (h - pad) - ((v - min) / range) * (h - 2 * pad);
+                return [x, y];
+            });
+
+            var linePath = points.map(function (p, i) {
+                return (i === 0 ? 'M' : 'L') + p[0].toFixed(2) + ',' + p[1].toFixed(2);
+            }).join(' ');
+            var areaPath = linePath + ' L' + points[n - 1][0].toFixed(2) + ',' + h + ' L' + points[0][0].toFixed(2) + ',' + h + ' Z';
+            var last = points[n - 1];
+
+            var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+            svg.setAttribute('preserveAspectRatio', 'none');
+            svg.classList.add('exec-tile-spark-svg');
+
+            var area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            area.setAttribute('d', areaPath);
+            area.setAttribute('fill', color);
+            area.setAttribute('opacity', '0.15');
+            area.setAttribute('stroke', 'none');
+            svg.appendChild(area);
+
+            var line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            line.setAttribute('d', linePath);
+            line.setAttribute('fill', 'none');
+            line.setAttribute('stroke', color);
+            line.setAttribute('stroke-width', '1.6');
+            svg.appendChild(line);
+
+            var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('cx', last[0].toFixed(2));
+            dot.setAttribute('cy', last[1].toFixed(2));
+            dot.setAttribute('r', '2');
+            dot.setAttribute('fill', color);
+            svg.appendChild(dot);
+
+            hostEl.appendChild(svg);
+        },
+
+        // Fetches getProductionTrendsDaily ONCE and feeds all three flow tiles' chips, sparklines
+        // and (for dispatched) the big number from that single sorted-ascending copy.
+        loadTileHistory: async () => {
+            const scope = _executiveDashboard;
+            const TILES = [
+                { field: 'kg_cracked', chip: 'execStatKgCrackedTodayChip', spark: 'execStatKgCrackedTodaySpark', note: 'execStatKgCrackedTodayNote', color: '--mac-success' },
+                { field: 'kg_packed', chip: 'execStatKgPackedTodayChip', spark: 'execStatKgPackedTodaySpark', note: 'execStatKgPackedTodayNote', color: '--mac-warning' },
+                { field: 'kg_dispatched', chip: 'execStatKgDispatchedTodayChip', spark: 'execStatKgDispatchedTodaySpark', note: 'execStatKgDispatchedTodayNote', color: '--mac-info', valueEl: 'execStatKgDispatchedToday' }
+            ];
+            if (typeof dataFunctions === 'undefined' || !dataFunctions.getProductionTrendsDaily) {
+                $('#execStatKgDispatchedToday').text('—');
+                return;
+            }
+            try {
+                const raw = await dataFunctions.getProductionTrendsDaily(14);
+                const rows = Array.isArray(raw) ? raw : [];
+                TILES.forEach(function (t) {
+                    const series = scope.execTileSeries(rows, t.field);
+                    const chipEl = document.getElementById(t.chip);
+                    const sparkEl = document.getElementById(t.spark);
+                    scope.execRenderTileChip(chipEl, series.values.length >= 2 ? scope.execTileDelta(series.today, series.yesterday) : null);
+                    scope.renderSparkline(sparkEl, series.values, t.color);
+                    // The words under the chip - the mockup's "Up from 4 300 kg yesterday".
+                    // Empty when there is no yesterday, rather than a half-sentence.
+                    var noteEl = document.getElementById(t.note);
+                    if (noteEl) noteEl.textContent = scope.execTileNote(series.today, series.yesterday);
+                    if (t.valueEl) {
+                        const val = series.today != null ? series.today : null;
+                        $('#' + t.valueEl).text(val != null ? val.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
+                    }
+                });
+            } catch (e) {
+                console.error('Error loading tile history:', e);
+                $('#execStatKgDispatchedToday').text('—');
             }
         },
 
@@ -328,27 +790,109 @@ var _executiveDashboard = function () {
         },
 
         loadProductionStats: async () => {
+            const scope = _executiveDashboard;
             const fmt = (n) => (typeof n === 'number' ? n.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : (n || 0));
             const fmtDec = (n, d) => (typeof n === 'number' ? Number(n).toLocaleString('en-ZA', { minimumFractionDigits: d, maximumFractionDigits: d }) : (n || 0));
+            // Paint the zeroed bar FIRST, before the guard below can early-return and before the
+            // fetch resolves - the pipeline must never render as an empty strip.
+            scope.renderPipeline({});
             try {
                 if (typeof dataFunctions === 'undefined' || !dataFunctions.getDashboardProductionStats) return;
                 const s = await dataFunctions.getDashboardProductionStats();
-                $('#execStatBatchesAwaitingTest').text(fmt(s.batches_awaiting_test));
-                $('#execStatBatchesReleaseReady').text(fmt(s.batches_release_ready));
-                $('#execStatBatchesCompletedWeek').text(fmt(s.batches_completed_week));
-                $('#execStatBatchesInIntake').text(fmt(s.batches_in_intake));
                 $('#execStatBatchesOnHold').text(fmt(s.batches_on_hold));
                 $('#execStatOilLitresToday').text(fmt(s.oil_litres_today));
                 $('#execStatOilLitresWeek').text(fmt(s.oil_litres_week));
                 $('#execStatOilSheetsWeek').text(fmt(s.oil_sheets_week));
                 $('#execStatQualityPassRate').text(fmtDec(s.quality_pass_rate, 1) + '%');
                 $('#execStatQualityTestsWeek').text(fmt(s.quality_tests_week));
-                $('#execStatDispatchWeek').text(fmt(s.dispatch_orders_week));
-                $('#execStatDispatchPending').text(fmt(s.dispatch_pending));
+                scope.renderPipeline(s);
             } catch (error) {
                 console.error('Error loading production stats:', error);
-                $('#execStatBatchesAwaitingTest, #execStatBatchesReleaseReady, #execStatBatchesCompletedWeek, #execStatBatchesInIntake, #execStatBatchesOnHold, #execStatOilLitresToday, #execStatOilLitresWeek, #execStatOilSheetsWeek, #execStatQualityPassRate, #execStatQualityTestsWeek, #execStatDispatchWeek, #execStatDispatchPending').text('—');
+                $('#execStatBatchesOnHold, #execStatOilLitresToday, #execStatOilLitresWeek, #execStatOilSheetsWeek, #execStatQualityPassRate, #execStatQualityTestsWeek').text('—');
             }
+        },
+
+        /**
+         * Pure: turn a get_dashboard_production_stats response into the pipeline's segments and
+         * its note. Exposed so it can be exercised without a DOM.
+         *
+         * Every stage renders even at zero - a missing stage is more confusing than an empty one,
+         * and the data layer's own default object is all zeros. `batches_completed_week` is a
+         * weekly throughput count, NOT part of the open-stage population, so it sits at the end
+         * for context and is excluded from the note's total.
+         */
+        execPipelineSegments: (stats) => {
+            var s = stats || {};
+            var num = function (v) { return Number(v) || 0; };
+            var segments = [
+                { key: 'in_intake', label: 'In intake', count: num(s.batches_in_intake), tone: 'info', open: true },
+                { key: 'awaiting_test', label: 'Awaiting test', count: num(s.batches_awaiting_test), tone: 'warning', open: true },
+                { key: 'on_hold', label: 'On hold', count: num(s.batches_on_hold), tone: 'danger', open: true },
+                { key: 'release_ready', label: 'Release ready', count: num(s.batches_release_ready), tone: 'success', open: true },
+                { key: 'dispatch_pending', label: 'Dispatch pending', count: num(s.dispatch_pending), tone: 'info', open: true },
+                { key: 'completed_week', label: 'Completed this week', count: num(s.batches_completed_week), tone: 'neutral', open: false }
+            ];
+            // Colour alone must not carry the warning - these two also get an icon.
+            segments.forEach(function (seg) {
+                seg.alert = (seg.key === 'on_hold' || seg.key === 'awaiting_test') && seg.count > 0;
+            });
+            var openTotal = segments.reduce(function (a, seg) { return a + (seg.open ? seg.count : 0); }, 0);
+            return { segments: segments, note: openTotal + ' open batches across five stages.' };
+        },
+
+        /**
+         * Render the pipeline bar. Segments are buttons that jump to the alerts card - where a
+         * piled-up stage actually gets acted on. If that card is unreachable for this user
+         * (absent, or hidden by applyDashboardVisibility) the segments still show their numbers
+         * but are disabled, rather than looking clickable and doing nothing.
+         */
+        renderPipeline: (stats) => {
+            var scope = _executiveDashboard;
+            var host = document.getElementById('execPipeline');
+            var noteEl = document.getElementById('execPipelineNote');
+            if (!host) return;
+            var built = scope.execPipelineSegments(stats);
+            var alertsEl = document.getElementById('execAlertsContainer');
+            var canJump = scope.execScrollTarget(alertsEl) === 'ok';
+
+            host.textContent = '';
+            built.segments.forEach(function (seg) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'exec-pipe-seg exec-pipe-seg--' + seg.tone;
+                // A zero stage still needs a share of the bar, or an all-zero pipeline collapses
+                // to six min-width blocks and leaves the strip half empty. min-width does the
+                // readability work; this just keeps the bar filling its container.
+                btn.style.flexGrow = String(Math.max(seg.count, 0.25));
+                btn.setAttribute('data-stage', seg.key);
+                btn.title = seg.label + ': ' + seg.count;
+                if (canJump) {
+                    btn.setAttribute('aria-label', seg.label + ': ' + seg.count + '. Go to alerts.');
+                    btn.addEventListener('click', function () { scope.execGoToTarget(alertsEl); });
+                } else {
+                    btn.disabled = true;
+                    btn.setAttribute('aria-label', seg.label + ': ' + seg.count);
+                }
+
+                var count = document.createElement('span');
+                count.className = 'exec-pipe-count';
+                if (seg.alert) {
+                    var icon = document.createElement('i');
+                    icon.className = 'fas fa-triangle-exclamation me-1';
+                    icon.setAttribute('aria-hidden', 'true');
+                    count.appendChild(icon);
+                }
+                count.appendChild(document.createTextNode(String(seg.count)));
+
+                var label = document.createElement('span');
+                label.className = 'exec-pipe-label';
+                label.textContent = seg.label;
+
+                btn.appendChild(count);
+                btn.appendChild(label);
+                host.appendChild(btn);
+            });
+            if (noteEl) noteEl.textContent = built.note;
         },
 
         initHandlers: () => {
@@ -370,7 +914,7 @@ var _executiveDashboard = function () {
                     Swal.fire('Info', 'Open Scheduled Reports from Support in the sidebar.', 'info');
                 }
             });
-            $('#execDailyReportBtn, #execOpenScheduledReportsBtn').off('click').on('click', function () {
+            $('#execDailyReportBtn').off('click').on('click', function () {
                 if (typeof _appRouter !== 'undefined') {
                     _appRouter.navigate('scheduled-reports-grid');
                 }
@@ -389,6 +933,17 @@ var _executiveDashboard = function () {
             });
             $('#productionTrendsMetric').off('change').on('change', function () {
                 scope.updateProductionTrendsChart();
+            });
+            $('.exec-tile-btn').off('click').on('click', function () {
+                var metric = $(this).data('metric');
+                if (!metric) return;
+                var metricSel = document.getElementById('productionTrendsMetric');
+                if (!metricSel) return;
+                metricSel.value = String(metric);
+                scope.updateProductionTrendsChart();
+                scope.execGoToTarget(document.getElementById('productionTrendsChart'));
+                $('.exec-tile-btn').attr('aria-pressed', 'false');
+                $(this).attr('aria-pressed', 'true');
             });
             $('#productionTrendsView').off('change').on('change', function () {
                 scope.productionTrendsPageOffset = 0;
@@ -901,7 +1456,6 @@ var _executiveDashboard = function () {
         },
 
         oilTrendsChart: null,
-        stockAccuracyChart: null,
         oilForecastChart: null,
         dashboardTargets: [],
 
@@ -1551,42 +2105,202 @@ var _executiveDashboard = function () {
             if (qEl.length) qEl.text((scope.kpis.quality_pass_rate || '0') + '%');
         },
 
+        // Pure: 'exec-alert-row exec-alert-row--' + sev. No Bootstrap display utility — the row
+        // gets `display: flex` from .exec-alert-row in the module CSS.
+        execAlertRowClass: (sev) => {
+            return 'exec-alert-row exec-alert-row--' + sev;
+        },
+
+        // Pure, side-effect-free classification of whether a "Go to" scroll would actually land
+        // anywhere. Does not scroll, mutate or throw — see the plan's fixed contract.
+        execScrollTarget: (el) => {
+            if (!el || typeof el.closest !== 'function') return 'missing';
+            var card = el.closest('.card');
+            if (!card) return 'missing';
+            var widget = el.closest('[data-dashboard-widget]');
+            if (widget && widget.style && widget.style.display === 'none') return 'hidden';
+            return 'ok';
+        },
+
+        // Expands the target's collapse (if folded) and scrolls to it once expansion has
+        // actually finished, so the target's position is never measured mid-animation.
+        execGoToTarget: (el) => {
+            if (_executiveDashboard.execScrollTarget(el) !== 'ok') return;
+            var card = el.closest('.card');
+            var collapseEl = el.closest('.collapse');
+            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var behavior = reduce ? 'auto' : 'smooth';
+
+            function doScroll() {
+                if (!card) return;
+                card.scrollIntoView({ behavior: behavior, block: 'center' });
+                card.classList.add('exec-flash');
+                setTimeout(function () { card.classList.remove('exec-flash'); }, 1600);
+            }
+
+            if (collapseEl && !collapseEl.classList.contains('show')) {
+                var toggleBtn = collapseEl.id ? document.querySelector('[data-bs-target="#' + collapseEl.id + '"]') : null;
+                var expanded = false;
+                var onShown = function () {
+                    if (expanded) return;
+                    expanded = true;
+                    collapseEl.removeEventListener('shown.bs.collapse', onShown);
+                    doScroll();
+                };
+                collapseEl.addEventListener('shown.bs.collapse', onShown);
+                if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+                    bootstrap.Collapse.getOrCreateInstance(collapseEl).show();
+                } else {
+                    collapseEl.classList.add('show');
+                }
+                if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
+                setTimeout(function () {
+                    if (expanded) return;
+                    expanded = true;
+                    collapseEl.removeEventListener('shown.bs.collapse', onShown);
+                    doScroll();
+                }, 400);
+            } else {
+                doScroll();
+            }
+        },
+
+        // The one and only way anything in this module hides/shows an element — a module-owned
+        // class, never `el.hidden` and never a Bootstrap display utility. See the plan's
+        // "Visibility is a module-owned class" section for why.
+        execSetHidden: (el, isHidden) => {
+            if (!el || !el.classList) return;
+            el.classList.toggle('exec-hidden', !!isHidden);
+        },
+
         loadExecutiveAlerts: async () => {
             var container = document.getElementById('execAlertsContainer');
+            var chips = document.getElementById('execAlertChips');
             if (!container || !dataFunctions.getDashboardAlerts) return;
+
+            execAlertsRenderSeq += 1;
+            execAlertsFilterSeverity = null;
+            if (chips) {
+                chips.querySelectorAll('.exec-chip').forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+                execAlertsBindChipsOnce(chips);
+            }
+            execAlertsHintDefault = '';
+            execAlertSetHint('');
+
             try {
-                var alerts = await dataFunctions.getDashboardAlerts(null, true);
-                if (!alerts || !alerts.length) {
+                var alertsRaw = await dataFunctions.getDashboardAlerts(null, true);
+                if (!alertsRaw || !alertsRaw.length) {
                     container.innerHTML = '<p class="text-muted small mb-0">No active alerts.</p>';
+                    if (chips) {
+                        ['critical', 'warning', 'info'].forEach(function (s) {
+                            var span = chips.querySelector('[data-count="' + s + '"]');
+                            if (span) span.textContent = '0';
+                        });
+                        _executiveDashboard.execSetHidden(chips, true);
+                    }
                     return;
                 }
+
                 var canResolve = typeof hasAction === 'function' ? hasAction('alerts.resolve') : true;
-                container.innerHTML = alerts.slice(0, 8).map(function (a) {
-                    var sev = (a.severity || a.alert_type || 'info').toLowerCase();
-                    var cls = sev === 'critical' ? 'danger' : sev === 'warning' ? 'warning' : 'info';
-                    var id = a.id || a.alert_id || '';
-                    var resolveBtn = canResolve && id
-                        ? ' <button type="button" class="btn btn-xs btn-sm btn-outline-dark ms-2 exec-resolve-alert-btn" data-alert-id="' + id + '" data-action-perm="alerts.resolve">Resolve</button>'
-                        : '';
-                    return '<div class="alert alert-' + cls + ' py-2 px-3 small mb-2 d-flex justify-content-between align-items-start">' +
-                        '<span><strong>' + (a.title || a.alert_title || 'Alert') + '</strong> — ' + (a.message || a.alert_message || '') + '</span>' +
-                        resolveBtn + '</div>';
-                }).join('');
-                container.querySelectorAll('.exec-resolve-alert-btn').forEach(function (btn) {
-                    btn.addEventListener('click', async function () {
-                        var alertId = btn.getAttribute('data-alert-id');
-                        if (!alertId || !dataFunctions.resolveDashboardAlert) return;
-                        var note = window.prompt('Optional note when resolving this alert:', '') || '';
-                        try {
-                            await dataFunctions.resolveDashboardAlert(alertId, note);
-                            await _executiveDashboard.loadExecutiveAlerts();
-                        } catch (e) {
-                            console.warn('[Executive Dashboard] resolve alert failed', e);
-                        }
-                    });
+
+                // Sort a COPY critical-first/warning/else, then slice — sorting after the slice
+                // would show 8 arbitrary rows instead of the most severe 8.
+                var alerts = alertsRaw.slice().sort(function (a, b) {
+                    return execAlertSeverityRank(execAlertSeverityOf(a)) - execAlertSeverityRank(execAlertSeverityOf(b));
                 });
+                var totalCount = alerts.length;
+                var shown = alerts.slice(0, 8);
+
+                container.innerHTML = '';
+                var counts = { critical: 0, warning: 0, info: 0 };
+                shown.forEach(function (a) {
+                    var row = execBuildAlertRow(a, canResolve);
+                    var sev = row.getAttribute('data-sev');
+                    counts[sev] = (counts[sev] || 0) + 1;
+                    container.appendChild(row);
+                });
+
+                var emptyEl = document.createElement('p');
+                emptyEl.id = 'execAlertsFilterEmpty';
+                emptyEl.className = 'text-muted small mb-0 mt-2 exec-hidden';
+                emptyEl.textContent = 'Nothing at this level right now.';
+                container.appendChild(emptyEl);
+
+                if (chips) {
+                    ['critical', 'warning', 'info'].forEach(function (s) {
+                        var span = chips.querySelector('[data-count="' + s + '"]');
+                        if (span) span.textContent = String(counts[s] || 0);
+                    });
+                    _executiveDashboard.execSetHidden(chips, false);
+                }
+
+                execAlertsHintDefault = totalCount > 8 ? ('showing 8 of ' + totalCount) : '';
+                execAlertSetHint(execAlertsHintDefault);
+
+                execAlertsBindContainerOnce(container);
+                execAlertsApplyFilter();
             } catch (e) {
                 container.innerHTML = '<p class="text-muted small mb-0">Unable to load alerts.</p>';
+                if (chips) {
+                    _executiveDashboard.execSetHidden(chips, true);
+                }
+            }
+        },
+
+        /**
+         * The recovery tile's chip and note. The target is already on the page in the KPI card's
+         * target block, so read it rather than re-fetching. With no target we show the value
+         * alone rather than inventing a comparison.
+         */
+        renderRecoveryTile: (rec) => {
+            var chip = document.getElementById('execStatSoundRecoveryChip');
+            var note = document.getElementById('execStatSoundRecoveryNote');
+            if (!chip || !note) return;
+            chip.classList.remove('exec-tile-chip--up', 'exec-tile-chip--down');
+            var raw = (document.getElementById('execSoundRecoveryTarget') || {}).textContent || '';
+            var target = parseFloat(String(raw).replace('%', '').trim());
+            if (rec == null || !isFinite(target) || target <= 0) {
+                chip.textContent = '';
+                note.textContent = rec == null ? 'No recovery figure recorded yet' : '';
+                return;
+            }
+            var diff = Math.round((rec - target) * 10) / 10;
+            chip.classList.add(diff >= 0 ? 'exec-tile-chip--up' : 'exec-tile-chip--down');
+            chip.textContent = (diff >= 0 ? '\u25B2 ' : '\u25BC ') + Math.abs(diff) + ' pts';
+            note.textContent = (diff >= 0 ? 'Above' : 'Under') + ' the ' + target + '% target';
+        },
+
+        /**
+         * The nut-in-shell cover tile. weeks_cover is what get_kernel_runway_summary returns, so
+         * that is what is shown; the note carries the kg on hand and the weekly draw behind it,
+         * rather than a run-out date this function does not supply.
+         */
+        renderNisCoverTile: (r) => {
+            var valEl = document.getElementById('execStatNisCover');
+            var chip = document.getElementById('execStatNisCoverChip');
+            var note = document.getElementById('execStatNisCoverNote');
+            if (!valEl) return;
+            var weeks = (r && r.weeks_cover != null) ? Number(r.weeks_cover) : null;
+            var soh = (r && r.soh_kg != null) ? Number(r.soh_kg) : null;
+            var demand = (r && r.weekly_demand_kg != null) ? Number(r.weekly_demand_kg) : null;
+            valEl.textContent = (weeks != null && isFinite(weeks)) ? weeks : '—';
+            if (chip) {
+                chip.classList.remove('exec-tile-chip--up', 'exec-tile-chip--down');
+                if (weeks == null || !isFinite(weeks)) {
+                    chip.textContent = '';
+                } else if (weeks < 2) {
+                    chip.classList.add('exec-tile-chip--down');
+                    chip.textContent = 'Under 2 weeks';
+                } else {
+                    chip.classList.add('exec-tile-chip--up');
+                    chip.textContent = 'Over 2 weeks';
+                }
+            }
+            if (note) {
+                note.textContent = (soh != null && demand != null && demand > 0)
+                    ? soh.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg on hand, '
+                      + demand.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg a week'
+                    : '';
             }
         },
 
@@ -1601,8 +2315,10 @@ var _executiveDashboard = function () {
                 $('#execRunwayWeeks').text(weeks != null ? weeks + ' wks' : '—');
                 $('#execRunwayMonths').text(months != null ? months + ' mo' : '—');
                 $('#execRunwayDemand').text(Number(r.weekly_demand_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg/wk');
+                _executiveDashboard.renderNisCoverTile(r);
             } catch (e) {
-                $('#execRunwaySohKg, #execRunwayWeeks, #execRunwayMonths, #execRunwayDemand').text('—');
+                $('#execRunwaySohKg, #execRunwayWeeks, #execRunwayMonths, #execRunwayDemand, #execStatNisCover').text('—');
+                _executiveDashboard.renderNisCoverTile(null);
             }
         },
 
@@ -1630,32 +2346,6 @@ var _executiveDashboard = function () {
             } catch (e) {
                 console.warn('[Executive Dashboard] oil trends failed', e);
                 scope.setChartEmptyState('oilTrendsChart', true);
-            }
-        },
-
-        loadStockAccuracyChart: async () => {
-            var scope = _executiveDashboard;
-            var canvas = document.getElementById('stockAccuracyChart');
-            if (!canvas || typeof Chart === 'undefined' || !dataFunctions.getStockAccuracy) return;
-            try {
-                var rows = await dataFunctions.getStockAccuracy(6);
-                rows = (rows || []).slice().reverse();
-                var labels = rows.map(function (r) { return String(r.snapshot_month || '').slice(0, 7); });
-                var pct = rows.map(function (r) { return Number(r.pct_adjusted) || 0; });
-                if (scope.stockAccuracyChart) { scope.stockAccuracyChart.destroy(); scope.stockAccuracyChart = null; }
-                if (!pct.length) {
-                    scope.setChartEmptyState('stockAccuracyChart', true);
-                    return;
-                }
-                scope.setChartEmptyState('stockAccuracyChart', false);
-                scope.stockAccuracyChart = new Chart(canvas.getContext('2d'), {
-                    type: 'bar',
-                    data: { labels: labels, datasets: [{ label: '% adjusted', data: pct, backgroundColor: 'rgba(255,193,7,0.7)' }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, title: { display: true, text: '% of SOH adjusted' } } } }
-                });
-            } catch (e) {
-                console.warn('[Executive Dashboard] stock accuracy failed', e);
-                scope.setChartEmptyState('stockAccuracyChart', true);
             }
         },
 
@@ -1704,6 +2394,10 @@ var _executiveDashboard = function () {
                 var k = await dataFunctions.getPhase2ExtendedKpis();
                 var rec = sanePct(k.sound_kernel_recovery_pct);
                 var yieldPct = sanePct(k.oil_yield_pct);
+                // Same recovery number on the stat strip. There is no daily recovery series in
+                // the database, so this tile carries a target comparison instead of a sparkline.
+                $('#execStatSoundRecovery').text(rec != null ? rec : '—');
+                _executiveDashboard.renderRecoveryTile(rec);
                 $('#execSoundRecoveryPct').text(rec != null ? rec + '%' : '—');
                 $('#execOilYieldPct').text(yieldPct != null ? yieldPct + '%' : '—');
                 $('#execSohKernel').text(Number(k.kernel_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
