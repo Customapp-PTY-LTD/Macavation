@@ -1,3 +1,31 @@
+// Cache-busting for everything the router loads at runtime.
+//
+// Files listed in index.html carry a hand-written ?v= tag. The 200-odd module files the router
+// injects (appRouteConfig.json's js/css/html entries) carried none, so a browser that had opened a
+// screen once kept serving that copy for good: a deployed change to any module was invisible until
+// the user hard-refreshed, with nothing on screen to say the page was stale.
+//
+// The token is read from this file's OWN script tag — index.html loads it as appRouter.js?v=XXXX —
+// so bumping that single ?v= in index.html busts every module asset at once. Falling back to a
+// fixed string rather than a timestamp is deliberate: a per-load timestamp would defeat caching
+// entirely and re-download every screen on every navigation.
+var _appRouterAssetVersion = (function () {
+    try {
+        var tag = document.currentScript
+            || document.querySelector('script[src*="appRouter.js"]');
+        var match = tag && tag.src && tag.src.match(/[?&]v=([^&]*)/);
+        if (match && match[1]) return decodeURIComponent(match[1]);
+    } catch (e) { /* fall through */ }
+    return 'unversioned';
+})();
+
+function _appRouterWithVersion(url) {
+    if (!url) return url;
+    if (/[?&]v=/.test(url)) return url;
+    return url + (url.indexOf('?') === -1 ? '?' : '&') +
+        'v=' + encodeURIComponent(_appRouterAssetVersion);
+}
+
 var _appRouter = function () {
     return {
         version: '2.01',
@@ -819,7 +847,7 @@ var _appRouter = function () {
 
                     const script = document.createElement('script');
                     script.id = scriptId;
-                    script.src = `${resourcePath}/${jsFile}`;
+                    script.src = _appRouterWithVersion(`${resourcePath}/${jsFile}`);
 
                     // Make script loading synchronous by using a Promise
                     await new Promise((resolve, reject) => {
@@ -864,7 +892,7 @@ var _appRouter = function () {
                     link.id = linkId;
                     link.rel = 'stylesheet';
                     link.type = 'text/css';
-                    link.href = `${resourcePath}/${cssFile}`;
+                    link.href = _appRouterWithVersion(`${resourcePath}/${cssFile}`);
 
                     // Make CSS loading synchronous by using a Promise
                     await new Promise((resolve, reject) => {
@@ -890,7 +918,7 @@ var _appRouter = function () {
             const result = { success: false, data: null, errors: [] };
 
             try {
-                const response = await fetch(htmlPath);
+                const response = await fetch(_appRouterWithVersion(htmlPath));
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -905,7 +933,9 @@ var _appRouter = function () {
             return result;
         },
         loadRouteConfig: () => {
-            return fetch(_appRouter.routeConfigPath)
+            // Versioned too: a cached config would keep a newly added route, or a new css entry on
+            // an existing one, from ever being seen.
+            return fetch(_appRouterWithVersion(_appRouter.routeConfigPath))
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('error fetching config: ' + response.status);
