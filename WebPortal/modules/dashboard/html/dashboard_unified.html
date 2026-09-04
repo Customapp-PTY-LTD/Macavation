@@ -347,101 +347,77 @@
             </div>
             <div class="collapse show" id="execKernelOpsCollapse">
             <div class="card-body pt-3">
+        <div class="exec-tiles mb-4">
+            <div class="exec-tile-wrap">
+                <button type="button" class="exec-tile exec-tile--s1" data-metric="kg_cracked" aria-pressed="false">
+                    <span class="exec-tile-label">Cracked today</span>
+                    <span class="exec-tile-value"><span id="execStatKgCrackedToday">—</span> <span class="exec-tile-unit">kg</span></span>
+                    <span class="exec-tile-foot">
+                        <span class="exec-tile-chip" id="execStatKgCrackedTodayChip" aria-live="polite"></span>
+                        <span class="exec-tile-spark" id="execStatKgCrackedTodaySpark" aria-hidden="true"></span>
+                    </span>
+                    <span class="exec-tile-note" id="execStatKgCrackedTodayNote"></span>
+                </button>
+            </div>
+            <div class="exec-tile-wrap">
+                <button type="button" class="exec-tile exec-tile--s2" data-metric="kg_packed" aria-pressed="false">
+                    <span class="exec-tile-label">Packed today</span>
+                    <span class="exec-tile-value"><span id="execStatKgPackedToday">—</span> <span class="exec-tile-unit">kg</span></span>
+                    <span class="exec-tile-foot">
+                        <span class="exec-tile-chip" id="execStatKgPackedTodayChip" aria-live="polite"></span>
+                        <span class="exec-tile-spark" id="execStatKgPackedTodaySpark" aria-hidden="true"></span>
+                    </span>
+                    <span class="exec-tile-note" id="execStatKgPackedTodayNote"></span>
+                </button>
+            </div>
+            <div class="exec-tile-wrap">
+                <button type="button" class="exec-tile exec-tile--s4" data-metric="kg_dispatched" aria-pressed="false">
+                    <span class="exec-tile-label">Dispatched today</span>
+                    <span class="exec-tile-value"><span id="execStatKgDispatchedToday">—</span> <span class="exec-tile-unit">kg</span></span>
+                    <span class="exec-tile-foot">
+                        <span class="exec-tile-chip" id="execStatKgDispatchedTodayChip" aria-live="polite"></span>
+                        <span class="exec-tile-spark" id="execStatKgDispatchedTodaySpark" aria-hidden="true"></span>
+                    </span>
+                    <span class="exec-tile-note" id="execStatKgDispatchedTodayNote"></span>
+                </button>
+            </div>
+            <div class="exec-tile-wrap">
+                <div class="exec-tile exec-tile--s3 exec-tile--static">
+                    <span class="exec-tile-label">Sound kernel recovery</span>
+                    <span class="exec-tile-value"><span id="execStatSoundRecovery">—</span> <span class="exec-tile-unit">%</span></span>
+                    <span class="exec-tile-foot">
+                        <span class="exec-tile-chip" id="execStatSoundRecoveryChip" aria-live="polite"></span>
+                    </span>
+                    <span class="exec-tile-note" id="execStatSoundRecoveryNote"></span>
+                </div>
+            </div>
+            <div class="exec-tile-wrap">
+                <div class="exec-tile exec-tile--s5 exec-tile--static">
+                    <span class="exec-tile-label">Nut-in-shell cover</span>
+                    <span class="exec-tile-value"><span id="execStatNisCover">—</span> <span class="exec-tile-unit" id="execStatNisCoverUnit">wks</span></span>
+                    <span class="exec-tile-foot">
+                        <span class="exec-tile-chip" id="execStatNisCoverChip" aria-live="polite"></span>
+                    </span>
+                    <span class="exec-tile-note" id="execStatNisCoverNote"></span>
+                </div>
+            </div>
+        </div>
+
         <div class="row g-3 mb-4">
             <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesInProduction">
                 <div class="card h-100 border-primary">
                     <div class="card-body text-center">
                         <h6 class="text-muted text-uppercase small mb-1">Kernel batches in production</h6>
-                        <h3 class="mb-0" id="execStatBatchesInProduction">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgCrackedToday">
-                <div class="card h-100 border-success">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Kg cracked today</h6>
-                        <h3 class="mb-0" id="execStatKgCrackedToday">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgCrackedWeek">
-                <div class="card h-100 border-info">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Kg cracked this week</h6>
-                        <h3 class="mb-0" id="execStatKgCrackedWeek">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgPackedToday">
-                <div class="card h-100 border-warning">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Kg packed today</h6>
-                        <h3 class="mb-0" id="execStatKgPackedToday">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatKgPackedWeek">
-                <div class="card h-100 border-secondary">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Kg packed this week</h6>
-                        <h3 class="mb-0" id="execStatKgPackedWeek">—</h3>
+                        <h3 class="mb-0 exec-tile-value-plain" id="execStatBatchesInProduction">—</h3>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesAwaitingTest">
-                <div class="card h-100 border-primary">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Awaiting test</h6>
-                        <h3 class="mb-0" id="execStatBatchesAwaitingTest">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesReleaseReady">
-                <div class="card h-100 border-success">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Release ready</h6>
-                        <h3 class="mb-0" id="execStatBatchesReleaseReady">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesCompletedWeek">
-                <div class="card h-100 border-info">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Completed this week</h6>
-                        <h3 class="mb-0" id="execStatBatchesCompletedWeek">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatBatchesInIntake">
-                <div class="card h-100 border-warning">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">In intake</h6>
-                        <h3 class="mb-0" id="execStatBatchesInIntake">—</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatDispatchWeek">
-                <div class="card h-100 border-primary">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Dispatch this week</h6>
-                        <h3 class="mb-0" id="execStatDispatchWeek">—</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg" data-dashboard-widget="execStatDispatchPending">
-                <div class="card h-100 border-warning">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted text-uppercase small mb-1">Dispatch pending</h6>
-                        <h3 class="mb-0" id="execStatDispatchPending">—</h3>
-                    </div>
-                </div>
-            </div>
+        <div class="mb-4">
+            <h6 class="text-muted text-uppercase small mb-2">Open batches by stage</h6>
+            <div class="exec-pipe" id="execPipeline" role="group" aria-label="Open batches by stage"></div>
+            <p class="exec-pipe-note" id="execPipelineNote"></p>
         </div>
             </div>
             </div>
