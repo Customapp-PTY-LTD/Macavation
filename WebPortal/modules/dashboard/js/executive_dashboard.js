@@ -75,8 +75,6 @@ var _executiveDashboard = function () {
     var DASHBOARD_WIDGET_LABELS = {
         totalProduction: 'Total Production (kg)',
         execStatBatchesInProduction: 'Kernel batches in production',
-        execStatKgCrackedToday: 'Kg cracked today',
-        execStatKgPackedToday: 'Kg packed today',
         execStatOilLitresToday: 'Oil bins today',
         execStatOilLitresWeek: 'Oil bins this week',
         execDailyMinuteTests: 'Daily minute tests',
@@ -536,9 +534,8 @@ var _executiveDashboard = function () {
                 }
             } catch (e) { role = ''; }
 
-            var production = ['totalProduction', 'execStatBatchesInProduction', 'execStatKgCrackedToday',
-                'execStatKgPackedToday', 'execDailyMinuteTests', 'execProductionTrends',
-                'execRunwayForecast'];
+            var production = ['totalProduction', 'execStatBatchesInProduction',
+                'execDailyMinuteTests', 'execProductionTrends', 'execRunwayForecast'];
             var oil = ['execStatOilLitresToday', 'execStatOilLitresWeek', 'execProductionTrends', 'totalProduction'];
             var qa = ['execDailyMinuteTests', 'totalProduction'];
             var forecastSales = ['execRunwayForecast', 'totalProduction', 'execProductionTrends'];
@@ -649,6 +646,17 @@ var _executiveDashboard = function () {
             return { kind: today >= yesterday ? 'up' : 'down', pct: pct };
         },
 
+        /**
+         * Pure. The sentence under the chip: "Up from 4 300 kg yesterday". Returns '' when there
+         * is no yesterday to compare against, so the tile shows nothing rather than a fragment.
+         */
+        execTileNote: (today, yesterday) => {
+            if (today == null || yesterday == null) return '';
+            var was = Number(yesterday).toLocaleString('en-ZA', { maximumFractionDigits: 0 });
+            if (today === yesterday) return 'Level with ' + was + ' kg yesterday';
+            return (today > yesterday ? 'Up from ' : 'Down from ') + was + ' kg yesterday';
+        },
+
         // Renders the chip produced by execTileDelta into hostEl. Pure w.r.t. its inputs; its only
         // side effect is writing to hostEl.
         execRenderTileChip: (hostEl, delta) => {
@@ -727,9 +735,9 @@ var _executiveDashboard = function () {
         loadTileHistory: async () => {
             const scope = _executiveDashboard;
             const TILES = [
-                { field: 'kg_cracked', chip: 'execStatKgCrackedTodayChip', spark: 'execStatKgCrackedTodaySpark', color: '--mac-success' },
-                { field: 'kg_packed', chip: 'execStatKgPackedTodayChip', spark: 'execStatKgPackedTodaySpark', color: '--mac-warning' },
-                { field: 'kg_dispatched', chip: 'execStatKgDispatchedTodayChip', spark: 'execStatKgDispatchedTodaySpark', color: '--mac-info', valueEl: 'execStatKgDispatchedToday' }
+                { field: 'kg_cracked', chip: 'execStatKgCrackedTodayChip', spark: 'execStatKgCrackedTodaySpark', note: 'execStatKgCrackedTodayNote', color: '--mac-success' },
+                { field: 'kg_packed', chip: 'execStatKgPackedTodayChip', spark: 'execStatKgPackedTodaySpark', note: 'execStatKgPackedTodayNote', color: '--mac-warning' },
+                { field: 'kg_dispatched', chip: 'execStatKgDispatchedTodayChip', spark: 'execStatKgDispatchedTodaySpark', note: 'execStatKgDispatchedTodayNote', color: '--mac-info', valueEl: 'execStatKgDispatchedToday' }
             ];
             if (typeof dataFunctions === 'undefined' || !dataFunctions.getProductionTrendsDaily) {
                 $('#execStatKgDispatchedToday').text('—');
@@ -744,6 +752,10 @@ var _executiveDashboard = function () {
                     const sparkEl = document.getElementById(t.spark);
                     scope.execRenderTileChip(chipEl, series.values.length >= 2 ? scope.execTileDelta(series.today, series.yesterday) : null);
                     scope.renderSparkline(sparkEl, series.values, t.color);
+                    // The words under the chip - the mockup's "Up from 4 300 kg yesterday".
+                    // Empty when there is no yesterday, rather than a half-sentence.
+                    var noteEl = document.getElementById(t.note);
+                    if (noteEl) noteEl.textContent = scope.execTileNote(series.today, series.yesterday);
                     if (t.valueEl) {
                         const val = series.today != null ? series.today : null;
                         $('#' + t.valueEl).text(val != null ? val.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
@@ -2235,6 +2247,63 @@ var _executiveDashboard = function () {
             }
         },
 
+        /**
+         * The recovery tile's chip and note. The target is already on the page in the KPI card's
+         * target block, so read it rather than re-fetching. With no target we show the value
+         * alone rather than inventing a comparison.
+         */
+        renderRecoveryTile: (rec) => {
+            var chip = document.getElementById('execStatSoundRecoveryChip');
+            var note = document.getElementById('execStatSoundRecoveryNote');
+            if (!chip || !note) return;
+            chip.classList.remove('exec-tile-chip--up', 'exec-tile-chip--down');
+            var raw = (document.getElementById('execSoundRecoveryTarget') || {}).textContent || '';
+            var target = parseFloat(String(raw).replace('%', '').trim());
+            if (rec == null || !isFinite(target) || target <= 0) {
+                chip.textContent = '';
+                note.textContent = rec == null ? 'No recovery figure recorded yet' : '';
+                return;
+            }
+            var diff = Math.round((rec - target) * 10) / 10;
+            chip.classList.add(diff >= 0 ? 'exec-tile-chip--up' : 'exec-tile-chip--down');
+            chip.textContent = (diff >= 0 ? '\u25B2 ' : '\u25BC ') + Math.abs(diff) + ' pts';
+            note.textContent = (diff >= 0 ? 'Above' : 'Under') + ' the ' + target + '% target';
+        },
+
+        /**
+         * The nut-in-shell cover tile. weeks_cover is what get_kernel_runway_summary returns, so
+         * that is what is shown; the note carries the kg on hand and the weekly draw behind it,
+         * rather than a run-out date this function does not supply.
+         */
+        renderNisCoverTile: (r) => {
+            var valEl = document.getElementById('execStatNisCover');
+            var chip = document.getElementById('execStatNisCoverChip');
+            var note = document.getElementById('execStatNisCoverNote');
+            if (!valEl) return;
+            var weeks = (r && r.weeks_cover != null) ? Number(r.weeks_cover) : null;
+            var soh = (r && r.soh_kg != null) ? Number(r.soh_kg) : null;
+            var demand = (r && r.weekly_demand_kg != null) ? Number(r.weekly_demand_kg) : null;
+            valEl.textContent = (weeks != null && isFinite(weeks)) ? weeks : '—';
+            if (chip) {
+                chip.classList.remove('exec-tile-chip--up', 'exec-tile-chip--down');
+                if (weeks == null || !isFinite(weeks)) {
+                    chip.textContent = '';
+                } else if (weeks < 2) {
+                    chip.classList.add('exec-tile-chip--down');
+                    chip.textContent = 'Under 2 weeks';
+                } else {
+                    chip.classList.add('exec-tile-chip--up');
+                    chip.textContent = 'Over 2 weeks';
+                }
+            }
+            if (note) {
+                note.textContent = (soh != null && demand != null && demand > 0)
+                    ? soh.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg on hand, '
+                      + demand.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg a week'
+                    : '';
+            }
+        },
+
         loadRunwaySummary: async () => {
             if (!dataFunctions.getKernelRunwaySummary) return;
             try {
@@ -2246,9 +2315,10 @@ var _executiveDashboard = function () {
                 $('#execRunwayWeeks').text(weeks != null ? weeks + ' wks' : '—');
                 $('#execRunwayMonths').text(months != null ? months + ' mo' : '—');
                 $('#execRunwayDemand').text(Number(r.weekly_demand_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }) + ' kg/wk');
-                $('#execStatNisCover').text(weeks != null ? weeks + ' wks' : '—');
+                _executiveDashboard.renderNisCoverTile(r);
             } catch (e) {
                 $('#execRunwaySohKg, #execRunwayWeeks, #execRunwayMonths, #execRunwayDemand, #execStatNisCover').text('—');
+                _executiveDashboard.renderNisCoverTile(null);
             }
         },
 
@@ -2324,6 +2394,10 @@ var _executiveDashboard = function () {
                 var k = await dataFunctions.getPhase2ExtendedKpis();
                 var rec = sanePct(k.sound_kernel_recovery_pct);
                 var yieldPct = sanePct(k.oil_yield_pct);
+                // Same recovery number on the stat strip. There is no daily recovery series in
+                // the database, so this tile carries a target comparison instead of a sparkline.
+                $('#execStatSoundRecovery').text(rec != null ? rec : '—');
+                _executiveDashboard.renderRecoveryTile(rec);
                 $('#execSoundRecoveryPct').text(rec != null ? rec + '%' : '—');
                 $('#execOilYieldPct').text(yieldPct != null ? yieldPct + '%' : '—');
                 $('#execSohKernel').text(Number(k.kernel_soh_kg || 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
