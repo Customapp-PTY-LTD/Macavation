@@ -15,3 +15,303 @@
     font-size: 0.875rem;
 }
 .minute-test-cell:empty::after { content: '\2014'; color: var(--mac-text); }
+
+/* Executive alerts panel — chips filter strip, severity rows, undo toast (plan exec-dash-02) */
+
+.exec-alert-chips {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--mac-space-sm);
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    border-bottom: 1px solid var(--mac-border);
+    background-color: var(--mac-bg-secondary);
+}
+
+.exec-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mac-space-xs);
+    padding: var(--mac-space-xs) var(--mac-space-sm);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-pill);
+    background-color: var(--mac-bg-secondary);
+    color: var(--mac-text-secondary);
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.exec-chip--critical { border-color: var(--mac-danger); color: var(--mac-danger); }
+.exec-chip--critical[aria-pressed="true"] { background-color: var(--mac-danger-light); }
+.exec-chip--warning { border-color: var(--mac-warning); color: var(--mac-warning-text); }
+.exec-chip--warning[aria-pressed="true"] { background-color: var(--mac-warning-light); }
+.exec-chip--info { border-color: var(--mac-info); color: var(--mac-info); }
+.exec-chip--info[aria-pressed="true"] { background-color: var(--mac-info-light); }
+
+.exec-alert-hint {
+    margin-left: auto;
+    color: var(--mac-text-tertiary);
+    font-size: var(--mac-text-xs);
+}
+
+.exec-alert-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--mac-space-sm);
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    margin-bottom: var(--mac-space-sm);
+    border: 1px solid var(--mac-border);
+    border-left: 4px solid var(--mac-border-strong);
+    border-radius: var(--mac-radius-sm);
+    background-color: var(--mac-bg-secondary);
+}
+
+.exec-alert-row--critical { border-left-color: var(--mac-danger); background-color: var(--mac-danger-light); }
+.exec-alert-row--warning { border-left-color: var(--mac-warning); background-color: var(--mac-warning-light); }
+.exec-alert-row--info { border-left-color: var(--mac-info); background-color: var(--mac-info-light); }
+
+.exec-alert-icon { margin-top: 2px; font-size: var(--mac-text-md); }
+.exec-alert-row--critical .exec-alert-icon { color: var(--mac-danger); }
+.exec-alert-row--warning .exec-alert-icon { color: var(--mac-warning-text); }
+.exec-alert-row--info .exec-alert-icon { color: var(--mac-info); }
+
+.exec-alert-body { flex: 1 1 auto; min-width: 0; }
+
+.exec-alert-sev-label {
+    font-size: var(--mac-text-xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--mac-text-tertiary);
+    margin-right: var(--mac-space-xs);
+}
+
+.exec-alert-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--mac-space-xs);
+    white-space: nowrap;
+}
+
+.exec-toast-host {
+    position: fixed;
+    top: var(--mac-space-md);
+    right: var(--mac-space-md);
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    gap: var(--mac-space-sm);
+}
+
+.exec-toast {
+    display: flex;
+    align-items: center;
+    gap: var(--mac-space-md);
+    padding: var(--mac-space-sm) var(--mac-space-md);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    background-color: var(--mac-bg-secondary);
+    box-shadow: var(--mac-shadow-md);
+    color: var(--mac-text);
+    font-size: var(--mac-text-sm);
+}
+
+@keyframes exec-flash-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(var(--mac-green-rgb), 0.5); }
+    100% { box-shadow: 0 0 0 8px rgba(var(--mac-green-rgb), 0); }
+}
+
+.exec-flash { animation: exec-flash-pulse 0.8s ease-out 2; }
+
+@media (prefers-reduced-motion: reduce) {
+    .exec-flash { animation: none; }
+}
+
+/* Module-owned visibility class — the only way this module hides/shows an element.
+   !important is deliberate: it must win over any Bootstrap display utility that could
+   land on the same element (see the plan's "Visibility is a module-owned class" note). */
+.exec-hidden { display: none !important; }
+
+/* Executive dashboard stat strip - five tiles, each carrying its own context: an accent stripe
+   for the metric, the big number with its unit, a delta chip beside a 14-day sparkline, and a
+   plain-English note. Mirrors docs/mockups/dashboard-revamp.html. */
+
+.exec-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: var(--mac-space-md);
+}
+
+.exec-tile-wrap { min-width: 0; }
+
+.exec-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+    padding: var(--mac-space-md);
+    padding-left: calc(var(--mac-space-md) + 4px);
+    text-align: left;
+    background-color: var(--mac-bg);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-md);
+    box-shadow: var(--mac-shadow-card);
+    overflow: hidden;
+}
+
+/* The accent stripe down the left edge - the tile's identity, and the only place its colour
+   appears, so the numbers stay in text tokens. */
+.exec-tile::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background-color: var(--exec-tile-accent, var(--mac-border-strong));
+}
+
+button.exec-tile { cursor: pointer; }
+button.exec-tile:hover { border-color: var(--mac-border-strong); }
+button.exec-tile:focus-visible { outline: 2px solid var(--mac-info); outline-offset: 2px; }
+button.exec-tile[aria-pressed="true"] { border-color: var(--exec-tile-accent, var(--mac-border-strong)); }
+
+.exec-tile--s1 { --exec-tile-accent: var(--mac-success); }
+.exec-tile--s2 { --exec-tile-accent: var(--mac-info); }
+.exec-tile--s3 { --exec-tile-accent: var(--mac-warning); }
+.exec-tile--s4 { --exec-tile-accent: var(--mac-brown); }
+.exec-tile--s5 { --exec-tile-accent: var(--mac-danger); }
+
+.exec-tile-label {
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--mac-text-secondary);
+}
+
+.exec-tile-value {
+    display: block;
+    font-size: var(--mac-text-xl);
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--mac-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.exec-tile-unit {
+    font-size: var(--mac-text-sm);
+    font-weight: 600;
+    color: var(--mac-text-tertiary);
+}
+
+.exec-tile-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mac-space-sm);
+    width: 100%;
+    margin-top: 2px;
+    min-height: 30px;
+}
+
+.exec-tile-chip {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background-color: var(--mac-bg-tertiary);
+    font-size: var(--mac-text-xs);
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--mac-text-secondary);
+}
+
+.exec-tile-chip--up { color: var(--mac-success); background-color: var(--mac-success-light); }
+.exec-tile-chip--down { color: var(--mac-danger); background-color: var(--mac-danger-light); }
+.exec-tile-chip:empty { display: none; }
+
+.exec-tile-spark { flex: 1 1 auto; min-width: 0; max-width: 7.5rem; height: 30px; }
+
+.exec-tile-note {
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-tertiary);
+    line-height: 1.35;
+}
+
+.exec-tile-value-plain { font-variant-numeric: tabular-nums; }
+
+.exec-tile-spark-svg {
+    width: 100%;
+    height: 30px;
+    display: block;
+}
+
+/* Executive dashboard batch pipeline (plan exec-dash-04b) - six stage counts as one segmented
+   bar, so a queue is visible at a glance rather than read off six separate boxes. Segment width
+   is proportional to the count; min-width keeps a small stage readable and clickable. */
+
+.exec-pipe {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    overflow-x: auto;
+    padding-bottom: var(--mac-space-xs);
+}
+
+.exec-pipe-seg {
+    flex: 1 1 0;
+    min-width: 8.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: var(--mac-space-sm) var(--mac-space-xs);
+    border: 1px solid var(--mac-border);
+    border-radius: var(--mac-radius-sm);
+    background-color: var(--mac-bg-tertiary);
+    color: var(--mac-text);
+    cursor: pointer;
+    text-align: center;
+}
+
+.exec-pipe-seg:disabled {
+    cursor: default;
+}
+
+.exec-pipe-seg:focus-visible {
+    outline: 2px solid var(--mac-info);
+    outline-offset: 2px;
+}
+
+.exec-pipe-count {
+    font-size: var(--mac-text-lg);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.exec-pipe-label {
+    font-size: var(--mac-text-xs);
+    color: var(--mac-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.exec-pipe-seg--info { border-color: var(--mac-info); background-color: var(--mac-info-light); }
+.exec-pipe-seg--info .exec-pipe-count { color: var(--mac-info); }
+.exec-pipe-seg--warning { border-color: var(--mac-warning); background-color: var(--mac-warning-light); }
+.exec-pipe-seg--warning .exec-pipe-count { color: var(--mac-warning-text); }
+.exec-pipe-seg--danger { border-color: var(--mac-danger); background-color: var(--mac-danger-light); }
+.exec-pipe-seg--danger .exec-pipe-count { color: var(--mac-danger); }
+.exec-pipe-seg--success { border-color: var(--mac-success); background-color: var(--mac-success-light); }
+.exec-pipe-seg--success .exec-pipe-count { color: var(--mac-success); }
+.exec-pipe-seg--neutral { border-color: var(--mac-border-strong); }
+
+.exec-pipe-note {
+    margin: var(--mac-space-xs) 0 0;
+    font-size: var(--mac-text-sm);
+    color: var(--mac-text-secondary);
+}

@@ -6367,6 +6367,74 @@ var _dataFunctions = function () {
             }
         },
 
+        /**
+         * Text a staff WhatsApp enrolment code to a handset, via the whatsapp-enrol-staff
+         * edge function.
+         *
+         * An EDGE FUNCTION, not an RPC, and deliberately so. whatsapp_start_enrolment is granted
+         * to service_role ONLY: every RPC this file issues goes out as PostgREST role `anon`
+         * using the public anon key that ships in the browser, so a caller-supplied
+         * p_requesting_user_id would be an unauthenticated claim and anyone holding that key
+         * could mint an enrolment code against any user. The edge function validates the portal
+         * session, derives the requesting user from it, and checks admin.users.manage server-side
+         * before minting anything.
+         *
+         * The 6-digit code is never returned here. It goes from the database into the WhatsApp
+         * message and nowhere else - see supabase/functions/whatsapp-enrol-staff/index.ts.
+         *
+         * Resolves to the function's own JSON either way rather than throwing on a refusal: a
+         * closed 24-hour window (409) and "already verified on another user" (400) are both
+         * things the admin can act on, and the caller shows `error` as-is.
+         */
+        sendWhatsappEnrolmentCode: async function (userId, phone, token = null) {
+            const id = userId == null ? '' : String(userId).trim();
+            const msisdn = phone == null ? '' : String(phone).trim();
+            if (!id) throw new Error('sendWhatsappEnrolmentCode: userId is required.');
+            if (!msisdn) throw new Error('sendWhatsappEnrolmentCode: phone is required.');
+
+            const authToken = token || this.getToken();
+            if (!authToken) {
+                return { success: false, error: 'You are not signed in. Please sign in again.' };
+            }
+
+            try {
+                const supabaseConfig = window.MACAVATION_SUPABASE || {};
+                const url = (supabaseConfig.url || '').replace(/\/$/, '') + '/functions/v1/whatsapp-enrol-staff';
+                const anonKey = supabaseConfig.anonKey || '';
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + anonKey,
+                        'apikey': anonKey,
+                        'X-Portal-Session': authToken
+                    },
+                    body: JSON.stringify({ user_id: id, phone: msisdn })
+                });
+
+                const data = await res.json().catch(function () { return {}; });
+
+                if (!res.ok) {
+                    return {
+                        success: false,
+                        window_closed: data.window_closed === true,
+                        error: data.error || 'HTTP ' + res.status
+                    };
+                }
+                return data;
+            } catch (e) {
+                console.warn('[WhatsApp] sendWhatsappEnrolmentCode failed:', e.message);
+                return { success: false, error: e.message || String(e) };
+            } finally {
+                // The enrolment itself completes later, when the staff member texts the code back,
+                // so nothing about the users list is stale yet. Clear anyway: the admin's next
+                // action is usually to reopen the modal and check whether it landed, and a cached
+                // get_users would show the pre-enrolment state indefinitely.
+                this.clearCachePattern('users');
+            }
+        },
+
         /** List saved WhatsApp report-distribution recipients (list_report_recipients). */
         listReportRecipients: async function (includeInactive = false, token = null, forceRefresh = false) {
             const params = { p_include_inactive: !!includeInactive };
