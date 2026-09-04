@@ -269,7 +269,12 @@ var _reportTargetsGrid = (function () {
                 lastSection = m.section_key;
                 html += '<tr class="targets-section-row">' +
                     '<td class="targets-section-cell" colspan="' + colspan + '">' +
-                    esc(m.section_label || m.section_key) + '</td></tr>';
+                    // The cell spans every column, so it is already wider than the viewport and
+                    // cannot itself stick. The LABEL inside it is what has to follow the
+                    // horizontal scroll, or the section name slides away the moment you look at
+                    // a later month.
+                    '<span class="targets-section-label">' +
+                    esc(m.section_label || m.section_key) + '</span></td></tr>';
             }
 
             var differs = m.report_label && m.report_label !== m.admin_label;

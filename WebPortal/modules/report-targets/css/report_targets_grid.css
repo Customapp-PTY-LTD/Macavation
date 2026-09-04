@@ -219,3 +219,38 @@
     opacity: 1;
     color: var(--mac-green);
 }
+
+/* ---- Pinned edges -------------------------------------------------------
+   Both the month row and the metric column stay put while the grid scrolls.
+   They already do so via position: sticky above; these rules make the pinning
+   VISIBLE, which matters because a pinned edge with no boundary just looks
+   like the content failed to scroll.
+
+   The shadows sit on the sticky elements themselves rather than on a wrapper,
+   so they travel with the pinned edge instead of marking a fixed spot. */
+
+.targets-grid thead th.targets-cell-head,
+.targets-grid thead th.targets-metric-col {
+    box-shadow: inset 0 -1px 0 0 var(--mac-border-strong);
+}
+
+.targets-grid th.targets-metric-col,
+.targets-grid td.targets-metric-col {
+    box-shadow: 2px 0 4px -2px rgba(var(--mac-border-rgb), 0.9);
+}
+
+/* The corner cell is pinned on both axes, so it carries both edges and has to
+   paint above everything else that moves under it. */
+.targets-grid thead th.targets-metric-col {
+    box-shadow: inset 0 -1px 0 0 var(--mac-border-strong),
+                2px 0 4px -2px rgba(var(--mac-border-rgb), 0.9);
+}
+
+/* A section heading spans every column, so the cell is wider than the viewport
+   and cannot stick. Its label is pinned instead, so the section name stays
+   readable when you scroll out to the later months. */
+.targets-section-label {
+    position: sticky;
+    left: 0;
+    display: inline-block;
+}
