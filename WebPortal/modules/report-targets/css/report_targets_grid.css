@@ -296,3 +296,24 @@
     min-height: 0;
     max-height: none;
 }
+
+/* ---- The one rule that made the pinned header work ------------------------
+   index.css sets `overflow: hidden` on EVERY .table in the portal (for corner
+   clipping). That quietly makes the table itself a scroll container, and a
+   sticky cell pins to its nearest scrolling ancestor — so the header was
+   pinning to the table, which never scrolls, and rode up out of view with the
+   rows. Nothing about the sticky rules themselves was wrong.
+
+   Measured in Chromium against the live stylesheets: with .table's overflow in
+   place the header moved 252px -> -148px on a 400px scroll (not sticking);
+   with this override it stays at 252px, and the table drops out of the
+   element's scroll-ancestor chain entirely.
+
+   Scoped to this table on purpose. .table's overflow is load-bearing for
+   rounded corners elsewhere, so it is not safe to change globally — but any
+   other screen wanting a sticky header will hit exactly this wall.
+
+   table.targets-grid (0,1,1) beats .table (0,1,0) regardless of load order. */
+table.targets-grid {
+    overflow: visible;
+}
