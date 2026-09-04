@@ -329,12 +329,24 @@ var _reportTargetsGrid = (function () {
     // the grid, whatever sits above it (title, tabs, filter card, a wrapped toolbar). Sizing
     // against that is correct on any screen and after any resize.
     function sizeGridViewport() {
-        var el = document.querySelector('.targets-grid-scroll');
-        if (!el) return;
-        var top = el.getBoundingClientRect().top;
-        // Leave a gutter so the legend under the grid is reachable without a fight.
-        var available = window.innerHeight - top - 90;
-        el.style.height = Math.max(300, available) + 'px';
+        var mod = document.getElementById('reportTargetsModule');
+        var box = document.querySelector('.targets-grid-scroll');
+        if (!mod || !box) return;
+
+        // Hand the height to flex (see .targets-fills-viewport) and drop any inline height a
+        // previous run set, or it would win over the flex sizing and undo this.
+        mod.classList.add('targets-fills-viewport');
+        box.style.height = '';
+
+        // Distance from the top of the DOCUMENT to the top of the module. Adding scrollY makes it
+        // independent of how far the page happens to be scrolled when this runs, so a re-measure
+        // after the user has scrolled does not shrink the module to nothing.
+        var docTop = mod.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
+
+        // Fill exactly to the bottom of the window. Nothing is left over to scroll, so the grid is
+        // the only scrollable thing on the screen and the pinned month row cannot travel away.
+        var height = window.innerHeight - docTop - 8;
+        mod.style.height = Math.max(420, height) + 'px';
     }
 
     function render() {
@@ -682,6 +694,13 @@ var _reportTargetsGrid = (function () {
         destroy: function () {
             $(document).off('.reportTargets');
             $(window).off('.reportTargets');
+            // Hand the layout back. The fixed height and flex class belong to this screen only;
+            // leaving them on a container the next module reuses would box that module in too.
+            var mod = document.getElementById('reportTargetsModule');
+            if (mod) {
+                mod.classList.remove('targets-fills-viewport');
+                mod.style.height = '';
+            }
         }
     };
 }());
