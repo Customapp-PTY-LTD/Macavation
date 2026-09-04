@@ -1,7 +1,13 @@
 /**
  * Supabase Edge Function: send daily digest via WhatsApp, through Control Room's meta-proxy.
  * Deploy: supabase functions deploy send-daily-digest-whatsapp
- * Cron: 5 6 * * * — 06:05 SAST daily (after email digest)
+ *
+ * NOT SCHEDULED. This header used to claim "Cron: 5 6 * * *". No such schedule exists anywhere
+ * in this repo — no cron.schedule, no pg_cron job, no workflow invokes it. Nothing has ever been
+ * sent from here. Its Scheduled Reports screen was removed in
+ * migrations/20260904100000_targets_module_consolidation.sql.
+ *
+ * The live WhatsApp report path is report_subscriptions + send-daily-production-report.
  *
  * Secrets: SUPABASE_SERVICE_ROLE_KEY, CONTROL_ROOM_FORWARD_SECRET, CONTROL_ROOM_CHANNEL_SLUG
  * Docs: https://control-room.customapp.co.za/docs/product-integration.md

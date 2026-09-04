@@ -1,7 +1,16 @@
 /**
  * Supabase Edge Function: send daily digest emails to scheduled_reports subscribers.
  * Deploy: supabase functions deploy send-daily-digest
- * Cron (Dashboard): 0 6 * * * — 06:00 SAST daily
+ *
+ * NOT SCHEDULED. This header used to claim "Cron (Dashboard): 0 6 * * *". No such schedule was
+ * ever created — there is no cron.schedule, no pg_cron job and no workflow anywhere in this repo
+ * that invokes it, and RESEND_API_KEY was never configured either. Nothing has ever been sent
+ * from here. The Scheduled Reports screen that fed it was removed in
+ * migrations/20260904100000_targets_module_consolidation.sql; the scheduled_reports TABLE is
+ * left in place only because scripts/sync-config-uat-to-prod.mjs and copy-prod-data-to-uat.mjs
+ * still name it.
+ *
+ * The live path for report delivery is report_subscriptions + send-daily-production-report.
  *
  * Requires secrets: SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY (or SMTP_*)
  */

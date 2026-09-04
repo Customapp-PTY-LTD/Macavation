@@ -83,7 +83,7 @@ var _permissionModuleMap = (function () {
         'Oil Production': ['oil-production-grid'],
         'Quality Assurance': ['quality-assurance-grid'],
         'Dashboard': ['dashboard', 'executive-dashboard', 'amanda-dashboard', 'my-day'],
-        'Reporting': ['scheduled-reports-grid'],
+        'Reporting': ['sales-report-editor', 'sales-forecasting-grid', 'report-targets-grid'],
         'Administration': ['admin-grid', 'users-grid', 'roles-grid', 'role-permissions-grid', 'role-features-grid'],
         'Messaging': ['messaging-compose-grid']
     };
