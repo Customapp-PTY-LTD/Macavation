@@ -643,6 +643,12 @@ const MENU_ITEMS: MenuItem[] = [
     // scheduled-reports-grid — the existing key governing report delivery to people; there is no
     // plainer 'reports' key seeded in this repo.
     //
+    // DO NOT delete that feature row. The Scheduled Reports portal SCREEN was removed in
+    // migrations/20260904100000_targets_module_consolidation.sql, but the KEY was deliberately
+    // kept and renamed to "Report delivery (WhatsApp)" precisely because this item gates on it.
+    // visibleItems() below filters on featureKeys.has(i.feature), so removing the row would drop
+    // "Latest report" from every member's menu with nothing to say why.
+    //
     // The real access control is not this feature key. get_latest_published_report_for_phone
     // filters to reports ALREADY SENT to the asking number
     // (migrations/20260825092000_report_link_codes.sql:211-219), so a member can only ever retrieve

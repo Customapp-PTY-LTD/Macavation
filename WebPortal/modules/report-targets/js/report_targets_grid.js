@@ -1,53 +1,56 @@
 /**
- * Report Targets & Prior-Period Baselines.
+ * Targets — the merged screen replacing Dashboard Targets and Report Targets.
  *
- * Two tabs, backed by six RPCs added alongside this module (see data-functions.js):
- *   - Targets: set the target for a metric in a given weekly/monthly period. Every targetable
- *     metric is listed even when unset (get_report_period_targets returns a row per metric with
- *     target_value NULL) so the gaps are visible, not hidden.
- *   - Prior periods: hand-enter actuals for periods that predate the report builder, so the
- *     year-on-year tracking tables have a comparison series. This is neither a report nor an
- *     override of anything live.
+ * Shape: metrics down the side, periods across the top, one financial year (Apr-Mar) at a time.
+ * Monthly shows all 12 months; weekly pages through the year 13 weeks at a time, because 52
+ * columns is not a usable grid.
  *
- * Deliberately does NOT touch dashboard_targets or its RPCs/screen — that table is effective-dated
- * ("what applies right now") and answers a different question than this one ("what applied to the
- * exact week of 3 November"). See CLAUDE.md and the plan for the two-table split.
+ * Each cell carries two numbers:
+ *   - the target, editable inline, saved via upsert_report_period_target
+ *   - the same period a year earlier, faint underneath
  *
- * Follows WebPortal/modules/sales-reports/js/report_list_grid.js's pattern (IIFE, init()/destroy(),
- * namespaced ".reportTargets" events, cached $-prefixed selectors) rather than
- * dashboard-targets_grid.js's free-text metric_key input, which is the one thing deliberately not
- * carried over — metric_key here always comes from a <select> populated by getReportMetrics.
+ * The earlier figure is what replaced the old "Prior periods" tab. get_report_targets_grid says
+ * where it came from via prior_source:
+ *   'actual' - a published report instance. Read-only here; the report is the record.
+ *   'manual' - someone typed it in. Editable, so a typo can be corrected.
+ *    NULL    - nothing recorded. Click to type one in; that writes a manual baseline for the
+ *              PRIOR period, using prior_period_start straight from the RPC rather than
+ *              recomputing the date in JS (a weekly period is 364 days back, not a calendar
+ *              year, and having two places compute that is how they drift apart).
+ *
+ * Security invariant carried over from the previous version of this screen: metric_key is never
+ * typed. It only ever comes from the RPC's own rows, and every value rendered into HTML goes
+ * through esc().
  */
 var _reportTargetsGrid = (function () {
     'use strict';
 
-    var FLATPICKR_DDMMYYYY = { dateFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+    var WEEKS_PER_PAGE = 13;
 
     var state = {
-        activeTab: 'targets',
-        targets: {
-            rows: []
-        },
-        baselines: {
-            rows: [],
-            metricsForAdd: []
-        }
+        periodType: 'monthly',
+        fy: null,
+        sectionFilter: '',
+        rows: [],
+        periods: [],       // ordered distinct period_start strings for the current period type
+        metrics: [],       // ordered metric descriptors, section grouped
+        cells: {},         // metric_key -> period_start -> row
+        weekPage: 0
     };
 
     // ------------------------------------------------------------------
-    // Shared helpers.
+    // Helpers.
     // ------------------------------------------------------------------
 
     function esc(v) {
-        return (typeof _common !== 'undefined' && _common.escapeHtml) ? _common.escapeHtml(v) : String(v == null ? '' : v);
-    }
-
-    function displayLabel(value) {
-        return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+        return (typeof _common !== 'undefined' && _common.escapeHtml)
+            ? _common.escapeHtml(v)
+            : String(v == null ? '' : v);
     }
 
     function firstRpcRow(result) {
-        return Array.isArray(result) ? (result[0] || null) : (result && typeof result === 'object' ? result : null);
+        return Array.isArray(result) ? (result[0] || null)
+            : (result && typeof result === 'object' ? result : null);
     }
 
     function isSuccess(result) {
@@ -64,378 +67,519 @@ var _reportTargetsGrid = (function () {
         return typeof hasAction === 'function' && hasAction('reports.target.edit');
     }
 
-    // Local dd/mm/yyyy -> yyyy-mm-dd by string split only. No Date arithmetic, no UTC conversion
-    // (matches WebPortal/modules/sales-reports/js/report_list_grid.js:59-65 exactly).
-    function pickerDateToIso(dateStr) {
-        var s = String(dateStr == null ? '' : dateStr).trim();
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-        if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) return null;
-        var p = s.split('/');
-        return p[2] + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0');
+    function toast(msg, type) {
+        if (typeof _common !== 'undefined' && _common.showToastMessage) {
+            _common.showToastMessage(msg, type || 'info');
+        } else if (typeof Swal !== 'undefined') {
+            Swal.fire({ icon: type === 'error' ? 'error' : 'success', text: msg });
+        }
     }
 
-    function isoToDdMmYyyy(iso) {
-        if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+    function isoDate(v) {
+        return String(v == null ? '' : v).slice(0, 10);
+    }
+
+    // Financial year ending, April-March. Mirrors report_fy_of_date exactly.
+    function fyOfToday() {
+        var now = new Date();
+        return now.getFullYear() + (now.getMonth() + 1 >= 4 ? 1 : 0);
+    }
+
+    function formatNumber(value, unit) {
+        if (value === null || value === undefined || value === '') return '';
+        var n = Number(value);
+        if (!Number.isFinite(n)) return '';
+        var digits = (unit === 'pct') ? 1 : 0;
+        try {
+            return n.toLocaleString(undefined, {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits
+            });
+        } catch (e) {
+            return String(n.toFixed(digits));
+        }
+    }
+
+    function shortPeriodHeader(row) {
+        var iso = isoDate(row.period_start);
         var parts = iso.split('-');
-        return parts[2] + '/' + parts[1] + '/' + parts[0];
-    }
-
-    function setFlatpickrValue(elId, iso) {
-        var el = document.getElementById(elId);
-        var ddmmyyyy = isoToDdMmYyyy(iso);
-        if (!el || !ddmmyyyy) return;
-        if (el._flatpickr) el._flatpickr.setDate(ddmmyyyy, false, 'd/m/Y');
-        else el.value = ddmmyyyy;
-    }
-
-    function initFlatpickrFor(elId) {
-        var el = document.getElementById(elId);
-        if (!el || typeof flatpickr === 'undefined' || el._flatpickr) return;
-        flatpickr(el, FLATPICKR_DDMMYYYY);
+        if (parts.length !== 3) return esc(iso);
+        var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        var mon = monthNames[parseInt(parts[1], 10) - 1] || parts[1];
+        if (state.periodType === 'monthly') return mon;
+        return parts[2] + ' ' + mon;
     }
 
     // ------------------------------------------------------------------
-    // Tabs.
+    // Filter controls.
     // ------------------------------------------------------------------
 
-    function switchTab(tab) {
-        if (tab !== 'targets' && tab !== 'baselines') return;
-        state.activeTab = tab;
-        $('.report-targets-tab-pane').addClass('d-none');
-        $('#reportTargets-' + tab + '-pane').removeClass('d-none');
-        $('#reportTargetsTabs .nav-link').removeClass('active');
-        $('#reportTargetsTabs .nav-link[data-tab="' + tab + '"]').addClass('active');
-        if (tab === 'targets') {
-            loadTargets(false);
-        } else {
-            loadBaselines(false);
+    function populateFyOptions() {
+        var $sel = $('#targetsFy');
+        if (!$sel.length || $sel.children().length) return;
+        var current = fyOfToday();
+        var html = '';
+        for (var y = current + 1; y >= current - 3; y--) {
+            html += '<option value="' + y + '"' + (y === current ? ' selected' : '') + '>' +
+                'FYE ' + y + ' — Apr ' + (y - 1) + ' to Mar ' + y + '</option>';
         }
+        $sel.html(html);
+        state.fy = current;
+    }
+
+    function populateSectionOptions() {
+        var $sel = $('#targetsSection');
+        if (!$sel.length) return;
+        var seen = {};
+        var opts = ['<option value="">All sections</option>'];
+        state.rows.forEach(function (r) {
+            if (seen[r.section_key]) return;
+            seen[r.section_key] = true;
+            opts.push('<option value="' + esc(r.section_key) + '"' +
+                (state.sectionFilter === r.section_key ? ' selected' : '') + '>' +
+                esc(r.section_label || r.section_key) + '</option>');
+        });
+        $sel.html(opts.join(''));
     }
 
     // ------------------------------------------------------------------
-    // Targets tab.
+    // Shaping the flat RPC result into a grid.
     // ------------------------------------------------------------------
 
-    function currentTargetsPeriodType() {
-        return $('#targetsPeriodType').val() || 'weekly';
-    }
+    function indexRows(rows) {
+        var periodSeen = {};
+        var metricSeen = {};
+        state.periods = [];
+        state.metrics = [];
+        state.cells = {};
 
-    function currentTargetsPeriodIso() {
-        var el = document.getElementById('targetsPeriodDate');
-        return pickerDateToIso(el ? el.value : '');
-    }
+        rows.forEach(function (r) {
+            var period = isoDate(r.period_start);
+            var key = r.metric_key;
 
-    function refreshDefaultTargetsPeriodDate() {
-        var periodType = currentTargetsPeriodType();
-        return dataFunctions.getReportCurrentPeriod(periodType).then(function (result) {
-            var row = firstRpcRow(result);
-            var iso = row && row.period_start ? String(row.period_start).slice(0, 10) : null;
-            if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) setFlatpickrValue('targetsPeriodDate', iso);
-        }).catch(function (err) {
-            console.warn('[report-targets] getReportCurrentPeriod failed', err);
+            if (!periodSeen[period]) {
+                periodSeen[period] = true;
+                state.periods.push({ period_start: period, period_label: r.period_label });
+            }
+            if (!metricSeen[key]) {
+                metricSeen[key] = true;
+                state.metrics.push({
+                    metric_key: key,
+                    admin_label: r.admin_label,
+                    report_label: r.report_label,
+                    section_key: r.section_key,
+                    section_label: r.section_label,
+                    unit: r.unit,
+                    display_order: r.display_order
+                });
+            }
+            if (!state.cells[key]) state.cells[key] = {};
+            state.cells[key][period] = r;
+        });
+
+        state.periods.sort(function (a, b) {
+            return a.period_start < b.period_start ? -1 : (a.period_start > b.period_start ? 1 : 0);
         });
     }
 
-    function targetRowHtml(row) {
-        var key = esc(row.metric_key);
-        var label = esc(row.label);
-        var section = esc(row.section_key);
-        var unit = esc(row.unit || '');
-        var hasValue = row.target_value !== null && row.target_value !== undefined;
-        var valueAttr = hasValue ? esc(row.target_value) : '';
-        var notesAttr = esc(row.notes || '');
-        var editable = canEdit();
-        var statusPill = hasValue ? MacStatus.pill('active', 'Set') : MacStatus.pill('none', 'Not set');
-        var saveBtn = editable
-            ? '<button type="button" class="btn btn-sm btn-primary js-save-target"><i class="fas fa-save me-1"></i>Save</button>'
-            : '';
-        return '<tr data-metric-key="' + key + '">' +
-            '<td>' + label + '</td>' +
-            '<td>' + section + '</td>' +
-            '<td>' + unit + '</td>' +
-            '<td><input type="number" step="any" class="form-control form-control-sm js-target-value" value="' + valueAttr + '"' + (editable ? '' : ' disabled') + '></td>' +
-            '<td>' + statusPill + '</td>' +
-            '<td><input type="text" class="form-control form-control-sm js-target-notes" value="' + notesAttr + '"' + (editable ? '' : ' disabled') + '></td>' +
-            '<td>' + saveBtn + '</td>' +
-            '</tr>';
+    function visiblePeriods() {
+        if (state.periodType === 'monthly') return state.periods;
+        var start = state.weekPage * WEEKS_PER_PAGE;
+        return state.periods.slice(start, start + WEEKS_PER_PAGE);
     }
 
-    function renderTargets() {
-        var $tbody = $('#reportTargetsTableBody');
-        if (!state.targets.rows.length) {
-            $tbody.html(macEmptyRow(7, 'No targetable metrics found.'));
-            return;
-        }
-        $tbody.html(state.targets.rows.map(targetRowHtml).join(''));
+    function visibleMetrics() {
+        if (!state.sectionFilter) return state.metrics;
+        return state.metrics.filter(function (m) { return m.section_key === state.sectionFilter; });
     }
 
-    function loadTargets(forceRefresh) {
-        var periodType = currentTargetsPeriodType();
-        var periodIso = currentTargetsPeriodIso();
+    function maxWeekPage() {
+        return Math.max(0, Math.ceil(state.periods.length / WEEKS_PER_PAGE) - 1);
+    }
+
+    // ------------------------------------------------------------------
+    // Rendering.
+    // ------------------------------------------------------------------
+
+    function renderHead(periods) {
+        var html = '<th class="targets-metric-col">Metric</th>';
+        periods.forEach(function (p) {
+            var row = { period_start: p.period_start };
+            html += '<th class="targets-cell-head" title="' + esc(p.period_label || '') + '">' +
+                esc(shortPeriodHeader(row)) + '</th>';
+        });
+        $('#targetsGridHeadRow').html(html);
+    }
+
+    function cellHtml(cell, metric, editable) {
+        if (!cell) return '<td class="targets-cell"></td>';
+
+        var hasTarget = cell.target_value !== null && cell.target_value !== undefined;
+        var hasPrior = cell.prior_value !== null && cell.prior_value !== undefined;
+        var emptyClass = (!hasTarget && !hasPrior) ? ' is-empty' : '';
+
+        var input = '<input type="number" step="any" min="0" class="targets-target-input js-target"' +
+            ' value="' + (hasTarget ? esc(cell.target_value) : '') + '"' +
+            ' aria-label="Target"' +
+            (editable ? '' : ' disabled') + '>';
+
+        // 'actual' comes from a published report and is the record — not editable here.
+        var priorLocked = cell.prior_source === 'actual';
+        var priorClass = 'targets-prior' + (editable && !priorLocked ? ' is-editable js-prior' : '');
+        var priorText = hasPrior ? formatNumber(cell.prior_value, metric.unit) : '–';
+        var priorTitle = priorLocked
+            ? 'From a published report for ' + isoDate(cell.prior_period_start) + ' — not editable here'
+            : (hasPrior ? 'Entered by hand for ' + isoDate(cell.prior_period_start) + ' — click to change'
+                        : 'Nothing recorded for ' + isoDate(cell.prior_period_start) + ' — click to add');
+
+        var prior = '<span class="' + priorClass + '" title="' + esc(priorTitle) + '">' +
+            (priorLocked ? '<i class="fas fa-lock me-1" aria-hidden="true"></i>' : '') +
+            esc(priorText) + '</span>';
+
+        return '<td class="targets-cell' + emptyClass + '"' +
+            ' data-metric-key="' + esc(cell.metric_key) + '"' +
+            ' data-period-start="' + esc(isoDate(cell.period_start)) + '"' +
+            ' data-prior-start="' + esc(isoDate(cell.prior_period_start)) + '"' +
+            ' data-prior-source="' + esc(cell.prior_source || '') + '"' +
+            ' data-unit="' + esc(metric.unit || '') + '">' +
+            input + prior + '</td>';
+    }
+
+    function renderBody() {
         var $tbody = $('#reportTargetsTableBody');
-        $tbody.html(macLoadingRow(7, 'Loading targets\u2026'));
-        if (!periodIso) {
-            $tbody.html('<tr><td colspan="7">' + macEmptyState('fa-calendar-xmark', 'Pick a period', 'Choose a date within the period to load its targets.') + '</td></tr>');
-            return Promise.resolve();
-        }
-        return dataFunctions.getReportPeriodTargets(periodType, periodIso, null, !!forceRefresh).then(function (result) {
-            var rows = Array.isArray(result) ? result : (result ? [result] : []);
-            state.targets.rows = rows;
-            renderTargets();
-        }).catch(function (err) {
-            console.warn('[report-targets] getReportPeriodTargets failed', err);
-            state.targets.rows = [];
-            $tbody.html('<tr><td colspan="7">' +
-                macEmptyState('fa-bullseye', 'Report targets are not available yet', 'The report-builder migrations have not been applied to this database.') +
+        var periods = visiblePeriods();
+        var metrics = visibleMetrics();
+        var colspan = periods.length + 1;
+
+        if (!metrics.length || !periods.length) {
+            $tbody.html('<tr><td colspan="' + colspan + '">' +
+                macEmptyState('fa-bullseye', 'Nothing to show',
+                    'No targetable metrics for this financial year and period type.') +
                 '</td></tr>');
+            return;
+        }
+
+        var editable = canEdit();
+        var html = '';
+        var lastSection = null;
+
+        metrics.forEach(function (m) {
+            if (m.section_key !== lastSection) {
+                lastSection = m.section_key;
+                html += '<tr class="targets-section-row">' +
+                    '<td class="targets-section-cell" colspan="' + colspan + '">' +
+                    esc(m.section_label || m.section_key) + '</td></tr>';
+            }
+
+            var differs = m.report_label && m.report_label !== m.admin_label;
+            html += '<tr data-metric-key="' + esc(m.metric_key) + '">' +
+                '<td class="targets-metric-col">' +
+                    '<div class="targets-metric-name">' + esc(m.admin_label) + '</div>' +
+                    '<div class="targets-metric-sub">' + esc(m.metric_key) +
+                        (differs ? ' · prints as “' + esc(m.report_label) + '”' : '') +
+                    '</div>' +
+                    (editable
+                        ? '<button type="button" class="targets-fill-right js-fill-right"' +
+                          ' title="Copy the first value in this row across the rest of the year">' +
+                          '<i class="fas fa-arrow-right-long"></i> fill right</button>'
+                        : '') +
+                '</td>';
+
+            periods.forEach(function (p) {
+                var cell = (state.cells[m.metric_key] || {})[p.period_start];
+                html += cellHtml(cell, m, editable);
+            });
+
+            html += '</tr>';
         });
+
+        $tbody.html(html);
     }
 
-    function saveTargetRow($tr) {
-        var metricKey = $tr.data('metric-key');
-        var periodType = currentTargetsPeriodType();
-        var periodIso = currentTargetsPeriodIso();
-        var value = $tr.find('.js-target-value').val();
-        var notes = ($tr.find('.js-target-notes').val() || '').trim() || null;
-        if (!metricKey || !periodIso) return;
-        if (value === '' || value === null || !Number.isFinite(Number(value))) {
-            Swal.fire({ icon: 'error', text: 'Enter a valid target value.' });
+    function renderWeeklyPager() {
+        var $pager = $('#weeklyPager');
+        if (state.periodType !== 'weekly') {
+            $pager.addClass('d-none');
             return;
         }
-        if (Number(value) < 0) {
-            Swal.fire({ icon: 'error', text: 'Target must be zero or greater.' });
-            return;
-        }
-        dataFunctions.upsertReportPeriodTarget(String(metricKey), periodType, periodIso, Number(value), notes).then(function (result) {
-            if (isSuccess(result)) {
-                loadTargets(true);
-            } else {
-                Swal.fire({ icon: 'error', text: rpcErrorMessage(result, 'Could not save the target.') });
-            }
-        }).catch(function (err) {
-            console.warn('[report-targets] upsertReportPeriodTarget failed', err);
-            Swal.fire({ icon: 'error', text: 'Report targets are not available yet. The report-builder migrations have not been applied to this database.' });
-        });
+        $pager.removeClass('d-none');
+        var periods = visiblePeriods();
+        var label = periods.length
+            ? isoDate(periods[0].period_start) + ' → ' + isoDate(periods[periods.length - 1].period_start)
+            : '—';
+        $('#weeksRangeLabel').text(label);
+        $('#weeksPrevBtn').prop('disabled', state.weekPage <= 0);
+        $('#weeksNextBtn').prop('disabled', state.weekPage >= maxWeekPage());
     }
 
-    function handleCopyTargets() {
-        var periodType = currentTargetsPeriodType();
-        var toIso = currentTargetsPeriodIso();
-        if (!toIso) {
-            Swal.fire({ icon: 'error', text: 'Pick a destination period first.' });
+    function render() {
+        renderHead(visiblePeriods());
+        renderBody();
+        renderWeeklyPager();
+    }
+
+    // ------------------------------------------------------------------
+    // Loading.
+    // ------------------------------------------------------------------
+
+    function load(forceRefresh) {
+        var $tbody = $('#reportTargetsTableBody');
+        $tbody.html(macLoadingRow(13, 'Loading targets…'));
+
+        return dataFunctions.getReportTargetsGrid(state.periodType, state.fy, null, !!forceRefresh)
+            .then(function (result) {
+                var rows = Array.isArray(result) ? result : (result ? [result] : []);
+                state.rows = rows;
+                indexRows(rows);
+                if (state.weekPage > maxWeekPage()) state.weekPage = maxWeekPage();
+                populateSectionOptions();
+                render();
+            })
+            .catch(function (err) {
+                console.warn('[targets] getReportTargetsGrid failed', err);
+                state.rows = [];
+                state.periods = [];
+                state.metrics = [];
+                state.cells = {};
+                $('#targetsGridHeadRow').html('<th class="targets-metric-col">Metric</th>');
+                $tbody.html('<tr><td>' +
+                    macEmptyState('fa-bullseye', 'Targets are not available yet',
+                        'The targets migration has not been applied to this database.') +
+                    '</td></tr>');
+            });
+    }
+
+    // Default the weekly view to the page containing today, not the start of the year.
+    function jumpWeekPageToToday() {
+        if (state.periodType !== 'weekly' || !state.periods.length) return;
+        var today = new Date().toISOString().slice(0, 10);
+        var idx = 0;
+        for (var i = 0; i < state.periods.length; i++) {
+            if (state.periods[i].period_start <= today) idx = i;
+        }
+        state.weekPage = Math.floor(idx / WEEKS_PER_PAGE);
+    }
+
+    // ------------------------------------------------------------------
+    // Saving.
+    // ------------------------------------------------------------------
+
+    function saveTarget($input) {
+        var $cell = $input.closest('td');
+        var metricKey = $cell.data('metric-key');
+        var periodStart = $cell.data('period-start');
+        var raw = String($input.val() == null ? '' : $input.val()).trim();
+
+        if (!metricKey || !periodStart) return;
+        if (raw === '') return;                       // clearing is not a delete; leave as-is
+        if (!Number.isFinite(Number(raw)) || Number(raw) < 0) {
+            toast('Target must be a number of zero or more.', 'error');
             return;
         }
-        Swal.fire({
-            title: 'Copy targets from which period?',
-            html: '<div class="text-start">' +
-                '<label class="form-label">Any date within the source period</label>' +
-                '<input id="copyTargetsFromDate" type="date" class="form-control">' +
-                '</div>',
-            showCancelButton: true,
-            confirmButtonText: 'Copy',
-            preConfirm: function () {
-                var el = document.getElementById('copyTargetsFromDate');
-                var iso = el ? el.value : '';
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-                    Swal.showValidationMessage('Pick a source date.');
-                    return false;
-                }
-                return iso;
-            }
-        }).then(function (result) {
-            if (!result.isConfirmed || !result.value) return;
-            dataFunctions.copyReportPeriodTargets(periodType, result.value, toIso).then(function (copyResult) {
-                var row = firstRpcRow(copyResult);
-                if (row && Number(row.success) === 1) {
-                    var count = Number(row.targets_copied) || 0;
-                    Swal.fire({ icon: 'success', text: count + ' target' + (count === 1 ? '' : 's') + ' copied.' });
-                    loadTargets(true);
+
+        var cached = (state.cells[metricKey] || {})[periodStart];
+        if (cached && Number(cached.target_value) === Number(raw)) return;   // nothing changed
+
+        $input.addClass('is-saving').prop('disabled', true);
+        dataFunctions.upsertReportPeriodTarget(String(metricKey), state.periodType,
+                                               String(periodStart), Number(raw), null)
+            .then(function (result) {
+                if (isSuccess(result)) {
+                    if (cached) cached.target_value = Number(raw);
+                    $input.addClass('is-saved');
+                    window.setTimeout(function () { $input.removeClass('is-saved'); }, 1200);
                 } else {
-                    Swal.fire({ icon: 'error', text: rpcErrorMessage(copyResult, 'Could not copy targets.') });
+                    toast(rpcErrorMessage(result, 'Could not save the target.'), 'error');
                 }
+            })
+            .catch(function (err) {
+                console.warn('[targets] upsertReportPeriodTarget failed', err);
+                toast('Could not save the target. The targets migration may not be applied yet.', 'error');
+            })
+            .finally(function () {
+                $input.removeClass('is-saving').prop('disabled', false);
+            });
+    }
+
+    function savePrior($cell, value) {
+        var metricKey = $cell.data('metric-key');
+        var priorStart = $cell.data('prior-start');
+        if (!metricKey || !priorStart) return;
+
+        dataFunctions.upsertReportManualBaseline(String(metricKey), state.periodType,
+                                                 String(priorStart), Number(value), null)
+            .then(function (result) {
+                if (isSuccess(result)) {
+                    var periodStart = $cell.data('period-start');
+                    var cached = (state.cells[metricKey] || {})[periodStart];
+                    if (cached) {
+                        cached.prior_value = Number(value);
+                        cached.prior_source = 'manual';
+                    }
+                    render();
+                } else {
+                    toast(rpcErrorMessage(result, 'Could not save last year’s figure.'), 'error');
+                    render();
+                }
+            })
+            .catch(function (err) {
+                console.warn('[targets] upsertReportManualBaseline failed', err);
+                toast('Could not save last year’s figure.', 'error');
+                render();
+            });
+    }
+
+    function beginPriorEdit($span) {
+        var $cell = $span.closest('td');
+        var periodStart = $cell.data('period-start');
+        var metricKey = $cell.data('metric-key');
+        var cached = (state.cells[metricKey] || {})[periodStart];
+        var current = (cached && cached.prior_value !== null && cached.prior_value !== undefined)
+            ? cached.prior_value : '';
+
+        var $input = $('<input type="number" step="any" class="targets-prior-input">')
+            .val(current)
+            .attr('aria-label', 'Figure for the same period last year');
+
+        $span.replaceWith($input);
+        $input.trigger('focus').trigger('select');
+
+        var done = false;
+        function commit(save) {
+            if (done) return;
+            done = true;
+            var raw = String($input.val() == null ? '' : $input.val()).trim();
+            if (save && raw !== '' && Number.isFinite(Number(raw))) {
+                savePrior($cell, Number(raw));
+            } else {
+                render();
+            }
+        }
+
+        $input.on('blur', function () { commit(true); });
+        $input.on('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+            else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
+        });
+    }
+
+    // Copy the first value in a row rightwards over every later period that has no target yet.
+    // Deliberately does not overwrite a period that already has one — filling right should never
+    // silently wipe a number somebody set on purpose.
+    function fillRight($row) {
+        var metricKey = $row.data('metric-key');
+        var periods = visiblePeriods();
+        var byPeriod = state.cells[metricKey] || {};
+        var source = null;
+
+        for (var i = 0; i < periods.length; i++) {
+            var c = byPeriod[periods[i].period_start];
+            if (c && c.target_value !== null && c.target_value !== undefined) {
+                source = { value: Number(c.target_value), from: i };
+                break;
+            }
+        }
+        if (!source) {
+            toast('Set a target in one cell of this row first, then fill right.', 'error');
+            return;
+        }
+
+        var pending = [];
+        for (var j = source.from + 1; j < periods.length; j++) {
+            var cell = byPeriod[periods[j].period_start];
+            if (cell && (cell.target_value === null || cell.target_value === undefined)) {
+                pending.push(periods[j].period_start);
+            }
+        }
+        if (!pending.length) {
+            toast('Every later period in this row already has a target.', 'info');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Fill right?',
+            text: 'Set ' + pending.length + ' empty period' + (pending.length === 1 ? '' : 's') +
+                  ' in this row to ' + source.value + '. Periods that already have a target are left alone.',
+            showCancelButton: true,
+            confirmButtonText: 'Fill'
+        }).then(function (choice) {
+            if (!choice.isConfirmed) return;
+            var chain = Promise.resolve();
+            pending.forEach(function (periodStart) {
+                chain = chain.then(function () {
+                    return dataFunctions.upsertReportPeriodTarget(String(metricKey), state.periodType,
+                                                                  String(periodStart), source.value, null);
+                });
+            });
+            chain.then(function () {
+                toast(pending.length + ' target' + (pending.length === 1 ? '' : 's') + ' set.', 'success');
+                return load(true);
             }).catch(function (err) {
-                console.warn('[report-targets] copyReportPeriodTargets failed', err);
-                Swal.fire({ icon: 'error', text: 'Report targets are not available yet. The report-builder migrations have not been applied to this database.' });
+                console.warn('[targets] fillRight failed', err);
+                toast('Could not fill the row.', 'error');
+                load(true);
             });
         });
     }
 
-    // ------------------------------------------------------------------
-    // Prior periods (manual baselines) tab.
-    // ------------------------------------------------------------------
-
-    function currentBaselinesPeriodType() {
-        return $('#baselinesPeriodType').val() || 'weekly';
-    }
-
-    function currentBaselinesFy() {
-        return parseInt($('#baselinesFy').val(), 10) || null;
-    }
-
-    function baselineRowHtml(row) {
-        var key = esc(row.metric_key);
-        var periodStart = esc(String(row.period_start || '').slice(0, 10));
-        var label = esc(row.label);
-        var valueAttr = row.achieved_value !== null && row.achieved_value !== undefined ? esc(row.achieved_value) : '';
-        var notesAttr = esc(row.notes || '');
-        var editable = canEdit();
-        var saveBtn = editable
-            ? '<button type="button" class="btn btn-sm btn-primary js-save-baseline"><i class="fas fa-save me-1"></i>Save</button>'
-            : '';
-        return '<tr data-metric-key="' + key + '" data-period-start="' + periodStart + '">' +
-            '<td>' + label + '</td>' +
-            '<td>' + periodStart + '</td>' +
-            '<td><input type="number" step="any" class="form-control form-control-sm js-baseline-value" value="' + valueAttr + '"' + (editable ? '' : ' disabled') + '></td>' +
-            '<td><input type="text" class="form-control form-control-sm js-baseline-notes" value="' + notesAttr + '"' + (editable ? '' : ' disabled') + '></td>' +
-            '<td>' + saveBtn + '</td>' +
-            '</tr>';
-    }
-
-    function renderBaselines() {
-        var $tbody = $('#reportBaselinesTableBody');
-        if (!state.baselines.rows.length) {
-            $tbody.html(macEmptyRow(5, 'No prior-period actuals recorded for this financial year yet.'));
-            return;
-        }
-        $tbody.html(state.baselines.rows.map(baselineRowHtml).join(''));
-    }
-
-    function loadBaselines(forceRefresh) {
-        var periodType = currentBaselinesPeriodType();
-        var fy = currentBaselinesFy();
-        var $tbody = $('#reportBaselinesTableBody');
-        $tbody.html(macLoadingRow(5, 'Loading prior-period actuals\u2026'));
-        if (!fy) {
-            $tbody.html(macEmptyRow(5, 'Pick a financial year.'));
-            return Promise.resolve();
-        }
-        return dataFunctions.getReportManualBaselines(periodType, fy, null, !!forceRefresh).then(function (result) {
-            var rows = Array.isArray(result) ? result : (result ? [result] : []);
-            state.baselines.rows = rows;
-            renderBaselines();
-        }).catch(function (err) {
-            console.warn('[report-targets] getReportManualBaselines failed', err);
-            state.baselines.rows = [];
-            $tbody.html('<tr><td colspan="5">' +
-                macEmptyState('fa-bullseye', 'Report targets are not available yet', 'The report-builder migrations have not been applied to this database.') +
-                '</td></tr>');
-        });
-    }
-
-    function saveBaselineRow($tr) {
-        var metricKey = $tr.data('metric-key');
-        var periodStart = $tr.data('period-start');
-        var periodType = currentBaselinesPeriodType();
-        var value = $tr.find('.js-baseline-value').val();
-        var notes = ($tr.find('.js-baseline-notes').val() || '').trim() || null;
-        if (!metricKey || !periodStart) return;
-        if (value === '' || value === null || !Number.isFinite(Number(value))) {
-            Swal.fire({ icon: 'error', text: 'Enter a valid achieved value.' });
-            return;
-        }
-        dataFunctions.upsertReportManualBaseline(String(metricKey), periodType, String(periodStart), Number(value), notes).then(function (result) {
-            if (isSuccess(result)) {
-                loadBaselines(true);
-            } else {
-                Swal.fire({ icon: 'error', text: rpcErrorMessage(result, 'Could not save the actual.') });
+    function handleCopyPeriod() {
+        Swal.fire({
+            title: 'Copy targets between periods',
+            html: '<div class="text-start">' +
+                '<label class="form-label" for="copyFromDate">Copy from a date in this period</label>' +
+                '<input id="copyFromDate" type="date" class="form-control mb-3">' +
+                '<label class="form-label" for="copyToDate">Into the period containing</label>' +
+                '<input id="copyToDate" type="date" class="form-control">' +
+                '</div>',
+            showCancelButton: true,
+            confirmButtonText: 'Copy',
+            preConfirm: function () {
+                var from = (document.getElementById('copyFromDate') || {}).value || '';
+                var to = (document.getElementById('copyToDate') || {}).value || '';
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+                    Swal.showValidationMessage('Pick both dates.');
+                    return false;
+                }
+                return { from: from, to: to };
             }
-        }).catch(function (err) {
-            console.warn('[report-targets] upsertReportManualBaseline failed', err);
-            Swal.fire({ icon: 'error', text: 'Report targets are not available yet. The report-builder migrations have not been applied to this database.' });
+        }).then(function (choice) {
+            if (!choice.isConfirmed || !choice.value) return;
+            dataFunctions.copyReportPeriodTargets(state.periodType, choice.value.from, choice.value.to)
+                .then(function (result) {
+                    var row = firstRpcRow(result);
+                    if (row && Number(row.success) === 1) {
+                        var count = Number(row.targets_copied) || 0;
+                        toast(count + ' target' + (count === 1 ? '' : 's') + ' copied.', 'success');
+                        load(true);
+                    } else {
+                        toast(rpcErrorMessage(result, 'Could not copy targets.'), 'error');
+                    }
+                })
+                .catch(function (err) {
+                    console.warn('[targets] copyReportPeriodTargets failed', err);
+                    toast('Could not copy targets.', 'error');
+                });
         });
     }
 
     // ------------------------------------------------------------------
-    // Add baseline modal — metric_key always comes from this <select>, populated from
-    // getReportMetrics, never typed free-text (security invariant in the plan).
+    // Events — all namespaced ".reportTargets"; destroy() removes every one.
     // ------------------------------------------------------------------
 
-    function populateAddBaselineMetricSelect() {
-        var periodType = currentBaselinesPeriodType();
-        var $select = $('#addBaselineMetric');
-        $select.html('<option value="">Loading\u2026</option>');
-        return dataFunctions.getReportMetrics(null, periodType).then(function (result) {
-            var rows = Array.isArray(result) ? result : (result ? [result] : []);
-            state.baselines.metricsForAdd = rows;
-            if (!rows.length) {
-                $select.html('<option value="">No metrics available</option>');
-                return;
+    function switchTab(tab) {
+        if (tab !== 'monthly' && tab !== 'weekly') return;
+        state.periodType = tab;
+        state.weekPage = 0;
+        $('#reportTargetsTabs .nav-link').removeClass('active');
+        $('#reportTargetsTabs .nav-link[data-tab="' + tab + '"]').addClass('active');
+        load(false).then(function () {
+            if (tab === 'weekly') {
+                jumpWeekPageToToday();
+                render();
             }
-            $select.html(rows.map(function (m) {
-                return '<option value="' + esc(m.metric_key) + '">' + esc(displayLabel(m.label)) + ' (' + esc(m.section_key) + ')</option>';
-            }).join(''));
-        }).catch(function (err) {
-            console.warn('[report-targets] getReportMetrics failed', err);
-            state.baselines.metricsForAdd = [];
-            $select.html('<option value="">Metrics not available yet</option>');
         });
     }
-
-    function openAddBaselineModal() {
-        var form = document.getElementById('addBaselineForm');
-        if (form) form.reset();
-        populateAddBaselineMetricSelect();
-        var modalEl = document.getElementById('addBaselineModal');
-        if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
-        else if (typeof $ !== 'undefined' && $.fn.modal) $('#addBaselineModal').modal('show');
-    }
-
-    function hideAddBaselineModal() {
-        var modalEl = document.getElementById('addBaselineModal');
-        if (modalEl && typeof bootstrap !== 'undefined') {
-            var inst = bootstrap.Modal.getInstance(modalEl);
-            if (inst) inst.hide();
-        } else if (typeof $ !== 'undefined' && $.fn.modal) {
-            $('#addBaselineModal').modal('hide');
-        }
-    }
-
-    function handleSaveNewBaseline() {
-        var form = document.getElementById('addBaselineForm');
-        if (form && !form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-        var metricKey = $('#addBaselineMetric').val();
-        var periodType = currentBaselinesPeriodType();
-        var dateEl = document.getElementById('addBaselinePeriodDate');
-        var iso = pickerDateToIso(dateEl ? dateEl.value : '');
-        var value = $('#addBaselineValue').val();
-        var notes = ($('#addBaselineNotes').val() || '').trim() || null;
-
-        if (!metricKey) {
-            Swal.fire({ icon: 'error', text: 'Pick a metric.' });
-            return;
-        }
-        if (!iso) {
-            Swal.fire({ icon: 'error', text: 'Enter a valid date (dd/mm/yyyy).' });
-            return;
-        }
-        if (value === '' || value === null || !Number.isFinite(Number(value))) {
-            Swal.fire({ icon: 'error', text: 'Enter a valid achieved value.' });
-            return;
-        }
-
-        var $btn = $('#saveBaselineBtn');
-        $btn.prop('disabled', true);
-        dataFunctions.upsertReportManualBaseline(String(metricKey), periodType, iso, Number(value), notes).then(function (result) {
-            if (isSuccess(result)) {
-                hideAddBaselineModal();
-                loadBaselines(true);
-            } else {
-                Swal.fire({ icon: 'error', text: rpcErrorMessage(result, 'Could not add the actual.') });
-            }
-        }).catch(function (err) {
-            console.warn('[report-targets] upsertReportManualBaseline failed', err);
-            Swal.fire({ icon: 'error', text: 'Report targets are not available yet. The report-builder migrations have not been applied to this database.' });
-        }).finally(function () {
-            $btn.prop('disabled', false);
-        });
-    }
-
-    // ------------------------------------------------------------------
-    // Event wiring — every binding namespaced ".reportTargets"; destroy() removes them all.
-    // ------------------------------------------------------------------
 
     function bindEvents() {
         $(document).on('click.reportTargets', '#reportTargetsTabs .nav-link', function (e) {
@@ -443,46 +587,67 @@ var _reportTargetsGrid = (function () {
             switchTab($(this).data('tab'));
         });
 
-        $(document).on('click.reportTargets', '#refreshTargetsBtn', function () { loadTargets(true); });
-        $(document).on('change.reportTargets', '#targetsPeriodType', function () {
-            refreshDefaultTargetsPeriodDate().then(function () { loadTargets(false); });
-        });
-        $(document).on('change.reportTargets', '#targetsPeriodDate', function () { loadTargets(false); });
-        $(document).on('click.reportTargets', '.js-save-target', function () {
-            saveTargetRow($(this).closest('tr'));
-        });
-        $(document).on('click.reportTargets', '#copyTargetsBtn', function () {
-            if (!canEdit()) { Swal.fire({ icon: 'warning', text: 'You do not have permission for this action.' }); return; }
-            handleCopyTargets();
+        $(document).on('change.reportTargets', '#targetsFy', function () {
+            state.fy = parseInt($(this).val(), 10) || fyOfToday();
+            state.weekPage = 0;
+            load(false);
         });
 
-        $(document).on('click.reportTargets', '#refreshBaselinesBtn', function () { loadBaselines(true); });
-        $(document).on('change.reportTargets', '#baselinesFy', function () { loadBaselines(false); });
-        $(document).on('change.reportTargets', '#baselinesPeriodType', function () { loadBaselines(false); });
-        $(document).on('click.reportTargets', '.js-save-baseline', function () {
-            saveBaselineRow($(this).closest('tr'));
+        $(document).on('change.reportTargets', '#targetsSection', function () {
+            state.sectionFilter = $(this).val() || '';
+            render();
         });
-        $(document).on('click.reportTargets', '#addBaselineBtn', function () {
-            if (!canEdit()) { Swal.fire({ icon: 'warning', text: 'You do not have permission for this action.' }); return; }
-            openAddBaselineModal();
+
+        $(document).on('click.reportTargets', '#refreshTargetsBtn', function () { load(true); });
+
+        $(document).on('click.reportTargets', '#copyTargetsBtn', function () {
+            if (!canEdit()) {
+                Swal.fire({ icon: 'warning', text: 'You do not have permission for this action.' });
+                return;
+            }
+            handleCopyPeriod();
         });
-        $(document).on('shown.bs.modal.reportTargets', '#addBaselineModal', function () {
-            initFlatpickrFor('addBaselinePeriodDate');
+
+        $(document).on('click.reportTargets', '#weeksPrevBtn', function () {
+            if (state.weekPage > 0) { state.weekPage--; render(); }
         });
-        $(document).on('click.reportTargets', '#saveBaselineBtn', function () { handleSaveNewBaseline(); });
+        $(document).on('click.reportTargets', '#weeksNextBtn', function () {
+            if (state.weekPage < maxWeekPage()) { state.weekPage++; render(); }
+        });
+
+        $(document).on('change.reportTargets', '.js-target', function () {
+            saveTarget($(this));
+        });
+        $(document).on('keydown.reportTargets', '.js-target', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); $(this).trigger('blur'); }
+        });
+
+        $(document).on('click.reportTargets', '.js-prior', function () {
+            if (!canEdit()) return;
+            beginPriorEdit($(this));
+        });
+
+        $(document).on('click.reportTargets', '.js-fill-right', function (e) {
+            e.preventDefault();
+            if (!canEdit()) {
+                Swal.fire({ icon: 'warning', text: 'You do not have permission for this action.' });
+                return;
+            }
+            fillRight($(this).closest('tr'));
+        });
     }
 
     return {
         init: function () {
             _reportTargetsGrid.destroy();
-            state.activeTab = 'targets';
+            state.periodType = 'monthly';
+            state.sectionFilter = '';
+            state.weekPage = 0;
             bindEvents();
-            initFlatpickrFor('targetsPeriodDate');
-            $('.report-targets-tab-pane').addClass('d-none');
-            $('#reportTargets-targets-pane').removeClass('d-none');
+            populateFyOptions();
             $('#reportTargetsTabs .nav-link').removeClass('active');
-            $('#reportTargetsTabs .nav-link[data-tab="targets"]').addClass('active');
-            refreshDefaultTargetsPeriodDate().then(function () { loadTargets(false); });
+            $('#reportTargetsTabs .nav-link[data-tab="monthly"]').addClass('active');
+            load(false);
         },
 
         destroy: function () {

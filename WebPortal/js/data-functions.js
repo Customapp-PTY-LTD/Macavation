@@ -1958,27 +1958,10 @@ var _dataFunctions = function () {
             }, token);
         },
 
-        // ===== SPRINT 4: SCHEDULED REPORTS =====
-
-        getScheduledReports: async function (token = null) {
-            var raw = await this.callFunction('get_scheduled_reports', {}, token, { useCache: false });
-            if (Array.isArray(raw)) return raw;
-            if (raw && Array.isArray(raw.get_scheduled_reports)) return raw.get_scheduled_reports;
-            if (raw && Array.isArray(raw.data)) return raw.data;
-            return [];
-        },
-
-        upsertScheduledReport: async function (report, token = null) {
-            return await this.callFunction('upsert_scheduled_report', {
-                p_id: report.id || null,
-                p_user_id: report.user_id || null,
-                p_email: report.email || null,
-                p_report_type: report.report_type || 'daily_digest',
-                p_channel: report.channel || 'email',
-                p_is_active: report.is_active !== false,
-                p_phone: report.phone || null
-            }, token);
-        },
+        // getScheduledReports / upsertScheduledReport lived here and are gone with the Scheduled
+        // Reports screen. That table had no schedule column and nothing ever sent from it; report
+        // recipients now live in report_subscriptions, reachable from the Reports module. The
+        // scheduled_reports table and its RPCs still exist in the database, unused.
 
         resolveDashboardAlert: async function (alertId, note, token = null) {
             return await this.callFunction('resolve_dashboard_alert', {
@@ -6166,6 +6149,81 @@ var _dataFunctions = function () {
             const cacheKey = 'report_targets_metrics_' + (sk || 'all') + '_' + (pt || 'all');
             return await this.callFunction('get_report_metrics', params, token, {
                 cacheKey: cacheKey,
+                useCache: true,
+                cacheTtl: this.cache.ttl.dynamic,
+                forceRefresh: !!forceRefresh
+            });
+        },
+
+        // ===== REPORT DISTRIBUTION (report_subscriptions) =====
+        //
+        // The list the WhatsApp production report actually reads. list_report_distribution was
+        // written for a portal screen that was never built; the Reports landing now provides it.
+        // Both RPCs return a jsonb object rather than this file's usual row envelope.
+        listReportDistribution: async function (includeInactive = false, token = null) {
+            const raw = await this.callFunction('list_report_distribution',
+                { p_include_inactive: !!includeInactive }, token, { useCache: false });
+            const payload = (raw && raw.list_report_distribution) ? raw.list_report_distribution : raw;
+            if (payload && Array.isArray(payload.recipients)) return payload.recipients;
+            return [];
+        },
+
+        setReportSubscription: async function (recipientId, reportKind, isActive, token = null) {
+            const id = (recipientId != null ? String(recipientId) : '').trim();
+            const kind = (reportKind != null ? String(reportKind) : '').trim().toLowerCase();
+            if (!id) throw new Error('setReportSubscription: recipientId is required.');
+            if (['daily', 'weekly', 'monthly'].indexOf(kind) === -1) {
+                throw new Error('setReportSubscription: reportKind must be daily, weekly or monthly.');
+            }
+            const raw = await this.callFunction('set_report_subscription', {
+                p_recipient_id: id,
+                p_report_kind: kind,
+                p_is_active: !!isActive,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            }, token, { useCache: false });
+            return (raw && raw.set_report_subscription) ? raw.set_report_subscription : raw;
+        },
+
+        // Current month's targets as a metric_key -> row map, for the dashboards.
+        //
+        // Replaces getDashboardTargets() as the target source for dashboard tiles. The old table
+        // was effective-dated ("what applies right now") so a tile could never ask for a specific
+        // month; targets now live per period, so a tile compares this month's actual against this
+        // month's target. Returns {} rather than throwing, so a dashboard tile degrades to "no
+        // target" instead of taking the whole dashboard down with it.
+        getCurrentMonthTargetMap: async function (token = null, forceRefresh = false) {
+            const now = new Date();
+            const monthStart = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-01';
+            try {
+                const rows = await this.getReportPeriodTargets('monthly', monthStart, token, forceRefresh);
+                const map = {};
+                (Array.isArray(rows) ? rows : []).forEach(function (r) {
+                    if (r && r.metric_key) map[r.metric_key] = r;
+                });
+                return map;
+            } catch (e) {
+                console.warn('[targets] getCurrentMonthTargetMap failed', e);
+                return {};
+            }
+        },
+
+        // The Targets screen loads a whole financial year at once (18 metrics x 12 months), so it
+        // uses get_report_targets_grid rather than 12 round trips to get_report_period_targets.
+        // The cache key stays under the report_targets_ prefix so the existing
+        // clearCachePattern('report_targets_') in the upsert wrappers below invalidates it too.
+        getReportTargetsGrid: async function (periodType, fy, token = null, forceRefresh = false) {
+            const pt = (periodType != null ? String(periodType) : '').trim();
+            const year = parseInt(fy, 10);
+            if (pt !== 'weekly' && pt !== 'monthly') {
+                throw new Error('getReportTargetsGrid: periodType must be weekly or monthly.');
+            }
+            if (!Number.isFinite(year) || year < 2000 || year > 2100) {
+                throw new Error('getReportTargetsGrid: fy must be a four-digit financial year.');
+            }
+            const params = { p_period_type: pt, p_fy: year };
+            return await this.callFunction('get_report_targets_grid', params, token, {
+                cacheKey: 'report_targets_grid_' + pt + '_' + year,
                 useCache: true,
                 cacheTtl: this.cache.ttl.dynamic,
                 forceRefresh: !!forceRefresh

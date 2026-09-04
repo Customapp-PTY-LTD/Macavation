@@ -907,16 +907,19 @@ var _executiveDashboard = function () {
             }
             var hideWeekendsEl = document.getElementById('productionTrendsHideWeekends');
             if (hideWeekendsEl) hideWeekendsEl.checked = scope.productionTrendsHideWeekends !== false;
+            // Both buttons used to open Scheduled Reports, which had no schedule and never sent
+            // anything. They now open the Reports editor, where a report is actually built and
+            // its recipients are managed.
             $('#generateReportBtn').off('click').on('click', () => {
                 if (typeof _appRouter !== 'undefined') {
-                    _appRouter.navigate('scheduled-reports-grid');
+                    _appRouter.navigate('sales-report-editor');
                 } else {
-                    Swal.fire('Info', 'Open Scheduled Reports from Support in the sidebar.', 'info');
+                    Swal.fire('Info', 'Open Reports from the sidebar.', 'info');
                 }
             });
             $('#execDailyReportBtn').off('click').on('click', function () {
                 if (typeof _appRouter !== 'undefined') {
-                    _appRouter.navigate('scheduled-reports-grid');
+                    _appRouter.navigate('sales-report-editor');
                 }
             });
             $('#customizeDashboardBtn').off('click').on('click', function () {
@@ -2349,19 +2352,35 @@ var _executiveDashboard = function () {
             }
         },
 
+        // Produced vs target.
+        //
+        // The old total_production_kg target is gone: it was a single combined number that could
+        // drift against the two kernel figures the reports actually track, so it was split into
+        // kernel_nis_cracking_kg and kernel_sk_packing_kg, both of which already existed and are
+        // already resolved from production data.
+        //
+        // The actual shown here (#totalProduction / kpis.total_production_kg) is an ALL-TIME
+        // figure from get_executive_kpis, while a target is now per month. Comparing them would
+        // produce a meaningless percentage, so this tile shows the month's NIS-cracked target
+        // beside this month's production and does NOT compute a percentage against the all-time
+        // total. Whether production_kg_this_month is the right actual for the NIS-cracked target
+        // is not established anywhere in this repo — until it is, no ratio is claimed.
         loadProducedVsTarget: async () => {
-            if (!dataFunctions.getDashboardTargets) return;
+            if (!dataFunctions.getCurrentMonthTargetMap) return;
             try {
-                var res = await dataFunctions.getDashboardTargets();
-                var rows = (res && res.rows) || [];
-                var prodTarget = findDashboardTarget(rows, 'total_production_kg');
+                var targets = await dataFunctions.getCurrentMonthTargetMap();
+                var crackRow = targets.kernel_nis_cracking_kg;
+                var target = crackRow ? Number(crackRow.target_value) : 0;
                 var actual = Number(_executiveDashboard.kpis.total_production_kg) || 0;
-                var target = prodTarget ? Number(prodTarget.target_value) : 0;
-                var pct = target > 0 ? Math.min(100, Math.round((actual / target) * 100)) : 0;
+
                 $('#execProducedActual').text(actual.toLocaleString('en-ZA', { maximumFractionDigits: 0 }));
-                $('#execProducedTarget').text(target > 0 ? target.toLocaleString('en-ZA', { maximumFractionDigits: 0 }) : '—');
-                $('#execProducedProgress').css('width', pct + '%').attr('aria-valuenow', pct);
-                $('#execProducedPct').text(target > 0 ? pct + '% of target' : 'Set target in Dashboard Targets');
+                $('#execProducedTarget').text(target > 0
+                    ? target.toLocaleString('en-ZA', { maximumFractionDigits: 0 })
+                    : '—');
+                $('#execProducedProgress').css('width', '0%').attr('aria-valuenow', 0);
+                $('#execProducedPct').text(target > 0
+                    ? 'NIS cracked target this month'
+                    : 'Set a target in Targets');
             } catch (e) {
                 $('#execProducedActual, #execProducedTarget, #execProducedPct').text('—');
             }
@@ -2419,8 +2438,11 @@ var _executiveDashboard = function () {
                 // Target comparisons for the two single-number cards that have one. The payload
                 // carries no recovery delta (get_phase2_extended_kpis does not return one), so no
                 // month-over-month figure is computed client-side for that card.
-                var targetsRes = await dataFunctions.getDashboardTargets();
-                var targetRows = (targetsRes && targetsRes.rows) || [];
+                // Targets now come from the merged Targets screen (per month) rather than the old
+                // effective-dated dashboard_targets table. Both metric keys are unchanged, so the
+                // rows this feeds renderMetricTargetComparison have the same shape as before.
+                var targetMap = await dataFunctions.getCurrentMonthTargetMap();
+                var targetRows = Object.keys(targetMap).map(function (k) { return targetMap[k]; });
                 renderMetricTargetComparison(targetRows, TARGET_METRIC_KEYS.soundKernelRecovery, rec, recoveryTargetIds);
                 renderMetricTargetComparison(targetRows, TARGET_METRIC_KEYS.oilYield, yieldPct, oilYieldTargetIds);
             } catch (e) {

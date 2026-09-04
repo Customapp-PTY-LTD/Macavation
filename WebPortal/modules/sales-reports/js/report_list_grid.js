@@ -394,9 +394,120 @@ var _reportListGrid = function () {
     // container in report_list.html, not a descendant of it.
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    // Report distribution — who gets these reports.
+    //
+    // Replaces the Scheduled Reports module. That screen wrote to scheduled_reports, which had no
+    // schedule column and which nothing has ever sent from; this panel drives report_subscriptions,
+    // the list send-daily-production-report actually reads.
+    //
+    // Recipients are NOT created here. They arrive by enrolling on WhatsApp
+    // (set_report_subscription_by_phone / report_recipient_by_inbound_phone), so this panel only
+    // decides which reports an existing recipient receives.
+    // ------------------------------------------------------------------
+
+    function distributionEsc(v) {
+        return (typeof _common !== 'undefined' && _common.escapeHtml)
+            ? _common.escapeHtml(v)
+            : String(v == null ? '' : v);
+    }
+
+    function subscriptionCell(recipientId, kind, sub) {
+        var subscribed = !!(sub && sub.subscribed);
+        var muted = sub && sub.muted_until ? String(sub.muted_until).slice(0, 10) : '';
+        var title = muted ? 'Paused until ' + muted : '';
+        return '<td class="text-center">' +
+            '<input type="checkbox" class="form-check-input js-report-sub"' +
+            ' data-recipient-id="' + distributionEsc(recipientId) + '"' +
+            ' data-report-kind="' + distributionEsc(kind) + '"' +
+            (subscribed ? ' checked' : '') +
+            ' aria-label="' + distributionEsc(kind) + ' report">' +
+            (muted ? '<div class="small text-warning mt-1" title="' + distributionEsc(title) + '">' +
+                     '<i class="fas fa-clock me-1"></i>' + distributionEsc(muted) + '</div>' : '') +
+            '</td>';
+    }
+
+    function renderDistribution(recipients) {
+        var $tbody = $('#reportDistributionTableBody');
+        if (!$tbody.length) return;
+
+        if (!recipients.length) {
+            $tbody.html('<tr><td colspan="6" class="text-center text-muted py-4">' +
+                'Nobody is set up to receive reports yet. People join this list by enrolling on WhatsApp.' +
+                '</td></tr>');
+            return;
+        }
+
+        $tbody.html(recipients.map(function (r) {
+            var statusBadge = r.is_active
+                ? '<span class="badge bg-success-subtle text-success-emphasis">Active</span>'
+                : '<span class="badge bg-secondary-subtle text-secondary-emphasis">Inactive</span>';
+            var staffBadge = r.is_staff
+                ? ' <span class="badge bg-info-subtle text-info-emphasis">Staff</span>' : '';
+            return '<tr>' +
+                '<td>' + distributionEsc(r.display_name || '—') + '</td>' +
+                '<td>' + distributionEsc(r.phone || '—') + '</td>' +
+                subscriptionCell(r.recipient_id, 'daily', r.daily) +
+                subscriptionCell(r.recipient_id, 'weekly', r.weekly) +
+                subscriptionCell(r.recipient_id, 'monthly', r.monthly) +
+                '<td>' + statusBadge + staffBadge + '</td>' +
+                '</tr>';
+        }).join(''));
+    }
+
+    function loadDistribution() {
+        var $tbody = $('#reportDistributionTableBody');
+        if (!$tbody.length || !dataFunctions.listReportDistribution) return Promise.resolve();
+        $tbody.html('<tr><td colspan="6" class="text-center text-muted py-4">' +
+            '<i class="fas fa-spinner fa-spin me-2"></i>Loading recipients…</td></tr>');
+        var includeInactive = $('#reportDistributionShowInactive').prop('checked');
+        return dataFunctions.listReportDistribution(includeInactive)
+            .then(renderDistribution)
+            .catch(function (err) {
+                console.warn('[sales-reports] listReportDistribution failed', err);
+                $tbody.html('<tr><td colspan="6" class="text-center text-muted py-4">' +
+                    'Report recipients are not available on this database yet.</td></tr>');
+            });
+    }
+
+    function toggleSubscription($checkbox) {
+        var recipientId = $checkbox.data('recipient-id');
+        var kind = $checkbox.data('report-kind');
+        var wanted = $checkbox.prop('checked');
+        $checkbox.prop('disabled', true);
+        dataFunctions.setReportSubscription(recipientId, kind, wanted)
+            .then(function (result) {
+                if (result && result.ok === false) {
+                    $checkbox.prop('checked', !wanted);
+                    Swal.fire({ icon: 'error', text: result.error || 'Could not change that subscription.' });
+                    return;
+                }
+                // Re-read rather than trusting the local tick: ticking a box back on also clears
+                // any WhatsApp pause server-side, and the row has to show that.
+                return loadDistribution();
+            })
+            .catch(function (err) {
+                console.warn('[sales-reports] setReportSubscription failed', err);
+                $checkbox.prop('checked', !wanted);
+                Swal.fire({ icon: 'error', text: 'Could not change that subscription.' });
+            })
+            .finally(function () {
+                $checkbox.prop('disabled', false);
+            });
+    }
+
     function bindEvents() {
         $(document).on('click.salesReports', '#newReportBtn', function () {
             openNewReportModal();
+        });
+        $(document).on('click.salesReports', '#refreshReportDistributionBtn', function () {
+            loadDistribution();
+        });
+        $(document).on('change.salesReports', '#reportDistributionShowInactive', function () {
+            loadDistribution();
+        });
+        $(document).on('change.salesReports', '.js-report-sub', function () {
+            toggleSubscription($(this));
         });
         $(document).on('click.salesReports', '#refreshReportListBtn', function () {
             load(true);
@@ -457,6 +568,7 @@ var _reportListGrid = function () {
             state.status = '';
             bindEvents();
             load(false);
+            loadDistribution();
         },
 
         destroy: function () {
