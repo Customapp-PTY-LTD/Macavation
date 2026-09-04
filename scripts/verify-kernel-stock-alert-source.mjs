@@ -87,6 +87,16 @@ check('a failed or empty kernel read does not become an observation of zero', ()
   );
 });
 
+check('the status filter is DERIVED from FINISHED_STATUSES, not written out twice', () => {
+  assert.ok(
+    /p_status: FINISHED_STATUSES\.join\(','\)/.test(cronSrc),
+    "p_status must be built from FINISHED_STATUSES so the SQL filter and the JS guard cannot " +
+      'drift apart. get_kernel_batches matches it with ' +
+      "k.status = ANY(string_to_array(p_status, ',')) — a hand-written list here would silently " +
+      'diverge from the shared tally the stock screen uses.'
+  );
+});
+
 check('the kernel read is paged — a truncated read understates stock', () => {
   assert.ok(/p_offset:/.test(cronSrc), 'must page with p_offset');
   const m = cronSrc.match(/const KERNEL_PAGE_SIZE = (\d+);/);

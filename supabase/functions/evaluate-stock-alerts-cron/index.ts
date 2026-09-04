@@ -59,7 +59,13 @@ async function fetchAllKernelBatches(
   const all: Record<string, unknown>[] = [];
   for (let page = 0; page < KERNEL_MAX_PAGES; page++) {
     const { data, error } = await supabase.rpc('get_kernel_batches', {
-      p_status: null,
+      // p_status takes a comma-separated list — the RPC matches with
+      // `k.status = ANY(string_to_array(p_status, ','))`
+      // (migrations/20260730120000_fix_kernel_dispatch_stock_and_empty_basket.sql:300), so the
+      // finished-batch filter runs in the database instead of pulling every batch across.
+      // Derived from FINISHED_STATUSES rather than written out, so the SQL filter and the JS guard
+      // below cannot drift apart.
+      p_status: FINISHED_STATUSES.join(','),
       p_search: null,
       p_limit: KERNEL_PAGE_SIZE,
       p_offset: page * KERNEL_PAGE_SIZE,
@@ -106,6 +112,9 @@ Deno.serve(async (req) => {
     const totals: Record<string, number> = {};
     STYLE_KEYS.forEach((k) => { totals[k] = 0; });
     for (const b of kernelBatches) {
+      // Belt and braces: the RPC already filtered on these statuses (and on is_active, at
+      // :298 of the same migration). Re-checking here costs nothing and means a change to the
+      // RPC's filter cannot silently widen what the alert thresholds are measured against.
       if (!FINISHED_STATUSES.includes(String(b?.status ?? '').trim())) continue;
       const remKg = styleMap(b?.remaining_by_style);
       const remCartons = styleMap(b?.remaining_by_style_cartons);
@@ -118,10 +127,11 @@ Deno.serve(async (req) => {
       });
     }
     if (kernelBatches.length === 0) {
-      // Refuse to evaluate kernel rules against a zero we are not sure of. Reading no batches at
-      // all is far more likely to be a failed read than a genuinely empty warehouse, and a zero
-      // here raises a low-stock alert for EVERY active kernel rule — precisely the failure this
-      // change exists to fix. Skipping the observation leaves existing alerts untouched.
+      // Refuse to evaluate kernel rules against a zero we are not sure of. Reading back no
+      // finished batches is far more likely to be a failed or mis-filtered read than a genuinely
+      // empty warehouse, and a zero here raises a low-stock alert for EVERY active kernel rule —
+      // precisely the failure this change exists to fix. Skipping the observation leaves any
+      // existing alerts untouched rather than piling false ones on top.
       console.error(
         '[evaluate-stock-alerts-cron] get_kernel_batches returned no rows — skipping kernel observations rather than reporting 0 kg for every style.'
       );
