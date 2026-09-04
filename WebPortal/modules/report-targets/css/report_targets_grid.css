@@ -2,12 +2,16 @@
    The metric column is sticky so a 13-week view stays readable while scrolling sideways.
    Every cell selector is classed: the table standard owns bare td/th row height. */
 
-/* The grid scrolls inside this box rather than growing the page. That is what keeps the sticky
-   month header useful: `position: sticky` pins to the nearest scrolling ancestor, so if the PAGE
-   were doing the scrolling the whole card (header included) would simply travel off screen.
-   Sizing it against the viewport keeps almost all vertical scrolling inside the grid. */
+/* The grid scrolls inside this box rather than growing the page. That is what makes the sticky
+   month header work at all: `position: sticky` pins to the nearest SCROLLING ancestor, so if the
+   page were doing the scrolling the whole card — header included — would travel off the top.
+   The box therefore has to be shorter than the room available to it.
+
+   The exact height is set in JS (sizeGridViewport), measured from the grid's real position on
+   screen, because a CSS guess is only ever right for one page layout and one window size. This
+   max-height is the fallback for the moment before that runs. */
 .targets-grid-scroll {
-    max-height: calc(100vh - 260px);
+    max-height: 70vh;
     min-height: 300px;
     overflow: auto;
 }

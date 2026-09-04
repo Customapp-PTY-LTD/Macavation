@@ -313,10 +313,30 @@ var _reportTargetsGrid = (function () {
         $('#weeksNextBtn').prop('disabled', state.weekPage >= maxWeekPage());
     }
 
+    // Give the grid box a real height, measured rather than guessed.
+    //
+    // The sticky month header pins to its nearest SCROLLING ancestor. If the grid box is taller
+    // than the space it has, it never scrolls itself — the page scrolls instead, carrying the whole
+    // card and its header off the top of the screen. So the box has to be shorter than the room
+    // below it, and a CSS guess like calc(100vh - 260px) is only right for one page layout.
+    //
+    // getBoundingClientRect().top is the actual distance from the top of the window to the top of
+    // the grid, whatever sits above it (title, tabs, filter card, a wrapped toolbar). Sizing
+    // against that is correct on any screen and after any resize.
+    function sizeGridViewport() {
+        var el = document.querySelector('.targets-grid-scroll');
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        // Leave a gutter so the legend under the grid is reachable without a fight.
+        var available = window.innerHeight - top - 90;
+        el.style.height = Math.max(300, available) + 'px';
+    }
+
     function render() {
         renderHead(visiblePeriods());
         renderBody();
         renderWeeklyPager();
+        sizeGridViewport();
     }
 
     // ------------------------------------------------------------------
@@ -627,6 +647,10 @@ var _reportTargetsGrid = (function () {
             beginPriorEdit($(this));
         });
 
+        // Re-measure on resize; the room below the grid changes with the window, and the filter
+        // toolbar wraps to a second line on a narrow screen.
+        $(window).on('resize.reportTargets', function () { sizeGridViewport(); });
+
         $(document).on('click.reportTargets', '.js-fill-right', function (e) {
             e.preventDefault();
             if (!canEdit()) {
@@ -652,6 +676,7 @@ var _reportTargetsGrid = (function () {
 
         destroy: function () {
             $(document).off('.reportTargets');
+            $(window).off('.reportTargets');
         }
     };
 }());
