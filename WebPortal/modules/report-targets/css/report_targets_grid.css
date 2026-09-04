@@ -254,3 +254,45 @@
     left: 0;
     display: inline-block;
 }
+
+/* ---- Fill the window, so the grid is the only thing that scrolls -----------
+   A pinned header stays put only while its own scroll box is what moves. If the
+   PAGE can scroll, the whole card travels up and the pinned row goes with it —
+   which is exactly what kept happening.
+
+   So this screen is made to fit the window exactly: the module is the height of
+   the space below its own top edge (measured in JS, because that distance
+   depends on the window and on whether the toolbar has wrapped), the grid takes
+   whatever is left after the filters and legend, and nothing overflows the page.
+   With no page scroll left to do, the month row cannot be scrolled away.
+
+   min-height: 0 on each flex child is required, not decorative: a flex item
+   defaults to min-height:auto and refuses to shrink below its content, which
+   would push the grid past the bottom of the window and bring page scrolling
+   straight back. */
+
+.targets-fills-viewport {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.targets-fills-viewport > .targets-grid-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.targets-fills-viewport > .targets-grid-card > .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.targets-fills-viewport .targets-grid-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+}
