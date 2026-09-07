@@ -88,6 +88,21 @@ async function rpc(sb: SupabaseClient, fn: string, params: Record<string, unknow
   return [];
 }
 
+/**
+ * Detects "the RPC does not exist yet" — a migration not applied to this environment — so the
+ * opt-out check below can fail OPEN for a not-yet-applied gate instead of refusing every
+ * recipient. Identical detection logic to isMissingRpc in
+ * supabase/functions/whatsapp-inbound/index.ts:184-188, re-declared here rather than imported:
+ * this file imports neither ../_shared/* nor ../whatsapp-inbound/*, so there is nothing to import
+ * from (confirmed by this file's own import lines above, which name only @supabase/supabase-js).
+ */
+function isMissingRpcError(err: unknown): boolean {
+  const anyErr = err as { code?: unknown; message?: unknown } | null | undefined;
+  const code = String(anyErr?.code ?? '');
+  const msg = String(anyErr?.message ?? '');
+  return code === 'PGRST202' || /could not find the function|does not exist/i.test(msg);
+}
+
 async function validateSession(
   sb: SupabaseClient,
   token: string
@@ -387,6 +402,108 @@ Deno.serve(async (req) => {
       recipient.recipient_id != null && String(recipient.recipient_id).trim()
         ? String(recipient.recipient_id).trim()
         : null;
+
+    // ---- Opt-out refusal (contract 3) --------------------------------------------------------
+    // This is the one sender whose recipient list comes from the browser rather than a selector —
+    // report_daily_recipients gates itself (migrations/20260907130000_report_opt_out.sql section
+    // 4), this does not. `phone` is the raw browser-supplied string; report_opt_out_status
+    // normalises internally, which is what makes '082...' match a stored '+2782...' — do not build
+    // a phone comparison in TypeScript and do not query report_recipients directly here.
+    let optOut: { opted_out?: boolean } | null = null;
+    try {
+      optOut = (await rpc(sb, 'report_opt_out_status', { p_phone: phone }))[0] ?? null;
+    } catch (e) {
+      if (isMissingRpcError(e)) {
+        // Fail OPEN: this migration is not yet applied to every environment. Refusing every
+        // recipient because a not-yet-applied migration is missing would break the only working
+        // report-send path. console.error names the migration so this is loud, not silent.
+        console.error(
+          '[send-report-whatsapp] report_opt_out_status is missing — migration ' +
+            '20260907130000_report_opt_out not applied. Sending without an opt-out check for this recipient.'
+        );
+        optOut = null; // treated as not-opted-out below — explicit, not a fallthrough default.
+      } else {
+        // Fail CLOSED: any other failure (permission, timeout, transport) means the gate could not
+        // answer. A gate that cannot answer must not wave the message through — record the same
+        // failed delivery shape an explicit opt-out refusal would use (below), and skip this
+        // recipient. Do NOT send.
+        console.error('[send-report-whatsapp] report_opt_out_status check failed for', phone, e);
+        const checkError = 'Could not verify opt-out status for this number.';
+        try {
+          const beginRows = await rpc(sb, 'begin_report_delivery', {
+            p_report_instance_id: reportInstanceId,
+            p_phone: phone,
+            p_display_name: displayName,
+            p_recipient_id: recipientId,
+            p_message_body: messageText,
+            p_pdf_storage_bucket: 'report-pdfs',
+            p_pdf_storage_path: objectPath,
+            p_link_expires_at: linkExpiresAt,
+            p_actor_user_id: userId,
+          });
+          const beginRow = beginRows[0];
+          if (beginRow && beginRow.success === 1) {
+            await rpc(sb, 'complete_report_delivery', {
+              p_delivery_id: beginRow.id,
+              p_status: 'failed',
+              p_external_message_id: null,
+              p_error: checkError,
+            });
+          }
+        } catch (recordErr) {
+          console.error(
+            '[send-report-whatsapp] failed to record opt-out-check failure for', phone, recordErr
+          );
+        }
+        results.push({
+          phone,
+          display_name: displayName,
+          status: 'failed',
+          external_message_id: null,
+          error: checkError,
+        });
+        failed++;
+        continue;
+      }
+    }
+
+    if (optOut?.opted_out === true) {
+      const optedOutError = 'Recipient has opted out of WhatsApp report messages.';
+      try {
+        const beginRows = await rpc(sb, 'begin_report_delivery', {
+          p_report_instance_id: reportInstanceId,
+          p_phone: phone,
+          p_display_name: displayName,
+          p_recipient_id: recipientId,
+          p_message_body: messageText,
+          p_pdf_storage_bucket: 'report-pdfs',
+          p_pdf_storage_path: objectPath,
+          p_link_expires_at: linkExpiresAt,
+          p_actor_user_id: userId,
+        });
+        const beginRow = beginRows[0];
+        if (beginRow && beginRow.success === 1) {
+          await rpc(sb, 'complete_report_delivery', {
+            p_delivery_id: beginRow.id,
+            p_status: 'failed',
+            p_external_message_id: null,
+            p_error: optedOutError,
+          });
+        }
+      } catch (recordErr) {
+        console.error('[send-report-whatsapp] failed to record opt-out refusal for', phone, recordErr);
+      }
+      results.push({
+        phone,
+        display_name: displayName,
+        status: 'failed',
+        external_message_id: null,
+        error: optedOutError,
+      });
+      failed++;
+      continue;
+    }
+    // ---- End opt-out refusal ------------------------------------------------------------------
 
     try {
       const beginRows = await rpc(sb, 'begin_report_delivery', {

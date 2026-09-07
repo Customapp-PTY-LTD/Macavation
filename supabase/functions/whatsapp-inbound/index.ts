@@ -897,7 +897,9 @@ const HELP_COMMAND_LIST =
   'MENU (or 99) — show the menu of reports\n' +
   'HELP — show this message\n' +
   'YES (or Y, CONFIRM) — confirm a pending request\n' +
-  'NO (or N, CANCEL) — cancel a pending request';
+  'NO (or N, CANCEL) — cancel a pending request\n' +
+  'STOP — stop report messages (START undoes this)\n' +
+  'RESUME — lift a paused daily report';
 
 function helpReplyText(displayName: string): string {
   // Plain text, WhatsApp-friendly: short lines, no markdown table, no link — no screen in this
@@ -1220,6 +1222,102 @@ async function commandAck(ctx: CommandContext): Promise<CommandResult> {
   };
 }
 
+/**
+ * RESUME — clears a PAUSED daily subscription and nothing else. Post-gate (an enrolled staff
+ * member only — the bot's only identity path is whatsapp_resolve_staff_user; STOP/START are the
+ * exception because they need no identity, see handleOptOutVerbs above).
+ *
+ * Deliberately narrow: weekly/monthly pause state is not readable anywhere in this checkout
+ * (report_recipient_by_inbound_phone returns only subscribed_daily and the daily muted_until,
+ * migrations/20260825090000_report_subscriptions_and_staff.sql:303-327), and the only write RPC
+ * available, set_report_subscription_by_phone, CREATES a subscription it does not find
+ * (INSERT ... ON CONFLICT DO UPDATE SET is_active = true, :367-374). Calling it for a kind the
+ * person never subscribed to — or for a row an administrator switched off — would sign them up or
+ * re-enable consent they never gave. So this NEVER calls it unless subscribed_daily is already
+ * true AND muted_until is already set (checked below, in that order, before the call site).
+ * Extending RESUME to weekly/monthly needs a read RPC that does not exist yet — a later plan's job.
+ *
+ * No date arithmetic here: if muted_until is non-null, it is cleared and the reply says the pause
+ * was lifted — true whether or not it had already expired. public.report_sast_today() is this
+ * repo's only "today" and report_daily_recipients already applies it; a JS-side comparison here
+ * would be a second, drifting answer.
+ */
+async function commandResume(ctx: CommandContext): Promise<CommandResult> {
+  let row: Any;
+  try {
+    const { data, error } = await ctx.sb.rpc('report_recipient_by_inbound_phone', { p_phone: ctx.phone });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] report_recipient_by_inbound_phone is missing — migration 20260825090000 not applied.'
+        );
+        return {
+          outcome: 'error',
+          reply: `Sorry ${ctx.displayName}, I could not check that just now.`,
+          command: 'RESUME',
+          detail: 'rpc missing',
+        };
+      }
+      throw error;
+    }
+    row = Array.isArray(data) ? data[0] : data;
+  } catch (e) {
+    console.error('[whatsapp-inbound] report_recipient_by_inbound_phone failed for RESUME:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not check that just now.`,
+      command: 'RESUME',
+      detail: String(e),
+    };
+  }
+
+  if (!row || row.found !== true) {
+    // report_recipient_by_inbound_phone filters is_active, so an admin-deactivated roster row
+    // lands here too — correct: there is nothing this verb can safely do for such a row.
+    return {
+      outcome: 'ok',
+      reply: `There is no pause on this number, ${ctx.displayName}.`,
+      command: 'RESUME',
+    };
+  }
+
+  if (row.subscribed_daily !== true || row.muted_until === null || row.muted_until === undefined) {
+    return {
+      outcome: 'ok',
+      reply: `Nothing is paused on this number, ${ctx.displayName}.`,
+      command: 'RESUME',
+    };
+  }
+
+  try {
+    const { data, error } = await ctx.sb.rpc('set_report_subscription_by_phone', {
+      p_phone: ctx.phone,
+      p_report_kind: 'daily',
+      p_is_active: true,
+      p_muted_until: null,
+    });
+    if (error) throw error;
+    const result = Array.isArray(data) ? data[0] : data;
+    if (!result || result.ok !== true) {
+      throw new Error(result?.error || 'set_report_subscription_by_phone returned ok=false');
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] set_report_subscription_by_phone failed for RESUME:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not lift that pause just now. Please try again shortly.`,
+      command: 'RESUME',
+      detail: String(e),
+    };
+  }
+
+  return {
+    outcome: 'ok',
+    reply: `The pause on your daily report has been lifted, ${ctx.displayName}.`,
+    command: 'RESUME',
+  };
+}
+
 const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandResult>> = {
   HELP: commandHelp,
   YES: commandYes,
@@ -1233,6 +1331,11 @@ const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandR
   REPORT: (ctx) => renderMenuItem(ctx, 'report'),
   // ACK <n> — stages an alert acknowledgement, applied by YES.
   ACK: commandAck,
+  // RESUME — lifts a paused daily report subscription. Post-gate: STOP is the pre-gate opt-out
+  // path (handleOptOutVerbs, above processCommandForMessage) and is deliberately NOT registered
+  // here — a COMMAND_HANDLERS.STOP entry would be unreachable dead code, since CommandContext does
+  // not exist before whatsapp_resolve_staff_user succeeds.
+  RESUME: commandResume,
   // The menu, plus the greetings somebody actually opens a chat with.
   MENU: commandMenu,
   HI: commandMenu,
@@ -1381,6 +1484,155 @@ async function tryConfirmEnrolment(
 }
 
 /**
+ * The pre-gate opt-out interceptor — STOP and START, honoured from ANY number, enrolled or not,
+ * on the roster or not, mid-confirmation or not. Runs BEFORE whatsapp_resolve_staff_user, so it
+ * cannot use CommandContext (that interface requires userId/roleId/displayName, which only exist
+ * after resolution succeeds) — hence plain arguments here instead.
+ *
+ * Returns true when it has handled the message (and already sent a reply) — the caller must
+ * return immediately without falling into the resolution/menu path. Returns false to fall through
+ * to the existing behaviour UNCHANGED, which is what keeps START: commandMenu (COMMAND_HANDLERS,
+ * below) working for everybody who is not opted out — this function must never reword or remove
+ * that binding.
+ *
+ * A menu TAP (replyId set) is never handled here — that is a later plan's staged "Stop
+ * everything" sheet, not this typed path.
+ *
+ * See migrations/20260907130000_report_opt_out.sql for report_set_opt_out /
+ * report_opt_out_status and the schema facts (display_name NOT NULL; the is_active-filtered
+ * resolution trap) they work around.
+ */
+async function handleOptOutVerbs(
+  sb: SupabaseClient,
+  from: string,
+  wamid: string,
+  rawBody: string,
+  replyId: string | null
+): Promise<boolean> {
+  if (replyId) return false;
+
+  const collapsed = rawBody.trim().replace(/\s+/g, ' ');
+  const verb = (collapsed.split(' ')[0] || '').toUpperCase();
+
+  if (verb === 'STOP') {
+    // A typed STOP takes effect immediately, with no confirmation step — Meta requires opt-out to
+    // be frictionless, and a person typing STOP has already decided. Reversal (START) is one word.
+    try {
+      const { data, error } = await sb.rpc('report_set_opt_out', { p_phone: from, p_opted_out: true });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] report_set_opt_out is missing — migration 20260907130000 not applied.'
+          );
+        }
+        throw error;
+      }
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || row.ok !== true) {
+        throw new Error(row?.error || 'report_set_opt_out returned ok=false');
+      }
+      await logCommand(sb, { phone: from, userId: null, wamid, rawBody, command: 'STOP', outcome: 'ok' });
+      // Scoped to what this plan actually gates — reports — never "any further messages": alerts
+      // and staff-menu replies are untouched by this plan and must not be promised silent by it.
+      // Does not promise re-subscription: clearing opted_out_at does not create a subscription.
+      const reply =
+        'You will not receive any further report messages from Macavation. ' +
+        'Text START if you want to allow them again.';
+      const sent = await sendWhatsappText(from, reply);
+      if (!sent) console.error(`[whatsapp-inbound] STOP confirmation reply failed wamid=${wamid}`);
+    } catch (e) {
+      console.error(`[whatsapp-inbound] STOP handling failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'STOP',
+        outcome: 'error',
+        detail: String(e),
+      });
+      // Never reply as though it succeeded.
+      const sent = await sendWhatsappText(
+        from,
+        'I could not record that just now. Please reply STOP again shortly.'
+      );
+      if (!sent) console.error(`[whatsapp-inbound] STOP failure reply failed wamid=${wamid}`);
+    }
+    return true;
+  }
+
+  if (verb === 'START') {
+    let status: Any;
+    try {
+      const { data, error } = await sb.rpc('report_opt_out_status', { p_phone: from });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] report_opt_out_status is missing — migration 20260907130000 not applied.'
+          );
+          // Deliberate: fall through so the existing greeting keeps working when the opt-out read
+          // is unavailable, rather than answering nothing.
+          return false;
+        }
+        throw error;
+      }
+      status = Array.isArray(data) ? data[0] : data;
+    } catch (e) {
+      console.error(`[whatsapp-inbound] START opt-out check failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'START',
+        outcome: 'error',
+        detail: String(e),
+      });
+      return false;
+    }
+
+    if (!status || status.opted_out !== true) {
+      // Not opted out (including found === false): fall through so START: commandMenu keeps its
+      // existing meaning — this is what leaves the greeting intact for everybody else.
+      return false;
+    }
+
+    try {
+      const { data, error } = await sb.rpc('report_set_opt_out', { p_phone: from, p_opted_out: false });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || row.ok !== true) {
+        throw new Error(row?.error || 'report_set_opt_out returned ok=false');
+      }
+      await logCommand(sb, { phone: from, userId: null, wamid, rawBody, command: 'START', outcome: 'ok' });
+      const reply =
+        'Your opt-out has been removed. If somebody has you on a report list, those messages can resume.';
+      const sent = await sendWhatsappText(from, reply);
+      if (!sent) console.error(`[whatsapp-inbound] START confirmation reply failed wamid=${wamid}`);
+    } catch (e) {
+      console.error(`[whatsapp-inbound] START clear failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'START',
+        outcome: 'error',
+        detail: String(e),
+      });
+      const sent = await sendWhatsappText(
+        from,
+        'I could not record that just now. Please reply START again shortly.'
+      );
+      if (!sent) console.error(`[whatsapp-inbound] START failure reply failed wamid=${wamid}`);
+    }
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Runs once per inbound TEXT message, after it is already persisted. Never throws — any
  * unexpected error is caught, logged (console + audit row), and swallowed so the caller's 2xx
  * response is unaffected.
@@ -1420,6 +1672,13 @@ async function processCommandForMessage(
   }
 
   try {
+    // Checked before the enrolment gate and before any pending-command handling — the only thing
+    // an unenrolled number may do besides send an enrolment code. See handleOptOutVerbs's own
+    // comment for why this cannot use CommandContext.
+    if (await handleOptOutVerbs(sb, from, wamid, rawBody, replyId)) {
+      return;
+    }
+
     let resolved: Any;
     try {
       const { data, error } = await sb.rpc('whatsapp_resolve_staff_user', { p_phone: from });
