@@ -691,6 +691,13 @@ const MENU_ITEMS: MenuItem[] = [
 /**
  * Feature keys enabled for this role, as public.features.key strings.
  *
+ * Reads whatsapp_role_feature_keys, NOT the portal's get_role_features_for_role. The portal one
+ * carries `AND (portal_actor_is_super_user() OR r.role_name <> 'super_user')`, and this function
+ * runs on the service-role key with no portal session — so that guard was false here and a
+ * super_user's 32 grants came back as 0 rows, denying the menu to the one role that should see all
+ * of it. See migrations/20260907120000_whatsapp_role_feature_keys.sql for the measurement. Do not
+ * "simplify" this back to the portal RPC.
+ *
  * Returns an EMPTY SET on any failure — a missing RPC, an error, a role with nothing enabled. The
  * caller then shows no items and says so. Failing to an empty menu rather than a full one is
  * deliberate: an unreadable permission table must never widen what somebody can read over
@@ -699,12 +706,15 @@ const MENU_ITEMS: MenuItem[] = [
 async function loadFeatureKeys(sb: SupabaseClient, roleId: string | null): Promise<Set<string>> {
   if (!roleId) return new Set();
   try {
-    const { data, error } = await sb.rpc('get_role_features_for_role', { p_role_id: roleId });
+    const { data, error } = await sb.rpc('whatsapp_role_feature_keys', { p_role_id: roleId });
     if (error) {
       if (isMissingRpc(error)) {
-        console.error('[whatsapp-inbound] get_role_features_for_role is missing — cannot build the menu.');
+        console.error(
+          '[whatsapp-inbound] whatsapp_role_feature_keys is missing — migration ' +
+            '20260907120000 not applied. Cannot build the menu.'
+        );
       } else {
-        console.error('[whatsapp-inbound] get_role_features_for_role failed:', error.message);
+        console.error('[whatsapp-inbound] whatsapp_role_feature_keys failed:', error.message);
       }
       return new Set();
     }
@@ -715,7 +725,7 @@ async function loadFeatureKeys(sb: SupabaseClient, roleId: string | null): Promi
     }
     return keys;
   } catch (e) {
-    console.error('[whatsapp-inbound] get_role_features_for_role threw:', e);
+    console.error('[whatsapp-inbound] whatsapp_role_feature_keys threw:', e);
     return new Set();
   }
 }
