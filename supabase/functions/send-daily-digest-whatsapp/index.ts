@@ -52,6 +52,22 @@ function normalizePhone(phone: string): string {
   return `+${p}`;
 }
 
+/**
+ * Detects "the RPC does not exist yet" — a migration not applied to this environment — so the
+ * opt-out check below can fail OPEN for a not-yet-applied gate instead of refusing every
+ * recipient. Identical detection logic to isMissingRpc in
+ * supabase/functions/whatsapp-inbound/index.ts:184-188, re-declared here rather than imported:
+ * this file does not import from send-report-whatsapp or whatsapp-inbound, and neither of those
+ * exports it — a third independent copy of an eleven-line check across three files that cannot
+ * see each other is the correct outcome here, not a smell to refactor away.
+ */
+function isMissingRpcError(err: unknown): boolean {
+  const anyErr = err as { code?: unknown; message?: unknown } | null | undefined;
+  const code = String(anyErr?.code ?? '');
+  const msg = String(anyErr?.message ?? '');
+  return code === 'PGRST202' || /could not find the function|does not exist/i.test(msg);
+}
+
 async function signBody(secret: string, body: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
@@ -102,6 +118,46 @@ Deno.serve(async (req) => {
       const raw = (sub.phone || sub.email || '').trim();
       if (!raw) continue;
       const to = normalizePhone(raw);
+
+      // Opt-out gate (deliverable 3b). This sender reads scheduled_reports directly, entirely
+      // outside report_recipients / report_daily_recipients' own gate — it is NOT scheduled
+      // anywhere in this repo today (see header), but it exists, is deployed, and can be invoked
+      // by hand, so the STOP reply's promise ("no further report messages") is false for as long
+      // as this sender can send unchecked. `to` is already normalised; report_opt_out_status
+      // normalises again internally via chat_normalize_phone, which is idempotent on its own
+      // '27...'-shaped output (migrations/20260813090000_whatsapp_inbound_shared_inbox.sql:72-92),
+      // so calling it twice with different input shapes here is harmless.
+      let optOut: { opted_out?: boolean } | null = null;
+      try {
+        const { data: optOutData, error: optOutErr } = await supabase.rpc('report_opt_out_status', {
+          p_phone: to,
+        });
+        if (optOutErr) throw optOutErr;
+        optOut = (Array.isArray(optOutData) ? optOutData[0] : optOutData) ?? null;
+      } catch (e) {
+        if (isMissingRpcError(e)) {
+          // Fail OPEN: this migration is not yet applied to every environment. console.error
+          // names it so this is loud, not silent; sending proceeds for this recipient.
+          console.error(
+            '[send-daily-digest-whatsapp] report_opt_out_status is missing — migration ' +
+              '20260907130000_report_opt_out not applied. Sending without an opt-out check for',
+            to
+          );
+          optOut = null;
+        } else {
+          // Fail CLOSED: the gate could not answer — do not send. No delivery-row pair exists for
+          // this sender today (unlike send-report-whatsapp); a console.error and a skip is the
+          // whole of it.
+          console.error('[send-daily-digest-whatsapp] report_opt_out_status check failed for', to, e);
+          continue;
+        }
+      }
+
+      if (optOut?.opted_out === true) {
+        // Opted out — do not send, and do not mark it sent (it was not).
+        console.error('[send-daily-digest-whatsapp] skipping opted-out recipient', to);
+        continue;
+      }
 
       const requestBody = JSON.stringify({
         action: 'send_message',
