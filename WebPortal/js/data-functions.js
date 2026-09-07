@@ -6551,6 +6551,26 @@ var _dataFunctions = function () {
             return result;
         },
 
+        /**
+         * Mark or unmark a saved WhatsApp report-distribution recipient as staff
+         * (set_report_recipient_staff, migrations/20260825090000_report_subscriptions_and_staff.sql:226 —
+         * already granted to anon/authenticated/service_role, no new grant needed). Returns jsonb
+         * ({ok, error}), unwrapped the same way setReportSubscription unwraps set_report_subscription
+         * above, since PostgREST hands back a scalar jsonb return keyed on the function name.
+         */
+        setReportRecipientStaff: async function (recipientId, isStaff, token = null) {
+            const id = (recipientId != null ? String(recipientId) : '').trim();
+            if (!id) throw new Error('setReportRecipientStaff: recipientId is required.');
+            const params = {
+                p_recipient_id: id,
+                p_is_staff: !!isStaff,
+                p_actor_user_id: this.getCurrentUserId() || undefined
+            };
+            const raw = await this.callFunction('set_report_recipient_staff', params, token, { useCache: false });
+            this.clearCachePattern('report_recipients_');
+            return (raw && raw.set_report_recipient_staff) ? raw.set_report_recipient_staff : raw;
+        },
+
         /** List the WhatsApp delivery log for one report instance (list_report_deliveries). */
         listReportDeliveries: async function (reportInstanceId, token = null, forceRefresh = false) {
             const id = (reportInstanceId != null ? String(reportInstanceId) : '').trim();

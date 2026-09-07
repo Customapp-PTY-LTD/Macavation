@@ -401,9 +401,11 @@ var _reportListGrid = function () {
     // schedule column and which nothing has ever sent from; this panel drives report_subscriptions,
     // the list send-daily-production-report actually reads.
     //
-    // Recipients are NOT created here. They arrive by enrolling on WhatsApp
-    // (set_report_subscription_by_phone / report_recipient_by_inbound_phone), so this panel only
-    // decides which reports an existing recipient receives.
+    // Recipients arrive two ways: added here with "Add person" (upsert_report_recipient), or by
+    // joining themselves on WhatsApp by messaging the number the word "reports"
+    // (report_recipient_by_inbound_phone / set_report_subscription_by_phone, in
+    // supabase/functions/whatsapp-inbound/index.ts). This panel then decides which reports an
+    // existing recipient receives, whichever way they arrived.
     // ------------------------------------------------------------------
 
     function distributionEsc(v) {
@@ -427,30 +429,56 @@ var _reportListGrid = function () {
             '</td>';
     }
 
+    // Status column: the existing Active/Inactive badge, plus a Staff toggle. Deliberately kept in
+    // the Status column rather than a new one — a new column here would push the table wider than
+    // its container (the Daily/Weekly/Monthly columns already use the table's full width).
+    function statusCell(r) {
+        var statusBadge = r.is_active
+            ? '<span class="badge bg-success-subtle text-success-emphasis">Active</span>'
+            : '<span class="badge bg-secondary-subtle text-secondary-emphasis">Inactive</span>';
+        return '<td>' + statusBadge +
+            ' <span class="form-check form-check-inline mb-0 ms-2">' +
+            '<input type="checkbox" class="form-check-input js-report-staff"' +
+            ' data-recipient-id="' + distributionEsc(r.recipient_id) + '"' +
+            (r.is_staff ? ' checked' : '') +
+            ' aria-label="Staff">' +
+            '<label class="form-check-label small text-muted">Staff</label>' +
+            '</span></td>';
+    }
+
+    // "Remove" (contract 2: deactivate, never delete) — an icon button, matching the fa-* icon set
+    // already used throughout this file rather than introducing a second one.
+    function actionsCell(r) {
+        return '<td class="text-end">' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary js-report-remove"' +
+            ' data-recipient-id="' + distributionEsc(r.recipient_id) + '"' +
+            ' data-recipient-name="' + distributionEsc(r.display_name || r.phone || '') + '"' +
+            ' title="Remove (deactivate)" aria-label="Remove">' +
+            '<i class="fas fa-user-slash"></i></button>' +
+            '</td>';
+    }
+
     function renderDistribution(recipients) {
         var $tbody = $('#reportDistributionTableBody');
         if (!$tbody.length) return;
 
         if (!recipients.length) {
-            $tbody.html('<tr><td colspan="6" class="text-center text-muted py-4">' +
-                'Nobody is set up to receive reports yet. People join this list by enrolling on WhatsApp.' +
+            $tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">' +
+                'Nobody is set up to receive reports yet. Use "Add person" above, or they can message ' +
+                'the WhatsApp number with the word "reports" to join themselves.' +
                 '</td></tr>');
             return;
         }
 
         $tbody.html(recipients.map(function (r) {
-            var statusBadge = r.is_active
-                ? '<span class="badge bg-success-subtle text-success-emphasis">Active</span>'
-                : '<span class="badge bg-secondary-subtle text-secondary-emphasis">Inactive</span>';
-            var staffBadge = r.is_staff
-                ? ' <span class="badge bg-info-subtle text-info-emphasis">Staff</span>' : '';
             return '<tr>' +
                 '<td>' + distributionEsc(r.display_name || '—') + '</td>' +
                 '<td>' + distributionEsc(r.phone || '—') + '</td>' +
                 subscriptionCell(r.recipient_id, 'daily', r.daily) +
                 subscriptionCell(r.recipient_id, 'weekly', r.weekly) +
                 subscriptionCell(r.recipient_id, 'monthly', r.monthly) +
-                '<td>' + statusBadge + staffBadge + '</td>' +
+                statusCell(r) +
+                actionsCell(r) +
                 '</tr>';
         }).join(''));
     }
@@ -458,14 +486,14 @@ var _reportListGrid = function () {
     function loadDistribution() {
         var $tbody = $('#reportDistributionTableBody');
         if (!$tbody.length || !dataFunctions.listReportDistribution) return Promise.resolve();
-        $tbody.html('<tr><td colspan="6" class="text-center text-muted py-4">' +
+        $tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">' +
             '<i class="fas fa-spinner fa-spin me-2"></i>Loading recipients…</td></tr>');
         var includeInactive = $('#reportDistributionShowInactive').prop('checked');
         return dataFunctions.listReportDistribution(includeInactive)
             .then(renderDistribution)
             .catch(function (err) {
                 console.warn('[sales-reports] listReportDistribution failed', err);
-                $tbody.html('<tr><td colspan="6" class="text-center text-muted py-4">' +
+                $tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">' +
                     'Report recipients are not available on this database yet.</td></tr>');
             });
     }
@@ -496,6 +524,144 @@ var _reportListGrid = function () {
             });
     }
 
+    // ------------------------------------------------------------------
+    // Add person — contract 1. A modal, not a new page. On submit: upsert_report_recipient, then
+    // set_report_subscription once per ticked kind (all off by default — adding someone must never
+    // silently opt them into anything). Follows the panel's existing re-fetch-after-write pattern.
+    // ------------------------------------------------------------------
+
+    function openAddRecipientModal() {
+        var form = document.getElementById('addReportRecipientForm');
+        if (form) form.reset();
+        var modalEl = document.getElementById('addReportRecipientModal');
+        if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        else if (typeof $ !== 'undefined' && $.fn.modal) $('#addReportRecipientModal').modal('show');
+    }
+
+    function hideAddRecipientModal() {
+        var modalEl = document.getElementById('addReportRecipientModal');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            var inst = bootstrap.Modal.getInstance(modalEl);
+            if (inst) inst.hide();
+        } else if (typeof $ !== 'undefined' && $.fn.modal) {
+            $('#addReportRecipientModal').modal('hide');
+        }
+    }
+
+    function handleAddRecipient() {
+        var form = document.getElementById('addReportRecipientForm');
+        if (form && !form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        var name = $('#addReportRecipientName').val();
+        var phone = $('#addReportRecipientPhone').val();
+        var kinds = [];
+        if ($('#addReportRecipientDaily').prop('checked')) kinds.push('daily');
+        if ($('#addReportRecipientWeekly').prop('checked')) kinds.push('weekly');
+        if ($('#addReportRecipientMonthly').prop('checked')) kinds.push('monthly');
+
+        var $btn = $('#saveReportRecipientBtn');
+        $btn.prop('disabled', true);
+        var addFailed = false;
+        dataFunctions.upsertReportRecipient(name, phone, 'manual')
+            .then(function (result) {
+                var row = firstRpcRow(result);
+                if (!row || Number(row.success) !== 1) {
+                    addFailed = true;
+                    var msg = (row && row.error) ? row.error : 'Could not add that person.';
+                    Swal.fire({ icon: 'error', title: 'Could not add person', text: msg });
+                    return null;
+                }
+                var recipientId = row.id;
+                // Each ticked kind is its own call — sequential, not parallel, so a later failure
+                // never races an earlier one for the same recipient_id.
+                return kinds.reduce(function (chain, kind) {
+                    return chain.then(function () {
+                        return dataFunctions.setReportSubscription(recipientId, kind, true);
+                    });
+                }, Promise.resolve());
+            })
+            .then(function () {
+                if (addFailed) return;
+                hideAddRecipientModal();
+                // Re-fetch rather than hand-patching the DOM, same as toggleSubscription above.
+                loadDistribution();
+            })
+            .catch(function (err) {
+                console.warn('[sales-reports] add recipient failed', err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Could not add person',
+                    text: 'Report recipients are not available on this database yet.'
+                });
+            })
+            .finally(function () {
+                $btn.prop('disabled', false);
+            });
+    }
+
+    // ------------------------------------------------------------------
+    // Staff toggle — contract 3. A small, separate addition; set_report_recipient_staff has had no
+    // portal caller until now despite existing since 25 August.
+    // ------------------------------------------------------------------
+
+    function toggleStaff($checkbox) {
+        var recipientId = $checkbox.data('recipient-id');
+        var wanted = $checkbox.prop('checked');
+        $checkbox.prop('disabled', true);
+        dataFunctions.setReportRecipientStaff(recipientId, wanted)
+            .then(function (result) {
+                if (result && result.ok === false) {
+                    $checkbox.prop('checked', !wanted);
+                    Swal.fire({ icon: 'error', text: result.error || 'Could not change that.' });
+                    return;
+                }
+                return loadDistribution();
+            })
+            .catch(function (err) {
+                console.warn('[sales-reports] setReportRecipientStaff failed', err);
+                $checkbox.prop('checked', !wanted);
+                Swal.fire({ icon: 'error', text: 'Could not change that.' });
+            })
+            .finally(function () {
+                $checkbox.prop('disabled', false);
+            });
+    }
+
+    // ------------------------------------------------------------------
+    // Remove — contract 2. Deactivate only; there is no delete. The row stays visible only when
+    // "Show inactive" is ticked, exactly as an already-inactive row behaves today.
+    // ------------------------------------------------------------------
+
+    function confirmRemoveRecipient(recipientId, name) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Remove this person?',
+            text: 'This deactivates ' + (name || 'them') + '; they will stop receiving reports. ' +
+                'You can bring them back later by ticking "Show inactive".',
+            showCancelButton: true,
+            confirmButtonText: 'Remove',
+            confirmButtonColor: '#d33'
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            dataFunctions.setReportRecipientActive(recipientId, false)
+                .then(function (delResult) {
+                    var row = firstRpcRow(delResult);
+                    if (!row || Number(row.success) !== 1) {
+                        var msg = (row && row.error) ? row.error : 'Could not remove that person.';
+                        Swal.fire({ icon: 'error', text: msg });
+                        return;
+                    }
+                    loadDistribution();
+                })
+                .catch(function (err) {
+                    console.warn('[sales-reports] setReportRecipientActive failed', err);
+                    Swal.fire({ icon: 'error', text: 'Could not remove that person.' });
+                });
+        });
+    }
+
     function bindEvents() {
         $(document).on('click.salesReports', '#newReportBtn', function () {
             openNewReportModal();
@@ -508,6 +674,19 @@ var _reportListGrid = function () {
         });
         $(document).on('change.salesReports', '.js-report-sub', function () {
             toggleSubscription($(this));
+        });
+        $(document).on('click.salesReports', '#addReportRecipientBtn', function () {
+            openAddRecipientModal();
+        });
+        $(document).on('click.salesReports', '#saveReportRecipientBtn', function () {
+            handleAddRecipient();
+        });
+        $(document).on('change.salesReports', '.js-report-staff', function () {
+            toggleStaff($(this));
+        });
+        $(document).on('click.salesReports', '.js-report-remove', function (e) {
+            e.preventDefault();
+            confirmRemoveRecipient($(this).data('recipient-id'), $(this).data('recipient-name'));
         });
         $(document).on('click.salesReports', '#refreshReportListBtn', function () {
             load(true);
