@@ -22,6 +22,7 @@
         active: 'success', complete: 'success', completed: 'success', done: 'success',
         released: 'success', approved: 'success', resolved: 'success', dispatched: 'success',
         live: 'success', on_hand: 'success', in_stock: 'success', passed: 'success', ok: 'success',
+        delivered: 'success', read: 'success',
         // in motion
         production: 'info', in_progress: 'info', processing: 'info', qa: 'info',
         dispatch: 'info', testing: 'info', open: 'info', sent: 'info', running: 'info',

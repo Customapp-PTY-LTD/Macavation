@@ -2735,6 +2735,31 @@ Deno.serve(async (req) => {
         }
 
         statuses++;
+
+        // --- delivery receipts for report_deliveries (migrations/20260910090000_report_delivery_receipts.sql) ---
+        // Same statuses[] entry, a second write against a different table. Deliberately non-fatal
+        // and never sets schemaMissing/breaks the outer loops: this table's receipts are a separate
+        // feature from the shared inbox handled above, and a wamid belonging to a chat_messages row
+        // (or to neither table) is expected here, not an error — report_record_delivery_status
+        // itself returns success with updated:false for "no matching row", so reaching the error
+        // branch below means a real RPC-level fault, not a routine no-match.
+        const { error: reportStatusError } = await sb.rpc('report_record_delivery_status', {
+          p_wamid: wamid,
+          p_status: status,
+        });
+
+        if (reportStatusError) {
+          if (isMissingRpc(reportStatusError)) {
+            console.error(
+              '[whatsapp-inbound] report_record_delivery_status is missing — migration 20260910090000 not applied.'
+            );
+          } else {
+            console.error(
+              `[whatsapp-inbound] report_record_delivery_status failed wamid=${wamid} status=${status}:`,
+              reportStatusError.message
+            );
+          }
+        }
       }
 
       if (schemaMissing) break;
