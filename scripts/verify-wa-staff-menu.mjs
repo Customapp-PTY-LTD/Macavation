@@ -223,12 +223,19 @@ check('every item is gated on a feature key', () => {
 // 4. Re-declared pure copies — the role filter and the two formatters.
 // ================================================================================================
 
+// Updated alongside wa-my-reports-menu (contract 2): visibleItems() now special-cases
+// feature === null for an ungated item (My reports — the member's OWN settings, not a
+// business-data view). Per assertPresent's own convention: "Update both the .ts file and this
+// script's copy together."
 const VISIBLE_ITEMS_LITERAL = block([
   'function visibleItems(featureKeys: Set<string>): MenuItem[] {',
   "  // MAX_LIST_ROWS is Meta's cap for one list and buildListBody throws above it. MENU_ITEMS is",
   '  // well under it today; the slice means adding a seventh, eighth… item can never turn a menu',
   '  // send into a thrown error for a role that happens to have everything enabled.',
-  '  return MENU_ITEMS.filter((i) => featureKeys.has(i.feature)).slice(0, MAX_LIST_ROWS);',
+  '  //',
+  '  // feature === null is the special case for an item with no gate at all (My reports today) — it',
+  '  // is never filtered out, regardless of what the role\'s features are.',
+  '  return MENU_ITEMS.filter((i) => i.feature === null || featureKeys.has(i.feature)).slice(0, MAX_LIST_ROWS);',
   '}',
 ]);
 
@@ -239,7 +246,7 @@ check('presence: whatsapp-inbound visibleItems', () => {
 // Identical plain-JS copy of the block asserted above.
 const MAX_LIST_ROWS_COPY = limitFrom('MAX_LIST_ROWS');
 function visibleItemsCopy(MENU_ITEMS, featureKeys) {
-  return MENU_ITEMS.filter((i) => featureKeys.has(i.feature)).slice(0, MAX_LIST_ROWS_COPY);
+  return MENU_ITEMS.filter((i) => i.feature === null || featureKeys.has(i.feature)).slice(0, MAX_LIST_ROWS_COPY);
 }
 
 check('visibleItems: a role with no features sees nothing', () => {
@@ -265,6 +272,14 @@ check('visibleItems: never returns more than MAX_LIST_ROWS rows', () => {
     feature: 'f1',
   }));
   assert.equal(visibleItemsCopy(menu, new Set(['f1'])).length, MAX_LIST_ROWS_COPY);
+});
+
+check('visibleItems: an ungated item (feature === null) is visible with no features enabled at all', () => {
+  const menu = [
+    { action: 'a', feature: 'f1' },
+    { action: 'settings', feature: null },
+  ];
+  assert.deepEqual(visibleItemsCopy(menu, new Set()).map((i) => i.action), ['settings']);
 });
 
 const NUM_LITERAL = block([
@@ -749,18 +764,24 @@ check('formatLatestReportReply: an RPC failure says try again, and leaks nothing
 
 // ---- the impure parts: textual assertions only --------------------------------------------------
 
-check('every menu item declares exactly one of render or resolve', () => {
-  // renderMenuItem calls item.render! for anything without a resolve, so an item with neither
-  // would throw at dispatch and the member would get the generic error.
+check('every menu item declares exactly one of render, resolve or subMenu', () => {
+  // renderMenuItem calls item.render! for anything without a resolve/subMenu, so an item with none
+  // of the three would throw at dispatch and the member would get the generic error. subMenu was
+  // added alongside wa-my-reports-menu (My reports opens its own interactive sub-list rather than
+  // rendering text) — updated here in lockstep, same as VISIBLE_ITEMS_LITERAL above.
   const entries = inboundSrc.split(/\n  \{\n/).slice(1);
   for (const e of entries) {
     const m = e.match(/action: '([^']+)'/);
     if (!m) continue;
     const hasRender = /\n    render:/.test(e);
     const hasResolve = /\n    resolve:/.test(e);
-    assert.ok(
-      hasRender !== hasResolve,
-      `menu item '${m[1]}' must declare exactly one of render/resolve (render=${hasRender}, resolve=${hasResolve})`
+    const hasSubMenu = /\n    subMenu:/.test(e);
+    const count = [hasRender, hasResolve, hasSubMenu].filter(Boolean).length;
+    assert.equal(
+      count,
+      1,
+      `menu item '${m[1]}' must declare exactly one of render/resolve/subMenu (render=${hasRender}, ` +
+        `resolve=${hasResolve}, subMenu=${hasSubMenu})`
     );
   }
 });
