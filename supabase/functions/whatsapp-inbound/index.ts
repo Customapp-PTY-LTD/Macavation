@@ -1349,6 +1349,29 @@ const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandR
 };
 
 /**
+ * The two quick-reply buttons declared on the daily report template
+ * (scripts/wa-template-daily-production.mjs), keyed by the button label trimmed and lowercased.
+ *
+ * Keyed on the LABEL, not on a `menu:<action>` reply id, because a tap on a template quick-reply
+ * arrives as type:'button' and _shared/wa-inbound.ts sets replyId = button.payload when a payload
+ * is present, else button.text. This checkout has never sent a template with buttons and cannot
+ * verify whether Meta supplies a payload here, so the label is the only value certainly available.
+ * This is still a match on ctx.replyId — the id — and never on the display text the member saw;
+ * nothing in this file reads that.
+ *
+ * If Meta does supply a payload that is not the label, neither key matches and the tap falls
+ * through to the stale-menu reply below, unchanged. Both routes re-check the role, so a match can
+ * never grant more than the menu would.
+ */
+const TEMPLATE_BUTTON_ROUTES: Record<
+  string,
+  { command: string; run: (ctx: CommandContext) => Promise<CommandResult> }
+> = {
+  'view report': { command: 'TPL:VIEW_REPORT', run: (ctx) => renderMenuItem(ctx, 'report') },
+  menu: { command: 'TPL:MENU', run: commandMenu },
+};
+
+/**
  * Parses a tap or a typed verb and dispatches.
  *
  * Order matters and is deliberate:
@@ -1366,6 +1389,17 @@ async function handleCommand(ctx: CommandContext): Promise<CommandResult> {
     const parsed = parseReplyId(ctx.replyId);
     if (parsed && parsed.ns === MENU_NS) {
       return renderMenuItem(ctx, parsed.action);
+    }
+    // A template quick-reply tap. hasOwnProperty for the same reason as the COMMAND_HANDLERS
+    // lookup below: the key is text off a public WhatsApp line and this is a plain object.
+    const templateKey = ctx.replyId.trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(TEMPLATE_BUTTON_ROUTES, templateKey)) {
+      const route = TEMPLATE_BUTTON_ROUTES[templateKey];
+      const result = await route.run(ctx);
+      // Only `command` is overridden: `outcome` must stay one of the five values
+      // whatsapp_command_log_outcome_check allows, and `reply: null` must survive — commandMenu
+      // has already sent its own list.
+      return { ...result, command: route.command };
     }
     // A well-formed id from another namespace, or an id this build does not know: treat it as a
     // stale menu rather than an error, since the commonest cause is a tap on a menu sent by an
