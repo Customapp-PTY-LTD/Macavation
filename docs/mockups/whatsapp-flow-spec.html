@@ -1,0 +1,1159 @@
+<title>Macavation WhatsApp Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Tokens mirrored from WebPortal/css/design-tokens.css, matching
+   docs/mockups/whatsapp-integration.html so the two read as one set. */
+:root {
+  --bg: #F7F7F5; --surface: #FFFFFF; --surface-2: #F0F0EE;
+  --border: #E3E3E0; --border-strong: #D3D3D0;
+  --text: #1F1F1F; --text-2: #52524E; --text-3: #6E6E68;
+  --green: #198754; --pink: #FF005E;
+  --success: #2DA44E; --warning: #D4A72C; --warning-ink: #8A6D14;
+  --danger: #CF222E; --info: #0969DA;
+  --success-tint: rgba(45,164,78,.09); --warning-tint: rgba(212,167,44,.13);
+  --danger-tint: rgba(207,34,46,.08); --info-tint: rgba(9,105,218,.08);
+  --pink-tint: rgba(255,0,94,.08);
+
+  --wa-header: #128C7E; --wa-header-ink: #FFFFFF; --wa-canvas: #ECE5DD;
+  --wa-in: #FFFFFF; --wa-out: #DCF8C6; --wa-ink: #111111; --wa-ink-2: #667781;
+  --wa-link: #027EB5; --wa-divider: rgba(17,17,17,.09); --wa-tick: #4FC3F7;
+
+  color-scheme: light;
+  --shadow-card: 0 2px 8px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.03);
+  --shadow-phone: 0 10px 30px rgba(0,0,0,.13), 0 0 0 1px rgba(0,0,0,.05);
+  --r-sm: 8px; --r-md: 10px; --r-lg: 12px; --r-pill: 9999px;
+  --sp-sm: 8px; --sp-md: 16px; --sp-lg: 24px;
+  --t-xs: .75rem; --t-sm: .8125rem; --t-base: .875rem;
+  --t-md: 1rem; --t-lg: 1.25rem; --t-xl: 1.75rem;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1A1A1A; --surface: #242424; --surface-2: #2E2E2E;
+    --border: #3A3A3A; --border-strong: #4A4A4A;
+    --text: #E8E8E6; --text-2: #A0A0A0; --text-3: #808078;
+    --green: #2FA26B; --pink: #FF3D7F;
+    --success: #4FBE78; --warning: #E0B44A; --warning-ink: #E0B44A;
+    --danger: #F0616D; --info: #4C9DF5;
+    --success-tint: rgba(79,190,120,.14); --warning-tint: rgba(224,180,74,.15);
+    --danger-tint: rgba(240,97,109,.14); --info-tint: rgba(76,157,245,.14);
+    --pink-tint: rgba(255,61,127,.12);
+    --wa-header: #1F2C33; --wa-header-ink: #E9EDEF; --wa-canvas: #0B141A;
+    --wa-in: #202C33; --wa-out: #005C4B; --wa-ink: #E9EDEF; --wa-ink-2: #8696A0;
+    --wa-link: #53BDEB; --wa-divider: rgba(233,237,239,.12);
+    color-scheme: dark;
+    --shadow-card: 0 2px 8px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.04);
+    --shadow-phone: 0 10px 30px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.06);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1A1A1A; --surface: #242424; --surface-2: #2E2E2E;
+  --border: #3A3A3A; --border-strong: #4A4A4A;
+  --text: #E8E8E6; --text-2: #A0A0A0; --text-3: #808078;
+  --green: #2FA26B; --pink: #FF3D7F;
+  --success: #4FBE78; --warning: #E0B44A; --warning-ink: #E0B44A;
+  --danger: #F0616D; --info: #4C9DF5;
+  --success-tint: rgba(79,190,120,.14); --warning-tint: rgba(224,180,74,.15);
+  --danger-tint: rgba(240,97,109,.14); --info-tint: rgba(76,157,245,.14);
+  --pink-tint: rgba(255,61,127,.12);
+  --wa-header: #1F2C33; --wa-header-ink: #E9EDEF; --wa-canvas: #0B141A;
+  --wa-in: #202C33; --wa-out: #005C4B; --wa-ink: #E9EDEF; --wa-ink-2: #8696A0;
+  --wa-link: #53BDEB; --wa-divider: rgba(233,237,239,.12);
+  color-scheme: dark;
+  --shadow-card: 0 2px 8px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.04);
+  --shadow-phone: 0 10px 30px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.06);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: var(--t-base); line-height: 1.55; -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--sp-lg) 96px; }
+
+.masthead { padding: 56px 0 32px; border-bottom: 1px solid var(--border); margin-bottom: 36px; }
+.eyebrow { font-size: var(--t-xs); font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--text-3); margin: 0 0 12px; }
+h1 { font-size: clamp(1.9rem,4.5vw,2.75rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.12; margin: 0 0 16px; text-wrap: balance; }
+.standfirst { font-size: var(--t-md); color: var(--text-2); max-width: 66ch; margin: 0; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 24px; font-size: var(--t-xs); color: var(--text-3); }
+.meta-row b { color: var(--text-2); font-weight: 600; }
+
+/* contents */
+.toc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-md) var(--sp-lg); margin-bottom: 56px; box-shadow: var(--shadow-card); }
+.toc-t { font-size: var(--t-xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; }
+.toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 32px; }
+.toc li { margin-bottom: 5px; break-inside: avoid; }
+.toc a { color: var(--text-2); text-decoration: none; border-bottom: 1px solid transparent; }
+.toc a:hover, .toc a:focus-visible { color: var(--text); border-bottom-color: var(--border-strong); }
+@media (max-width: 700px) { .toc ol { columns: 1; } }
+
+section { margin-bottom: 76px; scroll-margin-top: 20px; }
+.sec-head { margin-bottom: var(--sp-lg); padding-bottom: 14px; border-bottom: 2px solid var(--text); }
+.sec-n { font-size: var(--t-xs); font-weight: 700; color: var(--pink); letter-spacing: .1em; font-variant-numeric: tabular-nums; margin-bottom: 6px; }
+.sec-head h2 { font-size: var(--t-xl); font-weight: 700; letter-spacing: -.015em; margin: 0 0 8px; text-wrap: balance; }
+.sec-head p { margin: 0; color: var(--text-2); max-width: 70ch; }
+h3 { font-size: var(--t-md); font-weight: 600; margin: 32px 0 12px; letter-spacing: -.01em; }
+h3:first-child { margin-top: 0; }
+h4 { font-size: var(--t-base); font-weight: 600; margin: 0 0 8px; }
+p { margin: 0 0 12px; } p:last-child { margin-bottom: 0; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-lg); box-shadow: var(--shadow-card); }
+.pair { display: grid; grid-template-columns: minmax(0,300px) minmax(0,1fr); gap: var(--sp-lg); align-items: start; }
+.cols-2 { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: var(--sp-lg); align-items: start; }
+.cols-3 { display: grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap: var(--sp-md); align-items: start; }
+.stack { display: flex; flex-direction: column; gap: var(--sp-md); }
+@media (max-width: 860px) { .pair { grid-template-columns: minmax(0,1fr); } .wrap { padding: 0 var(--sp-md) 64px; } }
+
+/* phone */
+.phone { width: 100%; max-width: 300px; margin: 0 auto; background: var(--wa-canvas); border-radius: 24px; box-shadow: var(--shadow-phone); overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.phone-bar { background: var(--wa-header); color: var(--wa-header-ink); padding: 12px 14px 10px; display: flex; align-items: center; gap: 9px; }
+.phone-avatar { width: 28px; height: 28px; border-radius: 50%; flex: 0 0 auto; background: rgba(255,255,255,.22); display: grid; place-items: center; font-size: .65rem; font-weight: 700; }
+.phone-name { font-size: var(--t-sm); font-weight: 600; line-height: 1.25; }
+.phone-sub { font-size: .66rem; opacity: .78; }
+.phone-body { padding: 12px 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+.daystamp { align-self: center; background: var(--wa-in); color: var(--wa-ink-2); font-size: .64rem; padding: 3px 10px; border-radius: var(--r-pill); box-shadow: 0 1px 1px rgba(0,0,0,.07); }
+.bub { max-width: 88%; padding: 7px 9px 6px; border-radius: 9px; font-size: .76rem; line-height: 1.45; color: var(--wa-ink); box-shadow: 0 1px 1px rgba(0,0,0,.1); word-wrap: break-word; }
+.bub.in { background: var(--wa-in); align-self: flex-start; border-top-left-radius: 2px; }
+.bub.out { background: var(--wa-out); align-self: flex-end; border-top-right-radius: 2px; }
+.bub strong { font-weight: 600; }
+.bub .tm { font-size: .6rem; color: var(--wa-ink-2); float: right; margin: 6px 0 -2px 8px; }
+.bub .tm .tick { color: var(--wa-tick); font-weight: 700; }
+.bub-hdr { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--wa-ink-2); margin-bottom: 4px; }
+.bub-note { font-size: .66rem; color: var(--wa-ink-2); font-style: italic; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--wa-divider); }
+.wa-btns { display: flex; flex-direction: column; gap: 1px; margin: 7px -9px -6px; }
+.wa-btn { background: var(--wa-in); color: var(--wa-link); text-align: center; font-size: .74rem; font-weight: 500; padding: 7px; border-top: 1px solid var(--wa-divider); }
+.bub.out .wa-btn { background: var(--wa-out); }
+.wa-list-cta { margin: 8px -9px -6px; background: var(--wa-in); color: var(--wa-link); text-align: center; font-size: .74rem; font-weight: 600; padding: 8px; border-top: 1px solid var(--wa-divider); }
+.wa-sheet { background: var(--wa-in); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.16); align-self: stretch; }
+.wa-sheet-hd { padding: 10px 13px; font-size: .76rem; font-weight: 600; color: var(--wa-ink); border-bottom: 1px solid var(--wa-divider); }
+.wa-sheet-sec { padding: 8px 13px 3px; font-size: .64rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--wa-ink-2); }
+.wa-row { padding: 8px 13px; border-bottom: 1px solid var(--wa-divider); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.wa-row:last-child { border-bottom: 0; }
+.wa-row-t { font-size: .76rem; color: var(--wa-ink); }
+.wa-row-d { font-size: .66rem; color: var(--wa-ink-2); }
+.wa-radio { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto; border: 1.5px solid var(--wa-ink-2); }
+.wa-radio.on { border-color: var(--wa-header); background: var(--wa-header); box-shadow: inset 0 0 0 3px var(--wa-in); }
+.wa-doc { display: flex; align-items: center; gap: 9px; background: rgba(0,0,0,.04); border-radius: 7px; padding: 8px 9px; margin-bottom: 6px; }
+:root[data-theme="dark"] .wa-doc { background: rgba(255,255,255,.06); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wa-doc { background: rgba(255,255,255,.06); } }
+.wa-doc-ic { width: 28px; height: 32px; border-radius: 3px; flex: 0 0 auto; background: var(--danger); color: #fff; display: grid; place-items: center; font-size: .5rem; font-weight: 700; }
+.wa-doc-n { font-size: .72rem; font-weight: 500; color: var(--wa-ink); line-height: 1.3; }
+.wa-doc-m { font-size: .62rem; color: var(--wa-ink-2); }
+.caption { font-size: var(--t-xs); color: var(--text-3); text-align: center; margin-top: 10px; max-width: 300px; margin-left: auto; margin-right: auto; }
+
+/* state / spec blocks */
+.state {
+  background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--info);
+  border-radius: var(--r-md); padding: 16px 18px; margin-bottom: var(--sp-md);
+}
+.state-hd { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.state-id {
+  font-family: var(--mono); font-size: var(--t-xs); font-weight: 700; color: var(--info);
+  background: var(--info-tint); padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+}
+.state-t { font-size: var(--t-base); font-weight: 600; }
+.state dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0,1fr); gap: 6px 16px; font-size: var(--t-sm); }
+.state dt { color: var(--text-3); font-size: var(--t-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; }
+.state dd { margin: 0; color: var(--text-2); }
+.state dd b { color: var(--text); font-weight: 600; }
+@media (max-width: 640px) { .state dl { grid-template-columns: minmax(0,1fr); gap: 2px; } .state dt { margin-top: 8px; } }
+
+.msg {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 11px 13px; font-family: var(--mono); font-size: var(--t-xs); line-height: 1.7;
+  white-space: pre-wrap; color: var(--text-2); overflow-x: auto;
+}
+.msg b { color: var(--text); font-weight: 600; }
+.msg .v { color: var(--info); }
+.msg-l { font-size: var(--t-xs); font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin: 12px 0 5px; }
+
+pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 16px; overflow-x: auto; margin: 0; font-family: var(--mono); font-size: var(--t-xs); line-height: 1.65; color: var(--text-2); }
+pre b { color: var(--text); font-weight: 600; }
+pre .v { color: var(--info); }
+pre .c { color: var(--text-3); }
+code { font-family: var(--mono); font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; color: var(--text-2); }
+
+.note { border-left: 3px solid var(--border-strong); padding: 2px 0 2px 14px; font-size: var(--t-sm); color: var(--text-2); }
+.note b { color: var(--text); font-weight: 600; }
+.note.good { border-left-color: var(--success); }
+.note.warn { border-left-color: var(--warning); }
+.note.bad { border-left-color: var(--danger); }
+.note.new { border-left-color: var(--pink); }
+
+.callout { border-radius: var(--r-md); padding: 14px 16px; font-size: var(--t-sm); border: 1px solid var(--border); }
+.callout b { font-weight: 600; }
+.callout.warn { background: var(--warning-tint); border-color: rgba(212,167,44,.35); }
+.callout.bad { background: var(--danger-tint); border-color: rgba(207,34,46,.3); }
+.callout.info { background: var(--info-tint); border-color: rgba(9,105,218,.28); }
+.callout.good { background: var(--success-tint); border-color: rgba(45,164,78,.3); }
+
+.pill { display: inline-flex; align-items: center; gap: 5px; border-radius: var(--r-pill); padding: 2px 9px; font-size: var(--t-xs); font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.pill.built { background: var(--success-tint); color: var(--success); border-color: rgba(45,164,78,.28); }
+.pill.unwired { background: var(--warning-tint); color: var(--warning-ink); border-color: rgba(212,167,44,.35); }
+.pill.new { background: var(--pink-tint); color: var(--pink); border-color: rgba(255,0,94,.25); }
+.pill.broken { background: var(--danger-tint); color: var(--danger); border-color: rgba(207,34,46,.28); }
+.pill.free { background: var(--surface-2); color: var(--text-2); border-color: var(--border-strong); }
+
+.tbl-scroll { overflow-x: auto; border-radius: var(--r-md); border: 1px solid var(--border); }
+table { border-collapse: collapse; width: 100%; font-size: var(--t-sm); background: var(--surface); }
+th { text-align: left; padding: 9px 13px; background: var(--surface-2); font-size: var(--t-xs); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 10px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+ul.plain { margin: 0; padding-left: 18px; }
+ul.plain li { margin-bottom: 6px; color: var(--text-2); }
+ul.plain li b { color: var(--text); font-weight: 600; }
+ol.plain { margin: 0; padding-left: 20px; }
+ol.plain li { margin-bottom: 8px; color: var(--text-2); }
+ol.plain li b { color: var(--text); font-weight: 600; }
+
+hr.rule { border: 0; border-top: 1px solid var(--border); margin: 32px 0; }
+a { color: var(--info); }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; border-radius: 3px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Macavation · Flow specification</p>
+  <h1>Macavation WhatsApp Flow</h1>
+  <p class="standfirst">
+    Every path through the WhatsApp line, end to end — how someone gets in, every menu and what it
+    answers, everything that arrives unprompted, and what happens when things go wrong. Exact
+    wording throughout, so this is buildable as written.
+  </p>
+  <div class="meta-row">
+    <span><b>Channel</b> +27 71 463 9643</span>
+    <span><b>Companion to</b> the design mockup</span>
+    <span><b>Date</b> 4 September 2026</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="toc-t">Contents</div>
+  <ol>
+    <li><a href="#map">The whole map on one page</a></li>
+    <li><a href="#in">Getting in — enrolment</a></li>
+    <li><a href="#menu">The main menu</a></li>
+    <li><a href="#answers">What each item answers</a></li>
+    <li><a href="#settings">My reports — the settings branch</a></li>
+    <li><a href="#alerts">Alerts, and acting on one</a></li>
+    <li><a href="#push">Everything that arrives unprompted</a></li>
+    <li><a href="#write">Changing data — the confirm rule</a></li>
+    <li><a href="#fail">When things go wrong</a></li>
+    <li><a href="#rules">The fixed rules</a></li>
+    <li><a href="#build">What to build, in order</a></li>
+  </ol>
+</nav>
+
+<!-- ==================== 1. MAP ==================== -->
+<section id="map">
+  <div class="sec-head">
+    <p class="sec-n">01</p>
+    <h2>The whole map on one page</h2>
+    <p>Every way in, and where each one lands. Nothing else in this document is new information — it is this map with the wording filled in.</p>
+  </div>
+
+<pre>
+                    ┌─────────────────────────────────────┐
+   THEY MESSAGE ──▶ │  Is this number enrolled?           │
+   (any text)       └──────────────┬──────────────────────┘
+                          no ──────┴────── yes
+                           │               │
+              ┌────────────▼──────┐        │
+              │ 6 digits?         │        │
+              │  yes → enrol      │        │
+              │  no  → SILENCE    │        │
+              └───────────────────┘        │
+                                           ▼
+                         ┌─────────────────────────────────────┐
+                         │  What did they send?                │
+                         └──┬──────┬───────┬─────────┬─────────┘
+                            │      │       │         │
+      hi / hello / start ───┘      │       │         └─── anything
+      menu / 0 / 99 / "?"          │       │              else
+      <b>or anything unrecognised</b>       │       │                │
+              │                    │       │                │
+              ▼                    │       │                ▼
+      ┌───────────────┐            │       │        <span class="c">(today: a list of</span>
+      │  MAIN MENU    │            │       │        <span class="c"> verbs. change to</span>
+      │  8 items,     │            │       │        <span class="c"> open the menu)</span>
+      │  role-gated   │            │       │
+      └───┬───────────┘            │       │
+          │                   help │       │ yes / no
+          │                        ▼       ▼
+          │                  ┌─────────┐ ┌──────────────┐
+          │                  │  HELP   │ │ confirm or   │
+          │                  └─────────┘ │ cancel a     │
+          │                              │ staged write │
+          │                              └──────────────┘
+          ├──▶ Production today ─────┐
+          ├──▶ Stock &amp; runway        │
+          ├──▶ Recovery &amp; yield      ├──▶ one answer, then
+          ├──▶ Intake today          │    back to the menu
+          ├──▶ Full daily digest ────┘
+          │
+          ├──▶ Open alerts ──▶ pick one ──▶ resolve / snooze ──▶ confirm
+          │
+          ├──▶ Latest report ──▶ PDF + summary
+          │
+          └──▶ My reports ──▶ daily / weekly / monthly on-off
+                           ├─ pause for a week
+                           └─ stop everything
+
+
+   ARRIVES UNPROMPTED (approved template, no reply needed)
+
+      06:00 daily ──┐
+      Mon weekly    ├──▶ headline figures + [View report] [Menu]
+      1st monthly ──┘         │
+                              └── tap opens the 24-hour window,
+                                  then the PDF follows free
+
+      critical alert ──▶ ⚠️ + [Mark resolved] [Snooze 4h] [Menu]
+
+      colleague message ──▶ nudge + [Reply]
+</pre>
+</section>
+
+<!-- ==================== 2. GETTING IN ==================== -->
+<section id="in">
+  <div class="sec-head">
+    <p class="sec-n">02</p>
+    <h2>Getting in — enrolment</h2>
+    <p>A number is either enrolled to a named staff member or it is a stranger. There is no in-between, and strangers get nothing.</p>
+  </div>
+
+  <div class="pair">
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div><div class="phone-name">Macavation</div><div class="phone-sub">Business account</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="daystamp">ADMIN CLICKS "SEND CODE"</div>
+          <div class="bub in">
+            Hi Anli. Your Macavation code is <strong>418 302</strong>.<br><br>
+            Send it back to me to finish setting up. It expires in 15 minutes.
+            <span class="tm">10:02</span>
+          </div>
+          <div class="bub out">418302<span class="tm">10:03 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            Thanks Anli, this number is now enrolled.<br><br>
+            Text <strong>HELP</strong> any time to see what I can do, or just say hello for the menu.
+            <span class="tm">10:03</span>
+          </div>
+        </div>
+      </div>
+      <p class="caption">The admin is standing next to them when this happens.</p>
+    </div>
+
+    <div class="stack">
+      <div class="state">
+        <div class="state-hd"><span class="state-id">IN-1</span><span class="state-t">Admin issues a code</span></div>
+        <dl>
+          <dt>Where</dt><dd>Portal → Users → edit a person → <b>Send enrolment code</b></dd>
+          <dt>Needs</dt><dd>The <code>admin.users.manage</code> permission, re-checked on the server</dd>
+          <dt>Code</dt><dd>Six digits, expires in 15 minutes, limited attempts. <b>Never shown in the portal and never logged</b> — it only ever exists on their handset</dd>
+          <dt>State</dt><dd><span class="pill built">Built</span> on the dev branch</dd>
+        </dl>
+      </div>
+
+      <div class="state">
+        <div class="state-hd"><span class="state-id">IN-2</span><span class="state-t">They send it back</span></div>
+        <dl>
+          <dt>Match</dt><dd>Exactly six digits, nothing else in the message</dd>
+          <dt>Success</dt><dd>Number is bound to that person, permanently and uniquely. One number can never belong to two people</dd>
+          <dt>Failure</dt><dd><b>Total silence.</b> Wrong code, expired code, no code pending — all answer nothing</dd>
+          <dt>State</dt><dd><span class="pill built">Built</span> and live</dd>
+        </dl>
+      </div>
+
+      <div class="callout info">
+        <b>Why silence on a bad code.</b> Replying "wrong code" to any number that happens to text
+        six digits confirms the line is live and leaks that an enrolment is in progress. The person
+        actually enrolling is standing with the admin who issued it, so they just say "nothing
+        came through" and get a fresh one. Nobody else learns anything.
+      </div>
+
+      <div class="callout bad">
+        <b>The catch today.</b> That first message is unprompted — so it needs an approved
+        template, and there isn't one. Right now the code can only be delivered if the person
+        messaged the number in the last 24 hours, which rather defeats the purpose. The enrolment
+        template is the fourth one to submit.
+      </div>
+    </div>
+  </div>
+
+  <h3>What a stranger gets</h3>
+  <div class="cols-3">
+    <div class="note bad"><b>Silence.</b> Not an error, not a "you're not registered" — nothing at
+      all. The line never confirms it exists to a number that has no business on it.</div>
+    <div class="note"><b>Still recorded.</b> The message is stored and logged, so you can see in
+      the portal that an unknown number tried and decide whether to enrol them.</div>
+    <div class="note new"><b>The one exception worth adding.</b> Report recipients who aren't
+      staff — a shareholder, say — should be able to say <code>stop</code> and be obeyed, even
+      unenrolled. Opting out must never require an account.</div>
+  </div>
+</section>
+
+<!-- ==================== 3. MENU ==================== -->
+<section id="menu">
+  <div class="sec-head">
+    <p class="sec-n">03</p>
+    <h2>The main menu</h2>
+    <p>One screen, eight items, filtered to what your role can already open in the portal. This is the hub — every path returns here.</p>
+  </div>
+
+  <div class="pair">
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div><div class="phone-name">Macavation</div><div class="phone-sub">online</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="bub out">hello<span class="tm">08:04 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">Hi Henry. What would you like to see?<span class="tm">08:04</span>
+            <div class="wa-list-cta">☰ &nbsp;Choose</div>
+          </div>
+          <div class="wa-sheet">
+            <div class="wa-sheet-hd">Macavation</div>
+            <div class="wa-sheet-sec">Today</div>
+            <div class="wa-row"><div><div class="wa-row-t">Production today</div><div class="wa-row-d">Cracked, packed, oil</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Stock &amp; runway</div><div class="wa-row-d">On hand, weeks cover</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Recovery &amp; yield</div><div class="wa-row-d">Sound kernel, oil yield</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Intake today</div><div class="wa-row-d">Deliveries and NIS</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Open alerts</div><div class="wa-row-d">3 need attention</div></div><div class="wa-radio"></div></div>
+            <div class="wa-sheet-sec">Reports</div>
+            <div class="wa-row"><div><div class="wa-row-t">Full daily digest</div><div class="wa-row-d">Everything in one message</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Latest report</div><div class="wa-row-d">Weekly, w/e 1 Sep</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">My reports</div><div class="wa-row-d">Change what you get</div></div><div class="wa-radio"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <h3 style="margin-top:0">The eight items, and who sees each</h3>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Item</th><th>Shown when your role can open</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td><b>Production today</b></td><td>Dashboard</td><td><span class="pill built">Built</span></td></tr>
+            <tr><td><b>Stock &amp; runway</b></td><td>Kernel stock</td><td><span class="pill built">Built</span></td></tr>
+            <tr><td><b>Recovery &amp; yield</b></td><td>Dashboard</td><td><span class="pill built">Built</span></td></tr>
+            <tr><td><b>Intake today</b></td><td>Grower intake</td><td><span class="pill built">Built</span></td></tr>
+            <tr><td><b>Open alerts</b></td><td>Dashboard</td><td><span class="pill built">Built</span></td></tr>
+            <tr><td><b>Full daily digest</b></td><td>Dashboard</td><td><span class="pill built">Built</span></td></tr>
+            <tr><td><b>Latest report</b></td><td>Report delivery</td><td><span class="pill built">Built</span></td></tr>
+            <tr><td><b>My reports</b></td><td><b>Always</b> — your own settings</td><td><span class="pill new">New</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout good">
+        <b>Nothing new to maintain.</b> The gate is the same permission that shows or hides the
+        area in the portal sidebar. Give someone access to stock in the portal and it appears on
+        their phone; take it away and it vanishes. There is no second list to keep in step.
+      </div>
+
+      <div class="note warn"><b>Ten rows is the ceiling</b> and titles cap at 24 characters — a hard
+        Meta limit on the tappable sheet. Eight items leaves room for two more before this has to
+        become two levels.</div>
+
+      <div class="note new"><b>The one change needed.</b> Today an unrecognised word gets a list of
+        verbs to type. It should open this menu instead. <em>Hello</em>, <em>hi</em>, <em>start</em>,
+        <em>menu</em>, <em>0</em>, <em>99</em>, <em>?</em> and an empty message already do.</div>
+    </div>
+  </div>
+
+  <h3>The exact wording</h3>
+  <div class="cols-2">
+    <div>
+      <div class="msg-l">Menu — tappable version</div>
+      <div class="msg">Hi <span class="v">{first name}</span>. What would you like to see?
+
+<span class="c">[ ☰ Choose ]  →  opens the sheet above</span></div>
+    </div>
+    <div>
+      <div class="msg-l">Menu — fallback when the sheet can't render</div>
+      <div class="msg">Hi <span class="v">{first name}</span>. What would you like to see?
+
+1. Production today
+2. Stock &amp; runway
+3. Recovery &amp; yield
+4. Intake today
+5. Open alerts
+6. Full daily digest
+7. Latest report
+8. My reports
+
+Reply with a number. 99 brings this menu
+back at any time.</div>
+    </div>
+  </div>
+  <div class="note" style="margin-top:14px;">
+    Typed numbers match the position in <b>your own</b> filtered list, so "3" always means the third
+    row you were actually shown. Someone who can't see stock has a different list, and their 3 is a
+    different thing — correctly.
+  </div>
+</section>
+
+<!-- ==================== 4. ANSWERS ==================== -->
+<section id="answers">
+  <div class="sec-head">
+    <p class="sec-n">04</p>
+    <h2>What each item answers</h2>
+    <p>Every one of these is a single message, sent straight back, with the menu one tap away. All read-only, all instant, all free.</p>
+  </div>
+
+  <div class="cols-2">
+    <div class="stack">
+      <div><div class="msg-l">Production today</div>
+      <div class="msg"><b>Production — 4 Sep</b>
+
+Kernel cracked: <span class="v">4 120</span> kg today, <span class="v">19 640</span> kg this week
+Kernel packed: <span class="v">3 880</span> kg today, <span class="v">18 200</span> kg this week
+Oil: <span class="v">880</span> L today, <span class="v">4 210</span> L this week
+Batches in production: <span class="v">2</span></div></div>
+
+      <div><div class="msg-l">Stock &amp; runway</div>
+      <div class="msg"><b>Stock &amp; runway</b>
+
+Kernel on hand: <span class="v">21 591</span> kg
+Oil finished: <span class="v">193 660</span> kg
+Oil raw material: <span class="v">6</span> kg
+Weeks cover: <span class="v">—</span>
+
+<span class="c">Cover not calculable — no demand figure
+this week.</span></div></div>
+
+      <div><div class="msg-l">Recovery &amp; yield</div>
+      <div class="msg"><b>Recovery &amp; yield — 4 Sep</b>
+
+Sound kernel recovery: <span class="v">31,4%</span>
+Oil yield: <span class="v">28,9%</span>
+Wholes: <span class="v">42%</span>
+
+Month to date: <span class="v">86 400</span> kg
+Last month: <span class="v">92 100</span> kg (<span class="v">−6,2%</span>)</div></div>
+    </div>
+
+    <div class="stack">
+      <div><div class="msg-l">Intake today</div>
+      <div class="msg"><b>Intake — 4 Sep</b>
+
+Deliveries: <span class="v">6</span>
+NIS received: <span class="v">18 400</span> kg
+Expected still to arrive: <span class="v">4 200</span> kg</div></div>
+
+      <div><div class="msg-l">Full daily digest</div>
+      <div class="msg"><b>Macavation — 4 Sep</b>
+
+<b>Production</b>
+Cracked <span class="v">4 120</span> kg · packed <span class="v">3 880</span> kg
+Oil <span class="v">880</span> L · <span class="v">2</span> batches running
+
+<b>Against target</b>
+<span class="v">19 640</span> kg WTD vs <span class="v">21 000</span> kg (<span class="v">−6,5%</span>)
+
+<b>Stock</b>
+Kernel <span class="v">21 591</span> kg · oil <span class="v">193 660</span> kg
+
+<b>Intake</b>
+<span class="v">6</span> deliveries · <span class="v">18 400</span> kg NIS
+
+<b>Alerts</b>
+<span class="v">3</span> open — reply 5 to see them</div></div>
+
+      <div><div class="msg-l">Latest report</div>
+      <div class="msg"><span class="c">[ 📄 Macavation Weekly 01-09.pdf ]</span>
+
+<b>Weekly report — week ending 1 Sep</b>
+
+Cracked <span class="v">96 200</span> kg against a target of
+<span class="v">98 000</span> kg.
+Recovery <span class="v">31,1%</span>, up from <span class="v">30,4%</span>.
+
+<span class="c">[ Main menu ]</span></div></div>
+    </div>
+  </div>
+
+  <div class="callout warn" style="margin-top:20px;">
+    <b>Missing figures show a dash, never a zero.</b> "Cover: 0,0 weeks" and "cover not calculable"
+    are completely different statements, and the second one is often the true one — the development
+    data has genuine blanks in it today. Every number in every one of these messages passes through
+    the same guard, and it must not be dropped.
+  </div>
+
+  <div class="note" style="margin-top:16px;">
+    <b>Only what's already been sent to you.</b> <em>Latest report</em> returns the most recent
+    report that was actually delivered to that number — not the newest report in the system. Nobody
+    reaches a report by asking for it that they weren't on the list for.
+  </div>
+</section>
+
+<!-- ==================== 5. SETTINGS ==================== -->
+<section id="settings">
+  <div class="sec-head">
+    <p class="sec-n">05</p>
+    <h2>My reports — the settings branch</h2>
+    <p>The only place in the flow where a member changes something. Same data as the portal panel, so a change on either side shows on the other immediately.</p>
+  </div>
+
+  <div class="pair">
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div><div class="phone-name">Macavation</div><div class="phone-sub">online</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="bub out">My reports<span class="tm">08:30 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">Here's what you're getting. Tap one to change it.<span class="tm">08:30</span></div>
+          <div class="wa-sheet">
+            <div class="wa-sheet-hd">My reports</div>
+            <div class="wa-row"><div><div class="wa-row-t">Daily — on</div><div class="wa-row-d">Every morning at 06:00</div></div><div class="wa-radio on"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Weekly — on</div><div class="wa-row-d">Mondays</div></div><div class="wa-radio on"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Monthly — off</div><div class="wa-row-d">1st of the month</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Alerts — critical only</div><div class="wa-row-d">Tap to include warnings</div></div><div class="wa-radio on"></div></div>
+            <div class="wa-sheet-sec">Quieten things down</div>
+            <div class="wa-row"><div><div class="wa-row-t">Pause for a week</div><div class="wa-row-d">Resumes on its own</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Stop everything</div><div class="wa-row-d">Until you ask again</div></div><div class="wa-radio"></div></div>
+          </div>
+          <div class="bub out">Pause for a week<span class="tm">08:31 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            Paused until <strong>Thu 11 Sep</strong>. Critical alerts will still come through.<br><br>
+            Send <strong>resume</strong> any time to start again sooner.
+            <span class="tm">08:31</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Tap</th><th>What happens</th><th>Reply</th></tr></thead>
+          <tbody>
+            <tr><td><b>Daily / Weekly / Monthly</b></td><td>Flips that one on or off, immediately, no confirm</td><td>"Daily is now off. You'll still get weekly and monthly."</td></tr>
+            <tr><td><b>Alerts</b></td><td>Cycles critical-only → critical and warnings → none</td><td>"You'll now get warnings as well as critical alerts."</td></tr>
+            <tr><td><b>Pause for a week</b></td><td>Sets a date seven days out. Everything except critical alerts stops until then, then resumes on its own</td><td>"Paused until Thu 11 Sep."</td></tr>
+            <tr><td><b>Stop everything</b></td><td>Full opt-out. Nothing sent again until they ask</td><td>"Stopped. Send <b>start</b> when you want them back."</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout good">
+        <b>Cheaper than it looks.</b> The pause date already has a column and the daily sender
+        already respects it. The function that changes a subscription from a phone number is
+        already written and granted — nothing has ever called it. This branch is mostly wiring.
+      </div>
+
+      <div class="callout info">
+        <b>No confirm step here, deliberately.</b> The confirm rule in section 8 is for changing
+        <em>company</em> data. Changing what lands on your own phone is instantly reversible and
+        obviously yours — making someone say YES twice to turn off an email is the kind of thing
+        that makes people stop using a tool.
+      </div>
+
+      <div class="note bad"><b>Stop works from anywhere.</b> The word <code>stop</code> is obeyed
+        at any point in any conversation, even mid-way through something else, even from a number
+        that isn't enrolled. It is never behind a menu.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 6. ALERTS ==================== -->
+<section id="alerts">
+  <div class="sec-head">
+    <p class="sec-n">06</p>
+    <h2>Alerts, and acting on one</h2>
+    <p>The only branch where someone changes company data from their phone — so it is also the one that demonstrates the confirm rule.</p>
+  </div>
+
+  <div class="cols-3">
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div><div class="phone-name">Macavation</div><div class="phone-sub">online</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="bub out">5<span class="tm">09:18 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            <strong>3 open alerts</strong><br><br>
+            1. ⚠️ Low stock: Protein — 16 Aug<br>
+            2. ⚠️ Low stock: Protein — 14 Aug<br>
+            3. ⚠️ Low stock: Protein — 12 Aug<br><br>
+            Reply <strong>ACK 1</strong> to resolve the first.
+            <div class="bub-note">99 for the menu</div>
+            <span class="tm">09:18</span>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Step 1 — see what's open</p>
+    </div>
+
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div><div class="phone-name">Macavation</div><div class="phone-sub">online</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="bub out">ACK 1<span class="tm">09:20 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            Resolve <strong>Low stock: Protein</strong>, raised 16 Aug?
+            <span class="tm">09:20</span>
+            <div class="wa-btns">
+              <div class="wa-btn">Yes, resolve</div>
+              <div class="wa-btn">Cancel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Step 2 — say back what was understood</p>
+    </div>
+
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div><div class="phone-name">Macavation</div><div class="phone-sub">online</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="bub out">Yes, resolve<span class="tm">09:21 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            Done. <strong>Low stock: Protein</strong> resolved by you at 09:21 and recorded in the
+            portal.<br><br>
+            2 alerts still open.
+            <span class="tm">09:21</span>
+            <div class="wa-btns"><div class="wa-btn">Main menu</div></div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Step 3 — done, and say what's left</p>
+    </div>
+  </div>
+
+  <div class="cols-2" style="margin-top:24px;">
+    <div class="state">
+      <div class="state-hd"><span class="state-id">AL-1</span><span class="state-t">Permission is checked twice</span></div>
+      <dl>
+        <dt>Once</dt><dd>When they ask — no resolve option appears at all if their role can't resolve alerts</dd>
+        <dt>Again</dt><dd>At the moment they confirm, on the server. A permission removed in between is honoured</dd>
+        <dt>State</dt><dd><span class="pill built">Built</span> on the dev branch</dd>
+      </dl>
+    </div>
+    <div class="state">
+      <div class="state-hd"><span class="state-id">AL-2</span><span class="state-t">A pending request expires</span></div>
+      <dl>
+        <dt>Held</dt><dd>One at a time, per person. Asking for something else replaces it</dd>
+        <dt>Expiry</dt><dd>Confirming an expired request replies that it has expired and does nothing</dd>
+        <dt>Cancel</dt><dd><code>NO</code>, <code>N</code> or <code>CANCEL</code> — "Cancelled, nothing was saved"</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="callout warn" style="margin-top:20px;">
+    <b>What gets pushed, and what doesn't.</b> Critical alerts go out unprompted to everyone who
+    opted in. Warnings go only to people who asked for warnings. Info never leaves the portal.
+    On top of that: the same alert is never sent twice, and there's a daily cap per person. Meta
+    scores the number on how people react to it, and a poor score cuts how many messages you may
+    send <em>of any kind</em> — so alert noise would degrade the reports too.
+  </div>
+</section>
+
+<!-- ==================== 7. PUSH ==================== -->
+<section id="push">
+  <div class="sec-head">
+    <p class="sec-n">07</p>
+    <h2>Everything that arrives unprompted</h2>
+    <p>Four templates carry everything that starts a conversation. Each needs Meta's approval before it can send once — and none of them are approved today.</p>
+  </div>
+
+  <div class="tbl-scroll" style="margin-bottom:24px;">
+    <table>
+      <thead><tr><th>Template</th><th>When</th><th>Buttons</th><th>Then</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>macavation_daily_report</code><br><span style="color:var(--text-3);font-size:var(--t-xs)">Utility</span></td>
+          <td>06:00 daily, to everyone with Daily ticked and not paused</td>
+          <td>View report · Menu</td>
+          <td>Tap → PDF and figures, free</td>
+        </tr>
+        <tr>
+          <td><code>macavation_weekly_report</code><br><span style="color:var(--text-3);font-size:var(--t-xs)">Utility</span></td>
+          <td>Monday 06:00, once the week's report is published</td>
+          <td>View report · Menu</td>
+          <td>Tap → PDF and summary</td>
+        </tr>
+        <tr>
+          <td><code>macavation_monthly_report</code><br><span style="color:var(--text-3);font-size:var(--t-xs)">Utility</span></td>
+          <td>1st of the month, 06:00</td>
+          <td>View report · Menu</td>
+          <td>Tap → PDF and summary</td>
+        </tr>
+        <tr>
+          <td><code>macavation_alert</code><br><span style="color:var(--text-3);font-size:var(--t-xs)">Utility</span></td>
+          <td>Within minutes of a critical alert, or a warning if opted in</td>
+          <td>Mark resolved · Snooze 4h · Menu</td>
+          <td>Tap → the confirm flow above</td>
+        </tr>
+        <tr>
+          <td><code>macavation_enrolment</code><br><span style="color:var(--text-3);font-size:var(--t-xs)">Utility</span></td>
+          <td>When an admin issues a code</td>
+          <td>—</td>
+          <td>They send the code back</td>
+        </tr>
+        <tr>
+          <td><code>macavation_message</code><br><span style="color:var(--text-3);font-size:var(--t-xs)">Utility</span></td>
+          <td>Someone messages them from the portal and their window is shut</td>
+          <td>Reply</td>
+          <td>Tap → the message, then a normal conversation</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cols-2">
+    <div>
+      <div class="msg-l">The daily, exactly as it sends</div>
+      <div class="msg">Morning <span class="v">{first name}</span>, your report for
+<span class="v">{date}</span> is ready.
+
+Kernel cracked <span class="v">{cracked}</span> kg
+Oil <span class="v">{oil}</span> L
+NIS intake <span class="v">{intake}</span> kg
+
+<span class="c">[ View report ]  [ Menu ]</span></div>
+      <div class="note" style="margin-top:12px;"><b>Five blanks, fixed order.</b> Change the order
+        or the count and Meta rejects the send outright, so the sender fills them in exactly this
+        sequence and nothing else.</div>
+    </div>
+
+    <div class="stack">
+      <div class="state">
+        <div class="state-hd"><span class="state-id">PU-1</span><span class="state-t">Who it goes to</span></div>
+        <dl>
+          <dt>Ticked</dt><dd>Daily ticked on the distribution panel, or set from their own phone</dd>
+          <dt>Not paused</dt><dd>Pause date is absent or in the past</dd>
+          <dt>Not opted out</dt><dd>Checked immediately before every single send, never cached</dd>
+        </dl>
+      </div>
+      <div class="state">
+        <div class="state-hd"><span class="state-id">PU-2</span><span class="state-t">Sent once, only when there's something to say</span></div>
+        <dl>
+          <dt>No production</dt><dd>Nothing sends. A silent day is better than "0 kg" every Sunday</dd>
+          <dt>Already sent</dt><dd>Re-running the job the same day sends nothing — deliberate, so a retry can never double-send</dd>
+          <dt>Record</dt><dd>Every attempt is logged per person, with the outcome and the delivery receipt</dd>
+        </dl>
+      </div>
+      <div class="callout bad">
+        <b>Order matters at 06:00.</b> The figures are rebuilt nightly at 23:20. The report must be
+        generated <em>after</em> that and sent after it exists — otherwise the template goes out
+        with yesterday's numbers, or with blanks, and it cannot be recalled.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 8. WRITE ==================== -->
+<section id="write">
+  <div class="sec-head">
+    <p class="sec-n">08</p>
+    <h2>Changing data — the confirm rule</h2>
+    <p>One rule, applied to every request that writes anything to the business: say back what you understood, and wait.</p>
+  </div>
+
+  <div class="cols-2">
+    <div class="card">
+      <h4 style="margin-top:0">The rule</h4>
+      <ol class="plain">
+        <li><b>Understand it.</b> Work out exactly what they asked for.</li>
+        <li><b>Say it back.</b> In full, in plain words, with the specific thing named — not "confirm this change?"</li>
+        <li><b>Wait.</b> Nothing is written yet.</li>
+        <li><b>YES</b> writes it and confirms what was done, with the time. <b>NO</b> discards it and says nothing was saved.</li>
+        <li><b>Re-check permission</b> at the moment of writing, not at the moment of asking.</li>
+      </ol>
+      <div class="note" style="margin-top:14px;">Reading never confirms. Every menu item in section
+        4 answers straight away.</div>
+    </div>
+
+    <div class="stack">
+      <div>
+        <div class="msg-l">Good — names the thing</div>
+        <div class="msg">Resolve <b>Low stock: Protein</b>, raised
+16 Aug?
+
+<span class="c">[ Yes, resolve ]  [ Cancel ]</span></div>
+      </div>
+      <div>
+        <div class="msg-l">Bad — could be anything</div>
+        <div class="msg">Are you sure you want to continue?
+
+<span class="c">[ Yes ]  [ No ]</span></div>
+      </div>
+      <div class="note warn"><b>Why it matters more here than in a browser.</b> People reply to
+        WhatsApp one-handed, walking, half-reading. The confirmation is the only chance to catch a
+        misread — so it has to carry enough detail to be worth reading.</div>
+    </div>
+  </div>
+
+  <div class="callout info" style="margin-top:20px;">
+    <b>Today there is exactly one of these</b> — resolving an alert, on the dev branch. The pattern
+    and the plumbing behind it are built and waiting; anything added later registers itself and
+    inherits the whole flow.
+  </div>
+</section>
+
+<!-- ==================== 9. FAILURES ==================== -->
+<section id="fail">
+  <div class="sec-head">
+    <p class="sec-n">09</p>
+    <h2>When things go wrong</h2>
+    <p>Every one of these will happen. What matters is that none of them leave someone stuck or told something untrue.</p>
+  </div>
+
+  <div class="tbl-scroll">
+    <table>
+      <thead><tr><th>What happens</th><th>They see</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>They tap an old menu</b><br>after a new version deployed</td>
+          <td>"That option is no longer available. Reply 99 for the menu."</td>
+          <td>Old messages stay in the chat forever and stay tappable. Treated as stale, not as an error.</td>
+        </tr>
+        <tr>
+          <td><b>Their role changed</b><br>mid-conversation</td>
+          <td>The menu, re-filtered. The item is simply gone.</td>
+          <td>Permission is read fresh every time, never cached in the conversation.</td>
+        </tr>
+        <tr>
+          <td><b>Their role has nothing enabled</b></td>
+          <td>"Your role doesn't have access to any of the WhatsApp reports yet. Ask an administrator to enable the areas you need."</td>
+          <td>An unreadable permission table must fail to an empty menu, never a full one.</td>
+        </tr>
+        <tr>
+          <td><b>The tappable sheet won't render</b><br>old handset, odd client</td>
+          <td>The same menu as numbered text.</td>
+          <td>Automatic. Typed numbers match the same positions, so nothing is lost.</td>
+        </tr>
+        <tr>
+          <td><b>A figure is missing</b></td>
+          <td>A dash, and a line saying why.</td>
+          <td>Never a zero. "0 weeks cover" and "cover unknown" mean opposite things.</td>
+        </tr>
+        <tr>
+          <td><b>They message outside 24h</b><br>and we owe them something</td>
+          <td>A template, not free text.</td>
+          <td>Free text sent to a shut window is <b>accepted and then silently dropped</b> — it looks sent and never arrives. The commonest way this goes wrong invisibly.</td>
+        </tr>
+        <tr>
+          <td><b>A template isn't approved</b></td>
+          <td>Nothing.</td>
+          <td>Meta reports "template not found", which says nothing about approval. Check the template's real status before blaming the sender.</td>
+        </tr>
+        <tr>
+          <td><b>They opted out</b></td>
+          <td>Nothing, ever, until they ask.</td>
+          <td>Checked immediately before every send. No exception for "important".</td>
+        </tr>
+        <tr>
+          <td><b>A stranger messages</b></td>
+          <td>Nothing.</td>
+          <td>Recorded so you can see it in the portal, but never answered.</td>
+        </tr>
+        <tr>
+          <td><b>Something breaks our side</b></td>
+          <td>Nothing.</td>
+          <td>There are <b>no retries</b> — a message we fail to handle is gone for good. So it is stored before anything else is attempted, and failures are logged loudly with the message id.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout bad" style="margin-top:20px;">
+    <b>The failure to design against.</b> A message sent to a closed window is accepted by
+    everything in the chain and then quietly dropped by Meta. No error, no bounce — it simply never
+    arrives. That is why the portal must show which mode a send is about to use <em>before</em> the
+    button is pressed, and why every delivery is recorded with its receipt.
+  </div>
+</section>
+
+<!-- ==================== 10. RULES ==================== -->
+<section id="rules">
+  <div class="sec-head">
+    <p class="sec-n">10</p>
+    <h2>The fixed rules</h2>
+    <p>Constraints that don't change and shouldn't be argued with mid-build. Most are Meta's; two are house rules across every Customapp WhatsApp product.</p>
+  </div>
+
+  <div class="cols-2">
+    <div class="card">
+      <h4 style="margin-top:0">Navigation — house rules</h4>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Key</th><th>Always means</th></tr></thead>
+          <tbody>
+            <tr><td><code>0</code></td><td>Back one step</td></tr>
+            <tr><td><code>99</code></td><td>Main menu</td></tr>
+            <tr><td><code>stop</code></td><td>Opt out, from anywhere, always</td></tr>
+            <tr><td><code>help</code></td><td>What I can do</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note bad" style="margin-top:12px;">Never introduce another key for back or menu,
+        and never use the legacy <code>9</code>. Someone who learns this on one Customapp product
+        is right on all of them.</div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0">Meta's limits</h4>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Thing</th><th class="num">Limit</th></tr></thead>
+          <tbody>
+            <tr><td>Buttons on one message</td><td class="num">3</td></tr>
+            <tr><td>Button label</td><td class="num">20 chars</td></tr>
+            <tr><td>Rows in one list</td><td class="num">10</td></tr>
+            <tr><td>Row title</td><td class="num">24 chars</td></tr>
+            <tr><td>File size</td><td class="num">16 MB</td></tr>
+            <tr><td>Reply window</td><td class="num">24 hours</td></tr>
+            <tr><td>Time to answer a message</td><td class="num">under 3 s</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note" style="margin-top:12px;">Over a limit, the message is <b>rejected outright
+        rather than trimmed</b> — so a title that grew past 24 characters breaks the menu for
+        everyone rather than looking slightly wrong.</div>
+    </div>
+  </div>
+
+  <div class="cols-2" style="margin-top:20px;">
+    <div class="card">
+      <h4 style="margin-top:0">Timing</h4>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>What</th><th>When</th></tr></thead>
+          <tbody>
+            <tr><td>Figures rebuilt</td><td>23:20 nightly, and hourly</td></tr>
+            <tr><td>Daily report</td><td>06:00</td></tr>
+            <tr><td>Weekly report</td><td>Monday 06:00</td></tr>
+            <tr><td>Monthly report</td><td>1st, 06:00</td></tr>
+            <tr><td>Stock alerts checked</td><td>07:00, 12:00, 17:00</td></tr>
+            <tr><td>Enrolment code expires</td><td>15 minutes</td></tr>
+            <tr><td>Pending confirmation expires</td><td>15 minutes</td></tr>
+            <tr><td>Pause lasts</td><td>7 days, then resumes itself</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0">What it costs</h4>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Message</th><th>Cost</th></tr></thead>
+          <tbody>
+            <tr><td>Anything they start</td><td><span class="pill free">Free</span></td></tr>
+            <tr><td>Every reply inside 24h</td><td><span class="pill free">Free</span></td></tr>
+            <tr><td>A report we push</td><td>Per message</td></tr>
+            <tr><td>An alert we push</td><td>Per message</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note good" style="margin-top:12px;">The whole menu — every item in section 4,
+        every settings change, every alert resolved — costs <b>nothing</b>. Only the six templates
+        cost anything, and only when they open a conversation.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 11. BUILD ==================== -->
+<section id="build">
+  <div class="sec-head">
+    <p class="sec-n">11</p>
+    <h2>What to build, in order</h2>
+    <p>Sequenced so the slowest thing starts first and nothing waits on something it didn't need to.</p>
+  </div>
+
+  <div class="stack">
+    <div class="state" style="border-left-color:var(--danger)">
+      <div class="state-hd"><span class="state-id" style="color:var(--danger);background:var(--danger-tint)">FIRST</span><span class="state-t">Submit the templates and fix the permission fault</span></div>
+      <dl>
+        <dt>Why first</dt><dd>Meta takes up to 24 hours to approve, and <b>everything unprompted waits on it</b> — reports, alerts, even enrolment codes. Nothing else here is on the critical path.</dd>
+        <dt>Also</dt><dd>The super-user permission fault, so you can actually use the menu while the approvals run. It's a one-line fix and it is the reason the line looks broken to you today.</dd>
+        <dt>Then</dt><dd>Point the number at live data instead of the development database.</dd>
+      </dl>
+    </div>
+
+    <div class="state">
+      <div class="state-hd"><span class="state-id">2</span><span class="state-t">Make the daily actually send</span></div>
+      <dl>
+        <dt>Deploy</dt><dd>The sender exists and was never put live</dd>
+        <dt>Schedule</dt><dd>06:00, after the nightly rebuild</dd>
+        <dt>Prove it</dt><dd>Test-send to your own handset before anyone else is on the list</dd>
+      </dl>
+    </div>
+
+    <div class="state">
+      <div class="state-hd"><span class="state-id">3</span><span class="state-t">Weekly and monthly</span></div>
+      <dl>
+        <dt>Why now</dt><dd>Same shape as the daily, and those two ticks on your panel currently do nothing at all</dd>
+        <dt>Also</dt><dd>Delivery receipts on the panel — the data already arrives, only the display is missing</dd>
+      </dl>
+    </div>
+
+    <div class="state">
+      <div class="state-hd"><span class="state-id">4</span><span class="state-t">The settings branch</span></div>
+      <dl>
+        <dt>Build</dt><dd>My reports, pause, stop, resume — mostly wiring functions that already exist</dd>
+        <dt>Also</dt><dd>Unrecognised words open the menu instead of listing verbs</dd>
+        <dt>Also</dt><dd>Add and remove people on the distribution panel, and let them join from WhatsApp so the panel's promise becomes true</dd>
+      </dl>
+    </div>
+
+    <div class="state">
+      <div class="state-hd"><span class="state-id">5</span><span class="state-t">Alerts to WhatsApp</span></div>
+      <dl>
+        <dt>Build</dt><dd>The push branch, the severity setting per person, the dedupe and daily cap</dd>
+        <dt>Reuses</dt><dd>The resolve-and-confirm flow, already built</dd>
+      </dl>
+    </div>
+
+    <div class="state">
+      <div class="state-hd"><span class="state-id">6</span><span class="state-t">Colleague messages, then forms</span></div>
+      <dl>
+        <dt>Messages</dt><dd>The out-of-window nudge, plus showing which mode a send will use before it's sent</dd>
+        <dt>Forms</dt><dd>Last, or not at all for now. The most involved piece, and the menu should be earning its keep first</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="callout info" style="margin-top:24px;">
+    <b>Steps 2 to 5 are mostly connecting things that already exist.</b> The tables, the permission
+    model, the confirm pattern, the pause column, the receipt data and the subscription functions
+    are all built and waiting. What's genuinely missing is small: approved templates, a schedule,
+    the settings branch, and the alert push.
+  </div>
+
+  <p style="margin-top:28px; font-size:var(--t-xs); color:var(--text-3); max-width:70ch;">
+    Stock and batch figures are real values read from the development database on 4 September 2026.
+    Production figures, names other than your own, and alert details are illustrative — the
+    development dataset has no production recorded for today. Behaviour marked <span class="pill
+    built">Built</span> was verified against the live channel and the deployed code; anything
+    marked <span class="pill new">New</span> does not exist yet in any form.
+  </p>
+</section>
+
+</div>
