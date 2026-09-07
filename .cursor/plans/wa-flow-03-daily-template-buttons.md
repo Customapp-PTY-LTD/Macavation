@@ -1,8 +1,9 @@
----
-depends_on: wa-flow-02-optout-and-pause.md
----
-
 # WhatsApp: put quick-reply buttons on the daily report template, and answer the taps
+
+**No `depends_on` needed.** This plan originally waited on `wa-flow-02-optout-and-pause.md`, which
+was blocked by fleet review twice and was then hand-built and merged directly to `dev` (PR #72,
+commit `d17d1cc`) instead of a third fleet attempt. Its opt-out schema and code are already on
+`dev`, so a fresh `dev-agent` branch already has them — nothing left to wait for.
 
 ## Context
 
