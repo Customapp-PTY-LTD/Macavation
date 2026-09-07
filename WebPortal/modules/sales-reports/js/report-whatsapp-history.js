@@ -71,6 +71,8 @@ var ReportWhatsappHistory = (function () {
         var status = r.status;
         var isFailed = status === 'failed';
         var isPending = status === 'pending';
+        var isDelivered = status === 'delivered';
+        var isRead = status === 'read';
         var displayName = (r.display_name != null && String(r.display_name).trim() !== '')
             ? r.display_name
             : (r.phone || '');
@@ -85,13 +87,22 @@ var ReportWhatsappHistory = (function () {
             phone: r.phone || '',
             displayName: displayName,
             status: status,
-            isSent: status === 'sent',
+            // 'sent', 'delivered' and 'read' are all successful outcomes of the ORIGINAL send —
+            // 'delivered'/'read' are receipts that arrive afterwards on the very same row
+            // (migrations/20260910090000_report_delivery_receipts.sql), not a different result.
+            // Re-send must stay hidden for all three, not just 'sent' — see buildActionsCell.
+            isSent: status === 'sent' || isDelivered || isRead,
             isPending: isPending,
             isFailed: isFailed,
+            isDelivered: isDelivered,
+            isRead: isRead,
             // Verbatim gateway text, never truncated here — the render function truncates for
             // display and keeps the full string in a title attribute.
             failureText: isFailed ? (r.delivery_error || null) : null,
             pendingNote: isPending ? PENDING_NOTE : null,
+            // When the status last moved forward (sent -> delivered -> read), for the receipt tick
+            // shown inline with the Status cell (contract 4) — null until a receipt has arrived.
+            statusUpdatedAt: r.status_updated_at != null ? r.status_updated_at : null,
             when: when,
             sentByName: sentByName
         };
@@ -108,7 +119,9 @@ var ReportWhatsappHistory = (function () {
         var out = [];
         arr.forEach(function (row) {
             if (!row) return;
-            if (row.status === 'sent') return;
+            // 'delivered'/'read' are receipts on an already-successful send (contract: one
+            // lifecycle, same row) — never a re-send candidate, exactly like 'sent'.
+            if (row.status === 'sent' || row.status === 'delivered' || row.status === 'read') return;
             var phone = row.phone;
             if (!phone || !String(phone).trim()) return;
             out.push({
@@ -176,6 +189,17 @@ var ReportWhatsappHistory = (function () {
         } else if (historyRow.isPending) {
             $statusCell.append(
                 $('<div>', { 'class': 'text-muted small mt-1' }).text(historyRow.pendingNote)
+            );
+        } else if (historyRow.isDelivered || historyRow.isRead) {
+            // Compact receipt indicator inline with the Status cell (contract 4) — no new column.
+            // Double-tick text rather than a colored glyph: this file's only permitted non-literal
+            // .html() call is MacStatus.pill() above; everything else here is .text()-only.
+            var tick = '✓✓'; // double-check mark
+            var tickLabel = historyRow.isRead ? (tick + ' Read') : (tick + ' Delivered');
+            var tickWhen = formatWhen(historyRow.statusUpdatedAt);
+            $statusCell.append(
+                $('<div>', { 'class': 'text-muted small mt-1' })
+                    .text(tickWhen ? (tickLabel + ' ' + tickWhen) : tickLabel)
             );
         }
         $tr.append($statusCell);
