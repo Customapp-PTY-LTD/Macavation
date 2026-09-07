@@ -53,6 +53,11 @@
  *   immediately, and are only applied once the sender replies YES (or Y / CONFIRM); NO (or N /
  *   CANCEL) discards the staged command instead. See STAGED_COMMAND_HANDLERS below — empty until
  *   a write command exists to register there.
+ * - A "Mark resolved" tap on the macavation_alert PUSH template (sent unprompted by
+ *   send-alert-whatsapp, not requested via this menu) dispatches on an ALERT_NS reply id carrying a
+ *   truncated alert reference, resolved back to a real alert by resolve_dashboard_alert_by_ref and
+ *   staged through the SAME commandAck function ACK <n> uses — see ALERT_NS/ALERT_ACK_ACTION and
+ *   dispatchAlertAck below.
  *
  * Control Room's contract:
  * - POSTs Meta's raw webhook envelope byte-for-byte: the whatsapp_business_account
@@ -768,6 +773,25 @@ function visibleItems(featureKeys: Set<string>): MenuItem[] {
 }
 
 const MENU_NS = 'menu';
+
+/**
+ * Reply-id namespace for a WhatsApp PUSH template's per-alert button — currently only "Mark
+ * resolved" on the macavation_alert template (send-alert-whatsapp/index.ts). Not a MENU_NS tap:
+ * this arrives on an alert PUSH the member did not request, not a menu they opened, and it carries
+ * a third segment (the alert reference) MENU_NS taps never have. See ALERT_ACK_ACTION's own
+ * comment below for the reference-encoding reason.
+ */
+const ALERT_NS = 'alert';
+
+/**
+ * The only action ALERT_NS carries today. Its `arg` is the first 24 lowercase-hex characters of
+ * the alert id with dashes stripped — never the raw uuid: buildReplyId's REPLY_SEGMENT_RE caps
+ * every segment at 24 characters, and a uuid is 32-36. resolve_dashboard_alert_by_ref
+ * (migrations/20260910100000_alert_whatsapp_push.sql) resolves that prefix back to one open
+ * alert; see that migration's header for the full reasoning and the (vanishingly unlikely)
+ * ambiguous-match case.
+ */
+const ALERT_ACK_ACTION = 'ack';
 
 function menuBodyText(displayName: string): string {
   return `Hi ${displayName}. What would you like to see?`;
@@ -1631,7 +1655,9 @@ async function commandNo(ctx: CommandContext): Promise<CommandResult> {
 }
 
 /**
- * ACK <n> — stage the acknowledgement of the nth open alert, awaiting YES.
+ * ACK <n> — stage the acknowledgement of the nth open alert, awaiting YES. Also the SAME staging
+ * step a "Mark resolved" button tap on the macavation_alert push template uses — see `resolved`
+ * below.
  *
  * <n> is a position in the list the member was just shown, which comes from get_daily_digest()'s
  * open_alerts (ordered created_at DESC, LIMIT 25). This re-reads that SAME source rather than
@@ -1642,57 +1668,80 @@ async function commandNo(ctx: CommandContext): Promise<CommandResult> {
  * whatsapp_take_pending_command fetches AND deletes in one statement, by design. What makes this
  * safe instead is the confirmation step: it names the alert, so if the list shifted between the
  * listing and the ACK the member sees a title they did not expect and replies NO.
+ *
+ * `resolved` lets a caller that already knows WHICH alert (a button tap, which carries a resolved
+ * alert id/title rather than a list position) skip straight to the permission check and staging
+ * below, without a fake "ACK <n>" body to parse. dispatchAlertAck (below) is the only other caller,
+ * and calls this SAME function — not a second, parallel staging body — so there is exactly one
+ * place ACK_ALERT is ever staged from, and a tap can never reach whatsapp_stage_pending_command
+ * without the alerts.resolve re-check every typed ACK <n> already gets. `command` only changes
+ * what is logged/returned as the audit command name; the check-then-stage logic itself never
+ * branches on it.
  */
-async function commandAck(ctx: CommandContext): Promise<CommandResult> {
-  const parts = ctx.rawBody.trim().replace(/\s+/g, ' ').split(' ');
-  const raw = parts[1] ?? '';
-  const n = /^\d{1,3}$/.test(raw) ? Number(raw) : NaN;
+async function commandAck(
+  ctx: CommandContext,
+  resolved?: { alertId: string; title: string },
+  command = 'ACK'
+): Promise<CommandResult> {
+  let alertId: string;
+  let title: string;
 
-  if (!Number.isInteger(n) || n < 1 || n > ALERT_LIST_MAX) {
-    return {
-      outcome: 'unknown_command',
-      reply:
-        `Reply ACK followed by the number of the alert, for example ACK 2. ` +
-        `Reply 99 for the menu to see the list again.`,
-      command: 'ACK',
-    };
+  if (resolved) {
+    alertId = resolved.alertId;
+    title = resolved.title;
+  } else {
+    const parts = ctx.rawBody.trim().replace(/\s+/g, ' ').split(' ');
+    const raw = parts[1] ?? '';
+    const n = /^\d{1,3}$/.test(raw) ? Number(raw) : NaN;
+
+    if (!Number.isInteger(n) || n < 1 || n > ALERT_LIST_MAX) {
+      return {
+        outcome: 'unknown_command',
+        reply:
+          `Reply ACK followed by the number of the alert, for example ACK 2. ` +
+          `Reply 99 for the menu to see the list again.`,
+        command,
+      };
+    }
+
+    let alerts: Any[] = [];
+    try {
+      const { data, error } = await ctx.sb.rpc('get_daily_digest');
+      if (error) throw error;
+      const digest = Array.isArray(data) ? data[0] : data;
+      alerts = Array.isArray(digest?.open_alerts) ? digest.open_alerts : [];
+    } catch (e) {
+      console.error('[whatsapp-inbound] get_daily_digest failed for ACK:', e);
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I could not read the alerts just now. Please try again shortly.`,
+        command,
+        detail: String(e),
+      };
+    }
+
+    const chosen = alerts[n - 1];
+    const resolvedId = chosen?.id ? String(chosen.id) : '';
+    if (!resolvedId) {
+      return {
+        outcome: 'ok',
+        reply: `There is no alert ${n} open right now, ${ctx.displayName}. Reply 99 for the menu to see the current list.`,
+        command,
+      };
+    }
+
+    alertId = resolvedId;
+    title = String(chosen?.title ?? 'Untitled');
   }
 
   if (!(await hasAction(ctx.sb, ctx.userId, 'alerts.resolve'))) {
     return {
       outcome: 'denied',
       reply: `Sorry ${ctx.displayName}, closing alerts is not on your access. Speak to an administrator if you need it.`,
-      command: 'ACK',
+      command,
     };
   }
 
-  let alerts: Any[] = [];
-  try {
-    const { data, error } = await ctx.sb.rpc('get_daily_digest');
-    if (error) throw error;
-    const digest = Array.isArray(data) ? data[0] : data;
-    alerts = Array.isArray(digest?.open_alerts) ? digest.open_alerts : [];
-  } catch (e) {
-    console.error('[whatsapp-inbound] get_daily_digest failed for ACK:', e);
-    return {
-      outcome: 'error',
-      reply: `Sorry ${ctx.displayName}, I could not read the alerts just now. Please try again shortly.`,
-      command: 'ACK',
-      detail: String(e),
-    };
-  }
-
-  const chosen = alerts[n - 1];
-  const alertId = chosen?.id ? String(chosen.id) : '';
-  if (!alertId) {
-    return {
-      outcome: 'ok',
-      reply: `There is no alert ${n} open right now, ${ctx.displayName}. Reply 99 for the menu to see the current list.`,
-      command: 'ACK',
-    };
-  }
-
-  const title = String(chosen?.title ?? 'Untitled');
   const summary = `Acknowledge "${title}"`;
 
   try {
@@ -1714,7 +1763,7 @@ async function commandAck(ctx: CommandContext): Promise<CommandResult> {
       return {
         outcome: 'error',
         reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
-        command: 'ACK',
+        command,
         detail: error.message,
       };
     }
@@ -1723,7 +1772,7 @@ async function commandAck(ctx: CommandContext): Promise<CommandResult> {
     return {
       outcome: 'error',
       reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
-      command: 'ACK',
+      command,
       detail: String(e),
     };
   }
@@ -1731,8 +1780,48 @@ async function commandAck(ctx: CommandContext): Promise<CommandResult> {
   return {
     outcome: 'ok',
     reply: `${summary}?\n\nReply YES to confirm, or NO to cancel.`,
-    command: 'ACK',
+    command,
   };
+}
+
+/**
+ * Dispatches an ALERT_NS reply-id tap — currently only "Mark resolved" on the macavation_alert
+ * push template. `ref` is the truncated alert reference the reply id carries (see ALERT_ACK_ACTION
+ * above); resolve_dashboard_alert_by_ref resolves it back to a real, currently-open alert. Anything
+ * other than exactly one match — the alert closed already, or (vanishingly unlikely) a colliding
+ * prefix — is treated as a stale tap, same posture as an unrecognised reply id elsewhere in this
+ * file. A resolved match is staged through commandAck's `resolved` parameter — the SAME function
+ * (and the SAME inline permission-check-then-stage body) the typed "ACK <n>" path calls, not a
+ * second, parallel staging function.
+ */
+async function dispatchAlertAck(ctx: CommandContext, ref: string): Promise<CommandResult> {
+  let rows: Any[] = [];
+  try {
+    const { data, error } = await ctx.sb.rpc('resolve_dashboard_alert_by_ref', { p_ref: ref });
+    if (error) throw error;
+    rows = Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error('[whatsapp-inbound] resolve_dashboard_alert_by_ref failed:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not read that alert just now. Please try again shortly.`,
+      command: 'ALERT_ACK_TAP',
+      detail: String(e),
+    };
+  }
+
+  if (rows.length !== 1) {
+    return {
+      outcome: 'unknown_command',
+      reply: `Sorry ${ctx.displayName}, that alert is no longer open. Reply 99 for the menu to see the current list.`,
+      command: 'ALERT_ACK_TAP',
+      detail: `resolve_dashboard_alert_by_ref returned ${rows.length} row(s) for ref ${ref}`,
+    };
+  }
+
+  const alertId = String(rows[0].id);
+  const title = String(rows[0].alert_title ?? 'Untitled');
+  return commandAck(ctx, { alertId, title }, 'ALERT_ACK_TAP');
 }
 
 /**
@@ -1907,6 +1996,9 @@ async function handleCommand(ctx: CommandContext): Promise<CommandResult> {
     }
     if (parsed && parsed.ns === SETTINGS_NS) {
       return dispatchSettingsAction(ctx, parsed.action);
+    }
+    if (parsed && parsed.ns === ALERT_NS && parsed.action === ALERT_ACK_ACTION && parsed.arg) {
+      return dispatchAlertAck(ctx, parsed.arg);
     }
     // A template quick-reply tap. hasOwnProperty for the same reason as the COMMAND_HANDLERS
     // lookup below: the key is text off a public WhatsApp line and this is a plain object.

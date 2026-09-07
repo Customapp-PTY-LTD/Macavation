@@ -234,11 +234,11 @@ check('sanitizeParam never uses \\s, which would also strip the non-breaking tho
 //    as verify-wa-staff-menu.mjs.
 // ================================================================================================
 
-check('handleCommand checks MENU_NS, then SETTINGS_NS, then the template-button routes, then falls through to the stale-menu reply', () => {
-  // Updated alongside wa-my-reports-menu: a SETTINGS_NS branch (the "My reports" settings
-  // sub-list's own reply-id namespace) now sits between the MENU_NS branch and the template-button
-  // route lookup. Per this file's own convention (see the assertion message below): re-read
-  // handleCommand and update both it and this script together when the shape legitimately changes.
+check('handleCommand checks MENU_NS, then SETTINGS_NS, then ALERT_NS, then the template-button routes, then falls through to the stale-menu reply', () => {
+  // Updated alongside wa-my-reports-menu (SETTINGS_NS) and, since, the alert-whatsapp-push plan
+  // (ALERT_NS — the "Mark resolved" button tap on the macavation_alert push template). Per this
+  // file's own convention (see the assertion message below): re-read handleCommand and update both
+  // it and this script together when the shape legitimately changes.
   const literalBlock = [
     '  if (ctx.replyId) {',
     '    const parsed = parseReplyId(ctx.replyId);',
@@ -248,6 +248,9 @@ check('handleCommand checks MENU_NS, then SETTINGS_NS, then the template-button 
     '    if (parsed && parsed.ns === SETTINGS_NS) {',
     '      return dispatchSettingsAction(ctx, parsed.action);',
     '    }',
+    '    if (parsed && parsed.ns === ALERT_NS && parsed.action === ALERT_ACK_ACTION && parsed.arg) {',
+    '      return dispatchAlertAck(ctx, parsed.arg);',
+    '    }',
     '    // A template quick-reply tap. hasOwnProperty for the same reason as the COMMAND_HANDLERS',
     '    // lookup below: the key is text off a public WhatsApp line and this is a plain object.',
     '    const templateKey = ctx.replyId.trim().toLowerCase();',
@@ -255,9 +258,9 @@ check('handleCommand checks MENU_NS, then SETTINGS_NS, then the template-button 
   ].join('\n');
   assert.ok(
     inboundSrc.includes(literalBlock),
-    `expected this literal handleCommand block (MENU_NS branch, then SETTINGS_NS, then the ` +
-      `template-button route lookup) in ${REL_INBOUND} — re-read handleCommand and update both it ` +
-      `and this script together`
+    `expected this literal handleCommand block (MENU_NS branch, then SETTINGS_NS, then ALERT_NS, ` +
+      `then the template-button route lookup) in ${REL_INBOUND} — re-read handleCommand and update ` +
+      `both it and this script together`
   );
 });
 
