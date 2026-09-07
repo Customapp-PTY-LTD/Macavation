@@ -1,0 +1,1431 @@
+<title>Macavation on WhatsApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ============================================================
+   Tokens mirrored from WebPortal/css/design-tokens.css, the same
+   set docs/mockups/dashboard-revamp.html uses, so this mockup
+   reads as the real portal rather than a separate design.
+   The wa-* tokens are additional: the phone frames must look
+   like WhatsApp, not like Macavation, or they misrepresent
+   what the member actually sees.
+   ============================================================ */
+:root {
+  --bg: #F7F7F5;
+  --surface: #FFFFFF;
+  --surface-2: #F0F0EE;
+  --border: #E3E3E0;
+  --border-strong: #D3D3D0;
+  --text: #1F1F1F;
+  --text-2: #52524E;
+  --text-3: #6E6E68;
+
+  --green: #198754;
+  --pink: #FF005E;
+
+  --success: #2DA44E;
+  --warning: #D4A72C;
+  --warning-ink: #8A6D14;
+  --danger: #CF222E;
+  --info: #0969DA;
+  --success-tint: rgba(45, 164, 78, .09);
+  --warning-tint: rgba(212, 167, 44, .13);
+  --danger-tint: rgba(207, 34, 46, .08);
+  --info-tint: rgba(9, 105, 218, .08);
+  --pink-tint: rgba(255, 0, 94, .08);
+
+  /* WhatsApp's own surface colours - content, not brand */
+  --wa-header: #128C7E;
+  --wa-header-ink: #FFFFFF;
+  --wa-canvas: #ECE5DD;
+  --wa-in: #FFFFFF;
+  --wa-out: #DCF8C6;
+  --wa-ink: #111111;
+  --wa-ink-2: #667781;
+  --wa-link: #027EB5;
+  --wa-divider: rgba(17, 17, 17, .09);
+  --wa-tick: #4FC3F7;
+
+  color-scheme: light;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, .06), 0 0 0 1px rgba(0, 0, 0, .03);
+  --shadow-phone: 0 10px 30px rgba(0, 0, 0, .13), 0 0 0 1px rgba(0, 0, 0, .05);
+  --r-sm: 8px; --r-md: 10px; --r-lg: 12px; --r-pill: 9999px;
+  --sp-sm: 8px; --sp-md: 16px; --sp-lg: 24px;
+  --t-xs: .75rem; --t-sm: .8125rem; --t-base: .875rem;
+  --t-md: 1rem; --t-lg: 1.25rem; --t-xl: 1.75rem;
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1A1A1A;
+    --surface: #242424;
+    --surface-2: #2E2E2E;
+    --border: #3A3A3A;
+    --border-strong: #4A4A4A;
+    --text: #E8E8E6;
+    --text-2: #A0A0A0;
+    --text-3: #808078;
+
+    --green: #2FA26B;
+    --pink: #FF3D7F;
+
+    --success: #4FBE78;
+    --warning: #E0B44A;
+    --warning-ink: #E0B44A;
+    --danger: #F0616D;
+    --info: #4C9DF5;
+    --success-tint: rgba(79, 190, 120, .14);
+    --warning-tint: rgba(224, 180, 74, .15);
+    --danger-tint: rgba(240, 97, 109, .14);
+    --info-tint: rgba(76, 157, 245, .14);
+    --pink-tint: rgba(255, 61, 127, .12);
+
+    --wa-header: #1F2C33;
+    --wa-header-ink: #E9EDEF;
+    --wa-canvas: #0B141A;
+    --wa-in: #202C33;
+    --wa-out: #005C4B;
+    --wa-ink: #E9EDEF;
+    --wa-ink-2: #8696A0;
+    --wa-link: #53BDEB;
+    --wa-divider: rgba(233, 237, 239, .12);
+
+    color-scheme: dark;
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, .4), 0 0 0 1px rgba(255, 255, 255, .04);
+    --shadow-phone: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .06);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #1A1A1A;
+  --surface: #242424;
+  --surface-2: #2E2E2E;
+  --border: #3A3A3A;
+  --border-strong: #4A4A4A;
+  --text: #E8E8E6;
+  --text-2: #A0A0A0;
+  --text-3: #808078;
+
+  --green: #2FA26B;
+  --pink: #FF3D7F;
+
+  --success: #4FBE78;
+  --warning: #E0B44A;
+  --warning-ink: #E0B44A;
+  --danger: #F0616D;
+  --info: #4C9DF5;
+  --success-tint: rgba(79, 190, 120, .14);
+  --warning-tint: rgba(224, 180, 74, .15);
+  --danger-tint: rgba(240, 97, 109, .14);
+  --info-tint: rgba(76, 157, 245, .14);
+  --pink-tint: rgba(255, 61, 127, .12);
+
+  --wa-header: #1F2C33;
+  --wa-header-ink: #E9EDEF;
+  --wa-canvas: #0B141A;
+  --wa-in: #202C33;
+  --wa-out: #005C4B;
+  --wa-ink: #E9EDEF;
+  --wa-ink-2: #8696A0;
+  --wa-link: #53BDEB;
+  --wa-divider: rgba(233, 237, 239, .12);
+
+  color-scheme: dark;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, .4), 0 0 0 1px rgba(255, 255, 255, .04);
+  --shadow-phone: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: var(--t-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--sp-lg) 96px; }
+
+/* ---------- masthead ---------- */
+.masthead { padding: 56px 0 32px; border-bottom: 1px solid var(--border); margin-bottom: 40px; }
+.eyebrow {
+  font-size: var(--t-xs); font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--text-3); margin: 0 0 12px;
+}
+h1 {
+  font-size: clamp(1.9rem, 4.5vw, 2.75rem); font-weight: 700; letter-spacing: -.02em;
+  line-height: 1.12; margin: 0 0 16px; text-wrap: balance;
+}
+.standfirst { font-size: var(--t-md); color: var(--text-2); max-width: 66ch; margin: 0; }
+.meta-row {
+  display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 24px;
+  font-size: var(--t-xs); color: var(--text-3);
+}
+.meta-row b { color: var(--text-2); font-weight: 600; }
+
+/* ---------- sections ---------- */
+section { margin-bottom: 72px; scroll-margin-top: 24px; }
+.sec-head { margin-bottom: var(--sp-lg); }
+.sec-head h2 {
+  font-size: var(--t-xl); font-weight: 700; letter-spacing: -.015em;
+  margin: 0 0 8px; text-wrap: balance;
+}
+.sec-head p { margin: 0; color: var(--text-2); max-width: 70ch; }
+h3 {
+  font-size: var(--t-md); font-weight: 600; margin: 0 0 12px; letter-spacing: -.01em;
+}
+p { margin: 0 0 12px; }
+p:last-child { margin-bottom: 0; }
+
+/* ---------- cards / grid ---------- */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: var(--sp-lg); box-shadow: var(--shadow-card);
+}
+.pair { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: var(--sp-lg); align-items: start; }
+.pair-wide { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 320px); gap: var(--sp-lg); align-items: start; }
+.cols-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--sp-lg); align-items: start; }
+.stack { display: flex; flex-direction: column; gap: var(--sp-md); }
+.stack-sm { display: flex; flex-direction: column; gap: var(--sp-sm); }
+
+@media (max-width: 860px) {
+  .pair, .pair-wide { grid-template-columns: minmax(0, 1fr); }
+  .wrap { padding: 0 var(--sp-md) 64px; }
+}
+
+/* ---------- phone ---------- */
+.phone {
+  width: 100%; max-width: 320px; margin: 0 auto;
+  background: var(--wa-canvas); border-radius: 26px;
+  box-shadow: var(--shadow-phone); overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.phone-bar {
+  background: var(--wa-header); color: var(--wa-header-ink);
+  padding: 14px 16px 12px; display: flex; align-items: center; gap: 10px;
+}
+.phone-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex: 0 0 auto;
+  background: rgba(255, 255, 255, .22); display: grid; place-items: center;
+  font-size: .7rem; font-weight: 700; letter-spacing: .02em;
+}
+.phone-who { min-width: 0; }
+.phone-name { font-size: var(--t-sm); font-weight: 600; line-height: 1.25; }
+.phone-sub { font-size: .68rem; opacity: .78; line-height: 1.3; }
+.phone-body { padding: 14px 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+
+.daystamp {
+  align-self: center; background: var(--wa-in); color: var(--wa-ink-2);
+  font-size: .66rem; padding: 3px 10px; border-radius: var(--r-pill);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .07);
+}
+
+.bub {
+  max-width: 86%; padding: 7px 10px 6px; border-radius: 9px;
+  font-size: .78rem; line-height: 1.45; color: var(--wa-ink);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .1); word-wrap: break-word;
+}
+.bub.in { background: var(--wa-in); align-self: flex-start; border-top-left-radius: 2px; }
+.bub.out { background: var(--wa-out); align-self: flex-end; border-top-right-radius: 2px; }
+.bub strong { font-weight: 600; }
+.bub .tm { font-size: .62rem; color: var(--wa-ink-2); float: right; margin: 6px 0 -2px 8px; }
+.bub .tm .tick { color: var(--wa-tick); font-weight: 700; }
+.bub-hdr {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--wa-ink-2); margin-bottom: 4px;
+}
+.bub-note {
+  font-size: .68rem; color: var(--wa-ink-2); font-style: italic;
+  margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--wa-divider);
+}
+.bub ul { margin: 6px 0 0; padding-left: 16px; }
+.bub li { margin-bottom: 2px; }
+
+/* template quick-reply buttons */
+.wa-btns { display: flex; flex-direction: column; gap: 1px; margin: 7px -10px -6px; }
+.wa-btn {
+  background: var(--wa-in); color: var(--wa-link); text-align: center;
+  font-size: .76rem; font-weight: 500; padding: 8px; border-top: 1px solid var(--wa-divider);
+}
+.bub.out .wa-btn { background: var(--wa-out); }
+
+/* interactive list launcher */
+.wa-list-cta {
+  margin: 8px -10px -6px; background: var(--wa-in); color: var(--wa-link);
+  text-align: center; font-size: .76rem; font-weight: 600; padding: 9px;
+  border-top: 1px solid var(--wa-divider);
+}
+/* the list sheet itself */
+.wa-sheet {
+  background: var(--wa-in); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .16); align-self: stretch;
+}
+.wa-sheet-hd {
+  padding: 11px 14px; font-size: .78rem; font-weight: 600; color: var(--wa-ink);
+  border-bottom: 1px solid var(--wa-divider);
+}
+.wa-sheet-sec {
+  padding: 9px 14px 3px; font-size: .66rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--wa-ink-2);
+}
+.wa-row {
+  padding: 9px 14px; border-bottom: 1px solid var(--wa-divider);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.wa-row:last-child { border-bottom: 0; }
+.wa-row-t { font-size: .78rem; color: var(--wa-ink); }
+.wa-row-d { font-size: .68rem; color: var(--wa-ink-2); }
+.wa-radio {
+  width: 15px; height: 15px; border-radius: 50%; flex: 0 0 auto;
+  border: 1.5px solid var(--wa-ink-2);
+}
+.wa-radio.on { border-color: var(--wa-header); background: var(--wa-header); box-shadow: inset 0 0 0 3px var(--wa-in); }
+
+/* document attachment */
+.wa-doc {
+  display: flex; align-items: center; gap: 9px; background: rgba(0, 0, 0, .04);
+  border-radius: 7px; padding: 9px 10px; margin-bottom: 6px;
+}
+:root[data-theme="dark"] .wa-doc { background: rgba(255, 255, 255, .06); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .wa-doc { background: rgba(255, 255, 255, .06); }
+}
+.wa-doc-ic {
+  width: 30px; height: 34px; border-radius: 3px; flex: 0 0 auto;
+  background: var(--danger); color: #fff; display: grid; place-items: center;
+  font-size: .52rem; font-weight: 700; letter-spacing: .03em;
+}
+.wa-doc-n { font-size: .74rem; font-weight: 500; color: var(--wa-ink); line-height: 1.3; }
+.wa-doc-m { font-size: .64rem; color: var(--wa-ink-2); }
+
+/* flow (form popup) */
+.wa-flow { background: var(--wa-in); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, .16); }
+.wa-flow-hd {
+  padding: 10px 14px; font-size: .74rem; font-weight: 600; color: var(--wa-ink);
+  border-bottom: 1px solid var(--wa-divider); display: flex; justify-content: space-between;
+}
+.wa-flow-bd { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 9px; }
+.wa-field { display: flex; flex-direction: column; gap: 3px; }
+.wa-label { font-size: .64rem; font-weight: 600; color: var(--wa-ink-2); }
+.wa-input {
+  border: 1px solid var(--wa-divider); border-radius: 6px; padding: 7px 9px;
+  font-size: .74rem; color: var(--wa-ink); display: flex; justify-content: space-between;
+}
+.wa-submit {
+  background: var(--wa-header); color: #fff; text-align: center; border-radius: var(--r-pill);
+  padding: 8px; font-size: .76rem; font-weight: 600; margin-top: 2px;
+}
+
+/* ---------- annotation ---------- */
+.note {
+  border-left: 3px solid var(--border-strong); padding: 2px 0 2px 14px;
+  font-size: var(--t-sm); color: var(--text-2);
+}
+.note b { color: var(--text); font-weight: 600; }
+.note.good { border-left-color: var(--success); }
+.note.warn { border-left-color: var(--warning); }
+.note.bad { border-left-color: var(--danger); }
+.note.new { border-left-color: var(--pink); }
+
+.callout {
+  border-radius: var(--r-md); padding: 14px 16px; font-size: var(--t-sm);
+  border: 1px solid var(--border);
+}
+.callout b { font-weight: 600; }
+.callout.warn { background: var(--warning-tint); border-color: rgba(212, 167, 44, .35); }
+.callout.bad { background: var(--danger-tint); border-color: rgba(207, 34, 46, .3); }
+.callout.info { background: var(--info-tint); border-color: rgba(9, 105, 218, .28); }
+.callout.good { background: var(--success-tint); border-color: rgba(45, 164, 78, .3); }
+
+.caption {
+  font-size: var(--t-xs); color: var(--text-3); text-align: center;
+  margin-top: 10px; max-width: 320px; margin-left: auto; margin-right: auto;
+}
+
+/* ---------- pills ---------- */
+.pill {
+  display: inline-flex; align-items: center; gap: 5px; border-radius: var(--r-pill);
+  padding: 2px 9px; font-size: var(--t-xs); font-weight: 600; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.pill.built { background: var(--success-tint); color: var(--success); border-color: rgba(45, 164, 78, .28); }
+.pill.unwired { background: var(--warning-tint); color: var(--warning-ink); border-color: rgba(212, 167, 44, .35); }
+.pill.new { background: var(--pink-tint); color: var(--pink); border-color: rgba(255, 0, 94, .25); }
+.pill.broken { background: var(--danger-tint); color: var(--danger); border-color: rgba(207, 34, 46, .28); }
+.pill.blocked { background: var(--surface-2); color: var(--text-2); border-color: var(--border-strong); }
+
+/* ---------- tables ---------- */
+.tbl-scroll { overflow-x: auto; border-radius: var(--r-md); border: 1px solid var(--border); }
+table { border-collapse: collapse; width: 100%; font-size: var(--t-sm); background: var(--surface); }
+th {
+  text-align: left; padding: 10px 14px; background: var(--surface-2);
+  font-size: var(--t-xs); font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-2); border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tbl-tight td, .tbl-tight th { padding: 8px 12px; }
+
+/* ---------- portal mock ---------- */
+.portal {
+  border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden;
+  background: var(--surface); box-shadow: var(--shadow-card);
+}
+.portal-hd {
+  padding: 13px 16px; border-bottom: 1px solid var(--border); background: var(--surface);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.portal-ttl { font-size: var(--t-base); font-weight: 600; }
+.portal-tools { display: flex; gap: 8px; align-items: center; }
+.btn {
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-2);
+  border-radius: var(--r-sm); padding: 4px 11px; font-size: var(--t-xs); font-weight: 500;
+  white-space: nowrap;
+}
+.btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+.btn.newish { border-color: var(--pink); color: var(--pink); }
+.portal-banner {
+  padding: 10px 16px; font-size: var(--t-sm); background: var(--info-tint);
+  border-bottom: 1px solid var(--border); color: var(--text-2);
+}
+.portal-banner b { color: var(--text); }
+.portal table { border-radius: 0; }
+.portal .tbl-scroll { border: 0; border-radius: 0; }
+
+.tick-box {
+  width: 15px; height: 15px; border-radius: 3px; border: 1.5px solid var(--border-strong);
+  display: inline-grid; place-items: center; background: var(--surface);
+}
+.tick-box.on { background: var(--green); border-color: var(--green); color: #fff; font-size: .6rem; font-weight: 700; }
+.tick-box.paused { background: var(--warning-tint); border-color: var(--warning); color: var(--warning-ink); font-size: .58rem; font-weight: 700; }
+
+.receipt { font-size: var(--t-xs); color: var(--text-3); white-space: nowrap; }
+.receipt .rd { color: var(--info); font-weight: 700; }
+
+/* ---------- flow strip ---------- */
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.step {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 14px; position: relative;
+}
+.step-n {
+  font-size: var(--t-xs); font-weight: 700; color: var(--text-3);
+  font-variant-numeric: tabular-nums; letter-spacing: .05em; margin-bottom: 6px;
+}
+.step-t { font-size: var(--t-sm); font-weight: 600; margin-bottom: 4px; }
+.step-d { font-size: var(--t-xs); color: var(--text-2); line-height: 1.5; }
+
+/* ---------- window diagram ---------- */
+.win {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--sp-md);
+}
+.win-col { border-radius: var(--r-md); border: 1px solid var(--border); overflow: hidden; }
+.win-hd { padding: 12px 16px; font-weight: 600; font-size: var(--t-sm); }
+.win-col.cold .win-hd { background: var(--info-tint); border-bottom: 1px solid rgba(9, 105, 218, .25); }
+.win-col.open .win-hd { background: var(--success-tint); border-bottom: 1px solid rgba(45, 164, 78, .28); }
+.win-bd { padding: 14px 16px; background: var(--surface); }
+.win-bd ul { margin: 0; padding-left: 18px; }
+.win-bd li { margin-bottom: 5px; font-size: var(--t-sm); color: var(--text-2); }
+.win-bd li b { color: var(--text); font-weight: 600; }
+.win-foot {
+  padding: 10px 16px; font-size: var(--t-xs); background: var(--surface-2);
+  border-top: 1px solid var(--border); color: var(--text-2);
+}
+
+.hinge {
+  display: flex; align-items: center; gap: 12px; padding: 16px;
+  background: var(--pink-tint); border: 1px solid rgba(255, 0, 94, .22);
+  border-radius: var(--r-md); font-size: var(--t-sm);
+}
+.hinge-k {
+  font-weight: 700; color: var(--pink); font-size: var(--t-xs);
+  text-transform: uppercase; letter-spacing: .07em; white-space: nowrap;
+}
+
+/* ---------- code ---------- */
+pre {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 14px 16px; overflow-x: auto; margin: 0;
+  font-family: var(--mono); font-size: var(--t-xs); line-height: 1.65; color: var(--text-2);
+}
+pre b { color: var(--text); font-weight: 600; }
+pre .v { color: var(--info); }
+code {
+  font-family: var(--mono); font-size: .92em; background: var(--surface-2);
+  padding: 1px 5px; border-radius: 4px; color: var(--text-2);
+}
+
+/* ---------- limits ---------- */
+.limit {
+  font-size: var(--t-xs); color: var(--text-2); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 11px;
+}
+.limit b { color: var(--text); font-weight: 600; }
+
+hr.rule { border: 0; border-top: 1px solid var(--border); margin: 40px 0; }
+
+.q { font-size: var(--t-sm); color: var(--text-3); font-style: italic; }
+ul.plain { margin: 0; padding-left: 18px; }
+ul.plain li { margin-bottom: 6px; color: var(--text-2); }
+ul.plain li b { color: var(--text); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Macavation · Design mockup</p>
+  <h1>Macavation on WhatsApp</h1>
+  <p class="standfirst">
+    What the reports, the bot, the messages, the alerts and the settings actually look like on a
+    handset — and what drives each one from the portal. Everything here is a proposal for review,
+    not a build.
+  </p>
+  <div class="meta-row">
+    <span><b>Channel</b> +27 71 463 9643</span>
+    <span><b>Prepared</b> 4 September 2026</span>
+    <span><b>Status</b> For discussion</span>
+  </div>
+</header>
+
+<!-- ============================================================
+     1. THE RULE
+     ============================================================ -->
+<section id="rule">
+  <div class="sec-head">
+    <h2>First, the rule everything else hangs off</h2>
+    <p>
+      I told you earlier that reports can't be pushed because the member has to open the chat
+      within 24 hours. That was wrong, and it changes the design — so it goes first.
+    </p>
+  </div>
+
+  <div class="stack">
+    <div class="win">
+      <div class="win-col cold">
+        <div class="win-hd">Can be sent cold, any time</div>
+        <div class="win-bd">
+          <ul>
+            <li><b>An approved template</b> — a fixed wording Meta has signed off, with your
+              figures dropped into the blanks.</li>
+            <li>Up to <b>3 quick-reply buttons</b> attached to it.</li>
+            <li>A <b>document, image or header</b> carried by the template.</li>
+          </ul>
+        </div>
+        <div class="win-foot">
+          No reply needed. The member may never have messaged you. This is how EggSight has been
+          sending daily farm reports for years.
+        </div>
+      </div>
+
+      <div class="win-col open">
+        <div class="win-hd">Needs an open window</div>
+        <div class="win-bd">
+          <ul>
+            <li><b>Free-typed text</b> — anything you want to say, no approval.</li>
+            <li><b>Interactive menus</b> — the tappable list of options.</li>
+            <li><b>PDFs and files</b> sent on their own.</li>
+            <li><b>Forms</b> with dropdowns and date pickers.</li>
+          </ul>
+        </div>
+        <div class="win-foot">
+          The window opens when <em>they</em> act, lasts 24 hours, and everything sent inside it is
+          free.
+        </div>
+      </div>
+    </div>
+
+    <div class="hinge">
+      <span class="hinge-k">The hinge</span>
+      <span>
+        A quick-reply button on a template is the cheapest way across. One tap counts as them
+        replying — so the tap delivers the report <em>and</em> opens the window for everything
+        that follows. Push and pull stop being a choice.
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     2. REPORTS
+     ============================================================ -->
+<section id="reports">
+  <div class="sec-head">
+    <h2>Reports</h2>
+    <p>
+      The report lands unprompted at 06:00 with the headline figures already visible. Tapping
+      <b>View report</b> fetches the PDF and opens the door for everything else.
+    </p>
+  </div>
+
+  <div class="pair">
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div class="phone-who">
+            <div class="phone-name">Macavation</div>
+            <div class="phone-sub">Business account</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="daystamp">TODAY</div>
+
+          <div class="bub in">
+            <div class="bub-hdr">Macavation — Daily Report</div>
+            Morning Henry, your report for <strong>Thu 4 Sep</strong> is ready.<br><br>
+            Kernel cracked <strong>4 120 kg</strong><br>
+            Oil <strong>880 L</strong><br>
+            NIS intake <strong>18 400 kg</strong>
+            <span class="tm">06:00</span>
+            <div class="wa-btns">
+              <div class="wa-btn">View report</div>
+              <div class="wa-btn">Menu</div>
+            </div>
+          </div>
+
+          <div class="bub out">
+            View report
+            <span class="tm">07:12 <span class="tick">✓✓</span></span>
+          </div>
+
+          <div class="bub in">
+            <div class="wa-doc">
+              <div class="wa-doc-ic">PDF</div>
+              <div>
+                <div class="wa-doc-n">Macavation Daily 04-09.pdf</div>
+                <div class="wa-doc-m">3 pages · 214 kB</div>
+              </div>
+            </div>
+            Sound kernel recovery <strong>31,4 %</strong> · wholes <strong>42 %</strong>.<br>
+            Week to date <strong>19 640 kg</strong> against a target of 21 000 kg.
+            <span class="tm">07:12</span>
+            <div class="wa-btns">
+              <div class="wa-btn">Main menu</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Two messages, one tap. The second is free.</p>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h3>Three templates, not two hundred</h3>
+        <p>
+          One template per frequency, acting as the notification rather than the report itself:
+        </p>
+        <pre><b>macavation_daily_report</b>          UTILITY · en
+
+Header  TEXT   Macavation — Daily Report
+Body    Morning <span class="v">{{1}}</span>, your report for <span class="v">{{2}}</span> is ready.
+        Kernel cracked <span class="v">{{3}}</span> kg
+        Oil <span class="v">{{4}}</span> L
+        NIS intake <span class="v">{{5}}</span> kg
+Buttons [View report]  [Menu]</pre>
+        <div class="note" style="margin-top:14px;">
+          Plus <code>macavation_weekly_report</code> and <code>macavation_monthly_report</code>.
+          That is the complete set.
+        </div>
+      </div>
+
+      <div class="callout info">
+        <b>Why not copy EggSight.</b> EggSight bakes the farm name into the template text and
+        cycles a different template for each day of the week — so it needs seven approved
+        templates per report type per farm, thirty-one in monthly mode, plus a hardcoded patch for
+        the days Meta rejected. It works, but it is a lot of moving parts to keep approved. Putting
+        the name and date in the blanks instead gets the same result from three templates.
+      </div>
+
+      <div class="callout warn">
+        <b>Worth knowing before we commit.</b> Templates take up to 24 hours for Meta to approve,
+        and wording changes mean re-approval. Right now the channel has <b>no approved template at
+        all</b> — the one that exists was never submitted — so nothing can currently be sent
+        unprompted, including the enrolment code. Getting these three approved is the long pole.
+      </div>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <h3>The portal side — your screen, extended</h3>
+  <p style="color:var(--text-2); max-width:70ch; margin-bottom:16px;">
+    The panel you sent me, with the four things it needs to actually run the loop. New controls
+    are marked in pink.
+  </p>
+
+  <div class="portal">
+    <div class="portal-hd">
+      <div class="portal-ttl">Who gets these reports</div>
+      <div class="portal-tools">
+        <span class="btn newish">+ Add person</span>
+        <span class="btn newish">Test send to me</span>
+        <span class="btn">Show inactive</span>
+        <span class="btn">Refresh</span>
+      </div>
+    </div>
+    <div class="portal-banner">
+      Ticking a box decides <b>who</b> a report goes to. Daily reports go out at 06:00, weekly on
+      Monday, monthly on the 1st. People can also add themselves by messaging the number.
+    </div>
+    <div class="tbl-scroll">
+      <table class="tbl-tight">
+        <thead>
+          <tr>
+            <th>Name</th><th>WhatsApp</th>
+            <th style="text-align:center">Daily</th>
+            <th style="text-align:center">Weekly</th>
+            <th style="text-align:center">Monthly</th>
+            <th>Last delivery</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>speedy w</td>
+            <td style="font-variant-numeric:tabular-nums">+27 72 575 5178</td>
+            <td style="text-align:center"><span class="tick-box on">✓</span></td>
+            <td style="text-align:center"><span class="tick-box on">✓</span></td>
+            <td style="text-align:center"><span class="tick-box"></span></td>
+            <td><span class="receipt"><span class="rd">✓✓</span> read 07:12</span></td>
+            <td><span class="pill built">Active</span></td>
+          </tr>
+          <tr>
+            <td>Pete Marais</td>
+            <td style="font-variant-numeric:tabular-nums">+27 82 441 9032</td>
+            <td style="text-align:center"><span class="tick-box on">✓</span></td>
+            <td style="text-align:center"><span class="tick-box"></span></td>
+            <td style="text-align:center"><span class="tick-box on">✓</span></td>
+            <td><span class="receipt">✓ delivered 06:00</span></td>
+            <td><span class="pill built">Active</span></td>
+          </tr>
+          <tr>
+            <td>Anli du Toit</td>
+            <td style="font-variant-numeric:tabular-nums">+27 83 220 7714</td>
+            <td style="text-align:center"><span class="tick-box paused">II</span></td>
+            <td style="text-align:center"><span class="tick-box on">✓</span></td>
+            <td style="text-align:center"><span class="tick-box on">✓</span></td>
+            <td><span class="receipt">paused until 11 Sep</span></td>
+            <td><span class="pill built">Active</span></td>
+          </tr>
+          <tr>
+            <td>Johan Krige</td>
+            <td style="font-variant-numeric:tabular-nums">+27 71 908 3355</td>
+            <td style="text-align:center"><span class="tick-box"></span></td>
+            <td style="text-align:center"><span class="tick-box"></span></td>
+            <td style="text-align:center"><span class="tick-box"></span></td>
+            <td><span class="receipt">—</span></td>
+            <td><span class="pill blocked">Opted out</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="cols-3" style="margin-top:20px;">
+    <div class="note new"><b>Add person.</b> Today a recipient can only be created as a side
+      effect of sending a report from the report editor. There is no way to simply add someone.</div>
+    <div class="note new"><b>Test send to me.</b> Prove the wording and the figures on your own
+      handset before fourteen people get it.</div>
+    <div class="note new"><b>Last delivery.</b> Delivery receipts already arrive and are already
+      recorded. Nothing shows them.</div>
+    <div class="note new"><b>Paused, not unticked.</b> A member who paused from their phone should
+      read as paused here, not as never-subscribed.</div>
+  </div>
+
+  <div class="callout bad" style="margin-top:20px;">
+    <b>The honest state of this panel today.</b> A tick writes a preference and does nothing else.
+    Only the <b>Daily</b> tick is ever read by any code — <b>Weekly and Monthly are stored and
+    never looked at</b>, because no weekly or monthly sender exists. And the daily one is moot too:
+    the sender was written but never deployed, its template was never submitted to Meta, and
+    nothing schedules it. The banner's claim that people are added by enrolling on WhatsApp is
+    also not true yet.
+  </div>
+</section>
+
+<!-- ============================================================
+     3. THE CONVERSATION
+     ============================================================ -->
+<section id="conversation">
+  <div class="sec-head">
+    <h2>The conversation</h2>
+    <p>
+      You asked for a bot that answers <span class="q">"hello"</span> with options rather than
+      forcing people to know that 99 means something. Most of this already works — it needs the
+      greeting to be understood, and the menu to open a level deeper.
+    </p>
+  </div>
+
+  <div class="cols-3">
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div class="phone-who">
+            <div class="phone-name">Macavation</div>
+            <div class="phone-sub">online</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="bub out">Hello<span class="tm">08:04 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            Hi Henry. What would you like to see?
+            <span class="tm">08:04</span>
+            <div class="wa-list-cta">☰ &nbsp;Choose</div>
+          </div>
+          <div class="wa-sheet">
+            <div class="wa-sheet-hd">Macavation</div>
+            <div class="wa-sheet-sec">Today</div>
+            <div class="wa-row"><div><div class="wa-row-t">Production today</div><div class="wa-row-d">Cracked, packed, oil</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Stock &amp; runway</div><div class="wa-row-d">On hand and weeks cover</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Open alerts</div><div class="wa-row-d">3 need attention</div></div><div class="wa-radio"></div></div>
+            <div class="wa-sheet-sec">Reports</div>
+            <div class="wa-row"><div><div class="wa-row-t">Latest report</div><div class="wa-row-d">Weekly, 1 Sep</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">My reports</div><div class="wa-row-d">Change what you get</div></div><div class="wa-radio"></div></div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">What most handsets show — a tappable sheet.</p>
+    </div>
+
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div class="phone-who">
+            <div class="phone-name">Macavation</div>
+            <div class="phone-sub">online</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="bub out">Hi<span class="tm">08:04 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            Hi Henry. What would you like to see?<br><br>
+            1. Production today<br>
+            2. Stock &amp; runway<br>
+            3. Open alerts<br>
+            4. Latest report<br>
+            5. My reports<br><br>
+            Reply with a number.
+            <div class="bub-note">99 brings this menu back at any time · 0 goes back a step</div>
+            <span class="tm">08:04</span>
+          </div>
+          <div class="bub out">2<span class="tm">08:05 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            <strong>Stock &amp; runway</strong><br><br>
+            Kernel on hand <strong>21 591 kg</strong><br>
+            Oil finished <strong>193 660 kg</strong><br>
+            Batches in production <strong>2</strong><br>
+            Weeks cover <strong>—</strong>
+            <div class="bub-note">Cover not calculable — no demand figure this week</div>
+            <span class="tm">08:05</span>
+          </div>
+        </div>
+      </div>
+      <p class="caption">The fallback, when the sheet can't render. Both ship.</p>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h3>What changes</h3>
+        <ul class="plain">
+          <li><b>Any unrecognised word opens the menu.</b> <code>Hello</code>, <code>Hi</code> and
+            <code>Start</code> already do. But <code>stock please</code> gets a list of verbs to
+            type instead of the menu — which is the moment people give up.</li>
+          <li><b>A second level.</b> The menu is currently flat — one tap, one answer. Reports and
+            settings want a sub-menu.</li>
+          <li><b>Typed numbers keep working.</b> They match the position in the same list, so the
+            number is always right whether or not the sheet rendered.</li>
+        </ul>
+      </div>
+
+      <div class="callout good">
+        <b>Already true.</b> The list, the numbered fallback, position-matching, and each item
+        being hidden unless your role can see that area in the portal — all built and live. So is
+        the confirm-before-acting pattern for anything that changes data.
+      </div>
+
+      <div class="callout warn">
+        <b>Two keys never change.</b> <b>0 is back</b> and <b>99 is main menu</b>, on every screen,
+        across every Customapp WhatsApp product. Worth keeping even where a button would do, so
+        people who learn it once are never wrong.
+      </div>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <h3>Buttons, lists, or a form — and when to use which</h3>
+  <p style="color:var(--text-2); max-width:70ch; margin-bottom:20px;">
+    You mentioned liking buttons and popups. All three exist; each has hard limits worth designing
+    around rather than discovering later.
+  </p>
+
+  <div class="cols-3">
+    <div class="stack-sm">
+      <div class="phone" style="max-width:280px">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div class="phone-who"><div class="phone-name">Macavation</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="bub in">
+            Mark <strong>Low stock: Protein</strong> as resolved?
+            <span class="tm">09:20</span>
+            <div class="wa-btns">
+              <div class="wa-btn">Yes, resolve</div>
+              <div class="wa-btn">Not yet</div>
+              <div class="wa-btn">Main menu</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="limit"><b>Buttons</b> — max 3, labels max 20 characters. Best for confirming or a
+        two-way choice.</div>
+    </div>
+
+    <div class="stack-sm">
+      <div class="phone" style="max-width:280px">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div class="phone-who"><div class="phone-name">Macavation</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="wa-sheet">
+            <div class="wa-sheet-hd">Which report?</div>
+            <div class="wa-row"><div class="wa-row-t">Daily — 4 Sep</div><div class="wa-radio on"></div></div>
+            <div class="wa-row"><div class="wa-row-t">Weekly — w/e 1 Sep</div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div class="wa-row-t">Monthly — August</div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div class="wa-row-t">Kernel dispatch</div><div class="wa-radio"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="limit"><b>List</b> — max 10 rows total, titles max 24 characters, one line of
+        description each. This is the menu.</div>
+    </div>
+
+    <div class="stack-sm">
+      <div class="phone" style="max-width:280px">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div class="phone-who"><div class="phone-name">Macavation</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="wa-flow">
+            <div class="wa-flow-hd"><span>Build a report</span><span style="color:var(--wa-ink-2)">1 of 2</span></div>
+            <div class="wa-flow-bd">
+              <div class="wa-field">
+                <div class="wa-label">Report</div>
+                <div class="wa-input"><span>Production summary</span><span style="color:var(--wa-ink-2)">▾</span></div>
+              </div>
+              <div class="wa-field">
+                <div class="wa-label">From</div>
+                <div class="wa-input"><span>1 Aug 2026</span><span style="color:var(--wa-ink-2)">▾</span></div>
+              </div>
+              <div class="wa-field">
+                <div class="wa-label">To</div>
+                <div class="wa-input"><span>31 Aug 2026</span><span style="color:var(--wa-ink-2)">▾</span></div>
+              </div>
+              <div class="wa-submit">Continue</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="limit"><b>Form</b> — the popup you pictured. Multiple screens, dropdowns, date
+        pickers. <b>Frozen once published</b>: changes mean publishing a new one.</div>
+    </div>
+  </div>
+
+  <div class="callout info" style="margin-top:20px;">
+    <b>On forms.</b> Macavation has none today, and they are the most involved piece here — they
+    need their own encrypted endpoint. But Jacana has a complete working set we can lift rather
+    than invent. I'd suggest holding them back for a second phase, once the menu is earning its
+    keep, unless there's a data-capture job you want on WhatsApp from day one.
+  </div>
+</section>
+
+<!-- ============================================================
+     4. PERSON TO PERSON
+     ============================================================ -->
+<section id="messaging">
+  <div class="sec-head">
+    <h2>Messaging a person</h2>
+    <p>
+      The shared inbox already exists in the portal — the team sees every WhatsApp conversation and
+      anyone with permission can reply. The question is only what happens when you message someone
+      who hasn't been in touch today.
+    </p>
+  </div>
+
+  <div class="pair-wide">
+    <div class="stack">
+      <div class="portal">
+        <div class="portal-hd">
+          <div class="portal-ttl">WhatsApp &amp; Internal Chat</div>
+          <div class="portal-tools"><span class="btn primary">Send</span></div>
+        </div>
+        <div class="tbl-scroll">
+          <table class="tbl-tight">
+            <thead>
+              <tr><th>Conversation</th><th>Last message</th><th>Window</th><th>Sending as</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Pete Marais</b><br><span class="receipt">+27 82 441 9032</span></td>
+                <td>Replied 40 minutes ago</td>
+                <td><span class="pill built">Open · 23h left</span></td>
+                <td>Plain message · free · instant</td>
+              </tr>
+              <tr>
+                <td><b>Anli du Toit</b><br><span class="receipt">+27 83 220 7714</span></td>
+                <td>Last replied 6 days ago</td>
+                <td><span class="pill blocked">Closed</span></td>
+                <td>Notification template · costs a fraction of a rand</td>
+              </tr>
+              <tr>
+                <td><b>Johan Krige</b><br><span class="receipt">+27 71 908 3355</span></td>
+                <td>Never messaged</td>
+                <td><span class="pill blocked">Closed</span></td>
+                <td>Notification template</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <b>The one thing to decide.</b> Meta will approve a template for a <em>specific</em>
+        notification — "someone sent you a message, tap to read it". It will not approve a
+        general-purpose "send any text I like" template, and asking invites a rejection or a
+        reclassification as marketing, which costs more and counts against you. So an
+        out-of-window message becomes a nudge, and the actual words land when they tap.
+      </div>
+
+      <div class="note">
+        The portal should say which of the two is about to happen <b>before</b> you press send, not
+        after — that's the <em>Sending as</em> column. Nobody should have to know what a window is.
+      </div>
+    </div>
+
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div class="phone-who">
+            <div class="phone-name">Macavation</div>
+            <div class="phone-sub">Business account</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="daystamp">CLOSED WINDOW</div>
+          <div class="bub in">
+            <strong>Henry</strong> sent you a message on Macavation.<br><br>
+            <em>"Can you confirm the Protein bin count before Friday?"</em>
+            <span class="tm">14:22</span>
+            <div class="wa-btns"><div class="wa-btn">Reply</div></div>
+          </div>
+          <div class="bub out">Reply<span class="tm">14:26 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            You're replying to Henry. Type your message.
+            <span class="tm">14:26</span>
+          </div>
+          <div class="bub out">
+            Counted this morning — 1 240 kg. Will send a photo.
+            <span class="tm">14:27 <span class="tick">✓✓</span></span>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Their reply lands in the portal inbox, threaded.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     5. ALERTS
+     ============================================================ -->
+<section id="alerts">
+  <div class="sec-head">
+    <h2>Alerts</h2>
+    <p>
+      Alerts already fire and already reach the portal's notification bell. The WhatsApp leg is
+      the missing third branch — and the one that most needs restraint.
+    </p>
+  </div>
+
+  <div class="strip" style="margin-bottom:20px;">
+    <div class="step">
+      <div class="step-n">01</div>
+      <div class="step-t">Rule trips</div>
+      <div class="step-d">Protein stock falls below its minimum. Checked three times a day
+        against the thresholds you set.</div>
+    </div>
+    <div class="step">
+      <div class="step-n">02</div>
+      <div class="step-t">Alert raised</div>
+      <div class="step-d">Written once, deduped against any open alert for the same thing, so a
+        standing problem doesn't nag daily.</div>
+    </div>
+    <div class="step">
+      <div class="step-n">03</div>
+      <div class="step-t">Bell rings</div>
+      <div class="step-d">Appears in the portal for everyone whose role covers stock.
+        <span class="pill built">Built</span></div>
+    </div>
+    <div class="step">
+      <div class="step-n">04</div>
+      <div class="step-t">WhatsApp, if it clears your bar</div>
+      <div class="step-d">Only warning and above, only to people who asked for alerts.
+        <span class="pill new">New</span></div>
+    </div>
+    <div class="step">
+      <div class="step-n">05</div>
+      <div class="step-t">Handled from the phone</div>
+      <div class="step-d">Resolve or snooze, with a confirm step, and only if your role may
+        resolve alerts.</div>
+    </div>
+  </div>
+
+  <div class="pair">
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div class="phone-who">
+            <div class="phone-name">Macavation</div>
+            <div class="phone-sub">Business account</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="bub in">
+            <div class="bub-hdr">Macavation — Alert</div>
+            ⚠️ <strong>Low stock: Protein</strong><br><br>
+            On hand <strong>1 240 kg</strong>, below the 2 000 kg minimum.<br>
+            Raised 09:14.
+            <span class="tm">09:14</span>
+            <div class="wa-btns">
+              <div class="wa-btn">Mark resolved</div>
+              <div class="wa-btn">Snooze 4 hours</div>
+              <div class="wa-btn">Menu</div>
+            </div>
+          </div>
+          <div class="bub out">Mark resolved<span class="tm">09:20 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            Resolve <strong>Low stock: Protein</strong>?
+            <span class="tm">09:20</span>
+            <div class="wa-btns">
+              <div class="wa-btn">Yes, resolve</div>
+              <div class="wa-btn">Cancel</div>
+            </div>
+          </div>
+          <div class="bub out">Yes, resolve<span class="tm">09:21 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            Done. Resolved by you at 09:21, and recorded in the portal.
+            <span class="tm">09:21</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h3>Who gets which alerts</h3>
+        <div class="tbl-scroll">
+          <table class="tbl-tight">
+            <thead><tr><th>Severity</th><th>Portal bell</th><th>WhatsApp</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pill blocked">Info</span></td><td>Yes</td><td>Never</td></tr>
+              <tr><td><span class="pill unwired">Warning</span></td><td>Yes</td><td>If opted in</td></tr>
+              <tr><td><span class="pill broken">Critical</span></td><td>Yes</td><td>Always</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:14px; font-size:var(--t-sm); color:var(--text-2);">
+          Set per person, next to their report ticks. One row, one place.
+        </p>
+      </div>
+
+      <div class="callout warn">
+        <b>The risk worth naming.</b> Meta scores your number on how people react to it. Too many
+        messages nobody wanted and the score drops — and a dropped score cuts how many messages you
+        may send <em>of any kind</em>, including the reports. So alert noise doesn't just annoy
+        people, it degrades the reports. Hence the severity floor, the dedupe, and a cap on how
+        many alerts one person can get in a day.
+      </div>
+
+      <div class="callout good">
+        <b>Mostly built already.</b> The rules, the alert table, the dedupe, the portal bell, and
+        the ask-then-confirm-then-resolve flow all exist. What's missing is the branch that sends
+        it to a handset.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     6. SELF-SERVICE
+     ============================================================ -->
+<section id="settings">
+  <div class="sec-head">
+    <h2>Changing your own settings, from WhatsApp</h2>
+    <p>
+      All of this happens inside an open window, so it costs nothing and needs no approval. It is
+      the same row of data as your panel — change it on either side and both agree.
+    </p>
+  </div>
+
+  <div class="pair">
+    <div>
+      <div class="phone">
+        <div class="phone-bar">
+          <div class="phone-avatar">M</div>
+          <div class="phone-who">
+            <div class="phone-name">Macavation</div>
+            <div class="phone-sub">online</div>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="bub out">My reports<span class="tm">08:30 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            Here's what you're getting. Tap one to turn it on or off.
+            <span class="tm">08:30</span>
+          </div>
+          <div class="wa-sheet">
+            <div class="wa-sheet-hd">My reports</div>
+            <div class="wa-row"><div><div class="wa-row-t">Daily — on</div><div class="wa-row-d">Every morning at 06:00</div></div><div class="wa-radio on"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Weekly — on</div><div class="wa-row-d">Mondays</div></div><div class="wa-radio on"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Monthly — off</div><div class="wa-row-d">1st of the month</div></div><div class="wa-radio"></div></div>
+            <div class="wa-sheet-sec">Quieten things down</div>
+            <div class="wa-row"><div><div class="wa-row-t">Pause for a week</div><div class="wa-row-d">Everything resumes on its own</div></div><div class="wa-radio"></div></div>
+            <div class="wa-row"><div><div class="wa-row-t">Stop everything</div><div class="wa-row-d">Nothing until you ask again</div></div><div class="wa-radio"></div></div>
+          </div>
+          <div class="bub out">Pause for a week<span class="tm">08:31 <span class="tick">✓✓</span></span></div>
+          <div class="bub in">
+            Paused until <strong>Thu 11 Sep</strong>. Alerts marked critical will still come
+            through. Send <strong>resume</strong> any time to start again sooner.
+            <span class="tm">08:31</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="callout good">
+        <b>Cheaper than it looks.</b> The pause date already has a column, and the sender already
+        respects it. The function that changes a subscription from a phone number is already
+        written and granted — it has simply never been called by anything. This is mostly wiring.
+      </div>
+
+      <div class="card">
+        <h3>Two rules I'd hold to</h3>
+        <ul class="plain">
+          <li><b>Pause beats unsubscribe.</b> Someone on leave wants quiet for a week, not to be
+            forgotten. A pause that expires on its own means nobody has to remember to switch
+            them back on.</li>
+          <li><b>Stop always works, immediately, whatever the message.</b> Meta requires it and so
+            does POPIA. It should never take more than one message, and it should never be
+            buried behind a menu.</li>
+        </ul>
+      </div>
+
+      <div class="note new">
+        <b>Adding yourself.</b> Your panel already tells people they can join by messaging the
+        number. Making that true is a small job and closes the loop — someone new asks the number
+        for the daily report, confirms, and appears in your list without you touching anything.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     7. SUGGESTIONS
+     ============================================================ -->
+<section id="extras">
+  <div class="sec-head">
+    <h2>Four things I'd add that you didn't ask for</h2>
+    <p>All of them small, and all of them things you'll want the first week it's live.</p>
+  </div>
+
+  <div class="cols-3">
+    <div class="card">
+      <h3>Did they read it?</h3>
+      <p style="color:var(--text-2)">
+        WhatsApp tells us when a message is delivered and when it's read, and we already record it.
+        Nothing shows it. A <span class="receipt"><span class="rd">✓✓</span> read 07:12</span> next
+        to each name answers the question you'd otherwise ask by phone.
+      </p>
+    </div>
+    <div class="card">
+      <h3>Send it to yourself first</h3>
+      <p style="color:var(--text-2)">
+        One button that sends the real report to your own handset. Catches a wrong figure or an
+        awkward sentence before it reaches the shareholders.
+      </p>
+    </div>
+    <div class="card">
+      <h3>What it's costing</h3>
+      <p style="color:var(--text-2)">
+        Every unprompted message costs a fraction of a rand; every reply inside a window is free.
+        A running count of both, on the same screen, keeps the bill from being a surprise — and
+        shows the design is working, because the free half should be the larger one.
+      </p>
+    </div>
+    <div class="card">
+      <h3>Short links instead of long ones</h3>
+      <p style="color:var(--text-2)">
+        Report links currently go out as a long signed web address valid for 30 days. A short
+        <code>/r/…</code> link that expires in minutes is already built and deployed — it just
+        isn't being used yet. Tidier to read and safer if forwarded.
+      </p>
+    </div>
+    <div class="card">
+      <h3>A weekly and monthly sender</h3>
+      <p style="color:var(--text-2)">
+        Those two ticks on your panel currently do nothing at all, because there's no sender behind
+        them. Worth building alongside the daily rather than after it — same shape, same template
+        pattern.
+      </p>
+    </div>
+    <div class="card">
+      <h3>Point the number at live data</h3>
+      <p style="color:var(--text-2)">
+        The live WhatsApp number currently answers from the <b>development</b> database. Anyone
+        testing it today gets development figures. Worth moving deliberately, before real people
+        start trusting the answers.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     8. WHAT EXISTS
+     ============================================================ -->
+<section id="state">
+  <div class="sec-head">
+    <h2>What's already built, and what isn't</h2>
+    <p>
+      Checked against the live channel and the development database on 4 September 2026, so the
+      build estimate isn't guesswork. Rather more exists than you'd think from using it.
+    </p>
+  </div>
+
+  <div class="tbl-scroll">
+    <table>
+      <thead>
+        <tr><th>Piece</th><th>State</th><th>What that means</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>The bot's menu</b></td>
+          <td><span class="pill built">Built</span></td>
+          <td>Tappable list, numbered fallback, role-filtered, 0 and 99 honoured, confirm-before-acting. Live.</td>
+        </tr>
+        <tr>
+          <td><b>Enrolling a staff number</b></td>
+          <td><span class="pill built">Built</span></td>
+          <td>Six-digit code, verified, one number per person. Works — as long as they message first.</td>
+        </tr>
+        <tr>
+          <td><b>Shared team inbox</b></td>
+          <td><span class="pill built">Built</span></td>
+          <td>Contacts and internal tabs, unread badge, threaded replies.</td>
+        </tr>
+        <tr>
+          <td><b>Alert rules and the portal bell</b></td>
+          <td><span class="pill built">Built</span></td>
+          <td>Thresholds, dedupe, notifications, resolve workflow.</td>
+        </tr>
+        <tr>
+          <td><b>Sending a report by hand</b></td>
+          <td><span class="pill built">Built</span></td>
+          <td>From the report editor, to up to 25 numbers, with the PDF. Eight have gone out.</td>
+        </tr>
+        <tr>
+          <td><b>Weekly / monthly ticks</b></td>
+          <td><span class="pill unwired">Built, unwired</span></td>
+          <td>Stored faithfully. Nothing reads them. No weekly or monthly sender exists.</td>
+        </tr>
+        <tr>
+          <td><b>Pause until a date</b></td>
+          <td><span class="pill unwired">Built, unwired</span></td>
+          <td>Column exists, sender respects it, nothing can set it.</td>
+        </tr>
+        <tr>
+          <td><b>Joining by WhatsApp</b></td>
+          <td><span class="pill unwired">Built, unwired</span></td>
+          <td>The functions exist and are granted. Nothing calls them, so the panel's promise isn't true yet.</td>
+        </tr>
+        <tr>
+          <td><b>Short report links</b></td>
+          <td><span class="pill unwired">Built, unwired</span></td>
+          <td>Deployed ahead of its callers. No message contains one.</td>
+        </tr>
+        <tr>
+          <td><b>The daily sender</b></td>
+          <td><span class="pill blocked">Written, not deployed</span></td>
+          <td>The code exists on the development branch but was never put live.</td>
+        </tr>
+        <tr>
+          <td><b>An approved template</b></td>
+          <td><span class="pill broken">Missing</span></td>
+          <td>The channel has one draft, never submitted to Meta. Until one is approved, <b>nothing can be sent unprompted at all</b> — this is the blocker under most of the others.</td>
+        </tr>
+        <tr>
+          <td><b>A schedule</b></td>
+          <td><span class="pill broken">Missing</span></td>
+          <td>Nothing runs on a timer. Every "sends at 06:00" note describes an intention.</td>
+        </tr>
+        <tr>
+          <td><b>Alerts to WhatsApp</b></td>
+          <td><span class="pill new">New</span></td>
+          <td>The only genuinely new branch in the alert work.</td>
+        </tr>
+        <tr>
+          <td><b>Forms (the popups)</b></td>
+          <td><span class="pill new">New</span></td>
+          <td>None exist here. A complete working set exists on Jacana to copy from.</td>
+        </tr>
+        <tr>
+          <td><b>Delivery receipts on screen</b></td>
+          <td><span class="pill new">New</span></td>
+          <td>The data already arrives and is already stored. Only the display is missing.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout bad" style="margin-top:24px;">
+    <b>One live fault worth fixing whatever we decide here.</b> Every <code>Menu</code> you send
+    comes back saying your role has access to nothing — while your role in fact has 32 areas
+    enabled. The permission lookup hides a <b>super user's</b> own permissions unless the thing
+    asking is itself signed in as a super user, and the bot isn't signed in as anyone. Every other
+    role returns correctly. You happen to hold the one role it breaks on, so it looks completely
+    broken while working fine for everybody else. It's a small fix.
+  </div>
+
+  <div class="callout info" style="margin-top:16px;">
+    <b>Suggested order.</b> Submit the three templates first — the approval clock is the long pole
+    and everything unprompted waits on it. Fix the permission fault the same day so you can
+    actually use the menu while we wait. Then deploy and schedule the daily, add the weekly and
+    monthly, and wire up the self-service settings. Alerts and receipts after that. Forms last,
+    or not at all for now.
+  </div>
+
+  <p style="margin-top:24px; font-size:var(--t-xs); color:var(--text-3); max-width:70ch;">
+    Stock and batch figures shown in the menu screens are real values read from the development
+    database on 4 September 2026. Daily production figures, the four recipients and the alert
+    detail are illustrative — the development dataset has no production recorded for today, and
+    showing zeros everywhere would misrepresent the design rather than the data.
+  </p>
+</section>
+
+</div>
