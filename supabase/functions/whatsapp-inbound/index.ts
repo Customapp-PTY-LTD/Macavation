@@ -2037,6 +2037,226 @@ async function tryConfirmEnrolment(
 }
 
 /**
+ * The join keyword — "reports" from an unenrolled number — and the daily/weekly/monthly follow-up
+ * that lets that number choose what to receive. This is the WhatsApp-side half of "add a
+ * recipient from the panel, and let one join by messaging the number": the panel's own banner
+ * (WebPortal/modules/sales-reports/html/report_list.html) tells people to do exactly this.
+ *
+ * A DELIBERATE, NARROW exception to tryConfirmEnrolment's "total silence for an unenrolled
+ * number" rule, immediately above — read that function's comment first. That silence exists
+ * because replying to a wrong 6-digit GUESS would confirm this endpoint is live to a stranger who
+ * may only be guessing. "reports" is not a guess at a secret: it is someone explicitly asking to
+ * join a WhatsApp report list, in response to instructions the portal itself now gives. A future
+ * reader must not "fix" this back to silence — the silence rule was never meant to cover it.
+ *
+ * A small, self-contained, LINEAR state machine — deliberately NOT folded into COMMAND_HANDLERS /
+ * STAGED_COMMAND_HANDLERS below. There is no ambiguity here to stage a YES/NO confirmation for,
+ * and this population can never reach that machinery anyway: CommandContext requires an
+ * already-resolved userId/roleId, and this number is never resolved by
+ * whatsapp_resolve_staff_user (report_recipients has no relationship to staff enrolment at all).
+ *
+ * is_staff: never touched here (contract 5). report_recipients.is_staff defaults to false
+ * (migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql:83), and neither
+ * upsert_report_recipient nor set_report_subscription_by_phone ever writes it. Becoming staff is a
+ * separate, portal-admin action (set_report_recipient_staff) or the existing WhatsApp staff
+ * enrolment code flow (tryConfirmEnrolment, above) — out of scope here.
+ *
+ * Confirmed before writing this: report_daily_recipients()'s WHERE clause
+ * (migrations/20260907130000_report_opt_out.sql:239-242) is `rr.is_active AND rs.is_active AND
+ * rr.opted_out_at IS NULL AND (muted_until ...)` — no is_staff condition anywhere in it. A non-staff
+ * recipient already receives reports today, so gating this join flow on staff enrolment would
+ * wrongly exclude exactly the population (external report recipients who will never have a portal
+ * login) this feature exists to serve.
+ *
+ * "Joining states intent, it does not choose" (contract 4): the upsert_report_recipient call below
+ * never touches report_subscriptions — that function only ever writes report_recipients (see its
+ * body). The new row is left with every subscription kind off until the person separately types
+ * daily / weekly / monthly, each its own call to set_report_subscription_by_phone.
+ *
+ * Deviation from the brief's literal wording, recorded here because it is load-bearing: the brief
+ * describes the create call as `upsert_report_recipient(display_name=null, ...)`, but
+ * upsert_report_recipient itself rejects a null/blank display name (`IF v_name IS NULL THEN RETURN
+ * QUERY SELECT 0, 'A display name is required.'` —
+ * migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql:219-222) — a null would
+ * make every join silently fail with success=0. This follows the exact precedent
+ * report_set_opt_out already set for the identical problem (migrations/20260907130000_report_opt_out.sql:128-131):
+ * use the canonical phone number as a placeholder display name until the person is known by a real
+ * name (e.g. once an admin edits them from the panel).
+ *
+ * Returns true when this message has been fully handled (whether or not a reply was sent) — the
+ * caller must return immediately either way, exactly like tryConfirmEnrolment. Returns false only
+ * for "not this flow", so the caller falls through to the existing silent not_enrolled logging.
+ */
+async function tryJoinReportsFlow(
+  sb: SupabaseClient,
+  from: string,
+  wamid: string,
+  rawBody: string,
+  trimmedBody: string
+): Promise<boolean> {
+  const lower = trimmedBody.toLowerCase();
+
+  // Step 2: "daily" / "weekly" / "monthly" — the follow-up choice after joining.
+  //
+  // Deliberately gated on report_recipient_by_inbound_phone returning found=true — i.e. this
+  // number is ALREADY a known, active report_recipients row. Without that gate, any stranger who
+  // happened to text the common English word "daily" for an unrelated reason would be silently
+  // subscribed to a confidential report. The real join population always reaches this state via
+  // "reports" (below) first, which is what creates that roster row — so this gate excludes nobody
+  // this flow is meant to serve.
+  if ((REPORT_KINDS as readonly string[]).includes(lower)) {
+    const kind = lower as ReportKind;
+    let lookup: Any;
+    try {
+      const { data, error } = await sb.rpc('report_recipient_by_inbound_phone', { p_phone: from });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] report_recipient_by_inbound_phone is missing — migration 20260825090000 not applied.'
+          );
+        }
+        throw error;
+      }
+      lookup = Array.isArray(data) ? data[0] : data;
+    } catch (e) {
+      console.error(`[whatsapp-inbound] join-flow lookup failed wamid=${wamid}:`, e);
+      return false;
+    }
+
+    if (!lookup || lookup.found !== true) {
+      // Not on the roster — silence, for the same reason tryConfirmEnrolment stays silent on a
+      // wrong code: this may just be a stranger who typed a common word, and there is nothing here
+      // worth confirming a bot is listening for.
+      return false;
+    }
+
+    try {
+      const { data, error } = await sb.rpc('set_report_subscription_by_phone', {
+        p_phone: from,
+        p_report_kind: kind,
+        p_is_active: true,
+        p_muted_until: null,
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result || result.ok !== true) {
+        throw new Error(result?.error || 'set_report_subscription_by_phone returned ok=false');
+      }
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'JOIN_REPORTS_CHOOSE',
+        outcome: 'ok',
+        detail: kind,
+      });
+      const reply =
+        `You're now getting the ${REPORT_KIND_LABEL[kind]} report. Reply with another of daily, ` +
+        `weekly or monthly any time to add it, or STOP to opt out of everything.`;
+      const sent = await sendWhatsappText(from, reply);
+      if (!sent) console.error(`[whatsapp-inbound] join-flow choose reply failed wamid=${wamid}`);
+    } catch (e) {
+      console.error(`[whatsapp-inbound] join-flow choose failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'JOIN_REPORTS_CHOOSE',
+        outcome: 'error',
+        detail: String(e),
+      });
+      const sent = await sendWhatsappText(from, 'I could not save that just now. Please try again shortly.');
+      if (!sent) console.error(`[whatsapp-inbound] join-flow choose failure reply failed wamid=${wamid}`);
+    }
+    return true;
+  }
+
+  // Step 1: the join keyword itself — "reports", case-insensitive, alone or inside a short phrase.
+  if (!/\breports\b/i.test(rawBody)) {
+    return false;
+  }
+
+  let alreadyOnRoster = false;
+  try {
+    const { data, error } = await sb.rpc('report_recipient_by_inbound_phone', { p_phone: from });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] report_recipient_by_inbound_phone is missing — migration 20260825090000 not applied.'
+        );
+      }
+      throw error;
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    alreadyOnRoster = !!(row && row.found === true);
+  } catch (e) {
+    console.error(`[whatsapp-inbound] join-flow lookup failed wamid=${wamid}:`, e);
+    await logCommand(sb, {
+      phone: from,
+      userId: null,
+      wamid,
+      rawBody,
+      command: 'JOIN_REPORTS',
+      outcome: 'error',
+      detail: String(e),
+    });
+    const sent = await sendWhatsappText(from, 'I could not check that just now. Please try again shortly.');
+    if (!sent) console.error(`[whatsapp-inbound] join-flow lookup failure reply failed wamid=${wamid}`);
+    return true;
+  }
+
+  if (!alreadyOnRoster) {
+    // create with EVERY subscription kind left off — see this function's comment above on
+    // "joining states intent". source: 'whatsapp_chat' records how this row came to exist, exactly
+    // as the CHECK constraint's other values (crm_contact, manual) already record other sources.
+    try {
+      const { data, error } = await sb.rpc('upsert_report_recipient', {
+        p_display_name: toWaPhone(from),
+        p_phone: from,
+        p_source: 'whatsapp_chat',
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || Number(row.success) !== 1) {
+        throw new Error(row?.error || 'upsert_report_recipient returned success=0');
+      }
+    } catch (e) {
+      console.error(`[whatsapp-inbound] join-flow create failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'JOIN_REPORTS',
+        outcome: 'error',
+        detail: String(e),
+      });
+      const sent = await sendWhatsappText(from, 'I could not save that just now. Please try again shortly.');
+      if (!sent) console.error(`[whatsapp-inbound] join-flow create failure reply failed wamid=${wamid}`);
+      return true;
+    }
+  }
+
+  await logCommand(sb, {
+    phone: from,
+    userId: null,
+    wamid,
+    rawBody,
+    command: 'JOIN_REPORTS',
+    outcome: 'ok',
+    detail: alreadyOnRoster ? 'already on roster' : 'created',
+  });
+  const reply =
+    "You're on the list for Macavation's reports. Reply daily, weekly or monthly to choose which " +
+    "one(s) you'd like — you can pick more than one, any time.";
+  const sent = await sendWhatsappText(from, reply);
+  if (!sent) console.error(`[whatsapp-inbound] join-flow confirmation reply failed wamid=${wamid}`);
+  return true;
+}
+
+/**
  * The pre-gate opt-out interceptor — STOP and START, honoured from ANY number, enrolled or not,
  * on the roster or not, mid-confirmation or not. Runs BEFORE whatsapp_resolve_staff_user, so it
  * cannot use CommandContext (that interface requires userId/roleId/displayName, which only exist
@@ -2268,6 +2488,14 @@ async function processCommandForMessage(
       const trimmedBody = rawBody.trim();
       if (!replyId && /^\d{6}$/.test(trimmedBody)) {
         await tryConfirmEnrolment(sb, from, wamid, rawBody, trimmedBody);
+        return;
+      }
+
+      // Second, narrow exception to the silence rule: the WhatsApp report join flow. TEXT ONLY,
+      // same reasoning as the enrolment-code check above — a menu tap cannot express "reports" or
+      // "daily"/"weekly"/"monthly" as free text. See tryJoinReportsFlow's own comment for why this
+      // one replies where tryConfirmEnrolment stays silent; do not "fix" this back to silence.
+      if (!replyId && (await tryJoinReportsFlow(sb, from, wamid, rawBody, trimmedBody))) {
         return;
       }
 
