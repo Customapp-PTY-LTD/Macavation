@@ -24,7 +24,11 @@ var _reportEditor = function () {
     var state = {
         reportId: null,
         payload: null,
-        pendingExecSummary: false
+        pendingExecSummary: false,
+        // Resolved once per session (not per report — it is about the signed-in user, not the
+        // report being viewed) by loadSelfTestPhone(). null until resolved, or if the caller has
+        // neither a verified whatsapp_phone nor a mobile_number on file.
+        selfTestPhone: null
     };
 
     // In-flight guards, keyed by metric_key / section_key. A Map (not a plain object) so a
@@ -165,6 +169,137 @@ var _reportEditor = function () {
         // denied reports.report.send stays hidden regardless — actionAccess.apply already set an
         // inline display:none on this button that toggleClass cannot clear.
         $('#reportEditorSendWhatsappBtn').toggleClass('d-none', status !== 'published');
+        // Test send to me — not a new send path (contract 3), so the same published-only gate
+        // applies. Its enabled/disabled state (separate from this d-none visibility) is driven by
+        // whether a phone was resolved — see updateTestSendButtonState().
+        $('#reportEditorTestSendBtn').toggleClass('d-none', status !== 'published');
+    }
+
+    // ------------------------------------------------------------------
+    // Test send to me — contract 3: reuses the exact send path "Send via WhatsApp" already uses
+    // (dataFunctions.sendReportWhatsapp, the same wrapper report-whatsapp-send.js's
+    // callSendEndpoint calls), with the caller's own number as the sole recipient. No new edge
+    // function, no new RPC, no second call site into the gateway.
+    // ------------------------------------------------------------------
+
+    // Prefers the VERIFIED WhatsApp identity (migrations/20260815100000_staff_whatsapp_identity.sql)
+    // over the admin-typed, unverified mobile_number (migrations/20260828120000_users_mobile_number.sql)
+    // — both are already returned by get_user_by_id
+    // (migrations/20260903100000_users_whatsapp_enrolment_status.sql), reached here via the
+    // existing dataFunctions.getUserById wrapper. Returns null when neither is set, which disables
+    // the button (contract 3) instead of letting a submit fail silently.
+    function resolveSelfTestPhone(user) {
+        if (!user) return null;
+        var verified = user.whatsapp_phone_verified_at != null && String(user.whatsapp_phone_verified_at).trim() !== '';
+        if (verified && user.whatsapp_phone && String(user.whatsapp_phone).trim() !== '') {
+            return String(user.whatsapp_phone).trim();
+        }
+        if (user.mobile_number != null && String(user.mobile_number).trim() !== '') {
+            return String(user.mobile_number).trim();
+        }
+        return null;
+    }
+
+    function updateTestSendButtonState() {
+        var $btn = $('#reportEditorTestSendBtn');
+        if (!$btn.length) return;
+        if (state.selfTestPhone) {
+            $btn.prop('disabled', false);
+            $btn.attr('title', 'Send a test copy of this report to your own WhatsApp number.');
+        } else {
+            $btn.prop('disabled', true);
+            $btn.attr('title', 'No WhatsApp or mobile number is set on your account — add one before testing a send.');
+        }
+    }
+
+    // Resolved once at init(), not per-report: this is about who is signed in, not which report is
+    // open. A failure here (no session, RPC missing) leaves the button disabled with an
+    // explanation, never silently enabled.
+    function loadSelfTestPhone() {
+        state.selfTestPhone = null;
+        updateTestSendButtonState();
+        if (typeof dataFunctions === 'undefined' || typeof dataFunctions.getUserById !== 'function' ||
+            typeof dataFunctions.getCurrentUserId !== 'function') {
+            return;
+        }
+        var uid = dataFunctions.getCurrentUserId();
+        if (!uid) return;
+        dataFunctions.getUserById(uid).then(function (user) {
+            state.selfTestPhone = resolveSelfTestPhone(user);
+            updateTestSendButtonState();
+        }).catch(function (err) {
+            console.warn('[sales-reports] getUserById (test send to me) failed', err);
+            state.selfTestPhone = null;
+            updateTestSendButtonState();
+        });
+    }
+
+    // Mirrors report-whatsapp-send.js's own private stripDataPrefix exactly (documented
+    // duplication, same reasoning as report_normalize_wa_phone being mirrored in JS elsewhere in
+    // this module family — report-whatsapp-send.js's copy is not exported for reuse here).
+    function stripDataPrefix(value) {
+        var s = String(value == null ? '' : value);
+        return s.replace(/^data:[^;]*;base64,/, '');
+    }
+
+    function handleTestSendToMe() {
+        if (!state.payload || !state.reportId || !state.selfTestPhone) return;
+        if (state.payload.status !== 'published') return; // edge fn refuses a non-published report with 409
+        var phone = state.selfTestPhone;
+        var $btn = $('#reportEditorTestSendBtn');
+
+        Swal.fire({
+            icon: 'question',
+            title: 'Send a test copy to yourself?',
+            text: 'This sends a real WhatsApp message with this report\'s PDF to ' + phone + '.',
+            showCancelButton: true,
+            confirmButtonText: 'Send test'
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            $btn.prop('disabled', true);
+            Promise.resolve().then(function () {
+                return pdfBase64();
+            }).then(function (rawB64) {
+                return dataFunctions.sendReportWhatsapp({
+                    reportInstanceId: state.reportId,
+                    pdfBase64: stripDataPrefix(rawB64),
+                    filename: pdfFileName(state.payload),
+                    recipients: [{ phone: phone, display_name: 'Test send' }]
+                });
+            }).then(function (resp) {
+                if (!resp || resp.success === false) {
+                    var msg = (resp && resp.error) ? resp.error : 'Could not send the test message.';
+                    Swal.fire({ icon: 'error', title: 'Test send failed', text: msg });
+                    return;
+                }
+                // success: true describes the request, not the outcome — read the one result row.
+                var row = Array.isArray(resp.results) ? resp.results[0] : null;
+                if (row && row.status === 'failed') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Test send failed',
+                        text: row.error || 'The test message could not be delivered.'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Test sent',
+                        text: 'A test copy was sent to ' + phone + '.'
+                    });
+                }
+                // The distribution history panel logs this exactly like any other send.
+                $(document).trigger('reportWhatsappSend:completed', [{ reportInstanceId: state.reportId }]);
+            }).catch(function (err) {
+                console.warn('[sales-reports] test send to me failed', err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Test send failed',
+                    text: 'Could not reach the send endpoint. Please try again.'
+                });
+            }).finally(function () {
+                updateTestSendButtonState();
+            });
+        });
     }
 
     // ------------------------------------------------------------------
@@ -1185,6 +1320,7 @@ var _reportEditor = function () {
         $(document).on('click.reportEditor', '#reportEditorPublishBtn', function () { handlePublish(); });
         $(document).on('click.reportEditor', '#reportEditorReissueBtn', function () { handleReissue(); });
         $(document).on('click.reportEditor', '#reportEditorSendWhatsappBtn', function () { handleSendWhatsapp(); });
+        $(document).on('click.reportEditor', '#reportEditorTestSendBtn', function () { handleTestSendToMe(); });
         $(document).on('blur.reportEditor', '.js-report-metric-input', function () {
             handleMetricBlur($(this));
         });
@@ -1233,9 +1369,11 @@ var _reportEditor = function () {
             state.reportId = null;
             state.payload = null;
             state.pendingExecSummary = false;
+            state.selfTestPhone = null;
             pendingOverrides.clear();
             pendingCommentary.clear();
             bindEvents();
+            loadSelfTestPhone();
             if (typeof ReportWhatsappSend !== 'undefined') {
                 ReportWhatsappSend.init();
                 ReportWhatsappSend.setPdfProvider(pdfBase64);

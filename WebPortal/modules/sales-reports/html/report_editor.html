@@ -21,6 +21,13 @@
                     data-action-perm="reports.report.send">
                 <i class="fas fa-paper-plane me-1"></i>Send via WhatsApp
             </button>
+            <!-- Test send to me: same send path as "Send via WhatsApp" (dataFunctions.sendReportWhatsapp),
+                 just with the caller's own number as the sole recipient. disabled by default; enabled
+                 once report_editor.js resolves a phone to send to (js sets title text either way). -->
+            <button type="button" class="btn btn-outline-success d-none" id="reportEditorTestSendBtn"
+                    data-action-perm="reports.report.send" disabled>
+                <i class="fas fa-paper-plane me-1"></i>Test send to me
+            </button>
             <button type="button" class="btn btn-primary d-none" id="reportEditorPublishBtn"
                     data-action-perm="reports.report.publish">
                 <i class="fas fa-lock me-1"></i>Publish
