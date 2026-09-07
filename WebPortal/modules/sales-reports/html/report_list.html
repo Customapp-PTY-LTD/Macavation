@@ -81,6 +81,9 @@
                     <input class="form-check-input" type="checkbox" id="reportDistributionShowInactive">
                     <label class="form-check-label small" for="reportDistributionShowInactive">Show inactive</label>
                 </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="addReportRecipientBtn">
+                    <i class="fas fa-user-plus me-1"></i>Add person
+                </button>
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshReportDistributionBtn">
                     <i class="fas fa-sync-alt me-1"></i>Refresh
                 </button>
@@ -90,8 +93,9 @@
             <div class="alert alert-info py-2 px-3 small mb-3">
                 <i class="fas fa-circle-info me-1"></i>
                 Ticking a box decides <strong>who</strong> a report goes to, not <strong>when</strong> it is
-                sent &mdash; the send itself is set up outside the portal. People are added to this list by
-                enrolling on WhatsApp, not here.
+                sent &mdash; the send itself is set up outside the portal. Add someone with
+                "Add person" above, or they can join themselves by messaging the WhatsApp number
+                with the word "reports".
             </div>
             <div class="table-responsive">
                 <table class="table align-middle table-hover mb-0" id="reportDistributionTable">
@@ -103,6 +107,7 @@
                             <th class="text-center">Weekly</th>
                             <th class="text-center">Monthly</th>
                             <th>Status</th>
+                            <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="reportDistributionTableBody"></tbody>
@@ -148,6 +153,54 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="createReportBtn">
                     <i class="fas fa-plus me-1"></i>Create Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add report recipient modal — the portal-side half of "add a recipient from the panel, or let
+     one join by messaging the number". Ticking a subscription here is optional and off by default
+     (see report_list_grid.js handleAddRecipient): adding someone must never silently opt them into
+     anything. -->
+<div class="modal fade" id="addReportRecipientModal" tabindex="-1" role="dialog" aria-labelledby="addReportRecipientModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addReportRecipientModalLabel">Add person</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addReportRecipientForm">
+                    <div class="mb-3">
+                        <label for="addReportRecipientName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="addReportRecipientName" name="addReportRecipientName" maxlength="200" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addReportRecipientPhone" class="form-label">WhatsApp number</label>
+                        <input type="tel" class="form-control" id="addReportRecipientPhone" name="addReportRecipientPhone" placeholder="e.g. 082 123 4567" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-1">Start them on (optional)</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="addReportRecipientDaily">
+                            <label class="form-check-label" for="addReportRecipientDaily">Daily</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="addReportRecipientWeekly">
+                            <label class="form-check-label" for="addReportRecipientWeekly">Weekly</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="addReportRecipientMonthly">
+                            <label class="form-check-label" for="addReportRecipientMonthly">Monthly</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveReportRecipientBtn">
+                    <i class="fas fa-plus me-1"></i>Add person
                 </button>
             </div>
         </div>
