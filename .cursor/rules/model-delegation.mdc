@@ -1,7 +1,7 @@
 ---
 description: Model delegation protocol - Opus 5 architects, Sonnet 5 implements from self-contained briefs, Fable only by named exception; tune effort before switching tiers; protect the prompt cache
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Model delegation - ring-fencing top-tier tokens
@@ -14,19 +14,27 @@ pinned to Sonnet in `.claude/agents/`.
 
 - **Opus 5 - the default top tier**: architecture decisions, writing briefs/specs, seam +
   security review, debugging weird failures, deploy go/no-go. Not typing implementations.
-- **Fable 5 - named exception only**: genuinely frontier reasoning, or debugging that already
-  defeated Opus 5. It is ~2x Opus 5's price ($10/$50 per MTok vs $5/$25), so reach for it by
-  naming the reason, never by habit. If the reason is "this is hard", try higher effort on
-  Opus 5 first.
+- **Fable 5.1 - named exception only**: genuinely frontier reasoning, or debugging that already
+  defeated Opus 5. $10/$50 per MTok vs Opus 5's $5/$25 (checked 2026-09-12) - 2x on output and
+  cache writes, but NOT on every line item: Fable 5.1 cache reads are $0.25/MTok against Opus 5's
+  $0.50, so on a long cache-read-heavy session its input is the cheaper one. Quote the line item,
+  not "twice the price". Reach for it by naming the reason, never by habit. If the reason is
+  "this is hard", try higher effort on Opus 5 first.
 - **Sonnet 5 - mid tier**: implementation from a self-contained brief, fan-out recon,
   docs from a spec. Runs its own verification before reporting done.
-- **Small models**: mechanical transforms only - below the bar for this repo's conventions.
+- **Haiku 4.5 / small models**: mechanical transforms only - below the bar for this repo's
+  conventions. Haiku 4.5 also rejects the effort setting outright and holds 200K context, not 1M.
 
 ## Effort before tier
 
-Raise or lower the effort setting before switching models - it is cheaper than a tier switch and
-does not throw away the prompt cache. Low for recon and mechanical work, high/xhigh for coding and
-agentic work, max only when correctness beats cost. Effort cannot fix a price tier.
+Raise or lower the effort setting before switching models - it is cheaper than a tier switch, and
+it is the only one of the two with a cache-free form. **The default is `high`**, so "tune the
+effort" is as often down as up. Low for recon and mechanical work, high/xhigh for coding and
+agentic work, max only when correctness beats cost. Effort cannot fix a price tier, and does not
+exist at all on Haiku 4.5.
+
+Note a top-level effort change mid-session DOES invalidate the messages cache. The per-message
+form does not - available on Opus 5 and Fable 5.1, not on Sonnet 5.
 
 ## Protect the prompt cache
 
@@ -35,8 +43,22 @@ restarting them, do not switch models mid-session (caches are model-scoped), and
 part of the prompt frozen - editing a rules file mid-session invalidates everything after it.
 On a top-tier model, wasted cache writes are routinely the largest line on the bill.
 
-Default working sessions to a Sonnet-class model; escalate deliberately for design, security,
-cross-component work, and stuck debugging.
+**Default an architect session to Opus 5 and tune effort; default delegated work to Sonnet.** This
+reverses the earlier "default to Sonnet, escalate when needed" advice, which fought the paragraph
+above it: you discover you need to escalate MID-session (that is what "stuck debugging" means),
+and switching then discards the prefix you already paid to write. Picking the tier when you OPEN
+the session costs nothing, because no cache exists yet.
+
+The repo still pins Sonnet in `.claude/settings.json`, and that is not a contradiction: a pin is a
+DEFAULT, not a lock. Choosing at session start overrides it for free. The pin governs the sessions
+nobody thought about - which skew trivial and belong on the cheap tier - while this rule governs
+the ones you did.
+
+Discovered mid-session that you need more? In order: raise the effort (per-message form on Opus 5
+costs no cache), then delegate to a subagent or a separate session on the tier you need (its
+context is its own, so your prefix survives), and only then switch the session model - saying out
+loud that you did, because escalation is sticky and quietly stays on for the next twenty easy
+tasks.
 
 ## Brief anatomy (all six, every delegation - human or agent)
 

@@ -6,43 +6,75 @@ Proven split (claim-report pipeline, 12 Jul 2026): four Sonnet agents did ~810k 
 implementation; the architect session spent roughly a tenth of that on specs, seam review, one
 security fix, and verification. The ratio comes from discipline, not a switch.
 
+**Read that as a TOKEN ratio, not a cost ratio.** Sonnet 5 is $2/$10 against Opus 5's $5/$25 -
+2.5x, not 10x - and Sonnet 5 emits roughly 30% more tokens than Sonnet 4.5 for the same text, so a
+per-token price cut does not translate 1:1 into a cheaper delegation. Judge **cost per completed
+task**, not per token: a cheaper agent that needs three rounds to land the work is not cheaper.
+The bigger saving is not the rate at all - it is that a file read inside a throwaway subagent is
+paid for once, where the same file read into the architect's own window is re-paid on every
+subsequent turn for the rest of the session. Context isolation IS the cost mechanism; the cheaper
+rate is a bonus on top of it.
+
 ## The split
 
 | Tier | Does | Does NOT |
 |---|---|---|
 | **Opus 5** (architect - the default top tier) | Exploration synthesis, architecture decisions, writing briefs, seam + security review, debugging weird failures, deploy go/no-go, user-facing narrative | Type implementations, re-read agent output wholesale, mechanical edits |
-| **Fable 5** (named exception only) | Genuinely frontier reasoning: multi-hour autonomous runs, debugging that already defeated Opus 5, work where correctness beats cost outright | Routine architecture, review passes, anything Opus 5 has not visibly failed at |
+| **Fable 5.1** (`claude-fable-5-1`, named exception only) | Genuinely frontier reasoning: multi-hour autonomous runs, debugging that already defeated Opus 5, work where correctness beats cost outright | Routine architecture, review passes, anything Opus 5 has not visibly failed at |
 | **Sonnet 5** (`builder`, `recon` in `.claude/agents/`) | Implementation from a brief, fan-out recon, docs from a spec, self-verification | Renegotiate contracts, explore beyond the read-first list, commit/deploy |
-| **Haiku** | Genuinely mechanical transforms only | Anything touching this repo's conventions |
+| **Haiku 4.5** | Genuinely mechanical transforms only | Anything touching this repo's conventions. It also **rejects `output_config.effort`** (400) and holds **200K context**, not the 1M the others have - so "tune effort before tier" below does not apply to it |
 
-Default the session to Sonnet; escalate deliberately (`/model`) for design, security,
-cross-component work, and stuck debugging. On an architect session, delegate all legwork -
-including recon (pass `model: sonnet` or use the `recon` agent; exploration inherits the session
-model otherwise and burns top-tier tokens on reading).
+**Default an architect session to Opus 5 and tune `effort`; default delegated work to Sonnet.**
+This reverses the rule's original advice ("default to Sonnet, escalate with `/model`"), which
+fought the caching section below: escalating for stuck debugging is by definition something you
+discover mid-session, and `/model` mid-session discards the prefix you already paid to write.
+Choosing the tier when you OPEN a session costs nothing, because no cache exists yet.
 
-**Fable is not the default architect tier, and "Fable / Opus" is not one tier.** Fable is roughly
-twice Opus 5's price ($10/$50 per MTok against $5/$25), and Opus 5 is the documented default top
-tier. Treating the two as interchangeable is how a shop ends up with most of its bill on the
-dearest model without anyone having decided to. Reach for Fable by naming the reason in the
-session, not by habit - and if the reason is "this is hard", try `effort: xhigh` on Opus 5 first.
+**The repo still pins `"sonnet"` in `.claude/settings.json`, and that is not a contradiction.** A
+pin is a DEFAULT, not a lock: `/model` at session start overrides it for free. So the pin governs
+the sessions nobody thought about, and this rule governs the ones you did. Unchosen work skews
+trivial, which is why the cheap tier belongs on that path - pinning the dear tier would put it
+exactly where no one is paying attention. Open an architect session on Opus deliberately; let
+everything else start cheap.
 
-**Say which tier you are on when it matters.** Escalation is one keystroke and it is sticky: a
-session escalated for one hard problem stays escalated for the next twenty easy ones. That drift
-is invisible unless someone says it out loud.
+When you do discover mid-session that you need more, in this order:
+
+1. **Raise `effort`.** On Opus 5 a per-message effort change does not reset the cache
+   (`mid-conversation-output-config-2026-07-01`); a top-level one does. Not available on Sonnet 5.
+2. **Spawn a subagent** on the tier you need. Its context is separate, so your prefix survives.
+3. **`/model`** only when the problem warrants paying for a fresh prefix. Say so out loud when you
+   do - escalation is sticky, and a session escalated for one hard problem stays escalated for the
+   next twenty easy ones.
+
+On an architect session, delegate all legwork - including recon (use the `recon` agent; plain
+exploration inherits the session model and burns top-tier tokens on reading).
+
+**Fable is not the default architect tier, and "Fable / Opus" is not one tier.** Prices are per
+MTok, checked 2026-09-12 - re-check before quoting them, they move. Fable 5.1 is $10/$50 against
+Opus 5's $5/$25: 2x on output and on cache writes, the line item that dominates fan-out work. **But
+not on every line item** - Fable 5.1 cache reads are $0.25/MTok against Opus 5's $0.50, so on a
+long cache-read-heavy session Fable's input is the cheaper of the two. Quote the line item, not
+"twice the price". Reach for Fable by naming the reason in the session, not by habit - and if the
+reason is "this is hard", try `effort: xhigh` on Opus 5 first.
 
 ## Effort before tier
 
-`output_config.effort` (`low` / `medium` / `high` / `xhigh` / `max`) did not meaningfully exist
-when this rule was first written. It is now the first lever to reach for - it is cheaper than a
-tier switch and, unlike one, it does not throw away the prompt cache.
+`output_config.effort` (`low` / `medium` / `high` / `xhigh` / `max`, **default `high`**) did not
+meaningfully exist when this rule was first written. It is now the first lever to reach for - it is
+cheaper than a tier switch, and it is the only one of the two that has a cache-free form.
 
 - **Tune effort before switching models.** Opus 5 at `low`/`medium` covers much of what used to
   justify dropping to Sonnet; `xhigh` covers much of what used to justify escalating past Opus.
+  You are starting from `high` unless you set it, so "raise the effort" is often really "lower it".
+- **Changing effort mid-session is not automatically free.** A top-level effort change invalidates
+  the messages cache. The per-message form does not, and exists on Opus 5 and Fable 5.1
+  (`mid-conversation-output-config-2026-07-01`) - **but not on Sonnet 5**, which is one more reason
+  an architect session defaults to Opus rather than Sonnet.
 - Recon, fan-out, and mechanical subagents: **`low`**.
 - Coding and agentic work: **`high` or `xhigh`** (`xhigh` is the sweet spot for most of it).
 - **`max`** only when correctness genuinely beats cost.
-- Effort cannot fix a price tier. A $10/$50 base rate is not effort-tunable - that stays a tier
-  decision.
+- Effort cannot fix a price tier, and does not exist at all on Haiku 4.5. A $10/$50 base rate is
+  not effort-tunable - that stays a tier decision.
 
 ## Caching - often the biggest line item, and the easiest to waste
 
@@ -56,7 +88,10 @@ bill, dwarfing anything the brief-writing discipline below can save.
   workload that spawns a new session per unit of work pays a cache write every time and never
   gets a read.
 - **Do not switch models mid-session.** Caches are model-scoped, so `/model` discards the cache
-  you already paid to write. Spawn a subagent on the cheaper model instead.
+  you already paid to write. Spawn a subagent on the cheaper model instead - a subagent carries its
+  own context, so your prefix is untouched. (Do not confuse this with the "a multi-model cascade
+  forfeits cache reuse" warning: that is about routing ONE conversation through several models.
+  Delegating to a subagent is not that, and costs your session's cache nothing.)
 - **Keep the prefix frozen.** Any byte change invalidates everything after it - including editing
   `CLAUDE.md` or a rules file mid-session. Put volatile context late, never early.
 - **Think-time between turns expires a 5-minute cache.** For long-running work prefer the 1-hour
@@ -108,7 +143,21 @@ description) and ask three questions: what share is on the top tier, are cache w
 ahead of cache reads, and does any **automated** workload run a dearer model than anyone
 remembers choosing. That last one matters most: an unattended job that invokes a frontier model on
 every trigger will quietly outspend every human in the company, and it will not show up in
-anyone's intuition - only in the bill.
+anyone's intuition - only in the bill. **`amount` in that report is in CENTS** - summing it as
+dollars once produced a figure 100x too high and three PRs were built on it before anyone
+sanity-checked the magnitude.
+
+**Two places an automated model choice actually hides in a repo like this**, both outside the tier
+table above and neither visible in a session:
+
+- **`.claude/settings.json` hooks.** A hook entry can carry its own `"model"`, firing on an event
+  (a `PreToolUse` on `ExitPlanMode`, say) on every developer's machine, forever. Grep your own
+  settings for `"model"` and count what you find.
+- **The `"model"` pin at the top of `.claude/settings.json`** is your interactive default and
+  nothing else, as of `agent-fleet` #321 (2026-09-12). It used to be read by Agent Fleet as the
+  **engine model for every run in this repo** - one knob serving both humans and every unattended
+  run, so retuning it for yourself silently retuned fleet spend. `resolveModel()` no longer reads
+  it. If you find a doc still claiming that coupling, it predates #321.
 
 ## Skeleton brief
 
@@ -129,8 +178,10 @@ You are implementing <X> in repo <path> (branch <b> checked out - work in place,
 
 ## Verify before finishing
 - <command> passes
-- unicode-dash scan on every touched file comes back clean (ASCII hyphens rule - use the
-  same grep as `npm run lint:dashes`; do not write the two dash characters into this brief)
+- unicode-dash scan on every touched file comes back clean (ASCII hyphens rule). Use this
+  repo's own dash-lint script if it defines one - CHECK `package.json` rather than assuming,
+  most repos here do not have one. Otherwise run, and expect no output:
+  `perl -ne 'print "$ARGV:$.: $_" if /[\x{2010}-\x{2015}]/' <touched files>
 
 Return: files created, verification output, key decisions, deviations with reasons. Under 30 lines.
 ```
