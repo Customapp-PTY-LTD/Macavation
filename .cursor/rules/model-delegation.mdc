@@ -12,8 +12,11 @@ pinned to Sonnet in `.claude/agents/`.
 
 ## The split (applies to Cursor model choice too)
 
-- **Opus 5 - the default top tier**: architecture decisions, writing briefs/specs, seam +
-  security review, debugging weird failures, deploy go/no-go. Not typing implementations.
+- **Opus 5 (`claude-opus-5`) - the default top tier**: architecture decisions, writing
+  briefs/specs, seam + security review, debugging weird failures, deploy go/no-go. Not typing
+  implementations. **Ask for it by name** - measured 2026-09-12, the bare `opus` alias resolves to
+  `claude-opus-4-8`, a generation behind at the same price, so selecting "opus" does not get you
+  Opus 5. Nothing watches this and it can move on any CLI bump.
 - **Fable 5.1 - named exception only**: genuinely frontier reasoning, or debugging that already
   defeated Opus 5. $10/$50 per MTok vs Opus 5's $5/$25 (checked 2026-09-12) - 2x on output and
   cache writes, but NOT on every line item: Fable 5.1 cache reads are $0.25/MTok against Opus 5's

@@ -19,10 +19,18 @@ rate is a bonus on top of it.
 
 | Tier | Does | Does NOT |
 |---|---|---|
-| **Opus 5** (architect - the default top tier) | Exploration synthesis, architecture decisions, writing briefs, seam + security review, debugging weird failures, deploy go/no-go, user-facing narrative | Type implementations, re-read agent output wholesale, mechanical edits |
+| **Opus 5** (`claude-opus-5`, architect - the default top tier) | Exploration synthesis, architecture decisions, writing briefs, seam + security review, debugging weird failures, deploy go/no-go, user-facing narrative | Type implementations, re-read agent output wholesale, mechanical edits |
 | **Fable 5.1** (`claude-fable-5-1`, named exception only) | Genuinely frontier reasoning: multi-hour autonomous runs, debugging that already defeated Opus 5, work where correctness beats cost outright | Routine architecture, review passes, anything Opus 5 has not visibly failed at |
 | **Sonnet 5** (`builder`, `recon` in `.claude/agents/`) | Implementation from a brief, fan-out recon, docs from a spec, self-verification | Renegotiate contracts, explore beyond the read-first list, commit/deploy |
 | **Haiku 4.5** | Genuinely mechanical transforms only | Anything touching this repo's conventions. It also **rejects `output_config.effort`** (400) and holds **200K context**, not the 1M the others have - so "tune effort before tier" below does not apply to it |
+
+**Name the model; the bare `opus` alias is not Opus 5.** Measured 2026-09-12 on Claude Code
+2.1.215: `--model opus` resolves to **`claude-opus-4-8`**, a generation behind, while `sonnet`
+correctly gives `claude-sonnet-5`. Same price either way, so this costs capability, not money - but
+it means the instruction below does not survive the obvious keystroke. Ask for **`claude-opus-5`**
+by name. Nothing watches this, and it can move on any CLI bump, so re-check rather than trust it:
+`claude -p "Reply with ONLY your exact model ID string, nothing else." --model opus`, and run the
+other aliases as controls - if all three answer the same, the test is broken, not the aliases.
 
 **Default an architect session to Opus 5 and tune `effort`; default delegated work to Sonnet.**
 This reverses the rule's original advice ("default to Sonnet, escalate with `/model`"), which
