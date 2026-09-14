@@ -72,7 +72,7 @@ function between(source, startLiteral, endLiteral, label) {
 // check() is synchronous (same harness as verify-wa-staff-menu.mjs) and cannot await a promise
 // inside it, so this one import is done directly, with the same try/catch/passCount shape check()
 // uses, rather than through check() itself.
-let definitionModule = { TEMPLATE_BUTTONS: [], TEMPLATE: {} };
+let definitionModule = { TEMPLATE_BUTTONS: [], TEMPLATES: [] };
 {
   const description = 'scripts/wa-template-daily-production.mjs imports cleanly with no environment configured';
   const originalLog = console.log;
@@ -88,7 +88,11 @@ let definitionModule = { TEMPLATE_BUTTONS: [], TEMPLATE: {} };
 }
 
 const TEMPLATE_BUTTONS = definitionModule.TEMPLATE_BUTTONS ?? [];
-const TEMPLATE = definitionModule.TEMPLATE ?? {};
+// One descriptor per weekday (Monday–Friday) — see wa-template-daily-production.mjs's own header.
+// All five share identical body/buttons; only `name` differs, so most checks below just use the
+// first entry, and the name-parity check (#5) compares the full set against the sender's map.
+const TEMPLATES = definitionModule.TEMPLATES ?? [];
+const TEMPLATE = TEMPLATES[0] ?? {};
 
 // ================================================================================================
 // 1 & 2. Exactly two buttons, both quick_reply, in this exact order and wording.
@@ -160,18 +164,31 @@ check('TEMPLATE_BUTTON_ROUTES keys exactly match the template button labels (bot
 });
 
 // ================================================================================================
-// 5. The template name is not duplicated as a second literal — it must equal TEMPLATE_NAME in the
-//    sender function.
+// 5. The five template names are not duplicated as separate literals — the set of TEMPLATES[].name
+//    must exactly equal the set of values in the sender's TEMPLATE_NAME_BY_WEEKDAY map.
 // ================================================================================================
 
-check('TEMPLATE.name equals TEMPLATE_NAME in send-daily-production-report/index.ts', () => {
-  const m = senderSrc.match(/const TEMPLATE_NAME\s*=\s*'([^']+)'/);
-  assert.ok(m, `could not find "const TEMPLATE_NAME = '...'" in ${REL_SENDER}`);
-  assert.equal(
-    TEMPLATE.name,
-    m[1],
-    `TEMPLATE.name (${JSON.stringify(TEMPLATE.name)}) must equal TEMPLATE_NAME in ${REL_SENDER} (${JSON.stringify(m[1])})`
+check('TEMPLATES declares exactly 5 entries, one per weekday Monday–Friday', () => {
+  assert.equal(TEMPLATES.length, 5, `expected exactly 5 template descriptors, got ${TEMPLATES.length}`);
+});
+
+check('TEMPLATES[].name exactly matches the values of TEMPLATE_NAME_BY_WEEKDAY in send-daily-production-report/index.ts', () => {
+  const body = between(senderSrc, 'const TEMPLATE_NAME_BY_WEEKDAY', '\n};', 'TEMPLATE_NAME_BY_WEEKDAY');
+  const senderNames = [...body.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+  const definitionNames = TEMPLATES.map((t) => t.name).sort();
+  assert.deepEqual(
+    definitionNames,
+    senderNames,
+    `wa-template-daily-production.mjs's TEMPLATES names (${JSON.stringify(definitionNames)}) must exactly ` +
+      `match TEMPLATE_NAME_BY_WEEKDAY's values in ${REL_SENDER} (${JSON.stringify(senderNames)})`
   );
+});
+
+check('all 5 template descriptors share identical body and buttons — only name differs', () => {
+  for (const t of TEMPLATES) {
+    assert.equal(t.body, TEMPLATE.body, `${t.name}'s body must equal ${TEMPLATE.name}'s body`);
+    assert.deepEqual(t.buttons, TEMPLATE.buttons, `${t.name}'s buttons must equal ${TEMPLATE.name}'s buttons`);
+  }
 });
 
 // ================================================================================================
