@@ -1,6 +1,8 @@
 /**
  * Supabase Edge Function: the 17:00 SAST daily production report, sent unprompted to every
- * active daily subscriber via the approved WhatsApp template `macavation_daily_production`.
+ * active daily subscriber via one of five approved WhatsApp templates, one per weekday
+ * (`daily_production_template_monday` … `_friday` — see TEMPLATE_NAME_BY_WEEKDAY below). No
+ * template exists for Saturday/Sunday, so the function skips outright on those days.
  *
  * Deploy: supabase functions deploy send-daily-production-report --project-ref nmdmddugxclpqrwylyfa
  * Intended schedule (set up outside this repo): cron `0 15 * * *` UTC == 17:00 SAST. SAST
@@ -53,9 +55,27 @@ const corsHeaders = {
 // deno-lint-ignore no-explicit-any
 type AnyRow = Record<string, any>;
 
-const TEMPLATE_NAME = 'macavation_daily_production';
+const TEMPLATE_NAME_BY_WEEKDAY: Record<number, string> = {
+  1: 'daily_production_template_monday',
+  2: 'daily_production_template_tuesday',
+  3: 'daily_production_template_wednesday',
+  4: 'daily_production_template_thursday',
+  5: 'daily_production_template_friday',
+};
 const MAX_RECIPIENTS = 25;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Resolves the approved template name for a SAST calendar date string. Weekday is computed from
+ * the date string itself, not "now" — a Y-M-D calendar date's weekday is unambiguous regardless
+ * of timezone, so reading it via UTC components here does not reintroduce the "never new Date()
+ * for today" problem this file otherwise avoids (report_sast_today() still owns "what day is it
+ * now"). Returns null for Saturday/Sunday: no template exists for those days.
+ */
+function resolveTemplateName(dateStr: string): string | null {
+  const weekday = new Date(`${dateStr}T00:00:00Z`).getUTCDay();
+  return TEMPLATE_NAME_BY_WEEKDAY[weekday] ?? null;
+}
 
 function jsonResponse(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {
@@ -193,6 +213,12 @@ Deno.serve(async (req) => {
     d = String(data);
   }
 
+  // ---- 1.5 Weekday guard — no approved template for Saturday/Sunday, skip before any RPC work ---
+  const templateName = resolveTemplateName(d);
+  if (!templateName) {
+    return jsonResponse(200, { skipped: 'weekend', date: d });
+  }
+
   // ---- 2. Refresh the factory mirror for this date ------------------------------------------
   let reseedRows: AnyRow[];
   try {
@@ -265,6 +291,7 @@ Deno.serve(async (req) => {
   if (dryRun) {
     return jsonResponse(200, {
       date: d,
+      template: templateName,
       params,
       recipients: recipients.map((r) => ({ display_name: r.display_name ?? null, phone: r.phone ?? null })),
     });
@@ -327,7 +354,7 @@ Deno.serve(async (req) => {
         p_report_kind: 'daily',
         p_report_date: d,
         p_message_kind: 'template',
-        p_template_name: TEMPLATE_NAME,
+        p_template_name: templateName,
       });
       const beginRow = beginRows[0];
 
@@ -345,7 +372,7 @@ Deno.serve(async (req) => {
       }
 
       const deliveryId = beginRow.id;
-      const result = await sendTemplate(phone, TEMPLATE_NAME, 'en', [bodyComponent]);
+      const result = await sendTemplate(phone, templateName, 'en', [bodyComponent]);
 
       try {
         const completeRows = await rpcRows(sb, 'complete_report_delivery', {
