@@ -53,6 +53,11 @@
  *   immediately, and are only applied once the sender replies YES (or Y / CONFIRM); NO (or N /
  *   CANCEL) discards the staged command instead. See STAGED_COMMAND_HANDLERS below — empty until
  *   a write command exists to register there.
+ * - A "Mark resolved" tap on the macavation_alert PUSH template (sent unprompted by
+ *   send-alert-whatsapp, not requested via this menu) dispatches on an ALERT_NS reply id carrying a
+ *   truncated alert reference, resolved back to a real alert by resolve_dashboard_alert_by_ref and
+ *   staged through the SAME commandAck function ACK <n> uses — see ALERT_NS/ALERT_ACK_ACTION and
+ *   dispatchAlertAck below.
  *
  * Control Room's contract:
  * - POSTs Meta's raw webhook envelope byte-for-byte: the whatsapp_business_account
@@ -75,7 +80,7 @@
  */
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { buildReplyId, parseReplyId, sendList, toWaPhone } from '../_shared/wa-send.ts';
-import { MAX_LIST_ROWS } from '../_shared/wa-limits.ts';
+import { MAX_LIST_ROWS, MAX_LIST_TITLE, truncate } from '../_shared/wa-limits.ts';
 import { classifyMessage } from '../_shared/wa-inbound.ts';
 
 const corsHeaders = {
@@ -350,16 +355,20 @@ interface CommandResult {
 // ============================================================================
 // The menu — what an enrolled staff member sees after they are identified.
 //
-// EVERY ITEM IS READ-ONLY. Each renders from get_daily_digest(), the same RPC the 17:00 digest
-// sends (send-daily-digest-whatsapp/index.ts:82). Nothing here writes, so nothing here needs the
-// YES/NO staging flow; a future write command still stages via whatsapp_stage_pending_command
-// exactly as before and is unaffected by this menu.
+// EVERY DIGEST-BACKED ITEM IS READ-ONLY. Each of those renders from get_daily_digest(), the same
+// RPC the 17:00 digest sends (send-daily-digest-whatsapp/index.ts:82), so none of them need the
+// YES/NO staging flow. The one exception is "My reports" (see MenuItem.subMenu and the settings
+// branch below it in this file): it is the member's OWN settings, writes directly for four of its
+// five rows, and stages the fifth ("Stop everything") through the SAME whatsapp_stage_pending_command
+// flow a future write command would use.
 //
-// GATED ON THE SAME FEATURE KEYS AS THE PORTAL SIDEBAR. `feature` is a public.features.key, read
-// per role via get_role_features_for_role — the same mechanism menuFilter uses in the browser. So
-// a role sees on WhatsApp exactly the areas it can already open in the portal, and there is no
-// second, drifting permission model to maintain. A role with none of these features enabled gets
-// told so rather than shown an empty list.
+// GATED ON THE SAME FEATURE KEYS AS THE PORTAL SIDEBAR, WITH ONE EXCEPTION. `feature` is a
+// public.features.key, read per role via get_role_features_for_role — the same mechanism
+// menuFilter uses in the browser. So a role sees on WhatsApp exactly the business-data areas it
+// can already open in the portal, and there is no second, drifting permission model to maintain. A
+// role with none of these features enabled gets told so rather than shown an empty list. "My
+// reports" is the one item with `feature: null` — it is the member's own settings, not a
+// business-data view, so it is visible to every enrolled staff member regardless of role.
 //
 // KEY CONVENTION, FIXED: 0 is always "back" and 99 is always "main menu", on every step. Never
 // introduce another key for either, and never use the legacy 9. This menu is one level deep, so
@@ -378,12 +387,19 @@ interface MenuItem {
   action: string;
   /** Row title. Capped at MAX_LIST_TITLE (24) by buildListBody, which THROWS rather than truncating. */
   title: string;
-  /** public.features.key that must be 'true' for this role. */
-  feature: string;
   /**
-   * Renders from the shared get_daily_digest() payload. Exactly one of `render` or `resolve` must
-   * be set. `canAct` is the result of the item's own `needsAction` check (false when it declares
-   * none) — passed in rather than looked up here so `render` stays synchronous and pure.
+   * public.features.key that must be 'true' for this role, or `null` for an item that is the
+   * member's OWN settings rather than a business-data view — visible to every enrolled staff
+   * member regardless of role. `null` is a deliberate special case (see visibleItems below), not a
+   * placeholder: a fake feature key here would make the item disappear for any role nobody
+   * remembered to grant it to.
+   */
+  feature: string | null;
+  /**
+   * Renders from the shared get_daily_digest() payload. Exactly one of `render`, `resolve` or
+   * `subMenu` must be set. `canAct` is the result of the item's own `needsAction` check (false
+   * when it declares none) — passed in rather than looked up here so `render` stays synchronous
+   * and pure.
    */
   render?: (digest: Any, canAct?: boolean) => string;
   /**
@@ -392,6 +408,12 @@ interface MenuItem {
    * failure that has nothing to do with it.
    */
   resolve?: (ctx: CommandContext) => Promise<string>;
+  /**
+   * For an item that opens its OWN interactive sub-list rather than rendering text — it sends its
+   * own message via sendList (exactly like commandMenu itself) and returns `reply: null`, so
+   * renderMenuItem must return whatever this yields directly rather than wrapping it.
+   */
+  subMenu?: (ctx: CommandContext) => Promise<CommandResult>;
   /**
    * Optional action key whose grant this item's wording depends on (NOT its visibility — that is
    * `feature`). Resolved by renderMenuItem and handed to `render` as `canAct`.
@@ -643,6 +665,12 @@ const MENU_ITEMS: MenuItem[] = [
     // scheduled-reports-grid — the existing key governing report delivery to people; there is no
     // plainer 'reports' key seeded in this repo.
     //
+    // DO NOT delete that feature row. The Scheduled Reports portal SCREEN was removed in
+    // migrations/20260904100000_targets_module_consolidation.sql, but the KEY was deliberately
+    // kept and renamed to "Report delivery (WhatsApp)" precisely because this item gates on it.
+    // visibleItems() below filters on featureKeys.has(i.feature), so removing the row would drop
+    // "Latest report" from every member's menu with nothing to say why.
+    //
     // The real access control is not this feature key. get_latest_published_report_for_phone
     // filters to reports ALREADY SENT to the asking number
     // (migrations/20260825092000_report_link_codes.sql:211-219), so a member can only ever retrieve
@@ -680,10 +708,26 @@ const MENU_ITEMS: MenuItem[] = [
       return formatLatestReportReply(row, ctx.displayName, url);
     },
   },
+  {
+    // The one item with NO feature gate (see MenuItem.feature) — this is the member's OWN
+    // settings, not a business-data view, so it must stay visible to every enrolled staff member
+    // regardless of role. visibleItems() below special-cases feature === null for exactly this.
+    action: 'settings',
+    title: 'My reports',
+    feature: null,
+    subMenu: commandMySettings,
+  },
 ];
 
 /**
  * Feature keys enabled for this role, as public.features.key strings.
+ *
+ * Reads whatsapp_role_feature_keys, NOT the portal's get_role_features_for_role. The portal one
+ * carries `AND (portal_actor_is_super_user() OR r.role_name <> 'super_user')`, and this function
+ * runs on the service-role key with no portal session — so that guard was false here and a
+ * super_user's 32 grants came back as 0 rows, denying the menu to the one role that should see all
+ * of it. See migrations/20260907120000_whatsapp_role_feature_keys.sql for the measurement. Do not
+ * "simplify" this back to the portal RPC.
  *
  * Returns an EMPTY SET on any failure — a missing RPC, an error, a role with nothing enabled. The
  * caller then shows no items and says so. Failing to an empty menu rather than a full one is
@@ -693,12 +737,15 @@ const MENU_ITEMS: MenuItem[] = [
 async function loadFeatureKeys(sb: SupabaseClient, roleId: string | null): Promise<Set<string>> {
   if (!roleId) return new Set();
   try {
-    const { data, error } = await sb.rpc('get_role_features_for_role', { p_role_id: roleId });
+    const { data, error } = await sb.rpc('whatsapp_role_feature_keys', { p_role_id: roleId });
     if (error) {
       if (isMissingRpc(error)) {
-        console.error('[whatsapp-inbound] get_role_features_for_role is missing — cannot build the menu.');
+        console.error(
+          '[whatsapp-inbound] whatsapp_role_feature_keys is missing — migration ' +
+            '20260907120000 not applied. Cannot build the menu.'
+        );
       } else {
-        console.error('[whatsapp-inbound] get_role_features_for_role failed:', error.message);
+        console.error('[whatsapp-inbound] whatsapp_role_feature_keys failed:', error.message);
       }
       return new Set();
     }
@@ -709,7 +756,7 @@ async function loadFeatureKeys(sb: SupabaseClient, roleId: string | null): Promi
     }
     return keys;
   } catch (e) {
-    console.error('[whatsapp-inbound] get_role_features_for_role threw:', e);
+    console.error('[whatsapp-inbound] whatsapp_role_feature_keys threw:', e);
     return new Set();
   }
 }
@@ -719,10 +766,32 @@ function visibleItems(featureKeys: Set<string>): MenuItem[] {
   // MAX_LIST_ROWS is Meta's cap for one list and buildListBody throws above it. MENU_ITEMS is
   // well under it today; the slice means adding a seventh, eighth… item can never turn a menu
   // send into a thrown error for a role that happens to have everything enabled.
-  return MENU_ITEMS.filter((i) => featureKeys.has(i.feature)).slice(0, MAX_LIST_ROWS);
+  //
+  // feature === null is the special case for an item with no gate at all (My reports today) — it
+  // is never filtered out, regardless of what the role's features are.
+  return MENU_ITEMS.filter((i) => i.feature === null || featureKeys.has(i.feature)).slice(0, MAX_LIST_ROWS);
 }
 
 const MENU_NS = 'menu';
+
+/**
+ * Reply-id namespace for a WhatsApp PUSH template's per-alert button — currently only "Mark
+ * resolved" on the macavation_alert template (send-alert-whatsapp/index.ts). Not a MENU_NS tap:
+ * this arrives on an alert PUSH the member did not request, not a menu they opened, and it carries
+ * a third segment (the alert reference) MENU_NS taps never have. See ALERT_ACK_ACTION's own
+ * comment below for the reference-encoding reason.
+ */
+const ALERT_NS = 'alert';
+
+/**
+ * The only action ALERT_NS carries today. Its `arg` is the first 24 lowercase-hex characters of
+ * the alert id with dashes stripped — never the raw uuid: buildReplyId's REPLY_SEGMENT_RE caps
+ * every segment at 24 characters, and a uuid is 32-36. resolve_dashboard_alert_by_ref
+ * (migrations/20260910100000_alert_whatsapp_push.sql) resolves that prefix back to one open
+ * alert; see that migration's header for the full reasoning and the (vanishingly unlikely)
+ * ambiguous-match case.
+ */
+const ALERT_ACK_ACTION = 'ack';
 
 function menuBodyText(displayName: string): string {
   return `Hi ${displayName}. What would you like to see?`;
@@ -802,6 +871,13 @@ async function renderMenuItem(ctx: CommandContext, action: string): Promise<Comm
     };
   }
 
+  // A `subMenu` item sends its OWN interactive message (a second list) and returns whatever that
+  // yields — including `reply: null` on success — directly, exactly like commandMenu itself.
+  // Never routed through render/resolve.
+  if (item.subMenu) {
+    return item.subMenu(ctx);
+  }
+
   // A `resolve` item answers from its own per-user source. The digest is NOT fetched for it — a
   // broken digest must not make "latest report" reply "could not read the figures", which is a
   // different feature failing.
@@ -877,11 +953,447 @@ async function renderMenuPosition(ctx: CommandContext, position: number): Promis
   return renderMenuItem(ctx, item.action);
 }
 
+// ============================================================================
+// "My reports" — the settings branch (docs/mockups/whatsapp-flow-spec.html section 5).
+//
+// The one place in the whole menu where a member changes something rather than just reading a
+// figure. Reached ONLY via the top-level "My reports" item (feature: null, see MENU_ITEMS above)
+// — its own reply-id namespace (SETTINGS_NS) keeps its five rows distinct from MENU_NS taps.
+//
+// Daily / Weekly / Monthly toggle and Pause are IMMEDIATE, no confirm: changing what lands on your
+// own phone is instantly reversible and obviously yours (wa-flow-spec.html section 5's own
+// reasoning). Stop everything is the one exception — tapped from a menu, not typed, so it is
+// staged through the SAME YES/NO machinery STAGED_COMMAND_HANDLERS already provides (contract 4:
+// a mis-tap in a list of five rows is plausible in a way that typing five letters is not), and
+// calls the identical report_set_opt_out RPC wa-flow-02's typed STOP already calls — one RPC, two
+// entry points, only one of which confirms.
+//
+// No new RPC anywhere below: report_recipient_by_inbound_phone and report_subscription_json
+// (both already existing and already granted to service_role) are the whole read path, and
+// set_report_subscription_by_phone / report_set_opt_out are the whole write path.
+// ============================================================================
+
+const SETTINGS_NS = 'rpt';
+
+const REPORT_KINDS = ['daily', 'weekly', 'monthly'] as const;
+type ReportKind = (typeof REPORT_KINDS)[number];
+
+const REPORT_KIND_LABEL: Record<ReportKind, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+};
+
+type SubscriptionState = { subscribed: boolean; mutedUntil: string | null };
+
+/**
+ * Resolves the asking number to a report_recipients row, exactly as commandResume already does
+ * (report_recipient_by_inbound_phone takes the BARE inbound phone — ctx.phone — and normalises
+ * internally via chat_normalize_phone; no second lookup or local normalisation is needed here,
+ * same as every other caller of this RPC in this file).
+ */
+type RecipientLookup =
+  | { ok: true; found: true; recipientId: string }
+  | { ok: true; found: false }
+  | { ok: false; reply: string; detail: string };
+
+async function resolveReportRecipient(ctx: CommandContext): Promise<RecipientLookup> {
+  try {
+    const { data, error } = await ctx.sb.rpc('report_recipient_by_inbound_phone', {
+      p_phone: ctx.phone,
+    });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] report_recipient_by_inbound_phone is missing — migration 20260825090000 not applied.'
+        );
+      }
+      throw error;
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row || row.found !== true) {
+      return { ok: true, found: false };
+    }
+    return { ok: true, found: true, recipientId: String(row.recipient_id) };
+  } catch (e) {
+    console.error('[whatsapp-inbound] report_recipient_by_inbound_phone failed for settings:', e);
+    return {
+      ok: false,
+      reply: `Sorry ${ctx.displayName}, I could not check that just now. Please try again shortly.`,
+      detail: String(e),
+    };
+  }
+}
+
+/**
+ * Reads { subscribed, muted_until } for one report_kind via the existing report_subscription_json
+ * RPC — already granted to anon/authenticated/service_role
+ * (migrations/20260825090000_report_subscriptions_and_staff.sql:393), so this is a READ PATH REUSE,
+ * not a new RPC. Throws on any failure; callers decide how to degrade rather than this function
+ * guessing at a default that could misreport somebody's real subscription state.
+ */
+async function readSubscriptionState(
+  sb: SupabaseClient,
+  recipientId: string,
+  kind: ReportKind
+): Promise<SubscriptionState> {
+  const { data, error } = await sb.rpc('report_subscription_json', {
+    p_recipient_id: recipientId,
+    p_report_kind: kind,
+  });
+  if (error) {
+    if (isMissingRpc(error)) {
+      console.error(
+        '[whatsapp-inbound] report_subscription_json is missing — migration 20260825090000 not applied.'
+      );
+    }
+    throw error;
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  return { subscribed: row?.subscribed === true, mutedUntil: row?.muted_until ?? null };
+}
+
+async function readAllSubscriptionStates(
+  sb: SupabaseClient,
+  recipientId: string
+): Promise<Record<ReportKind, SubscriptionState>> {
+  const [daily, weekly, monthly] = await Promise.all(
+    REPORT_KINDS.map((kind) => readSubscriptionState(sb, recipientId, kind))
+  );
+  return { daily, weekly, monthly };
+}
+
+function notOnDistributionListReply(displayName: string): string {
+  return (
+    `Hi ${displayName}, you are not currently on a report distribution list, so there is nothing ` +
+    `to change here. Ask an administrator to add your number if you should be receiving reports.`
+  );
+}
+
+function settingsRowTitle(kind: ReportKind, subscribed: boolean): string {
+  return truncate(`${REPORT_KIND_LABEL[kind]} — ${subscribed ? 'on' : 'off'}`, MAX_LIST_TITLE);
+}
+
+/**
+ * The top-level "My reports" item's `subMenu` — sends the settings list, reading fresh state on
+ * every open exactly as contract 2 requires (a row's title is never stale).
+ */
+async function commandMySettings(ctx: CommandContext): Promise<CommandResult> {
+  const lookup = await resolveReportRecipient(ctx);
+  if (!lookup.ok) {
+    return { outcome: 'error', reply: lookup.reply, command: 'MENU:SETTINGS', detail: lookup.detail };
+  }
+  if (!lookup.found) {
+    return { outcome: 'ok', reply: notOnDistributionListReply(ctx.displayName), command: 'MENU:SETTINGS' };
+  }
+
+  let states: Record<ReportKind, SubscriptionState>;
+  try {
+    states = await readAllSubscriptionStates(ctx.sb, lookup.recipientId);
+  } catch (e) {
+    console.error('[whatsapp-inbound] reading subscription state failed for MENU:SETTINGS:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not read your current settings just now. Please try again shortly.`,
+      command: 'MENU:SETTINGS',
+      detail: String(e),
+    };
+  }
+
+  const toggleRows = REPORT_KINDS.map((kind) => ({
+    id: buildReplyId(SETTINGS_NS, kind),
+    title: settingsRowTitle(kind, states[kind].subscribed),
+  }));
+  const quietenRows = [
+    { id: buildReplyId(SETTINGS_NS, 'pause'), title: truncate('Pause for a week', MAX_LIST_TITLE) },
+    { id: buildReplyId(SETTINGS_NS, 'stopall'), title: truncate('Stop everything', MAX_LIST_TITLE) },
+  ];
+
+  const bodyText = `Hi ${ctx.displayName}. Here's what you're getting. Tap one to change it.`;
+  const result = await sendList(toWaPhone(ctx.phone), bodyText, 'Choose', [
+    { title: 'My reports', rows: toggleRows },
+    { title: 'Quieten things down', rows: quietenRows },
+  ]);
+
+  if (!result.ok) {
+    console.error(`[whatsapp-inbound] settings list send failed, falling back to text: ${result.error}`);
+    return {
+      outcome: 'ok',
+      reply:
+        `Hi ${ctx.displayName}, here is what you're currently getting:\n\n` +
+        `Daily: ${states.daily.subscribed ? 'on' : 'off'}\n` +
+        `Weekly: ${states.weekly.subscribed ? 'on' : 'off'}\n` +
+        `Monthly: ${states.monthly.subscribed ? 'on' : 'off'}\n\n` +
+        `I could not show the tappable menu just now — please try again shortly to change anything. ` +
+        `Reply 99 for the main menu.`,
+      command: 'MENU:SETTINGS',
+      detail: 'list send failed; text fallback',
+    };
+  }
+
+  // Already sent — see commandMenu's own comment on why this must return reply: null.
+  return { outcome: 'ok', reply: null, command: 'MENU:SETTINGS' };
+}
+
+/**
+ * States the FULL current set after a toggle (contract 5) — never just what changed. Only the
+ * report kinds still ON besides the one just toggled are named; anything not named is off, which
+ * is exactly what "Daily is now off. You are still getting Weekly and Monthly." (the brief's own
+ * example) communicates.
+ */
+function reportStateSentence(
+  changedKind: ReportKind,
+  turnedOn: boolean,
+  after: Record<ReportKind, boolean>
+): string {
+  const others = REPORT_KINDS.filter((k) => k !== changedKind && after[k]).map((k) => REPORT_KIND_LABEL[k]);
+  const label = REPORT_KIND_LABEL[changedKind];
+  let sentence = `${label} is now ${turnedOn ? 'on' : 'off'}.`;
+  if (others.length === 0) {
+    sentence += turnedOn
+      ? ' Nothing else is switched on right now.'
+      : ' You are not getting any other reports right now.';
+  } else {
+    const joined =
+      others.length === 1 ? others[0] : `${others.slice(0, -1).join(', ')} and ${others[others.length - 1]}`;
+    sentence += turnedOn ? ` You are also getting ${joined}.` : ` You are still getting ${joined}.`;
+  }
+  return sentence;
+}
+
+/** Daily, Weekly or Monthly row tap — immediate flip, no confirm (contract 3). */
+async function commandToggleReportKind(ctx: CommandContext, kind: ReportKind): Promise<CommandResult> {
+  const cmdTag = `MENU:SETTINGS:${kind.toUpperCase()}`;
+  const lookup = await resolveReportRecipient(ctx);
+  if (!lookup.ok) {
+    return { outcome: 'error', reply: lookup.reply, command: cmdTag, detail: lookup.detail };
+  }
+  if (!lookup.found) {
+    return { outcome: 'ok', reply: notOnDistributionListReply(ctx.displayName), command: cmdTag };
+  }
+
+  let before: boolean;
+  try {
+    before = (await readSubscriptionState(ctx.sb, lookup.recipientId, kind)).subscribed;
+  } catch (e) {
+    console.error(`[whatsapp-inbound] reading ${kind} subscription state failed:`, e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not read your current settings just now. Please try again shortly.`,
+      command: cmdTag,
+      detail: String(e),
+    };
+  }
+
+  const turnedOn = !before;
+  try {
+    const { data, error } = await ctx.sb.rpc('set_report_subscription_by_phone', {
+      p_phone: ctx.phone,
+      p_report_kind: kind,
+      p_is_active: turnedOn,
+      p_muted_until: null,
+    });
+    if (error) throw error;
+    const result = Array.isArray(data) ? data[0] : data;
+    if (!result || result.ok !== true) {
+      throw new Error(result?.error || 'set_report_subscription_by_phone returned ok=false');
+    }
+  } catch (e) {
+    console.error(`[whatsapp-inbound] set_report_subscription_by_phone(${kind}) failed:`, e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not save that just now. Please try again shortly.`,
+      command: cmdTag,
+      detail: String(e),
+    };
+  }
+
+  // Contract 5: read all three rows FRESH after the write rather than assuming the write did what
+  // was asked — the full current set is stated from what the database now says, not from memory.
+  try {
+    const after = await readAllSubscriptionStates(ctx.sb, lookup.recipientId);
+    const afterBooleans: Record<ReportKind, boolean> = {
+      daily: after.daily.subscribed,
+      weekly: after.weekly.subscribed,
+      monthly: after.monthly.subscribed,
+    };
+    return { outcome: 'ok', reply: reportStateSentence(kind, turnedOn, afterBooleans), command: cmdTag };
+  } catch (e) {
+    console.error('[whatsapp-inbound] re-reading subscription state after toggle failed:', e);
+    // The write itself already succeeded — say so, even without the full-set confirmation.
+    return {
+      outcome: 'ok',
+      reply: `${REPORT_KIND_LABEL[kind]} is now ${turnedOn ? 'on' : 'off'}, ${ctx.displayName}.`,
+      command: cmdTag,
+      detail: 'post-write read failed',
+    };
+  }
+}
+
+/**
+ * "Pause for a week" — immediate, no confirm (contract 4). Scoped to the DAILY subscription only,
+ * matching commandResume's own deliberately narrow scope (its comment above: "Extending RESUME to
+ * weekly/monthly ... a later plan's job") — pausing a kind that typed RESUME cannot lift early
+ * would be a pause with no matching early-release path. p_muted_until is report_sast_today() + 7,
+ * read via the same RPC report_daily_recipients' own pause clause is built on, not computed from
+ * this process's local clock.
+ */
+async function commandPauseDaily(ctx: CommandContext): Promise<CommandResult> {
+  const cmdTag = 'MENU:SETTINGS:PAUSE';
+  const lookup = await resolveReportRecipient(ctx);
+  if (!lookup.ok) {
+    return { outcome: 'error', reply: lookup.reply, command: cmdTag, detail: lookup.detail };
+  }
+  if (!lookup.found) {
+    return { outcome: 'ok', reply: notOnDistributionListReply(ctx.displayName), command: cmdTag };
+  }
+
+  let dailyState: SubscriptionState;
+  try {
+    dailyState = await readSubscriptionState(ctx.sb, lookup.recipientId, 'daily');
+  } catch (e) {
+    console.error('[whatsapp-inbound] reading daily subscription state failed for PAUSE:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not read your current settings just now. Please try again shortly.`,
+      command: cmdTag,
+      detail: String(e),
+    };
+  }
+
+  if (!dailyState.subscribed) {
+    return {
+      outcome: 'ok',
+      reply: `You are not currently getting the daily report, ${ctx.displayName}, so there is nothing to pause. Reply 99 for the menu.`,
+      command: cmdTag,
+    };
+  }
+
+  let pauseUntil: string | null = null;
+  try {
+    const { data, error } = await ctx.sb.rpc('report_sast_today');
+    if (error) throw error;
+    const todayStr = String(data ?? '');
+    const d = new Date(`${todayStr}T00:00:00Z`);
+    if (!Number.isNaN(d.getTime())) {
+      d.setUTCDate(d.getUTCDate() + 7);
+      pauseUntil = d.toISOString().slice(0, 10);
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] report_sast_today failed for PAUSE:', e);
+  }
+
+  if (!pauseUntil) {
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
+      command: cmdTag,
+      detail: 'report_sast_today unavailable',
+    };
+  }
+
+  try {
+    const { data, error } = await ctx.sb.rpc('set_report_subscription_by_phone', {
+      p_phone: ctx.phone,
+      p_report_kind: 'daily',
+      p_is_active: true,
+      p_muted_until: pauseUntil,
+    });
+    if (error) throw error;
+    const result = Array.isArray(data) ? data[0] : data;
+    if (!result || result.ok !== true) {
+      throw new Error(result?.error || 'set_report_subscription_by_phone returned ok=false');
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] set_report_subscription_by_phone(daily pause) failed:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
+      command: cmdTag,
+      detail: String(e),
+    };
+  }
+
+  return {
+    outcome: 'ok',
+    reply: `Paused until ${shortDate(pauseUntil)}, ${ctx.displayName}. Send RESUME any time to lift it sooner.`,
+    command: cmdTag,
+  };
+}
+
+/**
+ * "Stop everything" — the one row that DOES confirm (contract 4). Tapped from a menu, not typed,
+ * so a mis-tap in a list of five rows is plausible in a way that typing five letters is not. Stages
+ * through the SAME whatsapp_stage_pending_command / YES machinery ACK already uses; the staged
+ * command name below MUST match the STAGED_COMMAND_HANDLERS key exactly (STOP_ALL_REPORTS).
+ */
+async function commandSettingsStopAll(ctx: CommandContext): Promise<CommandResult> {
+  const cmdTag = 'MENU:SETTINGS:STOPALL';
+  const summary = 'Stop everything — no more report messages until you ask again';
+  try {
+    const { error } = await ctx.sb.rpc('whatsapp_stage_pending_command', {
+      p_phone: ctx.phone,
+      p_user_id: ctx.userId,
+      p_command: 'STOP_ALL_REPORTS',
+      p_payload: {},
+      p_summary: summary,
+    });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] whatsapp_stage_pending_command is missing — migration 20260815130000 not applied.'
+        );
+      } else {
+        console.error('[whatsapp-inbound] whatsapp_stage_pending_command failed:', error.message);
+      }
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
+        command: cmdTag,
+        detail: error.message,
+      };
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] whatsapp_stage_pending_command threw:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
+      command: cmdTag,
+      detail: String(e),
+    };
+  }
+
+  return { outcome: 'ok', reply: `${summary}?\n\nReply YES to confirm, or NO to cancel.`, command: cmdTag };
+}
+
+/** Dispatches one of the five settings-sub-list reply ids (SETTINGS_NS taps only). */
+async function dispatchSettingsAction(ctx: CommandContext, action: string): Promise<CommandResult> {
+  switch (action) {
+    case 'daily':
+    case 'weekly':
+    case 'monthly':
+      return commandToggleReportKind(ctx, action);
+    case 'pause':
+      return commandPauseDaily(ctx);
+    case 'stopall':
+      return commandSettingsStopAll(ctx);
+    default:
+      return {
+        outcome: 'unknown_command',
+        reply: `Sorry ${ctx.displayName}, that option is no longer available. Reply 99 for the menu.`,
+        command: 'MENU:SETTINGS',
+        detail: `unrecognised settings action: ${action}`,
+      };
+  }
+}
+
 const HELP_COMMAND_LIST =
   'MENU (or 99) — show the menu of reports\n' +
   'HELP — show this message\n' +
   'YES (or Y, CONFIRM) — confirm a pending request\n' +
-  'NO (or N, CANCEL) — cancel a pending request';
+  'NO (or N, CANCEL) — cancel a pending request\n' +
+  'STOP — stop report messages (START undoes this)\n' +
+  'RESUME — lift a paused daily report';
 
 function helpReplyText(displayName: string): string {
   // Plain text, WhatsApp-friendly: short lines, no markdown table, no link — no screen in this
@@ -998,6 +1510,49 @@ const STAGED_COMMAND_HANDLERS: Record<
       command: 'ACK_ALERT',
     };
   },
+
+  /**
+   * STOP_ALL_REPORTS — staged by commandSettingsStopAll (the "My reports" menu's "Stop everything"
+   * row), applied when the member replies YES. Calls the SAME report_set_opt_out RPC wa-flow-02's
+   * typed STOP calls directly (handleOptOutVerbs, above) — one RPC, two entry points, and this is
+   * the only one of the two that confirms first.
+   */
+  STOP_ALL_REPORTS: async (ctx) => {
+    try {
+      const { data, error } = await ctx.sb.rpc('report_set_opt_out', {
+        p_phone: ctx.phone,
+        p_opted_out: true,
+      });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] report_set_opt_out is missing — migration 20260907130000 not applied.'
+          );
+        }
+        throw error;
+      }
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || row.ok !== true) {
+        throw new Error(row?.error || 'report_set_opt_out returned ok=false');
+      }
+    } catch (e) {
+      console.error('[whatsapp-inbound] report_set_opt_out failed for staged stop-everything:', e);
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I could not record that just now. Please try again shortly.`,
+        command: 'STOP_ALL_REPORTS',
+        detail: String(e),
+      };
+    }
+
+    return {
+      outcome: 'ok',
+      reply:
+        'You will not receive any further report messages from Macavation. ' +
+        'Text START if you want to allow them again.',
+      command: 'STOP_ALL_REPORTS',
+    };
+  },
 };
 
 /**
@@ -1100,7 +1655,9 @@ async function commandNo(ctx: CommandContext): Promise<CommandResult> {
 }
 
 /**
- * ACK <n> — stage the acknowledgement of the nth open alert, awaiting YES.
+ * ACK <n> — stage the acknowledgement of the nth open alert, awaiting YES. Also the SAME staging
+ * step a "Mark resolved" button tap on the macavation_alert push template uses — see `resolved`
+ * below.
  *
  * <n> is a position in the list the member was just shown, which comes from get_daily_digest()'s
  * open_alerts (ordered created_at DESC, LIMIT 25). This re-reads that SAME source rather than
@@ -1111,57 +1668,80 @@ async function commandNo(ctx: CommandContext): Promise<CommandResult> {
  * whatsapp_take_pending_command fetches AND deletes in one statement, by design. What makes this
  * safe instead is the confirmation step: it names the alert, so if the list shifted between the
  * listing and the ACK the member sees a title they did not expect and replies NO.
+ *
+ * `resolved` lets a caller that already knows WHICH alert (a button tap, which carries a resolved
+ * alert id/title rather than a list position) skip straight to the permission check and staging
+ * below, without a fake "ACK <n>" body to parse. dispatchAlertAck (below) is the only other caller,
+ * and calls this SAME function — not a second, parallel staging body — so there is exactly one
+ * place ACK_ALERT is ever staged from, and a tap can never reach whatsapp_stage_pending_command
+ * without the alerts.resolve re-check every typed ACK <n> already gets. `command` only changes
+ * what is logged/returned as the audit command name; the check-then-stage logic itself never
+ * branches on it.
  */
-async function commandAck(ctx: CommandContext): Promise<CommandResult> {
-  const parts = ctx.rawBody.trim().replace(/\s+/g, ' ').split(' ');
-  const raw = parts[1] ?? '';
-  const n = /^\d{1,3}$/.test(raw) ? Number(raw) : NaN;
+async function commandAck(
+  ctx: CommandContext,
+  resolved?: { alertId: string; title: string },
+  command = 'ACK'
+): Promise<CommandResult> {
+  let alertId: string;
+  let title: string;
 
-  if (!Number.isInteger(n) || n < 1 || n > ALERT_LIST_MAX) {
-    return {
-      outcome: 'unknown_command',
-      reply:
-        `Reply ACK followed by the number of the alert, for example ACK 2. ` +
-        `Reply 99 for the menu to see the list again.`,
-      command: 'ACK',
-    };
+  if (resolved) {
+    alertId = resolved.alertId;
+    title = resolved.title;
+  } else {
+    const parts = ctx.rawBody.trim().replace(/\s+/g, ' ').split(' ');
+    const raw = parts[1] ?? '';
+    const n = /^\d{1,3}$/.test(raw) ? Number(raw) : NaN;
+
+    if (!Number.isInteger(n) || n < 1 || n > ALERT_LIST_MAX) {
+      return {
+        outcome: 'unknown_command',
+        reply:
+          `Reply ACK followed by the number of the alert, for example ACK 2. ` +
+          `Reply 99 for the menu to see the list again.`,
+        command,
+      };
+    }
+
+    let alerts: Any[] = [];
+    try {
+      const { data, error } = await ctx.sb.rpc('get_daily_digest');
+      if (error) throw error;
+      const digest = Array.isArray(data) ? data[0] : data;
+      alerts = Array.isArray(digest?.open_alerts) ? digest.open_alerts : [];
+    } catch (e) {
+      console.error('[whatsapp-inbound] get_daily_digest failed for ACK:', e);
+      return {
+        outcome: 'error',
+        reply: `Sorry ${ctx.displayName}, I could not read the alerts just now. Please try again shortly.`,
+        command,
+        detail: String(e),
+      };
+    }
+
+    const chosen = alerts[n - 1];
+    const resolvedId = chosen?.id ? String(chosen.id) : '';
+    if (!resolvedId) {
+      return {
+        outcome: 'ok',
+        reply: `There is no alert ${n} open right now, ${ctx.displayName}. Reply 99 for the menu to see the current list.`,
+        command,
+      };
+    }
+
+    alertId = resolvedId;
+    title = String(chosen?.title ?? 'Untitled');
   }
 
   if (!(await hasAction(ctx.sb, ctx.userId, 'alerts.resolve'))) {
     return {
       outcome: 'denied',
       reply: `Sorry ${ctx.displayName}, closing alerts is not on your access. Speak to an administrator if you need it.`,
-      command: 'ACK',
+      command,
     };
   }
 
-  let alerts: Any[] = [];
-  try {
-    const { data, error } = await ctx.sb.rpc('get_daily_digest');
-    if (error) throw error;
-    const digest = Array.isArray(data) ? data[0] : data;
-    alerts = Array.isArray(digest?.open_alerts) ? digest.open_alerts : [];
-  } catch (e) {
-    console.error('[whatsapp-inbound] get_daily_digest failed for ACK:', e);
-    return {
-      outcome: 'error',
-      reply: `Sorry ${ctx.displayName}, I could not read the alerts just now. Please try again shortly.`,
-      command: 'ACK',
-      detail: String(e),
-    };
-  }
-
-  const chosen = alerts[n - 1];
-  const alertId = chosen?.id ? String(chosen.id) : '';
-  if (!alertId) {
-    return {
-      outcome: 'ok',
-      reply: `There is no alert ${n} open right now, ${ctx.displayName}. Reply 99 for the menu to see the current list.`,
-      command: 'ACK',
-    };
-  }
-
-  const title = String(chosen?.title ?? 'Untitled');
   const summary = `Acknowledge "${title}"`;
 
   try {
@@ -1183,7 +1763,7 @@ async function commandAck(ctx: CommandContext): Promise<CommandResult> {
       return {
         outcome: 'error',
         reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
-        command: 'ACK',
+        command,
         detail: error.message,
       };
     }
@@ -1192,7 +1772,7 @@ async function commandAck(ctx: CommandContext): Promise<CommandResult> {
     return {
       outcome: 'error',
       reply: `Sorry ${ctx.displayName}, I could not set that up just now. Please try again shortly.`,
-      command: 'ACK',
+      command,
       detail: String(e),
     };
   }
@@ -1200,7 +1780,143 @@ async function commandAck(ctx: CommandContext): Promise<CommandResult> {
   return {
     outcome: 'ok',
     reply: `${summary}?\n\nReply YES to confirm, or NO to cancel.`,
-    command: 'ACK',
+    command,
+  };
+}
+
+/**
+ * Dispatches an ALERT_NS reply-id tap — currently only "Mark resolved" on the macavation_alert
+ * push template. `ref` is the truncated alert reference the reply id carries (see ALERT_ACK_ACTION
+ * above); resolve_dashboard_alert_by_ref resolves it back to a real, currently-open alert. Anything
+ * other than exactly one match — the alert closed already, or (vanishingly unlikely) a colliding
+ * prefix — is treated as a stale tap, same posture as an unrecognised reply id elsewhere in this
+ * file. A resolved match is staged through commandAck's `resolved` parameter — the SAME function
+ * (and the SAME inline permission-check-then-stage body) the typed "ACK <n>" path calls, not a
+ * second, parallel staging function.
+ */
+async function dispatchAlertAck(ctx: CommandContext, ref: string): Promise<CommandResult> {
+  let rows: Any[] = [];
+  try {
+    const { data, error } = await ctx.sb.rpc('resolve_dashboard_alert_by_ref', { p_ref: ref });
+    if (error) throw error;
+    rows = Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error('[whatsapp-inbound] resolve_dashboard_alert_by_ref failed:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not read that alert just now. Please try again shortly.`,
+      command: 'ALERT_ACK_TAP',
+      detail: String(e),
+    };
+  }
+
+  if (rows.length !== 1) {
+    return {
+      outcome: 'unknown_command',
+      reply: `Sorry ${ctx.displayName}, that alert is no longer open. Reply 99 for the menu to see the current list.`,
+      command: 'ALERT_ACK_TAP',
+      detail: `resolve_dashboard_alert_by_ref returned ${rows.length} row(s) for ref ${ref}`,
+    };
+  }
+
+  const alertId = String(rows[0].id);
+  const title = String(rows[0].alert_title ?? 'Untitled');
+  return commandAck(ctx, { alertId, title }, 'ALERT_ACK_TAP');
+}
+
+/**
+ * RESUME — clears a PAUSED daily subscription and nothing else. Post-gate (an enrolled staff
+ * member only — the bot's only identity path is whatsapp_resolve_staff_user; STOP/START are the
+ * exception because they need no identity, see handleOptOutVerbs above).
+ *
+ * Deliberately narrow: weekly/monthly pause state is not readable anywhere in this checkout
+ * (report_recipient_by_inbound_phone returns only subscribed_daily and the daily muted_until,
+ * migrations/20260825090000_report_subscriptions_and_staff.sql:303-327), and the only write RPC
+ * available, set_report_subscription_by_phone, CREATES a subscription it does not find
+ * (INSERT ... ON CONFLICT DO UPDATE SET is_active = true, :367-374). Calling it for a kind the
+ * person never subscribed to — or for a row an administrator switched off — would sign them up or
+ * re-enable consent they never gave. So this NEVER calls it unless subscribed_daily is already
+ * true AND muted_until is already set (checked below, in that order, before the call site).
+ * Extending RESUME to weekly/monthly needs a read RPC that does not exist yet — a later plan's job.
+ *
+ * No date arithmetic here: if muted_until is non-null, it is cleared and the reply says the pause
+ * was lifted — true whether or not it had already expired. public.report_sast_today() is this
+ * repo's only "today" and report_daily_recipients already applies it; a JS-side comparison here
+ * would be a second, drifting answer.
+ */
+async function commandResume(ctx: CommandContext): Promise<CommandResult> {
+  let row: Any;
+  try {
+    const { data, error } = await ctx.sb.rpc('report_recipient_by_inbound_phone', { p_phone: ctx.phone });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] report_recipient_by_inbound_phone is missing — migration 20260825090000 not applied.'
+        );
+        return {
+          outcome: 'error',
+          reply: `Sorry ${ctx.displayName}, I could not check that just now.`,
+          command: 'RESUME',
+          detail: 'rpc missing',
+        };
+      }
+      throw error;
+    }
+    row = Array.isArray(data) ? data[0] : data;
+  } catch (e) {
+    console.error('[whatsapp-inbound] report_recipient_by_inbound_phone failed for RESUME:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not check that just now.`,
+      command: 'RESUME',
+      detail: String(e),
+    };
+  }
+
+  if (!row || row.found !== true) {
+    // report_recipient_by_inbound_phone filters is_active, so an admin-deactivated roster row
+    // lands here too — correct: there is nothing this verb can safely do for such a row.
+    return {
+      outcome: 'ok',
+      reply: `There is no pause on this number, ${ctx.displayName}.`,
+      command: 'RESUME',
+    };
+  }
+
+  if (row.subscribed_daily !== true || row.muted_until === null || row.muted_until === undefined) {
+    return {
+      outcome: 'ok',
+      reply: `Nothing is paused on this number, ${ctx.displayName}.`,
+      command: 'RESUME',
+    };
+  }
+
+  try {
+    const { data, error } = await ctx.sb.rpc('set_report_subscription_by_phone', {
+      p_phone: ctx.phone,
+      p_report_kind: 'daily',
+      p_is_active: true,
+      p_muted_until: null,
+    });
+    if (error) throw error;
+    const result = Array.isArray(data) ? data[0] : data;
+    if (!result || result.ok !== true) {
+      throw new Error(result?.error || 'set_report_subscription_by_phone returned ok=false');
+    }
+  } catch (e) {
+    console.error('[whatsapp-inbound] set_report_subscription_by_phone failed for RESUME:', e);
+    return {
+      outcome: 'error',
+      reply: `Sorry ${ctx.displayName}, I could not lift that pause just now. Please try again shortly.`,
+      command: 'RESUME',
+      detail: String(e),
+    };
+  }
+
+  return {
+    outcome: 'ok',
+    reply: `The pause on your daily report has been lifted, ${ctx.displayName}.`,
+    command: 'RESUME',
   };
 }
 
@@ -1217,6 +1933,11 @@ const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandR
   REPORT: (ctx) => renderMenuItem(ctx, 'report'),
   // ACK <n> — stages an alert acknowledgement, applied by YES.
   ACK: commandAck,
+  // RESUME — lifts a paused daily report subscription. Post-gate: STOP is the pre-gate opt-out
+  // path (handleOptOutVerbs, above processCommandForMessage) and is deliberately NOT registered
+  // here — a COMMAND_HANDLERS.STOP entry would be unreachable dead code, since CommandContext does
+  // not exist before whatsapp_resolve_staff_user succeeds.
+  RESUME: commandResume,
   // The menu, plus the greetings somebody actually opens a chat with.
   MENU: commandMenu,
   HI: commandMenu,
@@ -1227,6 +1948,29 @@ const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandR
   // convention already holds when a second level is added. The legacy 9 is deliberately absent.
   '0': commandMenu,
   '99': commandMenu,
+};
+
+/**
+ * The two quick-reply buttons declared on the daily report template
+ * (scripts/wa-template-daily-production.mjs), keyed by the button label trimmed and lowercased.
+ *
+ * Keyed on the LABEL, not on a `menu:<action>` reply id, because a tap on a template quick-reply
+ * arrives as type:'button' and _shared/wa-inbound.ts sets replyId = button.payload when a payload
+ * is present, else button.text. This checkout has never sent a template with buttons and cannot
+ * verify whether Meta supplies a payload here, so the label is the only value certainly available.
+ * This is still a match on ctx.replyId — the id — and never on the display text the member saw;
+ * nothing in this file reads that.
+ *
+ * If Meta does supply a payload that is not the label, neither key matches and the tap falls
+ * through to the stale-menu reply below, unchanged. Both routes re-check the role, so a match can
+ * never grant more than the menu would.
+ */
+const TEMPLATE_BUTTON_ROUTES: Record<
+  string,
+  { command: string; run: (ctx: CommandContext) => Promise<CommandResult> }
+> = {
+  'view report': { command: 'TPL:VIEW_REPORT', run: (ctx) => renderMenuItem(ctx, 'report') },
+  menu: { command: 'TPL:MENU', run: commandMenu },
 };
 
 /**
@@ -1241,12 +1985,31 @@ const COMMAND_HANDLERS: Record<string, (ctx: CommandContext) => Promise<CommandR
  *   4. A registered verb (including '0' and '99').
  *   5. A bare one- or two-digit number = a position in the role's own visible menu, which is
  *      what makes the plain-text menu fallback work.
+ *   6. Anything else opens the MENU too — the router no longer answers an unrecognised verb with
+ *      a list of words to type (see the return commandMenu(ctx) at the end of this function).
  */
 async function handleCommand(ctx: CommandContext): Promise<CommandResult> {
   if (ctx.replyId) {
     const parsed = parseReplyId(ctx.replyId);
     if (parsed && parsed.ns === MENU_NS) {
       return renderMenuItem(ctx, parsed.action);
+    }
+    if (parsed && parsed.ns === SETTINGS_NS) {
+      return dispatchSettingsAction(ctx, parsed.action);
+    }
+    if (parsed && parsed.ns === ALERT_NS && parsed.action === ALERT_ACK_ACTION && parsed.arg) {
+      return dispatchAlertAck(ctx, parsed.arg);
+    }
+    // A template quick-reply tap. hasOwnProperty for the same reason as the COMMAND_HANDLERS
+    // lookup below: the key is text off a public WhatsApp line and this is a plain object.
+    const templateKey = ctx.replyId.trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(TEMPLATE_BUTTON_ROUTES, templateKey)) {
+      const route = TEMPLATE_BUTTON_ROUTES[templateKey];
+      const result = await route.run(ctx);
+      // Only `command` is overridden: `outcome` must stay one of the five values
+      // whatsapp_command_log_outcome_check allows, and `reply: null` must survive — commandMenu
+      // has already sent its own list.
+      return { ...result, command: route.command };
     }
     // A well-formed id from another namespace, or an id this build does not know: treat it as a
     // stale menu rather than an error, since the commonest cause is a tap on a menu sent by an
@@ -1284,11 +2047,12 @@ async function handleCommand(ctx: CommandContext): Promise<CommandResult> {
     return renderMenuPosition(ctx, Number(verb));
   }
 
-  const reply =
-    `Sorry ${ctx.displayName}, I did not recognise "${verb}".\n\n` +
-    `Here is what I can do right now:\n\n${HELP_COMMAND_LIST}\n\n` +
-    `More commands are coming. Text HELP any time to see the current list.`;
-  return { outcome: 'unknown_command', reply, command: verb || null };
+  // Anything unmatched opens the menu instead of listing verbs to type
+  // (docs/mockups/whatsapp-flow-spec.html section 11 "What to build, in order", step 4 "The
+  // settings branch": "Unrecognised words open the menu instead of listing verbs" — bundled there
+  // with this same plan's My reports/pause/stop/resume work). HELP above is unaffected — it
+  // remains its own explicit branch and still shows the verb list.
+  return commandMenu(ctx);
 }
 
 /**
@@ -1365,6 +2129,375 @@ async function tryConfirmEnrolment(
 }
 
 /**
+ * The join keyword — "reports" from an unenrolled number — and the daily/weekly/monthly follow-up
+ * that lets that number choose what to receive. This is the WhatsApp-side half of "add a
+ * recipient from the panel, and let one join by messaging the number": the panel's own banner
+ * (WebPortal/modules/sales-reports/html/report_list.html) tells people to do exactly this.
+ *
+ * A DELIBERATE, NARROW exception to tryConfirmEnrolment's "total silence for an unenrolled
+ * number" rule, immediately above — read that function's comment first. That silence exists
+ * because replying to a wrong 6-digit GUESS would confirm this endpoint is live to a stranger who
+ * may only be guessing. "reports" is not a guess at a secret: it is someone explicitly asking to
+ * join a WhatsApp report list, in response to instructions the portal itself now gives. A future
+ * reader must not "fix" this back to silence — the silence rule was never meant to cover it.
+ *
+ * A small, self-contained, LINEAR state machine — deliberately NOT folded into COMMAND_HANDLERS /
+ * STAGED_COMMAND_HANDLERS below. There is no ambiguity here to stage a YES/NO confirmation for,
+ * and this population can never reach that machinery anyway: CommandContext requires an
+ * already-resolved userId/roleId, and this number is never resolved by
+ * whatsapp_resolve_staff_user (report_recipients has no relationship to staff enrolment at all).
+ *
+ * is_staff: never touched here (contract 5). report_recipients.is_staff defaults to false
+ * (migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql:83), and neither
+ * upsert_report_recipient nor set_report_subscription_by_phone ever writes it. Becoming staff is a
+ * separate, portal-admin action (set_report_recipient_staff) or the existing WhatsApp staff
+ * enrolment code flow (tryConfirmEnrolment, above) — out of scope here.
+ *
+ * Confirmed before writing this: report_daily_recipients()'s WHERE clause
+ * (migrations/20260907130000_report_opt_out.sql:239-242) is `rr.is_active AND rs.is_active AND
+ * rr.opted_out_at IS NULL AND (muted_until ...)` — no is_staff condition anywhere in it. A non-staff
+ * recipient already receives reports today, so gating this join flow on staff enrolment would
+ * wrongly exclude exactly the population (external report recipients who will never have a portal
+ * login) this feature exists to serve.
+ *
+ * "Joining states intent, it does not choose" (contract 4): the upsert_report_recipient call below
+ * never touches report_subscriptions — that function only ever writes report_recipients (see its
+ * body). The new row is left with every subscription kind off until the person separately types
+ * daily / weekly / monthly, each its own call to set_report_subscription_by_phone.
+ *
+ * Deviation from the brief's literal wording, recorded here because it is load-bearing: the brief
+ * describes the create call as `upsert_report_recipient(display_name=null, ...)`, but
+ * upsert_report_recipient itself rejects a null/blank display name (`IF v_name IS NULL THEN RETURN
+ * QUERY SELECT 0, 'A display name is required.'` —
+ * migrations/20260822090000_report_whatsapp_recipients_and_deliveries.sql:219-222) — a null would
+ * make every join silently fail with success=0. This follows the exact precedent
+ * report_set_opt_out already set for the identical problem (migrations/20260907130000_report_opt_out.sql:128-131):
+ * use the canonical phone number as a placeholder display name until the person is known by a real
+ * name (e.g. once an admin edits them from the panel).
+ *
+ * Returns true when this message has been fully handled (whether or not a reply was sent) — the
+ * caller must return immediately either way, exactly like tryConfirmEnrolment. Returns false only
+ * for "not this flow", so the caller falls through to the existing silent not_enrolled logging.
+ */
+async function tryJoinReportsFlow(
+  sb: SupabaseClient,
+  from: string,
+  wamid: string,
+  rawBody: string,
+  trimmedBody: string
+): Promise<boolean> {
+  const lower = trimmedBody.toLowerCase();
+
+  // Step 2: "daily" / "weekly" / "monthly" — the follow-up choice after joining.
+  //
+  // Deliberately gated on report_recipient_by_inbound_phone returning found=true — i.e. this
+  // number is ALREADY a known, active report_recipients row. Without that gate, any stranger who
+  // happened to text the common English word "daily" for an unrelated reason would be silently
+  // subscribed to a confidential report. The real join population always reaches this state via
+  // "reports" (below) first, which is what creates that roster row — so this gate excludes nobody
+  // this flow is meant to serve.
+  if ((REPORT_KINDS as readonly string[]).includes(lower)) {
+    const kind = lower as ReportKind;
+    let lookup: Any;
+    try {
+      const { data, error } = await sb.rpc('report_recipient_by_inbound_phone', { p_phone: from });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] report_recipient_by_inbound_phone is missing — migration 20260825090000 not applied.'
+          );
+        }
+        throw error;
+      }
+      lookup = Array.isArray(data) ? data[0] : data;
+    } catch (e) {
+      console.error(`[whatsapp-inbound] join-flow lookup failed wamid=${wamid}:`, e);
+      return false;
+    }
+
+    if (!lookup || lookup.found !== true) {
+      // Not on the roster — silence, for the same reason tryConfirmEnrolment stays silent on a
+      // wrong code: this may just be a stranger who typed a common word, and there is nothing here
+      // worth confirming a bot is listening for.
+      return false;
+    }
+
+    try {
+      const { data, error } = await sb.rpc('set_report_subscription_by_phone', {
+        p_phone: from,
+        p_report_kind: kind,
+        p_is_active: true,
+        p_muted_until: null,
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result || result.ok !== true) {
+        throw new Error(result?.error || 'set_report_subscription_by_phone returned ok=false');
+      }
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'JOIN_REPORTS_CHOOSE',
+        outcome: 'ok',
+        detail: kind,
+      });
+      const reply =
+        `You're now getting the ${REPORT_KIND_LABEL[kind]} report. Reply with another of daily, ` +
+        `weekly or monthly any time to add it, or STOP to opt out of everything.`;
+      const sent = await sendWhatsappText(from, reply);
+      if (!sent) console.error(`[whatsapp-inbound] join-flow choose reply failed wamid=${wamid}`);
+    } catch (e) {
+      console.error(`[whatsapp-inbound] join-flow choose failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'JOIN_REPORTS_CHOOSE',
+        outcome: 'error',
+        detail: String(e),
+      });
+      const sent = await sendWhatsappText(from, 'I could not save that just now. Please try again shortly.');
+      if (!sent) console.error(`[whatsapp-inbound] join-flow choose failure reply failed wamid=${wamid}`);
+    }
+    return true;
+  }
+
+  // Step 1: the join keyword itself — "reports", case-insensitive, alone or inside a short phrase.
+  if (!/\breports\b/i.test(rawBody)) {
+    return false;
+  }
+
+  let alreadyOnRoster = false;
+  try {
+    const { data, error } = await sb.rpc('report_recipient_by_inbound_phone', { p_phone: from });
+    if (error) {
+      if (isMissingRpc(error)) {
+        console.error(
+          '[whatsapp-inbound] report_recipient_by_inbound_phone is missing — migration 20260825090000 not applied.'
+        );
+      }
+      throw error;
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    alreadyOnRoster = !!(row && row.found === true);
+  } catch (e) {
+    console.error(`[whatsapp-inbound] join-flow lookup failed wamid=${wamid}:`, e);
+    await logCommand(sb, {
+      phone: from,
+      userId: null,
+      wamid,
+      rawBody,
+      command: 'JOIN_REPORTS',
+      outcome: 'error',
+      detail: String(e),
+    });
+    const sent = await sendWhatsappText(from, 'I could not check that just now. Please try again shortly.');
+    if (!sent) console.error(`[whatsapp-inbound] join-flow lookup failure reply failed wamid=${wamid}`);
+    return true;
+  }
+
+  if (!alreadyOnRoster) {
+    // create with EVERY subscription kind left off — see this function's comment above on
+    // "joining states intent". source: 'whatsapp_chat' records how this row came to exist, exactly
+    // as the CHECK constraint's other values (crm_contact, manual) already record other sources.
+    try {
+      const { data, error } = await sb.rpc('upsert_report_recipient', {
+        p_display_name: toWaPhone(from),
+        p_phone: from,
+        p_source: 'whatsapp_chat',
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || Number(row.success) !== 1) {
+        throw new Error(row?.error || 'upsert_report_recipient returned success=0');
+      }
+    } catch (e) {
+      console.error(`[whatsapp-inbound] join-flow create failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'JOIN_REPORTS',
+        outcome: 'error',
+        detail: String(e),
+      });
+      const sent = await sendWhatsappText(from, 'I could not save that just now. Please try again shortly.');
+      if (!sent) console.error(`[whatsapp-inbound] join-flow create failure reply failed wamid=${wamid}`);
+      return true;
+    }
+  }
+
+  await logCommand(sb, {
+    phone: from,
+    userId: null,
+    wamid,
+    rawBody,
+    command: 'JOIN_REPORTS',
+    outcome: 'ok',
+    detail: alreadyOnRoster ? 'already on roster' : 'created',
+  });
+  const reply =
+    "You're on the list for Macavation's reports. Reply daily, weekly or monthly to choose which " +
+    "one(s) you'd like — you can pick more than one, any time.";
+  const sent = await sendWhatsappText(from, reply);
+  if (!sent) console.error(`[whatsapp-inbound] join-flow confirmation reply failed wamid=${wamid}`);
+  return true;
+}
+
+/**
+ * The pre-gate opt-out interceptor — STOP and START, honoured from ANY number, enrolled or not,
+ * on the roster or not, mid-confirmation or not. Runs BEFORE whatsapp_resolve_staff_user, so it
+ * cannot use CommandContext (that interface requires userId/roleId/displayName, which only exist
+ * after resolution succeeds) — hence plain arguments here instead.
+ *
+ * Returns true when it has handled the message (and already sent a reply) — the caller must
+ * return immediately without falling into the resolution/menu path. Returns false to fall through
+ * to the existing behaviour UNCHANGED, which is what keeps START: commandMenu (COMMAND_HANDLERS,
+ * below) working for everybody who is not opted out — this function must never reword or remove
+ * that binding.
+ *
+ * A menu TAP (replyId set) is never handled here — that is a later plan's staged "Stop
+ * everything" sheet, not this typed path.
+ *
+ * See migrations/20260907130000_report_opt_out.sql for report_set_opt_out /
+ * report_opt_out_status and the schema facts (display_name NOT NULL; the is_active-filtered
+ * resolution trap) they work around.
+ */
+async function handleOptOutVerbs(
+  sb: SupabaseClient,
+  from: string,
+  wamid: string,
+  rawBody: string,
+  replyId: string | null
+): Promise<boolean> {
+  if (replyId) return false;
+
+  const collapsed = rawBody.trim().replace(/\s+/g, ' ');
+  const verb = (collapsed.split(' ')[0] || '').toUpperCase();
+
+  if (verb === 'STOP') {
+    // A typed STOP takes effect immediately, with no confirmation step — Meta requires opt-out to
+    // be frictionless, and a person typing STOP has already decided. Reversal (START) is one word.
+    try {
+      const { data, error } = await sb.rpc('report_set_opt_out', { p_phone: from, p_opted_out: true });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] report_set_opt_out is missing — migration 20260907130000 not applied.'
+          );
+        }
+        throw error;
+      }
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || row.ok !== true) {
+        throw new Error(row?.error || 'report_set_opt_out returned ok=false');
+      }
+      await logCommand(sb, { phone: from, userId: null, wamid, rawBody, command: 'STOP', outcome: 'ok' });
+      // Scoped to what this plan actually gates — reports — never "any further messages": alerts
+      // and staff-menu replies are untouched by this plan and must not be promised silent by it.
+      // Does not promise re-subscription: clearing opted_out_at does not create a subscription.
+      const reply =
+        'You will not receive any further report messages from Macavation. ' +
+        'Text START if you want to allow them again.';
+      const sent = await sendWhatsappText(from, reply);
+      if (!sent) console.error(`[whatsapp-inbound] STOP confirmation reply failed wamid=${wamid}`);
+    } catch (e) {
+      console.error(`[whatsapp-inbound] STOP handling failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'STOP',
+        outcome: 'error',
+        detail: String(e),
+      });
+      // Never reply as though it succeeded.
+      const sent = await sendWhatsappText(
+        from,
+        'I could not record that just now. Please reply STOP again shortly.'
+      );
+      if (!sent) console.error(`[whatsapp-inbound] STOP failure reply failed wamid=${wamid}`);
+    }
+    return true;
+  }
+
+  if (verb === 'START') {
+    let status: Any;
+    try {
+      const { data, error } = await sb.rpc('report_opt_out_status', { p_phone: from });
+      if (error) {
+        if (isMissingRpc(error)) {
+          console.error(
+            '[whatsapp-inbound] report_opt_out_status is missing — migration 20260907130000 not applied.'
+          );
+          // Deliberate: fall through so the existing greeting keeps working when the opt-out read
+          // is unavailable, rather than answering nothing.
+          return false;
+        }
+        throw error;
+      }
+      status = Array.isArray(data) ? data[0] : data;
+    } catch (e) {
+      console.error(`[whatsapp-inbound] START opt-out check failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'START',
+        outcome: 'error',
+        detail: String(e),
+      });
+      return false;
+    }
+
+    if (!status || status.opted_out !== true) {
+      // Not opted out (including found === false): fall through so START: commandMenu keeps its
+      // existing meaning — this is what leaves the greeting intact for everybody else.
+      return false;
+    }
+
+    try {
+      const { data, error } = await sb.rpc('report_set_opt_out', { p_phone: from, p_opted_out: false });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || row.ok !== true) {
+        throw new Error(row?.error || 'report_set_opt_out returned ok=false');
+      }
+      await logCommand(sb, { phone: from, userId: null, wamid, rawBody, command: 'START', outcome: 'ok' });
+      const reply =
+        'Your opt-out has been removed. If somebody has you on a report list, those messages can resume.';
+      const sent = await sendWhatsappText(from, reply);
+      if (!sent) console.error(`[whatsapp-inbound] START confirmation reply failed wamid=${wamid}`);
+    } catch (e) {
+      console.error(`[whatsapp-inbound] START clear failed wamid=${wamid}:`, e);
+      await logCommand(sb, {
+        phone: from,
+        userId: null,
+        wamid,
+        rawBody,
+        command: 'START',
+        outcome: 'error',
+        detail: String(e),
+      });
+      const sent = await sendWhatsappText(
+        from,
+        'I could not record that just now. Please reply START again shortly.'
+      );
+      if (!sent) console.error(`[whatsapp-inbound] START failure reply failed wamid=${wamid}`);
+    }
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Runs once per inbound TEXT message, after it is already persisted. Never throws — any
  * unexpected error is caught, logged (console + audit row), and swallowed so the caller's 2xx
  * response is unaffected.
@@ -1404,6 +2537,13 @@ async function processCommandForMessage(
   }
 
   try {
+    // Checked before the enrolment gate and before any pending-command handling — the only thing
+    // an unenrolled number may do besides send an enrolment code. See handleOptOutVerbs's own
+    // comment for why this cannot use CommandContext.
+    if (await handleOptOutVerbs(sb, from, wamid, rawBody, replyId)) {
+      return;
+    }
+
     let resolved: Any;
     try {
       const { data, error } = await sb.rpc('whatsapp_resolve_staff_user', { p_phone: from });
@@ -1440,6 +2580,14 @@ async function processCommandForMessage(
       const trimmedBody = rawBody.trim();
       if (!replyId && /^\d{6}$/.test(trimmedBody)) {
         await tryConfirmEnrolment(sb, from, wamid, rawBody, trimmedBody);
+        return;
+      }
+
+      // Second, narrow exception to the silence rule: the WhatsApp report join flow. TEXT ONLY,
+      // same reasoning as the enrolment-code check above — a menu tap cannot express "reports" or
+      // "daily"/"weekly"/"monthly" as free text. See tryJoinReportsFlow's own comment for why this
+      // one replies where tryConfirmEnrolment stays silent; do not "fix" this back to silence.
+      if (!replyId && (await tryJoinReportsFlow(sb, from, wamid, rawBody, trimmedBody))) {
         return;
       }
 
@@ -1679,6 +2827,31 @@ Deno.serve(async (req) => {
         }
 
         statuses++;
+
+        // --- delivery receipts for report_deliveries (migrations/20260910090000_report_delivery_receipts.sql) ---
+        // Same statuses[] entry, a second write against a different table. Deliberately non-fatal
+        // and never sets schemaMissing/breaks the outer loops: this table's receipts are a separate
+        // feature from the shared inbox handled above, and a wamid belonging to a chat_messages row
+        // (or to neither table) is expected here, not an error — report_record_delivery_status
+        // itself returns success with updated:false for "no matching row", so reaching the error
+        // branch below means a real RPC-level fault, not a routine no-match.
+        const { error: reportStatusError } = await sb.rpc('report_record_delivery_status', {
+          p_wamid: wamid,
+          p_status: status,
+        });
+
+        if (reportStatusError) {
+          if (isMissingRpc(reportStatusError)) {
+            console.error(
+              '[whatsapp-inbound] report_record_delivery_status is missing — migration 20260910090000 not applied.'
+            );
+          } else {
+            console.error(
+              `[whatsapp-inbound] report_record_delivery_status failed wamid=${wamid} status=${status}:`,
+              reportStatusError.message
+            );
+          }
+        }
       }
 
       if (schemaMissing) break;

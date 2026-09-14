@@ -1,6 +1,14 @@
 /**
- * Scheduled stock alert evaluation — aggregates SOH from DB and calls evaluate_stock_alerts.
- * Cron: 0 7,12,17 * * * SAST (supplement grid-triggered evaluation)
+ * Stock alert evaluation — aggregates SOH from DB and calls evaluate_stock_alerts.
+ *
+ * NOT SCHEDULED, despite the name. This header used to claim "Cron: 0 7,12,17 * * * SAST". No
+ * such schedule was ever created: there is no cron.schedule, no pg_cron job and no workflow in
+ * this repo that invokes this function.
+ *
+ * What actually evaluates the rules today is the Stock Management grid, client-side, when a
+ * person opens it (WebPortal/modules/stock-management/js/stock_management_grid.js runStockAlert-
+ * Evaluation). So a week in which nobody opens that screen is a week with no stock alerts. The
+ * Stock Alert Rules screen says so on the page rather than implying a timer exists.
  *
  * Requires: SUPABASE_SERVICE_ROLE_KEY
  */

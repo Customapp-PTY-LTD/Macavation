@@ -276,12 +276,20 @@ var _dashboard = function () {
                 const kpis = await dataFunctions.getExecutiveKPIs().catch(() => ({}));
                 const batches = await dataFunctions.getProductionBatches().catch(() => []);
                 const stockItems = await dataFunctions.getStockItems().catch(() => []);
-                const targets = (dataFunctions.getDashboardTargets
-                    ? await dataFunctions.getDashboardTargets().catch(() => ({ map: {} }))
-                    : { map: {} });
-                const targetMap = (targets && targets.map) || {};
-                const qualityTarget = targetMap.quality_pass_rate ? targetMap.quality_pass_rate.value : 95;
-                const productionTarget = targetMap.total_production_kg ? targetMap.total_production_kg.value : 50000;
+                // Targets come from the merged Targets screen (per month) rather than the old
+                // effective-dated dashboard_targets table. quality_pass_rate kept its key.
+                // total_production_kg was dropped and split into the two kernel metrics the
+                // reports already track, so NIS cracked is what this tile now aims at.
+                const targetMap = (dataFunctions.getCurrentMonthTargetMap
+                    ? await dataFunctions.getCurrentMonthTargetMap().catch(() => ({}))
+                    : {});
+                const targetOf = (key, fallback) => {
+                    const row = targetMap[key];
+                    const value = row ? Number(row.target_value) : NaN;
+                    return Number.isFinite(value) && value > 0 ? value : fallback;
+                };
+                const qualityTarget = targetOf('quality_pass_rate', 95);
+                const productionTarget = targetOf('kernel_nis_cracking_kg', 50000);
                 const qualityRate = kpis.quality_pass_rate != null ? Number(kpis.quality_pass_rate) : 0;
                 const totalKg = kpis.total_production_kg != null ? Number(kpis.total_production_kg) : 0;
                 // No fake trend when data is zero; pass trend: null so "vs. last month" is not shown

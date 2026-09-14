@@ -131,30 +131,12 @@
             ],
             "css": []
         },
-        "dashboard-targets-grid": {
-            "description": "Dashboard Targets Management",
-            "path": "dashboard-targets",
-            "html": "html/dashboard-targets_grid.html",
-            "js": [
-                "js/dashboard-targets_grid.js"
-            ],
-            "css": []
-        },
         "stock-alert-rules-grid": {
             "description": "Stock Alert Rules",
             "path": "stock-alert-rules",
             "html": "html/stock_alert_rules_grid.html",
             "js": [
                 "js/stock_alert_rules_grid.js"
-            ],
-            "css": []
-        },
-        "scheduled-reports-grid": {
-            "description": "Scheduled Reports",
-            "path": "scheduled-reports",
-            "html": "html/scheduled_reports_grid.html",
-            "js": [
-                "js/scheduled_reports_grid.js"
             ],
             "css": []
         },
@@ -664,13 +646,15 @@
             ]
         },
         "report-targets-grid": {
-            "description": "Report Targets &amp; Prior-Period Baselines",
+            "description": "Targets",
             "path": "report-targets",
             "html": "html/report_targets_grid.html",
             "js": [
                 "js/report_targets_grid.js"
             ],
-            "css": []
+            "css": [
+                "css/report_targets_grid.css"
+            ]
         },
         "sales-data-grid": {
             "description": "Sales &amp; Production Data",

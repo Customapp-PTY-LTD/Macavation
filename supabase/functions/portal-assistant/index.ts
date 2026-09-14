@@ -121,11 +121,10 @@ const FAST_PATH_DISABLED = (Deno.env.get("ASSISTANT_FAST_PATH_DISABLED") || "").
 // these win the fast path; fall through to the LLM instead, which still sees
 // them via buildSystemPrompt(hits) and can cite whichever is actually right.
 const FAST_PATH_EXCLUDED_ANCHORS = new Set([
-  "dashboard-targets-grid",
   "kernel-production-forecast-grid",
   "messaging-compose-grid",
   "oil-production-forecast-grid",
-  "scheduled-reports-grid",
+  "report-targets-grid",
   "stock-alert-rules-grid",
 ]);
 

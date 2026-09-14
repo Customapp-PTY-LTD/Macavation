@@ -312,29 +312,14 @@
                                                 <i class="fas fa-user-shield me-2"></i>User &amp; access
                                             </a>
                                         </li>
-                                        <li class="nav-item d-none" data-route="features-grid">
-                                            <a class="nav-link" href="#" route="features-grid" title="Features">
-                                                <i class="fas fa-puzzle-piece me-2"></i>Features
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="dashboard-targets-grid">
-                                            <a class="nav-link" href="#" route="dashboard-targets-grid" title="Set KPI targets used by dashboards">
-                                                <i class="fas fa-bullseye me-2"></i>Dashboard Targets
-                                            </a>
-                                        </li>
                                         <li class="nav-item d-none" data-route="report-targets-grid">
-                                            <a class="nav-link" href="#" route="report-targets-grid" title="Set per-period report targets and enter prior-period baselines">
-                                                <i class="fas fa-bullseye me-2"></i>Report Targets
+                                            <a class="nav-link" href="#" route="report-targets-grid" title="Set monthly and weekly targets for production, sales and performance">
+                                                <i class="fas fa-bullseye me-2"></i>Targets
                                             </a>
                                         </li>
                                         <li class="nav-item d-none" data-route="stock-alert-rules-grid">
                                             <a class="nav-link" href="#" route="stock-alert-rules-grid" title="Configure stock red-flag thresholds">
                                                 <i class="fas fa-flag me-2"></i>Stock Alert Rules
-                                            </a>
-                                        </li>
-                                        <li class="nav-item d-none" data-route="scheduled-reports-grid">
-                                            <a class="nav-link" href="#" route="scheduled-reports-grid" title="Daily digest — email and WhatsApp subscriptions">
-                                                <i class="fas fa-paper-plane me-2"></i>Scheduled Reports
                                             </a>
                                         </li>
                                     </ul>
@@ -602,7 +587,12 @@
     <script src="js/oil-batch-edit.js"></script>
     <script src="js/oil-batch-ingredients.js"></script>
     <script src="js/help-viewer.js"></script>
-    <script src="js/appRouter.js?v=20260716c"></script>
+    <!-- This ?v= is the cache-busting token for EVERY module file the router loads at runtime
+         (appRouteConfig.json and each route's html/js/css). appRouter.js reads it back off its own
+         script tag, so bumping it here is all that is needed to make a deployed change to any
+         module actually reach a browser that has been in the portal before. Bump it whenever a
+         module's html/js/css changes. -->
+    <script src="js/appRouter.js?v=20260904e"></script>
     <script src="js/app.js"></script>
     <script src="js/index.js?v=20260716d"></script>
     <script src="js/shell.js"></script>
