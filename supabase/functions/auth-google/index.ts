@@ -97,7 +97,10 @@ Deno.serve(async (req) => {
     try {
       const tokenHash = await sha256Hex(token);
       const nowIso = new Date().toISOString();
-      const expiresAtIso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      // 30 days, matching assistant_session_upsert (migrations/20260914150000) -
+      // this function writes the table directly instead of calling that RPC, so
+      // the TTL has to be kept in step here by hand.
+      const expiresAtIso = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const { error: sessionError } = await admin
         .from("assistant_sessions")
         .upsert(
