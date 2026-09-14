@@ -145,8 +145,9 @@ var _crmWhatsappContactsTab = function () {
 
                 const phone = contact.primary_contact_mobile || contact.primary_contact_phone;
                 if (!phone) {
+                    const whoLabel = contact.source_type === 'user' ? 'this user' : 'this contact';
                     startBtn.prop('disabled', true);
-                    $('#contactPhoneHint').html('<span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>No WhatsApp number on file for this contact</span>');
+                    $('#contactPhoneHint').html(`<span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>No WhatsApp number on file for ${whoLabel}</span>`);
                 } else {
                     startBtn.prop('disabled', false);
                     $('#contactPhoneHint').html(`<span class="text-muted"><i class="fas fa-phone me-1"></i>${escapeHtml(phone)}</span>`);
@@ -158,7 +159,8 @@ var _crmWhatsappContactsTab = function () {
                 const contactId = $('#contactSelect').val();
                 if (!contactId) return;
 
-                await _crmWhatsappContactsTab.startContactConversation(contactId);
+                const contact = contacts.find(c => c.id === contactId);
+                await _crmWhatsappContactsTab.startContactConversation(contactId, contact && contact.source_type === 'user');
             });
 
             // Search input
@@ -170,25 +172,38 @@ var _crmWhatsappContactsTab = function () {
 
         loadContactsForPicker: async () => {
             try {
-                contacts = await dataFunctions.getContactsForMessaging();
+                contacts = await dataFunctions.getContactsForMessaging(currentUserId);
 
                 const select = $('#contactSelect');
                 select.empty();
                 select.append('<option value="">Select a contact...</option>');
 
+                const contactGroup = $('<optgroup label="Contacts"></optgroup>');
+                const userGroup = $('<optgroup label="Staff"></optgroup>');
+
                 contacts.forEach(contact => {
                     const name = contact.company_name || contact.primary_contact_name || 'Unnamed Contact';
-                    select.append(`<option value="${escapeHtml(contact.id)}">${escapeHtml(name)}</option>`);
+                    const option = `<option value="${escapeHtml(contact.id)}">${escapeHtml(name)}</option>`;
+                    if (contact.source_type === 'user') {
+                        userGroup.append(option);
+                    } else {
+                        contactGroup.append(option);
+                    }
                 });
+
+                if (contactGroup.children().length) select.append(contactGroup);
+                if (userGroup.children().length) select.append(userGroup);
             } catch (e) {
                 console.error('[WhatsApp Contacts] Failed to load contacts:', e);
                 $('#contactSelect').html('<option value="">Error loading contacts</option>');
             }
         },
 
-        startContactConversation: async (contactId) => {
+        startContactConversation: async (contactId, isUser) => {
             try {
-                const result = await dataFunctions.chatStartContactConversation(contactId, currentUserId);
+                const result = isUser
+                    ? await dataFunctions.chatStartUserConversation(contactId, currentUserId)
+                    : await dataFunctions.chatStartContactConversation(contactId, currentUserId);
 
                 if (!result || !result.conversation_id) {
                     throw new Error(result?.error || 'Failed to start conversation');
@@ -268,7 +283,7 @@ var _crmWhatsappContactsTab = function () {
                 const activeClass = conv.conversation_id === currentConversationId ? 'active' : '';
                 // A number with no CRM contact behind it is worth flagging: it is a lead
                 // nobody has captured yet.
-                const unknownIcon = (sharedInbox && !conv.contact_id)
+                const unknownIcon = (sharedInbox && !conv.contact_id && !conv.target_user_id)
                     ? '<i class="fas fa-circle-question text-muted ms-1" title="Not a saved CRM contact"></i>'
                     : '';
                 const inboundPrefix = conv.last_message_direction === 'outbound_whatsapp'
@@ -406,7 +421,7 @@ var _crmWhatsappContactsTab = function () {
             const phoneSubtitle = (phoneLabel && phoneLabel !== label)
                 ? `<small class="text-muted d-block">${escapeHtml(phoneLabel)}</small>`
                 : '';
-            const unknownBadge = (sharedInbox && !conv.contact_id)
+            const unknownBadge = (sharedInbox && !conv.contact_id && !conv.target_user_id)
                 ? '<span class="badge bg-secondary ms-2" title="This number is not a saved CRM contact">Not a CRM contact</span>'
                 : '';
 

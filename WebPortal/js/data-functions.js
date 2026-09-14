@@ -5640,6 +5640,18 @@ var _dataFunctions = function () {
             }
         },
 
+        chatStartUserConversation: async function (targetUserId, createdBy, token = null) {
+            try {
+                const raw = await this.callFunction('chat_start_user_conversation', {
+                    p_target_user_id: targetUserId, p_created_by: createdBy
+                }, token, { useCache: false });
+                const result = Array.isArray(raw) ? raw[0] : raw;
+                return result || { success: 0, error: 'Empty response' };
+            } catch (e) {
+                return { success: 0, error: e.message || String(e) };
+            }
+        },
+
         chatSendMessage: async function (conversationId, senderUserId, body, direction = 'internal', sendStatus = 'sent', externalMessageId = null, sendError = null, token = null) {
             try {
                 const raw = await this.callFunction('chat_send_message', {
@@ -5730,9 +5742,11 @@ var _dataFunctions = function () {
             }
         },
 
-        getContactsForMessaging: async function (token = null) {
+        getContactsForMessaging: async function (currentUserId = null, token = null) {
             try {
-                const raw = await this.callFunction('get_contacts_for_messaging', {}, token, { useCache: false });
+                const raw = await this.callFunction('get_contacts_for_messaging', {
+                    p_current_user_id: currentUserId
+                }, token, { useCache: false });
                 if (Array.isArray(raw)) return raw;
                 if (raw && Array.isArray(raw.get_contacts_for_messaging)) return raw.get_contacts_for_messaging;
                 if (raw && Array.isArray(raw.data)) return raw.data;
