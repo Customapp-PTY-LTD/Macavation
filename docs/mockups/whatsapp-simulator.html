@@ -1,0 +1,1173 @@
+<title>Macavation WhatsApp Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --bg: #F7F7F5; --surface: #FFFFFF; --surface-2: #F0F0EE;
+  --border: #E3E3E0; --border-strong: #D3D3D0;
+  --text: #1F1F1F; --text-2: #52524E; --text-3: #6E6E68;
+  --green: #198754; --pink: #FF005E;
+  --success: #2DA44E; --warning: #D4A72C; --warning-ink: #8A6D14;
+  --danger: #CF222E; --info: #0969DA;
+  --success-tint: rgba(45,164,78,.09); --warning-tint: rgba(212,167,44,.13);
+  --danger-tint: rgba(207,34,46,.08); --info-tint: rgba(9,105,218,.08);
+  --pink-tint: rgba(255,0,94,.08);
+
+  --wa-header: #128C7E; --wa-header-ink: #FFFFFF; --wa-canvas: #ECE5DD;
+  --wa-in: #FFFFFF; --wa-out: #DCF8C6; --wa-ink: #111111; --wa-ink-2: #667781;
+  --wa-link: #027EB5; --wa-divider: rgba(17,17,17,.09); --wa-tick: #4FC3F7;
+  --wa-bar: #F0F0F0; --wa-sheet-bg: #FFFFFF; --wa-scrim: rgba(0,0,0,.35);
+
+  color-scheme: light;
+  --shadow-card: 0 2px 8px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.03);
+  --shadow-phone: 0 14px 40px rgba(0,0,0,.16), 0 0 0 1px rgba(0,0,0,.06);
+  --r-sm: 8px; --r-md: 10px; --r-lg: 12px; --r-pill: 9999px;
+  --t-xs: .75rem; --t-sm: .8125rem; --t-base: .875rem; --t-md: 1rem; --t-xl: 1.75rem;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1A1A1A; --surface: #242424; --surface-2: #2E2E2E;
+    --border: #3A3A3A; --border-strong: #4A4A4A;
+    --text: #E8E8E6; --text-2: #A0A0A0; --text-3: #808078;
+    --green: #2FA26B; --pink: #FF3D7F;
+    --success: #4FBE78; --warning: #E0B44A; --warning-ink: #E0B44A;
+    --danger: #F0616D; --info: #4C9DF5;
+    --success-tint: rgba(79,190,120,.14); --warning-tint: rgba(224,180,74,.15);
+    --danger-tint: rgba(240,97,109,.14); --info-tint: rgba(76,157,245,.14);
+    --pink-tint: rgba(255,61,127,.12);
+    --wa-header: #1F2C33; --wa-header-ink: #E9EDEF; --wa-canvas: #0B141A;
+    --wa-in: #202C33; --wa-out: #005C4B; --wa-ink: #E9EDEF; --wa-ink-2: #8696A0;
+    --wa-link: #53BDEB; --wa-divider: rgba(233,237,239,.12);
+    --wa-bar: #1F2C33; --wa-sheet-bg: #233138; --wa-scrim: rgba(0,0,0,.55);
+    color-scheme: dark;
+    --shadow-card: 0 2px 8px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.04);
+    --shadow-phone: 0 14px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.07);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1A1A1A; --surface: #242424; --surface-2: #2E2E2E;
+  --border: #3A3A3A; --border-strong: #4A4A4A;
+  --text: #E8E8E6; --text-2: #A0A0A0; --text-3: #808078;
+  --green: #2FA26B; --pink: #FF3D7F;
+  --success: #4FBE78; --warning: #E0B44A; --warning-ink: #E0B44A;
+  --danger: #F0616D; --info: #4C9DF5;
+  --success-tint: rgba(79,190,120,.14); --warning-tint: rgba(224,180,74,.15);
+  --danger-tint: rgba(240,97,109,.14); --info-tint: rgba(76,157,245,.14);
+  --pink-tint: rgba(255,61,127,.12);
+  --wa-header: #1F2C33; --wa-header-ink: #E9EDEF; --wa-canvas: #0B141A;
+  --wa-in: #202C33; --wa-out: #005C4B; --wa-ink: #E9EDEF; --wa-ink-2: #8696A0;
+  --wa-link: #53BDEB; --wa-divider: rgba(233,237,239,.12);
+  --wa-bar: #1F2C33; --wa-sheet-bg: #233138; --wa-scrim: rgba(0,0,0,.55);
+  color-scheme: dark;
+  --shadow-card: 0 2px 8px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.04);
+  --shadow-phone: 0 14px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.07);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: var(--t-base); line-height: 1.55; -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px 80px; }
+
+.masthead { padding: 44px 0 26px; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+.eyebrow { font-size: var(--t-xs); font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--text-3); margin: 0 0 10px; }
+h1 { font-size: clamp(1.8rem,4vw,2.5rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.12; margin: 0 0 14px; text-wrap: balance; }
+.standfirst { font-size: var(--t-md); color: var(--text-2); max-width: 64ch; margin: 0; }
+
+.layout { display: grid; grid-template-columns: 360px minmax(0,1fr); gap: 32px; align-items: start; }
+@media (max-width: 940px) { .layout { grid-template-columns: minmax(0,1fr); } .wrap { padding: 0 16px 64px; } }
+
+/* ---------------- phone ---------------- */
+.phone-col { position: sticky; top: 20px; }
+@media (max-width: 940px) { .phone-col { position: static; } }
+
+.phone {
+  width: 100%; max-width: 360px; margin: 0 auto; background: var(--wa-canvas);
+  border-radius: 30px; box-shadow: var(--shadow-phone); overflow: hidden;
+  display: flex; flex-direction: column; height: 660px; position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.phone-bar {
+  background: var(--wa-header); color: var(--wa-header-ink);
+  padding: 14px 16px 12px; display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
+}
+.phone-avatar { width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto; background: rgba(255,255,255,.22); display: grid; place-items: center; font-size: .74rem; font-weight: 700; }
+.phone-name { font-size: var(--t-sm); font-weight: 600; line-height: 1.25; }
+.phone-sub { font-size: .68rem; opacity: .8; line-height: 1.3; }
+
+.chat {
+  flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; padding: 14px 12px 16px;
+  display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) { .chat { scroll-behavior: auto; } }
+
+.daystamp { align-self: center; background: var(--wa-in); color: var(--wa-ink-2); font-size: .66rem; padding: 3px 11px; border-radius: var(--r-pill); box-shadow: 0 1px 1px rgba(0,0,0,.07); margin: 4px 0; }
+.sysline { align-self: center; text-align: center; font-size: .64rem; color: var(--wa-ink-2); background: rgba(0,0,0,.05); padding: 4px 11px; border-radius: var(--r-pill); max-width: 92%; }
+:root[data-theme="dark"] .sysline { background: rgba(255,255,255,.07); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sysline { background: rgba(255,255,255,.07); } }
+
+.bub {
+  max-width: 84%; padding: 7px 10px 6px; border-radius: 9px; font-size: .8rem; line-height: 1.45;
+  color: var(--wa-ink); box-shadow: 0 1px 1px rgba(0,0,0,.1); word-wrap: break-word;
+  white-space: pre-wrap; animation: pop .18s ease-out;
+}
+@keyframes pop { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .bub { animation: none; } }
+.bub.in { background: var(--wa-in); align-self: flex-start; border-top-left-radius: 2px; }
+.bub.out { background: var(--wa-out); align-self: flex-end; border-top-right-radius: 2px; }
+.bub b { font-weight: 600; }
+.bub .tm { font-size: .62rem; color: var(--wa-ink-2); float: right; margin: 6px 0 -2px 8px; }
+.bub .tm .tick { color: var(--wa-tick); font-weight: 700; }
+.bub-hdr { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--wa-ink-2); margin-bottom: 4px; }
+.tpl-tag {
+  display: inline-block; font-size: .58rem; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--wa-ink-2); border: 1px solid var(--wa-divider);
+  padding: 1px 6px; border-radius: 4px; margin-bottom: 6px;
+}
+.wa-btns { display: flex; flex-direction: column; gap: 1px; margin: 8px -10px -6px; }
+.wa-btn {
+  background: var(--wa-in); color: var(--wa-link); text-align: center; font-size: .78rem;
+  font-weight: 500; padding: 9px 8px; border-top: 1px solid var(--wa-divider);
+  cursor: pointer; border: 0; border-top: 1px solid var(--wa-divider); width: 100%;
+  font-family: inherit;
+}
+.wa-btn:hover, .wa-btn:focus-visible { background: rgba(2,126,181,.08); }
+.wa-btn:disabled { opacity: .45; cursor: default; }
+.bub.out .wa-btn { background: var(--wa-out); }
+.wa-list-cta {
+  margin: 9px -10px -6px; background: var(--wa-in); color: var(--wa-link); text-align: center;
+  font-size: .78rem; font-weight: 600; padding: 10px; border-top: 1px solid var(--wa-divider);
+  cursor: pointer; border: 0; width: 100%; font-family: inherit;
+}
+.wa-list-cta:hover, .wa-list-cta:focus-visible { background: rgba(2,126,181,.08); }
+
+.wa-doc { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,.04); border-radius: 7px; padding: 9px 10px; margin-bottom: 6px; }
+:root[data-theme="dark"] .wa-doc { background: rgba(255,255,255,.06); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wa-doc { background: rgba(255,255,255,.06); } }
+.wa-doc-ic { width: 30px; height: 34px; border-radius: 3px; flex: 0 0 auto; background: var(--danger); color: #fff; display: grid; place-items: center; font-size: .52rem; font-weight: 700; }
+.wa-doc-n { font-size: .75rem; font-weight: 500; color: var(--wa-ink); line-height: 1.3; }
+.wa-doc-m { font-size: .64rem; color: var(--wa-ink-2); }
+
+/* typing */
+.typing { align-self: flex-start; background: var(--wa-in); border-radius: 9px; border-top-left-radius: 2px; padding: 10px 12px; box-shadow: 0 1px 1px rgba(0,0,0,.1); display: flex; gap: 4px; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--wa-ink-2); display: block; animation: bl 1.1s infinite; }
+.typing i:nth-child(2) { animation-delay: .18s; } .typing i:nth-child(3) { animation-delay: .36s; }
+@keyframes bl { 0%,60%,100% { opacity: .3; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .typing i { animation: none; opacity: .6; } }
+
+/* composer */
+.composer { flex: 0 0 auto; background: var(--wa-bar); padding: 9px 10px; display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--wa-divider); }
+.composer input {
+  flex: 1 1 auto; min-width: 0; border: 0; border-radius: var(--r-pill); padding: 10px 14px;
+  font-size: .82rem; background: var(--wa-in); color: var(--wa-ink); font-family: inherit;
+}
+.composer input::placeholder { color: var(--wa-ink-2); }
+.composer input:focus { outline: 2px solid var(--wa-header); outline-offset: 1px; }
+.send-btn {
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--wa-header); color: #fff; font-size: 1rem; display: grid; place-items: center;
+}
+.send-btn:hover { filter: brightness(1.08); }
+
+/* bottom sheet */
+.scrim {
+  position: absolute; inset: 0; background: var(--wa-scrim); display: none;
+  align-items: flex-end; z-index: 5;
+}
+.scrim.open { display: flex; }
+.sheet {
+  width: 100%; background: var(--wa-sheet-bg); border-radius: 14px 14px 0 0;
+  max-height: 82%; overflow-y: auto; animation: up .22s ease-out;
+}
+@keyframes up { from { transform: translateY(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+.sheet-hd {
+  padding: 14px 16px 12px; font-size: .86rem; font-weight: 600; color: var(--wa-ink);
+  border-bottom: 1px solid var(--wa-divider); display: flex; justify-content: space-between; align-items: center;
+}
+.sheet-x { background: none; border: 0; color: var(--wa-ink-2); font-size: 1.1rem; cursor: pointer; line-height: 1; padding: 0 4px; }
+.sheet-sec { padding: 11px 16px 4px; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--wa-ink-2); }
+.sheet-row {
+  padding: 11px 16px; border-bottom: 1px solid var(--wa-divider); display: flex;
+  align-items: center; justify-content: space-between; gap: 12px; cursor: pointer;
+  background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; text-align: left;
+  font-family: inherit;
+}
+.sheet-row:hover, .sheet-row:focus-visible { background: rgba(0,0,0,.04); }
+:root[data-theme="dark"] .sheet-row:hover { background: rgba(255,255,255,.05); }
+.sheet-row-t { font-size: .82rem; color: var(--wa-ink); }
+.sheet-row-d { font-size: .7rem; color: var(--wa-ink-2); margin-top: 1px; }
+.sheet-radio { width: 16px; height: 16px; border-radius: 50%; flex: 0 0 auto; border: 1.5px solid var(--wa-ink-2); }
+.sheet-radio.on { border-color: var(--wa-header); background: var(--wa-header); box-shadow: inset 0 0 0 3.5px var(--wa-sheet-bg); }
+
+/* ---------------- control panel ---------------- */
+.panel { display: flex; flex-direction: column; gap: 20px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-card); overflow: hidden; }
+.card-hd { padding: 13px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.card-t { font-size: var(--t-base); font-weight: 600; }
+.card-bd { padding: 16px 18px; }
+.card-sub { font-size: var(--t-xs); color: var(--text-3); margin: 3px 0 0; }
+
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-2);
+  border-radius: var(--r-sm); padding: 7px 13px; font-size: var(--t-sm); font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: background .12s, border-color .12s;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--text-3); color: var(--text); }
+.btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+.btn.primary:hover { filter: brightness(1.08); background: var(--green); color: #fff; }
+.btn.danger { border-color: rgba(207,34,46,.45); color: var(--danger); }
+.btn.danger:hover { background: var(--danger-tint); border-color: var(--danger); color: var(--danger); }
+
+select {
+  width: 100%; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+  border-radius: var(--r-sm); padding: 8px 11px; font-size: var(--t-sm); font-family: inherit;
+}
+label.fld { display: block; font-size: var(--t-xs); font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+
+.switch { display: flex; align-items: flex-start; gap: 11px; cursor: pointer; padding: 11px 0; border-top: 1px solid var(--border); }
+.switch:first-of-type { border-top: 0; padding-top: 0; }
+.switch input { margin: 3px 0 0; flex: 0 0 auto; accent-color: var(--pink); width: 15px; height: 15px; }
+.switch-t { font-size: var(--t-sm); font-weight: 600; }
+.switch-d { font-size: var(--t-xs); color: var(--text-2); margin-top: 2px; line-height: 1.5; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); gap: 1px; background: var(--border); }
+.stat { background: var(--surface); padding: 13px 16px; }
+.stat-k { font-size: var(--t-xs); color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.stat-v { font-size: 1.15rem; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.stat-d { font-size: var(--t-xs); color: var(--text-3); margin-top: 1px; }
+
+.pill { display: inline-flex; align-items: center; gap: 5px; border-radius: var(--r-pill); padding: 2px 9px; font-size: var(--t-xs); font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.pill.ok { background: var(--success-tint); color: var(--success); border-color: rgba(45,164,78,.28); }
+.pill.off { background: var(--surface-2); color: var(--text-2); border-color: var(--border-strong); }
+.pill.warn { background: var(--warning-tint); color: var(--warning-ink); border-color: rgba(212,167,44,.35); }
+.pill.bad { background: var(--danger-tint); color: var(--danger); border-color: rgba(207,34,46,.28); }
+
+.note { border-left: 3px solid var(--border-strong); padding: 2px 0 2px 13px; font-size: var(--t-sm); color: var(--text-2); }
+.note b { color: var(--text); font-weight: 600; }
+.note.bad { border-left-color: var(--danger); }
+.note.good { border-left-color: var(--success); }
+.note.warn { border-left-color: var(--warning); }
+
+.callout { border-radius: var(--r-md); padding: 13px 15px; font-size: var(--t-sm); border: 1px solid var(--border); }
+.callout.info { background: var(--info-tint); border-color: rgba(9,105,218,.28); }
+.callout.bad { background: var(--danger-tint); border-color: rgba(207,34,46,.3); }
+.callout b { font-weight: 600; }
+
+.try { display: flex; flex-wrap: wrap; gap: 6px; }
+.try button {
+  font-family: var(--mono); font-size: var(--t-xs); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: var(--r-pill); padding: 4px 11px;
+  color: var(--text-2); cursor: pointer;
+}
+.try button:hover { border-color: var(--info); color: var(--info); background: var(--info-tint); }
+
+.log { max-height: 190px; overflow-y: auto; font-family: var(--mono); font-size: var(--t-xs); line-height: 1.7; }
+.log-row { display: flex; gap: 9px; padding: 3px 0; border-bottom: 1px solid var(--border); }
+.log-row:last-child { border-bottom: 0; }
+.log-t { color: var(--text-3); flex: 0 0 auto; }
+.log-m { color: var(--text-2); min-width: 0; word-break: break-word; }
+.log-m b { color: var(--text); font-weight: 600; }
+.log-m .paid { color: var(--danger); font-weight: 600; }
+.log-m .free { color: var(--success); font-weight: 600; }
+.empty { color: var(--text-3); font-size: var(--t-sm); font-style: italic; }
+
+code { font-family: var(--mono); font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; color: var(--text-2); }
+a { color: var(--info); }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; border-radius: 3px; }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Macavation · Interactive prototype</p>
+  <h1>Macavation WhatsApp Simulator</h1>
+  <p class="standfirst">
+    A working model of the WhatsApp line. Type to it, tap the menus, change your own settings,
+    resolve an alert — and use the panel on the right to switch roles or fire the messages that
+    arrive unprompted. Nothing here touches the real number.
+  </p>
+</header>
+
+<div class="layout">
+
+  <!-- ============ PHONE ============ -->
+  <div class="phone-col">
+    <div class="phone">
+      <div class="phone-bar">
+        <div class="phone-avatar">M</div>
+        <div>
+          <div class="phone-name">Macavation</div>
+          <div class="phone-sub" id="phoneSub">Business account</div>
+        </div>
+      </div>
+
+      <div class="chat" id="chat" aria-live="polite" aria-label="Conversation"></div>
+
+      <form class="composer" id="composer">
+        <input id="input" type="text" placeholder="Message" autocomplete="off"
+               aria-label="Type a message to Macavation">
+        <button class="send-btn" type="submit" aria-label="Send">➤</button>
+      </form>
+
+      <div class="scrim" id="scrim">
+        <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Choose an option"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PANEL ============ -->
+  <div class="panel">
+
+    <div class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-t">Who you are</div>
+          <p class="card-sub">The menu shows only what this role can already open in the portal</p>
+        </div>
+        <button class="btn danger" id="reset" type="button">Start over</button>
+      </div>
+      <div class="card-bd" style="display:flex; flex-direction:column; gap:14px;">
+        <div>
+          <label class="fld" for="role">Role</label>
+          <select id="role">
+            <option value="super_user">super_user — everything (32 areas)</option>
+            <option value="admin">admin — everything (35 areas)</option>
+            <option value="Production Manager">Production Manager — 13 areas</option>
+            <option value="Factory Manager">Factory Manager — 8 areas</option>
+            <option value="Sales Exec">Sales Exec — 15 areas</option>
+            <option value="Shareholder">Shareholder — 17 areas</option>
+            <option value="Quality Assurance">Quality Assurance — 13 areas</option>
+            <option value="Palladium Manager">Palladium Manager — 12 areas</option>
+          </select>
+        </div>
+        <div>
+          <label class="switch">
+            <input type="checkbox" id="bug">
+            <span>
+              <span class="switch-t">Reproduce the live permission fault</span>
+              <span class="switch-d">The real fault on the line today: a super user's own
+                permissions come back empty, so the menu says they have access to nothing. Every
+                other role is fine. Switch this on with <code>super_user</code> selected and send
+                <code>menu</code> to see exactly what you're getting.</span>
+            </span>
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="enrolled" checked>
+            <span>
+              <span class="switch-t">This number is enrolled</span>
+              <span class="switch-d">Turn it off to see what a stranger gets — and to walk
+                through enrolment with a code.</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-t">Send something unprompted</div>
+          <p class="card-sub">Approved templates — these reach a phone that hasn't replied in days</p>
+        </div>
+      </div>
+      <div class="card-bd" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="btn-row">
+          <button class="btn primary" data-push="daily" type="button">Daily report · 06:00</button>
+          <button class="btn" data-push="weekly" type="button">Weekly report</button>
+          <button class="btn" data-push="alert" type="button">Critical alert</button>
+          <button class="btn" data-push="message" type="button">Message from Henry</button>
+          <button class="btn" data-push="enrol" type="button">Enrolment code</button>
+        </div>
+        <div class="note warn">
+          <b>Watch the window.</b> Each of these costs a message. Everything after they tap is
+          free — that's the whole reason the buttons are there.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><div class="card-t">Live state</div></div>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-k">Reply window</div>
+          <div class="stat-v" id="statWindow">Closed</div>
+          <div class="stat-d" id="statWindowD">Only templates can reach them</div>
+        </div>
+        <div class="stat">
+          <div class="stat-k">Messages sent</div>
+          <div class="stat-v" id="statCost">0 <span style="font-size:.7rem;font-weight:600;color:var(--text-3)">paid</span></div>
+          <div class="stat-d" id="statCostD">0 free</div>
+        </div>
+        <div class="stat">
+          <div class="stat-k">Getting</div>
+          <div class="stat-v" id="statSubs" style="font-size:.9rem">Daily · Weekly</div>
+          <div class="stat-d" id="statSubsD">Monthly off</div>
+        </div>
+        <div class="stat">
+          <div class="stat-k">Menu items</div>
+          <div class="stat-v" id="statItems">8</div>
+          <div class="stat-d" id="statItemsD">visible to this role</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-t">Things worth trying</div>
+          <p class="card-sub">Tap one to send it</p>
+        </div>
+      </div>
+      <div class="card-bd" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="try" id="try">
+          <button type="button" data-say="hello">hello</button>
+          <button type="button" data-say="menu">menu</button>
+          <button type="button" data-say="stock please">stock please</button>
+          <button type="button" data-say="2">2</button>
+          <button type="button" data-say="help">help</button>
+          <button type="button" data-say="99">99</button>
+          <button type="button" data-say="0">0</button>
+          <button type="button" data-say="ACK 1">ACK 1</button>
+          <button type="button" data-say="yes">yes</button>
+          <button type="button" data-say="stop">stop</button>
+          <button type="button" data-say="resume">resume</button>
+          <button type="button" data-say="418302">418302</button>
+        </div>
+        <div class="note">
+          <b>Try this order:</b> switch the role to <code>Factory Manager</code> and send
+          <code>menu</code> — the Latest report row disappears, because that role can't open
+          reports in the portal either. Then send <code>ACK 1</code> — they can see alerts but
+          can't resolve one.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-t">What the system recorded</div>
+          <p class="card-sub">Every inbound and outbound, as it would be logged</p>
+        </div>
+      </div>
+      <div class="card-bd">
+        <div class="log" id="log"><p class="empty">Nothing yet — say hello to the number.</p></div>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <b>What's real here.</b> The role permissions, who may resolve an alert, the stock figures
+      and the menu gating are all read from the live development database. Production figures and
+      names other than your own are illustrative — there's no production recorded for today.
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- data ----------
+  // Feature grants read from the development database, 4 Sep 2026.
+  var ROLE_FEATURES = {
+    'super_user':         { dashboard: 1, stock: 1, intake: 1, reports: 1, resolve: 1 },
+    'admin':              { dashboard: 1, stock: 1, intake: 1, reports: 1, resolve: 1 },
+    'Production Manager': { dashboard: 1, stock: 1, intake: 1, reports: 1, resolve: 0 },
+    'Factory Manager':    { dashboard: 1, stock: 1, intake: 1, reports: 0, resolve: 0 },
+    'Sales Exec':         { dashboard: 1, stock: 1, intake: 1, reports: 0, resolve: 0 },
+    'Shareholder':        { dashboard: 1, stock: 1, intake: 1, reports: 0, resolve: 0 },
+    'Quality Assurance':  { dashboard: 1, stock: 1, intake: 1, reports: 0, resolve: 0 },
+    'Palladium Manager':  { dashboard: 1, stock: 0, intake: 1, reports: 0, resolve: 0 }
+  };
+
+  var MENU = [
+    { id: 'production', title: 'Production today',  desc: 'Cracked, packed, oil',     need: 'dashboard', sec: 'Today' },
+    { id: 'stock',      title: 'Stock & runway',    desc: 'On hand, weeks cover',     need: 'stock',     sec: 'Today' },
+    { id: 'yield',      title: 'Recovery & yield',  desc: 'Sound kernel, oil yield',  need: 'dashboard', sec: 'Today' },
+    { id: 'intake',     title: 'Intake today',      desc: 'Deliveries and NIS',       need: 'intake',    sec: 'Today' },
+    { id: 'alerts',     title: 'Open alerts',       desc: '3 need attention',         need: 'dashboard', sec: 'Today' },
+    { id: 'digest',     title: 'Full daily digest', desc: 'Everything in one message',need: 'dashboard', sec: 'Reports' },
+    { id: 'report',     title: 'Latest report',     desc: 'Weekly, w/e 1 Sep',        need: 'reports',   sec: 'Reports' },
+    { id: 'settings',   title: 'My reports',        desc: 'Change what you get',      need: null,        sec: 'Reports' }
+  ];
+
+  var ALERTS = [
+    { n: 1, title: 'Low stock: Protein', raised: '16 Aug', sev: 'warning' },
+    { n: 2, title: 'Low stock: Protein', raised: '14 Aug', sev: 'warning' },
+    { n: 3, title: 'Low stock: Protein', raised: '12 Aug', sev: 'warning' }
+  ];
+
+  var ANSWERS = {
+    production:
+      '*Production — 4 Sep*\n\n' +
+      'Kernel cracked: 4 120 kg today, 19 640 kg this week\n' +
+      'Kernel packed: 3 880 kg today, 18 200 kg this week\n' +
+      'Oil: 880 L today, 4 210 L this week\n' +
+      'Batches in production: 2',
+    stock:
+      '*Stock & runway*\n\n' +
+      'Kernel on hand: 21 591 kg\n' +
+      'Oil finished: 193 660 kg\n' +
+      'Oil raw material: 6 kg\n' +
+      'Weeks cover: —\n\n' +
+      '_Cover not calculable — no demand figure this week._',
+    yield:
+      '*Recovery & yield — 4 Sep*\n\n' +
+      'Sound kernel recovery: 31,4%\n' +
+      'Oil yield: 28,9%\n' +
+      'Wholes: 42%\n\n' +
+      'Month to date: 86 400 kg\n' +
+      'Last month: 92 100 kg (−6,2%)',
+    intake:
+      '*Intake — 4 Sep*\n\n' +
+      'Deliveries: 6\n' +
+      'NIS received: 18 400 kg\n' +
+      'Expected still to arrive: 4 200 kg',
+    digest:
+      '*Macavation — 4 Sep*\n\n' +
+      '*Production*\nCracked 4 120 kg · packed 3 880 kg\nOil 880 L · 2 batches running\n\n' +
+      '*Against target*\n19 640 kg WTD vs 21 000 kg (−6,5%)\n\n' +
+      '*Stock*\nKernel 21 591 kg · oil 193 660 kg\n\n' +
+      '*Intake*\n6 deliveries · 18 400 kg NIS\n\n' +
+      '*Alerts*\n3 open — reply 5 to see them'
+  };
+
+  var HELP =
+    'Hi {name}. Here is what I can do:\n\n' +
+    'MENU (or 0, 99) — show the menu\n' +
+    'HELP — show this message\n' +
+    'YES / NO — confirm or cancel a request\n' +
+    'STOP — stop all messages\n\n' +
+    'The menu shows only the areas your role can already open in the portal.\n\n' +
+    'Anything that changes data asks you to confirm first.';
+
+  // ---------- state ----------
+  var S, clock, timer = null;
+
+  function fresh() {
+    return {
+      role: 'super_user',
+      bug: false,
+      enrolled: true,
+      name: 'Henry',
+      optedOut: false,
+      pausedUntil: null,
+      subs: { daily: true, weekly: true, monthly: false },
+      alertPref: 'critical',
+      windowOpen: false,
+      pending: null,
+      resolved: [],
+      paid: 0,
+      free: 0,
+      log: [],
+      lastMenu: [],
+      pendingCode: null,
+      stamped: false
+    };
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var chat = $('chat'), sheetEl = $('sheet'), scrim = $('scrim');
+
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+  function now() { return two(clock.h) + ':' + two(clock.m); }
+  function tick(mins) {
+    clock.m += (mins || 1);
+    while (clock.m >= 60) { clock.m -= 60; clock.h = (clock.h + 1) % 24; }
+  }
+
+  // ---------- rendering ----------
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  // WhatsApp's own *bold* and _italic_
+  function fmt(s) {
+    return esc(s)
+      .replace(/\*([^*\n]+)\*/g, '<b>$1</b>')
+      .replace(/_([^_\n]+)_/g, '<i>$1</i>');
+  }
+
+  function scroll() {
+    requestAnimationFrame(function () { chat.scrollTop = chat.scrollHeight; });
+  }
+
+  function stamp() {
+    if (S.stamped) return;
+    S.stamped = true;
+    var d = document.createElement('div');
+    d.className = 'daystamp';
+    d.textContent = 'TODAY';
+    chat.appendChild(d);
+  }
+
+  function sysline(text) {
+    var d = document.createElement('div');
+    d.className = 'sysline';
+    d.textContent = text;
+    chat.appendChild(d);
+    scroll();
+  }
+
+  function outbound(text) {
+    stamp();
+    var d = document.createElement('div');
+    d.className = 'bub out';
+    d.innerHTML = fmt(text) + '<span class="tm">' + now() +
+      ' <span class="tick">✓✓</span></span>';
+    chat.appendChild(d);
+    scroll();
+  }
+
+  /** opts: {buttons:[{label,action}], list:{...}, doc:{name,meta}, template:'name', header:'…'} */
+  function inbound(text, opts) {
+    stamp();
+    opts = opts || {};
+    var d = document.createElement('div');
+    d.className = 'bub in';
+    var html = '';
+    if (opts.template) html += '<span class="tpl-tag">Template · ' + esc(opts.template) + '</span>';
+    if (opts.header) html += '<div class="bub-hdr">' + esc(opts.header) + '</div>';
+    if (opts.doc) {
+      html += '<div class="wa-doc"><div class="wa-doc-ic">PDF</div><div>' +
+        '<div class="wa-doc-n">' + esc(opts.doc.name) + '</div>' +
+        '<div class="wa-doc-m">' + esc(opts.doc.meta) + '</div></div></div>';
+    }
+    html += fmt(text) + '<span class="tm">' + now() + '</span>';
+    d.innerHTML = html;
+
+    if (opts.list) {
+      var cta = document.createElement('button');
+      cta.type = 'button';
+      cta.className = 'wa-list-cta';
+      cta.textContent = '☰  ' + (opts.list.cta || 'Choose');
+      cta.addEventListener('click', function () { openSheet(opts.list); });
+      d.appendChild(cta);
+    }
+    if (opts.buttons && opts.buttons.length) {
+      var wrap = document.createElement('div');
+      wrap.className = 'wa-btns';
+      opts.buttons.forEach(function (b) {
+        var el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'wa-btn';
+        el.textContent = b.label;
+        el.addEventListener('click', function () {
+          Array.prototype.forEach.call(wrap.children, function (c) { c.disabled = true; });
+          say(b.label, b.action);
+        });
+        wrap.appendChild(el);
+      });
+      d.appendChild(wrap);
+    }
+    chat.appendChild(d);
+    scroll();
+  }
+
+  function typing(then) {
+    stamp();
+    var d = document.createElement('div');
+    d.className = 'typing';
+    d.innerHTML = '<i></i><i></i><i></i>';
+    chat.appendChild(d);
+    scroll();
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(function () {
+      if (d.parentNode) d.parentNode.removeChild(d);
+      then();
+    }, reduced ? 0 : 480);
+  }
+
+  // ---------- sheet ----------
+  function openSheet(spec) {
+    var html = '<div class="sheet-hd"><span>' + esc(spec.title) +
+      '</span><button class="sheet-x" type="button" aria-label="Close">✕</button></div>';
+    spec.sections.forEach(function (sec) {
+      if (sec.title) html += '<div class="sheet-sec">' + esc(sec.title) + '</div>';
+      sec.rows.forEach(function (r) {
+        html += '<button class="sheet-row" type="button" data-act="' + esc(r.id) + '">' +
+          '<span><span class="sheet-row-t">' + esc(r.title) + '</span>' +
+          (r.desc ? '<span class="sheet-row-d">' + esc(r.desc) + '</span>' : '') + '</span>' +
+          '<span class="sheet-radio' + (r.on ? ' on' : '') + '"></span></button>';
+      });
+    });
+    sheetEl.innerHTML = html;
+    scrim.classList.add('open');
+    sheetEl.querySelector('.sheet-x').addEventListener('click', closeSheet);
+    Array.prototype.forEach.call(sheetEl.querySelectorAll('.sheet-row'), function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-act');
+        var label = b.querySelector('.sheet-row-t').textContent;
+        closeSheet();
+        say(label, id);
+      });
+    });
+    var first = sheetEl.querySelector('.sheet-row');
+    if (first) first.focus();
+  }
+  function closeSheet() { scrim.classList.remove('open'); sheetEl.innerHTML = ''; }
+  scrim.addEventListener('click', function (e) { if (e.target === scrim) closeSheet(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && scrim.classList.contains('open')) closeSheet();
+  });
+
+  // ---------- logging ----------
+  function logit(dir, msg, kind) {
+    S.log.unshift({ t: now(), dir: dir, msg: msg, kind: kind || 'free' });
+    if (S.log.length > 40) S.log.pop();
+    paint();
+  }
+
+  // ---------- menu ----------
+  function visible() {
+    var f = ROLE_FEATURES[S.role] || {};
+    if (S.bug && S.role === 'super_user') return [];
+    return MENU.filter(function (m) { return m.need === null || f[m.need] === 1; });
+  }
+
+  function menuSpec(items) {
+    var secs = [], seen = {};
+    items.forEach(function (m) {
+      if (!seen[m.sec]) { seen[m.sec] = { title: m.sec, rows: [] }; secs.push(seen[m.sec]); }
+      seen[m.sec].rows.push({ id: m.id, title: m.title, desc: m.desc });
+    });
+    return { title: 'Macavation', cta: 'Choose', sections: secs };
+  }
+
+  function showMenu() {
+    var items = visible();
+    S.lastMenu = items;
+    if (!items.length) {
+      inbound('Hi ' + S.name + ', your role does not have access to any of the WhatsApp reports ' +
+        'yet. Ask an administrator to enable the areas you need in the portal.');
+      logit('out', 'MENU → denied: no features enabled for role', 'free');
+      return;
+    }
+    inbound('Hi ' + S.name + '. What would you like to see?', { list: menuSpec(items) });
+    logit('out', 'MENU → ' + items.length + ' items', 'free');
+  }
+
+  // ---------- actions ----------
+  function settingsSheet() {
+    var paused = S.pausedUntil;
+    return {
+      title: 'My reports', cta: 'Change',
+      sections: [
+        { title: null, rows: [
+          { id: 'sub:daily',   title: 'Daily — ' + (S.subs.daily ? 'on' : 'off'),     desc: 'Every morning at 06:00', on: S.subs.daily },
+          { id: 'sub:weekly',  title: 'Weekly — ' + (S.subs.weekly ? 'on' : 'off'),   desc: 'Mondays',                on: S.subs.weekly },
+          { id: 'sub:monthly', title: 'Monthly — ' + (S.subs.monthly ? 'on' : 'off'), desc: '1st of the month',       on: S.subs.monthly },
+          { id: 'sub:alerts',  title: 'Alerts — ' + S.alertPref, desc: 'Tap to change', on: S.alertPref !== 'none' }
+        ]},
+        { title: 'Quieten things down', rows: [
+          { id: 'pause', title: paused ? 'Paused until ' + paused : 'Pause for a week', desc: 'Resumes on its own', on: !!paused },
+          { id: 'stopall', title: 'Stop everything', desc: 'Until you ask again', on: false }
+        ]}
+      ]
+    };
+  }
+
+  function openAlerts() {
+    var open = ALERTS.filter(function (a) { return S.resolved.indexOf(a.n) === -1; });
+    if (!open.length) {
+      inbound('No open alerts. Everything is clear.', { buttons: [{ label: 'Main menu', action: 'menu' }] });
+      logit('out', 'alerts → none open', 'free');
+      return;
+    }
+    var canResolve = (ROLE_FEATURES[S.role] || {}).resolve === 1;
+    var body = '*' + open.length + ' open alert' + (open.length > 1 ? 's' : '') + '*\n\n';
+    open.forEach(function (a, i) {
+      body += (i + 1) + '. ⚠️ ' + a.title + ' — ' + a.raised + '\n';
+    });
+    body += '\n' + (canResolve
+      ? 'Reply *ACK 1* to resolve the first.'
+      : '_Your role can see alerts but not resolve them._');
+    inbound(body, { buttons: [{ label: 'Main menu', action: 'menu' }] });
+    logit('out', 'alerts → ' + open.length + ' open' + (canResolve ? '' : ' (read-only for role)'), 'free');
+  }
+
+  function ack(n) {
+    var canResolve = (ROLE_FEATURES[S.role] || {}).resolve === 1;
+    if (!canResolve) {
+      inbound('Sorry ' + S.name + ', your role cannot resolve alerts. Ask an administrator.');
+      logit('out', 'ACK ' + n + ' → denied: role lacks alerts.resolve', 'free');
+      return;
+    }
+    var open = ALERTS.filter(function (a) { return S.resolved.indexOf(a.n) === -1; });
+    var a = open[n - 1];
+    if (!a) {
+      inbound('There is no alert ' + n + '. Reply *5* to see what is open.');
+      logit('out', 'ACK ' + n + ' → no such alert', 'free');
+      return;
+    }
+    S.pending = { kind: 'resolve', alert: a };
+    inbound('Resolve *' + a.title + '*, raised ' + a.raised + '?', {
+      buttons: [{ label: 'Yes, resolve', action: 'yes' }, { label: 'Cancel', action: 'no' }]
+    });
+    logit('out', 'ACK ' + n + ' → staged, awaiting confirmation', 'free');
+  }
+
+  function confirmYes() {
+    if (!S.pending) {
+      inbound('Hi ' + S.name + ', there was nothing waiting for confirmation.');
+      logit('out', 'YES → nothing pending', 'free');
+      return;
+    }
+    var p = S.pending; S.pending = null;
+    if (p.kind === 'resolve') {
+      if ((ROLE_FEATURES[S.role] || {}).resolve !== 1) {
+        inbound('Sorry ' + S.name + ', your role cannot resolve alerts.');
+        logit('out', 'YES → denied at write time (permission re-checked)', 'free');
+        return;
+      }
+      S.resolved.push(p.alert.n);
+      var left = ALERTS.length - S.resolved.length;
+      inbound('Done. *' + p.alert.title + '* resolved by you at ' + now() +
+        ' and recorded in the portal.\n\n' + left + ' alert' + (left === 1 ? '' : 's') + ' still open.',
+        { buttons: [{ label: 'Main menu', action: 'menu' }] });
+      logit('out', 'resolve_dashboard_alert → ok', 'free');
+    } else if (p.kind === 'stop') {
+      S.optedOut = true;
+      inbound('Stopped. You will not get anything from us until you ask.\n\n' +
+        'Send *start* when you want them back.');
+      logit('out', 'opted out', 'free');
+    }
+  }
+
+  function confirmNo() {
+    if (!S.pending) {
+      inbound('Hi ' + S.name + ', there was nothing waiting for confirmation.');
+      logit('out', 'NO → nothing pending', 'free');
+      return;
+    }
+    S.pending = null;
+    inbound('OK ' + S.name + ', cancelled — nothing was saved.');
+    logit('out', 'cancelled', 'free');
+  }
+
+  function dispatch(action) {
+    if (action === 'menu') return showMenu();
+    if (action === 'help') { inbound(HELP.replace('{name}', S.name)); logit('out', 'HELP', 'free'); return; }
+    if (action === 'yes') return confirmYes();
+    if (action === 'no') return confirmNo();
+    if (action === 'alerts') return openAlerts();
+    if (action === 'settings') {
+      inbound('Here\'s what you\'re getting. Tap one to change it.', { list: settingsSheet() });
+      logit('out', 'settings opened', 'free');
+      return;
+    }
+    if (action === 'report') {
+      inbound('*Weekly report — week ending 1 Sep*\n\n' +
+        'Cracked 96 200 kg against a target of 98 000 kg.\n' +
+        'Recovery 31,1%, up from 30,4%.', {
+          doc: { name: 'Macavation Weekly 01-09.pdf', meta: '4 pages · 318 kB' },
+          buttons: [{ label: 'Main menu', action: 'menu' }]
+        });
+      logit('out', 'latest report + PDF', 'free');
+      return;
+    }
+    if (ANSWERS[action]) {
+      inbound(ANSWERS[action], { buttons: [{ label: 'Main menu', action: 'menu' }] });
+      logit('out', action, 'free');
+      return;
+    }
+    if (action.indexOf('sub:') === 0) {
+      var k = action.slice(4);
+      if (k === 'alerts') {
+        S.alertPref = S.alertPref === 'critical' ? 'critical and warnings'
+                    : S.alertPref === 'critical and warnings' ? 'none' : 'critical';
+        inbound(S.alertPref === 'none'
+          ? 'Alerts are off. You will still see them in the portal.'
+          : 'You will get *' + S.alertPref + '* alerts.');
+      } else {
+        S.subs[k] = !S.subs[k];
+        var on = Object.keys(S.subs).filter(function (x) { return S.subs[x]; });
+        inbound(k.charAt(0).toUpperCase() + k.slice(1) + ' is now *' + (S.subs[k] ? 'on' : 'off') +
+          '*.\n\n' + (on.length ? 'You are getting: ' + on.join(', ') + '.' : 'You are getting no reports.'));
+      }
+      logit('out', 'subscription updated', 'free');
+      paint();
+      return;
+    }
+    if (action === 'pause') {
+      S.pausedUntil = 'Thu 11 Sep';
+      inbound('Paused until *Thu 11 Sep*. Critical alerts will still come through.\n\n' +
+        'Send *resume* any time to start again sooner.');
+      logit('out', 'paused 7 days', 'free');
+      paint();
+      return;
+    }
+    if (action === 'stopall') {
+      S.pending = { kind: 'stop' };
+      inbound('Stop *everything* — reports and alerts?', {
+        buttons: [{ label: 'Yes, stop all', action: 'yes' }, { label: 'Cancel', action: 'no' }]
+      });
+      logit('out', 'stop staged', 'free');
+      return;
+    }
+    showMenu();
+  }
+
+  // ---------- the router ----------
+  function say(display, action) {
+    tick(1);
+    outbound(display);
+    logit('in', display, 'free');
+    S.windowOpen = true;
+    paint();
+
+    if (action) { typing(function () { tick(0); dispatch(action); paint(); }); return; }
+
+    var raw = String(display).trim();
+    var up = raw.toUpperCase();
+    var first = up.split(/\s+/)[0];
+
+    typing(function () {
+      // Not enrolled: one thing only.
+      if (!S.enrolled) {
+        if (/^\d{6}$/.test(raw)) {
+          if (S.pendingCode && raw === S.pendingCode) {
+            S.enrolled = true; S.pendingCode = null;
+            $('enrolled').checked = true;
+            inbound('Thanks ' + S.name + ', this number is now enrolled.\n\n' +
+              'Text *HELP* any time to see what I can do, or just say hello for the menu.');
+            logit('out', 'whatsapp_confirm_enrolment → ok', 'free');
+          } else {
+            sysline('No reply sent — wrong or expired code, deliberately silent');
+            logit('out', 'ENROL → silent failure (logged, not answered)', 'free');
+          }
+        } else if (first === 'STOP') {
+          inbound('Stopped. You will not hear from us again.');
+          logit('out', 'opt-out honoured from unenrolled number', 'free');
+        } else {
+          sysline('No reply sent — this number is not enrolled');
+          logit('out', 'not_enrolled → silence', 'free');
+        }
+        paint();
+        return;
+      }
+
+      // Opted out: only start brings them back.
+      if (S.optedOut) {
+        if (first === 'START' || first === 'RESUME') {
+          S.optedOut = false;
+          inbound('Welcome back ' + S.name + '. You are getting reports again.');
+          logit('out', 'opt-in restored', 'free');
+        } else {
+          sysline('No reply sent — this number has opted out');
+          logit('out', 'opted out → silence', 'free');
+        }
+        paint();
+        return;
+      }
+
+      if (first === 'STOP') { dispatch('stopall'); paint(); return; }
+      if (first === 'RESUME' || first === 'START') {
+        if (S.pausedUntil) {
+          S.pausedUntil = null;
+          inbound('Resumed. You will get your next report as normal.');
+          logit('out', 'pause cleared', 'free');
+        } else {
+          inbound('Nothing was paused — you are getting everything as normal.');
+          logit('out', 'resume → nothing paused', 'free');
+        }
+        paint();
+        return;
+      }
+      if (first === 'HELP') { dispatch('help'); paint(); return; }
+      if (first === 'YES' || first === 'Y' || first === 'CONFIRM') { confirmYes(); paint(); return; }
+      if (first === 'NO' || first === 'N' || first === 'CANCEL') { confirmNo(); paint(); return; }
+      if (first === 'ACK') {
+        var n = parseInt(up.split(/\s+/)[1], 10);
+        if (n) { ack(n); paint(); return; }
+      }
+      if (!raw || raw === '?' || first === 'MENU' || first === 'HI' || first === 'HELLO' ||
+          first === 'START' || raw === '0' || raw === '99') {
+        showMenu(); paint(); return;
+      }
+      if (/^\d{1,2}$/.test(raw)) {
+        var items = S.lastMenu.length ? S.lastMenu : visible();
+        S.lastMenu = items;
+        var item = items[parseInt(raw, 10) - 1];
+        if (item) { dispatch(item.id); paint(); return; }
+        inbound('There is no option ' + raw + ' on your menu. Reply *99* to see it again.');
+        logit('out', 'position ' + raw + ' → out of range', 'free');
+        paint();
+        return;
+      }
+      // The proposed behaviour: anything unrecognised opens the menu.
+      sysline('Unrecognised — opening the menu (today this lists verbs instead)');
+      showMenu();
+      paint();
+    });
+  }
+
+  // ---------- push ----------
+  var PUSH = {
+    daily: function () {
+      inbound('Morning ' + S.name + ', your report for *Thu 4 Sep* is ready.\n\n' +
+        'Kernel cracked *4 120* kg\nOil *880* L\nNIS intake *18 400* kg', {
+          template: 'macavation_daily_report', header: 'Macavation — Daily Report',
+          buttons: [{ label: 'View report', action: 'report' }, { label: 'Menu', action: 'menu' }]
+        });
+      logit('out', 'template macavation_daily_report', 'paid');
+    },
+    weekly: function () {
+      inbound('Hi ' + S.name + ', the weekly report for *week ending 1 Sep* is ready.\n\n' +
+        'Cracked *96 200* kg\nRecovery *31,1%*', {
+          template: 'macavation_weekly_report', header: 'Macavation — Weekly Report',
+          buttons: [{ label: 'View report', action: 'report' }, { label: 'Menu', action: 'menu' }]
+        });
+      logit('out', 'template macavation_weekly_report', 'paid');
+    },
+    alert: function () {
+      inbound('⚠️ *Low stock: Protein*\n\nOn hand *1 240 kg*, below the 2 000 kg minimum.\n' +
+        'Raised ' + now() + '.', {
+          template: 'macavation_alert', header: 'Macavation — Alert',
+          buttons: [
+            { label: 'Mark resolved', action: 'ack1' },
+            { label: 'Snooze 4 hours', action: 'snooze' },
+            { label: 'Menu', action: 'menu' }
+          ]
+        });
+      logit('out', 'template macavation_alert', 'paid');
+    },
+    message: function () {
+      inbound('*Henry* sent you a message on Macavation.\n\n' +
+        '_"Can you confirm the Protein bin count before Friday?"_', {
+          template: 'macavation_message',
+          buttons: [{ label: 'Reply', action: 'menu' }]
+        });
+      logit('out', 'template macavation_message', 'paid');
+    },
+    enrol: function () {
+      S.pendingCode = '418302';
+      S.enrolled = false;
+      $('enrolled').checked = false;
+      inbound('Hi ' + S.name + '. Your Macavation code is *418 302*.\n\n' +
+        'Send it back to me to finish setting up. It expires in 15 minutes.', {
+          template: 'macavation_enrolment'
+        });
+      logit('out', 'template macavation_enrolment', 'paid');
+    }
+  };
+
+  // ack1 / snooze come off template buttons
+  var origDispatch = dispatch;
+  dispatch = function (action) {
+    if (action === 'ack1') return ack(1);
+    if (action === 'snooze') {
+      inbound('Snoozed for 4 hours. I will remind you at ' +
+        two((clock.h + 4) % 24) + ':' + two(clock.m) + ' if it is still open.',
+        { buttons: [{ label: 'Main menu', action: 'menu' }] });
+      logit('out', 'alert snoozed 4h', 'free');
+      return;
+    }
+    return origDispatch(action);
+  };
+
+  function push(kind) {
+    tick(3);
+    PUSH[kind]();
+    S.paid++;
+    paint();
+  }
+
+  // ---------- panel paint ----------
+  function paint() {
+    // counts
+    var free = S.log.filter(function (l) { return l.kind === 'free' && l.dir === 'out'; }).length;
+    S.free = free;
+    $('statCost').innerHTML = S.paid +
+      ' <span style="font-size:.7rem;font-weight:600;color:var(--text-3)">paid</span>';
+    $('statCostD').textContent = free + ' free';
+
+    // window
+    var w = $('statWindow'), wd = $('statWindowD');
+    if (S.windowOpen) {
+      w.textContent = 'Open';
+      w.style.color = 'var(--success)';
+      wd.textContent = 'Anything can be sent, free, for 24h';
+    } else {
+      w.textContent = 'Closed';
+      w.style.color = 'var(--text)';
+      wd.textContent = 'Only templates can reach them';
+    }
+
+    // subs
+    var on = [];
+    if (S.subs.daily) on.push('Daily');
+    if (S.subs.weekly) on.push('Weekly');
+    if (S.subs.monthly) on.push('Monthly');
+    var sv = $('statSubs'), sd = $('statSubsD');
+    if (S.optedOut) { sv.textContent = 'Opted out'; sv.style.color = 'var(--danger)'; sd.textContent = 'Nothing will be sent'; }
+    else if (S.pausedUntil) { sv.textContent = 'Paused'; sv.style.color = 'var(--warning-ink)'; sd.textContent = 'Until ' + S.pausedUntil; }
+    else { sv.textContent = on.length ? on.join(' · ') : 'Nothing'; sv.style.color = ''; sd.textContent = 'Alerts: ' + S.alertPref; }
+
+    // items
+    var vis = visible();
+    $('statItems').textContent = vis.length;
+    $('statItemsD').textContent = vis.length ? 'visible to this role'
+      : (S.bug && S.role === 'super_user' ? 'the fault, reproduced' : 'nothing enabled');
+    $('statItems').style.color = vis.length ? '' : 'var(--danger)';
+
+    $('phoneSub').textContent = S.enrolled
+      ? (S.optedOut ? 'opted out' : 'online')
+      : 'not enrolled';
+
+    // log
+    var lg = $('log');
+    if (!S.log.length) { lg.innerHTML = '<p class="empty">Nothing yet — say hello to the number.</p>'; return; }
+    lg.innerHTML = S.log.map(function (l) {
+      var tag = l.dir === 'in' ? '←' : '→';
+      var cls = l.dir === 'out' ? (l.kind === 'paid' ? 'paid' : 'free') : '';
+      return '<div class="log-row"><span class="log-t">' + l.t + ' ' + tag +
+        '</span><span class="log-m ' + cls + '">' + esc(l.msg) + '</span></div>';
+    }).join('');
+  }
+
+  // ---------- boot ----------
+  function boot() {
+    S = fresh();
+    clock = { h: 8, m: 3 };
+    chat.innerHTML = '';
+    closeSheet();
+    $('role').value = S.role;
+    $('bug').checked = false;
+    $('enrolled').checked = true;
+    paint();
+    sysline('This is a simulation. Nothing here reaches the real number.');
+  }
+
+  $('composer').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = $('input').value.trim();
+    if (!v) return;
+    $('input').value = '';
+    say(v);
+  });
+  $('reset').addEventListener('click', boot);
+  $('role').addEventListener('change', function () { S.role = this.value; S.lastMenu = []; paint(); });
+  $('bug').addEventListener('change', function () { S.bug = this.checked; paint(); });
+  $('enrolled').addEventListener('change', function () {
+    S.enrolled = this.checked;
+    if (this.checked) S.optedOut = false;
+    paint();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-push]'), function (b) {
+    b.addEventListener('click', function () { push(b.getAttribute('data-push')); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#try button'), function (b) {
+    b.addEventListener('click', function () { say(b.getAttribute('data-say')); });
+  });
+
+  boot();
+})();
+</script>

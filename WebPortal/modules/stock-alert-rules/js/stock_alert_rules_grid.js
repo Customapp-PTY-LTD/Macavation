@@ -1,11 +1,55 @@
 /**
  * Stock Alert Rules admin grid — configure red-flag thresholds.
+ *
+ * Style and Unit are dropdowns, not free text.
+ *
+ * The style list comes from StockAlertsShared.STYLE_KEY_MAP — the SAME list the evaluator
+ * compares against (WebPortal/js/stock-alerts-shared.js). It is deliberately NOT taken from
+ * kernel_style_registry / get_kernel_styles: that registry carries BHO, BLO and 5M, which are not
+ * the strings observations are reported under ('Butter High Oil', 'Butter Low Oil', and no 5M
+ * source at all). evaluate_stock_alerts matches on exact string equality
+ * (migrations/20260602130000_stock_alerts_and_accuracy.sql — "r.style = v_style OR r.style = '*'"),
+ * so a rule built on a registry code would save happily and then never fire, with nothing to say
+ * so. Sourcing the dropdown from the evaluator's own list makes that failure impossible.
+ *
+ * Only kernel has meaningful styles. Oil, protein, shell and nis_raw observations are always
+ * reported with style '*' (stock-alerts-shared.js collectFromOilLots / collectFromRawRmLots /
+ * collectFromShellLots), so for those products Style is locked to "Any".
+ *
+ * Rules saved before Style was a dropdown may hold a value the evaluator will never match. Those
+ * are flagged in-row rather than silently rewritten — the fix is a judgement call, not a migration.
  */
 var _stockAlertRulesGrid = function () {
     'use strict';
 
     var PRODUCT_TYPES = ['kernel', 'oil', 'protein', 'shell', 'nis_raw'];
     var SEVERITIES = ['info', 'warning', 'critical'];
+    var UNITS = ['kg', 'L', 't'];
+    var ANY_STYLE = '*';
+
+    // Fallback mirrors stock-alerts-shared.js:8-11 for the case where that file has not loaded.
+    var FALLBACK_KERNEL_STYLES = ['SP', '0', '1', '1S', '4L', '5', '6', '7/8',
+                                  'Butter High Oil', 'Butter Low Oil'];
+
+    function kernelStyles() {
+        if (typeof StockAlertsShared !== 'undefined' && StockAlertsShared.STYLE_KEY_MAP) {
+            var keys = Object.keys(StockAlertsShared.STYLE_KEY_MAP);
+            if (keys.length) return keys;
+        }
+        return FALLBACK_KERNEL_STYLES.slice();
+    }
+
+    function stylesFor(productType) {
+        return productType === 'kernel' ? [ANY_STYLE].concat(kernelStyles()) : [ANY_STYLE];
+    }
+
+    function styleLabel(style) {
+        return style === ANY_STYLE ? 'Any style' : style;
+    }
+
+    function isFirableStyle(productType, style) {
+        return stylesFor(productType).indexOf(String(style)) !== -1;
+    }
 
     return {
         rows: [],
@@ -27,6 +71,40 @@ var _stockAlertRulesGrid = function () {
             $(document).off('click', '.js-delete-stock-alert-rule').on('click', '.js-delete-stock-alert-rule', function () {
                 scope.deleteRow($(this).closest('tr'));
             });
+            // Changing the product changes which styles can fire, so the style list is rebuilt
+            // and reset to Any rather than left showing a style the new product never reports.
+            $(document).off('change', '.r-product').on('change', '.r-product', function () {
+                scope.syncStyleSelect($(this).closest('tr'));
+            });
+        },
+
+        syncStyleSelect: ($tr) => {
+            const scope = _stockAlertRulesGrid;
+            var product = $tr.find('.r-product').val();
+            var $style = $tr.find('.r-style');
+            $style.html(scope.styleOptions(product, ANY_STYLE));
+            $style.prop('disabled', product !== 'kernel');
+            $tr.find('.js-style-warning').remove();
+        },
+
+        styleOptions: (productType, selected) => {
+            var list = stylesFor(productType);
+            var html = '';
+            var matched = false;
+            list.forEach(function (s) {
+                var isSel = String(s) === String(selected);
+                if (isSel) matched = true;
+                html += '<option value="' + _stockAlertRulesGrid.escapeHtml(s) + '"' +
+                    (isSel ? ' selected' : '') + '>' +
+                    _stockAlertRulesGrid.escapeHtml(styleLabel(s)) + '</option>';
+            });
+            // A saved style the evaluator does not know still has to be selectable, or saving the
+            // row would silently change it to something else behind the user's back.
+            if (!matched && selected != null && String(selected) !== '') {
+                html = '<option value="' + _stockAlertRulesGrid.escapeHtml(selected) + '" selected>' +
+                    _stockAlertRulesGrid.escapeHtml(selected) + ' — not recognised</option>' + html;
+            }
+            return html;
         },
 
         load: async () => {
@@ -48,10 +126,29 @@ var _stockAlertRulesGrid = function () {
             if (!tbody) return;
             if (scope.rows.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No rules yet. Use Add Rule.</td></tr>';
+                scope.renderBadStyleWarning(0);
                 return;
             }
             tbody.innerHTML = scope.rows.map(function (r) { return scope.rowHtml(r); }).join('');
             MacTableActions.init(document.getElementById('stockAlertRulesTable'));
+
+            var broken = scope.rows.filter(function (r) {
+                return !isFirableStyle(r.product_type || 'kernel', r.style || ANY_STYLE);
+            }).length;
+            scope.renderBadStyleWarning(broken);
+        },
+
+        renderBadStyleWarning: (count) => {
+            var $box = $('#stockAlertRulesBadStyleWarning');
+            if (!$box.length) return;
+            if (!count) { $box.addClass('d-none'); return; }
+            $('#stockAlertRulesBadStyleText').text(
+                count + ' rule' + (count === 1 ? '' : 's') + ' below ' +
+                (count === 1 ? 'has a style' : 'have styles') +
+                ' the alert checker does not recognise, so ' + (count === 1 ? 'it' : 'they') +
+                ' can never fire. Pick a style from the list to fix ' + (count === 1 ? 'it' : 'them') + '.'
+            );
+            $box.removeClass('d-none');
         },
 
         rowHtml: (r) => {
@@ -59,20 +156,35 @@ var _stockAlertRulesGrid = function () {
             var id = r && r.id != null ? r.id : '';
             function opts(list, sel) {
                 return list.map(function (o) {
-                    return '<option value="' + o + '"' + (String(o) === String(sel) ? ' selected' : '') + '>' + o + '</option>';
+                    return '<option value="' + scope.escapeHtml(o) + '"' +
+                        (String(o) === String(sel) ? ' selected' : '') + '>' +
+                        scope.escapeHtml(o) + '</option>';
                 }).join('');
             }
             var pt = r && r.product_type ? r.product_type : 'kernel';
-            var style = r && r.style ? r.style : '*';
+            var style = r && r.style ? r.style : ANY_STYLE;
             var minQty = r && r.min_qty != null ? r.min_qty : 0;
             var unit = r && r.unit ? r.unit : 'kg';
             var sev = r && r.severity ? r.severity : 'warning';
             var active = r && r.is_active !== false;
-            return '<tr data-rule-id="' + id + '">' +
+            var canFire = isFirableStyle(pt, style);
+
+            var styleWarning = canFire ? '' :
+                '<div class="text-danger small mt-1 js-style-warning">' +
+                '<i class="fas fa-triangle-exclamation me-1"></i>Can never fire — pick a style from the list' +
+                '</div>';
+
+            // Unit is a display label on the alert, not part of the comparison, so an unrecognised
+            // saved unit is kept selectable rather than being silently coerced to kg.
+            var unitList = UNITS.indexOf(unit) === -1 ? [unit].concat(UNITS) : UNITS;
+
+            return '<tr data-rule-id="' + scope.escapeHtml(id) + '">' +
                 '<td><select class="form-select form-select-sm r-product">' + opts(PRODUCT_TYPES, pt) + '</select></td>' +
-                '<td><input type="text" class="form-control form-control-sm r-style" value="' + scope.escapeHtml(style) + '" placeholder="* for any"></td>' +
-                '<td><input type="number" step="any" class="form-control form-control-sm r-min" value="' + minQty + '"></td>' +
-                '<td><input type="text" class="form-control form-control-sm r-unit" value="' + scope.escapeHtml(unit) + '"></td>' +
+                '<td><select class="form-select form-select-sm r-style"' +
+                    (pt === 'kernel' ? '' : ' disabled') + '>' +
+                    scope.styleOptions(pt, style) + '</select>' + styleWarning + '</td>' +
+                '<td><input type="number" step="any" min="0" class="form-control form-control-sm r-min" value="' + scope.escapeHtml(minQty) + '"></td>' +
+                '<td><select class="form-select form-select-sm r-unit">' + opts(unitList, unit) + '</select></td>' +
                 '<td><select class="form-select form-select-sm r-severity">' + opts(SEVERITIES, sev) + '</select></td>' +
                 '<td><input type="checkbox" class="form-check-input r-active"' + (active ? ' checked' : '') + '></td>' +
                 '<td class="mac-table-actions-col text-end">' + MacTableActions.render({
@@ -89,16 +201,27 @@ var _stockAlertRulesGrid = function () {
             var tbody = document.getElementById('stockAlertRulesTableBody');
             if (!tbody) return;
             if (scope.rows.length === 0) tbody.innerHTML = '';
-            $(tbody).append(scope.rowHtml({ id: '', product_type: 'kernel', style: '*', min_qty: 100, unit: 'kg', severity: 'warning', is_active: true }));
+            $(tbody).append(scope.rowHtml({
+                id: '', product_type: 'kernel', style: ANY_STYLE,
+                min_qty: 100, unit: 'kg', severity: 'warning', is_active: true
+            }));
         },
 
         saveRow: async ($tr) => {
             const scope = _stockAlertRulesGrid;
             var id = $tr.data('rule-id');
+            var product = ($tr.find('.r-product').val() || '').trim();
+            var style = ($tr.find('.r-style').val() || ANY_STYLE).trim() || ANY_STYLE;
+
+            if (!isFirableStyle(product, style)) {
+                scope.toast('That style is not one the alert checker recognises, so the rule could never fire. Pick one from the list.', 'error');
+                return;
+            }
+
             var payload = {
                 id: id !== '' && id != null ? id : null,
-                product_type: ($tr.find('.r-product').val() || '').trim(),
-                style: ($tr.find('.r-style').val() || '*').trim() || '*',
+                product_type: product,
+                style: style,
                 min_qty: parseFloat($tr.find('.r-min').val()) || 0,
                 unit: ($tr.find('.r-unit').val() || 'kg').trim(),
                 alert_type: 'stock_low',

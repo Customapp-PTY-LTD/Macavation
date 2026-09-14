@@ -425,10 +425,12 @@ var _roleMenuConfig = function () {
                 category: 'user-management',
                 parent: 'userManagementCollapse'
             },
-            'dashboard-targets-grid': {
-                route: 'dashboard-targets-grid',
+            // report-targets-grid was missing from this map entirely, so the Targets screen
+            // vanished whenever the sidebar fell back to role config instead of role features.
+            'report-targets-grid': {
+                route: 'report-targets-grid',
                 icon: 'fas fa-bullseye',
-                label: 'Dashboard Targets',
+                label: 'Targets',
                 category: 'user-management',
                 parent: 'userManagementCollapse'
             },
@@ -436,13 +438,6 @@ var _roleMenuConfig = function () {
                 route: 'stock-alert-rules-grid',
                 icon: 'fas fa-flag',
                 label: 'Stock Alert Rules',
-                category: 'user-management',
-                parent: 'userManagementCollapse'
-            },
-            'scheduled-reports-grid': {
-                route: 'scheduled-reports-grid',
-                icon: 'fas fa-paper-plane',
-                label: 'Scheduled Reports',
                 category: 'user-management',
                 parent: 'userManagementCollapse'
             }
@@ -514,9 +509,8 @@ var _roleMenuConfig = function () {
             'palladium-integration-grid',
             'admin-grid',
             'features-grid',
-            'dashboard-targets-grid',
+            'report-targets-grid',
             'stock-alert-rules-grid',
-            'scheduled-reports-grid',
             'executive-dashboard',
             'amanda-dashboard',
             'users-grid',
